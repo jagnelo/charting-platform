@@ -34,7 +34,7 @@
 .rotation-tool__row { grid-template-columns: 54px 78px 58px 68px 76px 66px 76px 76px 104px 58px 72px 42px; }
 .rotation-tool__head button,
 .rotation-tool__row > * { white-space: nowrap; }
-.rotation-tool__warning-heading { color: #9baab5; font-weight: 600; text-transform: uppercase; }
+.rotation-tool__warning-heading { box-sizing: border-box; min-width: 0; padding: 0 8px 0 3px; color: #9baab5; font-weight: 600; text-align: left; text-transform: uppercase; }
 .rotation-tool__warning { color: #e7bc68; }
 @media(max-height:700px){.rotation-tool{min-height:520px;grid-template-rows:auto minmax(240px,1.4fr) minmax(150px,.6fr)}}
 </style>

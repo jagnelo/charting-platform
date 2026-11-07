@@ -67,6 +67,7 @@ let loadGeneration = 0
 let activeLoadController: AbortController | null = null
 let renderedRatioContext = ''
 let chartHostElement: HTMLElement | null = null
+let loadStartedBenchmarkKey = ''
 const documentVisible = ref(typeof document === 'undefined' || document.visibilityState !== 'hidden')
 const benchmarkDraft = ref('')
 function normalizeBenchmarks(values: unknown, symbol = props.symbol) {
@@ -100,6 +101,7 @@ function persistBenchmarks(next: string[]) {
   localBenchmarks.value = normalized
   pendingBenchmarksKey = normalized.join(',')
   emit('configuration', { ratio_benchmarks: normalized })
+  void load()
 }
 
 function addBenchmark() {
@@ -118,6 +120,7 @@ async function load() {
   if (!documentVisible.value) return
   const benchmarks = localBenchmarks.value
   if (!props.symbol || !benchmarks.length) return
+  loadStartedBenchmarkKey = benchmarks.join(',')
   activeLoadController?.abort()
   const generation = ++loadGeneration
   const controller = new AbortController()
@@ -334,6 +337,7 @@ watch(() => props.benchmarks.join(','), key => {
   if (pendingBenchmarksKey !== null) {
     if (key !== pendingBenchmarksKey) return
     pendingBenchmarksKey = null
+    if (key === loadStartedBenchmarkKey) return
   }
   localBenchmarks.value = normalizeBenchmarks(props.benchmarks)
   void load()

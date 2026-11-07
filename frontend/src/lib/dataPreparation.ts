@@ -1,4 +1,5 @@
 import { api } from '@/lib/api'
+import { onAuthSessionBoundary } from '@/lib/authSession'
 
 export type PreparationDataset = 'identity' | 'profile' | 'history' | 'holdings' | 'fundamentals'
 export type PreparationTimeframe = 'M1' | 'M5' | 'M15' | 'M30' | 'H1' | 'H2' | 'H4' | 'H12' | 'D1' | 'W1' | 'MN' | 'Y1'
@@ -40,10 +41,20 @@ export interface DataEnsureRequest {
   analysis?: PreparationAnalysis | null
 }
 
+/** Initial ordinary selections use the Provider's full admitted window by default. */
+export function instrumentHistoryPreparationRequest(
+  target: PreparationInstrument,
+  timeframe: PreparationTimeframe,
+  adjusted = true,
+): DataEnsureRequest {
+  return { target, datasets: ['identity', 'profile', 'history'], timeframe, adjusted }
+}
+
 export interface PreparationDependency {
   dependency_id: string
   depends_on: string[]
   instrument_id: number | null
+  symbol: string | null
   dataset: PreparationDataset
   status: PreparationStatus
   requested_start: string | null
@@ -53,6 +64,17 @@ export interface PreparationDependency {
   reason_code: string | null
   retry_at: string | null
   updated_at: string
+  covered_ranges: PreparationCoveredRange[]
+}
+
+export interface PreparationCoveredRange {
+  start_at: string
+  end_at: string
+  data_source_id: number | null
+  market_series_id: number | null
+  adjustment_basis: string
+  adjustment_version: string
+  is_adjusted: boolean
 }
 
 export interface DataEnsureResponse {
@@ -66,6 +88,8 @@ export interface DataEnsureResponse {
   completed: number
   total: number
   last_progress_at: string
+  /** Absent on the first Provider contract; when present, worker state wins over aggregate status. */
+  has_pending_work?: boolean
 }
 
 export interface PreparationProgress {
@@ -90,11 +114,14 @@ function progressRevision(response: DataEnsureResponse): string {
     .map(dependency => [
       dependency.dependency_id,
       dependency.dataset,
+      dependency.instrument_id,
+      dependency.symbol,
       dependency.status,
       dependency.requested_start,
       dependency.requested_end,
       dependency.covered_start,
       dependency.covered_end,
+      dependency.covered_ranges,
       dependency.updated_at,
     ])
   return JSON.stringify([response.request_id, response.version, response.status, response.completed, response.total, dependencies])
@@ -181,10 +208,25 @@ async function waitUntil(timestamp: number, signal: AbortSignal, now: () => numb
 
 function responseRetryAt(response: DataEnsureResponse, after: number): number | null {
   const candidates = response.dependencies
-    .filter(dependency => dependency.status === 'waiting' && dependency.retry_at)
+    .filter(dependency => ['waiting', 'partial'].includes(dependency.status) && dependency.retry_at)
     .map(dependency => Date.parse(dependency.retry_at!))
     .filter(retryAt => Number.isFinite(retryAt) && retryAt > after)
   return candidates.length ? Math.min(...candidates) : null
+}
+
+function settled(response: DataEnsureResponse): boolean {
+  return response.has_pending_work === undefined
+    ? TERMINAL_STATUSES.has(response.status)
+    : response.has_pending_work === false
+}
+
+function onlyKnownDeferredWork(response: DataEnsureResponse, now: number): boolean {
+  const outstanding = response.dependencies.filter(dependency => ['queued', 'running', 'partial', 'waiting'].includes(dependency.status))
+  return outstanding.length > 0 && outstanding.every(dependency => {
+    if (!['waiting', 'partial'].includes(dependency.status) || !dependency.retry_at) return false
+    const retryAt = Date.parse(dependency.retry_at)
+    return Number.isFinite(retryAt) && retryAt > now
+  })
 }
 
 function validateIdentity(identity: { instrument_id?: number; symbol?: string }, label: string): void {
@@ -234,11 +276,55 @@ function validateResponse(response: DataEnsureResponse, expectedRequestId?: stri
     throw new Error('Data preparation returned contradictory progress counts.')
   }
   if (!Array.isArray(response.dependencies)) throw new Error('Data preparation omitted dependency progress.')
-  if (response.dependencies.some(dependency => !ALL_STATUSES.has(dependency.status))) {
-    throw new Error('Data preparation returned an unknown dependency state.')
+  if (response.has_pending_work !== undefined && typeof response.has_pending_work !== 'boolean') {
+    throw new Error('Data preparation returned an invalid outstanding-work state.')
+  }
+  const timestamp = (value: unknown, optional = false) => {
+    if (optional && value === null) return true
+    return typeof value === 'string'
+      && /(?:Z|[+-]\d{2}:\d{2})$/i.test(value)
+      && Number.isFinite(Date.parse(value))
+  }
+  const nullableId = (value: unknown) => value === null || (Number.isSafeInteger(value) && Number(value) > 0)
+  for (const dependency of response.dependencies) {
+    if (!dependency || typeof dependency !== 'object' || typeof dependency.dependency_id !== 'string' || !dependency.dependency_id) {
+      throw new Error('Data preparation returned an invalid dependency identity.')
+    }
+    if (!ALL_STATUSES.has(dependency.status)) throw new Error('Data preparation returned an unknown dependency state.')
+    if (!Array.isArray(dependency.depends_on) || dependency.depends_on.some(item => typeof item !== 'string')) {
+      throw new Error('Data preparation returned invalid dependency links.')
+    }
+    if (!nullableId(dependency.instrument_id) || !(dependency.symbol === null || (typeof dependency.symbol === 'string' && dependency.symbol.trim()))) {
+      throw new Error('Data preparation returned an invalid dependency instrument identity.')
+    }
+    if (!['identity', 'profile', 'history', 'holdings', 'fundamentals'].includes(dependency.dataset)) {
+      throw new Error('Data preparation returned an unknown dependency dataset.')
+    }
+    for (const field of ['requested_start', 'requested_end', 'covered_start', 'covered_end', 'retry_at'] as const) {
+      if (!timestamp(dependency[field], true)) throw new Error(`Data preparation returned an invalid dependency ${field}.`)
+    }
+    if (!timestamp(dependency.updated_at)) throw new Error('Data preparation returned an invalid dependency update time.')
+    if (!(dependency.reason_code === null || typeof dependency.reason_code === 'string')) {
+      throw new Error('Data preparation returned an invalid dependency reason.')
+    }
+    if (!Array.isArray(dependency.covered_ranges)) throw new Error('Data preparation omitted covered range lineage.')
+    for (const range of dependency.covered_ranges) {
+      if (!range || !timestamp(range.start_at) || !timestamp(range.end_at) || Date.parse(range.start_at) > Date.parse(range.end_at)
+        || !nullableId(range.data_source_id) || !nullableId(range.market_series_id)
+        || typeof range.adjustment_basis !== 'string' || typeof range.adjustment_version !== 'string'
+        || typeof range.is_adjusted !== 'boolean') {
+        throw new Error('Data preparation returned invalid covered range lineage.')
+      }
+    }
+  }
+  if (!timestamp(response.created_at) || !timestamp(response.updated_at) || !timestamp(response.last_progress_at)) {
+    throw new Error('Data preparation returned invalid request timestamps.')
   }
   if (response.status === 'ready' && response.completed < response.total) {
     throw new Error('Data preparation reported ready before all dependencies completed.')
+  }
+  if (response.status === 'ready' && response.has_pending_work === true) {
+    throw new Error('Data preparation reported ready while durable work remains.')
   }
 }
 
@@ -266,6 +352,19 @@ export class DataPreparationCoordinator {
     private readonly pollIntervalMs = ACTIVE_POLL_MS,
     private readonly now: () => number = Date.now,
   ) {}
+
+  /** Stop user-scoped observers at logout/account switch; durable jobs continue server-side. */
+  cancelAll(): void {
+    for (const [key, entry] of [...this.inFlight]) {
+      this.inFlight.delete(key)
+      entry.controller.abort()
+      for (const subscriber of [...entry.subscribers]) {
+        entry.subscribers.delete(subscriber)
+        if (subscriber.abortListener) subscriber.signal?.removeEventListener('abort', subscriber.abortListener)
+        subscriber.reject(abortError())
+      }
+    }
+  }
 
   ensure(request: DataEnsureRequest, options: PreparationOptions = {}): Promise<DataEnsureResponse> {
     if (options.signal?.aborted) return Promise.reject(abortError())
@@ -338,9 +437,10 @@ export class DataPreparationCoordinator {
     let lastWaitDeadline = 0
     this.publish(entry, response)
 
-    while (!TERMINAL_STATUSES.has(response.status)) {
+    while (!settled(response)) {
       if (signal.aborted) throw abortError()
-      if (response.status === 'waiting') {
+      const deferredOnly = onlyKnownDeferredWork(response, this.now())
+      if (deferredOnly || (response.status === 'waiting' && response.has_pending_work !== true)) {
         const retryAt = responseRetryAt(response, this.now())
         if (retryAt === null || retryAt <= lastWaitDeadline) return response
         lastWaitDeadline = retryAt
@@ -359,6 +459,7 @@ export class DataPreparationCoordinator {
 }
 
 export const dataPreparationCoordinator = new DataPreparationCoordinator()
+onAuthSessionBoundary(() => dataPreparationCoordinator.cancelAll())
 
 /** User-facing status language deliberately omits provider/policy reason codes. */
 export function preparationStatusMessage(response: DataEnsureResponse, now = Date.now()): string {
@@ -380,7 +481,7 @@ export function preparationStatusMessage(response: DataEnsureResponse, now = Dat
 function userSafeReasonMessage(reasonCode: string): string | null {
   const code = reasonCode.toLowerCase()
   if (code.includes('quota') || code.includes('capacity')) return 'The data source is temporarily at its request capacity.'
-  if (code.includes('credential') || code.includes('api_key') || code.includes('not_configured')) return 'The required data-source credentials are not available.'
+  if (code.includes('credential') || code.includes('not_configured')) return 'Data access is not currently available for this request.'
   if (code.includes('entitlement') || code.endsWith('_not_entitled')) return 'The current data-source entitlement does not include this request.'
   if (code.includes('identity') || code.includes('instrument') || code.includes('canonical') || code.includes('profile')) return 'The instrument identity and listing details could not be confirmed for this request.'
   if (code.includes('history_depth') || code.includes('history_bound')) return 'The permitted history range could not be confirmed.'

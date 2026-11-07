@@ -107,15 +107,24 @@ const harness = vi.hoisted(() => {
 const routeState = vi.hoisted(() => ({ path: '/popout/benchmark-list', params: { windowKey: 'benchmark-list' }, query: {} as Record<string, string> }))
 const apiGet = vi.hoisted(() => vi.fn().mockResolvedValue([]))
 const apiPost = vi.hoisted(() => vi.fn())
+const dataPreparationPost = vi.hoisted(() => vi.fn())
 const refreshMountedPanels = vi.hoisted(() => vi.fn().mockResolvedValue(undefined))
 const openableTools = vi.hoisted(() => [
-  { tool_type: 'research_results', title: 'Study Results', instance_prefix: 'research-results', configuration: {} },
-  { tool_type: 'notes', title: 'Notes', instance_prefix: 'notes', configuration: { scope: 'active-instrument' } },
+  { key: 'research-results', tool_type: 'research_results', title: 'Study Results', instance_prefix: 'research-results', configuration: {} },
+  { key: 'notes', tool_type: 'notes', title: 'Notes', instance_prefix: 'notes', configuration: { scope: 'active-instrument' } },
+  { key: 'sector-list', tool_type: 'watchlist', title: 'Sectors', instance_prefix: 'sector-list', configuration: { market_group: 'sp500-sectors' } },
+  { key: 'industry-list', tool_type: 'watchlist', title: 'Industries', instance_prefix: 'industry-list', configuration: { market_group: 'selected-sector-industries' } },
+  { key: 'constituent-list', tool_type: 'watchlist', title: 'Constituents', instance_prefix: 'constituent-list', configuration: { market_group: 'selected-industry-constituents' } },
+  { key: 'ratio-chart', tool_type: 'chart', title: 'Relative Strength', instance_prefix: 'ratio-chart', configuration: { expression: '=SPY/RSP', timeframe: 'D1', auto_ratio: true } },
+  { key: 'relative-rotation', tool_type: 'relative_rotation', title: 'Relative Rotation', instance_prefix: 'relative-rotation', configuration: { group_key: 'sp500-sectors', benchmark: 'SPY', timeframe: 'D1' } },
 ])
 
 vi.mock('@/stores/workspace', () => ({
-  OPENABLE_WORKSTATION_TOOLS: openableTools,
-  useWorkspaceStore: () => harness.workspace,
+  useWorkspaceStore: () => Object.assign(harness.workspace, {
+    toolCatalogue: openableTools,
+    toolDefinition: (key: string) => openableTools.find(tool => tool.key === key) ?? null,
+    loadToolCatalogue: vi.fn().mockResolvedValue(openableTools),
+  }),
 }))
 vi.mock('@/stores/chart', () => ({
   useChartStore: () => harness.chart,
@@ -129,7 +138,14 @@ vi.mock('@/lib/instruments', () => ({
   ensureKnownInstrumentSymbol: vi.fn((symbol: string) => Promise.resolve(symbol)),
   resolveKnownInstrument: vi.fn((symbol: string) => Promise.resolve({ symbol, id: 77 })),
 }))
-vi.mock('@/lib/api', () => ({ api: { get: apiGet, post: apiPost } }))
+vi.mock('@/lib/api', () => ({
+  api: {
+    get: apiGet,
+    post: (path: string, body: unknown, options?: unknown) => path === '/data/ensure'
+      ? dataPreparationPost(body, options)
+      : options === undefined ? apiPost(path, body) : apiPost(path, body, options),
+  },
+}))
 vi.mock('@/components/workstation/WorkspaceLayoutHost.vue', () => ({ default: defineComponent({ template: '<div />' }) }))
 vi.mock('golden-layout', () => ({}))
 vi.mock('vue-router', async (importOriginal) => {
@@ -143,6 +159,43 @@ vi.mock('vue-router', async (importOriginal) => {
 
 import WorkstationView from '@/views/WorkstationView.vue'
 import { resolveKnownInstrument } from '@/lib/instruments'
+
+function readyPreparationResponse(request: any, call = 1) {
+  const now = '2026-11-06T12:00:00Z'
+  const datasets = request.datasets ?? ['identity', 'profile', 'history']
+  const targetId = request.target?.kind === 'instrument' ? request.target.instrument_id ?? null : null
+  const targetSymbol = request.target?.kind === 'instrument' ? request.target.symbol ?? null : null
+  return {
+    request_id: `workstation-preparation-${call}`,
+    status: 'ready',
+    created_at: now,
+    updated_at: now,
+    last_progress_at: now,
+    version: 1,
+    target: request.target,
+    completed: datasets.length,
+    total: datasets.length,
+    has_pending_work: false,
+    dependencies: datasets.map((dataset: string) => ({
+      dependency_id: `${dataset}:${targetId ?? targetSymbol ?? 'fixture'}`,
+      depends_on: [],
+      instrument_id: targetId,
+      symbol: targetSymbol,
+      dataset,
+      status: 'ready',
+      requested_start: null,
+      requested_end: null,
+      covered_start: dataset === 'history' ? '2024-01-01T00:00:00Z' : null,
+      covered_end: dataset === 'history' ? now : null,
+      reason_code: null,
+      retry_at: null,
+      updated_at: now,
+      covered_ranges: dataset === 'history'
+        ? [{ start_at: '2024-01-01T00:00:00Z', end_at: now, data_source_id: 1, market_series_id: 1, adjustment_basis: 'split', adjustment_version: '1', is_adjusted: true }]
+        : [],
+    })),
+  }
+}
 
 const NavigationLinkStub = defineComponent({
   props: { to: { type: String, required: true } },
@@ -219,6 +272,9 @@ describe('WorkstationView pop-out bindings', () => {
     apiGet.mockReset()
     apiGet.mockResolvedValue([])
     apiPost.mockReset()
+    dataPreparationPost.mockReset().mockImplementation(async (request: any) =>
+      readyPreparationResponse(request, dataPreparationPost.mock.calls.length),
+    )
     harness.workspace.loadETFHoldings = vi.fn().mockResolvedValue(undefined)
     harness.workspace.loadETFIndustries = vi.fn().mockResolvedValue(undefined)
     harness.workspace.loadTechnical = vi.fn().mockResolvedValue(undefined)
@@ -1035,11 +1091,15 @@ describe('WorkstationView pop-out bindings', () => {
     expect(harness.recent.previous).toHaveBeenCalledOnce()
     expect(harness.recent.add).toHaveBeenCalledWith('XLK', undefined, false)
     expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'XLK', group: 'blue' }))
-    expect(apiGet).toHaveBeenCalledWith('/coverage/instruments/XLK/ohlcv', expect.objectContaining({
-      timeframe: 'D1', mode: 'historical', adjusted: true,
-    }))
-    expect(apiPost).toHaveBeenCalledTimes(1)
-    expect(apiPost).toHaveBeenCalledWith('/instruments/acquire', expect.objectContaining({ symbol: 'XLK' }))
+    expect(dataPreparationPost).toHaveBeenCalledWith(expect.objectContaining({
+      target: { kind: 'instrument', instrument_id: 77 }, datasets: ['identity', 'profile', 'history'], timeframe: 'D1', adjusted: true,
+    }), expect.objectContaining({ signal: expect.any(AbortSignal) }))
+    const selectedRequest = dataPreparationPost.mock.calls.find(([request]) =>
+      request.target.kind === 'instrument' && request.target.instrument_id === 77,
+    )?.[0]
+    expect(selectedRequest).not.toHaveProperty('start_at')
+    expect(selectedRequest).not.toHaveProperty('end_at')
+    expect(apiPost).not.toHaveBeenCalledWith('/instruments/acquire', expect.objectContaining({ symbol: 'XLK' }))
     const oldestEntryEvent = new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true, cancelable: true })
     wrapper.find('.workstation').element.dispatchEvent(oldestEntryEvent)
     expect(oldestEntryEvent.defaultPrevented).toBe(true)
@@ -1047,86 +1107,29 @@ describe('WorkstationView pop-out bindings', () => {
     wrapper.unmount()
   })
 
-  it('runs bounded history selection for deliberate Space and Ctrl+Space traversal only', async () => {
+  it('uses shared admitted-history preparation only for deliberate Space traversal', async () => {
     routeState.path = '/'
     routeState.params = {}
-    const identityAttempts: string[] = []
-    const historyAttempts: string[] = []
-    const retryAt = (offsetMs: number) => new Date(Date.now() + offsetMs).toISOString()
-    apiGet.mockImplementation(async (path: string, params: Record<string, unknown> = {}) => {
-      if (path.startsWith('/coverage/instruments/')) {
-        return path.includes('/QQQ/')
-          ? { status: 'missing', bar_count: 0, missing_slices: [{ start: params.start, end: params.end }] }
-          : { status: 'ready', bar_count: 20, missing_slices: [] }
-      }
-      if (path === '/instruments/78/history-availability') {
-        return { instrument_id: 78, symbol: 'QQQ', timeframe: 'D1', adjusted: true, status: 'eligible', earliest_start: '2024-01-01T00:00:00Z', max_requested_bars: 2000, reason_code: null }
-      }
-      return []
-    })
-    apiPost.mockImplementation(async (path: string, body: Record<string, any>) => {
-      if (path === '/instruments/acquire') {
-        const symbol = String(body.symbol)
-        if (symbol === 'QQQ') {
-          identityAttempts.push(symbol)
-          return identityAttempts.length === 1
-            ? { request_id: 'qqq-identity-held', status: 'held', instrument: null, retry_at: retryAt(50), source_outcomes: [] }
-            : { request_id: 'qqq-identity-ready', status: 'resolved', instrument: { instrument_id: 78, symbol, identity_status: 'verified', instrument_type: 'ETF' }, source_outcomes: [] }
-        }
-        return { status: 'resolved', instrument: { instrument_id: 79, symbol, identity_status: 'verified', instrument_type: 'Stock' }, source_outcomes: [] }
-      }
-      if (path === '/instruments/78/history-acquisitions') {
-        historyAttempts.push('QQQ')
-        if (historyAttempts.length === 1) {
-          return { request_id: 'qqq-history-held', status: 'held', instrument_id: 78, symbol: 'QQQ', timeframe: 'D1', adjusted: true, requested_start: body.start, requested_end: body.end, coverage: { status: 'missing', bar_count: 0, missing_slices: [] }, bars: [], retry_at: retryAt(50), source_outcomes: [] }
-        }
-        return {
-          request_id: 'qqq-history-ready', status: 'complete', instrument_id: 78, symbol: 'QQQ', timeframe: 'D1', adjusted: true,
-          requested_start: body.start, requested_end: body.end,
-          coverage: { status: 'ready', bar_count: 1, missing_slices: [] }, bars: [{}], source_outcomes: [],
-        }
-      }
-      if (path === '/etf-holdings/QQQ/acquire') {
-        return { request_id: body.request_id, instrument_id: body.instrument_id, symbol: 'QQQ', outcome: 'unavailable', refresh: body.refresh, refresh_attempted: true, refresh_succeeded: false, profile: null, provider_request_log_ids: [], message: 'Controlled held fixture.' }
-      }
-      throw new Error(`Unexpected request: ${path}`)
-    })
+    apiGet.mockResolvedValue([])
     const wrapper = mount(WorkstationView, {
       global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
     })
     await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY' })))
 
-    expect(apiGet).not.toHaveBeenCalledWith(expect.stringMatching(/^\/coverage\/instruments\//), expect.anything())
-    apiGet.mockClear()
+    expect(dataPreparationPost).not.toHaveBeenCalled()
     const workstation = wrapper.find('.workstation').element
     workstation.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true }))
-    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/coverage/instruments/QQQ/ohlcv', expect.objectContaining({
-      timeframe: 'D1', mode: 'historical', adjusted: true,
-    })))
-    await vi.waitFor(() => expect(identityAttempts).toHaveLength(1))
-    await vi.waitFor(() => expect(identityAttempts).toHaveLength(2), { timeout: 1000 })
-    await vi.waitFor(() => expect(historyAttempts).toHaveLength(1))
-    await vi.waitFor(() => expect(historyAttempts).toHaveLength(2), { timeout: 1000 })
-    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/etf-holdings/QQQ/acquire', expect.objectContaining({ instrument_id: 78 })))
-    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/instruments/78/history-acquisitions', expect.objectContaining({
-      timeframe: 'D1', adjusted: true, start: expect.any(String), end: expect.any(String),
-    })))
-    expect(identityAttempts).toEqual(['QQQ', 'QQQ'])
-    expect(historyAttempts).toEqual(['QQQ', 'QQQ'])
-    expect(apiPost).toHaveBeenCalledWith('/etf-holdings/QQQ/acquire', expect.objectContaining({ instrument_id: 78, refresh: true }))
-    expect(wrapper.text()).toContain('Loaded 1 local D1 bars for QQQ.')
-    const historyCall = apiPost.mock.calls.find(([path]) => path === '/instruments/78/history-acquisitions')
-    expect(historyCall?.[1].start).toEqual(expect.any(String))
-    const requestedSpan = Date.parse(historyCall?.[1].end) - Date.parse(historyCall?.[1].start)
-    expect(requestedSpan).toBeGreaterThan(0)
-    expect(requestedSpan / 86_400_000 + 1).toBeLessThanOrEqual(2000)
-
-    apiGet.mockClear()
+    await vi.waitFor(() => expect(dataPreparationPost).toHaveBeenCalled())
+    const firstRequest = dataPreparationPost.mock.calls[0][0]
+    expect(firstRequest).toMatchObject({ datasets: ['identity', 'profile', 'history'], timeframe: 'D1', adjusted: true })
+    expect(firstRequest).not.toHaveProperty('start_at')
+    expect(firstRequest).not.toHaveProperty('end_at')
+    const firstRequestCount = dataPreparationPost.mock.calls.length
     workstation.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', ctrlKey: true, bubbles: true, cancelable: true }))
-    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/coverage/instruments/SPY/ohlcv', expect.objectContaining({
-      timeframe: 'D1', mode: 'historical', adjusted: true,
-    })))
-    expect(apiPost).toHaveBeenCalledWith('/instruments/acquire', expect.objectContaining({ symbol: 'SPY' }))
+    await vi.waitFor(() => expect(dataPreparationPost.mock.calls.length).toBeGreaterThan(firstRequestCount))
+    expect(dataPreparationPost.mock.calls.at(-1)?.[0]).toMatchObject({ datasets: ['identity', 'profile', 'history'], timeframe: 'D1' })
+    expect(dataPreparationPost.mock.calls.at(-1)?.[0]).not.toHaveProperty('start_at')
+    expect(dataPreparationPost.mock.calls.at(-1)?.[0]).not.toHaveProperty('end_at')
     wrapper.unmount()
   })
 
@@ -1639,15 +1642,13 @@ describe('WorkstationView pop-out bindings', () => {
     expect(candidate).toBeTruthy()
     await candidate!.trigger('click')
     await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'OIH', instrumentId: 43 })))
-    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledTimes(3))
+    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledTimes(2))
     expect(apiPost).toHaveBeenNthCalledWith(2, '/instruments/acquire', {
       symbol: 'OIH', provider_candidate: { provider: 'free-source', symbol: 'OIH', exchange: 'NYSE Arca' },
       request_id: expect.stringMatching(/^[0-9a-f-]{36}$/),
     })
     expect(apiPost.mock.calls[1][1].request_id).not.toBe(apiPost.mock.calls[0][1].request_id)
-    expect(apiPost).toHaveBeenNthCalledWith(3, '/etf-holdings/OIH/acquire', {
-      refresh: true, instrument_id: 43, request_id: expect.stringMatching(/^[0-9a-f-]{36}$/),
-    })
+    expect(dataPreparationPost.mock.calls.some(([request]) => request.target.instrument_id === 43 && request.datasets.includes('holdings'))).toBe(true)
     await flushPromises()
     await vi.waitFor(() => expect(harness.workspace.refreshMarketAnalysis).toHaveBeenCalled())
     wrapper.unmount()
@@ -1691,6 +1692,10 @@ describe('WorkstationView pop-out bindings', () => {
       }
       return {}
     })
+    dataPreparationPost.mockImplementation(async (request: any) => {
+      if (request.target.instrument_id === 43 && request.datasets.includes('history')) historyPersisted = true
+      return readyPreparationResponse(request, dataPreparationPost.mock.calls.length)
+    })
     harness.workspace.publishSymbol = vi.fn(({ symbol }: { symbol: string }) => { harness.workspace.linkedSymbol = symbol })
     harness.workspace.loadTechnical = vi.fn(async (symbol: string) => {
       harness.workspace.technicals[symbol] = historyPersisted ? { freshness: 'current' } : null
@@ -1708,11 +1713,13 @@ describe('WorkstationView pop-out bindings', () => {
       await vi.waitFor(() => expect(wrapper.find('.workstation__source-actions button').exists()).toBe(true))
       await wrapper.findAll('.workstation__source-option').find(button => button.text().includes('Use OIH'))!.trigger('click')
 
-      await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/instruments/43/history-acquisitions', expect.any(Object)))
+      await vi.waitFor(() => expect(dataPreparationPost).toHaveBeenCalledWith(expect.objectContaining({
+        target: { kind: 'instrument', instrument_id: 43 }, datasets: ['identity', 'profile', 'history'], timeframe: 'D1', adjusted: true,
+      }), expect.anything()))
       expect(harness.chart.symbol).toBe('OIH')
       expect(harness.workspace.linkedSymbol).toBe('OIH')
       await flushPromises()
-      expect(wrapper.text()).toContain('Loaded 12 local D1 bars for OIH.')
+      expect(wrapper.text()).toContain('The admitted D1 history for OIH is available locally.')
       await vi.waitFor(() => expect(harness.chart.refreshLocalBars).toHaveBeenCalledOnce())
       expect(harness.workspace.loadTechnical.mock.calls.filter(([symbol]) => symbol === 'OIH')).toHaveLength(2)
       expect(technicalReadResults).toEqual([null, { freshness: 'current' }])
@@ -1723,7 +1730,7 @@ describe('WorkstationView pop-out bindings', () => {
     }
   })
 
-  it('does not let a late selected-history completion refresh technicals for a newer symbol', async () => {
+  it('does not let a late shared-preparation completion refresh technicals for a newer symbol', async () => {
     routeState.path = '/'
     routeState.params = {}
     let finishA!: (value: unknown) => void
@@ -1755,14 +1762,13 @@ describe('WorkstationView pop-out bindings', () => {
         const symbol = String(body.symbol)
         return Promise.resolve({ request_id: `identity-${symbol}`, status: 'resolved', instrument: { instrument_id: symbol === 'AAA' ? 71 : 72, symbol, identity_status: 'verified' }, source_outcomes: [] })
       }
-      if (path === '/instruments/71/history-acquisitions') return new Promise(resolve => { finishA = resolve })
-      if (path === '/instruments/72/history-acquisitions') {
-        return Promise.resolve({
-          request_id: 'history-b', status: 'complete', instrument_id: 72, symbol: 'BBB', timeframe: 'D1', adjusted: true,
-          requested_start: body.start, requested_end: body.end, coverage: { status: 'ready', bar_count: 8, missing_slices: [] }, bars: [], source_outcomes: [],
-        })
-      }
       return Promise.resolve({})
+    })
+    dataPreparationPost.mockImplementation((request: any) => {
+      if (request.target.instrument_id === 71) {
+        return new Promise(resolve => { finishA = () => resolve(readyPreparationResponse(request, 71)) })
+      }
+      return Promise.resolve(readyPreparationResponse(request, 72))
     })
     harness.workspace.publishSymbol = vi.fn(({ symbol }: { symbol: string }) => { harness.workspace.linkedSymbol = symbol })
     harness.workspace.loadTechnical = vi.fn(async (symbol: string) => { harness.workspace.technicals[symbol] = { freshness: symbol === 'BBB' ? 'current' : 'stale' } })
@@ -1775,20 +1781,17 @@ describe('WorkstationView pop-out bindings', () => {
       await input.setValue('AAA')
       await vi.waitFor(() => expect(wrapper.find('.workstation__source-actions button').exists()).toBe(true))
       await wrapper.findAll('.workstation__source-option').find(button => button.text().includes('Use AAA'))!.trigger('click')
-      await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/instruments/71/history-acquisitions', expect.any(Object)))
+      await vi.waitFor(() => expect(dataPreparationPost.mock.calls.some(([request]) => request.target.instrument_id === 71)).toBe(true))
 
       await input.setValue('BBB')
       await vi.waitFor(() => expect(wrapper.find('.workstation__source-actions button').exists()).toBe(true))
       await wrapper.findAll('.workstation__source-option').find(button => button.text().includes('Use BBB'))!.trigger('click')
       await vi.waitFor(() => expect(harness.chart.symbol).toBe('BBB'))
-      await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/instruments/72/history-acquisitions', expect.any(Object)))
+      await vi.waitFor(() => expect(dataPreparationPost.mock.calls.some(([request]) => request.target.instrument_id === 72)).toBe(true))
       await vi.waitFor(() => expect(harness.chart.refreshLocalBars).toHaveBeenCalledOnce())
       expect(harness.workspace.loadTechnical.mock.calls.filter(([symbol]) => symbol === 'BBB')).toHaveLength(2)
 
-      finishA?.({
-        request_id: 'history-a', status: 'complete', instrument_id: 71, symbol: 'AAA', timeframe: 'D1', adjusted: true,
-        requested_start: '2026-10-01T00:00:00Z', requested_end: '2026-11-01T00:00:00Z', coverage: { status: 'ready', bar_count: 4, missing_slices: [] }, bars: [], source_outcomes: [],
-      })
+      finishA?.()
       await flushPromises()
       expect(harness.workspace.loadTechnical.mock.calls.filter(([symbol]) => symbol === 'AAA')).toHaveLength(1)
       expect(harness.chart.refreshLocalBars).toHaveBeenCalledOnce()
@@ -1799,16 +1802,12 @@ describe('WorkstationView pop-out bindings', () => {
     }
   })
 
-  it('reconciles a stale local type before reusing a current ETF cache with already-covered history', async () => {
+  it('keeps a locally typed stock out of the ETF refresh path even when an old ETF snapshot exists', async () => {
     routeState.path = '/'
     routeState.params = {}
     const oldSnapshot = { id: 801, etf_symbol: 'CURR' }
-    const currentSnapshot = { id: 802, etf_symbol: 'CURR' }
     harness.workspace.etfHoldings = { CURR: { snapshot: oldSnapshot } }
-    harness.workspace.loadETFHoldings = vi.fn(async () => {
-      harness.workspace.etfHoldings.CURR = { snapshot: currentSnapshot }
-      return harness.workspace.etfHoldings.CURR
-    })
+    harness.workspace.loadETFHoldings = vi.fn(async () => harness.workspace.etfHoldings.CURR)
     apiGet.mockImplementation(async (path: string, params?: Record<string, unknown>) => {
       if (path === '/instruments/search' && params?.q === 'CURR') {
         return [{ symbol: 'CURR', name: 'Misclassified local fixture', type: 'Stock', exchange: 'ARCX', instrument_id: 81, identity_status: 'provisional' }]
@@ -1822,7 +1821,6 @@ describe('WorkstationView pop-out bindings', () => {
       }
       return []
     })
-    apiPost.mockResolvedValue({ request_id: 'identity-curr', status: 'resolved', instrument: { instrument_id: 81, symbol: 'CURR', identity_status: 'resolved', instrument_type: 'Exchange Traded Vehicle' }, source_outcomes: [] })
     harness.workspace.setConstituentETF = vi.fn((symbol: string | null) => { harness.workspace.constituentETF = symbol })
     const wrapper = mount(WorkstationView, {
       global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
@@ -1833,13 +1831,12 @@ describe('WorkstationView pop-out bindings', () => {
       await vi.waitFor(() => expect(wrapper.find('.workstation__canonical-symbol-options [role="option"]').exists()).toBe(true))
       vi.mocked(harness.workspace.loadETFHoldings).mockClear()
       await wrapper.get('.workstation__canonical-symbol-options [role="option"]').trigger('mousedown')
-      await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/etf-holdings/CURR/capability'))
-      await vi.waitFor(() => expect(wrapper.findAll('.workstation__selection-acquisition').map(element => element.text()).join(' ')).toContain('Current holdings for CURR are available locally.'))
-      expect(apiPost).toHaveBeenCalledTimes(1)
-      expect(apiPost).toHaveBeenCalledWith('/instruments/acquire', expect.objectContaining({ symbol: 'CURR' }))
+      await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'CURR', instrumentId: 81 })))
+      expect(dataPreparationPost.mock.calls.some(([request]) => request.target.instrument_id === 81 && request.datasets.includes('holdings'))).toBe(false)
+      expect(apiGet).not.toHaveBeenCalledWith('/etf-holdings/CURR/capability')
       expect(harness.workspace.loadETFHoldings).toHaveBeenCalledWith('CURR')
-      expect(harness.workspace.etfHoldings.CURR?.snapshot).toBe(currentSnapshot)
-      expect(harness.workspace.constituentETF).toBe('CURR')
+      expect(harness.workspace.etfHoldings.CURR?.snapshot).toBe(oldSnapshot)
+      expect(harness.workspace.constituentETF).toBeNull()
     } finally {
       wrapper.unmount()
     }
@@ -1890,13 +1887,13 @@ describe('WorkstationView pop-out bindings', () => {
       await input.setValue('STALE')
       await vi.waitFor(() => expect(wrapper.find('.workstation__canonical-symbol-options [role="option"]').exists()).toBe(true))
       await wrapper.get('.workstation__canonical-symbol-options [role="option"]').trigger('mousedown')
-      await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/etf-holdings/STALE/acquire', expect.objectContaining({
-        refresh: true, instrument_id: 82, request_id: expect.any(String),
-      })))
+      await vi.waitFor(() => expect(dataPreparationPost.mock.calls.some(([request]) =>
+        request.target.instrument_id === 82 && request.datasets.join(',') === 'holdings',
+      )).toBe(true))
       await vi.waitFor(() => expect(harness.workspace.etfHoldings.STALE?.snapshot).toBe(updatedSnapshot))
-      expect(apiPost).toHaveBeenCalledTimes(2)
+      expect(apiPost).not.toHaveBeenCalledWith('/etf-holdings/STALE/acquire', expect.anything())
       expect(localHoldingsReads).toBe(2)
-      expect(wrapper.findAll('.workstation__selection-acquisition').map(element => element.text()).join(' ')).toContain('Holdings for STALE are available from the selected ticker.')
+      expect(wrapper.findAll('.workstation__selection-acquisition').map(element => element.text()).join(' ')).toContain('Current holdings for STALE are available locally.')
     } finally {
       wrapper.unmount()
     }
@@ -1946,9 +1943,7 @@ describe('WorkstationView pop-out bindings', () => {
       }
       return []
     })
-    let finishARefresh!: (value: unknown) => void
     apiPost.mockImplementation((path: string, body: Record<string, any>) => {
-      if (path === '/etf-holdings/FRESH/acquire') return new Promise(resolve => { finishARefresh = resolve })
       if (path === '/instruments/acquire') {
         const symbol = String(body.symbol)
         return Promise.resolve({
@@ -1969,14 +1964,9 @@ describe('WorkstationView pop-out bindings', () => {
       await input.setValue('FRESH')
       await vi.waitFor(() => expect(wrapper.find('.workstation__canonical-symbol-options [role="option"]').exists()).toBe(true))
       await wrapper.get('.workstation__canonical-symbol-options [role="option"]').trigger('mousedown')
-      await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/etf-holdings/FRESH/acquire', expect.objectContaining({
-        refresh: true, instrument_id: 91,
-      })))
-      finishARefresh({
-        request_id: 'refresh-fresh', instrument_id: 91, symbol: 'FRESH', outcome: 'acquired',
-        refresh: true, refresh_attempted: true, refresh_succeeded: true,
-        profile: { symbol: 'FRESH', instrument_id: 91 }, snapshot: updatedA, provider_request_log_ids: [],
-      })
+      await vi.waitFor(() => expect(dataPreparationPost.mock.calls.some(([request]) =>
+        request.target.instrument_id === 91 && request.datasets.join(',') === 'holdings',
+      )).toBe(true))
       await vi.waitFor(() => expect(aReadCount).toBe(2))
 
       await input.setValue('NEXT')
@@ -1991,17 +1981,13 @@ describe('WorkstationView pop-out bindings', () => {
       expect(harness.workspace.constituentETF).toBe('NEXT')
       expect(wrapper.findAll('.workstation__selection-acquisition').map(element => element.text()).join(' '))
         .toContain('Current holdings for NEXT are available locally.')
-      expect(apiPost).toHaveBeenCalledTimes(3)
-      expect(apiPost.mock.calls.filter(([path]) => path === '/etf-holdings/FRESH/acquire')).toHaveLength(1)
+      expect(apiPost).not.toHaveBeenCalledWith('/etf-holdings/FRESH/acquire', expect.anything())
     } finally {
       wrapper.unmount()
     }
   })
 
-  it.each([
-    ['held', { outcome: 'held', profile: null }],
-    ['failed', { outcome: 'failed', profile: null }],
-  ] as const)('keeps last-known %s ETF holdings visible after a governed refresh result', async (outcome, response) => {
+  it.each(['held', 'failed'] as const)('keeps last-known %s ETF holdings visible after a governed refresh result', async outcome => {
     routeState.path = '/'
     routeState.params = {}
     const savedSnapshot = { id: 821, etf_symbol: 'SAVED' }
@@ -2019,13 +2005,20 @@ describe('WorkstationView pop-out bindings', () => {
       }
       return []
     })
-    apiPost.mockImplementation(async (path: string) => path === '/instruments/acquire'
-      ? { request_id: 'identity-saved', status: 'resolved', instrument: { instrument_id: 83, symbol: 'SAVED', identity_status: 'resolved', instrument_type: 'ETF' }, source_outcomes: [] }
-      : {
-        request_id: `refresh-${outcome}`, instrument_id: 83, symbol: 'SAVED', outcome,
-        refresh: true, refresh_attempted: true, refresh_succeeded: false,
-        profile: response.profile, provider_request_log_ids: [],
-      })
+    dataPreparationPost.mockImplementation(async (request: any) => {
+      if (!request.datasets.includes('holdings')) return readyPreparationResponse(request, dataPreparationPost.mock.calls.length)
+      const held = outcome === 'held'
+      const result = readyPreparationResponse(request, dataPreparationPost.mock.calls.length)
+      result.status = held ? 'waiting' : 'failed'
+      result.completed = 0
+      result.dependencies = result.dependencies.map((dependency: any) => ({
+        ...dependency,
+        status: held ? 'waiting' : 'failed',
+        reason_code: held ? 'provider_quota_admission_denied' : 'provider_source_unavailable',
+        retry_at: held ? new Date(Date.now() + 60_000).toISOString() : null,
+      }))
+      return result
+    })
     const wrapper = mount(WorkstationView, {
       global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
     })
@@ -2034,11 +2027,12 @@ describe('WorkstationView pop-out bindings', () => {
       await input.setValue('SAVED')
       await vi.waitFor(() => expect(wrapper.find('.workstation__canonical-symbol-options [role="option"]').exists()).toBe(true))
       await wrapper.get('.workstation__canonical-symbol-options [role="option"]').trigger('mousedown')
-      await vi.waitFor(() => expect(apiPost).toHaveBeenCalledTimes(2))
+      await vi.waitFor(() => expect(dataPreparationPost.mock.calls.some(([request]) => request.datasets.includes('holdings'))).toBe(true))
       const status = outcome === 'held'
-        ? 'Last-known holdings for SAVED remain visible. A current update is unavailable.'
-        : 'Holdings for SAVED could not be updated; last-known holdings remain visible.'
+        ? 'Last-known holdings for SAVED remain visible. The data source is temporarily at its request capacity.'
+        : 'Last-known holdings for SAVED remain visible. A reviewed data source could not complete this request.'
       await vi.waitFor(() => expect(wrapper.text()).toContain(status))
+      expect(wrapper.text()).not.toContain('provider_quota_admission_denied')
       expect(harness.workspace.etfHoldings.SAVED?.snapshot).toBe(savedSnapshot)
     } finally {
       wrapper.unmount()
@@ -2245,6 +2239,29 @@ describe('WorkstationView pop-out bindings', () => {
     wrapper.unmount()
   })
 
+  it('exposes the specialized factory roles in the Add tool catalogue', async () => {
+    routeState.path = '/chart'
+    routeState.params = {}
+    const wrapper = mount(WorkstationView, {
+      attachTo: document.body,
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true, 'router-link': NavigationLinkStub } },
+    })
+    try {
+      await wrapper.get('.workstation__tool-library > button').trigger('click')
+      const menu = wrapper.get('.workstation__tool-library-menu')
+      const labels = menu.findAll('[role="menuitem"]').map(item => item.text().trim())
+      expect(labels).toContain('Sectors')
+      expect(labels).toContain('Industries')
+      expect(labels).toContain('Constituents')
+      expect(labels).toContain('Relative Strength')
+      expect(labels).toContain('Relative Rotation')
+      expect(new Set(labels).size).toBe(labels.length)
+    } finally {
+      wrapper.unmount()
+      wrapper.element.remove()
+    }
+  })
+
   it('removes shell geometry listeners when outside pointer or focus closes fixed menus', async () => {
     routeState.path = '/'
     routeState.params = {}
@@ -2385,6 +2402,20 @@ describe('WorkstationView pop-out bindings', () => {
       expect(wrapper.find(menuSelectors[index]).exists()).toBe(false)
     }
 
+    wrapper.unmount()
+  })
+
+  it('opens tools from the authenticated server catalogue while retaining stable semantic keys', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    await wrapper.get('button[title="Open a workstation tool"]').trigger('click')
+    const items = wrapper.findAll('.workstation__tool-library-menu [role="menuitem"]')
+    expect(items.map(item => item.text())).toEqual(openableTools.map(tool => tool.title))
+    await items.find(item => item.text() === 'Relative Strength')!.trigger('click')
+    expect(harness.workspace.openTool).toHaveBeenCalledWith(expect.objectContaining({ key: 'ratio-chart', tool_type: 'chart' }), {})
     wrapper.unmount()
   })
 

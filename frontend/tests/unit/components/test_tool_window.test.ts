@@ -4,21 +4,18 @@ import { describe, expect, it, vi } from 'vitest'
 import ToolWindow from '@/components/workstation/ToolWindow.vue'
 
 describe('ToolWindow', () => {
-  it('tracks GoldenLayout maximize state and closes teleported menus when a tool becomes inactive', async () => {
-    const stack = document.createElement('div')
-    stack.className = 'lm_stack'
-    document.body.append(stack)
-    const wrapper = mount(ToolWindow, { attachTo: stack, props: { title: 'Relative Rotation', active: true } })
+  it('uses the host supplied maximize state for virtual tools and closes menus when inactive', async () => {
+    const wrapper = mount(ToolWindow, { props: { title: 'Relative Rotation', active: true, maximized: false } })
     const toggle = wrapper.get('button[aria-label="Maximize tool"]')
     expect(toggle.attributes('title')).toBe('Maximize')
 
-    stack.classList.add('lm_maximised')
+    await wrapper.setProps({ maximized: true })
     await vi.waitFor(() => expect(wrapper.find('button[aria-label="Restore tool"]').exists()).toBe(true))
     expect(wrapper.get('button[aria-label="Restore tool"]').attributes('title')).toBe('Restore')
     await wrapper.get('[aria-label="Open tool menu"]').trigger('click')
     expect(document.getElementById(wrapper.get('[aria-label="Open tool menu"]').attributes('aria-controls'))?.querySelector('[role="menuitem"]')?.textContent).toBe('Restore')
     await wrapper.get('[aria-label="Open tool menu"]').trigger('click')
-    stack.classList.remove('lm_maximised')
+    await wrapper.setProps({ maximized: false })
     await vi.waitFor(() => expect(wrapper.find('button[aria-label="Maximize tool"]').exists()).toBe(true))
 
     await wrapper.get('[aria-label="Open tool menu"]').trigger('click')
@@ -28,7 +25,17 @@ describe('ToolWindow', () => {
     expect(document.getElementById(wrapper.get('[aria-label="Open tool menu"]').attributes('aria-controls'))).toBeNull()
 
     wrapper.unmount()
-    stack.remove()
+  })
+
+  it('keeps maximize controls in sync without requiring a Golden Layout DOM ancestor', async () => {
+    const wrapper = mount(ToolWindow, { props: { title: 'Industries', maximized: false } })
+    expect(wrapper.get('[aria-label="Maximize tool"]').exists()).toBe(true)
+    await wrapper.setProps({ maximized: true })
+    expect(wrapper.get('[aria-label="Restore tool"]').exists()).toBe(true)
+    await wrapper.get('[aria-label="Open tool menu"]').trigger('click')
+    const menuId = wrapper.get('[aria-label="Open tool menu"]').attributes('aria-controls')
+    expect(document.getElementById(menuId)?.querySelector('[role="menuitem"]')?.textContent).toBe('Restore')
+    wrapper.unmount()
   })
 
   it('gives the Relative Rotation body its own scrollable viewport without changing other tool defaults', () => {

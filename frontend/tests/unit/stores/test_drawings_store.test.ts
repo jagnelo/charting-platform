@@ -12,6 +12,7 @@ vi.mock('@/lib/api', () => ({
 
 import { api } from '@/lib/api'
 import { useDrawingsStore } from '@/stores/drawings'
+import { beginAuthSessionBoundary, clearUserScopedPiniaStores } from '@/lib/authSession'
 
 describe('useDrawingsStore authentication-boundary handling', () => {
   beforeEach(() => {
@@ -40,5 +41,27 @@ describe('useDrawingsStore authentication-boundary handling', () => {
 
     expect(consoleError).not.toHaveBeenCalled()
     consoleError.mockRestore()
+  })
+
+  it('reloads the same instrument after a user boundary instead of reusing the previous owner cache', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    localStorage.setItem('access_token', 'user-a')
+    const first = useDrawingsStore()
+    ;(api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce([{ id: 11, label: 'drawing-a' }])
+    await first.loadDrawings(7, 'D1')
+    expect(first.drawings).toEqual([{ id: 11, label: 'drawing-a' }])
+
+    localStorage.removeItem('access_token')
+    beginAuthSessionBoundary()
+    clearUserScopedPiniaStores(pinia)
+    localStorage.setItem('access_token', 'user-b')
+    const second = useDrawingsStore()
+    ;(api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce([{ id: 22, label: 'drawing-b' }])
+    await second.loadDrawings(7, 'D1')
+
+    expect(api.get).toHaveBeenCalledTimes(2)
+    expect(second.drawings).toEqual([{ id: 22, label: 'drawing-b' }])
+    expect(second.drawings).not.toContainEqual(expect.objectContaining({ label: 'drawing-a' }))
   })
 })

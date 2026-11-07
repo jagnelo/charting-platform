@@ -34,7 +34,7 @@ from app.models.etf_holdings import (
 from app.models.instrument import Instrument
 from app.models.provider_runtime import ProviderCapability, ProviderRequestLog
 from app.providers.base import IdentifierRecord
-from app.providers.errors import bounded_redact_provider_message
+from app.providers.errors import ProviderRateLimitError, bounded_redact_provider_message
 from app.services.etf_consumer_types import (
     is_equity_holding_type,
     is_placeholder_symbol,
@@ -75,6 +75,7 @@ from app.services.etf_holdings_provider_bridge import (
     require_unbound_etf_holdings_context,
 )
 from app.services.instrument_mastering import register_identifier
+from app.services.provider_quota_coordinator import ProviderQuotaAdmissionError
 from app.services.top_down_taxonomy import BENCHMARK_FAMILY_REGISTRY
 
 
@@ -138,6 +139,8 @@ class ETFHoldingsAcquireResult:
     message: str | None = None
     instrument_id: int | None = None
     symbol: str | None = None
+    reason_code: str | None = None
+    retry_at: datetime | None = None
 
 
 SEC_FUND_TICKERS_URL = "https://www.sec.gov/files/company_tickers_mf.json"
@@ -1662,6 +1665,7 @@ async def acquire_etf_holdings_profile(
                 ),
                 instrument_id=instrument.id,
                 symbol=instrument.symbol,
+                reason_code="issuer_route_unavailable",
             )
         profile = await ensure_etf_profile(db, instrument)
         # The new row was created by foreign key only. Keep the already-loaded
@@ -1737,6 +1741,7 @@ async def acquire_etf_holdings_profile(
                 "No exact current or curated issuer route matches this canonical ETF; "
                 "no source request was made."
             ),
+            reason_code="issuer_route_mismatch",
         )
     if curated_route_applied and not profile_created:
         # Explicit refresh may repair an older profile with current curated
@@ -1761,6 +1766,7 @@ async def acquire_etf_holdings_profile(
             source_operation=None,
             provider_request_log_ids=[],
             message="No configured issuer holdings adapter is available for this ETF profile.",
+            reason_code="issuer_adapter_unavailable",
         )
 
     source_provider = str(getattr(adapter, "source_provider", "")).strip().lower() or None
@@ -1791,6 +1797,7 @@ async def acquire_etf_holdings_profile(
                 "The selected native adapter does not match the audited publisher identity; "
                 "no request was made."
             ),
+            reason_code="issuer_source_identity_mismatch",
         )
 
     if source_provider == "vaneck" and not _first_alias(_string_aliases(profile), "product_slug"):
@@ -1806,6 +1813,7 @@ async def acquire_etf_holdings_profile(
             source_operation=operation,
             provider_request_log_ids=[],
             message="VanEck acquisition requires its committed fund-specific product slug.",
+            reason_code="issuer_route_incomplete",
         )
 
     probe = adapter.probe(
@@ -1828,6 +1836,7 @@ async def acquire_etf_holdings_profile(
             message=bounded_redact_provider_message(
                 probe.reason or "The selected issuer route is not ready.", max_length=1000
             ),
+            reason_code="issuer_adapter_not_ready",
         )
 
     if not source_provider:
@@ -1843,6 +1852,7 @@ async def acquire_etf_holdings_profile(
             source_operation=operation,
             provider_request_log_ids=[],
             message="The selected issuer route has no trusted Provider identity; no request was made.",
+            reason_code="issuer_provider_identity_missing",
         )
 
     acquisition_binder = _explicit_etf_acquisition_binder()
@@ -1862,6 +1872,7 @@ async def acquire_etf_holdings_profile(
                 "Explicit issuer acquisition is unavailable until the reviewed "
                 "Provider request scope is staged."
             ),
+            reason_code="provider_admission_unavailable",
         )
 
     request_log_ids: list[int] = []
@@ -1909,6 +1920,34 @@ async def acquire_etf_holdings_profile(
             provider_request_log_ids=request_log_ids,
             message=bounded_redact_provider_message(exc, max_length=1000)
             or "The shared Provider route held this request.",
+            reason_code="issuer_request_held",
+        )
+    except (ProviderQuotaAdmissionError, ProviderRateLimitError) as exc:
+        return ETFHoldingsAcquireResult(
+            profile=profile,
+            outcome="held",
+            refresh=True,
+            refresh_attempted=True,
+            refresh_succeeded=False,
+            snapshot=snapshot,
+            snapshot_id=snapshot.id if snapshot else None,
+            source_provider=source_provider,
+            source_operation=operation,
+            provider_request_log_ids=request_log_ids,
+            message=bounded_redact_provider_message(exc, max_length=1000)
+            or "The issuer request is held by the provider quota gate.",
+            reason_code=(
+                "provider_quota_admission_held"
+                if isinstance(exc, ProviderQuotaAdmissionError)
+                else "provider_rate_limited"
+            ),
+            retry_at=(
+                exc.retry_at
+                if isinstance(getattr(exc, "retry_at", None), datetime)
+                and exc.retry_at.tzinfo is not None
+                and exc.retry_at.utcoffset() is not None
+                else None
+            ),
         )
     except Exception as exc:
         await _record_failure(db, profile, exc)

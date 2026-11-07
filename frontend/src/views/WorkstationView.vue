@@ -233,7 +233,10 @@
       <div class="workstation__tool-library">
           <button ref="toolLibraryTrigger" type="button" class="workstation__tab-add" title="Open a workstation tool" aria-haspopup="menu" :aria-expanded="toolLibraryOpen" :aria-controls="toolLibraryMenuId" @click="toggleToolLibrary()" @keydown="handleShellTriggerKeydown('tool-library', $event)">Add tool</button>
         <div v-if="toolLibraryOpen" :id="toolLibraryMenuId" ref="toolLibraryMenuRoot" class="workstation__tool-library-menu" role="menu" aria-label="Workstation tools" :style="toolLibraryMenuStyle" @keydown="handleShellMenuKeydown('tool-library', $event)">
-          <button v-for="tool in openableTools" :key="tool.instance_prefix" type="button" role="menuitem" tabindex="-1" @click="openTool(tool)">{{ tool.title }}</button>
+          <p v-if="workspaceStore.toolCatalogueLoading" role="status">{{ openableTools.length ? 'Refreshing available tools…' : 'Loading available tools…' }}</p>
+          <p v-else-if="workspaceStore.toolCatalogueError" role="status">{{ openableTools.length ? 'Using the last verified tool list. ' : '' }}{{ workspaceStore.toolCatalogueError }}</p>
+          <p v-else-if="!openableTools.length" role="status">No workstation tools are currently available.</p>
+          <button v-for="tool in openableTools" :key="tool.key" type="button" role="menuitem" tabindex="-1" @click="openTool(tool)">{{ tool.title }}</button>
         </div>
       </div>
       <button v-if="workspaceStore.workspace?.settings.factory_id === 'us-top-down'" type="button" class="workstation__tab-reset" title="Reset factory workspace" aria-label="Reset factory workspace" @click="resetFactoryWorkspace"><WorkstationGlyph kind="reset" /></button>
@@ -305,7 +308,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, useId, watch, type VNode } from 'vue'
+import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, useId, watch, type Ref, type VNode } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuery } from '@tanstack/vue-query'
 import WorkspaceLayoutHost from '@/components/workstation/WorkspaceLayoutHost.vue'
@@ -313,10 +316,10 @@ import WorkstationToolContent from '@/components/workstation/WorkstationToolCont
 import WorkstationGlyph from '@/components/workstation/WorkstationGlyph.vue'
 import { refreshMountedWorkstationChartPanels, useChartStore } from '@/stores/chart'
 import { useAuthStore } from '@/stores/auth'
-import { OPENABLE_WORKSTATION_TOOLS, useWorkspaceStore, type LinkGroup, type OpenableToolDefinition } from '@/stores/workspace'
+import { useWorkspaceStore, type LinkGroup, type OpenableToolDefinition } from '@/stores/workspace'
 import type { LayoutConfig } from 'golden-layout'
 import { resolveKnownInstrument } from '@/lib/instruments'
-import { acquireETFHoldings, acquireSelectedHistory, createKnownTemporaryRetryLifecycle, defaultHistoryRange, isCurrentETFHoldingsCapability, isEligibleETFHoldingsInstrumentType, readETFHoldingsCapability, resolveExistingInstrument, resolveExistingInstrumentWithRetry, type InstrumentDiscoveryResponse, type SelectedHistoryStage } from '@/lib/onDemandAcquisition'
+import { createKnownTemporaryRetryLifecycle, isCurrentETFHoldingsCapability, isEligibleETFHoldingsInstrumentType, readETFHoldingsCapability, resolveExistingInstrument, type InstrumentDiscoveryResponse } from '@/lib/onDemandAcquisition'
 import { scheduleTickerDiscovery, shouldDiscoverTicker, tickerDiscoveryMessage } from '@/lib/workstationSymbolSearch'
 import { autoRatioExpression } from '@/lib/workstation/ratioExpression'
 import { api } from '@/lib/api'
@@ -332,6 +335,7 @@ import { resolveMarketMapAnalysisSource } from '@/lib/workstation/marketMapPubli
 import { isConfirmedETFHoldingIdentity, type ETFHoldingDrilldownContext } from '@/lib/etfHoldingDrilldown'
 import { isSharedNavigationItemActive, sharedShellNavigation } from '@/router'
 import type { Timeframe } from '@/types'
+import { dataPreparationCoordinator, instrumentHistoryPreparationRequest, PreparationProgressRefreshQueue, preparationStatusMessage, type DataEnsureResponse } from '@/lib/dataPreparation'
 
 const BLOCKED_POPOUT_ERROR = 'Browser blocked the pop-out. The tool remains docked.'
 const CHART_TIMEFRAME_ORDER: readonly Timeframe[] = ['M1', 'M5', 'M15', 'M30', 'H1', 'H2', 'H4', 'H12', 'D1', 'W1', 'MN']
@@ -497,7 +501,7 @@ const preserveDrilldownSymbol = ref<string | null>(null)
 // the canonical, explicitly-labelled SPY tradable proxy instead of leaving the
 // workstation on a dead symbol.
 const symbolProxyNotice = ref<string | null>(null)
-const openableTools = OPENABLE_WORKSTATION_TOOLS
+const openableTools = computed(() => workspaceStore.toolCatalogue ?? [])
 const applicationNavigation = sharedShellNavigation
 const isApplicationNavigationItemActive = (item: typeof applicationNavigation[number]) =>
   isSharedNavigationItemActive(route.path, item.match)
@@ -1290,7 +1294,7 @@ async function selectSymbol(
   try {
     const localDataReady = loadSymbolData(symbol, comparisonETF, false, preserveETFContext)
     const selectedAcquisition = acquisitionIntent
-      ? acquireSelectedTickerData(symbol, generation, localDataReady, confirmedIdentity, acquisitionController.signal)
+      ? acquireSelectedTickerData(symbol, generation, localDataReady, confirmedIdentity, acquisitionController.signal, canonicalInstrumentId)
       : Promise.resolve()
     await Promise.all([localDataReady, selectedAcquisition])
     if (generation !== symbolSelectionGeneration) return
@@ -1317,95 +1321,117 @@ async function acquireSelectedTickerData(
   localDataReady: Promise<void>,
   confirmedIdentity?: InstrumentAcquireResponse,
   signal?: AbortSignal,
+  knownInstrumentId?: number | null,
 ) {
   const timeframe = chartStore.timeframe
-  const range = defaultHistoryRange(timeframe)
-  const request = { timeframe, adjusted: true, start: range.start, end: range.end }
-  // Deliberate selection owns one identity/type reconciliation even when the
-  // chart is already cached. The backend returns locally for an already
-  // qualified identity; provisional or stale identity is governed there.
-  // History and issuer work share this result, so neither can race or resolve
-  // the selected symbol twice.
+  const normalizedSymbol = symbol.trim().toUpperCase()
   const isCurrent = () => generation === symbolSelectionGeneration && !signal?.aborted
     && chartStore.timeframe === timeframe
-  const retryLifecycle = createKnownTemporaryRetryLifecycle(isCurrent, retryAt => {
-    if (isCurrent()) selectionHistoryMessage.value = `Waiting to retry ${symbol} history after ${new Date(retryAt).toLocaleTimeString()}…`
-  }, signal)
-  const identityPromise = confirmedIdentity
-    ? Promise.resolve(confirmedIdentity)
-    : resolveExistingInstrumentWithRetry(symbol, retryLifecycle, isCurrent)
-  const updateStage = (stage: SelectedHistoryStage) => {
-    if (!isCurrent()) return
-    selectionHistoryMessage.value = stage === 'coverage'
-      ? `Checking local ${timeframe} history for ${symbol}…`
-      : stage === 'identity'
-        ? `Confirming ${symbol}…`
-        : stage === 'waiting'
-          ? selectionHistoryMessage.value
-          : `Loading missing ${timeframe} history for ${symbol}…`
+  const target = Number.isSafeInteger(confirmedIdentity?.instrument?.instrument_id)
+    && Number(confirmedIdentity?.instrument?.instrument_id) > 0
+    ? { kind: 'instrument' as const, instrument_id: Number(confirmedIdentity!.instrument!.instrument_id) }
+    : Number.isSafeInteger(knownInstrumentId) && Number(knownInstrumentId) > 0
+      ? { kind: 'instrument' as const, instrument_id: Number(knownInstrumentId) }
+      : { kind: 'instrument' as const, symbol: normalizedSymbol }
+  const targetInstrumentId = 'instrument_id' in target && Number.isSafeInteger(target.instrument_id)
+    ? Number(target.instrument_id)
+    : null
+  let resolveIdentity!: (value: InstrumentAcquireResponse | null) => void
+  let identityResolved = false
+  const identityPromise = new Promise<InstrumentAcquireResponse | null>(resolve => { resolveIdentity = resolve })
+  const finishIdentity = (value: InstrumentAcquireResponse | null) => {
+    if (identityResolved) return
+    identityResolved = true
+    resolveIdentity(value)
   }
+  const makeResolvedIdentity = (instrumentId: number, instrumentType = ''): InstrumentAcquireResponse => ({
+    request_id: confirmedIdentity?.request_id ?? `preparation-${generation}`,
+    status: 'resolved',
+    instrument: {
+      instrument_id: instrumentId,
+      symbol: normalizedSymbol,
+      identity_status: 'resolved',
+      ...(instrumentType ? { instrument_type: instrumentType } : {}),
+    },
+    source_outcomes: [],
+  })
+  if (confirmedIdentity?.status === 'resolved' && confirmedIdentity.instrument?.symbol.trim().toUpperCase() === normalizedSymbol) {
+    finishIdentity(confirmedIdentity)
+  } else if (targetInstrumentId !== null) {
+    finishIdentity(makeResolvedIdentity(targetInstrumentId, confirmedIdentity?.instrument?.instrument_type ?? ''))
+  }
+
+  const refreshQueue = new PreparationProgressRefreshQueue()
+  const refreshVisibleSelection = async () => {
+    if (!isCurrent()) return
+    await Promise.allSettled([
+      chartStore.refreshLocalBars(),
+      refreshMountedWorkstationChartPanels(symbol, timeframe, isCurrent),
+      workspaceStore.loadTechnical(symbol),
+    ])
+  }
+  const publishIdentityFromProgress = (result: DataEnsureResponse) => {
+    if (identityResolved) return
+    const identityDependency = result.dependencies.find(dependency => dependency.dataset === 'identity'
+      && dependency.status === 'ready'
+      && Number.isSafeInteger(dependency.instrument_id)
+      && Number(dependency.instrument_id) > 0
+      && (!dependency.symbol || dependency.symbol.trim().toUpperCase() === normalizedSymbol))
+    if (identityDependency?.instrument_id) {
+      finishIdentity(makeResolvedIdentity(identityDependency.instrument_id, confirmedIdentity?.instrument?.instrument_type ?? ''))
+      return
+    }
+    const matching = result.dependencies.find(dependency => dependency.instrument_id
+      && dependency.symbol?.trim().toUpperCase() === normalizedSymbol
+      && ['profile', 'history', 'holdings', 'fundamentals'].includes(dependency.dataset))
+    if (matching?.instrument_id) finishIdentity(makeResolvedIdentity(matching.instrument_id, confirmedIdentity?.instrument?.instrument_type ?? ''))
+    else if (result.has_pending_work === false && result.dependencies.some(dependency => dependency.dataset === 'identity'
+      && ['unavailable', 'failed'].includes(dependency.status))) finishIdentity(null)
+  }
+  const preparation = dataPreparationCoordinator.ensure(
+    instrumentHistoryPreparationRequest(target, timeframe, true),
+    {
+      signal,
+      onProgress: ({ response, completed, total }) => {
+        if (!isCurrent()) return
+        publishIdentityFromProgress(response)
+        const historyDependencies = response.dependencies.filter(dependency => dependency.dataset === 'history')
+        const hasHistoryOutput = historyDependencies.some(dependency => dependency.covered_ranges.length > 0
+          || (dependency.covered_start !== null && dependency.covered_end !== null))
+        selectionHistoryMessage.value = response.status === 'ready'
+          ? `Refreshing the available ${timeframe} history for ${symbol}…`
+          : response.status === 'partial' && response.has_pending_work === false
+            ? preparationStatusMessage(response)
+            : `Preparing the admitted ${timeframe} history for ${symbol} (${completed}/${total})…`
+        if (hasHistoryOutput) {
+          void refreshQueue.request(response, refreshVisibleSelection).catch(() => {
+            if (isCurrent()) selectionHistoryError.value = `Available ${timeframe} history for ${symbol} could not be refreshed; saved bars remain visible.`
+          })
+        }
+      },
+    },
+  )
   const historyTask = (async () => {
     try {
-      const outcome = await acquireSelectedHistory(
-        symbol,
-        timeframe,
-        true,
-        request,
-        updateStage,
-        isCurrent,
-        identityPromise,
-        { retryLifecycle, signal },
-      )
-      if (generation !== symbolSelectionGeneration || outcome.kind === 'superseded') return
-      if (outcome.kind === 'already-covered') {
-        selectionHistoryMessage.value = `Local ${timeframe} history is available for ${symbol}.`
-      } else if (outcome.kind === 'identity-unavailable') {
-        selectionHistoryMessage.value = outcome.status === 'held'
-          ? `History for ${symbol} is temporarily held${outcome.retryAt ? `; try again after ${new Date(outcome.retryAt).toLocaleTimeString()}` : ''}. The selected chart remains available.`
-          : `The ticker identity for ${symbol} could not be confirmed; no history was requested.`
-      } else if (outcome.kind === 'admission-held') {
-        selectionHistoryMessage.value = `History for ${symbol} is temporarily held; the selected chart remains available.`
-      } else if (outcome.kind === 'admission-unavailable') {
-        selectionHistoryMessage.value = `The allowed history window for ${symbol} could not be confirmed; saved bars remain available.`
-      } else if (outcome.kind === 'coverage-unavailable') {
-        selectionHistoryMessage.value = `Saved history coverage for ${symbol} could not be confirmed; the selected chart remains available.`
-      } else if (outcome.kind === 'at-earliest-bound') {
-        selectionHistoryMessage.value = `The available ${timeframe} history for ${symbol} begins ${new Date(outcome.earliestStart).toLocaleDateString()}.`
+      const result = await preparation
+      if (!isCurrent()) return
+      publishIdentityFromProgress(result)
+      if (!identityResolved) finishIdentity(null)
+      if (result.status === 'ready') {
+        selectionHistoryError.value = ''
+        selectionHistoryMessage.value = `The admitted ${timeframe} history for ${symbol} is available locally.`
+      } else if (result.status === 'partial') {
+        selectionHistoryMessage.value = preparationStatusMessage(result)
       } else {
-        const result = outcome.result
-        const heldSource = result.source_outcomes.find(source => source.status === 'held')
-        const retryAt = result.retry_at ?? heldSource?.retry_at
-        selectionHistoryMessage.value = result.status === 'complete'
-          ? `Loaded ${result.coverage.bar_count} local ${timeframe} bars for ${symbol}.`
-          : result.status === 'partial'
-            ? `Some ${timeframe} history for ${symbol} loaded; the rest remains unavailable.`
-            : result.status === 'held'
-              ? `History for ${symbol} is temporarily held${retryAt ? `; try again after ${new Date(retryAt).toLocaleTimeString()}` : ''}. The current chart remains available.`
-              : result.status === 'no_data'
-                ? `No ${timeframe} history is available for ${symbol}; the selected chart is unchanged.`
-                : `History for ${symbol} could not be loaded; the selected chart is unchanged.`
-        if ((result.status === 'complete' || result.status === 'partial')
-          && chartStore.symbol === symbol
-          && generation === symbolSelectionGeneration) {
-          // The initial selection read may have completed before these bars
-          // were persisted. Refresh chart bars and local derived data together
-          // so the visible technical/details panel catches up without another
-          // user action. The workspace store also fences overlapping symbol
-          // technical reads; recheck this selection before starting either read.
-          await Promise.all([
-            chartStore.refreshLocalBars(),
-            refreshMountedWorkstationChartPanels(
-              symbol,
-              timeframe,
-              () => generation === symbolSelectionGeneration,
-            ),
-            workspaceStore.loadTechnical(symbol),
-          ])
-        }
+        selectionHistoryMessage.value = preparationStatusMessage(result)
       }
-    } catch {
-      if (generation === symbolSelectionGeneration) {
-        selectionHistoryError.value = `History for ${symbol} could not be checked or loaded; saved chart data remains available.`
+      const hasHistoryOutput = result.dependencies.some(dependency => dependency.dataset === 'history'
+        && (dependency.covered_ranges.length > 0 || (dependency.covered_start !== null && dependency.covered_end !== null)))
+      if (hasHistoryOutput) await refreshQueue.request(result, refreshVisibleSelection)
+    } catch (error: any) {
+      if (!identityResolved) finishIdentity(null)
+      if (isCurrent() && error?.name !== 'AbortError') {
+        selectionHistoryError.value = `History for ${symbol} could not be prepared; the current chart remains available.`
       }
     }
   })()
@@ -1413,59 +1439,45 @@ async function acquireSelectedTickerData(
   const holdingsTask = (async () => {
     try {
       const identity = await identityPromise
-      if (generation !== symbolSelectionGeneration) return
-      const resolvedInstrumentId = identity.instrument?.instrument_id
-      if (identity.status !== 'resolved' || !identity.instrument
-        || identity.instrument.symbol.trim().toUpperCase() !== symbol.toUpperCase()
-        || !Number.isSafeInteger(resolvedInstrumentId) || Number(resolvedInstrumentId) <= 0) {
-        selectionHoldingsMessage.value = identity.status === 'held'
-          ? `Holdings for ${symbol} are unavailable until its identity can be confirmed.`
-          : `The ticker identity for ${symbol} could not be confirmed; no holdings request was made.`
+      if (!isCurrent()) return
+      if (!identity || identity.status !== 'resolved' || !identity.instrument
+        || identity.instrument.symbol.trim().toUpperCase() !== normalizedSymbol
+        || !Number.isSafeInteger(identity.instrument.instrument_id) || identity.instrument.instrument_id <= 0) {
+        selectionHoldingsMessage.value = `The ticker identity for ${symbol} could not be confirmed; no holdings request was made.`
         return
       }
 
+      const instrumentId = identity.instrument.instrument_id
       let resolvedType = identity.instrument.instrument_type?.trim() ?? ''
       if (!resolvedType) {
-        // Older compatible responses omit classification. Read only the exact
-        // resolved local ID; never infer type from a stale autocomplete hint.
-        const localOptions = await queryClient.fetchQuery<Array<{
-          symbol: string
-          type: string
-          instrument_id?: number | null
-        }>>({
-          queryKey: ['workstation', 'instrument-search', symbol.toUpperCase(), Number(resolvedInstrumentId)],
-          queryFn: () => api.get('/instruments/search', { q: symbol, canonical_only: true }),
+        const localOptions = await queryClient.fetchQuery<Array<{ symbol: string; type: string; instrument_id?: number | null }>>({
+          queryKey: ['workstation', 'instrument-search', normalizedSymbol, instrumentId],
+          queryFn: () => api.get('/instruments/search', { q: normalizedSymbol, canonical_only: true }),
           staleTime: 0,
         })
-        if (generation !== symbolSelectionGeneration) return
-        resolvedType = localOptions.find(option => option.symbol.trim().toUpperCase() === symbol.toUpperCase()
-          && option.instrument_id === Number(resolvedInstrumentId))?.type ?? ''
+        if (!isCurrent()) return
+        resolvedType = localOptions.find(option => option.symbol.trim().toUpperCase() === normalizedSymbol
+          && option.instrument_id === instrumentId)?.type ?? ''
       }
       if (!isEligibleETFHoldingsInstrumentType(resolvedType)) {
-        if (workspaceStore.constituentETF === symbol.toUpperCase()) workspaceStore.setConstituentETF(null)
+        if (workspaceStore.constituentETF === normalizedSymbol) workspaceStore.setConstituentETF(null)
         return
       }
-      if (generation !== symbolSelectionGeneration) return
-      // Recent-symbol and free-form Go selections can know the canonical ID
-      // before their local instrument type is available. The direct selection
-      // already cleared the old parent context; bind this ETF only after the
-      // local canonical lookup confirms its type.
-      if (workspaceStore.constituentETF !== symbol.toUpperCase()) {
-        workspaceStore.setConstituentETF(symbol)
-      }
+      if (!isCurrent()) return
+      if (workspaceStore.constituentETF !== normalizedSymbol) workspaceStore.setConstituentETF(symbol)
       await localDataReady
-      if (generation !== symbolSelectionGeneration) return
-      const stored = workspaceStore.etfHoldings[symbol.toUpperCase()]
+      if (!isCurrent()) return
+
+      const stored = workspaceStore.etfHoldings[normalizedSymbol]
       const capability = await readETFHoldingsCapability(symbol)
-      if (generation !== symbolSelectionGeneration) return
+      if (!isCurrent()) return
       if (isCurrentETFHoldingsCapability(capability)) {
         const currentPage = await workspaceStore.loadETFHoldings(symbol)
-        if (generation !== symbolSelectionGeneration) return
-        const latestLocalSnapshot = currentPage?.snapshot
-          ?? workspaceStore.etfHoldings[symbol.toUpperCase()]?.snapshot
+        if (!isCurrent()) return
+        const latest = currentPage?.snapshot ?? workspaceStore.etfHoldings[normalizedSymbol]?.snapshot
         selectionHoldingsMessage.value = currentPage?.snapshot
           ? `Current holdings for ${symbol} are available locally.`
-          : latestLocalSnapshot
+          : latest
             ? `The holdings feed for ${symbol} is current; showing saved holdings while the latest local snapshot is unavailable.`
             : `Holdings for ${symbol} are current, but no saved snapshot was returned.`
         return
@@ -1473,61 +1485,56 @@ async function acquireSelectedTickerData(
 
       const hasLastKnown = Boolean(stored?.snapshot)
       selectionHoldingsMessage.value = hasLastKnown
-        ? `Showing last-known holdings for ${symbol}; checking for a current update…`
-        : `Checking holdings for ${symbol}…`
-      const holdings = await acquireETFHoldings(symbol, true, Number(resolvedInstrumentId))
-      if (generation !== symbolSelectionGeneration) return
-      if (holdings.symbol.trim().toUpperCase() !== symbol.toUpperCase()
-        || holdings.instrument_id !== Number(resolvedInstrumentId)
-        || (holdings.profile && (holdings.profile.symbol.trim().toUpperCase() !== symbol.toUpperCase()
-          || holdings.profile.instrument_id !== Number(resolvedInstrumentId)))) {
-        selectionHoldingsError.value = `Holdings for ${symbol} did not match the selected ticker; saved data was kept.`
-        return
-      }
-      if (holdings.outcome === 'unavailable') {
-        const detail = holdings.message?.trim()
-        selectionHoldingsMessage.value = hasLastKnown
-          ? `Last-known holdings for ${symbol} remain visible.${detail ? ` ${detail}` : ' A current update is unavailable.'}`
+        ? `Showing last-known holdings for ${symbol}; preparing a current local update…`
+        : `Preparing holdings for ${symbol}…`
+      const holdingsRefreshQueue = new PreparationProgressRefreshQueue()
+      const refreshHoldings = () => Promise.allSettled([
+        workspaceStore.loadETFHoldings(symbol),
+        workspaceStore.loadETFIndustries(symbol),
+      ]).then(() => undefined)
+      const holdingsResult = await dataPreparationCoordinator.ensure({
+        target: { kind: 'instrument', instrument_id: instrumentId },
+        datasets: ['holdings'],
+        timeframe,
+        adjusted: true,
+      }, {
+        signal,
+        onProgress: progress => {
+          if (!isCurrent()) return
+          const dependency = progress.response.dependencies.find(item => item.dataset === 'holdings'
+            && item.instrument_id === instrumentId)
+          if (dependency && (dependency.status === 'ready' || dependency.covered_ranges.length > 0)) {
+            void holdingsRefreshQueue.request(progress.response, refreshHoldings)
+          }
+          if (progress.response.status === 'waiting' || progress.response.status === 'unavailable'
+            || progress.response.status === 'failed') {
+            selectionHoldingsMessage.value = preparationStatusMessage(progress.response)
+          } else if (progress.response.has_pending_work !== false) {
+            selectionHoldingsMessage.value = `Preparing holdings for ${symbol} (${progress.completed}/${progress.total})…`
+          }
+        },
+      })
+      if (!isCurrent()) return
+      await holdingsRefreshQueue.request(holdingsResult, refreshHoldings)
+      if (!isCurrent()) return
+      const page = workspaceStore.etfHoldings[normalizedSymbol]
+      const finalSnapshot = page?.snapshot
+      if (holdingsResult.status === 'ready' && finalSnapshot) {
+        selectionHoldingsMessage.value = `Current holdings for ${symbol} are available locally.`
+      } else if (holdingsResult.status === 'partial' || holdingsResult.status === 'waiting'
+        || holdingsResult.status === 'unavailable' || holdingsResult.status === 'failed') {
+        const detail = preparationStatusMessage(holdingsResult)
+        selectionHoldingsMessage.value = finalSnapshot
+          ? `Last-known holdings for ${symbol} remain visible. ${detail}`
           : detail
-            ? `Holdings for ${symbol} are not available: ${detail}`
-            : `Holdings for ${symbol} are not available for this ticker.`
-        return
-      }
-      if (holdings.outcome === 'held') {
-        const detail = holdings.message?.trim()
-        selectionHoldingsMessage.value = hasLastKnown
-          ? `Last-known holdings for ${symbol} remain visible.${detail ? ` ${detail}` : ' A current update is unavailable.'}`
-          : detail
-            ? `Current holdings for ${symbol} are unavailable: ${detail}`
-            : `Current holdings for ${symbol} are unavailable; no saved snapshot is available.`
-        return
-      }
-      if (holdings.outcome === 'failed') {
-        if (hasLastKnown) {
-          selectionHoldingsError.value = `Holdings for ${symbol} could not be updated; last-known holdings remain visible.${holdings.message?.trim() ? ` ${holdings.message.trim()}` : ''}`
-        } else {
-          selectionHoldingsError.value = `Holdings for ${symbol} could not be loaded; no saved snapshot is available.`
-        }
-        return
-      }
-      if (holdings.profile) {
-        await Promise.all([workspaceStore.loadETFHoldings(symbol), workspaceStore.loadETFIndustries(symbol)])
-        if (generation !== symbolSelectionGeneration) return
-        selectionHoldingsMessage.value = holdings.outcome === 'acquired'
-          ? `Holdings for ${symbol} are available from the selected ticker.`
-          : holdings.outcome === 'no_data'
-            ? hasLastKnown
-              ? `No newer holdings snapshot is available for ${symbol}; last-known holdings remain visible.`
-              : `No holdings snapshot is available for ${symbol}.`
-            : `Saved holdings for ${symbol} are available locally.`
+      } else if (finalSnapshot) {
+        selectionHoldingsMessage.value = `Saved holdings for ${symbol} are available locally.`
       } else {
-        selectionHoldingsMessage.value = hasLastKnown
-          ? `No newer holdings snapshot is available for ${symbol}; last-known holdings remain visible.`
-          : `No holdings snapshot is available for ${symbol}.`
+        selectionHoldingsMessage.value = `No holdings snapshot is available for ${symbol}.`
       }
-    } catch {
-      if (generation === symbolSelectionGeneration) {
-        const hasLastKnown = Boolean(workspaceStore.etfHoldings[symbol.toUpperCase()]?.snapshot)
+    } catch (error: any) {
+      if (isCurrent() && error?.name !== 'AbortError') {
+        const hasLastKnown = Boolean(workspaceStore.etfHoldings[normalizedSymbol]?.snapshot)
         selectionHoldingsError.value = hasLastKnown
           ? `Holdings for ${symbol} could not be checked; last-known holdings remain visible.`
           : `Holdings for ${symbol} could not be checked; no saved snapshot is available.`
@@ -2040,10 +2047,16 @@ async function openTool(tool: OpenableToolDefinition, configurationOverride: Rec
   return opened
 }
 
+async function catalogueTool(key: string) {
+  const current = workspaceStore.toolDefinition(key)
+  if (current) return current
+  return (await workspaceStore.loadToolCatalogue()).find(tool => tool.key === key) ?? null
+}
+
 async function openMarketMap(sourceId: string) {
   const normalized = sourceId.trim()
   if (!normalized) return
-  const definition = OPENABLE_WORKSTATION_TOOLS.find(tool => tool.tool_type === 'market_map')
+  const definition = await catalogueTool('market-map')
   if (!definition) return
   await openTool(definition, { source_id: normalized })
 }
@@ -2061,7 +2074,7 @@ async function openStudyLab() {
     workspaceStore.setActiveWindow(studyWindow.instance_key)
     return
   }
-  const studyDefinition = OPENABLE_WORKSTATION_TOOLS.find(tool => tool.tool_type === 'study_lab')
+  const studyDefinition = await catalogueTool('study-lab')
   if (studyDefinition) await openTool(studyDefinition)
 }
 
@@ -2190,8 +2203,8 @@ async function importWorkspace(event: Event) {
   }
 }
 
-function openAlertsTool() {
-  const alerts = OPENABLE_WORKSTATION_TOOLS.find(tool => tool.tool_type === 'alerts')
+async function openAlertsTool() {
+  const alerts = await catalogueTool('alerts')
   if (alerts) openTool(alerts)
 }
 
@@ -2232,7 +2245,7 @@ type StudyDefinitionOpen = {
 }
 
 async function openStudyDefinition(definition: StudyDefinitionOpen) {
-  const studyDefinition = OPENABLE_WORKSTATION_TOOLS.find(tool => tool.tool_type === 'study_lab')
+  const studyDefinition = await catalogueTool('study-lab')
   if (!studyDefinition || !Number.isInteger(definition.versionId) || !definition.source.trim()) return
   const defaults = definition.defaultParameters ?? {}
   const configuration: Record<string, unknown> = {
@@ -2310,7 +2323,7 @@ async function publishMapAnalysis(publication: MapAnalysisPublication) {
       await nextTick()
       return
     }
-    const definition = OPENABLE_WORKSTATION_TOOLS.find(tool => tool.tool_type === 'breadth')
+    const definition = await catalogueTool('breadth')
     if (!definition) return
     const opened = await openTool(definition, {
       custom_universe_kind: 'watchlist',
@@ -2340,7 +2353,7 @@ async function publishMapAnalysis(publication: MapAnalysisPublication) {
     })
     return
   }
-  const definition = OPENABLE_WORKSTATION_TOOLS.find(tool => tool.tool_type === 'study_lab')
+  const definition = await catalogueTool('study-lab')
   if (!definition) return
   const opened = await openTool(definition, {
     source_id: publication.sourceId,
@@ -2499,12 +2512,13 @@ async function handleRowAction(action: 'chart' | 'compare' | 'ratio' | 'note' | 
   }
   await selectSymbol(row.symbol, undefined, false, row.instrumentId, true, false, '', true)
   if (action === 'chart') {
-    const chart = OPENABLE_WORKSTATION_TOOLS.find(tool => tool.tool_type === 'chart')
+    const chart = await catalogueTool('chart')
     if (chart) openTool(chart)
     return
   }
   const toolType = action === 'note' ? 'notes' : action === 'alert' ? 'alerts' : action
-  const tool = OPENABLE_WORKSTATION_TOOLS.find(candidate => candidate.tool_type === toolType)
+  const tools = workspaceStore.toolCatalogue.length ? workspaceStore.toolCatalogue : await workspaceStore.loadToolCatalogue()
+  const tool = tools.find(candidate => candidate.tool_type === toolType) ?? null
   if (tool) openTool(tool)
 }
 
@@ -2598,11 +2612,12 @@ async function reconcilePopoutPlacement(windowKey: string, popup: Window, initia
   }
 }
 
-function renderDockTool(dockTool: { instance_key: string; title: string; tool_type: string }, actions: { toggleMaximize: () => void; close: () => void }): VNode {
+function renderDockTool(dockTool: { instance_key: string; title: string; tool_type: string }, actions: { toggleMaximize: () => void; maximized: Readonly<Ref<boolean>>; close: () => void }): VNode {
   const tool = workspaceStore.activeTab?.windows.find(window => window.instance_key === dockTool.instance_key)
   if (!tool) return h('div', { class: 'workstation__missing-tool' }, `Missing persisted tool: ${dockTool.instance_key}`)
   return h(WorkstationToolContent, {
     tool,
+    maximizedState: actions.maximized,
     activeWindowKey: workspaceStore.activeTab?.active_window_key,
     factoryLayout: workspaceStore.activeTabKey,
     onActivate: () => workspaceStore.setActiveWindow(dockTool.instance_key),
@@ -2703,10 +2718,8 @@ function handleKeydown(event: KeyboardEvent) {
   }
   if (workspaceStore.isEditorTarget(event.target) || isInteractiveTarget(event.target)) return
   if (event.key.toLowerCase() === 'n' && event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey) {
-    const notes = OPENABLE_WORKSTATION_TOOLS.find(tool => tool.tool_type === 'notes')
-    if (!notes) return
     event.preventDefault()
-    void openTool(notes)
+    void catalogueTool('notes').then(notes => { if (notes) return openTool(notes) })
     return
   }
   if (event.key.toLowerCase() === 'l' && event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey) {
@@ -2999,6 +3012,7 @@ watch(() => workspaceStore.workspace?.id, (workspaceId, previousWorkspaceId) => 
 })
 
 onMounted(async () => {
+  void workspaceStore.loadToolCatalogue()
   componentMounted = true
   if (isPopout.value) {
     // Establish keyboard and assistive-technology focus before workspace

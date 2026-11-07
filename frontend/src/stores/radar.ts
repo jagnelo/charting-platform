@@ -151,6 +151,11 @@ export const useRadarStore = defineStore('radar', () => {
     persistSavedViews()
   }
 
+  function resetForAuthSessionBoundary() {
+    savedViews.value = []
+    if (typeof localStorage !== 'undefined') localStorage.removeItem(RADAR_SAVED_VIEWS_KEY)
+  }
+
   async function loadRuns(limit = 5, timeframe?: Timeframe) {
     runs.value = await api.get<RadarRun[]>('/radar/runs', { limit, timeframe })
   }
@@ -313,6 +318,7 @@ export const useRadarStore = defineStore('radar', () => {
     loadSavedViews,
     saveView,
     deleteView,
+    resetForAuthSessionBoundary,
     loadRuns,
     loadDetections,
     loadDetection,

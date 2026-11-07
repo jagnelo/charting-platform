@@ -18,6 +18,7 @@ from app.routers import (
     code,
     coverage,
     dashboards,
+    data_preparation,
     drawings,
     etf_holdings,
     favorites,
@@ -141,6 +142,7 @@ app.include_router(options_exposure.router, prefix=PREFIX)
 app.include_router(baskets.router, prefix=PREFIX)
 app.include_router(etf_holdings.router, prefix=PREFIX)
 app.include_router(instruments.router, prefix=PREFIX)
+app.include_router(data_preparation.router, prefix=PREFIX)
 app.include_router(providers.router, prefix=PREFIX)
 app.include_router(ohlcv.router, prefix=PREFIX)
 app.include_router(dashboards.router, prefix=PREFIX)

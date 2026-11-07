@@ -101,16 +101,34 @@ async def test_refresh_queue_process_delegates_to_bounded_worker_task(monkeypatc
     monkeypatch.setattr(settings, "MARKET_DATA_REFRESH_SCHEDULE_ENABLED", True)
     calls = []
 
+    async def fake_enqueue(ctx):
+        calls.append(("enqueue", ctx))
+        return {"queued": 2}
+
     async def fake_process(ctx):
-        calls.append(ctx)
+        calls.append(("process", ctx))
         return {"claimed": 4, "completed": 3, "retried": 1}
 
+    monkeypatch.setattr(data_tasks, "enqueue_core_refresh_jobs", fake_enqueue)
     monkeypatch.setattr(data_tasks, "process_refresh_jobs", fake_process)
 
     result = await arq_worker.scheduled_refresh_queue_process({"redis": "test"})
 
     assert result == {"claimed": 4, "completed": 3, "retried": 1}
-    assert calls == [{"redis": "test"}]
+    assert calls == [("enqueue", {"redis": "test"}), ("process", {"redis": "test"})]
+
+
+@pytest.mark.asyncio
+async def test_data_preparation_wakeup_is_registered_and_not_schedule_gated(monkeypatch):
+    monkeypatch.setattr(settings, "MARKET_DATA_REFRESH_SCHEDULE_ENABLED", False)
+    process = AsyncMock(return_value={"claimed": 1, "completed": 1})
+    monkeypatch.setattr(data_tasks, "process_refresh_jobs", process)
+
+    result = await arq_worker.task_process_refresh_jobs({"redis": "test"})
+
+    assert result == {"claimed": 1, "completed": 1}
+    process.assert_awaited_once_with({"redis": "test"})
+    assert arq_worker.task_process_refresh_jobs in arq_worker.WorkerSettings.functions
 
 
 @pytest.mark.asyncio
@@ -120,10 +138,14 @@ async def test_refresh_queue_does_not_retry_after_lease_is_lost(monkeypatch):
     session = _RefreshQueueSession()
     job = SimpleNamespace(
         id=7,
+        capability="price_history",
         instrument_id=42,
         timeframe="D1",
         start_at=None,
         end_at=None,
+        metadata_payload={},
+        status="leased",
+        next_attempt_at=None,
     )
     monkeypatch.setattr(data_tasks, "AsyncSessionLocal", lambda: session)
     monkeypatch.setattr(data_tasks, "claim_refresh_jobs", AsyncMock(return_value=[job]))
@@ -135,7 +157,13 @@ async def test_refresh_queue_does_not_retry_after_lease_is_lost(monkeypatch):
 
     result = await data_tasks.process_refresh_jobs({})
 
-    assert result == {"claimed": 1, "completed": 0, "retried": 0, "lease_lost": 1}
+    assert result == {
+        "claimed": 1,
+        "completed": 0,
+        "retried": 0,
+        "lease_lost": 1,
+        "wakeup_scheduled": False,
+    }
     complete.assert_awaited_once()
     summary = complete.await_args.kwargs["result_summary"]
     assert summary["instrument_id"] == 42
@@ -901,6 +929,23 @@ async def test_core_workstation_bootstrap_delegates_when_enabled(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_core_workstation_task_queues_shared_preparation_requests(monkeypatch):
+    from app.tasks import data_tasks
+
+    calls = []
+
+    async def fake_enqueue(ctx, *, include_discovered):
+        calls.append((ctx, include_discovered))
+        return {"queued": 3, "default": 3, "background": 0}
+
+    monkeypatch.setattr(data_tasks, "enqueue_workstation_maintenance", fake_enqueue)
+    result = await arq_worker.task_bootstrap_core_workstation({"redis": "test"})
+
+    assert result["queued"] == 3
+    assert calls == [({"redis": "test"}, False)]
+
+
+@pytest.mark.asyncio
 async def test_core_workstation_bootstrap_is_explicitly_skippable(monkeypatch):
     monkeypatch.setattr(settings, "CORE_WORKSTATION_BOOTSTRAP_ENABLED", False)
 
@@ -929,7 +974,7 @@ async def test_worker_startup_queues_bootstrap_without_running_it_inline(monkeyp
         (
             "task_bootstrap_core_workstation",
             (),
-            {"_job_id": "core-workstation-bootstrap-startup-v4", "_expires": 3600},
+            {"_job_id": "core-workstation-bootstrap-startup-v5", "_expires": 3600},
         )
     ]
 

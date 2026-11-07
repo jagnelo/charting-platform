@@ -83,7 +83,11 @@ from app.services.distributed_locks import (
     shared_redis_lock_client,
 )
 from app.services.instrument_mastering import ingest_provider_profile, reconcile_instrument_profile
-from app.services.market_series import SeriesScope, get_or_create_series
+from app.services.market_series import (
+    SeriesScope,
+    adjustment_scope_predicate,
+    get_or_create_series,
+)
 from app.services.ohlcv_coverage import assess_ohlcv_coverage, missing_range_slices
 from app.services.provider_observations import (
     store_latest_price_snapshot,
@@ -117,8 +121,12 @@ _OHLCV_CONFLICT_COLUMNS = [
 # background refresh jobs provide cross-worker coalescing; this map prevents
 # concurrent requests handled by one process from independently spending the
 # same provider quota before the first transaction commits its bars.
-_OHLCV_REFRESH_LOCKS: dict[tuple[int, str, datetime, datetime | None, bool], asyncio.Lock] = {}
-_OHLCV_REFRESH_LOCK_USERS: dict[tuple[int, str, datetime, datetime | None, bool], int] = {}
+_OHLCV_REFRESH_LOCKS: dict[
+    tuple[int, str, datetime, datetime | None, bool, str | None], asyncio.Lock
+] = {}
+_OHLCV_REFRESH_LOCK_USERS: dict[
+    tuple[int, str, datetime, datetime | None, bool, str | None], int
+] = {}
 _LATEST_PRICE_REFRESH_LOCKS: dict[int, asyncio.Lock] = {}
 _LATEST_PRICE_REFRESH_LOCK_USERS: dict[int, int] = {}
 
@@ -129,19 +137,21 @@ def _ohlcv_refresh_lock_key(
     start: datetime,
     end: datetime | None,
     adjusted: bool,
-) -> tuple[int, str, datetime, datetime | None, bool]:
+    source_provider: str | None = None,
+) -> tuple[int, str, datetime, datetime | None, bool, str | None]:
     return (
         instrument.id,
         timeframe.value,
         _as_utc(start),
         _as_utc(end) if end is not None else None,
         adjusted,
+        source_provider.strip().lower() if source_provider else None,
     )
 
 
 async def _acquire_database_refresh_lock(
     db: AsyncSession,
-    lock_key: tuple[int, str, datetime, datetime | None, bool],
+    lock_key: tuple[int, str, datetime, datetime | None, bool, str | None],
 ) -> None:
     """Serialize an exact refresh key across PostgreSQL workers/hosts.
 
@@ -191,6 +201,7 @@ def _default_series_bar_condition(
     contract to a set-based multi-instrument query without an N+1 lookup.
     """
 
+    adjustment_predicate = adjustment_scope_predicate(adjusted)
     mapping = select(MarketSeriesDefault.market_series_id).where(
         MarketSeriesDefault.instrument_id == instrument_id,
         MarketSeriesDefault.timeframe == timeframe.value,
@@ -210,13 +221,9 @@ def _default_series_bar_condition(
             mapped_bar.instrument_id == instrument_id,
             mapped_bar.timeframe == timeframe,
             mapped_bar.is_adjusted == adjusted,
+            adjustment_predicate,
         )
         .exists()
-    )
-    adjustment_predicate = (
-        MarketSeries.adjustment_basis != AdjustmentBasis.RAW
-        if adjusted
-        else MarketSeries.adjustment_basis == AdjustmentBasis.RAW
     )
     canonical = (
         select(MarketSeries.id)
@@ -829,6 +836,7 @@ async def fetch_ohlcv(
     *,
     allow_provider_fetch: bool = True,
     redis: Any = None,
+    source_provider: str | None = None,
 ) -> list[OHLCVBar]:
     """Read/refresh OHLCV with identical in-process requests coalesced.
 
@@ -849,6 +857,7 @@ async def fetch_ohlcv(
         adjusted,
         allow_provider_fetch=allow_provider_fetch,
         redis=redis,
+        source_provider=source_provider,
         operation=lambda: _fetch_ohlcv_impl(
             db,
             instrument,
@@ -857,6 +866,7 @@ async def fetch_ohlcv(
             end,
             adjusted,
             allow_provider_fetch=allow_provider_fetch,
+            source_provider=source_provider,
         ),
     )
 
@@ -870,6 +880,7 @@ async def _with_ohlcv_refresh_gate(
     *,
     allow_provider_fetch: bool,
     redis: Any = None,
+    source_provider: str | None = None,
     operation: Callable[[], Awaitable[_T]],
 ) -> _T:
     """Coalesce one provider-capable OHLCV operation in this process.
@@ -884,7 +895,9 @@ async def _with_ohlcv_refresh_gate(
     if not allow_provider_fetch or instrument.is_synthetic:
         return await operation()
 
-    lock_key = _ohlcv_refresh_lock_key(instrument, timeframe, start, end, adjusted)
+    lock_key = _ohlcv_refresh_lock_key(
+        instrument, timeframe, start, end, adjusted, source_provider=source_provider
+    )
     lock = _OHLCV_REFRESH_LOCKS.setdefault(lock_key, asyncio.Lock())
     _OHLCV_REFRESH_LOCK_USERS[lock_key] = _OHLCV_REFRESH_LOCK_USERS.get(lock_key, 0) + 1
     try:
@@ -966,6 +979,7 @@ async def _fetch_ohlcv_impl(
     adjusted: bool = True,
     *,
     allow_provider_fetch: bool = True,
+    source_provider: str | None = None,
 ) -> list[OHLCVBar]:
     # Synthetic instruments use computed OHLCV, not an external provider.
     if instrument.is_synthetic:
@@ -976,7 +990,9 @@ async def _fetch_ohlcv_impl(
 
     await _acquire_database_refresh_lock(
         db,
-        _ohlcv_refresh_lock_key(instrument, timeframe, start, end, adjusted),
+        _ohlcv_refresh_lock_key(
+            instrument, timeframe, start, end, adjusted, source_provider=source_provider
+        ),
     )
 
     if end is None:
@@ -988,8 +1004,48 @@ async def _fetch_ohlcv_impl(
         OHLCVBar.ts >= start,
         OHLCVBar.ts <= end,
         OHLCVBar.is_adjusted == adjusted,
-        _default_series_bar_condition(instrument.id, timeframe, adjusted),
     ]
+    if source_provider:
+        source_id = (
+            await db.execute(
+                select(DataSource.id).where(
+                    func.lower(DataSource.name) == source_provider.strip().lower()
+                )
+            )
+        ).scalar_one_or_none()
+        if source_id is None:
+            raise ProviderNoDataError("selected history provider is not registered")
+        selected_series_id = (
+            await db.execute(
+                select(MarketSeries.id)
+                .where(
+                    MarketSeries.data_source_id == source_id,
+                    MarketSeries.instrument_id == instrument.id,
+                    MarketSeries.timeframe == timeframe.value,
+                    MarketSeries.is_active.is_(True),
+                    MarketSeries.is_canonical.is_(True),
+                    adjustment_scope_predicate(adjusted),
+                )
+                .order_by(MarketSeries.created_at.desc(), MarketSeries.id.desc())
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+        if selected_series_id is None:
+            # The fetch path will create this provider's first scoped series;
+            # on the next read it becomes the exact cache identity.
+            selected_series_predicate = MarketSeries.id.is_(None)
+        else:
+            selected_series_predicate = MarketSeries.id == selected_series_id
+        predicates.extend(
+            [
+                OHLCVBar.data_source_id == source_id,
+                OHLCVBar.market_series_id == MarketSeries.id,
+                selected_series_predicate,
+                OHLCVBar.is_derived.is_(False),
+            ]
+        )
+    else:
+        predicates.append(_default_series_bar_condition(instrument.id, timeframe, adjusted))
     if _seeded_market_data():
         predicates.append(_e2e_fixture_bar_condition())
     stmt = select(OHLCVBar).where(and_(*predicates)).order_by(OHLCVBar.ts)
@@ -1020,7 +1076,13 @@ async def _fetch_ohlcv_impl(
             try:
                 new_bars.extend(
                     await _fetch_provider(
-                        db, instrument, timeframe, repair_start, repair_end, adjusted
+                        db,
+                        instrument,
+                        timeframe,
+                        repair_start,
+                        repair_end,
+                        adjusted,
+                        provider_name=source_provider,
                     )
                 )
             except Exception as exc:
@@ -1123,6 +1185,8 @@ async def _fetch_provider(
     start: datetime,
     end: datetime,
     adjusted: bool,
+    *,
+    provider_name: str | None = None,
 ) -> list[OHLCVBar]:
     operation_cost_overrides = ohlcv_operation_cost_overrides(timeframe, start, end)
     execution = await execute_provider_call(
@@ -1135,6 +1199,7 @@ async def _fetch_provider(
             instrument, provider_name
         ),
         operation_cost_overrides=operation_cost_overrides or None,
+        provider_name=provider_name,
         adjusted=adjusted,
         history_start=start,
         invoke=lambda provider, _provider_symbol: provider.fetch_ohlcv(

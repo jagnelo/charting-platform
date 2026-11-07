@@ -1,5 +1,5 @@
 <template>
-<ToolWindow :window-key="tool.instance_key" :title="tool.title || tool.tool_type" :symbol="toolHeaderSymbol" :link-group="localLinkGroup" :timeframe-link-group="timeframeLinkGroup" :timeframe="tool.tool_type === 'chart' ? activeTimeframe : ''" :active="isActiveToolWindow" :scrollable-body="tool.instance_key === 'relative-rotation' || tool.tool_type === 'relative_rotation'" :favorite-available="tool.tool_type === 'chart' && favoriteStore.loaded && chartStore.instrument?.id != null" :favorite-active="favoriteStore.isFavorite(chartStore.instrument?.id)" @toggle-favorite="toggleChartFavorite" @pointerdown.capture="emit('activate')" @float="emit('float', tool.instance_key)" @maximize="emit('maximize', tool.instance_key)" @close="emit('close', tool.instance_key)" @update:link-group="handleLinkGroupChange" @update:timeframe-link-group="setTimeframeLinkGroup" @update:timeframe="setTimeframe">
+<ToolWindow :window-key="tool.instance_key" :title="tool.title || tool.tool_type" :symbol="toolHeaderSymbol" :link-group="localLinkGroup" :timeframe-link-group="timeframeLinkGroup" :timeframe="tool.tool_type === 'chart' ? activeTimeframe : ''" :active="isActiveToolWindow" :maximized="maximizedState?.value ?? false" :scrollable-body="tool.instance_key === 'relative-rotation' || tool.tool_type === 'relative_rotation'" :favorite-available="tool.tool_type === 'chart' && favoriteStore.loaded && chartStore.instrument?.id != null" :favorite-active="favoriteStore.isFavorite(chartStore.instrument?.id)" @toggle-favorite="toggleChartFavorite" @pointerdown.capture="emit('activate')" @float="emit('float', tool.instance_key)" @maximize="emit('maximize', tool.instance_key)" @close="emit('close', tool.instance_key)" @update:link-group="handleLinkGroupChange" @update:timeframe-link-group="setTimeframeLinkGroup" @update:timeframe="setTimeframe">
     <span v-if="personalWatchlistError" class="workstation-tool-content__mutation-error" role="alert" aria-live="assertive">{{ personalWatchlistError }}</span>
     <div v-if="isBenchmarkUniverse" class="benchmark-surface">
       <div class="benchmark-surface__family-controls" aria-label="Benchmark family selector">
@@ -79,7 +79,7 @@
       />
     </div>
     <VirtualWatchlistTool
-      v-else-if="tool.instance_key === 'sector-list'"
+      v-else-if="isSectorTool"
       label="Relative to SPY"
       :timeframe="activeTimeframe"
       :rows="sectorRows"
@@ -227,12 +227,12 @@
         @condition-drop="addConditionColumn"
       />
     </section>
-    <div v-else-if="tool.tool_type === 'watchlist' && !isIndustryTool" class="constituent-tool constituent-tool--factory">
+    <div v-else-if="tool.tool_type === 'watchlist' && !isIndustryTool && !isConstituentTool" class="constituent-tool constituent-tool--factory">
     <VirtualWatchlistTool
       :label="tool.title || 'WatchList'"
       :timeframe="activeTimeframe"
       :rows="factoryWatchlistRows"
-      :selected="tool.instance_key === 'industries' ? (selectedIndustry ?? '') : activeSymbol"
+      :selected="isIndustryTool ? (selectedIndustry ?? '') : activeSymbol"
       :selected-row-key="selectedConstituentRowKey"
       :columns="factoryWatchlistColumns"
       :visible-column-keys="configuredColumnKeys"
@@ -272,7 +272,7 @@
         @condition-drop="addConditionColumn"
     />
     <div
-      v-if="selectedConstituentRowKey && tool.tool_type === 'watchlist'"
+      v-if="selectedConstituentRowKey && isConstituentTool"
       class="constituent-tool__selection"
       data-testid="reported-holding-selection"
     >
@@ -389,6 +389,8 @@
       </div>
     </div>
     <div v-else-if="isIndustryTool && industries.length" class="industry-list">
+      <small v-if="workspaceStore.etfIndustryLoading[selectedETF]" class="industry-list__load-state" role="status">Refreshing dated classifications for {{ selectedETF }} holdings…</small>
+      <small v-else-if="workspaceStore.etfIndustryErrors[selectedETF]" class="industry-list__load-state" role="status">{{ workspaceStore.etfIndustryErrors[selectedETF] }} Existing classified rows remain visible.</small>
       <div class="industry-list__header" aria-label="Industry ranking columns">
         <span>Industry</span><span>Coverage</span><span>Proxies</span>
         <span v-for="column in industryRankingColumns" :key="column.key">{{ column.label }}</span>
@@ -471,11 +473,25 @@
       <template v-if="!selectedETF">
         Select a sector to inspect its industries and verified ETF proxies.
       </template>
+      <template v-else-if="workspaceStore.etfIndustryLoading[selectedETF]">
+        Loading dated classifications for {{ selectedETF }} holdings…
+      </template>
+      <template v-else-if="workspaceStore.etfIndustryErrors[selectedETF]">
+        {{ workspaceStore.etfIndustryErrors[selectedETF] }}
+      </template>
+      <template v-else-if="industryComposition">
+        No source-classified industries are available for {{ selectedETF }}'s {{ industryComposition.composition_date }} holdings snapshot.
+        <span v-if="industryComposition.exclusions.length">Classification exclusions: {{ industryComposition.exclusions.map(industryExclusionLabel).join('; ') }}.</span>
+        <small class="industry-list__empty-provenance">{{ industryComposition.source_provider }} · {{ industryComposition.provenance }} · {{ ((industryComposition.classification_coverage ?? 0) * 100).toFixed(0) }}% classified</small>
+      </template>
       <template v-else>
-        No mapped ETF proxy for {{ selectedETF }}. Curated industry mappings require holdings and classification evidence.
+        Industry classifications for {{ selectedETF }} have not been loaded. Re-select the instrument to refresh its dated holdings evidence.
       </template>
     </div>
-    <div v-else-if="tool.instance_key === 'constituent-list'" class="constituent-tool">
+    <div v-else-if="isConstituentTool" class="constituent-tool">
+      <p v-if="!selectedETF || !holdings?.snapshot" class="constituent-tool__empty-context" role="status">
+        Choose an ETF or industry in this workspace to view its reported constituents.
+      </p>
       <VirtualWatchlistTool
         :label="constituentLabel"
         :timeframe="activeTimeframe"
@@ -528,7 +544,7 @@
         :title="constituentExclusionCodes.join(', ')"
       >{{ constituentExclusionSummary }}</small>
       <div
-        v-if="selectedConstituentRowKey && tool.instance_key === 'constituent-list'"
+        v-if="selectedConstituentRowKey && isConstituentTool"
         class="constituent-tool__selection"
         data-testid="reported-holding-selection"
       >
@@ -1037,7 +1053,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, defineAsyncComponent, defineComponent, h, nextTick, onBeforeUnmount, onMounted, provide, ref, watch, type Component } from 'vue'
+import { computed, defineAsyncComponent, defineComponent, h, nextTick, onBeforeUnmount, onMounted, provide, ref, watch, type Component, type Ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
@@ -1054,7 +1070,7 @@ import ChartPlotLibrary from './ChartPlotLibrary.vue'
 import { refreshMountedWorkstationChartPanels, registerWorkstationPanelChartRefresh, usePanelStore } from '@/stores/chart'
 import { useDrawingsStore } from '@/stores/drawings'
 import { useAlertsStore } from '@/stores/alerts'
-import { OPENABLE_WORKSTATION_TOOLS, useWorkspaceStore, workspaceToolRole, type BenchmarkFamilyCoverageState, type BenchmarkFamilyReadinessState, type GenericBreadthHistoryState, type GenericBreadthState, type GroupSnapshotRow, type LinkGroup, type WorkspaceWindowState } from '@/stores/workspace'
+import { useWorkspaceStore, workspaceToolRole, type BenchmarkFamilyCoverageState, type BenchmarkFamilyReadinessState, type GenericBreadthHistoryState, type GenericBreadthState, type GroupSnapshotRow, type LinkGroup, type WorkspaceWindowState } from '@/stores/workspace'
 import { useWatchlistStore } from '@/stores/watchlist'
 import { useFavoritesStore } from '@/stores/favorites'
 import type { Instrument, Watchlist, WatchlistSource } from '@/types'
@@ -1170,6 +1186,7 @@ const props = defineProps<{
   tool: WorkspaceWindowState
   activeWindowKey?: string | null
   factoryLayout?: string | null
+  maximizedState?: Readonly<Ref<boolean>>
 }>()
 // Golden Layout can destroy a virtual tool while its shared column/asset
 // requests are still resolving. Keep response publication scoped to the
@@ -1348,7 +1365,7 @@ function openCustomDateSortWatchlist() {
     return
   }
   const column = customDateSortListColumn(range, chartStore.timeframe, true)
-  const watchlistDefinition = OPENABLE_WORKSTATION_TOOLS.find(tool => tool.tool_type === 'watchlist' && tool.instance_prefix === 'watchlist')
+  const watchlistDefinition = workspaceStore.toolDefinition('watchlist')
   if (!column || !watchlistDefinition) {
     customDateSortDestinationMessage.value = 'This date range cannot be saved as a WatchList sort column.'
     return
@@ -2008,14 +2025,14 @@ watch(activeSymbol, async symbol => {
 const isIndustryTool = computed(() => {
   const instanceKey = props.tool.instance_key.toLowerCase()
   const title = (props.tool.title ?? '').toLowerCase()
-  const marketGroup = typeof props.tool.configuration.market_group === 'string'
-    ? props.tool.configuration.market_group.toLowerCase()
-    : ''
-  return instanceKey === 'industry-list'
+  return workspaceToolRole(props.tool) === 'industry-universe'
+    || instanceKey === 'industry-list'
     || instanceKey === 'industries'
     || title.includes('industr')
-    || marketGroup === 'selected-sector-industries'
 })
+const isSectorTool = computed(() => workspaceToolRole(props.tool) === 'sector-universe'
+  || props.tool.instance_key === 'sector-list'
+  || (props.tool.title ?? '').toLowerCase().includes('sector'))
 // Resolve isolated Grey timeframes through the live workspace store rather
 // than the detached Golden Layout component-state object. Shared groups are
 // already reactive through the link bus; Grey must track per-tool edits too.
@@ -2151,7 +2168,7 @@ function selectSymbol(symbol: string, instrumentId?: number | null) {
   // The shell owns canonical data loading and auto-ratio orchestration. Publish
   // row selections through it as well as the local link-group mutation so every
   // watchlist interaction follows the same top-down path as symbol entry.
-  emit('select', symbol, instrumentId, props.tool.instance_key === 'constituent-list')
+  emit('select', symbol, instrumentId, isConstituentTool.value)
 }
 
 function isReportedETFHoldingRow(row: WatchlistRow) {
@@ -2159,7 +2176,7 @@ function isReportedETFHoldingRow(row: WatchlistRow) {
 }
 
 function selectFactoryWatchlistRow(row: WatchlistRow) {
-  if (props.tool.instance_key === 'industries') {
+  if (isIndustryTool.value) {
     selectedConstituentRowKey.value = null
     emit('selectIndustry', row.symbol, industryETFContext.value)
     return
@@ -3522,8 +3539,10 @@ async function saveGenericBreadthDefinition() {
 }
 const technical = computed(() => workspaceStore.technicals[activeSymbol.value])
 const selectedETF = computed(() => workspaceStore.constituentETF ?? '')
-const isConstituentTool = computed(() => props.tool.instance_key === 'constituent-list'
-  || (props.tool.title ?? '').toLowerCase().includes('constituent'))
+const isConstituentTool = computed(() => workspaceToolRole(props.tool) === 'constituent-universe'
+  || props.tool.instance_key === 'constituent-list'
+  || (props.tool.title ?? '').toLowerCase().includes('constituent')
+  || (props.tool.title ?? '').toLowerCase().includes('component'))
 const showsETFCompositionContext = computed(() => isConstituentTool.value || isIndustryTool.value)
 const toolHeaderSymbol = computed(() => showsETFCompositionContext.value && selectedETF.value
   ? selectedETF.value
@@ -3715,6 +3734,17 @@ function classificationDetail(systems?: string[]) {
   const values = [...new Set((systems ?? []).filter(Boolean))]
   return values.length ? `Classification source: ${values.join(', ')}` : 'No source-labelled classification evidence'
 }
+function industryExclusionLabel(code: string) {
+  const labels: Record<string, string> = {
+    cash_holding: 'cash holdings',
+    derivative_holding: 'derivative holdings',
+    unresolved_holding: 'holdings without a canonical identity',
+    non_equity_holding: 'non-equity holdings',
+    classification_not_known_at_as_of: 'classifications not known by the selected date',
+    unclassified_constituent: 'constituents without source classification',
+  }
+  return labels[code] ?? 'rows excluded from the dated classification view'
+}
 const industryClassificationSummary = computed(() => {
   const composition = industryComposition.value
   if (!composition) return 'classification provenance unavailable'
@@ -3864,29 +3894,29 @@ const sectorByYearYears = computed(() => {
   return calendarYearKeys(workspaceStore.groupSnapshots['sp500-sectors']?.rows ?? [])
 })
 const factoryWatchlistRows = computed(() => {
-  const title = (props.tool.title ?? '').toLowerCase()
+  const role = workspaceToolRole(props.tool)
   const factoryLayout = typeof props.tool.configuration.factory_layout === 'string' ? props.tool.configuration.factory_layout : ''
-  if (props.factoryLayout === 'sector-by-year' || factoryLayout === 'sector-by-year' || title.includes('sector by year')) return sectorRows.value
-  if (title.includes('sector')) return sectorRows.value
-  if (title.includes('industry') || title.includes('industries')) return industryRows.value
-  if (title.includes('component') || title.includes('constituent')) return constituentRows.value
+  if (props.factoryLayout === 'sector-by-year' || factoryLayout === 'sector-by-year') return sectorRows.value
+  if (role === 'sector-universe') return sectorRows.value
+  if (role === 'industry-universe') return industryRows.value
+  if (role === 'constituent-universe') return constituentRows.value
   return benchmarkRows.value
 })
 const factoryWatchlistSourceId = computed(() => {
-  const title = (props.tool.title ?? '').toLowerCase()
+  const role = workspaceToolRole(props.tool)
   const factoryLayout = typeof props.tool.configuration.factory_layout === 'string' ? props.tool.configuration.factory_layout : ''
-  if (props.factoryLayout === 'sector-by-year' || factoryLayout === 'sector-by-year' || title.includes('sector')) return 'market-group:sp500-sectors'
-  if (title.includes('industry') || title.includes('industries')) return null
-  if (title.includes('component') || title.includes('constituent')) return constituentMarketMapSourceId.value
+  if (props.factoryLayout === 'sector-by-year' || factoryLayout === 'sector-by-year' || role === 'sector-universe') return 'market-group:sp500-sectors'
+  if (role === 'industry-universe') return null
+  if (role === 'constituent-universe') return constituentMarketMapSourceId.value
   return 'market-group:us-benchmarks'
 })
 const factoryWatchlistColumns = computed<WatchlistColumn[]>(() => {
-  const title = (props.tool.title ?? '').toLowerCase()
+  const role = workspaceToolRole(props.tool)
   const factoryLayout = typeof props.tool.configuration.factory_layout === 'string' ? props.tool.configuration.factory_layout : ''
-  if (props.factoryLayout === 'sector-by-year' || factoryLayout === 'sector-by-year' || title.includes('sector by year')) return sectorByYearColumns.value
-  if (title.includes('sector')) return sectorColumns
-  if (title.includes('industry') || title.includes('industries')) return industryColumns
-  if (title.includes('component') || title.includes('constituent')) return constituentColumns
+  if (props.factoryLayout === 'sector-by-year' || factoryLayout === 'sector-by-year') return sectorByYearColumns.value
+  if (role === 'sector-universe') return sectorColumns
+  if (role === 'industry-universe') return industryColumns
+  if (role === 'constituent-universe') return constituentColumns
   return benchmarkColumns
 })
 const latestChartBar = computed(() => chartStore.bars.length ? chartStore.bars[chartStore.bars.length - 1] : null)
@@ -4665,18 +4695,20 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 .industry-list__classification { flex: 0 0 auto; max-width: 120px; overflow: hidden; color: #a9b7bf; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .industry-list__proxies { display: grid; gap: 3px; padding: 6px 7px; border-bottom: 1px solid #20282f; color: #8998a3; }
 .industry-list__proxy-table { height: 170px; border: 1px solid #34434e; }
-.constituent-tool { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto auto; width: 100%; min-width: 0; max-width: 100%; height: 100%; min-height: 0; overflow: hidden; background: #11161b; }
+.constituent-tool { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto auto; width: 100%; min-width: 0; max-width: 100%; height: 100%; min-height: 0; overflow: hidden; background: #11161b; }
 .constituent-tool--factory { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
 .constituent-tool :deep(.watchlist) { width: 100%; min-width: 0; max-width: 100%; }
 .constituent-tool__selection { box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%; max-height: 75%; overflow: auto; padding: 4px 6px; border-top: 1px solid #28343c; background: #11161b; }
 .constituent-tool__selection :deep(.search-bar) { width: 100%; }
 .constituent-tool__selection :deep(.search-results) { position: static; max-height: 96px; }
 .constituent-tool__provenance { display: block; overflow: hidden; padding: 3px 7px; border-top: 1px solid #28343c; background: #121920; color: #d5ae72; font: 9px "Segoe UI", Arial, sans-serif; text-overflow: ellipsis; white-space: nowrap; }
+.constituent-tool__empty-context { margin: 0; padding: 6px 8px; color: #9fb0bb; font: 11px "Segoe UI", Arial, sans-serif; }
 .constituent-tool__selection-state { display: flex; flex-wrap: wrap; gap: 4px 8px; margin: 0; padding: 6px 8px; border-top: 1px solid #28343c; color: #b8c5cf; font: 11px "Segoe UI", Arial, sans-serif; }
 .instrument-report { height: 100%; overflow: auto; background: #11161b; }
 .industry-list__row strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .industry-list__row span, .industry-list small { color: #7d9db0; }
 .industry-list small { display: block; padding: 7px; line-height: 1.3; }
+.industry-list__empty-provenance { display: block; margin-top: 6px; color: #8799a4; }
 .industry-list__provenance { border-top: 1px solid #20282f; color: #8ea4b0; }
 .breadth-tool__family-technicals { display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; padding:5px 7px; border-top:1px solid #2b3841; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__family-technical { padding-left:5px; border-left:1px solid #34434e; color:#8497a4; }.breadth-tool__family-technical b { color:#cad4db; }
 .breadth-tool__family-breadth { display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; padding:5px 7px; border-top:1px solid #2b3841; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__family-breadth-role { padding-left:5px; border-left:1px solid #34434e; color:#8497a4; }.breadth-tool__family-breadth-role b { color:#cad4db; }

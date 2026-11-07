@@ -22,11 +22,13 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
+import { onAuthSessionBoundary } from '@/lib/authSession'
 
 interface Notification { id: number; type: 'alert' | 'info' | 'error'; title: string; message: string }
 
 const notifications = ref<Notification[]>([])
 let nextId = 1
+const stopSessionNotifications = onAuthSessionBoundary(() => { notifications.value = [] })
 
 const icons = { alert: '🔔', info: 'ℹ️', error: '⚠️' }
 
@@ -94,7 +96,10 @@ function playAlertSound() {
 }
 
 onMounted(() => window.addEventListener('chart:alert-triggered', handleAlertEvent))
-onUnmounted(() => window.removeEventListener('chart:alert-triggered', handleAlertEvent))
+onUnmounted(() => {
+  window.removeEventListener('chart:alert-triggered', handleAlertEvent)
+  stopSessionNotifications()
+})
 </script>
 
 <style scoped>

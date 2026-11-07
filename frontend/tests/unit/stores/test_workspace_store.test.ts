@@ -11,7 +11,23 @@ function deferred<T>() {
   return { promise, resolve }
 }
 
-import { OPENABLE_WORKSTATION_TOOLS, useWorkspaceStore, workspaceToolRole, type OpenableToolDefinition } from '@/stores/workspace'
+import { useWorkspaceStore, workspaceToolRole, type OpenableToolDefinition } from '@/stores/workspace'
+
+const canonicalCatalogueFixture: OpenableToolDefinition[] = [
+  { key: 'chart', tool_type: 'chart', title: 'Chart', instance_prefix: 'chart', configuration: { symbol: 'SPY', timeframe: 'D1' } },
+  { key: 'watchlist', tool_type: 'watchlist', title: 'WatchList', instance_prefix: 'watchlist', configuration: { personal: true, watchlist_id: null } },
+  { key: 'benchmark-list', tool_type: 'watchlist', title: 'Benchmarks', instance_prefix: 'benchmark-list', configuration: { market_group: 'us-benchmarks' } },
+  { key: 'sector-list', tool_type: 'watchlist', title: 'S&P 500 Sectors', instance_prefix: 'sector-list', configuration: { market_group: 'sp500-sectors' } },
+  { key: 'industry-list', tool_type: 'watchlist', title: 'Industries', instance_prefix: 'industry-list', configuration: { market_group: 'selected-sector-industries' } },
+  { key: 'constituent-list', tool_type: 'watchlist', title: 'Constituents', instance_prefix: 'constituent-list', configuration: { market_group: 'selected-industry-constituents' } },
+  { key: 'ratio-chart', tool_type: 'chart', title: 'Relative Strength', instance_prefix: 'ratio-chart', configuration: { expression: '=SPY/RSP', timeframe: 'D1', auto_ratio: true } },
+  { key: 'relative-rotation', tool_type: 'relative_rotation', title: 'Relative Rotation', instance_prefix: 'relative-rotation', configuration: { group_key: 'sp500-sectors', benchmark: 'SPY', timeframe: 'D1', sampling: 1, lookback: 20, tail_length: 10, adjusted: true } },
+  { key: 'breadth', tool_type: 'breadth', title: 'Market Breadth', instance_prefix: 'breadth', configuration: { group_key: 'sp500-sectors' } },
+  { key: 'technical-summary', tool_type: 'technical_summary', title: 'Technicals', instance_prefix: 'technical-summary', configuration: { scope: 'selected' } },
+  { key: 'coverage', tool_type: 'coverage', title: 'Coverage', instance_prefix: 'coverage', configuration: { scope: 'selected' } },
+  { key: 'report', tool_type: 'report', title: 'Instrument Report', instance_prefix: 'report', configuration: {} },
+  { key: 'research-results', tool_type: 'research_results', title: 'Study Results', instance_prefix: 'research-results', configuration: {} },
+]
 
 describe('workspace store layout tabs', () => {
   beforeEach(() => {
@@ -23,7 +39,46 @@ describe('workspace store layout tabs', () => {
     apiDelete.mockReset()
   })
 
-  afterEach(() => vi.unstubAllGlobals())
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    localStorage.removeItem('charting-platform:workstation-tool-catalogue:v1')
+  })
+
+  it('loads and validates the authenticated server catalogue as the Add-tool source', async () => {
+    apiGet.mockResolvedValueOnce({ version: 1, tools: canonicalCatalogueFixture })
+    const store = useWorkspaceStore()
+
+    const loaded = await store.loadToolCatalogue()
+
+    expect(apiGet).toHaveBeenCalledWith('/workspaces/tool-catalogue')
+    expect(loaded).toEqual(canonicalCatalogueFixture)
+    expect(store.toolDefinition('constituent-list')?.configuration.market_group).toBe('selected-industry-constituents')
+    expect(store.toolDefinition('ratio-chart')?.configuration.auto_ratio).toBe(true)
+  })
+
+  it('keeps the last verified catalogue when a later server response is malformed or unavailable', async () => {
+    apiGet.mockResolvedValueOnce({ version: 1, tools: canonicalCatalogueFixture })
+    const store = useWorkspaceStore()
+    await store.loadToolCatalogue()
+
+    apiGet.mockResolvedValueOnce({ version: 1, tools: [{ ...canonicalCatalogueFixture[0], key: '' }] })
+    await store.loadToolCatalogue({ force: true })
+
+    expect(store.toolCatalogue).toEqual(canonicalCatalogueFixture)
+    expect(store.toolCatalogueError).toContain('temporarily unavailable')
+  })
+
+  it('hydrates the last validated catalogue cache before a failed server refresh', async () => {
+    localStorage.setItem('charting-platform:workstation-tool-catalogue:v1', JSON.stringify({ version: 1, tools: canonicalCatalogueFixture }))
+    apiGet.mockRejectedValueOnce(new Error('offline'))
+    const store = useWorkspaceStore()
+
+    expect(store.toolDefinition('ratio-chart')?.configuration.auto_ratio).toBe(true)
+    await store.loadToolCatalogue()
+
+    expect(store.toolCatalogue).toEqual(canonicalCatalogueFixture)
+    expect(store.toolCatalogueError).toContain('temporarily unavailable')
+  })
 
   it('deduplicates shared top-down refreshes and records the refresh time', async () => {
     apiGet.mockResolvedValue({})
@@ -843,13 +898,53 @@ describe('workspace store layout tabs', () => {
     }))
     expect(workspaceToolRole(clone)).toBe('benchmark-universe')
     expect(workspaceToolRole(store.workspace.tabs[0].windows[0])).toBe('benchmark-universe')
-    expect(OPENABLE_WORKSTATION_TOOLS).toContainEqual(expect.objectContaining({
-      title: 'Benchmarks', tool_type: 'watchlist', configuration: { workspace_role: 'benchmark-universe' },
+    expect(canonicalCatalogueFixture).toContainEqual(expect.objectContaining({
+      key: 'benchmark-list', title: 'Benchmarks', tool_type: 'watchlist', configuration: { market_group: 'us-benchmarks' },
     }))
     await new Promise(resolve => setTimeout(resolve, 400))
     expect(apiPut).toHaveBeenCalledWith('/workspaces/10/snapshot', expect.objectContaining({
       tabs: expect.arrayContaining([expect.objectContaining({ windows: expect.arrayContaining([expect.objectContaining({ configuration: expect.objectContaining({ workspace_role: 'benchmark-universe', benchmark_family_key: 'sp500' }) })]) })]),
     }))
+  })
+
+  it('catalogues and preserves the semantic roles for factory list and ratio tools', async () => {
+    const expected = [
+      ['sector-list', 'sector-universe'],
+      ['industry-list', 'industry-universe'],
+      ['constituent-list', 'constituent-universe'],
+      ['ratio-chart', 'relative-strength'],
+    ] as const
+    const store = useWorkspaceStore()
+    store.toolCatalogue = canonicalCatalogueFixture
+    const definitions = expected.map(([key]) => store.toolDefinition(key))
+    expect(definitions.every(Boolean)).toBe(true)
+    for (const [index, [, role]] of expected.entries()) {
+      expect(workspaceToolRole({
+        instance_key: definitions[index]!.instance_prefix,
+        tool_type: definitions[index]!.tool_type,
+        configuration: definitions[index]!.configuration ?? {},
+      })).toBe(role)
+    }
+
+    store.workspace = {
+      id: 10, user_id: 3, name: 'Role copy', is_default: true, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [{
+        id: 20, stable_key: 'roles', name: 'Roles', position: 0, active_window_key: 'sector-universe', layout_config: {},
+        windows: expected.map(([key]) => {
+          const definition = store.toolDefinition(key)!
+          return {
+            id: -1, instance_key: definition.instance_prefix, tool_type: definition.tool_type, title: definition.title,
+            link_group: 'blue' as const, configuration: { ...(definition.configuration ?? {}) }, style: {}, state_schema_version: 1, position: 0,
+          }
+        }),
+      }],
+    }
+    store.cloneActiveTab()
+    const copiedRoles = store.workspace.tabs[1].windows.map(window => workspaceToolRole(window))
+    expect(copiedRoles).toEqual(expected.map(([, role]) => role))
+    // Let this test's debounced clone snapshot settle so it cannot bleed into
+    // the next case's API mock call counts.
+    await new Promise(resolve => setTimeout(resolve, 400))
   })
 
   it('does not let an older snapshot response replace a newer local tool edit', async () => {
@@ -1000,7 +1095,7 @@ describe('workspace store layout tabs', () => {
 
     store.scheduleSnapshot()
     await vi.waitFor(() => expect(apiPut).toHaveBeenCalledTimes(1), { timeout: 1_000 })
-    const opened = store.openTool({ tool_type: 'watchlist', title: 'WatchList', instance_prefix: 'watchlist', configuration: { personal: true } })
+    const opened = store.openTool({ key: 'watchlist', tool_type: 'watchlist', title: 'WatchList', instance_prefix: 'watchlist', configuration: { personal: true } })
     rejectOld(new Error('API PUT /workspaces/10/snapshot → 409: conflict'))
 
     await vi.waitFor(() => expect(apiPut).toHaveBeenCalledTimes(2), { timeout: 1_500 })
@@ -1019,7 +1114,7 @@ describe('workspace store layout tabs', () => {
     apiGet.mockResolvedValueOnce(baseline)
     const store = useWorkspaceStore()
     await store.loadDefault()
-    const opened = store.openTool({ tool_type: 'notes', title: 'Notes', instance_prefix: 'notes', configuration: {} })
+    const opened = store.openTool({ key: 'notes', tool_type: 'notes', title: 'Notes', instance_prefix: 'notes', configuration: {} })
     expect(opened).toBeTruthy()
 
     let rejectOld!: (cause: Error) => void
@@ -1437,7 +1532,7 @@ describe('workspace store layout tabs', () => {
       id: 10, user_id: 3, name: 'Personal', is_default: false, position: 0, revision: 4, schema_version: 1, settings: {},
       tabs: [{ id: 20, stable_key: 'personal', name: 'Personal', position: 0, active_window_key: null, layout_config: { root: { type: 'row', content: [] } }, windows: [] }],
     }
-    const definition: OpenableToolDefinition = { tool_type: 'study_lab', title: 'Study Lab', instance_prefix: 'study-lab', configuration: { symbol: 'SPY' } }
+    const definition: OpenableToolDefinition = { key: 'study-lab', tool_type: 'study_lab', title: 'Study Lab', instance_prefix: 'study-lab', configuration: { symbol: 'SPY' } }
 
     const opened = store.openTool(definition)
 
@@ -1455,7 +1550,7 @@ describe('workspace store layout tabs', () => {
     }
 
     const opened = store.openTool(
-      { tool_type: 'market_map', title: 'Market Map', instance_prefix: 'market-map', configuration: { color_metric: 'return' } },
+      { key: 'market-map', tool_type: 'market_map', title: 'Market Map', instance_prefix: 'market-map', configuration: { color_metric: 'return' } },
       { source_id: 'watchlist:42' },
     )
 
@@ -1480,7 +1575,7 @@ describe('workspace store layout tabs', () => {
         ],
       }],
     }
-    const opened = store.openTool({ tool_type: 'watchlist', title: 'WatchList', instance_prefix: 'watchlist', configuration: { personal: true } })
+    const opened = store.openTool({ key: 'watchlist', tool_type: 'watchlist', title: 'WatchList', instance_prefix: 'watchlist', configuration: { personal: true } })
     const root = store.activeTab?.layout_config.root as { content: Array<Record<string, any>> }
     expect(root.content).toHaveLength(2)
     const stack = root.content[1].content[0] as { type: string; content: Array<Record<string, any>> }
@@ -1519,7 +1614,7 @@ describe('workspace store layout tabs', () => {
   })
 
   it('exposes implemented analysis surfaces through the workstation tool registry', () => {
-    expect(OPENABLE_WORKSTATION_TOOLS.map(tool => tool.tool_type)).toEqual(expect.arrayContaining([
+    expect(canonicalCatalogueFixture.map(tool => tool.tool_type)).toEqual(expect.arrayContaining([
       'relative_rotation', 'breadth', 'technical_summary', 'coverage', 'report', 'research_results',
     ]))
   })
@@ -1749,7 +1844,7 @@ describe('workspace store layout tabs', () => {
     const store = useWorkspaceStore()
     await store.loadDefault()
     expect(store.closeTool('map-old')).toBe(true)
-    const reopened = store.openTool({ tool_type: 'market_map', title: 'Market Map', instance_prefix: 'market-map', configuration: { source_id: 'benchmark-family:sp600:cap_weight' } })
+    const reopened = store.openTool({ key: 'market-map', tool_type: 'market_map', title: 'Market Map', instance_prefix: 'market-map', configuration: { source_id: 'benchmark-family:sp600:cap_weight' } })
     expect(reopened).toBeTruthy()
     const remote = JSON.parse(JSON.stringify(baseline))
     remote.revision = 5
@@ -2015,6 +2110,32 @@ describe('workspace store layout tabs', () => {
     await store.loadETFIndustries('XLK')
     await vi.waitFor(() => expect(store.industrySnapshots.XLK?.rows[0].industry).toBe('Semiconductors'))
     expect(apiGet).toHaveBeenCalledWith('/analysis/etf/XLK/industries/snapshot', { market_benchmark: 'SPY' })
+  })
+
+  it('loads dated industry composition and analysis while retaining an honest empty-classification result', async () => {
+    const store = useWorkspaceStore()
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/market-groups/etf/XLB/industries') {
+        return Promise.resolve({
+          etf_symbol: 'XLB', composition_date: '2026-11-02', known_at: '2026-11-03T08:15:00Z',
+          provenance: 'dated_holdings_snapshot', source_provider: 'controlled-source', completeness_status: 'complete',
+          industries: [], exclusions: ['unclassified_constituent'], classification_systems: ['GICS'], classification_coverage: 0,
+        })
+      }
+      if (path === '/analysis/etf/XLB/industries/snapshot') {
+        return Promise.resolve({ etf_symbol: 'XLB', composition_date: '2026-11-02', rows: [], coverage: 0, exclusions: [] })
+      }
+      return Promise.resolve([])
+    })
+
+    const result = await store.loadETFIndustries('XLB')
+
+    expect(apiGet).toHaveBeenCalledWith('/market-groups/etf/XLB/industries')
+    expect(apiGet).toHaveBeenCalledWith('/analysis/etf/XLB/industries/snapshot', { market_benchmark: 'SPY' })
+    expect(result?.industries).toEqual([])
+    expect(result?.exclusions).toEqual(['unclassified_constituent'])
+    expect(store.etfIndustryLoading.XLB).toBe(false)
+    expect(store.etfIndustryErrors.XLB).toBeNull()
   })
 
   it('keeps an industry selection while ETF hydration completes after the click', async () => {

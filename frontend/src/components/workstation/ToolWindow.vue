@@ -56,6 +56,7 @@ const props = withDefaults(defineProps<{
   timeframeLinkGroup?: LinkGroup
   timeframe?: string
   active?: boolean
+  maximized?: boolean
   favoriteAvailable?: boolean
   favoriteActive?: boolean
   scrollableBody?: boolean
@@ -65,6 +66,7 @@ const props = withDefaults(defineProps<{
   timeframeLinkGroup: 'blue',
   timeframe: '',
   active: false,
+  maximized: false,
   favoriteAvailable: false,
   favoriteActive: false,
   scrollableBody: false,
@@ -89,17 +91,11 @@ const emit = defineEmits<{
 const titleId = `tool-window-title-${getCurrentInstance()?.uid ?? 0}`
 const menuId = `${titleId}-menu`
 const menuOpen = ref(false)
-const maximized = ref(false)
 const toolRoot = ref<HTMLElement | null>(null)
-let stackObserver: MutationObserver | null = null
 const menuRoot = ref<HTMLElement | null>(null)
 const menuElement = ref<HTMLElement | null>(null)
 const menuTrigger = ref<HTMLButtonElement | null>(null)
 const menuStyle = ref<Record<string, string>>({})
-
-function syncMaximizedState() {
-  maximized.value = Boolean(toolRoot.value?.closest('.lm_stack')?.classList.contains('lm_maximised'))
-}
 
 watch(() => props.active, active => {
   if (!active) setMenuOpen(false)
@@ -201,17 +197,9 @@ onMounted(() => {
   // Capture at document level so a click in another docked tool or the shell
   // cannot leave this fixed-position menu covering the next interaction.
   document.addEventListener('pointerdown', dismissMenuOnOutsidePointer, true)
-  syncMaximizedState()
-  const stack = toolRoot.value?.closest('.lm_stack')
-  if (stack) {
-    stackObserver = new MutationObserver(syncMaximizedState)
-    stackObserver.observe(stack, { attributes: true, attributeFilter: ['class'] })
-  }
 })
 
 onBeforeUnmount(() => {
-  stackObserver?.disconnect()
-  stackObserver = null
   document.removeEventListener('pointerdown', dismissMenuOnOutsidePointer, true)
   window.removeEventListener('resize', positionMenu)
   window.removeEventListener('scroll', positionMenu, true)

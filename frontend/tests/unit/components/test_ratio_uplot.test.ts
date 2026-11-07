@@ -297,11 +297,39 @@ describe('RatioUPlot', () => {
     expect(wrapper.emitted('configuration')).toContainEqual([{ ratio_benchmarks: ['SPY'] }])
   })
 
-  it('keeps a valid plotted pair when a newly added comparator is still loading and then unavailable', async () => {
+  it('loads and plots a newly entered comparison before the parent configuration echo', async () => {
+    vi.mocked(api.get).mockImplementation(async (_path, options) => ({
+      coverage: 1,
+      points: [{ timestamp: '2026-01-02T00:00:00Z', value: options?.benchmark === 'QQQ' ? 1.42 : 1.25 }],
+      warnings: [],
+    }))
+    const wrapper = mountTool({ props: { symbol: 'XLB', benchmarks: ['SPY'], editableBenchmarks: true } })
+    await vi.waitFor(() => expect(vi.mocked(uPlot)).toHaveBeenCalledTimes(1))
+
+    const input = wrapper.get('input[aria-label="Ratio comparison symbol"]')
+    await input.setValue('qqq')
+    await input.trigger('keydown', { key: 'Enter' })
+
+    await vi.waitFor(() => expect(api.get).toHaveBeenCalledWith('/analysis/relative-strength', {
+      symbol: 'XLB', benchmark: 'QQQ', timeframe: 'D1', adjusted: true,
+    }, expect.any(Object)))
+    await vi.waitFor(() => expect(vi.mocked(uPlot).mock.calls.at(-1)?.[0].series).toHaveLength(3))
+    expect(vi.mocked(uPlot).mock.calls.at(-1)?.[0].series?.[2]).toMatchObject({ label: 'XLB/QQQ', stroke: '#e7b35b' })
+    expect(vi.mocked(uPlot).mock.calls.at(-1)?.[1][2]).toEqual([1.42])
+    const ensureForQqq = vi.mocked(api.post).mock.calls.filter(([path, body]) => path === '/data/ensure'
+      && JSON.stringify(body).includes('QQQ'))
+    expect(ensureForQqq).toHaveLength(1)
+
+    await wrapper.setProps({ benchmarks: ['SPY', 'QQQ'] })
+    expect(vi.mocked(api.post).mock.calls.filter(([path, body]) => path === '/data/ensure'
+      && JSON.stringify(body).includes('QQQ'))).toHaveLength(1)
+  })
+
+  it('keeps a valid plotted pair when an Enter-added comparator is still loading and then unavailable', async () => {
     let failXle!: (error: Error) => void
     const xleRead = new Promise((_, reject) => { failXle = reject })
     vi.mocked(api.get).mockImplementation(async (_path, options) => {
-      if (options?.benchmark === 'XLE') return xleRead
+      if (options?.benchmark === 'ZZROOTTEST') return xleRead
       return {
         coverage: 1,
         points: [{ timestamp: '2026-01-02T00:00:00Z', value: 1.25 }],
@@ -320,19 +348,24 @@ describe('RatioUPlot', () => {
     // observable through setData in this canvas-free component test.
     chart.series = [{}, {}]
 
-    await wrapper.setProps({ benchmarks: ['SPY', 'XLE'] })
+    const input = wrapper.get('input[aria-label="Ratio comparison symbol"]')
+    await input.setValue('zzroottest')
+    await input.trigger('keydown', { key: 'Enter' })
+    await vi.waitFor(() => expect(api.get).toHaveBeenCalledWith('/analysis/relative-strength', {
+      symbol: 'NVDA', benchmark: 'ZZROOTTEST', timeframe: 'D1', adjusted: true,
+    }, expect.any(Object)))
+    expect(api.post).toHaveBeenCalledWith('/data/ensure', expect.objectContaining({
+      analysis: { kind: 'ratio', legs: [{ symbol: 'NVDA' }, { symbol: 'ZZROOTTEST' }] },
+    }), expect.any(Object))
     await vi.waitFor(() => expect(api.post).toHaveBeenCalledTimes(3))
-    expect(api.get).toHaveBeenCalledWith('/analysis/relative-strength', {
-      symbol: 'NVDA', benchmark: 'XLE', timeframe: 'D1', adjusted: true,
-    }, expect.any(Object))
-    expect(wrapper.text()).toContain('NVDA/SPY · NVDA/XLE')
+    expect(wrapper.text()).toContain('NVDA/SPY · NVDA/ZZROOTTEST')
     expect(wrapper.get('.ratio-chart').attributes('aria-busy')).toBe('true')
     expect(wrapper.text()).toContain('NVDA/SPY')
     expect(chart.data).toEqual(validPairData)
     expect(chart.setData).toHaveBeenCalledWith(validPairData)
 
     failXle(new Error('instrument_not_found'))
-    await vi.waitFor(() => expect(wrapper.text()).toContain('XLE: This comparison is unavailable'))
+    await vi.waitFor(() => expect(wrapper.text()).toContain('ZZROOTTEST: This comparison is unavailable'))
 
     expect(wrapper.find('.ratio-chart__state--error').exists()).toBe(false)
     expect(wrapper.text()).toContain('NVDA/SPY')

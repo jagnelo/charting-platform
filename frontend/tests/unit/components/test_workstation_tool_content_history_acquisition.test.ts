@@ -644,6 +644,14 @@ describe('WorkstationToolContent missing chart history entrypoint', () => {
     setActivePinia(pinia)
     const workspaceStore = useWorkspaceStore(pinia)
     workspaceStore.setConstituentETF('IGV')
+    workspaceStore.etfIndustries = {
+      IGV: {
+        etf_symbol: 'IGV', composition_date: '2026-11-02', known_at: '2026-11-03T08:15:00Z',
+        provenance: 'dated_holdings_snapshot', source_provider: 'controlled-source', completeness_status: 'complete',
+        industries: [], exclusions: ['unresolved_holding', 'unclassified_constituent'],
+        classification_systems: ['GICS'], classification_coverage: 0,
+      },
+    }
     workspaceStore.linkedSymbol = 'UNXQ'
     const tool: WorkspaceWindowState = {
       id: 32, instance_key: 'industry-list', tool_type: 'watchlist', title: 'Industries',
@@ -664,11 +672,21 @@ describe('WorkstationToolContent missing chart history entrypoint', () => {
     await flushPromises()
 
     expect(wrapper.get('.tool-window__symbol').text()).toBe('IGV')
-    expect(wrapper.text()).toContain('No mapped ETF proxy for IGV')
+    expect(wrapper.text()).toContain('No source-classified industries are available for IGV')
+    expect(wrapper.text()).toContain('Classification exclusions: holdings without a canonical identity; constituents without source classification')
+    expect(wrapper.text()).toContain('controlled-source · dated_holdings_snapshot · 0% classified')
     workspaceStore.setConstituentETF('XHB')
+    workspaceStore.etfIndustries = {
+      ...workspaceStore.etfIndustries,
+      XHB: {
+        etf_symbol: 'XHB', composition_date: '2026-11-01', known_at: null,
+        provenance: 'dated_holdings_snapshot', source_provider: 'controlled-source', completeness_status: 'partial',
+        industries: [], exclusions: ['unclassified_constituent'], classification_systems: ['GICS'], classification_coverage: 0,
+      },
+    }
     await flushPromises()
     expect(wrapper.get('.tool-window__symbol').text()).toBe('XHB')
-    expect(wrapper.text()).toContain('No mapped ETF proxy for XHB')
+    expect(wrapper.text()).toContain('No source-classified industries are available for XHB')
     expect(workspaceStore.linkedSymbol).toBe('UNXQ')
 
     wrapper.unmount()

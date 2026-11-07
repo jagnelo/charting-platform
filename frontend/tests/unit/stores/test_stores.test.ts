@@ -3,12 +3,31 @@
  * Each test creates a fresh Pinia instance and mocks all API calls.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { setActivePinia, createPinia } from 'pinia'
+import { setActivePinia, createPinia, defineStore } from 'pinia'
+import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useChartStore } from '@/stores/chart'
 import { clearOhlcvRequestCache } from '@/lib/workstation/ohlcvRequests'
 import { useAlertsStore } from '@/stores/alerts'
 import { router } from '@/router'
+import { captureAuthSession, currentAuthSessionEpoch } from '@/lib/authSession'
+
+function preparationReady(instrumentId: number, symbol: string, timeframe = 'D1') {
+  const timestamp = '2026-11-06T12:00:00Z'
+  const dependency = (dataset: 'identity' | 'profile' | 'history') => ({
+    dependency_id: `${dataset}:${instrumentId}:${timeframe}`,
+    depends_on: dataset === 'identity' ? [] : [`identity:${instrumentId}`],
+    instrument_id: instrumentId, symbol, dataset, status: 'ready',
+    requested_start: null, requested_end: null, covered_start: null, covered_end: null,
+    reason_code: null, retry_at: null, updated_at: timestamp, covered_ranges: [],
+  })
+  return {
+    request_id: `prepare-${instrumentId}-${timeframe}`, status: 'ready', created_at: timestamp, updated_at: timestamp,
+    version: 1, target: { kind: 'instrument', instrument_id: instrumentId },
+    dependencies: [dependency('identity'), dependency('profile'), dependency('history')],
+    completed: 3, total: 3, last_progress_at: timestamp, has_pending_work: false,
+  }
+}
 
 vi.mock('@/lib/api', () => ({
   api: {
@@ -91,6 +110,100 @@ describe('useAuthStore', () => {
     await vi.waitFor(() => expect(router.currentRoute.value.path).toBe('/login'))
   })
 
+  it('changes authenticated subjects when another window signs in directly from /login', async () => {
+    const accessToken = (subject: number, marker: string) => {
+      const payload = btoa(JSON.stringify({ sub: String(subject), marker }))
+        .replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')
+      return `header.${payload}.signature`
+    }
+    const tokenA = accessToken(101, 'a')
+    const tokenB = accessToken(202, 'b')
+    localStorage.setItem('access_token', tokenA)
+    localStorage.setItem('refresh_token', 'refresh-a')
+    const store = useAuthStore()
+    const userA = { id: 101, username: 'user-a', email: 'a@example.test', is_admin: false }
+    const userB = { id: 202, username: 'user-b', email: 'b@example.test', is_admin: false }
+    store.user = userA
+    const priorEpoch = currentAuthSessionEpoch()
+    const priorSession = captureAuthSession()
+    localStorage.setItem('access_token', tokenB)
+    localStorage.setItem('refresh_token', 'refresh-b')
+    ;(api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce(userB)
+
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: 'access_token', oldValue: tokenA, newValue: tokenB,
+    }))
+
+    expect(currentAuthSessionEpoch()).toBeGreaterThan(priorEpoch)
+    expect(priorSession.signal.aborted).toBe(true)
+    expect(store.user).toBeNull()
+    expect(store.accessToken).toBe(tokenB)
+    await vi.waitFor(() => expect(store.user).toEqual(userB))
+    expect(store.isAuthenticated).toBe(true)
+  })
+
+  it('keeps private context when a same-user access token is refreshed in another window', () => {
+    const accessToken = (marker: string) => {
+      const payload = btoa(JSON.stringify({ sub: '101', marker })).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')
+      return `header.${payload}.signature`
+    }
+    const tokenA = accessToken('old')
+    const tokenA2 = accessToken('refreshed')
+    localStorage.setItem('access_token', tokenA)
+    localStorage.setItem('refresh_token', 'refresh-a')
+    const store = useAuthStore()
+    const userA = { id: 101, username: 'user-a', email: 'a@example.test', is_admin: false }
+    store.user = userA
+    const useDraftStore = defineStore('session-draft-probe', () => ({ draft: ref('unsaved note for user A') }))
+    const draftStore = useDraftStore()
+    const priorEpoch = currentAuthSessionEpoch()
+    localStorage.setItem('access_token', tokenA2)
+    localStorage.setItem('refresh_token', 'refresh-a2')
+
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: 'access_token', oldValue: tokenA, newValue: tokenA2,
+    }))
+
+    expect(currentAuthSessionEpoch()).toBe(priorEpoch)
+    expect(store.accessToken).toBe(tokenA2)
+    expect(store.refreshToken).toBe('refresh-a2')
+    expect(store.user).toEqual(userA)
+    expect(draftStore.draft).toBe('unsaved note for user A')
+  })
+
+  it('does not reconnect an alert socket after a session-boundary logout', () => {
+    vi.useFakeTimers()
+    localStorage.setItem('access_token', 'user-a-access')
+    const sockets: Array<{ readyState: number; onclose: (() => void) | null; close: ReturnType<typeof vi.fn> }> = []
+    class FakeWebSocket {
+      static CONNECTING = 0
+      static OPEN = 1
+      static CLOSED = 3
+      readyState = FakeWebSocket.CONNECTING
+      onopen: (() => void) | null = null
+      onclose: (() => void) | null = null
+      onmessage: ((event: { data: string }) => void) | null = null
+      onerror: (() => void) | null = null
+      close = vi.fn(() => { this.readyState = FakeWebSocket.CLOSED; this.onclose?.() })
+      send = vi.fn()
+      constructor() { sockets.push(this) }
+    }
+    vi.stubGlobal('WebSocket', FakeWebSocket)
+    const store = useAlertsStore()
+    store.connectWebSocket()
+    expect(sockets).toHaveLength(1)
+
+    // An unexpected close schedules the normal reconnect. Logging out before
+    // that due time must cancel it, including when close itself dispatches onclose.
+    sockets[0].onclose?.()
+    store.resetForAuthSessionBoundary()
+    vi.advanceTimersByTime(5_000)
+    expect(sockets).toHaveLength(1)
+    expect(store.wsConnected).toBe(false)
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
+  })
+
   it('loadMe sets user from /auth/me', async () => {
     const mockUser = { id: 2, username: 'bob', email: 'b@t.com', is_admin: false }
     ;(api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce(mockUser)
@@ -163,6 +276,76 @@ describe('useChartStore', () => {
       expect.stringContaining('/ohlcv/AAPL'),
       expect.any(Object)
     )
+  })
+
+  it('renders cached basket bars before independent member preparation finishes', async () => {
+    const cached = [{ ts: '2026-11-05T00:00:00Z', open: 100, high: 102, low: 99, close: 101, volume: 1000 }]
+    const memberIds = [11, 12, 13]
+    const basket = { id: 7, members: memberIds.map((instrument_id, position) => ({
+      id: position + 1, instrument_id, symbol: `M${position + 1}`, position,
+    })) }
+    let resolveFirst: ((value: unknown) => void) | null = null
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/baskets/7/ohlcv/D1') return Promise.resolve(cached) as any
+      if (path === '/baskets/7') return Promise.resolve(basket) as any
+      return Promise.resolve([]) as any
+    })
+    ;(api.post as ReturnType<typeof vi.fn>).mockImplementation((path: string, body: Record<string, any>) => {
+      if (path !== '/data/ensure') return Promise.resolve({}) as any
+      expect(body).not.toHaveProperty('start_at')
+      if (body.target.instrument_id === 11) return new Promise(resolve => { resolveFirst = resolve }) as any
+      return Promise.resolve(preparationReady(body.target.instrument_id, `M${body.target.instrument_id - 10}`)) as any
+    })
+
+    const store = useChartStore()
+    await store.loadBars('BASKET:7', 'D1', 'candles', true)
+    expect(store.bars).toEqual(cached)
+    await vi.waitFor(() => expect(api.post).toHaveBeenCalledTimes(3))
+    expect(api.post.mock.calls.map(([path, body]) => [path, body.target.instrument_id])).toEqual([
+      ['/data/ensure', 11], ['/data/ensure', 12], ['/data/ensure', 13],
+    ])
+
+    // A route change cancels only this UI observer; accepted server work is durable.
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/instruments/SPY') return Promise.resolve({ id: 99, symbol: 'SPY', stats: {} }) as any
+      if (path === '/instrument-indicators/99') return Promise.resolve({ indicators: [] }) as any
+      if (path === '/ohlcv/local/SPY/D1') return Promise.resolve([]) as any
+      return Promise.resolve([]) as any
+    })
+    await store.loadBars('SPY', 'D1', 'candles', true)
+    resolveFirst?.(preparationReady(11, 'M1'))
+    await Promise.resolve()
+    expect(store.symbol).toBe('SPY')
+    expect(store.bars).toEqual([])
+  })
+
+  it('submits every basket member even when the first member is held', async () => {
+    const timestamp = '2026-11-06T12:00:00Z'
+    const waiting = {
+      request_id: 'member-11', status: 'waiting', created_at: timestamp, updated_at: timestamp, version: 1,
+      target: { kind: 'instrument', instrument_id: 11 }, completed: 0, total: 1, last_progress_at: timestamp,
+      has_pending_work: false,
+      dependencies: [{ dependency_id: 'history:11:D1', depends_on: [], instrument_id: 11, symbol: 'M1', dataset: 'history', status: 'waiting',
+        requested_start: null, requested_end: null, covered_start: null, covered_end: null, reason_code: 'provider_quota_admission_denied',
+        retry_at: null, updated_at: timestamp, covered_ranges: [] }],
+    }
+    const basket = { id: 8, members: [11, 12, 13].map((instrument_id, position) => ({ id: position + 1, instrument_id, symbol: `M${position + 1}`, position })) }
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => path === '/baskets/8'
+      ? Promise.resolve(basket) as any
+      : path === '/baskets/8/ohlcv/D1' ? Promise.resolve([]) as any : Promise.resolve([]) as any)
+    ;(api.post as ReturnType<typeof vi.fn>).mockImplementation((path: string, body: Record<string, any>) => {
+      if (path !== '/data/ensure') return Promise.resolve({}) as any
+      if (body.target.instrument_id === 11) return Promise.resolve(waiting) as any
+      return Promise.resolve(preparationReady(body.target.instrument_id, `M${body.target.instrument_id - 10}`)) as any
+    })
+
+    const store = useChartStore()
+    await store.loadBars('BASKET:8', 'D1', 'candles', true)
+    await vi.waitFor(() => expect(api.post.mock.calls.filter(([path]) => path === '/data/ensure')).toHaveLength(3))
+    expect(api.post.mock.calls.filter(([path]) => path === '/data/ensure').map(([, body]) => body.target.instrument_id)).toEqual([11, 12, 13])
+    await vi.waitFor(() => expect(store.historyBoundaryMessage).toContain('complete basket chart'))
+    expect(store.historyBoundaryMessage).toContain('M1:')
+    expect(store.historyBoundaryMessage).not.toContain('provider_quota_admission_denied')
   })
 
   it('filters malformed OHLC fields before they reach uPlot data', async () => {

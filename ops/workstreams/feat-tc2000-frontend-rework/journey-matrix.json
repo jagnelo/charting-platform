@@ -1,0 +1,3800 @@
+{
+  "schema_version": 1,
+  "owner": "feat-tc2000-frontend-rework",
+  "purpose": "Global frontend route, factory, Add-tool and action coverage inventory. A mapped/pending row is not acceptance; missing rows fail validation.",
+  "sources": {
+    "routes": "frontend/src/router/index.ts",
+    "add_tool_registry": "backend/app/services/workstation_tool_catalogue.py:_TOOLS",
+    "factory_layouts": [
+      "backend/app/routers/workspaces.py:_factory_tabs",
+      "backend/app/services/workstation_tool_catalogue.py:factory_tool_configuration"
+    ],
+    "etf_matrix": "../feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json",
+    "strategy_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+    "add_tool_consumer": "frontend/src/stores/workspace.ts:/workspaces/tool-catalogue"
+  },
+  "counts": {
+    "routes_and_aliases": 28,
+    "shell_actions": 11,
+    "add_tool_definitions": 21,
+    "factory_layouts": 8,
+    "factory_instances": 38,
+    "owned_actions": 12,
+    "etf_actions": 16,
+    "strategy_actions": 48
+  },
+  "routes": [
+    {
+      "path": "/login",
+      "component": "LoginView",
+      "evidence_status": "focused_route_contract",
+      "evidence": [
+        "frontend/tests/unit/router/test_application_routes.test.ts"
+      ],
+      "journey": "TC09"
+    },
+    {
+      "path": "/",
+      "component": "WorkstationView",
+      "evidence_status": "focused_route_contract",
+      "evidence": [
+        "frontend/tests/unit/router/test_application_routes.test.ts"
+      ],
+      "journey": "TC09"
+    },
+    {
+      "path": "/chart",
+      "component": "WorkstationView",
+      "evidence_status": "focused_route_contract",
+      "evidence": [
+        "frontend/tests/unit/router/test_application_routes.test.ts"
+      ],
+      "journey": "TC09"
+    },
+    {
+      "path": "/chart/:symbol(.*)",
+      "component": "WorkstationView",
+      "evidence_status": "focused_route_contract",
+      "evidence": [
+        "frontend/tests/unit/router/test_application_routes.test.ts"
+      ],
+      "journey": "TC09"
+    },
+    {
+      "path": "/popout/:windowKey",
+      "component": "WorkstationView",
+      "evidence_status": "focused_route_contract",
+      "evidence": [
+        "frontend/tests/unit/router/test_application_routes.test.ts"
+      ],
+      "journey": "TC09"
+    },
+    {
+      "path": "/legacy/dashboard",
+      "component": "DashboardView",
+      "evidence_status": "focused_route_contract",
+      "evidence": [
+        "frontend/tests/unit/router/test_application_routes.test.ts"
+      ],
+      "journey": "TC09"
+    },
+    {
+      "path": "/legacy/chart",
+      "component": "ChartView",
+      "evidence_status": "focused_route_contract",
+      "evidence": [
+        "frontend/tests/unit/router/test_application_routes.test.ts"
+      ],
+      "journey": "TC09"
+    },
+    {
+      "path": "/legacy/chart/:symbol(.*)",
+      "component": "ChartView",
+      "evidence_status": "focused_route_contract",
+      "evidence": [
+        "frontend/tests/unit/router/test_application_routes.test.ts"
+      ],
+      "journey": "TC09"
+    },
+    {
+      "path": "/legacy/alerts",
+      "component": "AlertsView",
+      "evidence_status": "focused_route_contract",
+      "evidence": [
+        "frontend/tests/unit/router/test_application_routes.test.ts"
+      ],
+      "journey": "TC09"
+    },
+    {
+      "path": "/legacy/radar",
+      "component": "RadarView",
+      "evidence_status": "focused_route_contract",
+      "evidence": [
+        "frontend/tests/unit/router/test_application_routes.test.ts"
+      ],
+      "journey": "TC09"
+    },
+    {
+      "path": "/legacy/strategy-lab",
+      "component": "StrategyLabView",
+      "evidence_status": "focused_route_contract",
+      "evidence": [
+        "frontend/tests/unit/router/test_application_routes.test.ts"
+      ],
+      "journey": "TC09"
+    },
+    {
+      "path": "/legacy/strategy-lab-v2",
+      "component": "StrategyLabV2View",
+      "evidence_status": "focused_route_contract",
+      "evidence": [
+        "frontend/tests/unit/router/test_application_routes.test.ts"
+      ],
+      "journey": "TC09"
+    },
+    {
+      "path": "/legacy/baskets",
+      "component": "BasketsView",
+      "evidence_status": "focused_route_contract",
+      "evidence": [
+        "frontend/tests/unit/router/test_application_routes.test.ts"
+      ],
+      "journey": "TC09"
+    },
+    {
+      "path": "/legacy/etf-holdings",
+      "component": "ETFHoldingsView",
+      "evidence_status": "focused_route_contract",
+      "evidence": [
+        "frontend/tests/unit/router/test_application_routes.test.ts"
+      ],
+      "journey": "TC09"
+    },
+    {
+      "path": "/legacy/screener",
+      "component": "ScreenerView",
+      "evidence_status": "focused_route_contract",
+      "evidence": [
+        "frontend/tests/unit/router/test_application_routes.test.ts"
+      ],
+      "journey": "TC09"
+    },
+    {
+      "path": "/legacy/watchlist",
+      "component": "WatchlistView",
+      "evidence_status": "focused_route_contract",
+      "evidence": [
+        "frontend/tests/unit/router/test_application_routes.test.ts"
+      ],
+      "journey": "TC09"
+    },
+    {
+      "path": "/legacy/settings",
+      "component": "SettingsView",
+      "evidence_status": "focused_route_contract",
+      "evidence": [
+        "frontend/tests/unit/router/test_application_routes.test.ts"
+      ],
+      "journey": "TC09"
+    },
+    {
+      "path": "/study-lab",
+      "component": "redirect",
+      "evidence_status": "focused_route_contract",
+      "evidence": [
+        "frontend/tests/unit/router/test_application_routes.test.ts"
+      ],
+      "journey": "TC09",
+      "redirect": "{ path: '/', query: { tab: 'study-lab' } }"
+    },
+    {
+      "path": "/dashboard",
+      "component": "redirect",
+      "evidence_status": "focused_route_contract",
+      "evidence": [
+        "frontend/tests/unit/router/test_application_routes.test.ts"
+      ],
+      "journey": "TC09",
+      "redirect": "'/legacy/dashboard'"
+    },
+    {
+      "path": "/alerts",
+      "component": "redirect",
+      "evidence_status": "focused_route_contract",
+      "evidence": [
+        "frontend/tests/unit/router/test_application_routes.test.ts"
+      ],
+      "journey": "TC09",
+      "redirect": "'/legacy/alerts'"
+    },
+    {
+      "path": "/radar",
+      "component": "redirect",
+      "evidence_status": "focused_route_contract",
+      "evidence": [
+        "frontend/tests/unit/router/test_application_routes.test.ts"
+      ],
+      "journey": "TC09",
+      "redirect": "'/legacy/radar'"
+    },
+    {
+      "path": "/strategy-lab",
+      "component": "redirect",
+      "evidence_status": "focused_route_contract",
+      "evidence": [
+        "frontend/tests/unit/router/test_application_routes.test.ts"
+      ],
+      "journey": "TC09",
+      "redirect": "'/legacy/strategy-lab'"
+    },
+    {
+      "path": "/strategy-lab-v2",
+      "component": "redirect",
+      "evidence_status": "focused_route_contract",
+      "evidence": [
+        "frontend/tests/unit/router/test_application_routes.test.ts"
+      ],
+      "journey": "TC09",
+      "redirect": "'/legacy/strategy-lab-v2'"
+    },
+    {
+      "path": "/baskets",
+      "component": "redirect",
+      "evidence_status": "focused_route_contract",
+      "evidence": [
+        "frontend/tests/unit/router/test_application_routes.test.ts"
+      ],
+      "journey": "TC09",
+      "redirect": "'/legacy/baskets'"
+    },
+    {
+      "path": "/etf-holdings",
+      "component": "redirect",
+      "evidence_status": "focused_route_contract",
+      "evidence": [
+        "frontend/tests/unit/router/test_application_routes.test.ts"
+      ],
+      "journey": "TC09",
+      "redirect": "'/legacy/etf-holdings'"
+    },
+    {
+      "path": "/screener",
+      "component": "redirect",
+      "evidence_status": "focused_route_contract",
+      "evidence": [
+        "frontend/tests/unit/router/test_application_routes.test.ts"
+      ],
+      "journey": "TC09",
+      "redirect": "'/legacy/screener'"
+    },
+    {
+      "path": "/watchlist",
+      "component": "redirect",
+      "evidence_status": "focused_route_contract",
+      "evidence": [
+        "frontend/tests/unit/router/test_application_routes.test.ts"
+      ],
+      "journey": "TC09",
+      "redirect": "'/legacy/watchlist'"
+    },
+    {
+      "path": "/settings",
+      "component": "redirect",
+      "evidence_status": "focused_route_contract",
+      "evidence": [
+        "frontend/tests/unit/router/test_application_routes.test.ts"
+      ],
+      "journey": "TC09",
+      "redirect": "'/legacy/settings'"
+    }
+  ],
+  "shell_actions": [
+    {
+      "key": "dashboard",
+      "label": "Dashboard",
+      "path": "/legacy/dashboard",
+      "journey": "TC09",
+      "evidence_status": "focused_route_contract",
+      "evidence": [
+        "frontend/tests/unit/router/test_application_routes.test.ts"
+      ],
+      "control_surface_refs": [
+        "frontend/src/views/WorkstationView.vue"
+      ]
+    },
+    {
+      "key": "chart",
+      "label": "Chart",
+      "path": "/chart",
+      "journey": "TC09",
+      "evidence_status": "focused_route_contract",
+      "evidence": [
+        "frontend/tests/unit/router/test_application_routes.test.ts"
+      ],
+      "control_surface_refs": [
+        "frontend/src/views/WorkstationView.vue"
+      ]
+    },
+    {
+      "key": "watchlist",
+      "label": "Watchlist",
+      "path": "/legacy/watchlist",
+      "journey": "TC09",
+      "evidence_status": "focused_route_contract",
+      "evidence": [
+        "frontend/tests/unit/router/test_application_routes.test.ts"
+      ],
+      "control_surface_refs": [
+        "frontend/src/views/WorkstationView.vue"
+      ]
+    },
+    {
+      "key": "screener",
+      "label": "Screener",
+      "path": "/legacy/screener",
+      "journey": "TC09",
+      "evidence_status": "focused_route_contract",
+      "evidence": [
+        "frontend/tests/unit/router/test_application_routes.test.ts"
+      ],
+      "control_surface_refs": [
+        "frontend/src/views/WorkstationView.vue"
+      ]
+    },
+    {
+      "key": "radar",
+      "label": "Radar",
+      "path": "/legacy/radar",
+      "journey": "TC09",
+      "evidence_status": "focused_route_contract",
+      "evidence": [
+        "frontend/tests/unit/router/test_application_routes.test.ts"
+      ],
+      "control_surface_refs": [
+        "frontend/src/views/WorkstationView.vue"
+      ]
+    },
+    {
+      "key": "alerts",
+      "label": "Alerts",
+      "path": "/legacy/alerts",
+      "journey": "TC09",
+      "evidence_status": "focused_route_contract",
+      "evidence": [
+        "frontend/tests/unit/router/test_application_routes.test.ts"
+      ],
+      "control_surface_refs": [
+        "frontend/src/views/WorkstationView.vue"
+      ]
+    },
+    {
+      "key": "baskets",
+      "label": "Baskets",
+      "path": "/legacy/baskets",
+      "journey": "TC09",
+      "evidence_status": "focused_route_contract",
+      "evidence": [
+        "frontend/tests/unit/router/test_application_routes.test.ts"
+      ],
+      "control_surface_refs": [
+        "frontend/src/views/WorkstationView.vue"
+      ]
+    },
+    {
+      "key": "etf",
+      "label": "ETF Holdings",
+      "path": "/legacy/etf-holdings",
+      "journey": "TC09",
+      "evidence_status": "focused_route_contract",
+      "evidence": [
+        "frontend/tests/unit/router/test_application_routes.test.ts"
+      ],
+      "control_surface_refs": [
+        "frontend/src/views/WorkstationView.vue"
+      ]
+    },
+    {
+      "key": "strategy",
+      "label": "Strategy Lab",
+      "path": "/legacy/strategy-lab",
+      "journey": "TC09",
+      "evidence_status": "focused_route_contract",
+      "evidence": [
+        "frontend/tests/unit/router/test_application_routes.test.ts"
+      ],
+      "control_surface_refs": [
+        "frontend/src/views/WorkstationView.vue"
+      ]
+    },
+    {
+      "key": "strategy-v2",
+      "label": "Strategy Lab v2",
+      "path": "/legacy/strategy-lab-v2",
+      "journey": "TC09",
+      "evidence_status": "focused_route_contract",
+      "evidence": [
+        "frontend/tests/unit/router/test_application_routes.test.ts"
+      ],
+      "control_surface_refs": [
+        "frontend/src/views/WorkstationView.vue"
+      ]
+    },
+    {
+      "key": "settings",
+      "label": "Settings",
+      "path": "/legacy/settings",
+      "journey": "TC09",
+      "evidence_status": "focused_route_contract",
+      "evidence": [
+        "frontend/tests/unit/router/test_application_routes.test.ts"
+      ],
+      "control_surface_refs": [
+        "frontend/src/views/WorkstationView.vue"
+      ]
+    }
+  ],
+  "add_tool_definitions": [
+    {
+      "journey": "TC06",
+      "evidence_status": "pending_full_semantic_journey",
+      "evidence": [
+        "frontend/tests/unit/stores/test_workspace_store.test.ts"
+      ],
+      "pending_reason": "Root has not released the canonical server catalogue contract; verify every item opens with its semantic role and survives recreation.",
+      "key": "chart",
+      "tool_type": "chart",
+      "title": "Chart",
+      "instance_prefix": "chart",
+      "configuration": {
+        "symbol": "SPY",
+        "timeframe": "D1"
+      }
+    },
+    {
+      "journey": "TC06",
+      "evidence_status": "pending_full_semantic_journey",
+      "evidence": [
+        "frontend/tests/unit/stores/test_workspace_store.test.ts"
+      ],
+      "pending_reason": "Root has not released the canonical server catalogue contract; verify every item opens with its semantic role and survives recreation.",
+      "key": "watchlist",
+      "tool_type": "watchlist",
+      "title": "WatchList",
+      "instance_prefix": "watchlist",
+      "configuration": {
+        "personal": true,
+        "watchlist_id": null
+      }
+    },
+    {
+      "journey": "TC06",
+      "evidence_status": "pending_full_semantic_journey",
+      "evidence": [
+        "frontend/tests/unit/stores/test_workspace_store.test.ts"
+      ],
+      "pending_reason": "Root has not released the canonical server catalogue contract; verify every item opens with its semantic role and survives recreation.",
+      "key": "favorites",
+      "tool_type": "watchlist",
+      "title": "My Favorites",
+      "instance_prefix": "favorites",
+      "configuration": {
+        "personal": true,
+        "favorites": true
+      }
+    },
+    {
+      "journey": "TC06",
+      "evidence_status": "pending_full_semantic_journey",
+      "evidence": [
+        "frontend/tests/unit/stores/test_workspace_store.test.ts"
+      ],
+      "pending_reason": "Root has not released the canonical server catalogue contract; verify every item opens with its semantic role and survives recreation.",
+      "key": "notes",
+      "tool_type": "notes",
+      "title": "Notes",
+      "instance_prefix": "notes",
+      "configuration": {
+        "scope": "active-instrument"
+      }
+    },
+    {
+      "journey": "TC06",
+      "evidence_status": "pending_full_semantic_journey",
+      "evidence": [
+        "frontend/tests/unit/stores/test_workspace_store.test.ts"
+      ],
+      "pending_reason": "Root has not released the canonical server catalogue contract; verify every item opens with its semantic role and survives recreation.",
+      "key": "alerts",
+      "tool_type": "alerts",
+      "title": "Alerts",
+      "instance_prefix": "alerts",
+      "configuration": {
+        "scope": "active-instrument"
+      }
+    },
+    {
+      "journey": "TC06",
+      "evidence_status": "pending_full_semantic_journey",
+      "evidence": [
+        "frontend/tests/unit/stores/test_workspace_store.test.ts"
+      ],
+      "pending_reason": "Root has not released the canonical server catalogue contract; verify every item opens with its semantic role and survives recreation.",
+      "key": "easy-scan",
+      "tool_type": "scan",
+      "title": "EasyScan",
+      "instance_prefix": "easy-scan",
+      "configuration": {
+        "scope": "saved-conditions"
+      }
+    },
+    {
+      "journey": "TC06",
+      "evidence_status": "pending_full_semantic_journey",
+      "evidence": [
+        "frontend/tests/unit/stores/test_workspace_store.test.ts"
+      ],
+      "pending_reason": "Root has not released the canonical server catalogue contract; verify every item opens with its semantic role and survives recreation.",
+      "key": "market-gauge",
+      "tool_type": "gauge",
+      "title": "Market Gauge",
+      "instance_prefix": "market-gauge",
+      "configuration": {
+        "scope": "saved-scans"
+      }
+    },
+    {
+      "journey": "TC06",
+      "evidence_status": "pending_full_semantic_journey",
+      "evidence": [
+        "frontend/tests/unit/stores/test_workspace_store.test.ts"
+      ],
+      "pending_reason": "Root has not released the canonical server catalogue contract; verify every item opens with its semantic role and survives recreation.",
+      "key": "study-lab",
+      "tool_type": "study_lab",
+      "title": "Study Lab",
+      "instance_prefix": "study-lab",
+      "configuration": {
+        "symbol": "SPY"
+      }
+    },
+    {
+      "journey": "TC06",
+      "evidence_status": "pending_full_semantic_journey",
+      "evidence": [
+        "frontend/tests/unit/stores/test_workspace_store.test.ts"
+      ],
+      "pending_reason": "Root has not released the canonical server catalogue contract; verify every item opens with its semantic role and survives recreation.",
+      "key": "research-results",
+      "tool_type": "research_results",
+      "title": "Study Results",
+      "instance_prefix": "research-results",
+      "configuration": {}
+    },
+    {
+      "journey": "TC06",
+      "evidence_status": "pending_full_semantic_journey",
+      "evidence": [
+        "frontend/tests/unit/stores/test_workspace_store.test.ts"
+      ],
+      "pending_reason": "Root has not released the canonical server catalogue contract; verify every item opens with its semantic role and survives recreation.",
+      "key": "relative-rotation",
+      "tool_type": "relative_rotation",
+      "title": "Relative Rotation",
+      "instance_prefix": "relative-rotation",
+      "configuration": {
+        "group_key": "sp500-sectors",
+        "benchmark": "SPY",
+        "timeframe": "D1",
+        "sampling": 1,
+        "lookback": 20,
+        "tail_length": 10,
+        "adjusted": true
+      }
+    },
+    {
+      "journey": "TC06",
+      "evidence_status": "pending_full_semantic_journey",
+      "evidence": [
+        "frontend/tests/unit/stores/test_workspace_store.test.ts"
+      ],
+      "pending_reason": "Root has not released the canonical server catalogue contract; verify every item opens with its semantic role and survives recreation.",
+      "key": "breadth",
+      "tool_type": "breadth",
+      "title": "Market Breadth",
+      "instance_prefix": "breadth",
+      "configuration": {
+        "group_key": "sp500-sectors"
+      }
+    },
+    {
+      "journey": "TC06",
+      "evidence_status": "pending_full_semantic_journey",
+      "evidence": [
+        "frontend/tests/unit/stores/test_workspace_store.test.ts"
+      ],
+      "pending_reason": "Root has not released the canonical server catalogue contract; verify every item opens with its semantic role and survives recreation.",
+      "key": "market-map",
+      "tool_type": "market_map",
+      "title": "Market Map",
+      "instance_prefix": "market-map",
+      "configuration": {
+        "group_by": "sector_industry",
+        "period": "1D",
+        "area_metric": "market_cap",
+        "color_metric": "return"
+      }
+    },
+    {
+      "journey": "TC06",
+      "evidence_status": "pending_full_semantic_journey",
+      "evidence": [
+        "frontend/tests/unit/stores/test_workspace_store.test.ts"
+      ],
+      "pending_reason": "Root has not released the canonical server catalogue contract; verify every item opens with its semantic role and survives recreation.",
+      "key": "technical-summary",
+      "tool_type": "technical_summary",
+      "title": "Technicals",
+      "instance_prefix": "technical-summary",
+      "configuration": {
+        "scope": "selected"
+      }
+    },
+    {
+      "journey": "TC06",
+      "evidence_status": "pending_full_semantic_journey",
+      "evidence": [
+        "frontend/tests/unit/stores/test_workspace_store.test.ts"
+      ],
+      "pending_reason": "Root has not released the canonical server catalogue contract; verify every item opens with its semantic role and survives recreation.",
+      "key": "coverage",
+      "tool_type": "coverage",
+      "title": "Coverage",
+      "instance_prefix": "coverage",
+      "configuration": {
+        "scope": "selected"
+      }
+    },
+    {
+      "journey": "TC06",
+      "evidence_status": "pending_full_semantic_journey",
+      "evidence": [
+        "frontend/tests/unit/stores/test_workspace_store.test.ts"
+      ],
+      "pending_reason": "Root has not released the canonical server catalogue contract; verify every item opens with its semantic role and survives recreation.",
+      "key": "report",
+      "tool_type": "report",
+      "title": "Instrument Report",
+      "instance_prefix": "report",
+      "configuration": {}
+    },
+    {
+      "journey": "TC06",
+      "evidence_status": "pending_full_semantic_journey",
+      "evidence": [
+        "frontend/tests/unit/stores/test_workspace_store.test.ts"
+      ],
+      "pending_reason": "Root has not released the canonical server catalogue contract; verify every item opens with its semantic role and survives recreation.",
+      "key": "code-library",
+      "tool_type": "code_library",
+      "title": "Python Library",
+      "instance_prefix": "code-library",
+      "configuration": {}
+    },
+    {
+      "journey": "TC06",
+      "evidence_status": "pending_full_semantic_journey",
+      "evidence": [
+        "frontend/tests/unit/stores/test_workspace_store.test.ts"
+      ],
+      "pending_reason": "Root has not released the canonical server catalogue contract; verify every item opens with its semantic role and survives recreation.",
+      "key": "benchmark-list",
+      "tool_type": "watchlist",
+      "title": "Benchmarks",
+      "instance_prefix": "benchmark-list",
+      "configuration": {
+        "market_group": "us-benchmarks"
+      }
+    },
+    {
+      "journey": "TC06",
+      "evidence_status": "pending_full_semantic_journey",
+      "evidence": [
+        "frontend/tests/unit/stores/test_workspace_store.test.ts"
+      ],
+      "pending_reason": "Root has not released the canonical server catalogue contract; verify every item opens with its semantic role and survives recreation.",
+      "key": "sector-list",
+      "tool_type": "watchlist",
+      "title": "S&P 500 Sectors",
+      "instance_prefix": "sector-list",
+      "configuration": {
+        "market_group": "sp500-sectors"
+      }
+    },
+    {
+      "journey": "TC06",
+      "evidence_status": "pending_full_semantic_journey",
+      "evidence": [
+        "frontend/tests/unit/stores/test_workspace_store.test.ts"
+      ],
+      "pending_reason": "Root has not released the canonical server catalogue contract; verify every item opens with its semantic role and survives recreation.",
+      "key": "industry-list",
+      "tool_type": "watchlist",
+      "title": "Industries",
+      "instance_prefix": "industry-list",
+      "configuration": {
+        "market_group": "selected-sector-industries"
+      }
+    },
+    {
+      "journey": "TC06",
+      "evidence_status": "pending_full_semantic_journey",
+      "evidence": [
+        "frontend/tests/unit/stores/test_workspace_store.test.ts"
+      ],
+      "pending_reason": "Root has not released the canonical server catalogue contract; verify every item opens with its semantic role and survives recreation.",
+      "key": "constituent-list",
+      "tool_type": "watchlist",
+      "title": "Constituents",
+      "instance_prefix": "constituent-list",
+      "configuration": {
+        "market_group": "selected-industry-constituents"
+      }
+    },
+    {
+      "journey": "TC06",
+      "evidence_status": "pending_full_semantic_journey",
+      "evidence": [
+        "frontend/tests/unit/stores/test_workspace_store.test.ts"
+      ],
+      "pending_reason": "Root has not released the canonical server catalogue contract; verify every item opens with its semantic role and survives recreation.",
+      "key": "ratio-chart",
+      "tool_type": "chart",
+      "title": "Relative Strength",
+      "instance_prefix": "ratio-chart",
+      "configuration": {
+        "expression": "=SPY/RSP",
+        "timeframe": "D1",
+        "auto_ratio": true
+      }
+    }
+  ],
+  "factory_layouts": [
+    {
+      "journey": "TC06",
+      "evidence_status": "pending_full_semantic_journey",
+      "evidence": [
+        "frontend/tests/unit/stores/test_workspace_store.test.ts"
+      ],
+      "pending_reason": "Restore and clone must preserve each specialized tool role/configuration; covered browser recreation is still pending.",
+      "key": "us-top-down",
+      "name": "US Top Down",
+      "panels": [
+        {
+          "journey": "TC06",
+          "evidence_status": "pending_full_semantic_journey",
+          "evidence": [
+            "backend/app/routers/workspaces.py:_factory_tabs"
+          ],
+          "pending_reason": "Verify this exact factory panel identity and configuration after restore, clone and recreation.",
+          "instance_key": "benchmark-list",
+          "catalogue_key": "benchmark-list",
+          "tool_type": "watchlist",
+          "title": "Benchmarks",
+          "configuration": {
+            "market_group": "us-benchmarks"
+          }
+        },
+        {
+          "journey": "TC06",
+          "evidence_status": "pending_full_semantic_journey",
+          "evidence": [
+            "backend/app/routers/workspaces.py:_factory_tabs"
+          ],
+          "pending_reason": "Verify this exact factory panel identity and configuration after restore, clone and recreation.",
+          "instance_key": "sector-list",
+          "catalogue_key": "sector-list",
+          "tool_type": "watchlist",
+          "title": "S&P 500 Sectors",
+          "configuration": {
+            "market_group": "sp500-sectors"
+          }
+        },
+        {
+          "journey": "TC06",
+          "evidence_status": "pending_full_semantic_journey",
+          "evidence": [
+            "backend/app/routers/workspaces.py:_factory_tabs"
+          ],
+          "pending_reason": "Verify this exact factory panel identity and configuration after restore, clone and recreation.",
+          "instance_key": "industry-list",
+          "catalogue_key": "industry-list",
+          "tool_type": "watchlist",
+          "title": "Industries",
+          "configuration": {
+            "market_group": "selected-sector-industries"
+          }
+        },
+        {
+          "journey": "TC06",
+          "evidence_status": "pending_full_semantic_journey",
+          "evidence": [
+            "backend/app/routers/workspaces.py:_factory_tabs"
+          ],
+          "pending_reason": "Verify this exact factory panel identity and configuration after restore, clone and recreation.",
+          "instance_key": "constituent-list",
+          "catalogue_key": "constituent-list",
+          "tool_type": "watchlist",
+          "title": "Constituents",
+          "configuration": {
+            "market_group": "selected-industry-constituents"
+          }
+        },
+        {
+          "journey": "TC06",
+          "evidence_status": "pending_full_semantic_journey",
+          "evidence": [
+            "backend/app/routers/workspaces.py:_factory_tabs"
+          ],
+          "pending_reason": "Verify this exact factory panel identity and configuration after restore, clone and recreation.",
+          "instance_key": "primary-chart",
+          "catalogue_key": "chart",
+          "tool_type": "chart",
+          "title": "Chart",
+          "configuration": {
+            "symbol": "SPY",
+            "timeframe": "D1"
+          }
+        },
+        {
+          "journey": "TC06",
+          "evidence_status": "pending_full_semantic_journey",
+          "evidence": [
+            "backend/app/routers/workspaces.py:_factory_tabs"
+          ],
+          "pending_reason": "Verify this exact factory panel identity and configuration after restore, clone and recreation.",
+          "instance_key": "ratio-chart",
+          "catalogue_key": "ratio-chart",
+          "tool_type": "chart",
+          "title": "Relative Strength",
+          "configuration": {
+            "expression": "=SPY/RSP",
+            "timeframe": "D1",
+            "auto_ratio": true
+          }
+        },
+        {
+          "journey": "TC06",
+          "evidence_status": "pending_full_semantic_journey",
+          "evidence": [
+            "backend/app/routers/workspaces.py:_factory_tabs"
+          ],
+          "pending_reason": "Verify this exact factory panel identity and configuration after restore, clone and recreation.",
+          "instance_key": "technical-summary",
+          "catalogue_key": "technical-summary",
+          "tool_type": "technical_summary",
+          "title": "Technicals",
+          "configuration": {
+            "scope": "selected"
+          }
+        },
+        {
+          "journey": "TC06",
+          "evidence_status": "pending_full_semantic_journey",
+          "evidence": [
+            "backend/app/routers/workspaces.py:_factory_tabs"
+          ],
+          "pending_reason": "Verify this exact factory panel identity and configuration after restore, clone and recreation.",
+          "instance_key": "breadth-summary",
+          "catalogue_key": "breadth",
+          "tool_type": "breadth",
+          "title": "Breadth",
+          "configuration": {
+            "group_key": "sp500-sectors",
+            "scope": "selected-sector"
+          }
+        },
+        {
+          "journey": "TC06",
+          "evidence_status": "pending_full_semantic_journey",
+          "evidence": [
+            "backend/app/routers/workspaces.py:_factory_tabs"
+          ],
+          "pending_reason": "Verify this exact factory panel identity and configuration after restore, clone and recreation.",
+          "instance_key": "coverage-summary",
+          "catalogue_key": "coverage",
+          "tool_type": "coverage",
+          "title": "Coverage",
+          "configuration": {
+            "scope": "selected"
+          }
+        },
+        {
+          "journey": "TC06",
+          "evidence_status": "pending_full_semantic_journey",
+          "evidence": [
+            "backend/app/routers/workspaces.py:_factory_tabs"
+          ],
+          "pending_reason": "Verify this exact factory panel identity and configuration after restore, clone and recreation.",
+          "instance_key": "notes",
+          "catalogue_key": "notes",
+          "tool_type": "notes",
+          "title": "Notes",
+          "configuration": {
+            "scope": "active-instrument"
+          }
+        },
+        {
+          "journey": "TC06",
+          "evidence_status": "pending_full_semantic_journey",
+          "evidence": [
+            "backend/app/routers/workspaces.py:_factory_tabs"
+          ],
+          "pending_reason": "Verify this exact factory panel identity and configuration after restore, clone and recreation.",
+          "instance_key": "alerts",
+          "catalogue_key": "alerts",
+          "tool_type": "alerts",
+          "title": "Alerts",
+          "configuration": {
+            "scope": "active-instrument"
+          }
+        },
+        {
+          "journey": "TC06",
+          "evidence_status": "pending_full_semantic_journey",
+          "evidence": [
+            "backend/app/routers/workspaces.py:_factory_tabs"
+          ],
+          "pending_reason": "Verify this exact factory panel identity and configuration after restore, clone and recreation.",
+          "instance_key": "easy-scan",
+          "catalogue_key": "easy-scan",
+          "tool_type": "scan",
+          "title": "EasyScan",
+          "configuration": {
+            "scope": "saved-conditions"
+          }
+        },
+        {
+          "journey": "TC06",
+          "evidence_status": "pending_full_semantic_journey",
+          "evidence": [
+            "backend/app/routers/workspaces.py:_factory_tabs"
+          ],
+          "pending_reason": "Verify this exact factory panel identity and configuration after restore, clone and recreation.",
+          "instance_key": "market-gauge",
+          "catalogue_key": "market-gauge",
+          "tool_type": "gauge",
+          "title": "Market Gauge",
+          "configuration": {
+            "scope": "saved-scans"
+          }
+        },
+        {
+          "journey": "TC06",
+          "evidence_status": "pending_full_semantic_journey",
+          "evidence": [
+            "backend/app/routers/workspaces.py:_factory_tabs"
+          ],
+          "pending_reason": "Verify this exact factory panel identity and configuration after restore, clone and recreation.",
+          "instance_key": "relative-rotation",
+          "catalogue_key": "relative-rotation",
+          "tool_type": "relative_rotation",
+          "title": "Relative Rotation",
+          "configuration": {
+            "group_key": "sp500-sectors",
+            "benchmark": "SPY",
+            "timeframe": "D1",
+            "sampling": 1,
+            "lookback": 20,
+            "tail_length": 10,
+            "adjusted": true
+          }
+        }
+      ]
+    },
+    {
+      "journey": "TC06",
+      "evidence_status": "pending_full_semantic_journey",
+      "evidence": [
+        "frontend/tests/unit/stores/test_workspace_store.test.ts"
+      ],
+      "pending_reason": "Restore and clone must preserve each specialized tool role/configuration; covered browser recreation is still pending.",
+      "key": "tc-classic",
+      "name": "TC Classic",
+      "panels": [
+        {
+          "journey": "TC06",
+          "evidence_status": "pending_full_semantic_journey",
+          "evidence": [
+            "backend/app/routers/workspaces.py:_factory_tabs"
+          ],
+          "pending_reason": "Verify this exact factory panel identity and configuration after restore, clone and recreation.",
+          "instance_key": "chart",
+          "catalogue_key": "chart",
+          "tool_type": "chart",
+          "title": "Chart",
+          "configuration": {
+            "symbol": "SPY",
+            "timeframe": "D1"
+          }
+        },
+        {
+          "journey": "TC06",
+          "evidence_status": "pending_full_semantic_journey",
+          "evidence": [
+            "backend/app/routers/workspaces.py:_factory_tabs"
+          ],
+          "pending_reason": "Verify this exact factory panel identity and configuration after restore, clone and recreation.",
+          "instance_key": "watchlist",
+          "catalogue_key": "watchlist",
+          "tool_type": "watchlist",
+          "title": "WatchList",
+          "configuration": {
+            "personal": true,
+            "watchlist_id": null
+          }
+        },
+        {
+          "journey": "TC06",
+          "evidence_status": "pending_full_semantic_journey",
+          "evidence": [
+            "backend/app/routers/workspaces.py:_factory_tabs"
+          ],
+          "pending_reason": "Verify this exact factory panel identity and configuration after restore, clone and recreation.",
+          "instance_key": "notes",
+          "catalogue_key": "notes",
+          "tool_type": "notes",
+          "title": "Notes",
+          "configuration": {
+            "scope": "active-instrument"
+          }
+        }
+      ]
+    },
+    {
+      "journey": "TC06",
+      "evidence_status": "pending_full_semantic_journey",
+      "evidence": [
+        "frontend/tests/unit/stores/test_workspace_store.test.ts"
+      ],
+      "pending_reason": "Restore and clone must preserve each specialized tool role/configuration; covered browser recreation is still pending.",
+      "key": "drill-down",
+      "name": "Drill Down",
+      "panels": [
+        {
+          "journey": "TC06",
+          "evidence_status": "pending_full_semantic_journey",
+          "evidence": [
+            "backend/app/routers/workspaces.py:_factory_tabs"
+          ],
+          "pending_reason": "Verify this exact factory panel identity and configuration after restore, clone and recreation.",
+          "instance_key": "sectors",
+          "catalogue_key": "watchlist",
+          "tool_type": "watchlist",
+          "title": "Sector Indexes",
+          "configuration": {
+            "personal": true,
+            "watchlist_id": null
+          }
+        },
+        {
+          "journey": "TC06",
+          "evidence_status": "pending_full_semantic_journey",
+          "evidence": [
+            "backend/app/routers/workspaces.py:_factory_tabs"
+          ],
+          "pending_reason": "Verify this exact factory panel identity and configuration after restore, clone and recreation.",
+          "instance_key": "industries",
+          "catalogue_key": "watchlist",
+          "tool_type": "watchlist",
+          "title": "Industry Indexes",
+          "configuration": {
+            "personal": true,
+            "watchlist_id": null
+          }
+        },
+        {
+          "journey": "TC06",
+          "evidence_status": "pending_full_semantic_journey",
+          "evidence": [
+            "backend/app/routers/workspaces.py:_factory_tabs"
+          ],
+          "pending_reason": "Verify this exact factory panel identity and configuration after restore, clone and recreation.",
+          "instance_key": "components",
+          "catalogue_key": "watchlist",
+          "tool_type": "watchlist",
+          "title": "Components",
+          "configuration": {
+            "personal": true,
+            "watchlist_id": null
+          }
+        },
+        {
+          "journey": "TC06",
+          "evidence_status": "pending_full_semantic_journey",
+          "evidence": [
+            "backend/app/routers/workspaces.py:_factory_tabs"
+          ],
+          "pending_reason": "Verify this exact factory panel identity and configuration after restore, clone and recreation.",
+          "instance_key": "selected-chart",
+          "catalogue_key": "chart",
+          "tool_type": "chart",
+          "title": "Selected Symbol",
+          "configuration": {
+            "symbol": "SPY",
+            "timeframe": "D1"
+          }
+        },
+        {
+          "journey": "TC06",
+          "evidence_status": "pending_full_semantic_journey",
+          "evidence": [
+            "backend/app/routers/workspaces.py:_factory_tabs"
+          ],
+          "pending_reason": "Verify this exact factory panel identity and configuration after restore, clone and recreation.",
+          "instance_key": "sector-comparison",
+          "catalogue_key": "chart",
+          "tool_type": "chart",
+          "title": "Sector Comparison",
+          "configuration": {
+            "symbol": "SPY",
+            "timeframe": "D1",
+            "comparison_symbols": [
+              "RSP"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "journey": "TC06",
+      "evidence_status": "pending_full_semantic_journey",
+      "evidence": [
+        "frontend/tests/unit/stores/test_workspace_store.test.ts"
+      ],
+      "pending_reason": "Restore and clone must preserve each specialized tool role/configuration; covered browser recreation is still pending.",
+      "key": "sector-by-year",
+      "name": "Sector by Year",
+      "panels": [
+        {
+          "journey": "TC06",
+          "evidence_status": "pending_full_semantic_journey",
+          "evidence": [
+            "backend/app/routers/workspaces.py:_factory_tabs"
+          ],
+          "pending_reason": "Verify this exact factory panel identity and configuration after restore, clone and recreation.",
+          "instance_key": "sectors",
+          "catalogue_key": "watchlist",
+          "tool_type": "watchlist",
+          "title": "Sector Indexes",
+          "configuration": {
+            "personal": true,
+            "watchlist_id": null
+          }
+        },
+        {
+          "journey": "TC06",
+          "evidence_status": "pending_full_semantic_journey",
+          "evidence": [
+            "backend/app/routers/workspaces.py:_factory_tabs"
+          ],
+          "pending_reason": "Verify this exact factory panel identity and configuration after restore, clone and recreation.",
+          "instance_key": "industries",
+          "catalogue_key": "watchlist",
+          "tool_type": "watchlist",
+          "title": "Industry Indexes",
+          "configuration": {
+            "personal": true,
+            "watchlist_id": null
+          }
+        },
+        {
+          "journey": "TC06",
+          "evidence_status": "pending_full_semantic_journey",
+          "evidence": [
+            "backend/app/routers/workspaces.py:_factory_tabs"
+          ],
+          "pending_reason": "Verify this exact factory panel identity and configuration after restore, clone and recreation.",
+          "instance_key": "components",
+          "catalogue_key": "watchlist",
+          "tool_type": "watchlist",
+          "title": "Components",
+          "configuration": {
+            "personal": true,
+            "watchlist_id": null
+          }
+        },
+        {
+          "journey": "TC06",
+          "evidence_status": "pending_full_semantic_journey",
+          "evidence": [
+            "backend/app/routers/workspaces.py:_factory_tabs"
+          ],
+          "pending_reason": "Verify this exact factory panel identity and configuration after restore, clone and recreation.",
+          "instance_key": "selected-chart",
+          "catalogue_key": "chart",
+          "tool_type": "chart",
+          "title": "Selected Symbol",
+          "configuration": {
+            "symbol": "SPY",
+            "timeframe": "D1"
+          }
+        },
+        {
+          "journey": "TC06",
+          "evidence_status": "pending_full_semantic_journey",
+          "evidence": [
+            "backend/app/routers/workspaces.py:_factory_tabs"
+          ],
+          "pending_reason": "Verify this exact factory panel identity and configuration after restore, clone and recreation.",
+          "instance_key": "normalized-comparison",
+          "catalogue_key": "chart",
+          "tool_type": "chart",
+          "title": "Normalized Comparison",
+          "configuration": {
+            "symbol": "SPY",
+            "timeframe": "D1",
+            "comparison_symbols": [
+              "RSP"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "journey": "TC06",
+      "evidence_status": "pending_full_semantic_journey",
+      "evidence": [
+        "frontend/tests/unit/stores/test_workspace_store.test.ts"
+      ],
+      "pending_reason": "Restore and clone must preserve each specialized tool role/configuration; covered browser recreation is still pending.",
+      "key": "one-chart",
+      "name": "1 Chart",
+      "panels": [
+        {
+          "journey": "TC06",
+          "evidence_status": "pending_full_semantic_journey",
+          "evidence": [
+            "backend/app/routers/workspaces.py:_factory_tabs"
+          ],
+          "pending_reason": "Verify this exact factory panel identity and configuration after restore, clone and recreation.",
+          "instance_key": "chart",
+          "catalogue_key": "chart",
+          "tool_type": "chart",
+          "title": "Chart",
+          "configuration": {
+            "symbol": "SPY",
+            "timeframe": "D1"
+          }
+        }
+      ]
+    },
+    {
+      "journey": "TC06",
+      "evidence_status": "pending_full_semantic_journey",
+      "evidence": [
+        "frontend/tests/unit/stores/test_workspace_store.test.ts"
+      ],
+      "pending_reason": "Restore and clone must preserve each specialized tool role/configuration; covered browser recreation is still pending.",
+      "key": "four-timeframe",
+      "name": "4 Timeframe",
+      "panels": [
+        {
+          "journey": "TC06",
+          "evidence_status": "pending_full_semantic_journey",
+          "evidence": [
+            "backend/app/routers/workspaces.py:_factory_tabs"
+          ],
+          "pending_reason": "Verify this exact factory panel identity and configuration after restore, clone and recreation.",
+          "instance_key": "m15",
+          "catalogue_key": "chart",
+          "tool_type": "chart",
+          "title": "15 Minute",
+          "configuration": {
+            "symbol": "SPY",
+            "timeframe": "M15",
+            "timeframe_link_group": "red"
+          }
+        },
+        {
+          "journey": "TC06",
+          "evidence_status": "pending_full_semantic_journey",
+          "evidence": [
+            "backend/app/routers/workspaces.py:_factory_tabs"
+          ],
+          "pending_reason": "Verify this exact factory panel identity and configuration after restore, clone and recreation.",
+          "instance_key": "daily",
+          "catalogue_key": "chart",
+          "tool_type": "chart",
+          "title": "Daily",
+          "configuration": {
+            "symbol": "SPY",
+            "timeframe": "D1",
+            "timeframe_link_group": "green"
+          }
+        },
+        {
+          "journey": "TC06",
+          "evidence_status": "pending_full_semantic_journey",
+          "evidence": [
+            "backend/app/routers/workspaces.py:_factory_tabs"
+          ],
+          "pending_reason": "Verify this exact factory panel identity and configuration after restore, clone and recreation.",
+          "instance_key": "weekly",
+          "catalogue_key": "chart",
+          "tool_type": "chart",
+          "title": "Weekly",
+          "configuration": {
+            "symbol": "SPY",
+            "timeframe": "W1",
+            "timeframe_link_group": "purple"
+          }
+        },
+        {
+          "journey": "TC06",
+          "evidence_status": "pending_full_semantic_journey",
+          "evidence": [
+            "backend/app/routers/workspaces.py:_factory_tabs"
+          ],
+          "pending_reason": "Verify this exact factory panel identity and configuration after restore, clone and recreation.",
+          "instance_key": "monthly",
+          "catalogue_key": "chart",
+          "tool_type": "chart",
+          "title": "Monthly",
+          "configuration": {
+            "symbol": "SPY",
+            "timeframe": "MN",
+            "timeframe_link_group": "orange"
+          }
+        }
+      ]
+    },
+    {
+      "journey": "TC06",
+      "evidence_status": "pending_full_semantic_journey",
+      "evidence": [
+        "frontend/tests/unit/stores/test_workspace_store.test.ts"
+      ],
+      "pending_reason": "Restore and clone must preserve each specialized tool role/configuration; covered browser recreation is still pending.",
+      "key": "fundamentals",
+      "name": "Fundamentals",
+      "panels": [
+        {
+          "journey": "TC06",
+          "evidence_status": "pending_full_semantic_journey",
+          "evidence": [
+            "backend/app/routers/workspaces.py:_factory_tabs"
+          ],
+          "pending_reason": "Verify this exact factory panel identity and configuration after restore, clone and recreation.",
+          "instance_key": "watchlist",
+          "catalogue_key": "watchlist",
+          "tool_type": "watchlist",
+          "title": "Fundamentals WatchList",
+          "configuration": {
+            "personal": true,
+            "watchlist_id": null
+          }
+        },
+        {
+          "journey": "TC06",
+          "evidence_status": "pending_full_semantic_journey",
+          "evidence": [
+            "backend/app/routers/workspaces.py:_factory_tabs"
+          ],
+          "pending_reason": "Verify this exact factory panel identity and configuration after restore, clone and recreation.",
+          "instance_key": "chart",
+          "catalogue_key": "chart",
+          "tool_type": "chart",
+          "title": "Chart",
+          "configuration": {
+            "symbol": "SPY",
+            "timeframe": "D1"
+          }
+        },
+        {
+          "journey": "TC06",
+          "evidence_status": "pending_full_semantic_journey",
+          "evidence": [
+            "backend/app/routers/workspaces.py:_factory_tabs"
+          ],
+          "pending_reason": "Verify this exact factory panel identity and configuration after restore, clone and recreation.",
+          "instance_key": "report",
+          "catalogue_key": "report",
+          "tool_type": "report",
+          "title": "Supported Symbol Report",
+          "configuration": {}
+        }
+      ]
+    },
+    {
+      "journey": "TC06",
+      "evidence_status": "pending_full_semantic_journey",
+      "evidence": [
+        "frontend/tests/unit/stores/test_workspace_store.test.ts"
+      ],
+      "pending_reason": "Restore and clone must preserve each specialized tool role/configuration; covered browser recreation is still pending.",
+      "key": "study-lab",
+      "name": "Study Lab",
+      "panels": [
+        {
+          "journey": "TC06",
+          "evidence_status": "pending_full_semantic_journey",
+          "evidence": [
+            "backend/app/routers/workspaces.py:_factory_tabs"
+          ],
+          "pending_reason": "Verify this exact factory panel identity and configuration after restore, clone and recreation.",
+          "instance_key": "study",
+          "catalogue_key": "study-lab",
+          "tool_type": "study_lab",
+          "title": "Study Lab",
+          "configuration": {
+            "symbol": "SPY"
+          }
+        },
+        {
+          "journey": "TC06",
+          "evidence_status": "pending_full_semantic_journey",
+          "evidence": [
+            "backend/app/routers/workspaces.py:_factory_tabs"
+          ],
+          "pending_reason": "Verify this exact factory panel identity and configuration after restore, clone and recreation.",
+          "instance_key": "chart",
+          "catalogue_key": "chart",
+          "tool_type": "chart",
+          "title": "Chart",
+          "configuration": {
+            "symbol": "SPY",
+            "timeframe": "D1"
+          }
+        },
+        {
+          "journey": "TC06",
+          "evidence_status": "pending_full_semantic_journey",
+          "evidence": [
+            "backend/app/routers/workspaces.py:_factory_tabs"
+          ],
+          "pending_reason": "Verify this exact factory panel identity and configuration after restore, clone and recreation.",
+          "instance_key": "results",
+          "catalogue_key": "research-results",
+          "tool_type": "research_results",
+          "title": "Study Results",
+          "configuration": {}
+        }
+      ]
+    }
+  ],
+  "cross_owner_journeys": [
+    {
+      "owner": "feat-etf-holdings-constituents",
+      "matrix": "../feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json",
+      "journey_ids": [
+        "J01",
+        "J02",
+        "J06",
+        "J07",
+        "J08",
+        "J12"
+      ],
+      "journey_count": 16,
+      "status": "owner_matrix_imported_browser_pending"
+    },
+    {
+      "owner": "feat-strategy-lab-v2",
+      "matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "journey_refs": [
+        "J01 first-use/return: persistent workspace and automatic preparation",
+        "J10 Study: edit/validate/run/results/cancel/return supported workflow",
+        "J10 Study: immutable saved version and return into Study workflow",
+        "J10 Study: read-only persisted result handoff",
+        "J10 Study: results/cancel/return supported workflow",
+        "J10 Study: return via immutable version, validate and run",
+        "J11 supporting: every reachable secondary page",
+        "J11 supporting: every reachable secondary page, with Strategy execution limits explicit",
+        "J12 recovery: delayed validation/refresh failure",
+        "J12 recovery: invalid route identity and failed read retry",
+        "J12 recovery: pagination, filters, delayed failures and retry",
+        "J12 recovery: reload and delayed result restoration"
+      ],
+      "journey_count": 13,
+      "status": "owner_matrix_imported_browser_pending"
+    }
+  ],
+  "journeys": [
+    {
+      "id": "TC01",
+      "title": "First use, saved workspace restore, and account boundary",
+      "surfaces": [
+        "/",
+        "/chart",
+        "/popout/:windowKey"
+      ],
+      "evidence_status": "pending_combined_browser",
+      "evidence": [
+        "frontend/tests/e2e/auth_session_boundary.spec.ts"
+      ],
+      "pending_reason": "Deterministic test-owned session cases exist; combined restore and cross-window journey remains Root-owned."
+    },
+    {
+      "id": "TC02",
+      "title": "Exact, partial, ambiguous and delayed symbol search",
+      "surfaces": [
+        "Workstation Active symbol",
+        "DashboardInstrumentSearch",
+        "CommonSearchBar"
+      ],
+      "evidence_status": "focused_units_browser_pending",
+      "evidence": [
+        "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts",
+        "frontend/tests/unit/components/test_dashboard_instrument_search.test.ts",
+        "frontend/tests/unit/components/test_search_bar.test.ts"
+      ],
+      "pending_reason": "Main Workstation and component focused coverage exists; shared search and secondary-route browser journeys remain."
+    },
+    {
+      "id": "TC03",
+      "title": "D1, W1, MN and older history selection and pan",
+      "surfaces": [
+        "Chart",
+        "Relative Strength",
+        "Relative Rotation"
+      ],
+      "evidence_status": "focused_units_combined_browser_pending",
+      "evidence": [
+        "frontend/tests/unit/lib/test_data_preparation.test.ts",
+        "frontend/tests/unit/components/test_relative_rotation_tool.test.ts"
+      ],
+      "pending_reason": "Provider-compatible shared coordinator is present; full backend/browser D1/W1/MN history proof is Root-owned."
+    },
+    {
+      "id": "TC04",
+      "title": "Holding selection preserves same-dashboard snapshot lineage",
+      "surfaces": [
+        "Constituents",
+        "Industries",
+        "Chart"
+      ],
+      "evidence_status": "focused_units_combined_browser_pending",
+      "evidence": [
+        "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts",
+        "frontend/tests/e2e/on_demand_acquisition.spec.ts"
+      ],
+      "pending_reason": "Focused lineage and stock no-ETF-refresh assertions exist; final combined browser journey remains pending."
+    },
+    {
+      "id": "TC05",
+      "title": "Ratio pairs and RRG plot interaction",
+      "surfaces": [
+        "Relative Strength",
+        "Relative Rotation"
+      ],
+      "evidence_status": "focused_component_combined_browser_pending",
+      "evidence": [
+        "frontend/tests/unit/components/test_relative_rotation_tool.test.ts",
+        "frontend/tests/unit/components/test_ratio_uplot.test.ts"
+      ],
+      "pending_reason": "Focused plot behavior exists; all eleven comparison paths and real backend analysis journeys remain pending."
+    },
+    {
+      "id": "TC06",
+      "title": "Canonical factory and complete Add tool recreation",
+      "surfaces": [
+        "Add tool",
+        "all factory layouts"
+      ],
+      "evidence_status": "pending_provider_contract_and_browser",
+      "evidence": [
+        "frontend/tests/unit/stores/test_workspace_store.test.ts"
+      ],
+      "pending_reason": "Canonical catalogue source is not yet released; guard tracks all current 21 entries and 38 factory instances."
+    },
+    {
+      "id": "TC07",
+      "title": "Reversible workspace/layout lifecycle and import/export",
+      "surfaces": [
+        "Workspace menu",
+        "layout tabs",
+        "tool windows"
+      ],
+      "evidence_status": "focused_store_browser_pending",
+      "evidence": [
+        "frontend/tests/unit/stores/test_workspace_store.test.ts",
+        "frontend/tests/unit/components/test_workspace_layout_host.test.ts"
+      ],
+      "pending_reason": "Store/host focused lifecycle checks exist; ordinary browser round-trip coverage remains pending."
+    },
+    {
+      "id": "TC08",
+      "title": "Analysis and data-preparation progress across tools",
+      "surfaces": [
+        "Chart",
+        "Study Lab",
+        "Results",
+        "Breadth",
+        "Market Map",
+        "Coverage",
+        "Report"
+      ],
+      "evidence_status": "focused_units_combined_browser_pending",
+      "evidence": [
+        "frontend/tests/unit/lib/test_data_preparation.test.ts",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts"
+      ],
+      "pending_reason": "TC shared client is implemented; accepted backend catalogue/runtime and combined progress journeys remain pending."
+    },
+    {
+      "id": "TC09",
+      "title": "Secondary routes, settings, alerts and watchlist actions",
+      "surfaces": [
+        "all shared-shell routes"
+      ],
+      "evidence_status": "pending_route_action_matrix",
+      "evidence": [
+        "frontend/tests/unit/router/test_application_routes.test.ts"
+      ],
+      "pending_reason": "Route contract is mapped; complete route/action user journeys and secondary-page presentation review remain pending."
+    }
+  ],
+  "actions": [
+    {
+      "id": "TC-A-shell-search",
+      "owner": "feat-tc2000-frontend-rework",
+      "action": "Search exact, partial, ambiguous and delayed canonical symbols; keyboard and pointer selection",
+      "journey": "TC02",
+      "evidence_status": "pending_shared_search_and_secondary_route_browser",
+      "evidence": [
+        "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts",
+        "frontend/tests/unit/components/test_dashboard_instrument_search.test.ts",
+        "frontend/tests/unit/components/test_search_bar.test.ts"
+      ],
+      "pending_reason": "The listed focused evidence is not a substitute for the still-pending complete browser action journey.",
+      "control_surface_refs": [
+        "frontend/src/views/WorkstationView.vue",
+        "frontend/src/components/common/SearchBar.vue",
+        "frontend/src/components/dashboard/DashboardInstrumentSearch.vue"
+      ]
+    },
+    {
+      "id": "TC-A-history-timeframe",
+      "owner": "feat-tc2000-frontend-rework",
+      "action": "Change D1/W1/MN, pan older, and inspect bounded progress/exhaustion/held states",
+      "journey": "TC03",
+      "evidence_status": "pending_combined_backend_browser",
+      "evidence": [
+        "frontend/tests/unit/lib/test_data_preparation.test.ts"
+      ],
+      "pending_reason": "The listed focused evidence is not a substitute for the still-pending complete browser action journey.",
+      "control_surface_refs": [
+        "frontend/src/components/chart/ChartPanel.vue",
+        "frontend/src/components/chart/HistoryAcquisitionControl.vue",
+        "frontend/src/components/chart/TimeframeSelector.vue",
+        "frontend/src/components/chart/UPlotChart.vue"
+      ]
+    },
+    {
+      "id": "TC-A-holding-lineage",
+      "owner": "feat-tc2000-frontend-rework",
+      "action": "Select a reported constituent, retain fund snapshot/row/as-of provenance, and open history in dashboard",
+      "journey": "TC04",
+      "evidence_status": "pending_combined_browser",
+      "evidence": [
+        "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts"
+      ],
+      "pending_reason": "The listed focused evidence is not a substitute for the still-pending complete browser action journey.",
+      "control_surface_refs": [
+        "frontend/src/components/chart/ChartPanel.vue",
+        "frontend/src/components/chart/HistoryAcquisitionControl.vue",
+        "frontend/src/components/chart/TimeframeSelector.vue",
+        "frontend/src/components/chart/UPlotChart.vue",
+        "frontend/src/components/workstation/BreadthConditionTreeEditor.vue",
+        "frontend/src/components/workstation/ChartPlotLibrary.vue",
+        "frontend/src/components/workstation/ChartTemplateControl.vue",
+        "frontend/src/components/workstation/ConditionGroupEditor.vue",
+        "frontend/src/components/workstation/CoverageSummaryTool.vue",
+        "frontend/src/components/workstation/EasyScanTool.vue",
+        "frontend/src/components/workstation/IndicatorSettingsDialog.vue",
+        "frontend/src/components/workstation/InstrumentAlertsTool.vue",
+        "frontend/src/components/workstation/InstrumentNoteTool.vue",
+        "frontend/src/components/workstation/MarketGaugeTool.vue",
+        "frontend/src/components/workstation/MarketMapTool.vue",
+        "frontend/src/components/workstation/PythonSourceEditor.vue",
+        "frontend/src/components/workstation/SymbolListTool.vue",
+        "frontend/src/components/workstation/UnknownToolRecovery.vue",
+        "frontend/src/components/workstation/VirtualWatchlistTool.vue",
+        "frontend/src/components/workstation/WorkstationToolContent.vue"
+      ]
+    },
+    {
+      "id": "TC-A-stock-negative",
+      "owner": "feat-tc2000-frontend-rework",
+      "action": "Select a canonical stock while an old ETF snapshot exists; do not refresh ETF holdings",
+      "journey": "TC04",
+      "evidence_status": "focused_negative_assertion_combined_browser_pending",
+      "evidence": [
+        "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts"
+      ],
+      "pending_reason": "The listed focused evidence is not a substitute for the still-pending complete browser action journey.",
+      "control_surface_refs": [
+        "frontend/src/components/chart/ChartPanel.vue",
+        "frontend/src/components/chart/HistoryAcquisitionControl.vue",
+        "frontend/src/components/chart/TimeframeSelector.vue",
+        "frontend/src/components/chart/UPlotChart.vue",
+        "frontend/src/components/workstation/BreadthConditionTreeEditor.vue",
+        "frontend/src/components/workstation/ChartPlotLibrary.vue",
+        "frontend/src/components/workstation/ChartTemplateControl.vue",
+        "frontend/src/components/workstation/ConditionGroupEditor.vue",
+        "frontend/src/components/workstation/CoverageSummaryTool.vue",
+        "frontend/src/components/workstation/EasyScanTool.vue",
+        "frontend/src/components/workstation/IndicatorSettingsDialog.vue",
+        "frontend/src/components/workstation/InstrumentAlertsTool.vue",
+        "frontend/src/components/workstation/InstrumentNoteTool.vue",
+        "frontend/src/components/workstation/MarketGaugeTool.vue",
+        "frontend/src/components/workstation/MarketMapTool.vue",
+        "frontend/src/components/workstation/PythonSourceEditor.vue",
+        "frontend/src/components/workstation/SymbolListTool.vue",
+        "frontend/src/components/workstation/UnknownToolRecovery.vue",
+        "frontend/src/components/workstation/VirtualWatchlistTool.vue",
+        "frontend/src/components/workstation/WorkstationToolContent.vue"
+      ]
+    },
+    {
+      "id": "TC-A-ratio-compare",
+      "owner": "feat-tc2000-frontend-rework",
+      "action": "Add/remove comparison symbols; retain valid curves when another pair is delayed/unavailable",
+      "journey": "TC05",
+      "evidence_status": "pending_full_pair_browser",
+      "evidence": [
+        "frontend/tests/unit/components/test_ratio_uplot.test.ts"
+      ],
+      "pending_reason": "The listed focused evidence is not a substitute for the still-pending complete browser action journey.",
+      "control_surface_refs": [
+        "frontend/src/components/workstation/RatioUPlot.vue",
+        "frontend/src/components/workstation/RelativeRotationTool.vue"
+      ]
+    },
+    {
+      "id": "TC-A-rrg-interaction",
+      "owner": "feat-tc2000-frontend-rework",
+      "action": "Plot finite ratio/rotation series; pointer/keyboard selection; resize, maximize and restore",
+      "journey": "TC05",
+      "evidence_status": "pending_combined_browser",
+      "evidence": [
+        "frontend/tests/unit/components/test_relative_rotation_tool.test.ts"
+      ],
+      "pending_reason": "The listed focused evidence is not a substitute for the still-pending complete browser action journey.",
+      "control_surface_refs": [
+        "frontend/src/components/workstation/RatioUPlot.vue",
+        "frontend/src/components/workstation/RelativeRotationTool.vue"
+      ]
+    },
+    {
+      "id": "TC-A-factory-semantics",
+      "owner": "feat-tc2000-frontend-rework",
+      "action": "Open all Add-tool entries and preserve semantic roles through clone, import and restore",
+      "journey": "TC06",
+      "evidence_status": "pending_provider_catalogue_and_browser",
+      "evidence": [
+        "frontend/tests/unit/stores/test_workspace_store.test.ts"
+      ],
+      "pending_reason": "The listed focused evidence is not a substitute for the still-pending complete browser action journey.",
+      "control_surface_refs": [
+        "frontend/src/views/WorkstationView.vue",
+        "frontend/src/components/chart/LayoutPicker.vue",
+        "frontend/src/components/workstation/BreadthConditionTreeEditor.vue",
+        "frontend/src/components/workstation/ChartPlotLibrary.vue",
+        "frontend/src/components/workstation/ChartTemplateControl.vue",
+        "frontend/src/components/workstation/ConditionGroupEditor.vue",
+        "frontend/src/components/workstation/CoverageSummaryTool.vue",
+        "frontend/src/components/workstation/EasyScanTool.vue",
+        "frontend/src/components/workstation/IndicatorSettingsDialog.vue",
+        "frontend/src/components/workstation/InstrumentAlertsTool.vue",
+        "frontend/src/components/workstation/InstrumentNoteTool.vue",
+        "frontend/src/components/workstation/MarketGaugeTool.vue",
+        "frontend/src/components/workstation/MarketMapTool.vue",
+        "frontend/src/components/workstation/PythonSourceEditor.vue",
+        "frontend/src/components/workstation/SymbolListTool.vue",
+        "frontend/src/components/workstation/ToolWindow.vue",
+        "frontend/src/components/workstation/UnknownToolRecovery.vue",
+        "frontend/src/components/workstation/VirtualWatchlistTool.vue",
+        "frontend/src/components/workstation/WorkstationToolContent.vue"
+      ]
+    },
+    {
+      "id": "TC-A-workspace-lifecycle",
+      "owner": "feat-tc2000-frontend-rework",
+      "action": "Create, rename, reorder, clone, export/import, reset and delete layouts reversibly",
+      "journey": "TC07",
+      "evidence_status": "pending_browser_roundtrip",
+      "evidence": [
+        "frontend/tests/unit/stores/test_workspace_store.test.ts"
+      ],
+      "pending_reason": "The listed focused evidence is not a substitute for the still-pending complete browser action journey.",
+      "control_surface_refs": [
+        "frontend/src/views/WorkstationView.vue",
+        "frontend/src/components/chart/LayoutPicker.vue",
+        "frontend/src/components/workstation/ToolWindow.vue"
+      ]
+    },
+    {
+      "id": "TC-A-chart-preparation",
+      "owner": "feat-tc2000-frontend-rework",
+      "action": "Prepare independent chart datasets; cached-first render; progress and partial/unavailable outcomes",
+      "journey": "TC08",
+      "evidence_status": "pending_combined_backend_browser",
+      "evidence": [
+        "frontend/tests/unit/lib/test_data_preparation.test.ts"
+      ],
+      "pending_reason": "The listed focused evidence is not a substitute for the still-pending complete browser action journey.",
+      "control_surface_refs": [
+        "frontend/src/views/WorkstationView.vue",
+        "frontend/src/components/workstation/BreadthConditionTreeEditor.vue",
+        "frontend/src/components/workstation/ChartPlotLibrary.vue",
+        "frontend/src/components/workstation/ChartTemplateControl.vue",
+        "frontend/src/components/workstation/ConditionGroupEditor.vue",
+        "frontend/src/components/workstation/CoverageSummaryTool.vue",
+        "frontend/src/components/workstation/EasyScanTool.vue",
+        "frontend/src/components/workstation/IndicatorSettingsDialog.vue",
+        "frontend/src/components/workstation/InstrumentAlertsTool.vue",
+        "frontend/src/components/workstation/InstrumentNoteTool.vue",
+        "frontend/src/components/workstation/MarketGaugeTool.vue",
+        "frontend/src/components/workstation/MarketMapTool.vue",
+        "frontend/src/components/workstation/PythonSourceEditor.vue",
+        "frontend/src/components/workstation/SymbolListTool.vue",
+        "frontend/src/components/workstation/UnknownToolRecovery.vue",
+        "frontend/src/components/workstation/VirtualWatchlistTool.vue",
+        "frontend/src/components/workstation/WorkstationToolContent.vue"
+      ]
+    },
+    {
+      "id": "TC-A-route-navigation",
+      "owner": "feat-tc2000-frontend-rework",
+      "action": "Navigate every primary and secondary route and alias with correct shell/context",
+      "journey": "TC09",
+      "evidence_status": "pending_secondary_route_action_journeys",
+      "evidence": [
+        "frontend/tests/unit/router/test_application_routes.test.ts"
+      ],
+      "pending_reason": "The listed focused evidence is not a substitute for the still-pending complete browser action journey.",
+      "control_surface_refs": [
+        "frontend/src/views/AlertsView.vue",
+        "frontend/src/views/DashboardView.vue",
+        "frontend/src/views/LoginView.vue",
+        "frontend/src/views/RadarView.vue",
+        "frontend/src/views/ScreenerView.vue",
+        "frontend/src/views/SettingsView.vue",
+        "frontend/src/views/WatchlistView.vue",
+        "frontend/src/components/alerts/AlertForm.vue",
+        "frontend/src/components/chart/DrawingToolbar.vue",
+        "frontend/src/components/chart/IndicatorPanel.vue",
+        "frontend/src/components/chart/InstrumentInfoPanel.vue",
+        "frontend/src/components/common/Notification.vue",
+        "frontend/src/components/common/ResizeHandle.vue",
+        "frontend/src/components/common/SparkTfSelector.vue",
+        "frontend/src/components/common/TagPicker.vue",
+        "frontend/src/components/common/TechnicalConditionEditor.vue",
+        "frontend/src/components/common/TextPromptModal.vue",
+        "frontend/src/components/dashboard/DashboardAlertsWidget.vue",
+        "frontend/src/components/dashboard/DashboardHeatMapWidget.vue",
+        "frontend/src/components/dashboard/DashboardNotesWidget.vue",
+        "frontend/src/components/dashboard/DashboardRadarWidget.vue",
+        "frontend/src/components/dashboard/DashboardScreenerWidget.vue",
+        "frontend/src/components/dashboard/DashboardSeasonalityWidget.vue",
+        "frontend/src/components/dashboard/DashboardWatchlistWidget.vue",
+        "frontend/src/components/options/OptionsChainPanel.vue",
+        "frontend/src/components/options/exposure/OptionsExposurePanel.vue",
+        "frontend/src/components/watchlist/WatchlistPanel.vue"
+      ]
+    },
+    {
+      "id": "TC-A-session-boundary",
+      "owner": "feat-tc2000-frontend-rework",
+      "action": "Logout/account switch clears private cached state and fences delayed cross-window results",
+      "journey": "TC01",
+      "evidence_status": "pending_combined_browser",
+      "evidence": [
+        "frontend/tests/e2e/auth_session_boundary.spec.ts"
+      ],
+      "pending_reason": "The listed focused evidence is not a substitute for the still-pending complete browser action journey.",
+      "control_surface_refs": [
+        "frontend/src/views/WorkstationView.vue"
+      ]
+    },
+    {
+      "id": "TC-A-menus-settings",
+      "owner": "feat-tc2000-frontend-rework",
+      "action": "Use chart settings and legacy menus at narrow/wide sizes, including keyboard dismissal/focus return",
+      "journey": "TC09",
+      "evidence_status": "pending_secondary_route_visual_review",
+      "evidence": [
+        "frontend/tests/unit/components/test_tool_window.test.ts"
+      ],
+      "pending_reason": "The listed focused evidence is not a substitute for the still-pending complete browser action journey.",
+      "control_surface_refs": [
+        "frontend/src/views/AlertsView.vue",
+        "frontend/src/views/DashboardView.vue",
+        "frontend/src/views/LoginView.vue",
+        "frontend/src/views/RadarView.vue",
+        "frontend/src/views/ScreenerView.vue",
+        "frontend/src/views/SettingsView.vue",
+        "frontend/src/views/WatchlistView.vue",
+        "frontend/src/components/alerts/AlertForm.vue",
+        "frontend/src/components/chart/DrawingToolbar.vue",
+        "frontend/src/components/chart/IndicatorPanel.vue",
+        "frontend/src/components/chart/InstrumentInfoPanel.vue",
+        "frontend/src/components/common/Notification.vue",
+        "frontend/src/components/common/ResizeHandle.vue",
+        "frontend/src/components/common/SparkTfSelector.vue",
+        "frontend/src/components/common/TagPicker.vue",
+        "frontend/src/components/common/TechnicalConditionEditor.vue",
+        "frontend/src/components/common/TextPromptModal.vue",
+        "frontend/src/components/dashboard/DashboardAlertsWidget.vue",
+        "frontend/src/components/dashboard/DashboardHeatMapWidget.vue",
+        "frontend/src/components/dashboard/DashboardNotesWidget.vue",
+        "frontend/src/components/dashboard/DashboardRadarWidget.vue",
+        "frontend/src/components/dashboard/DashboardScreenerWidget.vue",
+        "frontend/src/components/dashboard/DashboardSeasonalityWidget.vue",
+        "frontend/src/components/dashboard/DashboardWatchlistWidget.vue",
+        "frontend/src/components/options/OptionsChainPanel.vue",
+        "frontend/src/components/options/exposure/OptionsExposurePanel.vue",
+        "frontend/src/components/watchlist/WatchlistPanel.vue"
+      ]
+    },
+    {
+      "id": "feat-etf-holdings-constituents-A01",
+      "owner": "feat-etf-holdings-constituents",
+      "surface": "ETFHoldingsView",
+      "action": "Load saved ETF profiles; search/select an ETF or ETV, including exact source discovery",
+      "journey_refs": [
+        "J01",
+        "J02",
+        "J08",
+        "J12"
+      ],
+      "source_matrix": "../feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-etf-holdings-constituents:journey-matrix.json#ETFHoldingsView action 1"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-etf-holdings-constituents-A02",
+      "owner": "feat-etf-holdings-constituents",
+      "surface": "ETFHoldingsView",
+      "action": "Show retained snapshot, current eligibility, availability reason, and capability health while checking or waiting",
+      "journey_refs": [
+        "J01",
+        "J02",
+        "J08",
+        "J12"
+      ],
+      "source_matrix": "../feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-etf-holdings-constituents:journey-matrix.json#ETFHoldingsView action 2"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-etf-holdings-constituents-A03",
+      "owner": "feat-etf-holdings-constituents",
+      "surface": "ETFHoldingsView",
+      "action": "Browse a selected composition: search/filter rows, sort by supported field/direction, page results, select a row, inspect identifiers and resolution status",
+      "journey_refs": [
+        "J08",
+        "J12"
+      ],
+      "source_matrix": "../feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-etf-holdings-constituents:journey-matrix.json#ETFHoldingsView action 3"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-etf-holdings-constituents-A04",
+      "owner": "feat-etf-holdings-constituents",
+      "surface": "ETFHoldingsView",
+      "action": "Choose an older holdings snapshot and inspect its own composition date, known-at, publication, source and historical status",
+      "journey_refs": [
+        "J08"
+      ],
+      "source_matrix": "../feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-etf-holdings-constituents:journey-matrix.json#ETFHoldingsView action 4"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-etf-holdings-constituents-A05",
+      "owner": "feat-etf-holdings-constituents",
+      "surface": "ETFHoldingsView",
+      "action": "Open history for a resolved constituent with selected holding provenance",
+      "journey_refs": [
+        "J06",
+        "J08",
+        "J12"
+      ],
+      "source_matrix": "../feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-etf-holdings-constituents:journey-matrix.json#ETFHoldingsView action 5"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-etf-holdings-constituents-A06",
+      "owner": "feat-etf-holdings-constituents",
+      "surface": "ETFHoldingsView",
+      "action": "Resolve an eligible unresolved reported equity and open its exact confirmed candidate; retain non-chartable, held and unresolved rows honestly",
+      "journey_refs": [
+        "J02",
+        "J06",
+        "J08",
+        "J12"
+      ],
+      "source_matrix": "../feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-etf-holdings-constituents:journey-matrix.json#ETFHoldingsView action 6"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-etf-holdings-constituents-A07",
+      "owner": "feat-etf-holdings-constituents",
+      "surface": "ETFHoldingsView",
+      "action": "Compare dated snapshots, review weight evolution/parser-correction audit and turnover transitions",
+      "journey_refs": [
+        "J08"
+      ],
+      "source_matrix": "../feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-etf-holdings-constituents:journey-matrix.json#ETFHoldingsView action 7"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-etf-holdings-constituents-A08",
+      "owner": "feat-etf-holdings-constituents",
+      "surface": "ETFHoldingsView",
+      "action": "Compare selected ETF overlap or expand a family comparison using issuer, family, search and limit filters",
+      "journey_refs": [
+        "J08"
+      ],
+      "source_matrix": "../feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-etf-holdings-constituents:journey-matrix.json#ETFHoldingsView action 8"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-etf-holdings-constituents-A09",
+      "owner": "feat-etf-holdings-constituents",
+      "surface": "BasketsView",
+      "action": "Load, refresh and select saved baskets; reject stale list or lineage responses after selection changes",
+      "journey_refs": [
+        "J01",
+        "J07",
+        "J08",
+        "J12"
+      ],
+      "source_matrix": "../feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-etf-holdings-constituents:journey-matrix.json#BasketsView action 9"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-etf-holdings-constituents-A10",
+      "owner": "feat-etf-holdings-constituents",
+      "surface": "BasketsView",
+      "action": "Start and create an equal-weight or custom-weight manual basket from resolved picker results",
+      "journey_refs": [
+        "J02",
+        "J07",
+        "J08"
+      ],
+      "source_matrix": "../feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-etf-holdings-constituents:journey-matrix.json#BasketsView action 10"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-etf-holdings-constituents-A11",
+      "owner": "feat-etf-holdings-constituents",
+      "surface": "BasketsView",
+      "action": "Edit an existing manual basket, add/remove resolved members, save and reload persisted state",
+      "journey_refs": [
+        "J07",
+        "J08",
+        "J12"
+      ],
+      "source_matrix": "../feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-etf-holdings-constituents:journey-matrix.json#BasketsView action 11"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-etf-holdings-constituents-A12",
+      "owner": "feat-etf-holdings-constituents",
+      "surface": "BasketsView",
+      "action": "Cancel a dirty basket switch or explicitly discard edits before switching",
+      "journey_refs": [
+        "J07",
+        "J12"
+      ],
+      "source_matrix": "../feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-etf-holdings-constituents:journey-matrix.json#BasketsView action 12"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-etf-holdings-constituents-A13",
+      "owner": "feat-etf-holdings-constituents",
+      "surface": "BasketsView",
+      "action": "Cancel deletion or confirm deletion and return to a visible remaining basket/new draft",
+      "journey_refs": [
+        "J07",
+        "J12"
+      ],
+      "source_matrix": "../feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-etf-holdings-constituents:journey-matrix.json#BasketsView action 13"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-etf-holdings-constituents-A14",
+      "owner": "feat-etf-holdings-constituents",
+      "surface": "BasketsView",
+      "action": "Inspect an issuer-snapshot basket and its snapshot history without editing or deleting it",
+      "journey_refs": [
+        "J08"
+      ],
+      "source_matrix": "../feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-etf-holdings-constituents:journey-matrix.json#BasketsView action 14"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-etf-holdings-constituents-A15",
+      "owner": "feat-etf-holdings-constituents",
+      "surface": "BasketsView",
+      "action": "Open the selected saved basket in the shared dashboard chart immediately, including source baskets with unresolved rows",
+      "journey_refs": [
+        "J06",
+        "J08",
+        "J12"
+      ],
+      "source_matrix": "../feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-etf-holdings-constituents:journey-matrix.json#BasketsView action 15"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-etf-holdings-constituents-A16",
+      "owner": "feat-etf-holdings-constituents",
+      "surface": "BasketsView",
+      "action": "Open an individual member symbol chart from a basket member row",
+      "journey_refs": [
+        "J06",
+        "J08"
+      ],
+      "source_matrix": "../feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-etf-holdings-constituents:journey-matrix.json#BasketsView action 16"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A01",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "StudyLabTool",
+      "action": "edit factory/custom source",
+      "journey_refs": [
+        "J10 Study: edit/validate/run/results/cancel/return supported workflow"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#StudyLabTool action 1"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A02",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "StudyLabTool",
+      "action": "edit dataset controls and typed parameters",
+      "journey_refs": [
+        "J10 Study: edit/validate/run/results/cancel/return supported workflow"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#StudyLabTool action 2"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A03",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "StudyLabTool",
+      "action": "prepare requested datasets",
+      "journey_refs": [
+        "J10 Study: edit/validate/run/results/cancel/return supported workflow"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#StudyLabTool action 3"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A04",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "StudyLabTool",
+      "action": "validate",
+      "journey_refs": [
+        "J10 Study: edit/validate/run/results/cancel/return supported workflow"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#StudyLabTool action 4"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A05",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "StudyLabTool",
+      "action": "show delayed/unavailable/rejected preparation",
+      "journey_refs": [
+        "J10 Study: edit/validate/run/results/cancel/return supported workflow"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#StudyLabTool action 5"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A06",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "StudyLabTool",
+      "action": "ordinary isolated run",
+      "journey_refs": [
+        "J10 Study: edit/validate/run/results/cancel/return supported workflow"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#StudyLabTool action 6"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A07",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "StudyLabTool",
+      "action": "create/reuse immutable CodeVersion",
+      "journey_refs": [
+        "J10 Study: edit/validate/run/results/cancel/return supported workflow"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#StudyLabTool action 7"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A08",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "StudyLabTool",
+      "action": "typed parameter and universe submission",
+      "journey_refs": [
+        "J10 Study: edit/validate/run/results/cancel/return supported workflow"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#StudyLabTool action 8"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A09",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "StudyLabTool and ResearchResultsTool",
+      "action": "show new run without manual refresh",
+      "journey_refs": [
+        "J10 Study: edit/validate/run/results/cancel/return supported workflow",
+        "J12 recovery: reload and delayed result restoration"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#StudyLabTool and ResearchResultsTool action 9"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A10",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "StudyLabTool and ResearchResultsTool",
+      "action": "select/restore saved run",
+      "journey_refs": [
+        "J10 Study: edit/validate/run/results/cancel/return supported workflow",
+        "J12 recovery: reload and delayed result restoration"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#StudyLabTool and ResearchResultsTool action 10"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A11",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "StudyLabTool and ResearchResultsTool",
+      "action": "reload",
+      "journey_refs": [
+        "J10 Study: edit/validate/run/results/cancel/return supported workflow",
+        "J12 recovery: reload and delayed result restoration"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#StudyLabTool and ResearchResultsTool action 11"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A12",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "StudyLabTool and ResearchResultsTool",
+      "action": "retry failed saved-run hydration",
+      "journey_refs": [
+        "J10 Study: edit/validate/run/results/cancel/return supported workflow",
+        "J12 recovery: reload and delayed result restoration"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#StudyLabTool and ResearchResultsTool action 12"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A13",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "ResearchResultsTool",
+      "action": "sort/list by newest stable run order",
+      "journey_refs": [
+        "J10 Study: results/cancel/return supported workflow",
+        "J12 recovery: pagination, filters, delayed failures and retry"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#ResearchResultsTool action 13"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A14",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "ResearchResultsTool",
+      "action": "load older cursor page",
+      "journey_refs": [
+        "J10 Study: results/cancel/return supported workflow",
+        "J12 recovery: pagination, filters, delayed failures and retry"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#ResearchResultsTool action 14"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A15",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "ResearchResultsTool",
+      "action": "select/compare runs",
+      "journey_refs": [
+        "J10 Study: results/cancel/return supported workflow",
+        "J12 recovery: pagination, filters, delayed failures and retry"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#ResearchResultsTool action 15"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A16",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "ResearchResultsTool",
+      "action": "filter and page event/breadth occurrences",
+      "journey_refs": [
+        "J10 Study: results/cancel/return supported workflow",
+        "J12 recovery: pagination, filters, delayed failures and retry"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#ResearchResultsTool action 16"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A17",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "ResearchResultsTool",
+      "action": "cancel queued run",
+      "journey_refs": [
+        "J10 Study: results/cancel/return supported workflow",
+        "J12 recovery: pagination, filters, delayed failures and retry"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#ResearchResultsTool action 17"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A18",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "ResearchResultsTool",
+      "action": "rerun saved snapshot",
+      "journey_refs": [
+        "J10 Study: results/cancel/return supported workflow",
+        "J12 recovery: pagination, filters, delayed failures and retry"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#ResearchResultsTool action 18"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A19",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "ResearchResultsTool",
+      "action": "rerun latest canonical data",
+      "journey_refs": [
+        "J10 Study: results/cancel/return supported workflow",
+        "J12 recovery: pagination, filters, delayed failures and retry"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#ResearchResultsTool action 19"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A20",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "StudyLabTool and ResearchResultsTool",
+      "action": "export result",
+      "journey_refs": [
+        "J10 Study: edit/validate/run/results/cancel/return supported workflow",
+        "J12 recovery: reload and delayed result restoration"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#StudyLabTool and ResearchResultsTool action 20"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A21",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "StudyLabTool and ResearchResultsTool",
+      "action": "promote selected artifact to supported chart/watchlist/alert/scan/signal/Study targets",
+      "journey_refs": [
+        "J10 Study: edit/validate/run/results/cancel/return supported workflow",
+        "J12 recovery: reload and delayed result restoration"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#StudyLabTool and ResearchResultsTool action 21"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A22",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "CodeLibraryTool",
+      "action": "filter/search",
+      "journey_refs": [
+        "J10 Study: immutable saved version and return into Study workflow",
+        "J12 recovery: delayed validation/refresh failure"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#CodeLibraryTool action 22"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A23",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "CodeLibraryTool",
+      "action": "refresh",
+      "journey_refs": [
+        "J10 Study: immutable saved version and return into Study workflow",
+        "J12 recovery: delayed validation/refresh failure"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#CodeLibraryTool action 23"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A24",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "CodeLibraryTool",
+      "action": "empty/error feedback",
+      "journey_refs": [
+        "J10 Study: immutable saved version and return into Study workflow",
+        "J12 recovery: delayed validation/refresh failure"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#CodeLibraryTool action 24"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A25",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "CodeLibraryTool",
+      "action": "create typed asset",
+      "journey_refs": [
+        "J10 Study: immutable saved version and return into Study workflow",
+        "J12 recovery: delayed validation/refresh failure"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#CodeLibraryTool action 25"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A26",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "CodeLibraryTool",
+      "action": "import/export",
+      "journey_refs": [
+        "J10 Study: immutable saved version and return into Study workflow",
+        "J12 recovery: delayed validation/refresh failure"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#CodeLibraryTool action 26"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A27",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "CodeLibraryTool",
+      "action": "clone/archive",
+      "journey_refs": [
+        "J10 Study: immutable saved version and return into Study workflow",
+        "J12 recovery: delayed validation/refresh failure"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#CodeLibraryTool action 27"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A28",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "CodeLibraryTool",
+      "action": "select latest/historical base version",
+      "journey_refs": [
+        "J10 Study: immutable saved version and return into Study workflow",
+        "J12 recovery: delayed validation/refresh failure"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#CodeLibraryTool action 28"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A29",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "CodeLibraryTool",
+      "action": "edit source",
+      "journey_refs": [
+        "J10 Study: immutable saved version and return into Study workflow",
+        "J12 recovery: delayed validation/refresh failure"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#CodeLibraryTool action 29"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A30",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "CodeLibraryTool",
+      "action": "validate",
+      "journey_refs": [
+        "J10 Study: immutable saved version and return into Study workflow",
+        "J12 recovery: delayed validation/refresh failure"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#CodeLibraryTool action 30"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A31",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "CodeLibraryTool",
+      "action": "save as new immutable version",
+      "journey_refs": [
+        "J10 Study: immutable saved version and return into Study workflow",
+        "J12 recovery: delayed validation/refresh failure"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#CodeLibraryTool action 31"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A32",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "CodeLibraryTool",
+      "action": "recover delayed/context-changed validation",
+      "journey_refs": [
+        "J10 Study: immutable saved version and return into Study workflow",
+        "J12 recovery: delayed validation/refresh failure"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#CodeLibraryTool action 32"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A33",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "CodeLibraryTool",
+      "action": "preserve a newer draft/base when the immutable save response is delayed",
+      "journey_refs": [
+        "J10 Study: immutable saved version and return into Study workflow",
+        "J12 recovery: delayed validation/refresh failure"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#CodeLibraryTool action 33"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A34",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "CodeLibraryTool -> StudyLabTool",
+      "action": "return/open latest or selected historical immutable version",
+      "journey_refs": [
+        "J01 first-use/return: persistent workspace and automatic preparation",
+        "J10 Study: return via immutable version, validate and run"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#CodeLibraryTool -> StudyLabTool action 34"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A35",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "CodeLibraryTool -> StudyLabTool",
+      "action": "validate/run without duplicate asset creation",
+      "journey_refs": [
+        "J01 first-use/return: persistent workspace and automatic preparation",
+        "J10 Study: return via immutable version, validate and run"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#CodeLibraryTool -> StudyLabTool action 35"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A36",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "StrategyLabView",
+      "action": "create/edit/save/delete definition",
+      "journey_refs": [
+        "J11 supporting: every reachable secondary page, with Strategy execution limits explicit"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#StrategyLabView action 36"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A37",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "StrategyLabView",
+      "action": "publish version",
+      "journey_refs": [
+        "J11 supporting: every reachable secondary page, with Strategy execution limits explicit"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#StrategyLabView action 37"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A38",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "StrategyLabView",
+      "action": "backtest/walk-forward",
+      "journey_refs": [
+        "J11 supporting: every reachable secondary page, with Strategy execution limits explicit"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#StrategyLabView action 38"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A39",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "StrategyLabView",
+      "action": "review/filter/sort run history and results",
+      "journey_refs": [
+        "J11 supporting: every reachable secondary page, with Strategy execution limits explicit"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#StrategyLabView action 39"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A40",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "StrategyLabView",
+      "action": "preview coverage",
+      "journey_refs": [
+        "J11 supporting: every reachable secondary page, with Strategy execution limits explicit"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#StrategyLabView action 40"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A41",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "StrategyLabView",
+      "action": "Backtest",
+      "journey_refs": [
+        "J11 supporting: every reachable secondary page, with Strategy execution limits explicit"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#StrategyLabView action 41"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A42",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "StrategyLabView",
+      "action": "Walk forward",
+      "journey_refs": [
+        "J11 supporting: every reachable secondary page, with Strategy execution limits explicit"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#StrategyLabView action 42"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A43",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "StrategyLabView",
+      "action": "Paper forward",
+      "journey_refs": [
+        "J11 supporting: every reachable secondary page, with Strategy execution limits explicit"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#StrategyLabView action 43"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A44",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "StrategyLabV2View",
+      "action": "read-only resource tabs",
+      "journey_refs": [
+        "J10 Study: read-only persisted result handoff",
+        "J11 supporting: every reachable secondary page",
+        "J12 recovery: invalid route identity and failed read retry"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#StrategyLabV2View action 44"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A45",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "StrategyLabV2View",
+      "action": "paginate owner-scoped collection",
+      "journey_refs": [
+        "J10 Study: read-only persisted result handoff",
+        "J11 supporting: every reachable secondary page",
+        "J12 recovery: invalid route identity and failed read retry"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#StrategyLabV2View action 45"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A46",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "StrategyLabV2View",
+      "action": "select resource",
+      "journey_refs": [
+        "J10 Study: read-only persisted result handoff",
+        "J11 supporting: every reachable secondary page",
+        "J12 recovery: invalid route identity and failed read retry"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#StrategyLabV2View action 46"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A47",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "StrategyLabV2View",
+      "action": "inspect normal-user Study pin from persisted run/artifact IDs",
+      "journey_refs": [
+        "J10 Study: read-only persisted result handoff",
+        "J11 supporting: every reachable secondary page",
+        "J12 recovery: invalid route identity and failed read retry"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#StrategyLabV2View action 47"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    },
+    {
+      "id": "feat-strategy-lab-v2-A48",
+      "owner": "feat-strategy-lab-v2",
+      "surface": "StrategyLabV2View",
+      "action": "retry failed collection/reference read",
+      "journey_refs": [
+        "J10 Study: read-only persisted result handoff",
+        "J11 supporting: every reachable secondary page",
+        "J12 recovery: invalid route identity and failed read retry"
+      ],
+      "source_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "evidence_status": "owner_mapped_browser_pending",
+      "evidence": [
+        "feat-strategy-lab-v2:journey-matrix.json#StrategyLabV2View action 48"
+      ],
+      "journey": null,
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+    }
+  ],
+  "analysis_coverage": {
+    "status": "pending_combined_browser",
+    "daily_weekly_monthly": [
+      "D1",
+      "W1",
+      "MN"
+    ],
+    "monthly_warmup_bars": 50,
+    "ratio_symbols": [
+      "XLB",
+      "XLC",
+      "XLE",
+      "XLF",
+      "XLI",
+      "XLK",
+      "XLP",
+      "XLRE",
+      "XLU",
+      "XLV",
+      "XLY"
+    ],
+    "journey": "TC03/TC05",
+    "evidence": [
+      "frontend/tests/unit/lib/test_data_preparation.test.ts",
+      "frontend/tests/unit/components/test_relative_rotation_tool.test.ts"
+    ],
+    "pending_reason": "Unit coverage does not yet prove all eleven ratio members and fifty-bar monthly warmup against the assembled real backend."
+  },
+  "control_surfaces": [
+    {
+      "source": "frontend/src/views/AlertsView.vue",
+      "control_count": 21,
+      "signature_sha256": "527eb4e0d549791791ae432c9e67c76d53ad67b4bdbedf1d9d6795c727cc77c4",
+      "journeys": [
+        "TC09"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/views/AlertsView.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/views/DashboardView.vue",
+      "control_count": 24,
+      "signature_sha256": "3f8772dfa13d5fbf69e9fc245990d9a55956c0e207f3b7bcff9157d1662bf202",
+      "journeys": [
+        "TC09"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/views/DashboardView.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/views/LoginView.vue",
+      "control_count": 5,
+      "signature_sha256": "0a10a2ee706ac4688fb035eb62a4bedda906ad2ff9fd3e9a9379ce646659bac2",
+      "journeys": [
+        "TC09"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/views/LoginView.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/views/RadarView.vue",
+      "control_count": 20,
+      "signature_sha256": "779052da40e730a885bcb4683cedca634aa14fa3c4d32d38a9c7f8f25c212012",
+      "journeys": [
+        "TC09"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/views/RadarView.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/views/ScreenerView.vue",
+      "control_count": 40,
+      "signature_sha256": "e5ec30893e1687107e1217819596fa61820dd4a3809f7798187e439fb149f5ce",
+      "journeys": [
+        "TC09"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/views/ScreenerView.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/views/SettingsView.vue",
+      "control_count": 6,
+      "signature_sha256": "e91e9ff1bc1cba32756824bd9124ee889660903600489529ad85b26418a43e67",
+      "journeys": [
+        "TC09"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/views/SettingsView.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/views/WatchlistView.vue",
+      "control_count": 8,
+      "signature_sha256": "4a0e13adfe5ade59490279ca417c2bf72883a4c3247a59c205c37cbeeffc217a",
+      "journeys": [
+        "TC09"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/views/WatchlistView.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/views/WorkstationView.vue",
+      "control_count": 46,
+      "signature_sha256": "8d0c7a2e8cf0a4cba5fc5e350f3b97d519f6b57395cbb50bf9d4501fa74d61aa",
+      "journeys": [
+        "TC01",
+        "TC02",
+        "TC06",
+        "TC07",
+        "TC08"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/views/WorkstationView.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/alerts/AlertForm.vue",
+      "control_count": 5,
+      "signature_sha256": "37ddb0457e58584cc2dd82a792c322b0a7248a40c2ffef5c6e098a0963a1c74b",
+      "journeys": [
+        "TC09"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/alerts/AlertForm.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/chart/ChartPanel.vue",
+      "control_count": 5,
+      "signature_sha256": "072190967238bd7794dab1fd2c11dc5ca5ab742a5485bc87a50d8c1741eff2df",
+      "journeys": [
+        "TC03",
+        "TC04"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/chart/ChartPanel.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/chart/DrawingToolbar.vue",
+      "control_count": 8,
+      "signature_sha256": "7666eb36338fa4699dc6c1c29c344280b7e6c31fb08b8db598e6fe14bc713263",
+      "journeys": [
+        "TC09"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/chart/DrawingToolbar.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/chart/HistoryAcquisitionControl.vue",
+      "control_count": 3,
+      "signature_sha256": "a45f10eebd3e19ef15cff44486ee70415245aa8f2d4ace21556ec3cd4a5c0b23",
+      "journeys": [
+        "TC03",
+        "TC04"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/chart/HistoryAcquisitionControl.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/chart/IndicatorPanel.vue",
+      "control_count": 30,
+      "signature_sha256": "c5bf77a7e4cffc0109334b38cbbc936168a09ed01b2fab7af08f39ad4ae3d18f",
+      "journeys": [
+        "TC09"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/chart/IndicatorPanel.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/chart/InstrumentInfoPanel.vue",
+      "control_count": 2,
+      "signature_sha256": "38329e2977d3f2b88860d2f689430d78f1102c54e2bcfe7572dba5d6db5c87e1",
+      "journeys": [
+        "TC09"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/chart/InstrumentInfoPanel.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/chart/LayoutPicker.vue",
+      "control_count": 5,
+      "signature_sha256": "890114df5ae106aa870301121b097da5c2a47ea14692e44a7552fdc12288349a",
+      "journeys": [
+        "TC06",
+        "TC07"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/chart/LayoutPicker.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/chart/TimeframeSelector.vue",
+      "control_count": 1,
+      "signature_sha256": "d190065e8d7effa0aa556e9083c5d7eef6bd50f6764c45123d7976cb086faeb6",
+      "journeys": [
+        "TC03",
+        "TC04"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/chart/TimeframeSelector.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/chart/UPlotChart.vue",
+      "control_count": 6,
+      "signature_sha256": "50e2f2e78970adff27c69742d5cf65c1389eddd74912afdec2eec15ea9e69d1b",
+      "journeys": [
+        "TC03",
+        "TC04"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/chart/UPlotChart.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/common/Notification.vue",
+      "control_count": 2,
+      "signature_sha256": "c1acf48ce3ce3861f725deb7fd4e027f9fa6d0313c17343d92fe3a5a61b4ae3b",
+      "journeys": [
+        "TC09"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/common/Notification.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/common/ResizeHandle.vue",
+      "control_count": 1,
+      "signature_sha256": "601870c31fab00af238ff29d08ba74152766702ef53051f7d872fd96eafb292a",
+      "journeys": [
+        "TC09"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/common/ResizeHandle.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/common/SearchBar.vue",
+      "control_count": 4,
+      "signature_sha256": "23ead94769ff8f0e7e5fc2c96806e85b722cc60fb229864c9fd169954858d62f",
+      "journeys": [
+        "TC02"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/common/SearchBar.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/common/SparkTfSelector.vue",
+      "control_count": 1,
+      "signature_sha256": "0091d683b42e814904b34466811bae2a838268174d100c904d175943ce7abc5d",
+      "journeys": [
+        "TC09"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/common/SparkTfSelector.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/common/TagPicker.vue",
+      "control_count": 5,
+      "signature_sha256": "002ef7142207456e9e22ab94626100cd7b1b3f8ab2a84e6068264394d3afef5c",
+      "journeys": [
+        "TC09"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/common/TagPicker.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/common/TechnicalConditionEditor.vue",
+      "control_count": 7,
+      "signature_sha256": "994072f17276b29f6297b2e13951b0b6c903ae4f59724305c0f6afc8253bade5",
+      "journeys": [
+        "TC09"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/common/TechnicalConditionEditor.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/common/TextPromptModal.vue",
+      "control_count": 5,
+      "signature_sha256": "3ef8fd93b10e6bd4f5cf9f2054d9657828f475b940e49d026b1a2d4a5d84ebcc",
+      "journeys": [
+        "TC09"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/common/TextPromptModal.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/dashboard/DashboardAlertsWidget.vue",
+      "control_count": 4,
+      "signature_sha256": "6be239bbe59a7ade247f1c7ba2047548eae2307700684346f135773c50a8dac0",
+      "journeys": [
+        "TC09"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/dashboard/DashboardAlertsWidget.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/dashboard/DashboardHeatMapWidget.vue",
+      "control_count": 2,
+      "signature_sha256": "ebeb15d54055ffbeeb820decd7ac9fa7f97d2db65f051eb525b55a1d689b7e72",
+      "journeys": [
+        "TC09"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/dashboard/DashboardHeatMapWidget.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/dashboard/DashboardInstrumentSearch.vue",
+      "control_count": 3,
+      "signature_sha256": "96acb8d745a67b2b83a49af6008c6cd4a9827c613510e319f43425adc5594e96",
+      "journeys": [
+        "TC02"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/dashboard/DashboardInstrumentSearch.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/dashboard/DashboardNotesWidget.vue",
+      "control_count": 6,
+      "signature_sha256": "3c9f2d92f70aca39feae408e5a71c12d90566464fb3b5e6b2318406795252e1b",
+      "journeys": [
+        "TC09"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/dashboard/DashboardNotesWidget.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/dashboard/DashboardRadarWidget.vue",
+      "control_count": 2,
+      "signature_sha256": "986afba1dc742327b80ca13d8a21f51e313757e417aa5baf78cc0c07496dc5d6",
+      "journeys": [
+        "TC09"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/dashboard/DashboardRadarWidget.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/dashboard/DashboardScreenerWidget.vue",
+      "control_count": 2,
+      "signature_sha256": "88dd6fa948e1d5307a73b0795516b4a319c9b40f2ebf9c06eeafc363c518910b",
+      "journeys": [
+        "TC09"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/dashboard/DashboardScreenerWidget.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/dashboard/DashboardSeasonalityWidget.vue",
+      "control_count": 2,
+      "signature_sha256": "6f5e8569b6f207024c308e4d8518f90bfd74b8e61fa25cc254dfd35cc86b5dda",
+      "journeys": [
+        "TC09"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/dashboard/DashboardSeasonalityWidget.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/dashboard/DashboardWatchlistWidget.vue",
+      "control_count": 9,
+      "signature_sha256": "273f54ca6784604241a3251e9ff6d51ad6c89bf93a0da7b730f571304e8b6f27",
+      "journeys": [
+        "TC09"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/dashboard/DashboardWatchlistWidget.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/options/OptionsChainPanel.vue",
+      "control_count": 9,
+      "signature_sha256": "da51fe0c4db6f57fa59517e43fce1d6cbab91e4454589303a77d4d7bccf783e1",
+      "journeys": [
+        "TC09"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/options/OptionsChainPanel.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/options/exposure/OptionsExposurePanel.vue",
+      "control_count": 12,
+      "signature_sha256": "bd2658b6877c244c7fef999d27c466afc6cd991f865395861c79efacd4493d0a",
+      "journeys": [
+        "TC09"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/options/exposure/OptionsExposurePanel.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/watchlist/WatchlistPanel.vue",
+      "control_count": 14,
+      "signature_sha256": "9f25f92a4d0727b3a0146a33bc7726ad410dbfdafac9401a3993e68e1df2c1af",
+      "journeys": [
+        "TC09"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/watchlist/WatchlistPanel.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/workstation/BreadthConditionTreeEditor.vue",
+      "control_count": 1,
+      "signature_sha256": "003192f7cdeb4de24800487252e90826ab879b833a0d6e501f803f94be08bf22",
+      "journeys": [
+        "TC04",
+        "TC06",
+        "TC08"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/workstation/BreadthConditionTreeEditor.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/workstation/ChartPlotLibrary.vue",
+      "control_count": 48,
+      "signature_sha256": "a22612cbe9d3f0d17b9692b2dac1d5bf047daac3945b8ed8610947f63802549f",
+      "journeys": [
+        "TC04",
+        "TC06",
+        "TC08"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/workstation/ChartPlotLibrary.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/workstation/ChartTemplateControl.vue",
+      "control_count": 10,
+      "signature_sha256": "e79d5c21857c57523e001e3959f98f4d8bcbc876ba09ffcf11a74be5ce522908",
+      "journeys": [
+        "TC04",
+        "TC06",
+        "TC08"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/workstation/ChartTemplateControl.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/workstation/ConditionGroupEditor.vue",
+      "control_count": 2,
+      "signature_sha256": "3e59e1e63e528ec8433405ec54695e747a88fefc1d32480219720e9252cfebde",
+      "journeys": [
+        "TC04",
+        "TC06",
+        "TC08"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/workstation/ConditionGroupEditor.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/workstation/CoverageSummaryTool.vue",
+      "control_count": 6,
+      "signature_sha256": "f79ba2390766d60bb5a615c5ac7e8fbc097a564ea8a33f209d740e494bbc7917",
+      "journeys": [
+        "TC04",
+        "TC06",
+        "TC08"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/workstation/CoverageSummaryTool.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/workstation/EasyScanTool.vue",
+      "control_count": 18,
+      "signature_sha256": "fc8ccfc254af66ad11e5bfb892666299c1abaf19cf010b42bd8a4145a9957d74",
+      "journeys": [
+        "TC04",
+        "TC06",
+        "TC08"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/workstation/EasyScanTool.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/workstation/IndicatorSettingsDialog.vue",
+      "control_count": 13,
+      "signature_sha256": "7c947073cd560063fdda02dfb59f69175271eb932888985423c54537e67ac59b",
+      "journeys": [
+        "TC04",
+        "TC06",
+        "TC08"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/workstation/IndicatorSettingsDialog.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/workstation/InstrumentAlertsTool.vue",
+      "control_count": 10,
+      "signature_sha256": "d98b4c715c46c6536205e88f9ddc98e16afcf77aab2cbe86c8e7b247e3e45103",
+      "journeys": [
+        "TC04",
+        "TC06",
+        "TC08"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/workstation/InstrumentAlertsTool.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/workstation/InstrumentNoteTool.vue",
+      "control_count": 1,
+      "signature_sha256": "c65eb6021e671c637e0e86d21503566c56fa8f74fb4453699ceb48fbcaadbd2c",
+      "journeys": [
+        "TC04",
+        "TC06",
+        "TC08"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/workstation/InstrumentNoteTool.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/workstation/MarketGaugeTool.vue",
+      "control_count": 2,
+      "signature_sha256": "87d1be44a129ad9537cd239409c8b2cf07127d43c7b2fb433850c57d67c423ef",
+      "journeys": [
+        "TC04",
+        "TC06",
+        "TC08"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/workstation/MarketGaugeTool.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/workstation/MarketMapTool.vue",
+      "control_count": 7,
+      "signature_sha256": "f8a63533f7a3987a0024fc8b80123388b9c2bcbbee1b55e9a77458af88d04d93",
+      "journeys": [
+        "TC04",
+        "TC06",
+        "TC08"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/workstation/MarketMapTool.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/workstation/PythonSourceEditor.vue",
+      "control_count": 3,
+      "signature_sha256": "f434d43af3996770da77af38d1db00183ca42829d2881dce3cb678da04ecd8dc",
+      "journeys": [
+        "TC04",
+        "TC06",
+        "TC08"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/workstation/PythonSourceEditor.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/workstation/RatioUPlot.vue",
+      "control_count": 3,
+      "signature_sha256": "237c01d739939b30d1867a7f06f468da300a9b834d951b74ebd55ee58057f553",
+      "journeys": [
+        "TC05"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/workstation/RatioUPlot.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/workstation/RelativeRotationTool.vue",
+      "control_count": 23,
+      "signature_sha256": "f61b7e40926d97d31c5e192cfb372af5344dc130ba79ea5b16be8a9d68aa8500",
+      "journeys": [
+        "TC05"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/workstation/RelativeRotationTool.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/workstation/SymbolListTool.vue",
+      "control_count": 1,
+      "signature_sha256": "c61b65512cf300f564786e80845404ec4533db66d4f9742e903f1022bffefb70",
+      "journeys": [
+        "TC04",
+        "TC06",
+        "TC08"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/workstation/SymbolListTool.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/workstation/ToolWindow.vue",
+      "control_count": 13,
+      "signature_sha256": "d8e1458a1766be69b80dbd6de21836914e9e1fd3eacc87b597e16fd589771c5d",
+      "journeys": [
+        "TC06",
+        "TC07"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/workstation/ToolWindow.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/workstation/UnknownToolRecovery.vue",
+      "control_count": 1,
+      "signature_sha256": "79e556932582e26d7f46cb0147fc832465b70b98d580aa4d8faf13b3c4c26095",
+      "journeys": [
+        "TC04",
+        "TC06",
+        "TC08"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/workstation/UnknownToolRecovery.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/workstation/VirtualWatchlistTool.vue",
+      "control_count": 33,
+      "signature_sha256": "6ddf89ffa6a5d1ce4624f39714513f6464dcff6eedd1df1ddf0cb7d93ef36e40",
+      "journeys": [
+        "TC04",
+        "TC06",
+        "TC08"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/workstation/VirtualWatchlistTool.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/workstation/WorkstationToolContent.vue",
+      "control_count": 24,
+      "signature_sha256": "268083919a0ab0d7b6316302b2fb4e33bedd319dd5ee5b232d0ac184b35bbe5a",
+      "journeys": [
+        "TC04",
+        "TC06",
+        "TC08"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/workstation/WorkstationToolContent.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    }
+  ]
+}
