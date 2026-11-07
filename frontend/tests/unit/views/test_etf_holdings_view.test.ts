@@ -726,6 +726,35 @@ describe('ETFHoldingsView', () => {
     await wrapper.unmount()
   })
 
+  it('aborts the selected holdings observer and ignores a late response after unmount', async () => {
+    let resolvePreparation!: (response: unknown) => void
+    vi.mocked(api.get).mockResolvedValue([])
+    vi.mocked(api.post).mockImplementation((path) => {
+      if (path !== '/data/ensure') return Promise.reject(new Error(`Unexpected request: ${path}`)) as never
+      return new Promise(resolve => { resolvePreparation = resolve }) as never
+    })
+
+    const wrapper = mount(ETFHoldingsView)
+    await vi.waitFor(() => expect(api.get).toHaveBeenCalledWith('/etf-holdings', { q: undefined }))
+    await wrapper.findComponent({ name: 'SearchBar' }).vm.$emit('select', 'OIH', {
+      symbol: 'OIH', name: 'Oil Services ETF', exchange: 'NYSE Arca', type: 'ETF',
+    })
+    await vi.waitFor(() => expect(api.post).toHaveBeenCalledWith('/data/ensure', {
+      target: { kind: 'instrument', symbol: 'OIH' }, datasets: ['holdings'],
+    }, expect.objectContaining({ signal: expect.any(AbortSignal) })))
+    const ensureSignal = vi.mocked(api.post).mock.calls[0]?.[2]?.signal
+    expect(ensureSignal?.aborted).toBe(false)
+
+    await wrapper.unmount()
+    expect(ensureSignal?.aborted).toBe(true)
+
+    // A shared request may complete after this view has detached. It must not
+    // trigger a profile refresh or write a late selection into the disposed view.
+    resolvePreparation(preparationResponse('OIH'))
+    await flushPromises()
+    expect(api.get).not.toHaveBeenCalledWith('/etf-holdings', { q: 'OIH' })
+  })
+
   it('keeps rapid selected-fund preparations isolated when the user switches tickers', async () => {
     let releaseFirst!: (value: unknown) => void
     vi.mocked(api.post).mockImplementation((path, body) => {

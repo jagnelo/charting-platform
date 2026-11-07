@@ -1644,6 +1644,12 @@ function openHoldingChart(
 }
 
 onMounted(loadProfiles)
+onBeforeUnmount(() => {
+  // Detach this view from any in-flight shared preparation and invalidate all
+  // of its pending consumer callbacks. The durable server-side job continues.
+  fundSelectionGeneration += 1
+  cancelSelectedPreparation()
+})
 </script>
 
 <style scoped>
