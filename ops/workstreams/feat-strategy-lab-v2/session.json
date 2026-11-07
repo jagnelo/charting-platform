@@ -50,13 +50,13 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "current_blocker": "E099 catalogue Study exact bounded ensure POST never returned before the 20s Validate assertion; no request_id/status GET. UI waiting text is its local pre-response placeholder. Root/Provider own controlled-runtime handling; no Strategy UI or timeout workaround is supported.",
+  "current_blocker": "E099 direct API comparison proves the exact bounded SPY ensure returns ready in 0.16s. The browser failure followed repeated equivalent shared group/history/ratio ensures during tool close/recreate; TC owns request lifecycle/dedup. Keep Strategy Study source and all catalogue outcomes unchanged until Root runs the shared fix.",
   "current_execution_checkpoint": {
     "authority": "Human-activated platform-usability plan; existing session-local goal aligned in place by Root, no objective/accounting reset.",
     "full_roadmap_preserved": true,
-    "heavy_profile": "E099 ten-journey critical smoke: 4 passed, 6 failed, zero retries; private catalogue Study Validate sent the exact bounded ensure request but received no HTTP response before the 20s assertion. Full mocked Study journey passed.",
+    "heavy_profile": "E099 ten-journey smoke remains 4 passed/6 failed/zero retries; catalogue Study ensure remained unanswered behind repeated equivalent preparation traffic. Root directly proved the exact bounded request returns ready in 0.16s; TC owns shared client request coalescing.",
     "id": "strategy-study-usability-2026-11-06",
-    "next_action": "Root/Provider to inspect the exact controlled-runtime ensure request; preserve E099 failures and avoid owner browser/runtime work.",
+    "next_action": "Await TC shared request coalescing and Root combined rerun; preserve all21 catalogue outcomes and prior red history.",
     "status": "in_progress"
   },
   "dirty_paths": [
@@ -102,7 +102,7 @@
   "last_checkpoint": "2026-11-07T19:28:47Z",
   "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Root/Provider to inspect the captured exact Study ensure request in the controlled runtime; retain the full Study pass and E099 red history. No owner browser/runtime request.",
+  "next_action": "Await TC shared request coalescing and Root combined rerun; then address any remaining Strategy-owned failure from exact trace. Do not alter the Study journey or timeout.",
   "parent_branch": "staging",
   "plan_hash": "aa4900899cbce55fa6895a6a928364a60164739ed8618a0585838d8790e87188",
   "planning_required": false,
@@ -244,7 +244,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for Strategy Lab v2 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-11-07T23:19:32Z",
+  "updated_at": "2026-11-07T23:35:47Z",
   "validation_tier": "full_integration",
   "workstream": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2",
   "workstream_files": [
