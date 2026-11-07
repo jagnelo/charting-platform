@@ -79,7 +79,7 @@ function barResponseFor(response: Response, symbol: string, timeframe: string): 
   const symbolIndex = parts[ohlcvIndex + 1] === 'local' ? ohlcvIndex + 2 : ohlcvIndex + 1
   return parts[symbolIndex]?.toUpperCase() === symbol
     && parts[symbolIndex + 1] === timeframe
-    && url.searchParams.get('adjusted') === 'true'
+    && url.searchParams.get('adjusted') !== 'false'
 }
 
 function rotationResponseFor(response: Response, timeframe: AnalysisTimeframe): boolean {
