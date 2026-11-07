@@ -1,5 +1,5 @@
 <template>
-  <section class="tool-window" role="group" :data-window-key="windowKey" :data-tool-key="windowKey" :class="{ 'tool-window--active': active }" :aria-labelledby="titleId" @keydown.escape="closeMenuToTrigger">
+  <section ref="toolRoot" class="tool-window" role="group" :data-window-key="windowKey" :data-tool-key="windowKey" :class="{ 'tool-window--active': active, 'tool-window--scrollable-body': scrollableBody }" :aria-labelledby="titleId" @keydown.escape="closeMenuToTrigger">
     <header class="tool-window__header">
       <span class="tool-window__drag-handle" draggable="true" aria-label="Drag tool" title="Drag tool" @dragstart="emit('dragstart', $event)"><span class="tool-window__drag-glyph" aria-hidden="true" /></span>
       <strong :id="titleId" class="tool-window__title">{{ title }}</strong>
@@ -25,7 +25,7 @@
         <div ref="menuRoot" class="tool-window__menu-wrap">
           <button ref="menuTrigger" type="button" title="Tool menu" aria-label="Open tool menu" aria-haspopup="menu" :aria-expanded="menuOpen" :aria-controls="menuId" @click.stop="toggleMenu" @keydown="handleMenuTriggerKeydown"><span class="tool-window__menu-glyph" aria-hidden="true" /></button>
         </div>
-        <button type="button" title="Maximize" aria-label="Maximize tool" @click="emit('maximize')"><span class="tool-window__maximize-glyph" aria-hidden="true" /></button>
+        <button type="button" :title="maximized ? 'Restore' : 'Maximize'" :aria-label="maximized ? 'Restore tool' : 'Maximize tool'" @click="emit('maximize')"><span class="tool-window__maximize-glyph" aria-hidden="true" /></button>
         <button type="button" title="Float" aria-label="Float tool" @click="emit('float')"><span class="tool-window__float-glyph" aria-hidden="true" /></button>
         <button type="button" title="Close" aria-label="Close tool" @click="emit('close')"><span class="tool-window__close-glyph" aria-hidden="true" /></button>
       </div>
@@ -35,7 +35,7 @@
     </div>
     <Teleport to="body">
       <div v-if="menuOpen" :id="menuId" ref="menuElement" class="tool-window__menu" role="menu" :aria-label="`${title} tool menu`" :style="menuStyle" @click.stop @keydown="handleMenuKeydown">
-        <button type="button" role="menuitem" tabindex="-1" @click="runMenuAction('maximize')">Maximize</button>
+        <button type="button" role="menuitem" tabindex="-1" @click="runMenuAction('maximize')">{{ maximized ? 'Restore' : 'Maximize' }}</button>
         <button type="button" role="menuitem" tabindex="-1" @click="runMenuAction('float')">Float</button>
         <button type="button" role="menuitem" tabindex="-1" @click="runMenuAction('close')">Close</button>
       </div>
@@ -44,11 +44,11 @@
 </template>
 
 <script setup lang="ts">
-import { getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { LinkGroup } from '@/stores/workspace'
 import { dashboardLinkGroupColor, dashboardLinkGroupLabel, WORKSTATION_LINK_GROUPS } from '@/stores/dashboardLinks'
 
-withDefaults(defineProps<{
+const props = withDefaults(defineProps<{
   windowKey?: string
   title: string
   symbol?: string
@@ -56,16 +56,20 @@ withDefaults(defineProps<{
   timeframeLinkGroup?: LinkGroup
   timeframe?: string
   active?: boolean
+  maximized?: boolean
   favoriteAvailable?: boolean
   favoriteActive?: boolean
+  scrollableBody?: boolean
 }>(), {
   symbol: '',
   linkGroup: 'blue',
   timeframeLinkGroup: 'blue',
   timeframe: '',
   active: false,
+  maximized: false,
   favoriteAvailable: false,
   favoriteActive: false,
+  scrollableBody: false,
 })
 
 const emit = defineEmits<{
@@ -87,10 +91,15 @@ const emit = defineEmits<{
 const titleId = `tool-window-title-${getCurrentInstance()?.uid ?? 0}`
 const menuId = `${titleId}-menu`
 const menuOpen = ref(false)
+const toolRoot = ref<HTMLElement | null>(null)
 const menuRoot = ref<HTMLElement | null>(null)
 const menuElement = ref<HTMLElement | null>(null)
 const menuTrigger = ref<HTMLButtonElement | null>(null)
 const menuStyle = ref<Record<string, string>>({})
+
+watch(() => props.active, active => {
+  if (!active) setMenuOpen(false)
+}, { flush: 'sync' })
 
 function menuItems() {
   return Array.from(menuElement.value?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? [])
@@ -235,6 +244,7 @@ const groups: LinkGroup[] = WORKSTATION_LINK_GROUPS.map(group => group.id)
 .tool-window__timeframe { width: 27px; flex: 0 1 27px; min-width: 24px; height: 18px; color: var(--tc-text); border: 1px solid var(--tc-border-strong); background: var(--tc-input-bg); font: 10px var(--tc-font-family); }
 .tool-window__timeframe-link { width: 54px; flex: 0 1 54px; min-width: 28px; height: 18px; color: var(--tc-text); border: 1px solid var(--tc-border-strong); background: var(--tc-input-bg); font: 10px var(--tc-font-family); }
 .tool-window__body { min-width: 0; min-height: 0; flex: 1; overflow: hidden; }
+.tool-window--scrollable-body > .tool-window__body { overflow: auto; overscroll-behavior: contain; }
 @media (max-width: 420px) {
   .tool-window__header { gap: 2px; padding: 0 2px; }
   .tool-window__symbol { max-width: 18%; }

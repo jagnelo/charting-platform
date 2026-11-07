@@ -1192,8 +1192,11 @@ progress:
       archived074 export, while074,99v2,17d, and55b remain historical. Root's combined qualification
       remains pending. Consume the authenticated durable ensure/status contract through the exact
       TC-owned shared preparation client without duplicating worker, acquisition, quota, or provider
-      behavior. The active TC client pin remains the exact three-module aea0be57 release; TC App/store
-      authentication changes are not imported. Repair the seven Root-reserved Dashboard product
+      behavior. The active TC client pin now replaces the historical three-module aea0be57 release
+      with exact49-path source d5e8d628eb42318656d8b578a24390db4be17cca from
+      tc-d5e8-common-runtime-development-consumption-contract.json. Its47 declared delta paths were
+      verified by SHA256, Git blob, source status and executable-bit semantics; the AEA pin remains
+      historical. Repair the seven Root-reserved Dashboard product
       files and focused tests: prepare profile/history before reads, submit independent per-target
       preparation and abort obsolete subscriptions, preserve listing-bound discovery, persist symbol
       and comparison edits transactionally, and expose layout rollback/retry. The joint browser proof
@@ -1231,23 +1234,28 @@ progress:
     status: in_progress
   current_blocker: >-
     No exact-source branch CI or Root combined backend/browser acceptance exists for the current
-    Provider732 and TC-aea dependencies and the authored Study/Results/Library plus Dashboard consumer
+    Provider732 and TC-d5e8 dependencies and the authored Study/Results/Library plus Dashboard consumer
     changes. The active Provider pin contains all43 exact exported files, including13 changed paths
     over074; full Provider release qualification remains pending despite Root-reported owner tests and
-    style checks. Focused Dashboard unit tests pass23/23 and its frontend type-check passes;
-    browser evidence remains Root-owned. The Study/Results/Library browser stories are authored but
-    unexecuted. The active TC library import is exact source
-    aea0be57abd036dd308a18f9dd07b976767cb8a9 for api.ts/authSession.ts/dataPreparation.ts; its strict
+    style checks. Against exact TC-d5e8, the focused Strategy/Dashboard and shared auth/preparation
+    tests pass190/190 across11 files and frontend type-check exits0. The imported49-path manifest's47
+    deltas match by Git blob/SHA256/status and executable-bit semantics. Browser evidence remains
+    Root-owned; the Study/Results/Library browser stories are authored but unexecuted. The active TC
+    library import is exact source
+    d5e8d628eb42318656d8b578a24390db4be17cca across49 manifest files (27 runtime modules and22
+    matching tests), with47 imported delta paths; the prior AEA three-module pin remains historical.
+    Its strict
     DTO requires symbol, covered_ranges/lineage, timestamps, and honest pending-work state. The
     Strategy Study component suite passes63/63 after the fail-closed Validate repair; browser stories
     remain authored/discovered only. Preserve the full 18-criterion roadmap and disabled holds.
-  updated_at: "2026-11-07T01:34:05Z"
   next_action: >-
-    Finish the bounded Dashboard repair against Provider732 and record its focused evidence, then hand
-    the coherent Strategy consumer source and action matrix to Root for the single combined
-    backend/browser/visual qualification. Keep all authored browser stories pending until the exact
-    combined run executes; preserve full-profile assertions, all18 original roadmap criteria, and
-    disabled-operation holds. Do not treat controlled-API tests as browser acceptance or close early.
+    Continue the remaining Strategy Study/Results/Library journeys against the current Provider732
+    and TC-d5e8 contracts, recording focused owned evidence and the existing action matrix; then hand
+    the coherent Strategy consumer source to Root for the single combined backend/browser/visual
+    qualification. Keep all authored browser stories pending until that exact combined run executes;
+    preserve full-profile assertions, all18 original roadmap criteria, and disabled-operation holds.
+    Do not treat controlled-API tests as browser acceptance or close early.
+  updated_at: "2026-11-07T01:44:27Z"
 roadmap_goal: >-
   Implement the production-grade, local-first Strategy Lab v2 backend for
   reproducible portfolio backtesting, walk-forward and search experiments, and
@@ -1396,10 +1404,13 @@ dependencies:
     `frontend/src/lib/dataPreparation.ts` from TC commit
     `877df044d2496c5f1be0e86b4dd49503cc6e55db` (SHA256
     `c1157a680c5a461647b82b18bd9923c53d36a401dd3397c2361e91b125d43a0d`), preserved as prior
-    shared-client history. The current active import is the exact three-module TC library release
-    `aea0be57abd036dd308a18f9dd07b976767cb8a9` (`api.ts`, `authSession.ts`, and `dataPreparation.ts`)
-    under `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-aea-shared-library-development-consumption-contract.json`.
-    This excludes TC App/store authentication changes and does not claim full application auth isolation.
+    shared-client history. The active import is now the exact49-path TC common-runtime release
+    `d5e8d628eb42318656d8b578a24390db4be17cca` under
+    `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-d5e8-common-runtime-development-consumption-contract.json`.
+    Its47 declared delta paths were imported over the historical AEA three-module pin and verified
+    by SHA256, Git blob, source status, and executable-bit semantics. The manifest includes 27 runtime
+    modules and22 matching tests but excludes Strategy domain files and Producer records. This does
+    not claim full application/browser qualification or auth isolation beyond the imported scope.
     Provider DTOs are at `3d10`; the exact Provider backend preparation runtime is imported under the
     explicit development release in provider-runtime-consumption.json. Combined end-to-end proof
     remains Root-owned and pending.

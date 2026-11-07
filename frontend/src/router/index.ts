@@ -56,7 +56,7 @@ export const applicationRoutes = [
 
 export const sharedShellNavigation = [
   { key: 'dashboard', label: 'Dashboard', icon: '▦', path: '/legacy/dashboard', match: '/legacy/dashboard' },
-  { key: 'chart', label: 'Chart', icon: '◷', path: '/legacy/chart', match: '/legacy/chart' },
+  { key: 'chart', label: 'Chart', icon: '◷', path: '/chart', match: '/chart' },
   { key: 'watchlist', label: 'Watchlist', icon: '☆', path: '/legacy/watchlist', match: '/legacy/watchlist' },
   { key: 'screener', label: 'Screener', icon: '⌕', path: '/legacy/screener', match: '/legacy/screener' },
   { key: 'radar', label: 'Radar', icon: '◎', path: '/legacy/radar', match: '/legacy/radar' },
@@ -74,6 +74,7 @@ export function usesSharedAppShell(path: string): boolean {
 }
 
 export function isSharedNavigationItemActive(path: string, match: string): boolean {
+  if (match === '/chart' && (path === '/legacy/chart' || path.startsWith('/legacy/chart/'))) return true
   return path === match || path.startsWith(`${match}/`)
 }
 

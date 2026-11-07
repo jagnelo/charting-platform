@@ -13,6 +13,10 @@
 
     <!-- ── Definitions tab ───────────────────────────────────────────────────── -->
     <template v-if="activeTab === 'alerts'">
+      <div v-if="!alertsStore.alerts.length && !alertsStore.indicatorAlerts.length && !screenerAlertsStore.alerts.length" class="alerts-create-path" role="note">
+        <span>No alert definitions yet. Create price or indicator alerts from the chart workspace.</span>
+        <router-link to="/chart">Open chart workspace</router-link>
+      </div>
       <div class="filter-bar">
         <select v-model="statusFilter" class="filter-select">
           <option value="">All statuses</option>
@@ -347,6 +351,8 @@ onMounted(async () => {
 }
 
 .filter-bar  { margin-bottom: 12px; }
+.alerts-create-path { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 0 14px; padding: 10px 12px; border: 1px solid var(--tc-border); border-radius: var(--tc-radius); background: var(--tc-panel-bg); color: var(--tc-text-muted); }
+.alerts-create-path a { color: var(--tc-accent-soft); text-decoration: underline; text-underline-offset: 2px; }
 .filter-select { background: #1a1a1a; border: 1px solid #333; color: #aaa; padding: 4px 8px; border-radius: 3px; }
 
 .section-title { color: #888; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }

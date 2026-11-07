@@ -80,5 +80,9 @@ export const useRecentInstrumentsStore = defineStore('recentInstruments', () => 
     persistHistory()
   }
 
-  return { recent, history, add, previous, clear }
+  function resetForAuthSessionBoundary() {
+    clear()
+  }
+
+  return { recent, history, add, previous, clear, resetForAuthSessionBoundary }
 })

@@ -112,6 +112,36 @@ describe('WorkspaceLayoutHost', () => {
     expect(goldenLayouts[1].destroyed).toBe(true)
   })
 
+  it('forwards maximised and minimised Stack events through a reactive virtual-tool action', () => {
+    const renderTool = vi.fn((_tool: any, _actions: any) => h('div'))
+    const wrapper = mount(WorkspaceLayoutHost, {
+      props: {
+        layout: { root: { type: 'row', content: [] } } as any,
+        renderTool,
+      },
+    })
+    const listeners = new Map<string, () => void>()
+    const stack = {
+      isMaximised: false,
+      on: (event: string, listener: () => void) => listeners.set(event, listener),
+      off: (event: string) => listeners.delete(event),
+      toggleMaximise() {
+        this.isMaximised = !this.isMaximised
+        listeners.get(this.isMaximised ? 'maximised' : 'minimised')?.()
+      },
+    }
+    goldenLayouts[0].factory!({ parent: { parentItem: stack } }, { instance_key: 'industry-1', title: 'Industries', tool_type: 'watchlist' })
+    const actions = renderTool.mock.calls[0][1] as { maximized: { value: boolean }; toggleMaximize: () => void }
+
+    expect(actions.maximized.value).toBe(false)
+    actions.toggleMaximize()
+    expect(actions.maximized.value).toBe(true)
+    actions.toggleMaximize()
+    expect(actions.maximized.value).toBe(false)
+    wrapper.unmount()
+    expect(listeners.size).toBe(0)
+  })
+
   it('does not reinstall when the normalised layout fingerprint is unchanged', async () => {
     const layout = { root: { type: 'row', content: [] } } as any
     const wrapper = mount(WorkspaceLayoutHost, { props: { layout, renderTool: () => h('div') } })

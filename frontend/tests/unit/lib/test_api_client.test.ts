@@ -3,7 +3,11 @@
  * request construction, and error handling.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createPinia, setActivePinia } from 'pinia'
 import { setTokens, clearTokens, ApiError } from '@/lib/api'
+import { currentAuthSessionEpoch, beginAuthSessionBoundary } from '@/lib/authSession'
+import { useAuthStore } from '@/stores/auth'
+import { router } from '@/router'
 
 // We re-import api after each test to get a fresh module state
 // In Vitest we can use vi.resetModules() for this
@@ -102,6 +106,40 @@ describe('api.get', () => {
     )
   })
 
+  it('rejects an authenticated response that arrives after the user session changes', async () => {
+    setTokens('user-a-access', 'user-a-refresh')
+    let resolveFetch!: (response: unknown) => void
+    ;(global.fetch as ReturnType<typeof vi.fn>).mockReturnValueOnce(new Promise(resolve => { resolveFetch = resolve }))
+    const { api } = await import('@/lib/api')
+    const request = api.get('/private/results')
+    expect((fetch as ReturnType<typeof vi.fn>).mock.calls[0]?.[1]?.headers).toMatchObject({ Authorization: 'Bearer user-a-access' })
+
+    beginAuthSessionBoundary()
+    clearTokens()
+    setTokens('user-b-access', 'user-b-refresh')
+    resolveFetch({ ok: true, status: 200, json: () => Promise.resolve({ owner: 'user-a' }), text: () => Promise.resolve('') })
+
+    await expect(request).rejects.toMatchObject({ name: 'AbortError' })
+    expect(localStorage.getItem('access_token')).toBe('user-b-access')
+
+    mockFetchOk({ owner: 'user-b' })
+    await expect(api.get('/private/results')).resolves.toEqual({ owner: 'user-b' })
+    expect(fetch).toHaveBeenLastCalledWith(expect.stringContaining('/private/results'), expect.objectContaining({
+      headers: expect.objectContaining({ Authorization: 'Bearer user-b-access' }),
+    }))
+  })
+
+  it('preserves the authenticated session generation during token refresh', async () => {
+    setTokens('user-a-expiring', 'user-a-refresh')
+    mockFetchOk({ access_token: 'user-a-refreshed', refresh_token: 'user-a-refresh-next' })
+    const epoch = currentAuthSessionEpoch()
+    const { refreshAccessToken } = await import('@/lib/api')
+
+    await expect(refreshAccessToken()).resolves.toBe('user-a-refreshed')
+    expect(currentAuthSessionEpoch()).toBe(epoch)
+    expect(localStorage.getItem('access_token')).toBe('user-a-refreshed')
+  })
+
   it('throws on non-OK response', async () => {
     setTokens('tok', 'ref')
     mockFetchFail(404, 'Not found')
@@ -138,13 +176,19 @@ describe('api.post', () => {
 
   it('forwards abort signals to fetch for cancellable batch requests', async () => {
     setTokens('tok', 'ref')
-    mockFetchOk({ id: 42 }, 201)
+    let resolveFetch!: (response: unknown) => void
+    ;(global.fetch as ReturnType<typeof vi.fn>).mockReturnValueOnce(new Promise(resolve => { resolveFetch = resolve }))
     const controller = new AbortController()
     const { api } = await import('@/lib/api')
-    await api.post('/items', { name: 'batch' }, { signal: controller.signal })
+    const request = api.post('/items', { name: 'batch' }, { signal: controller.signal })
 
     const [, opts] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0]
-    expect(opts.signal).toBe(controller.signal)
+    expect(opts.signal).toBeInstanceOf(AbortSignal)
+    expect(opts.signal.aborted).toBe(false)
+    controller.abort()
+    expect(opts.signal.aborted).toBe(true)
+    resolveFetch({ ok: true, status: 201, json: () => Promise.resolve({ id: 42 }), text: () => Promise.resolve('') })
+    await expect(request).resolves.toEqual({ id: 42 })
   })
 })
 
@@ -211,5 +255,38 @@ describe('auto-refresh on 401', () => {
     const { api } = await import('@/lib/api')
     await expect(api.get('/protected')).rejects.toThrow()
     expect(localStorage.getItem('access_token')).toBeNull()
+  })
+
+  it('settles auth refs when the API-owned refresh request expires', async () => {
+    setActivePinia(createPinia())
+    setTokens('expired', 'bad_refresh')
+    const auth = useAuthStore()
+    auth.user = { id: 41, username: 'user-a', email: 'a@example.test', is_admin: false }
+    const redirectToLogin = vi.spyOn(router, 'replace').mockImplementation(() => Promise.resolve(undefined as never))
+    const fetchMock = global.fetch as ReturnType<typeof vi.fn>
+    fetchMock.mockResolvedValueOnce({
+      ok: false, status: 401,
+      text: () => Promise.resolve('Unauthorized'),
+      json: () => Promise.resolve({ detail: 'Unauthorized' }),
+    })
+    fetchMock.mockResolvedValueOnce({
+      ok: false, status: 401,
+      text: () => Promise.resolve('Refresh expired'),
+      json: () => Promise.resolve({ detail: 'Refresh expired' }),
+    })
+
+    const { api } = await import('@/lib/api')
+    await expect(api.get('/private-data')).rejects.toThrow()
+
+    expect(fetch).toHaveBeenCalledTimes(2) // one protected read and one failed refresh
+    expect(localStorage.getItem('access_token')).toBeNull()
+    expect(localStorage.getItem('refresh_token')).toBeNull()
+    expect(auth.accessToken).toBeNull()
+    expect(auth.refreshToken).toBeNull()
+    expect(auth.user).toBeNull()
+    expect(auth.isAuthenticated).toBe(false)
+    expect(redirectToLogin).toHaveBeenCalledWith('/login')
+    expect(redirectToLogin).toHaveBeenCalledTimes(1)
+    redirectToLogin.mockRestore()
   })
 })

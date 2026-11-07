@@ -29,17 +29,17 @@
   "strategy_consumer": {
     "component": "frontend/src/components/workstation/StudyLabTool.vue",
     "client_path": "frontend/src/lib/dataPreparation.ts",
-    "client_owner": "TC; exact three-module library import only",
-    "client_release_commit": "aea0be57abd036dd308a18f9dd07b976767cb8a9",
-    "client_sha256": "a7201e3c9b68148b498871fd4fc9b2a6504478cd44c2455bb47d4402da9cb1ce",
+    "client_owner": "TC; exact 49-path common runtime and matching tests imported for Strategy consumption",
+    "client_release_commit": "d5e8d628eb42318656d8b578a24390db4be17cca",
+    "client_sha256": "8193f6fdce8998cca36c0a90a2770864d9d2eff4eeb5e4948a8b66a4e445812e",
     "flow": [
-      "The TC-owned api.ts, authSession.ts, and dataPreparation.ts modules provide session-bound requests, auth-boundary observer cancellation, and strict durable preparation DTO validation; only these three library modules are imported here.",
+      "The exact TC common-runtime source includes the matching session/auth/API/preparation, router/App shell, chart/stores/workspace, dock/plot and controlled-flow companions. It preserves the released session-bound preparation and candidate/source contracts; Strategy consumes these modules without duplicating provider workers, policy, quota or source acquisition.",
       "Study builds independent selected-symbol/member and benchmark history requests from the captured dataset intent.",
       "The existing shared client POSTs /data/ensure and polls owner-scoped GET /data/requests/{request_id}; terminal partial/deferred status honors has_pending_work and retry timing.",
       "Study awaits all target outcomes before source validation/run dispatch, fences changed intents and aborts only obsolete client subscriptions.",
       "Provider owns durable queueing, worker scheduling, provider policy and series lineage; Strategy does not duplicate or activate these operations."
     ],
-    "qualification_boundary": "This exact three-module library import is development-only; TC App/store authentication changes and full application auth isolation are excluded, and Root combined cross-feature qualification remains pending.",
+    "qualification_boundary": "The exact 49-path TC common-runtime import is released for development consumption only. Root reports238 focused runtime cases plus17 legacy ChartView cases and type-check, and its unchanged boundary guard/diff checks pass; none substitutes for the combined Strategy/ETF/Provider browser, backend or visual gate, which remains pending.",
     "prior_client_pins": [
       {
         "source": "877df044d2496c5f1be0e86b4dd49503cc6e55db",
@@ -48,11 +48,89 @@
         "contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/frontend-preparation-consumption-contract.json",
         "contract_sha256": "1ce93a4baed17691eb87f67277adf3573f369dfeb5cca2c993db34c98376c77c",
         "superseded_by": "aea0be57abd036dd308a18f9dd07b976767cb8a9"
+      },
+      {
+        "source": "aea0be57abd036dd308a18f9dd07b976767cb8a9",
+        "contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-aea-shared-library-development-consumption-contract.json",
+        "contract_sha256": "528e1db8a4edac0edf6b377cda4542218bf10e472652984a6322cd191229c64e",
+        "files": [
+          {
+            "path": "frontend/src/lib/api.ts",
+            "status_from139": "M",
+            "git_blob": "81b12b469db6f4d5c543887f72952d8accf31688",
+            "sha256": "b657ee72d3e7947508dc4148e3e370c73bddb190bebcb3eef45fb4efa3099519"
+          },
+          {
+            "path": "frontend/src/lib/authSession.ts",
+            "status_from139": "A",
+            "git_blob": "08a2ca831c277009bcf139699d22e569f5d1dac0",
+            "sha256": "8ed6b9dca7d36ca0da329b3f5885f470a25e3a0362599a326336bdcad42aaba8"
+          },
+          {
+            "path": "frontend/src/lib/dataPreparation.ts",
+            "status_from139": "A",
+            "git_blob": "d80c749cf193b36e58aaffbf376b282b9771ace0",
+            "sha256": "a7201e3c9b68148b498871fd4fc9b2a6504478cd44c2455bb47d4402da9cb1ce"
+          }
+        ],
+        "scope": "only the three compatible shared frontend library modules; not the entire TC feature or complete application authentication boundary",
+        "import_verification": {
+          "changed_paths_since_previous": [
+            "frontend/src/lib/api.ts",
+            "frontend/src/lib/authSession.ts",
+            "frontend/src/lib/dataPreparation.ts"
+          ],
+          "all_blobs_and_sha256_match": true,
+          "checked_at": "2026-11-07T00:32:16Z"
+        },
+        "superseded_by": "d5e8d628eb42318656d8b578a24390db4be17cca"
       }
     ],
-    "client_contract_path": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-aea-shared-library-development-consumption-contract.json",
-    "client_contract_sha256": "528e1db8a4edac0edf6b377cda4542218bf10e472652984a6322cd191229c64e",
+    "client_contract_path": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-d5e8-common-runtime-development-consumption-contract.json",
+    "client_contract_sha256": "8e407fd646dd011ae07ed74c33ff8bb1edf236fdb372f4e2856f1d237873ce24",
     "client_files": [
+      {
+        "path": "frontend/src/App.vue",
+        "status_from139": "M",
+        "git_blob": "30b044eca6a257cf19c8ce276af7f376887acdd9",
+        "sha256": "97da879a96c0ccb11fd632f1e801e7aa61796630fa447dbec353b8fe9ee29153"
+      },
+      {
+        "path": "frontend/src/components/common/Notification.vue",
+        "status_from139": "M",
+        "git_blob": "6bc097a442066de2b9bc3e0b318275da4bcee388",
+        "sha256": "16535b3ec4d8983dd47aab9975f1777e1f4536c33e1891c263fb41539698709a"
+      },
+      {
+        "path": "frontend/src/components/workstation/RatioUPlot.vue",
+        "status_from139": "M",
+        "git_blob": "d4eb04c81611833e2c67d61d96204fd00d5b7e0e",
+        "sha256": "da077d3203ae85976ad90268e112f49732e5732c2b86ea7830920e2b56b2a482"
+      },
+      {
+        "path": "frontend/src/components/workstation/RelativeRotationTool.vue",
+        "status_from139": "M",
+        "git_blob": "a5d35bdfe566f4aa8bc81f1b3dec234d4bf683c3",
+        "sha256": "37ec398d1a3a2d7c6925a3d39e73b1b8569533a817329e622751b5438dd547b1"
+      },
+      {
+        "path": "frontend/src/components/workstation/ToolWindow.vue",
+        "status_from139": "M",
+        "git_blob": "d01d54fdcca7c2f11400a239357d28b0557f8157",
+        "sha256": "18b54638c8c6f88122800f4f6031ca67877a0cdd916c828fa5fb52010c32a76e"
+      },
+      {
+        "path": "frontend/src/components/workstation/WorkspaceLayoutHost.vue",
+        "status_from139": "M",
+        "git_blob": "9ea8080d899a7462f78baae9f6d049b2f466175b",
+        "sha256": "168f2a285ea1e7c5930acb1188392d1a8a10089c144cf06fe3cd47a91b99a3dc"
+      },
+      {
+        "path": "frontend/src/components/workstation/WorkstationToolContent.vue",
+        "status_from139": "M",
+        "git_blob": "d115ae13554001e5d53a8340067392b39245cbef",
+        "sha256": "e6728881e9010f97147e4952899f0c7545de4024ff00255ea1bedc46c41ea07f"
+      },
       {
         "path": "frontend/src/lib/api.ts",
         "status_from139": "M",
@@ -68,19 +146,300 @@
       {
         "path": "frontend/src/lib/dataPreparation.ts",
         "status_from139": "A",
-        "git_blob": "d80c749cf193b36e58aaffbf376b282b9771ace0",
-        "sha256": "a7201e3c9b68148b498871fd4fc9b2a6504478cd44c2455bb47d4402da9cb1ce"
+        "git_blob": "4d2151b3aede3176a68d2ba64180d25070e31676",
+        "sha256": "8193f6fdce8998cca36c0a90a2770864d9d2eff4eeb5e4948a8b66a4e445812e"
+      },
+      {
+        "path": "frontend/src/lib/etfHoldingDrilldown.ts",
+        "status_from139": "M",
+        "git_blob": "714d26cc0e0e81fed24fadc1b25b9097d8318fbf",
+        "sha256": "05986174edd2c229a7c07640192a333eabc5daa8c46730fabda44d45c01bfa76"
+      },
+      {
+        "path": "frontend/src/lib/workstation/ohlcvRequests.ts",
+        "status_from139": "M",
+        "git_blob": "e7ea6f716fc6f5a71a155e79b5ac51582a3552f3",
+        "sha256": "574359b7d69f359b56c9fbf292457cff87e2594d49b21f2cd04eb8fc10352602"
+      },
+      {
+        "path": "frontend/src/main.ts",
+        "status_from139": "M",
+        "git_blob": "feb9216bb519177c7782962de17b7fc2d2f1dd8a",
+        "sha256": "4c9253d30eab71e58826d9a46295e1785a2bfe795a43276469fef9a52bdaf304"
+      },
+      {
+        "path": "frontend/src/router/index.ts",
+        "status_from139": "M",
+        "git_blob": "0b42e2d4bd8aaffa9d295d5e3691a4238811e984",
+        "sha256": "8779ae2000cadbd8c01bf09bbf62dfea6173fdd08632146bcfb3fc73c8de33ab"
+      },
+      {
+        "path": "frontend/src/stores/alerts.ts",
+        "status_from139": "M",
+        "git_blob": "96d9acaf2ba2e7a34c592846e03854631044aa64",
+        "sha256": "142413573c26294162fbc8c5cebee2673df486c2763b663a729bedd1c85430c9"
+      },
+      {
+        "path": "frontend/src/stores/auth.ts",
+        "status_from139": "M",
+        "git_blob": "a41924732bc9b179d3214502a0c5c70c63b67d44",
+        "sha256": "38b1b7f73cfc251cde7c2ef3971629b01d56e157d8f75ecc083f705e2db4feef"
+      },
+      {
+        "path": "frontend/src/stores/chart.ts",
+        "status_from139": "M",
+        "git_blob": "e9381c3467adbb618d85590f8dba38253f0821e8",
+        "sha256": "8b48945894487b73bfa1edec3f7147ffea570fd731c141cb9b6f8440c9a3d13d"
+      },
+      {
+        "path": "frontend/src/stores/layout.ts",
+        "status_from139": "M",
+        "git_blob": "77025d52b26feaacf58eef0ec4e8bc750cff0417",
+        "sha256": "791997814cd88e48fe5c0b2f7d9508835875e57b32af3b31cdf0acb096e72f8f"
+      },
+      {
+        "path": "frontend/src/stores/panelLinks.ts",
+        "status_from139": "M",
+        "git_blob": "f958ee2443bb7fe13497e50b5d01f84d64493b98",
+        "sha256": "6e1fe199023441217209f8825e0b49f82fb3215b30d0b024cf9300034d7a103b"
+      },
+      {
+        "path": "frontend/src/stores/radar.ts",
+        "status_from139": "M",
+        "git_blob": "22bffcd457304eab655246c6f09ccdde66cf59cc",
+        "sha256": "a68988f29570e3921dfc4e9fb02ac0bbe0cc8dad8dab0d3c4f5cfbec4bc11b55"
+      },
+      {
+        "path": "frontend/src/stores/recentInstruments.ts",
+        "status_from139": "M",
+        "git_blob": "6acd5eabc747e562e2fc3fb63fe0fd2d85c43263",
+        "sha256": "ae0183555ae9363f4f5dec1d3f72ef857ddd3478512c51afebdc10166a4dd626"
+      },
+      {
+        "path": "frontend/src/stores/userSettings.ts",
+        "status_from139": "M",
+        "git_blob": "67a59b6b2eafa285d07077ad6b90725a870fca0b",
+        "sha256": "3b4c13685562c01ec9d86070dd0bab5304b5139ab1153b2815eb5e5e3af25fc2"
+      },
+      {
+        "path": "frontend/src/stores/watchlist.ts",
+        "status_from139": "M",
+        "git_blob": "ebfe93116891a465f86a37fd30b3ab768a5e8ffe",
+        "sha256": "13efd99204c61fa4fd46f2d6044711e297becdc8a192d5b97580196674022bd1"
+      },
+      {
+        "path": "frontend/src/stores/workspace.ts",
+        "status_from139": "M",
+        "git_blob": "f3f5394dc20befaa619c5da4c3a58b81a6023e5f",
+        "sha256": "042b09e317cbde07c05e552f32787b3885e7b3c2ae52c5ba9a5caad86e28a834"
+      },
+      {
+        "path": "frontend/src/views/AlertsView.vue",
+        "status_from139": "M",
+        "git_blob": "8c268205749381574e7b69f28d8d976ba0a9ac58",
+        "sha256": "424dc46ad8058c3be768fff4965b362b6677f5e9f896b16d04efd211402c169b"
+      },
+      {
+        "path": "frontend/src/views/ChartView.vue",
+        "status_from139": "M",
+        "git_blob": "ccf4749361ad1329ffb53d9f7be5c8459e105aed",
+        "sha256": "00da56e3a99e6d9447af27814f0be00f5ea97975c2176cc9804b3bb89b62fca3"
+      },
+      {
+        "path": "frontend/src/views/WorkstationView.vue",
+        "status_from139": "M",
+        "git_blob": "5d359aa78d02463641cfbf8e87c2558e39366b61",
+        "sha256": "e8cfc47b20f95471ac0c2be69597b970b09855edcbd3fd445c5c9598fd1757d0"
+      },
+      {
+        "path": "frontend/tests/e2e/auth_session_boundary.spec.ts",
+        "status_from139": "A",
+        "git_blob": "f017b46526752fc6444cd977f8d1875fe061d54b",
+        "sha256": "76113a03a2fc4248401d3f191c9503afc13436d90994c8e7b9c636aed864b8d8"
+      },
+      {
+        "path": "frontend/tests/e2e/flows.spec.ts",
+        "status_from139": "M",
+        "git_blob": "e139b4144700118dbd5eebc44eed507e709b2f27",
+        "sha256": "d56a9c0031c2f65c48afe9479f083339f8f31d1d5fb63b50a7642d72bfafd802"
+      },
+      {
+        "path": "frontend/tests/e2e/tc2000_visual.spec.ts",
+        "status_from139": "M",
+        "git_blob": "d935bc93f3f1aa169617e12a4872792390c15c37",
+        "sha256": "f4944c55fc684a0a1284fd16fdfe16a071904fb2277a4f6f2a439434df1f763d"
+      },
+      {
+        "path": "frontend/tests/unit/components/test_ratio_uplot.test.ts",
+        "status_from139": "M",
+        "git_blob": "10a7531559ac2763bcad8e53c48127eb5290accb",
+        "sha256": "e8e7f28ddedd292d487cf500cfcb62641162f44abb0373069b8124d5e9a99b0b"
+      },
+      {
+        "path": "frontend/tests/unit/components/test_relative_rotation_tool.test.ts",
+        "status_from139": "M",
+        "git_blob": "7bbd8f715ad40cf5d4d8e1bf443b9953eaef1696",
+        "sha256": "62f30a07804587431f37255758055e206d118cb5a7dd3de48d329a5f2baf6e20"
+      },
+      {
+        "path": "frontend/tests/unit/components/test_tool_window.test.ts",
+        "status_from139": "M",
+        "git_blob": "041e00c62011f28de1c67d26c40b47cc6abe86e8",
+        "sha256": "4149dad36dfa67c4f5af5fe710cc08479b151aa7b086fb8a882f027c969d5cb0"
+      },
+      {
+        "path": "frontend/tests/unit/components/test_workspace_layout_host.test.ts",
+        "status_from139": "M",
+        "git_blob": "4de1836930d59369f35fc2142c6c80ac7c1e8959",
+        "sha256": "91b54fc2177f4f1dbfdf9e0c2cb6099719ec2bc4886504f02265fda9d15c16d1"
+      },
+      {
+        "path": "frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts",
+        "status_from139": "M",
+        "git_blob": "eb070efb36844ee0ab0d098e664e3cb7acd6d48a",
+        "sha256": "124f2874178c4596cced399f82b2779c9df6dd55e63f21dc33abb541b57c479a"
+      },
+      {
+        "path": "frontend/tests/unit/lib/test_api_client.test.ts",
+        "status_from139": "M",
+        "git_blob": "dfa9f9acddff029447d017f04076b4d638a2527c",
+        "sha256": "5d9400edb9e7d48b9525b3cc7841f54d7d5aa12cd7a7c1d7587f6a1b6e9295f9"
+      },
+      {
+        "path": "frontend/tests/unit/lib/test_auth_session.test.ts",
+        "status_from139": "A",
+        "git_blob": "27b13cb7dff285e148ec2ad90b52bef15facad4b",
+        "sha256": "c336f5b8e15cf8185199c5319de7dd87b008f01e1a06a095d1846a9de9818487"
+      },
+      {
+        "path": "frontend/tests/unit/lib/test_data_preparation.test.ts",
+        "status_from139": "A",
+        "git_blob": "f9040144cbceee626164e29da542d2340b73012e",
+        "sha256": "df136f41d0245a528fea60482068b1e34b395771acd141f99f7c4b80b2060c9c"
+      },
+      {
+        "path": "frontend/tests/unit/lib/workstation_ohlcv_requests.test.ts",
+        "status_from139": "M",
+        "git_blob": "f365a2d6bbba9ec91e1eed5abaf537f0caf6d1e5",
+        "sha256": "d2282805ea6bebfe4dcc658f3507ead6fc0f0a4a641871fef8a399a5acaefa83"
+      },
+      {
+        "path": "frontend/tests/unit/router/test_app_shell.test.ts",
+        "status_from139": "M",
+        "git_blob": "a1462a0757868cf0656e77059db3135543e3465c",
+        "sha256": "5d1dd149407c4fb5cdaa29233bdd6c89ffee2e5673c9741e8621621a5144e192"
+      },
+      {
+        "path": "frontend/tests/unit/router/test_application_routes.test.ts",
+        "status_from139": "M",
+        "git_blob": "6a3a9e4626c091cbf31cc245b7c996c9b0d5e7c2",
+        "sha256": "a62c5bcb51fbb068337e18ff0f836af4a5fe96c26f90649beb8f8770ec26a867"
+      },
+      {
+        "path": "frontend/tests/unit/setup.ts",
+        "status_from139": "M",
+        "git_blob": "8d1aad7c0125bef31cb56b1fd950bb42bc0f70c1",
+        "sha256": "e011f0d9534079df270f39a9d763bc6d2ceb934f5b7324849824fe7bb8b9afb3"
+      },
+      {
+        "path": "frontend/tests/unit/stores/test_drawings_store.test.ts",
+        "status_from139": "M",
+        "git_blob": "b099f5c9f2fb112f084fb600e11a3aed514a8f98",
+        "sha256": "e8043e84737d0b0b5a8574a4ddd1d69b4f1b44be2435ef882334db553c19e990"
+      },
+      {
+        "path": "frontend/tests/unit/stores/test_stores.test.ts",
+        "status_from139": "M",
+        "git_blob": "3ad0dde7ba64dece36e6739f6a99c9ca86455963",
+        "sha256": "b4f33cbdb5d65aeee16a9529400cb79dd9801560d8bdfb765a5e33f706c63fda"
+      },
+      {
+        "path": "frontend/tests/unit/stores/test_workspace_store.test.ts",
+        "status_from139": "M",
+        "git_blob": "ff89b7c58c920d113d051a8f08bae0745a035cf7",
+        "sha256": "28f527e2141685bafc3e2376e16ec821cd454d50ce4c7b59a22402a5b9393c06"
+      },
+      {
+        "path": "frontend/tests/unit/views/test_alerts_view_creation_path.test.ts",
+        "status_from139": "A",
+        "git_blob": "0c249b125282562f3e987f4653d8df3b8473a0ea",
+        "sha256": "ee2acc4c6a0e6504dcc49a7d9c3012b0541fa0719f33a63f6a58759ca724f925"
+      },
+      {
+        "path": "frontend/tests/unit/views/test_chart_view_radar_handoff.test.ts",
+        "status_from139": "M",
+        "git_blob": "63a5651b2fb73f5b4d4f91f3119e2974a27e74a2",
+        "sha256": "734391222ec33b028220a8b8c470979fd1590189a6836e4098de4e1939e3d993"
+      },
+      {
+        "path": "frontend/tests/unit/views/test_workstation_capabilities.test.ts",
+        "status_from139": "M",
+        "git_blob": "2ca772629df232d0b73c143da1f1dd3e2d5046ea",
+        "sha256": "f31a84d5438be29238f5646941eeb995184f43544f6830baa19528af0f009555"
+      },
+      {
+        "path": "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts",
+        "status_from139": "M",
+        "git_blob": "27ed07e9726224b2df7c8369540ed5526f15059a",
+        "sha256": "c6ed51290a2b6cad8c71468d3ed470f46566642cf74b33f8fea3e6686d22dcac"
       }
     ],
-    "client_scope": "only the three compatible shared frontend library modules; not the entire TC feature or complete application authentication boundary",
+    "client_scope": "Exact49-path TC common frontend runtime plus matching tests from d5e8; excludes ETF, Study, Results, Library, Baskets, secondary-Dashboard domain source and Producer records.",
     "client_import_verification": {
       "changed_paths_since_previous": [
-        "frontend/src/lib/api.ts",
-        "frontend/src/lib/authSession.ts",
-        "frontend/src/lib/dataPreparation.ts"
+        "frontend/src/App.vue",
+        "frontend/src/components/common/Notification.vue",
+        "frontend/src/components/workstation/RatioUPlot.vue",
+        "frontend/src/components/workstation/RelativeRotationTool.vue",
+        "frontend/src/components/workstation/ToolWindow.vue",
+        "frontend/src/components/workstation/WorkspaceLayoutHost.vue",
+        "frontend/src/components/workstation/WorkstationToolContent.vue",
+        "frontend/src/lib/dataPreparation.ts",
+        "frontend/src/lib/etfHoldingDrilldown.ts",
+        "frontend/src/lib/workstation/ohlcvRequests.ts",
+        "frontend/src/main.ts",
+        "frontend/src/router/index.ts",
+        "frontend/src/stores/alerts.ts",
+        "frontend/src/stores/auth.ts",
+        "frontend/src/stores/chart.ts",
+        "frontend/src/stores/layout.ts",
+        "frontend/src/stores/panelLinks.ts",
+        "frontend/src/stores/radar.ts",
+        "frontend/src/stores/recentInstruments.ts",
+        "frontend/src/stores/userSettings.ts",
+        "frontend/src/stores/watchlist.ts",
+        "frontend/src/stores/workspace.ts",
+        "frontend/src/views/AlertsView.vue",
+        "frontend/src/views/ChartView.vue",
+        "frontend/src/views/WorkstationView.vue",
+        "frontend/tests/e2e/auth_session_boundary.spec.ts",
+        "frontend/tests/e2e/flows.spec.ts",
+        "frontend/tests/e2e/tc2000_visual.spec.ts",
+        "frontend/tests/unit/components/test_ratio_uplot.test.ts",
+        "frontend/tests/unit/components/test_relative_rotation_tool.test.ts",
+        "frontend/tests/unit/components/test_tool_window.test.ts",
+        "frontend/tests/unit/components/test_workspace_layout_host.test.ts",
+        "frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts",
+        "frontend/tests/unit/lib/test_api_client.test.ts",
+        "frontend/tests/unit/lib/test_auth_session.test.ts",
+        "frontend/tests/unit/lib/test_data_preparation.test.ts",
+        "frontend/tests/unit/lib/workstation_ohlcv_requests.test.ts",
+        "frontend/tests/unit/router/test_app_shell.test.ts",
+        "frontend/tests/unit/router/test_application_routes.test.ts",
+        "frontend/tests/unit/setup.ts",
+        "frontend/tests/unit/stores/test_drawings_store.test.ts",
+        "frontend/tests/unit/stores/test_stores.test.ts",
+        "frontend/tests/unit/stores/test_workspace_store.test.ts",
+        "frontend/tests/unit/views/test_alerts_view_creation_path.test.ts",
+        "frontend/tests/unit/views/test_chart_view_radar_handoff.test.ts",
+        "frontend/tests/unit/views/test_workstation_capabilities.test.ts",
+        "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts"
       ],
       "all_blobs_and_sha256_match": true,
-      "checked_at": "2026-11-07T00:32:16Z"
+      "git_executable_modes_match": true,
+      "checked_at": "2026-11-07T01:45:59Z",
+      "verification_method": "For all49 entries, compare worktree SHA256, git hash-object blob, status_from139 against the released source, and only the executable bit against git ls-tree mode; verify the 47 declared delta paths are the only imported product dirt.",
+      "mode_note": "Ordinary source files may be POSIX0664 and Git100644; both are non-executable. No chmod or tracked mode change was made."
     }
   },
   "imported_files": [
