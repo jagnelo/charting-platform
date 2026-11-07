@@ -5,7 +5,11 @@
       <button v-if="comparisonRuns.length === 2" type="button" :aria-pressed="comparisonOpen ? 'true' : 'false'" @click="comparisonOpen = !comparisonOpen">{{ comparisonOpen ? 'Hide compare' : 'Compare' }}</button>
       <button type="button" :disabled="loading" @click="refresh">Refresh</button>
     </header>
-    <p v-if="error" class="research-results-tool__error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</p>
+    <p v-if="runsLoadError" class="research-results-tool__error" role="alert" aria-live="assertive" aria-atomic="true">
+      {{ runsLoadError }}
+      <button v-if="!runs.length" type="button" aria-label="Retry loading runs" :disabled="loading" @click="refresh">Retry loading runs</button>
+    </p>
+    <p v-else-if="error" class="research-results-tool__error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</p>
     <p v-else-if="loading && !runs.length" class="research-results-tool__notice" role="status" aria-live="polite" aria-atomic="true">Loading reproducible research runs…</p>
     <p v-else-if="!runs.length" class="research-results-tool__notice" role="status" aria-live="polite" aria-atomic="true">No persisted studies yet. Run a study in the adjacent Study Lab pane.</p>
     <div v-else class="research-results-tool__run-browser" :aria-busy="olderRunsLoading ? 'true' : 'false'">
@@ -244,6 +248,7 @@ interface ComparisonArtifactPair {
 
 const RESEARCH_RUN_PAGE_SIZE = 25
 const RESEARCH_RUN_FETCH_SIZE = RESEARCH_RUN_PAGE_SIZE + 1
+const RESEARCH_RUNS_LOAD_TIMEOUT_MS = 15_000
 const runs = ref<ResearchRunSummary[]>([])
 const hasMoreRuns = ref(false)
 const hasLoadedOlderRuns = ref(false)
@@ -265,6 +270,7 @@ const comparisonLoading = ref(false)
 const comparisonError = ref('')
 const comparisonAttempt = ref(0)
 const error = ref('')
+const runsLoadError = ref('')
 const rerunning = ref(false)
 const canceling = ref(false)
 const promoting = ref(false)
@@ -410,12 +416,36 @@ function setPromotionMessage(runId: number, message: string) {
 function updateDocumentVisibility() { documentVisible.value = document.visibilityState !== 'hidden' }
 const runsQuery = useQuery({
   queryKey: runsQueryKey,
-  queryFn: async () => {
-    const serverRuns = (await api.get<ResearchRunSummary[]>('/research/runs', { limit: RESEARCH_RUN_FETCH_SIZE, include_artifacts: false })) ?? []
-    const cachedRuns = queryClient.getQueryData<ResearchRunSummary[]>(runsQueryKey) ?? []
-    return reconcileResearchRunsWithCache(serverRuns, cachedRuns)
+  queryFn: async ({ signal }) => {
+    const requestController = new AbortController()
+    const abortForQuery = () => requestController.abort(signal.reason)
+    let timedOut = false
+    const timeout = setTimeout(() => {
+      timedOut = true
+      requestController.abort()
+    }, RESEARCH_RUNS_LOAD_TIMEOUT_MS)
+    signal.addEventListener('abort', abortForQuery, { once: true })
+    if (signal.aborted) abortForQuery()
+    try {
+      const serverRuns = (await api.get<ResearchRunSummary[]>(
+        '/research/runs',
+        { limit: RESEARCH_RUN_FETCH_SIZE, include_artifacts: false },
+        { signal: requestController.signal },
+      )) ?? []
+      const cachedRuns = queryClient.getQueryData<ResearchRunSummary[]>(runsQueryKey) ?? []
+      return reconcileResearchRunsWithCache(serverRuns, cachedRuns)
+    } catch (cause) {
+      if (timedOut && !signal.aborted) {
+        throw new Error('Loading persisted research runs timed out. Retry to try again.')
+      }
+      throw cause
+    } finally {
+      clearTimeout(timeout)
+      signal.removeEventListener('abort', abortForQuery)
+    }
   },
   enabled: computed(() => surfaceVisible.value && documentVisible.value),
+  retry: false,
   staleTime: 5_000,
   refetchOnWindowFocus: true,
   refetchInterval: query => {
@@ -445,7 +475,8 @@ const detailError = computed(() => {
 const detailRetrying = ref(false)
 const loading = computed(() => runsQuery.isFetching.value || rerunning.value || canceling.value)
 watch(() => runsQuery.data.value, next => {
-  if (!next) return
+  if (next === undefined) return
+  runsLoadError.value = ''
   const firstPage = next.slice(0, RESEARCH_RUN_PAGE_SIZE)
   const selectedId = selectedRun.value?.id
   runs.value = mergeResearchRuns(firstPage, hasLoadedOlderRuns.value ? runs.value : [])
@@ -454,7 +485,7 @@ watch(() => runsQuery.data.value, next => {
   comparisonIds.value = comparisonIds.value.filter(id => runs.value.some(run => run.id === id))
 }, { immediate: true })
 watch(() => runsQuery.error.value, cause => {
-  if (cause) error.value = cause instanceof Error ? cause.message : 'Unable to load persisted research runs'
+  if (cause) runsLoadError.value = cause instanceof Error ? cause.message : 'Unable to load persisted research runs'
 })
 watch(() => selectedRunDetailQuery.data.value, detail => {
   if (detail && detail.id === selectedRun.value?.id) selectedRun.value = detail
@@ -1044,9 +1075,10 @@ function canPromoteBreadthColumn(run: ResearchRunSummary) {
 
 async function refresh() {
   error.value = ''
+  runsLoadError.value = ''
   olderRunsError.value = ''
   try { await runsQuery.refetch() }
-  catch (cause: any) { error.value = cause?.message ?? 'Unable to load persisted research runs' }
+  catch (cause: any) { runsLoadError.value = cause?.message ?? 'Unable to load persisted research runs' }
 }
 async function retryDetail() {
   detailRetrying.value = true

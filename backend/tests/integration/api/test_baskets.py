@@ -491,3 +491,110 @@ def test_basket_ohlcv_returns_rebased_weighted_series(
 
     assert offset_range.status_code == 200
     assert [bar["close"] for bar in offset_range.json()] == [100, 110]
+
+
+def test_basket_ohlcv_uses_each_members_selected_series_without_alternate_feed_rows(
+    client,
+    auth_headers,
+    db,
+    instrument,
+    instrument_b,
+):
+    from app.models.market_data_foundation import AdjustmentBasis, MarketSeries, MarketSeriesDefault
+    from app.models.ohlcv import OHLCVBar, Timeframe
+
+    selected_closes = {
+        instrument.id: [Decimal("100"), Decimal("110"), Decimal("121")],
+        instrument_b.id: [Decimal("200"), Decimal("220"), Decimal("198")],
+    }
+    selected_series_by_instrument = {}
+    alternate_series_by_instrument = {}
+    for member in (instrument, instrument_b):
+        selected = MarketSeries(
+            instrument_id=member.id,
+            feed_scope="consolidated",
+            session_code="regular",
+            timeframe=Timeframe.D1.value,
+            adjustment_basis=AdjustmentBasis.SPLIT_ADJUSTED,
+            adjustment_version="v1",
+            is_canonical=True,
+        )
+        alternate = MarketSeries(
+            instrument_id=member.id,
+            feed_scope="alternate-test-feed",
+            session_code="regular",
+            timeframe=Timeframe.D1.value,
+            adjustment_basis=AdjustmentBasis.SPLIT_ADJUSTED,
+            adjustment_version="v1",
+        )
+        db.add_all((selected, alternate))
+        db.flush()
+        selected_series_by_instrument[member.id] = selected
+        alternate_series_by_instrument[member.id] = alternate
+        db.add(
+            MarketSeriesDefault(
+                instrument_id=member.id,
+                timeframe=Timeframe.D1.value,
+                is_adjusted=True,
+                market_series_id=selected.id,
+                selection_reason="test_selected_series",
+            )
+        )
+
+    first_day = datetime(2026, 2, 2, tzinfo=UTC)
+    for member in (instrument, instrument_b):
+        for offset, close in enumerate(selected_closes[member.id]):
+            db.add(
+                OHLCVBar(
+                    instrument_id=member.id,
+                    timeframe=Timeframe.D1,
+                    ts=first_day + timedelta(days=offset),
+                    open=close,
+                    high=close,
+                    low=close,
+                    close=close,
+                    volume=Decimal("1000"),
+                    is_adjusted=True,
+                    market_series_id=selected_series_by_instrument[member.id].id,
+                )
+            )
+        # A timestamp that exists only in an alternate feed must not extend the
+        # ordinary basket's common selected-series coverage.
+        alternate_close = Decimal("900") if member.id == instrument.id else Decimal("1200")
+        db.add(
+            OHLCVBar(
+                instrument_id=member.id,
+                timeframe=Timeframe.D1,
+                ts=first_day + timedelta(days=3),
+                open=alternate_close,
+                high=alternate_close,
+                low=alternate_close,
+                close=alternate_close,
+                volume=Decimal("9000"),
+                is_adjusted=True,
+                market_series_id=alternate_series_by_instrument[member.id].id,
+            )
+        )
+    db.flush()
+
+    created = client.post(
+        "/api/v1/baskets",
+        headers=auth_headers,
+        json={
+            "name": "Selected series pair",
+            "weighting_scheme": "equal",
+            "members": [
+                {"instrument_id": instrument.id},
+                {"instrument_id": instrument_b.id},
+            ],
+        },
+    )
+    assert created.status_code == 200
+    basket_id = created.json()["id"]
+
+    response = client.get(f"/api/v1/baskets/{basket_id}/ohlcv/D1", headers=auth_headers)
+
+    assert response.status_code == 200
+    bars = response.json()
+    assert [bar["close"] for bar in bars] == [100, 110, 110]
+    assert len(bars) == 3

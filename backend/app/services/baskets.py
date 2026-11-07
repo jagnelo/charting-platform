@@ -24,6 +24,7 @@ from app.schemas.basket import (
     BasketUpdateRequest,
 )
 from app.services.etf_holdings_capability import ETFHoldingsCapability, evaluate_capability
+from app.services.market_data import _default_series_bar_condition
 
 VALID_USER_WEIGHTING_SCHEMES = {"equal", "custom"}
 WEIGHT_TOLERANCE = Decimal("0.0001")
@@ -343,6 +344,7 @@ async def get_basket_synthetic_ohlcv(
             OHLCVBar.instrument_id.in_(member_ids),
             OHLCVBar.timeframe == timeframe,
             OHLCVBar.is_adjusted.is_(adjusted),
+            _default_series_bar_condition(OHLCVBar.instrument_id, timeframe, adjusted),
         )
         .order_by(OHLCVBar.ts.asc(), OHLCVBar.instrument_id.asc())
     )

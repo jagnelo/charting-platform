@@ -4918,9 +4918,9 @@ development_dependency_import_history:
     state: superseded_development_import
     superseded_by: 055641eaafab37a8160908e974a3ec1a4483e7c6
 approved_development_dependency_imports:
-- source_sha: dd70319eb725dc6b5c1b4feb0ba5a5ba060efd04
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/dd70319eb725dc6b5c1b4feb0ba5a5ba060efd04.json
-  manifest_sha256: 9679b42e3e8dc4190d1b221b7b4ce7c0b86b3cd66d90e5a4f936eb8e61c6e95e
+- source_sha: 23b6aba94476fed5eeb54d9073dadb373d169aaa
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/23b6aba94476fed5eeb54d9073dadb373d169aaa.json
+  manifest_sha256: 5f49dd7ec0c0e6722bcacaa34195588e022133752cedde4562b26f0958d196e8
   paths:
   - backend/app/main.py
   - backend/app/providers/alpaca.py
@@ -5001,9 +5001,9 @@ approved_development_dependency_imports:
   - frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts
   - frontend/tests/unit/stores/test_dashboard_store.test.ts
   - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts
-- source_sha: 3f72fcd8c201d57d7631a485abf02eb6924da73b
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/3f72fcd8c201d57d7631a485abf02eb6924da73b.json
-  manifest_sha256: b33c63cd5bc66e2eb5477207883a7d5fc627a8e4c9a5370275c34d7c3f2d1cec
+- source_sha: 3191a94397ffe12c9c79113aee45af85eaa9f534
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/3191a94397ffe12c9c79113aee45af85eaa9f534.json
+  manifest_sha256: 535269ba56b491bb9acd6e8e776fd1bb591405b06f52782eeccbe436918b0113
   paths:
   - frontend/src/components/workstation/CodeLibraryTool.vue
   - frontend/src/components/workstation/ResearchResultsTool.vue
@@ -5016,10 +5016,11 @@ approved_development_dependency_imports:
   - frontend/tests/unit/components/test_research_results_tool.test.ts
   - frontend/tests/unit/components/test_study_lab_tool.test.ts
   - frontend/tests/unit/e2e/test_browser_diagnostics.test.ts
-- source_sha: 6ff05d8224da622bf195c6d2829842d85d2d1acb
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/6ff05d8224da622bf195c6d2829842d85d2d1acb.json
-  manifest_sha256: 6fee6644796a70e18b31b5edbb83590e5d71267a22265d313a6d7d799ba3a933
+- source_sha: b0db1656ad8505e2aaa39546d60487015aca00d4
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/b0db1656ad8505e2aaa39546d60487015aca00d4.json
+  manifest_sha256: 89ad31b41b8c90f0e6df3a0714be96221beaa9dacf7cd680c6b209e8b09dddf7
   paths:
+  - frontend/src/components/workstation/InstrumentNoteTool.vue
   - frontend/src/views/BasketsView.vue
   - frontend/src/views/ETFHoldingsView.vue
   - frontend/tests/e2e/baskets_journey.spec.ts
@@ -5027,5 +5028,6 @@ approved_development_dependency_imports:
   - frontend/tests/e2e/on_demand_acquisition.spec.ts
   - frontend/tests/e2e/sp500_analysis_journey.spec.ts
   - frontend/tests/e2e/supporting_features_journey.spec.ts
+  - frontend/tests/unit/components/test_instrument_note_tool.test.ts
   - frontend/tests/unit/views/test_baskets_view.test.ts
   - frontend/tests/unit/views/test_etf_holdings_view.test.ts
