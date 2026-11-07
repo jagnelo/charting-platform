@@ -111,7 +111,7 @@
         "POST /code/assets and POST /research/runs are covered by backend/tests/integration/api/test_code.py :: test_research_run_is_queued_for_isolated_runner and test_research_run_job_preserves_json_parameters_for_isolated_runner",
         "Run materialization/control validation: backend/tests/integration/api/test_code.py :: test_research_run_honors_study_dataset_controls_and_records_them and test_research_run_rejects_unsupported_study_dataset_controls"
       ],
-      "browser_evidence": "The ordinary immutable-version Study/Results/Library flow and F8p high_low_breakouts path are authored in frontend/tests/e2e/strategy_study_journey.spec.ts. F8p asserts SPY history ensure before /code/validate, typed lookback10 run config, completed status and both high/low metrics; if the unchanged90-second completion assertion fails it attaches persisted run readback/status. Both browser bodies remain pending Root combined execution; no native/broker behavior is included.",
+      "browser_evidence": "The ordinary immutable-version Study/Results/Library flow and F8p high_low_breakouts path are authored in frontend/tests/e2e/strategy_study_journey.spec.ts. F8p asserts a SPY history ensure request with D1 split-adjusted intent and requires the same request_id to reach server status ready before /code/validate; it checks typed lookback10 run config, completed status and both high/low metrics. On timeout it attaches persisted run readback/status, retaining the90-second completion bound. Both browser bodies remain pending Root combined execution; no native/broker behavior is included.",
       "approved_journey": [
         "J10 Study: edit/validate/run/results/cancel/return supported workflow"
       ]

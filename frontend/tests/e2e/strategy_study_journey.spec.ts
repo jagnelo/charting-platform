@@ -124,6 +124,7 @@ test('Study prepares SPY before validating and completes a configured high-low b
   test.setTimeout(120_000)
   const requestOrder: string[] = []
   const observedRunStatuses: Array<{ id: number; status: string; error?: string | null }> = []
+  const observedPreparationStatuses: Array<{ request_id?: string; status?: string; target?: { kind?: string; symbol?: string } }> = []
   let createdRunId: number | null = null
   page.on('request', request => {
     if (request.method() !== 'POST') return
@@ -133,12 +134,17 @@ test('Study prepares SPY before validating and completes a configured high-low b
   })
   page.on('response', response => {
     if (response.request().method() !== 'GET') return
-    const match = new URL(response.url()).pathname.match(/\/research\/runs\/(\d+)$/)
-    if (!match) return
+    const path = new URL(response.url()).pathname
+    const preparationMatch = path.match(/\/data\/requests\/([^/]+)$/)
+    if (preparationMatch) {
+      void response.json().then((body: { request_id?: string; status?: string; target?: { kind?: string; symbol?: string } }) => {
+        observedPreparationStatuses.push(body)
+      }).catch(() => {})
+      return
+    }
+    if (!/\/research\/runs\/\d+$/.test(path)) return
     void response.json().then((body: { id?: number; status?: string; error?: string | null }) => {
-      if (body.id != null && body.status) {
-        observedRunStatuses.push({ id: body.id, status: body.status, error: body.error })
-      }
+      if (body.id != null && body.status) observedRunStatuses.push({ id: body.id, status: body.status, error: body.error })
     }).catch(() => {})
   })
 
@@ -164,12 +170,18 @@ test('Study prepares SPY before validating and completes a configured high-low b
   await study.getByRole('button', { name: 'Validate study' }).click()
   const prepared = await preparationResponse
   expect(prepared.ok()).toBe(true)
+  const preparation = await prepared.json() as { request_id?: string; status?: string; target?: { kind?: string; symbol?: string } }
+  expect(preparation.request_id).toBeTruthy()
   expect(prepared.request().postDataJSON()).toMatchObject({
     target: { kind: 'instrument', symbol: 'SPY' },
     datasets: ['history'],
     timeframe: 'D1',
     adjusted: true,
   })
+  expect(preparation.target).toMatchObject({ kind: 'instrument', symbol: 'SPY' })
+  await expect.poll(() => preparation.status === 'ready' || observedPreparationStatuses.some(status =>
+    status.request_id === preparation.request_id && status.status === 'ready'
+      && status.target?.kind === 'instrument' && status.target.symbol === 'SPY'), { timeout: 90_000 }).toBe(true)
   await expect(study.getByRole('status', { name: 'Study data preparation' })).toContainText('ready', { timeout: 90_000 })
   const validation = await validationResponse
   expect(validation.ok()).toBe(true)
