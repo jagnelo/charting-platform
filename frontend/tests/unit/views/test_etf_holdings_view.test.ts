@@ -895,6 +895,7 @@ describe('ETFHoldingsView', () => {
     expect(wrapper.findAll('.mock-search-bar input')[1]!.element.value).toBe('UNXQ')
     expect(api.post).not.toHaveBeenCalled()
     const context: ETFHoldingDrilldownContext = {
+      etfSymbol: 'SPY',
       instrumentId: 987654,
       canonicalSymbol: 'UNXQ',
       snapshotId: 55,

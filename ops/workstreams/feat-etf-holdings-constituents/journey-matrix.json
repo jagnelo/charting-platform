@@ -727,14 +727,14 @@
       "test_cases": [
         "Authenticated seeded-backend SPY and all eleven sector charts require actual price-renderer paint and an ordinary pointer OHLC/date tooltip matching returned bars.",
         "All eleven sector/SPY and SPY/sector visible ratio traces are exercised through public controls; separate raw-close arithmetic independently checks every timestamp intersection.",
-        "D1/W1/MN RRG payloads and rendered point/tail pixels are checked while each timeframe is active; actual marker pointer, keyboard/table linking, resize, maximize/restore, copy and tab restore are covered."
+        "D1/W1/MN payloads and rendered point/tail pixels are checked while active, using the latest complete draw; restore the maximized RRG before visible linked-chart assertions; actual marker pointer, keyboard/table linking, resize, maximize/restore, Duplicate layout and tab restore are covered."
       ],
       "evidence": {
         "backend_contract": "Authenticated normal APIs; successful seeded paths are not route-fulfilled or mocked.",
-        "focused": "npm run type-check passed; Playwright discovery lists2 tests; Root review corrections are reflected in spec SHA 25ccf27f34b56aac0f29507b5cc631d1495230c102f450d5621f1d51d2726f1b.",
+        "focused": "npm run type-check passed; Playwright discovery lists2 tests; ETF/Baskets view units44 passed; ETF preparation consumer units46 passed; current spec SHA256 183e0500755849cf943f879f4e390fc92e7f2549eedb2d599dbbf608bf0369ca.",
         "browser": {
           "body_run": false,
-          "status": "pending Root combined seeded-backend browser profile; authored assertions are not browser acceptance."
+          "status": "pending next compatible TC runtime with accessible Duplicate layout control, then Root combined seeded-backend browser profile; no browser acceptance claimed."
         }
       },
       "boundaries": [

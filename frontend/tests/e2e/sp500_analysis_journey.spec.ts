@@ -164,12 +164,12 @@ async function assertChartRendered(page: Page, symbol: string, bars: Bar[]): Pro
   // The ordinary pointer tooltip is sourced from the rendered OHLCV series.
   // Match its date and close to the actual bars returned by this page request.
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    const root = plot.locator('.chart-root')
+    const root = plot
     if (await root.getAttribute('data-date-pointer-mode') === 'on_with_values') break
     await root.focus()
     await root.press('.')
   }
-  const root = plot.locator('.chart-root')
+  const root = plot
   await expect(root).toHaveAttribute('data-date-pointer-mode', 'on_with_values')
   const rendererBox = await renderer.boundingBox()
   expect(rendererBox, `${symbol} price renderer has a pointer target`).toBeTruthy()
@@ -365,15 +365,17 @@ async function clearRotationCanvasAudit(page: Page): Promise<void> {
 async function latestRotationMarker(page: Page, payload: RotationResponse, symbol: string): Promise<{ x: number; y: number; left: number; top: number }> {
   const rowIndex = payload.rows.findIndex(row => row.symbol === symbol)
   expect(rowIndex, `${symbol} exists in the active RRG payload`).toBeGreaterThanOrEqual(0)
-  return page.evaluate((index: number) => {
+  return page.evaluate(({ index, payloadRowCount }: { index: number; payloadRowCount: number }) => {
     const selector = '[role="group"][aria-label="Relative rotation trend and momentum plane"]'
     const canvas = document.querySelector(`${selector} canvas`) as HTMLCanvasElement | null
     const audit = (window as any).__rrgCanvasAudit as { markers: Array<{ x: number; y: number; radius: number }> }
     if (!canvas) throw new Error('RRG plot canvas is missing')
     const bounds = canvas.getBoundingClientRect()
     const pixelRatio = canvas.width / bounds.width
-    const latest = audit.markers.filter(marker => marker.radius >= 3.4 * pixelRatio)
-    const marker = latest[index]
+    const latestDraw = audit.markers
+      .filter(marker => marker.radius >= 3.4 * pixelRatio)
+      .slice(-payloadRowCount)
+    const marker = latestDraw[index]
     if (!marker) throw new Error(`RRG latest marker ${index} is missing`)
     return {
       x: marker.x * bounds.width / canvas.width,
@@ -381,7 +383,7 @@ async function latestRotationMarker(page: Page, payload: RotationResponse, symbo
       left: bounds.left,
       top: bounds.top,
     }
-  }, rowIndex)
+  }, { index: rowIndex, payloadRowCount: payload.rows.length })
 }
 
 async function assertRatioUiLine(page: Page, numerator: string, denominator: string, response: RatioResponse): Promise<void> {
@@ -536,6 +538,12 @@ test('S&P 500 RRG renders deep D1/W1/MN data and survives selection, resize, max
   const d1Payload = await reloadedD1.json() as RotationResponse
   pageResponses.set('D1', d1Payload)
   await expect(page.getByRole('region', { name: 'Relative rotation vs SPY' })).toBeVisible()
+  // Workspace state survives reload. Restore the chart window before proving
+  // linked primary-chart visibility, so a hidden chart cannot satisfy the flow.
+  await expect(rrgWindow.getByRole('button', { name: 'Restore tool' })).toBeVisible()
+  await rrgWindow.getByRole('button', { name: 'Restore tool' }).click()
+  await expect(rrgWindow.getByRole('button', { name: 'Maximize tool' })).toBeVisible()
+  await expect(page.locator('.tool-window[data-window-key="primary-chart"]')).toBeVisible()
 
   for (const timeframe of TIMEFRAMES) {
     directResponses.set(timeframe, await getJson<RotationResponse>(
@@ -641,7 +649,7 @@ test('S&P 500 RRG renders deep D1/W1/MN data and survives selection, resize, max
 
   // Copy the active layout, switch tabs in both directions, and retain the actual RRG.
   const tabs = page.getByRole('tablist', { name: 'Workspace layouts' }).getByRole('tab')
-  await page.getByRole('button', { name: 'Clone active layout' }).click()
+  await page.getByRole('button', { name: 'Duplicate layout' }).click()
   await expect(tabs).toHaveCount(2)
   await expect(tabs.nth(1)).toHaveAttribute('aria-selected', 'true')
   let copiedRotation = page.getByRole('region', { name: 'Relative rotation vs SPY' })

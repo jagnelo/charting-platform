@@ -18377,3 +18377,10 @@ The complete ETF/platform roadmaps, all prior checkpoints and failures, and the 
 Consumed only the four declared Provider delta paths over 732 and verified all45 current manifest records against source46462f5531d689acf4c8004517dc4fb345d822ba (manifest SHA256 `3600f958dd684d72bf0ed95425c4e52792566d6136c57d676c67f4f107e5301d`). The two ETF clock-test paths already matched the released source; the other two declared paths were imported into this worktree. Provider CI42328517364 is still in progress; this is development consumption only.
 
 Updated `frontend/tests/e2e/sp500_analysis_journey.spec.ts` to address Root's four review findings: price-renderer paint and bar-matched pointer OHLC, both visible ratio directions, point/tail-specific RRG paint evidence, and assertions made with each timeframe active; actual RRG pointer selection is covered. Current spec SHA256 is `25ccf27f34b56aac0f29507b5cc631d1495230c102f450d5621f1d51d2726f1b`. `npm run type-check` passed and Playwright discovery lists2 cases. Browser bodies remain unrun and Root-owned. No fixture, Docker, source request or data/policy/ledger operation occurred.
+
+
+## Focused ETF context and S&P journey follow-up — 2026-11-07
+
+The focused ETFHoldingsView+BasketsView suites pass44/44; the ETF preparation/hook/checkpoint consumer modules pass46/46 against the Provider464 import. The first view-suite observation found a stale test expectation: the released TC route contract includes parent `etfSymbol`; the fixture now asserts that exact parent context, and the corrected full view modules pass.
+
+The S&P spec now targets the single chart-root for pointer mode, requires restoration of the persisted maximized RRG before linked-chart visibility, and chooses a marker from the most recent complete draw. It uses the required accessible `Duplicate layout` control name. Type-check passes and discovery lists2 tests. No browser body was run; the compatible TC runtime containing that label and Root's combined profile remain pending.
