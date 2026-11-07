@@ -4341,7 +4341,7 @@
     "verification": "All83 status_from139/SHA/Git blob/executable-bit records verified; the exact22 ETF paths passed old/new guards and were imported. The local approved manifest copy is recorded under development-dependency-imports/.",
     "state": "Root-released development dependency only; Root owns corrected-fixture RRG/Results browser qualification and final release gates."
   },
-  "current_tc_common_runtime_dependency": {
+  "historical_tc_common_runtime_dependency_c9fc3bbb": {
     "source": "c9fc3bbbfa9cc92ad037040fa3e610dd95bbf0ec",
     "previous_source": "a2e222251d4ea796d0d4bfb6b0e8705f503c1e4d",
     "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-c9fc3bbb-common-runtime-development-consumption-contract.json",
@@ -4351,6 +4351,17 @@
     "consumer_import_paths_verified": 10,
     "verification": "All85 status_from139/SHA256/Git blob/executable-bit rows match the source; exact10 ETF paths passed released old guards and match source.",
     "state": "Root-released development dependency only; full RRG/Results browser qualification and final release gates remain pending."
+  },
+  "current_tc_common_runtime_dependency": {
+    "source": "2666aa559afbff7cff8dff6b50ead357ae1f654f",
+    "previous_source": "c9fc3bbbfa9cc92ad037040fa3e610dd95bbf0ec",
+    "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-2666aa55-common-runtime-development-consumption-contract.json",
+    "manifest_sha256": "f0784a8337d3d53add381b0f06f9fd37e7e27fa861bca70d97e78ba341f3a10a",
+    "local_manifest_copy": "ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/2666aa559afbff7cff8dff6b50ead357ae1f654f.json",
+    "current_manifest_records_verified": 86,
+    "consumer_import_paths_verified": 6,
+    "verification": "All86 status_from139/SHA256/Git blob/executable-bit rows match the source; the exact6 ETF paths passed released old guards and match source.",
+    "state": "Root-released development dependency only; normal full RRG D1/W1/MN and lifecycle, Results, exact CI, and release gates remain pending."
   },
   "historical_tc_common_runtime_dependency_45ea51bf": {
     "source": "45ea51bfa78b6ae167462b518358164a5a3e29f4",

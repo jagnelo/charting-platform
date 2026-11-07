@@ -333,11 +333,16 @@ function drawPlot() {
       ctx.fillStyle = point.color
       ctx.fillText(point.symbol, labelX, labelY)
     }
-    // Labels may be placed over nearly coincident latest points. Paint markers
-    // last so their state-colored centers stay visible through label backdrops.
-    for (const point of points) {
+    // Paint every older point first. If markers are drawn row-by-row, a later
+    // row's historical point can cover an earlier row's latest marker. Keep
+    // all current centers above the complete history layer and label backdrops.
+    for (const point of points.filter(candidate => !candidate.last)) {
       const x = chart.valToPos(point.trend, 'x', true), y = chart.valToPos(point.momentum, 'y', true)
-      ctx.fillStyle = point.color; ctx.beginPath(); ctx.arc(x, y, (point.last ? 3.5 : 2) * pixelRatio, 0, Math.PI * 2); ctx.fill()
+      ctx.fillStyle = point.color; ctx.beginPath(); ctx.arc(x, y, 2 * pixelRatio, 0, Math.PI * 2); ctx.fill()
+    }
+    for (const point of points.filter(candidate => candidate.last)) {
+      const x = chart.valToPos(point.trend, 'x', true), y = chart.valToPos(point.momentum, 'y', true)
+      ctx.fillStyle = point.color; ctx.beginPath(); ctx.arc(x, y, 3.5 * pixelRatio, 0, Math.PI * 2); ctx.fill()
     }
   }] } }
   plot = new uPlot({ width, height, cursor: { drag: { x: true, y: true } }, scales: {

@@ -5726,8 +5726,8 @@ acceptance_criteria:
 progress:
   completed: []
   total: 5
-  current_phase: Root-released Provider182 (62/62 manifest rows) and TC a2e222 (83/83 rows) are consumed under exact ETF path guards. The owned RRG tail oracle now verifies source-over contribution from before/after pixels and matching CSS-visible final-canvas segments without changing marker/tail counts, RGB residual, arithmetic, or visual references. Type-check, the focused RelativeRotationTool unit module (19/19), and two-case S&P Playwright discovery pass. Root owns the full original RRG after the Provider E2E fixture correction and Strategy Results fixes; no browser body ran in this checkpoint.
-  current_blocker: R47's prior oracle run is terminal failed and is not evidence for this corrected source. Root owns the next full RRG browser on the corrected deterministic sector fixture; Provider owns that E2E-only fixture, while Strategy owns outstanding Results behavior. XLC's 10-point D1 tail is geometrically degenerate (0.000014px total) and cannot produce five raster segments; no count, math, source, or tolerance was weakened. Preserve all ETF and platform roadmaps, existing genuine-source holds, and Root-owned combined release gates.
+  current_phase: Root-released Provider dd05c5e8 (64/64 manifest rows) and TC 2666aa55 (86/86 rows) are consumed under exact ETF path guards. The strict latest-marker and alpha-aware tail oracles remain unchanged. Root reports the TC source-layering fix has21 focused regressions green; this worktree did not replay them. R52 passed only its leased D1 diagnostic on predecessor TC c9/Provider dd05; Root owns the normal full RRG D1/W1/MN and layout lifecycle on the new common runtime, plus Results and final release gates. No new browser body ran in this checkpoint.
+  current_blocker: R53 on predecessor TC c9 exposed latest markers being painted before later historical circles; TC 2666aa55 fixes that product layering, and the strict ETF 3x3 latest-center oracle is unchanged. Root owns the normal full RRG D1/W1/MN and lifecycle run on a compiled combined candidate, plus Strategy Results, exact CI, and release gates. Preserve prior failed receipts, all roadmaps, genuine-source holds, and the R52 D1-only scope.
 previous_provider_b0eae597_development_import:
   source: b0eae5974801e320b3da858d7e1a33829b206430
   previous_source: 5cdc5ee06e26b191d889212b8cd1554d28abbc8f
@@ -6498,95 +6498,97 @@ provider_runtime_dependency_active_dd70319e:
   state: Development dependency only; Root's backend/browser and full release qualifications remain pending.
 
 approved_development_dependency_imports:
-- source_sha: "c9fc3bbbfa9cc92ad037040fa3e610dd95bbf0ec"
-  manifest_path: "ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/c9fc3bbbfa9cc92ad037040fa3e610dd95bbf0ec.json"
-  manifest_sha256: "762e04066871d894e6da4bcc863f3cb8558d6473793eada942195f95a91275f6"
+- source_sha: 2666aa559afbff7cff8dff6b50ead357ae1f654f
+  manifest_path: ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/2666aa559afbff7cff8dff6b50ead357ae1f654f.json
+  manifest_sha256: f0784a8337d3d53add381b0f06f9fd37e7e27fa861bca70d97e78ba341f3a10a
   paths:
-  - "frontend/package-lock.json"
-  - "frontend/package.json"
-  - "frontend/src/App.vue"
-  - "frontend/src/components/chart/ChartPanel.vue"
-  - "frontend/src/components/chart/HistoryAcquisitionControl.vue"
-  - "frontend/src/components/chart/UPlotChart.vue"
-  - "frontend/src/components/common/CompactStatusNotice.vue"
-  - "frontend/src/components/common/Notification.vue"
-  - "frontend/src/components/common/SearchBar.vue"
-  - "frontend/src/components/radar/RadarDetailPreviewChart.vue"
-  - "frontend/src/components/workstation/EasyScanTool.vue"
-  - "frontend/src/components/workstation/MarketGaugeTool.vue"
-  - "frontend/src/components/workstation/MarketMapTool.vue"
-  - "frontend/src/components/workstation/RatioUPlot.vue"
-  - "frontend/src/components/workstation/RelativeRotationTool.vue"
-  - "frontend/src/components/workstation/ToolWindow.vue"
-  - "frontend/src/components/workstation/VirtualWatchlistTool.vue"
-  - "frontend/src/components/workstation/WorkspaceLayoutHost.vue"
-  - "frontend/src/components/workstation/WorkstationToolContent.vue"
-  - "frontend/src/lib/api.ts"
-  - "frontend/src/lib/authSession.ts"
-  - "frontend/src/lib/dataPreparation.ts"
-  - "frontend/src/lib/etfHoldingDrilldown.ts"
-  - "frontend/src/lib/workstation/benchmarkFamilySources.ts"
-  - "frontend/src/lib/workstation/instrumentCalendar.ts"
-  - "frontend/src/lib/workstation/marketMap.ts"
-  - "frontend/src/lib/workstation/ohlcvRequests.ts"
-  - "frontend/src/lib/workstation/toolActivation.ts"
-  - "frontend/src/main.ts"
-  - "frontend/src/router/index.ts"
-  - "frontend/src/stores/alerts.ts"
-  - "frontend/src/stores/auth.ts"
-  - "frontend/src/stores/chart.ts"
-  - "frontend/src/stores/layout.ts"
-  - "frontend/src/stores/panelLinks.ts"
-  - "frontend/src/stores/radar.ts"
-  - "frontend/src/stores/recentInstruments.ts"
-  - "frontend/src/stores/userSettings.ts"
-  - "frontend/src/stores/watchlist.ts"
-  - "frontend/src/stores/workspace.ts"
-  - "frontend/src/views/AlertsView.vue"
-  - "frontend/src/views/ChartView.vue"
-  - "frontend/src/views/ScreenerView.vue"
-  - "frontend/src/views/SettingsView.vue"
-  - "frontend/src/views/WatchlistView.vue"
-  - "frontend/src/views/WorkstationView.vue"
-  - "frontend/tests/e2e/auth_session_boundary.spec.ts"
-  - "frontend/tests/e2e/flows.spec.ts"
-  - "frontend/tests/e2e/helpers.ts"
-  - "frontend/tests/e2e/tc2000_visual.spec.ts"
-  - "frontend/tests/unit/components/test_chart_panel_lifecycle.test.ts"
-  - "frontend/tests/unit/components/test_compact_status_notice.test.ts"
-  - "frontend/tests/unit/components/test_easy_scan_tool.test.ts"
-  - "frontend/tests/unit/components/test_history_acquisition_control.test.ts"
-  - "frontend/tests/unit/components/test_market_gauge_tool.test.ts"
-  - "frontend/tests/unit/components/test_market_map_tool.test.ts"
-  - "frontend/tests/unit/components/test_radar_detail_preview_chart.test.ts"
-  - "frontend/tests/unit/components/test_ratio_uplot.test.ts"
-  - "frontend/tests/unit/components/test_relative_rotation_tool.test.ts"
-  - "frontend/tests/unit/components/test_search_bar.test.ts"
-  - "frontend/tests/unit/components/test_tool_window.test.ts"
-  - "frontend/tests/unit/components/test_uplot_chart_context.test.ts"
-  - "frontend/tests/unit/components/test_workspace_layout_host.test.ts"
-  - "frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts"
-  - "frontend/tests/unit/e2e/test_browser_diagnostics.test.ts"
-  - "frontend/tests/unit/lib/test_api_client.test.ts"
-  - "frontend/tests/unit/lib/test_auth_session.test.ts"
-  - "frontend/tests/unit/lib/test_benchmark_family_sources.test.ts"
-  - "frontend/tests/unit/lib/test_data_preparation.test.ts"
-  - "frontend/tests/unit/lib/test_instrument_calendar.test.ts"
-  - "frontend/tests/unit/lib/test_market_map.test.ts"
-  - "frontend/tests/unit/lib/test_tool_activation.test.ts"
-  - "frontend/tests/unit/lib/workstation_ohlcv_requests.test.ts"
-  - "frontend/tests/unit/router/test_app_shell.test.ts"
-  - "frontend/tests/unit/router/test_application_routes.test.ts"
-  - "frontend/tests/unit/setup.ts"
-  - "frontend/tests/unit/stores/test_drawings_store.test.ts"
-  - "frontend/tests/unit/stores/test_stores.test.ts"
-  - "frontend/tests/unit/stores/test_workspace_store.test.ts"
-  - "frontend/tests/unit/views/test_alerts_view_creation_path.test.ts"
-  - "frontend/tests/unit/views/test_chart_view_radar_handoff.test.ts"
-  - "frontend/tests/unit/views/test_screener_view_accessibility.test.ts"
-  - "frontend/tests/unit/views/test_settings_view.test.ts"
-  - "frontend/tests/unit/views/test_workstation_capabilities.test.ts"
-  - "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts"
+  - frontend/package-lock.json
+  - frontend/package.json
+  - frontend/src/App.vue
+  - frontend/src/components/chart/ChartPanel.vue
+  - frontend/src/components/chart/HistoryAcquisitionControl.vue
+  - frontend/src/components/chart/UPlotChart.vue
+  - frontend/src/components/common/CompactStatusNotice.vue
+  - frontend/src/components/common/Notification.vue
+  - frontend/src/components/common/SearchBar.vue
+  - frontend/src/components/radar/RadarDetailPreviewChart.vue
+  - frontend/src/components/workstation/EasyScanTool.vue
+  - frontend/src/components/workstation/MarketGaugeTool.vue
+  - frontend/src/components/workstation/MarketMapTool.vue
+  - frontend/src/components/workstation/RatioUPlot.vue
+  - frontend/src/components/workstation/RelativeRotationTool.vue
+  - frontend/src/components/workstation/ToolWindow.vue
+  - frontend/src/components/workstation/VirtualWatchlistTool.vue
+  - frontend/src/components/workstation/WorkspaceLayoutHost.vue
+  - frontend/src/components/workstation/WorkstationToolContent.vue
+  - frontend/src/lib/api.ts
+  - frontend/src/lib/authSession.ts
+  - frontend/src/lib/dataPreparation.ts
+  - frontend/src/lib/etfHoldingDrilldown.ts
+  - frontend/src/lib/workstation/benchmarkFamilySources.ts
+  - frontend/src/lib/workstation/instrumentCalendar.ts
+  - frontend/src/lib/workstation/marketMap.ts
+  - frontend/src/lib/workstation/ohlcvRequests.ts
+  - frontend/src/lib/workstation/toolActivation.ts
+  - frontend/src/main.ts
+  - frontend/src/router/index.ts
+  - frontend/src/stores/alerts.ts
+  - frontend/src/stores/auth.ts
+  - frontend/src/stores/chart.ts
+  - frontend/src/stores/layout.ts
+  - frontend/src/stores/panelLinks.ts
+  - frontend/src/stores/radar.ts
+  - frontend/src/stores/recentInstruments.ts
+  - frontend/src/stores/userSettings.ts
+  - frontend/src/stores/watchlist.ts
+  - frontend/src/stores/workspace.ts
+  - frontend/src/views/AlertsView.vue
+  - frontend/src/views/ChartView.vue
+  - frontend/src/views/ScreenerView.vue
+  - frontend/src/views/SettingsView.vue
+  - frontend/src/views/WatchlistView.vue
+  - frontend/src/views/WorkstationView.vue
+  - frontend/tests/e2e/auth_session_boundary.spec.ts
+  - frontend/tests/e2e/flows.spec.ts
+  - frontend/tests/e2e/helpers.ts
+  - frontend/tests/e2e/tc2000_visual.spec.ts
+  - frontend/tests/e2e/tc_secondary_routes_journey.spec.ts
+  - frontend/tests/unit/components/test_chart_panel_lifecycle.test.ts
+  - frontend/tests/unit/components/test_compact_status_notice.test.ts
+  - frontend/tests/unit/components/test_easy_scan_tool.test.ts
+  - frontend/tests/unit/components/test_history_acquisition_control.test.ts
+  - frontend/tests/unit/components/test_market_gauge_tool.test.ts
+  - frontend/tests/unit/components/test_market_map_tool.test.ts
+  - frontend/tests/unit/components/test_radar_detail_preview_chart.test.ts
+  - frontend/tests/unit/components/test_ratio_uplot.test.ts
+  - frontend/tests/unit/components/test_relative_rotation_tool.test.ts
+  - frontend/tests/unit/components/test_search_bar.test.ts
+  - frontend/tests/unit/components/test_tool_window.test.ts
+  - frontend/tests/unit/components/test_uplot_chart_context.test.ts
+  - frontend/tests/unit/components/test_workspace_layout_host.test.ts
+  - frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts
+  - frontend/tests/unit/e2e/test_browser_diagnostics.test.ts
+  - frontend/tests/unit/lib/test_api_client.test.ts
+  - frontend/tests/unit/lib/test_auth_session.test.ts
+  - frontend/tests/unit/lib/test_benchmark_family_sources.test.ts
+  - frontend/tests/unit/lib/test_data_preparation.test.ts
+  - frontend/tests/unit/lib/test_instrument_calendar.test.ts
+  - frontend/tests/unit/lib/test_market_map.test.ts
+  - frontend/tests/unit/lib/test_tool_activation.test.ts
+  - frontend/tests/unit/lib/workstation_ohlcv_requests.test.ts
+  - frontend/tests/unit/router/test_app_shell.test.ts
+  - frontend/tests/unit/router/test_application_routes.test.ts
+  - frontend/tests/unit/setup.ts
+  - frontend/tests/unit/stores/test_drawings_store.test.ts
+  - frontend/tests/unit/stores/test_stores.test.ts
+  - frontend/tests/unit/stores/test_workspace_store.test.ts
+  - frontend/tests/unit/views/test_alerts_view_creation_path.test.ts
+  - frontend/tests/unit/views/test_chart_view_radar_handoff.test.ts
+  - frontend/tests/unit/views/test_screener_view_accessibility.test.ts
+  - frontend/tests/unit/views/test_settings_view.test.ts
+  - frontend/tests/unit/views/test_workstation_capabilities.test.ts
+  - frontend/tests/unit/views/test_workstation_popout_bindings.test.ts
+
 historical_tc_common_runtime_dependency_a2e22225:
   authority: Root released exact TC source a2e222251d4ea796d0d4bfb6b0e8705f503c1e4d for development consumption only; final combined browser/CI/release acceptance remains Root-owned.
   previous_active_dependency: 1fdc92f1a1628d191ad1d5b2f0ba071a80df5052
@@ -6614,7 +6616,7 @@ rrg_r47_alpha_aware_tail_oracle_2026_11_07:
   results: Strategy-owned Results restoration/fix remains pending Root's combined profile; no Results pass is claimed by this ETF checkpoint.
   full_release: Root owns the original full RRG and combined/CI/deployment qualification.
 
-tc_common_runtime_dependency_active_c9fc3bbb:
+historical_tc_common_runtime_dependency_c9fc3bbb:
   authority: Root-released exact TC source for development consumption only; full browser, exact CI, and release qualification remain Root-owned.
   source: c9fc3bbbfa9cc92ad037040fa3e610dd95bbf0ec
   previous_active_dependency: a2e222251d4ea796d0d4bfb6b0e8705f503c1e4d
@@ -6635,6 +6637,25 @@ tc_common_runtime_dependency_active_c9fc3bbb:
   - frontend/tests/unit/lib/test_data_preparation.test.ts
   verification: All85 status_from139, SHA256, Git blob, and executable-bit records match; exact10 ETF paths passed the released old guards and match the source.
   state: Root-released development dependency only; corrected-fixture full RRG/Results qualification remains pending.
+tc_common_runtime_dependency_active_2666aa55:
+  authority: Root released exact TC source 2666aa559afbff7cff8dff6b50ead357ae1f654f for development consumption only; final browser, exact CI, and release qualification remain Root-owned.
+  source: 2666aa559afbff7cff8dff6b50ead357ae1f654f
+  previous_active_dependency: c9fc3bbbfa9cc92ad037040fa3e610dd95bbf0ec
+  manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-2666aa55-common-runtime-development-consumption-contract.json
+  manifest_sha256: f0784a8337d3d53add381b0f06f9fd37e7e27fa861bca70d97e78ba341f3a10a
+  local_manifest_copy: ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/2666aa559afbff7cff8dff6b50ead357ae1f654f.json
+  current_manifest_records_verified: 86
+  consumer_import_paths:
+  - frontend/src/components/chart/HistoryAcquisitionControl.vue
+  - frontend/src/components/workstation/RelativeRotationTool.vue
+  - frontend/tests/e2e/tc_secondary_routes_journey.spec.ts
+  - frontend/tests/unit/components/test_compact_status_notice.test.ts
+  - frontend/tests/unit/components/test_history_acquisition_control.test.ts
+  - frontend/tests/unit/components/test_relative_rotation_tool.test.ts
+  verification: All86 status_from139/SHA256/Git blob/executable-bit rows match; the exact6 ETF paths passed their released old guards and match source.
+  behavior: Latest RRG markers render above historical circles; common compact History acquisition UI and its focused tests are included.
+  state: Root-released development dependency only; normal full RRG D1/W1/MN and layout lifecycle, Results, exact CI, and release gates remain pending.
+
 provider_runtime_dependency_active_dd05c5e8:
   authority: Root-released exact Provider source for development consumption only; producer and joint release qualification remain Root-owned.
   source: dd05c5e8318ff59a90f879867cae9664dcc0de4f

@@ -62,6 +62,7 @@ describe('HistoryAcquisitionControl', () => {
     expect(button.element.tagName).toBe('BUTTON')
     expect(button.attributes('type')).toBe('button')
     expect((button.element as HTMLButtonElement).tabIndex).toBe(0)
+    expect(button.classes()).toContain('history-acquisition__load--secondary')
     expect(button.text()).toBe('Load missing history')
     expect(wrapper.text()).toContain('Custom date range')
     expect(api.get).not.toHaveBeenCalled()

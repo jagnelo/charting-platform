@@ -18607,3 +18607,10 @@ Current development dependencies are TC `c9fc3bbb` (exact10 ETF imports,85/85 ma
 Read-only Strategy review of `workstation_lifecycle_journey.spec.ts:149-205`: `readRrgMarkerAudit` checks one rounded center pixel for exact expected RGB and alpha255. The R51 raster is 696x136 at DPR1 with11 latest markers; the minimum exact opaque state-color count in a3x3 center neighborhood is4, while XLC’s exact center is `[230,180,107,255]` vs expected `[231,188,104]`. A bounded marker-interior neighborhood check requiring at least one exact opaque state-color pixel would avoid this single-pixel false negative while preserving latest-frame, marker-count, and clipping assertions. No Strategy files were edited.
 
 Root still owns the normal full RRG D1/W1/MN and layout lifecycle replay, Results acceptance, exact CI, and all release gates. This checkpoint makes no full-journey or release-acceptance claim.
+
+
+## TC 2666 common-runtime dependency — 2026-11-07
+
+Consumed the six ETF-declared paths from TC source `2666aa559afbff7cff8dff6b50ead357ae1f654f` under the released old-byte guards; the remaining TC/ETF/Strategy files and producer records were not imported. The current manifest copy is `ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/2666aa559afbff7cff8dff6b50ead357ae1f654f.json` (SHA256 `f0784a8337d3d53add381b0f06f9fd37e7e27fa861bca70d97e78ba341f3a10a`); all86 source status/SHA256/Git blob/executable-bit records and all six consumer paths verify exactly.
+
+TC's generic draw-order fix paints every latest RRG marker after historical circles, addressing the real R53 layering failure. The strict ETF 3x3 latest-center oracle is unchanged. Root reports21 focused RRG regressions green; no test or browser body was run here. R52 remains a D1-only pass on predecessor c9/Provider dd05, while normal full D1/W1/MN, layout lifecycle, Results, exact CI, and release qualification remain Root-owned and pending. Prior failure receipts, roadmaps, and the Strategy read-only finding remain preserved; no sibling files changed.
