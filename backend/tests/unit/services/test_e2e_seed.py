@@ -7,6 +7,7 @@ from decimal import Decimal
 import pytest
 from sqlalchemy import select
 
+from app.models.listing import InstrumentListing
 from app.models.market_data_foundation import AdjustmentBasis, MarketSeries, MarketSeriesDefault
 from app.services.e2e_seed import (
     _E2E_BENCHMARK_PROXY_NAMES,
@@ -173,6 +174,57 @@ async def test_monthly_rrg_fixture_extends_only_controlled_top_down_history(db):
     source = db.scalar(select(DataSource).where(DataSource.name == "e2e_reference"))
     assert source is not None
     assert source.config["controlled_fixture"] is True
+    assert spy.identity_status == "resolved"
+    assert spy.domain_key == "e2e:instrument:SPY"
+    assert spy.field_provenance["controlled_fixture"] is True
+    assert spy.field_provenance["identity"]["source"] == "e2e_reference"
+    spy_listing = db.scalar(
+        select(InstrumentListing).where(
+            InstrumentListing.instrument_id == spy.id,
+            InstrumentListing.ticker == "SPY",
+            InstrumentListing.is_active.is_(True),
+            InstrumentListing.is_primary.is_(True),
+        )
+    )
+    assert spy_listing is not None
+    assert spy_listing.currency == "USD"
+    assert spy_listing.source == "e2e_reference"
+    assert spy_listing.provenance["controlled_fixture"] is True
+    daily_default = db.scalar(
+        select(MarketSeriesDefault).where(
+            MarketSeriesDefault.instrument_id == spy.id,
+            MarketSeriesDefault.timeframe == Timeframe.D1.value,
+            MarketSeriesDefault.is_adjusted.is_(True),
+        )
+    )
+    assert daily_default is not None
+    daily_series = db.get(MarketSeries, daily_default.market_series_id)
+    assert daily_series is not None
+    assert daily_series.data_source_id == source.id
+    assert daily_series.adjustment_basis == AdjustmentBasis.SPLIT_ADJUSTED
+    assert daily_series.adjustment_version == "e2e-split-adjusted-v1"
+    assert daily_series.provenance["controlled_fixture"] is True
+    original_rows = (
+        db.query(OHLCVBar)
+        .filter(OHLCVBar.market_series_id == daily_series.id)
+        .order_by(OHLCVBar.ts)
+        .all()
+    )
+    original_ids = [row.id for row in original_rows]
+    original_values = [(row.ts, row.close) for row in original_rows]
+    assert len(original_rows) > _E2E_RECENT_HISTORY_BARS
+
+    # Re-running controlled startup retains existing rows without deletion or
+    # duplicate insertion, including the same canonical series mapping.
+    await seed_e2e_market_data(fixture_db)
+    repeated_rows = (
+        db.query(OHLCVBar)
+        .filter(OHLCVBar.market_series_id == daily_series.id)
+        .order_by(OHLCVBar.ts)
+        .all()
+    )
+    assert [row.id for row in repeated_rows] == original_ids
+    assert [(row.ts, row.close) for row in repeated_rows] == original_values
     assert set(_E2E_MONTHLY_RRG_SYMBOLS) == set(_RECENT_RRG_BAR_DIGESTS)
     assert _E2E_LONG_RRG_START < _E2E_RECENT_HISTORY_START
 
