@@ -167,9 +167,28 @@ describe('SearchBar', () => {
     expect(api.post).not.toHaveBeenCalled()
     expect(preparationMock.ensure).toHaveBeenCalledWith({
       target: { kind: 'instrument', instrument_id: 43 },
-      datasets: ['identity', 'profile', 'history'], timeframe: 'D1', adjusted: true,
+      datasets: ['identity', 'profile', 'history', 'holdings'], timeframe: 'D1', adjusted: true,
     }, expect.objectContaining({ onProgress: expect.any(Function) }))
     expect(wrapper.text()).toContain('Requested data is ready.')
+  })
+
+  it('keeps issuer holdings preparation limited to ETF and ETV identities', async () => {
+    for (const [symbol, type] of [['MSFT', 'Common Stock'], ['NOTE', 'ETN']]) {
+      vi.mocked(api.get).mockResolvedValueOnce([
+        { symbol, name: `${type} fixture`, exchange: 'XNYS', type, instrument_id: 18 },
+      ])
+      const wrapper = mountSearchBar({ props: { mode: 'picker' }, global: { stubs: { RouterLink: true } } })
+      await wrapper.get('input').setValue(symbol)
+      vi.advanceTimersByTime(260)
+      await flushPromises()
+      await vi.waitFor(() => expect(wrapper.find('.result-item').exists()).toBe(true))
+      await wrapper.get('.result-item').trigger('click')
+      await flushPromises()
+      expect(preparationMock.ensure.mock.lastCall?.[0]).toMatchObject({
+        datasets: ['identity', 'profile', 'history'],
+      })
+      wrapper.unmount()
+    }
   })
 
   it('does not let a superseded preparation response replace the newer query state', async () => {
@@ -184,7 +203,7 @@ describe('SearchBar', () => {
     await flushPromises()
     await vi.waitFor(() => expect(wrapper.find('.result-item').exists()).toBe(true))
     await wrapper.get('.result-item').trigger('click')
-    expect(wrapper.text()).toContain('Preparing XLE history')
+    expect(wrapper.text()).toContain('Preparing XLE data')
 
     await wrapper.get('input').setValue('NVDA')
     finishPreparation({ status: 'unavailable' })
@@ -473,6 +492,10 @@ describe('SearchBar', () => {
       request_id: 'resolve-etv',
       status: 'resolved',
       instrument: { instrument_id: 991, symbol: 'EVOL', identity_status: 'resolved', instrument_type: 'Exchange Traded Vehicle' },
+    })
+    expect(preparationMock.ensure.mock.lastCall?.[0]).toMatchObject({
+      target: { kind: 'instrument', instrument_id: 991 },
+      datasets: ['identity', 'profile', 'history', 'holdings'],
     })
   })
 

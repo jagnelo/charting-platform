@@ -604,7 +604,7 @@ function commitSelection(
 ) {
   invalidateSearch()
   const preparationId = ++preparationSequence
-  startSelectionPreparation(symbol, result, preparationId)
+  startSelectionPreparation(symbol, result, confirmedIdentity, preparationId)
   emit('update:modelValue', symbol)
   if (confirmedIdentity) emit('select', symbol, result, confirmedIdentity)
   else emit('select', symbol, result)
@@ -620,15 +620,28 @@ function commitSelection(
   errorMessage.value = ''
 }
 
-function startSelectionPreparation(symbol: string, result: SearchResult | undefined, preparationId: number) {
+function startSelectionPreparation(
+  symbol: string,
+  result: SearchResult | undefined,
+  confirmedIdentity: InstrumentAcquireResponse | undefined,
+  preparationId: number,
+) {
   if (result?.type.trim().toLowerCase() === 'synthetic' || symbol.trim().startsWith('=')) return
   const instrumentId = result?.instrument_id
   const target = Number.isSafeInteger(instrumentId) && Number(instrumentId) > 0
     ? { kind: 'instrument' as const, instrument_id: Number(instrumentId) }
     : { kind: 'instrument' as const, symbol: symbol.trim() }
-  preparationMessage.value = `Preparing ${symbol} history…`
+  const canonicalType = (confirmedIdentity?.instrument?.instrument_type ?? result?.type ?? '')
+    .trim().toUpperCase().replace(/[-_]/g, ' ').replace(/\s+/g, ' ')
+  const datasets = ['identity', 'profile', 'history'] as Array<'identity' | 'profile' | 'history' | 'holdings'>
+  if (['ETF', 'INDEX ETF', 'EXCHANGE TRADED FUND', 'ETV', 'EXCHANGE TRADED VEHICLE'].includes(canonicalType)) {
+    datasets.push('holdings')
+  }
+  preparationMessage.value = `Preparing ${symbol} data…`
+  const request = instrumentHistoryPreparationRequest(target, 'D1', true)
+  request.datasets = datasets
   void dataPreparationCoordinator.ensure(
-    instrumentHistoryPreparationRequest(target, 'D1', true),
+    request,
     {
       onProgress: ({ response }) => {
         if (preparationId === preparationSequence) preparationMessage.value = preparationStatusMessage(response)
