@@ -5,7 +5,7 @@
     <div class="wl-sidebar">
       <div class="wls-header">
         <span class="wls-title">Watchlists</span>
-        <button class="wls-new-btn" @click="showCreateForm = !showCreateForm">+ New</button>
+        <button class="wls-new-btn" :aria-expanded="showCreateForm" @click="showCreateForm = !showCreateForm">+ New</button>
       </div>
 
       <Transition name="slide-down">
@@ -14,12 +14,13 @@
             ref="createInput"
             v-model="newName"
             class="cf-input"
+            aria-label="New watchlist name"
             placeholder="Name…"
             @keydown.enter="submitCreate"
             @keydown.esc="cancelCreate"
           />
-          <button class="cf-btn confirm" :disabled="!newName.trim()" @click="submitCreate">✓</button>
-          <button class="cf-btn" @click="cancelCreate">✕</button>
+          <button class="cf-btn confirm" aria-label="Create watchlist" :disabled="!newName.trim()" @click="submitCreate">✓</button>
+          <button class="cf-btn" aria-label="Cancel watchlist creation" @click="cancelCreate">✕</button>
         </div>
       </Transition>
 
@@ -44,12 +45,13 @@
                   ref="sidebarRenameInput"
                   v-model="sidebarRenameValue"
                   class="wls-rename-input"
+                  :aria-label="`Rename ${wl.name}`"
                   @keydown.enter="commitSidebarRename(wl.id)"
                   @keydown.escape="cancelSidebarRename"
                   @click.stop
                 />
-                <button class="wls-rename-btn confirm" @click.stop="commitSidebarRename(wl.id)">✓</button>
-                <button class="wls-rename-btn"         @click.stop="cancelSidebarRename">✕</button>
+                <button class="wls-rename-btn confirm" :aria-label="`Save name for ${wl.name}`" @click.stop="commitSidebarRename(wl.id)">✓</button>
+                <button class="wls-rename-btn" :aria-label="`Cancel renaming ${wl.name}`" @click.stop="cancelSidebarRename">✕</button>
                 <div v-if="sidebarRenameError" class="wls-rename-error">{{ sidebarRenameError }}</div>
               </template>
               <template v-else>
@@ -63,12 +65,15 @@
                 <button
                   class="wlsi-menu-btn"
                   title="More options"
+                  aria-label="More options"
+                  :aria-expanded="sidebarMenuId === wl.id ? 'true' : 'false'"
+                  :aria-controls="`watchlist-options-${wl.id}`"
                   @click.stop="toggleSidebarMenu(wl.id)"
                 >⋯</button>
               </template>
 
               <!-- ⋯ dropdown -->
-              <div v-if="sidebarMenuId === wl.id" class="wlsi-dropdown" @click.stop>
+              <div v-if="sidebarMenuId === wl.id" :id="`watchlist-options-${wl.id}`" class="wlsi-dropdown" @click.stop>
                 <button class="wlsi-dd-item" @click.stop="startSidebarRename(wl)">Rename</button>
                 <button v-if="canDeleteWatchlist(wl)" class="wlsi-dd-item" @click.stop="startSidebarDelete(wl.id)">Delete</button>
                 <button class="wlsi-dd-item" @click.stop="doSidebarCopy(wl.id)">Copy</button>
@@ -137,7 +142,7 @@
               <span v-else class="wlmi-no-price">—</span>
             </div>
             <Sparkline v-if="item.symbol" :symbol="item.symbol" class="wlmi-spark" />
-            <button v-if="!activeWl.is_managed && !activeWl.is_locked" class="wlmi-remove" title="Remove" @click.stop="store.removeItem(activeWl.id, item.id)">✕</button>
+            <button v-if="!activeWl.is_managed && !activeWl.is_locked" class="wlmi-remove" :aria-label="`Remove ${item.symbol} from ${activeWl.name}`" title="Remove" @click.stop="store.removeItem(activeWl.id, item.id)">✕</button>
           </div>
           <div v-if="!activeWl.items.length" class="wlm-empty">
             Search for a symbol above to add it

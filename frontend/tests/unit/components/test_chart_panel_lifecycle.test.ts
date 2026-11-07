@@ -5,17 +5,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import ChartPanel from '@/components/chart/ChartPanel.vue'
 import { api } from '@/lib/api'
+import { dataPreparationCoordinator, type DataEnsureResponse } from '@/lib/dataPreparation'
 import { useAlertsStore } from '@/stores/alerts'
 import { useDrawingsStore } from '@/stores/drawings'
 import { useLayoutStore } from '@/stores/layout'
 import { usePanelStore } from '@/stores/chart'
-
-vi.mock('@/lib/onDemandAcquisition', async importOriginal => {
-  const actual = await importOriginal<typeof import('@/lib/onDemandAcquisition')>()
-  return { ...actual, acquireSelectedHistory: vi.fn() }
-})
-
-import { acquireSelectedHistory } from '@/lib/onDemandAcquisition'
 
 const routerLinkStub = { template: '<a><slot /></a>' }
 
@@ -25,14 +19,19 @@ async function flushPromises() {
   await nextTick()
 }
 
+function readyPreparationResponse(): DataEnsureResponse {
+  return {
+    request_id: 'panel-preparation', status: 'ready', created_at: '2026-11-07T00:00:00Z', updated_at: '2026-11-07T00:00:00Z',
+    version: 2, target: { kind: 'instrument', instrument_id: 23 }, dependencies: [], completed: 0, total: 0,
+    last_progress_at: '2026-11-07T00:00:00Z',
+  }
+}
+
 describe('ChartPanel lifecycle fencing', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.restoreAllMocks()
-    vi.mocked(acquireSelectedHistory).mockReset().mockResolvedValue({
-      kind: 'already-covered',
-      coverage: { status: 'ready', bar_count: 1, missing_slices: [] },
-    })
+    vi.spyOn(dataPreparationCoordinator, 'ensure').mockResolvedValue(readyPreparationResponse())
   })
 
   afterEach(() => vi.unstubAllGlobals())
@@ -225,7 +224,7 @@ describe('ChartPanel lifecycle fencing', () => {
     wrapper.unmount()
   })
 
-  it('uses shared automatic discovery and starts bounded history only after a deliberate panel selection', async () => {
+  it('uses shared automatic discovery and starts admitted full-depth preparation only after deliberate selection', async () => {
     const pinia = createPinia()
     setActivePinia(pinia)
     const layoutStore = useLayoutStore()
@@ -253,19 +252,17 @@ describe('ChartPanel lifecycle fencing', () => {
       },
     })
     await flushPromises()
-    expect(acquireSelectedHistory).not.toHaveBeenCalled()
+    expect(dataPreparationCoordinator.ensure).not.toHaveBeenCalled()
 
     await wrapper.get('.panel-sym-btn').trigger('click')
     const input = wrapper.get('input[role="combobox"]')
     await input.setValue('C')
     await vi.waitFor(() => expect(wrapper.find('.result-item').exists()).toBe(true))
     await wrapper.get('.search-option-list [role="option"]').trigger('click')
-    await vi.waitFor(() => expect(acquireSelectedHistory).toHaveBeenCalledWith(
-      'C', 'D1', true,
-      expect.objectContaining({ timeframe: 'D1', adjusted: true, start: expect.any(String), end: expect.any(String) }),
-      expect.any(Function), expect.any(Function), undefined,
-      expect.objectContaining({ signal: expect.any(Object) }),
-    ))
+    await vi.waitFor(() => expect(dataPreparationCoordinator.ensure).toHaveBeenCalled())
+    const request = vi.mocked(dataPreparationCoordinator.ensure).mock.calls.at(-1)?.[0]
+    expect(request).toMatchObject({ target: { kind: 'instrument' }, datasets: ['identity', 'profile', 'history'], timeframe: 'D1', adjusted: true })
+    expect(request).not.toHaveProperty('start_at')
     expect(api.get).toHaveBeenCalledWith('/instruments/search', { q: 'C', canonical_only: true })
     wrapper.unmount()
   })
@@ -290,8 +287,6 @@ describe('ChartPanel lifecycle fencing', () => {
     vi.spyOn(api, 'post')
       .mockImplementationOnce(() => new Promise(resolve => { resolveDiscovery = resolve }) as never)
       .mockResolvedValueOnce({ request_id: 'resolve-c', status: 'resolved', instrument: { instrument_id: 43, symbol: 'C', identity_status: 'verified' }, source_outcomes: [] } as never)
-      .mockResolvedValueOnce({ request_id: 'prepare-c', status: 'ready', created_at: '2026-11-06T12:00:00Z', updated_at: '2026-11-06T12:00:00Z',
-        version: 1, target: { kind: 'instrument', instrument_id: 43 }, dependencies: [], completed: 0, total: 0, last_progress_at: '2026-11-06T12:00:00Z' } as never)
 
     const wrapper = mount(ChartPanel, {
       props: { panelId: 'p0' },
@@ -302,7 +297,7 @@ describe('ChartPanel lifecycle fencing', () => {
     })
     await flushPromises()
     expect(api.post).not.toHaveBeenCalled()
-    expect(acquireSelectedHistory).not.toHaveBeenCalled()
+    expect(dataPreparationCoordinator.ensure).not.toHaveBeenCalled()
 
     await wrapper.get('.panel-sym-btn').trigger('click')
     const input = wrapper.get('input[role="combobox"]')
@@ -312,7 +307,6 @@ describe('ChartPanel lifecycle fencing', () => {
       query: 'C', types: [], limit: 10, request_id: expect.any(String),
     }))
     expect(wrapper.text()).toContain('Checking ticker availability')
-    expect(acquireSelectedHistory).not.toHaveBeenCalled()
     resolveDiscovery({ request_id: 'discover-c', status: 'complete', candidates: [{ symbol: 'C', name: 'Example C', exchange: 'XNYS', type: 'Equity', provider: 'fixture', instrument_id: null, identity_status: 'provider_candidate' }], source_outcomes: [] })
     await vi.waitFor(() => expect(api.post).toHaveBeenCalledWith('/instruments/acquire', {
       symbol: 'C', provider_candidate: { provider: 'fixture', symbol: 'C', exchange: 'XNYS' }, request_id: expect.any(String),
@@ -320,16 +314,10 @@ describe('ChartPanel lifecycle fencing', () => {
     await vi.waitFor(() => expect(wrapper.find('.search-source-candidate').exists()).toBe(false))
     await vi.waitFor(() => expect(wrapper.find('.result-item').exists()).toBe(true))
     await wrapper.get('input[role="combobox"]').trigger('keydown', { key: 'Enter' })
-    await vi.waitFor(() => expect(acquireSelectedHistory).toHaveBeenCalledWith(
-      'C', 'D1', true,
-      expect.objectContaining({ timeframe: 'D1', adjusted: true, start: expect.any(String), end: expect.any(String) }),
-      expect.any(Function), expect.any(Function), expect.any(Promise),
-      expect.objectContaining({ signal: expect.any(Object) }),
-    ))
-    const panelHistoryCall = vi.mocked(acquireSelectedHistory).mock.calls.at(-1)!
-    await expect(panelHistoryCall[6]).resolves.toMatchObject({
-      status: 'resolved', instrument: { instrument_id: 43, symbol: 'C', identity_status: 'verified' },
-    })
+    await vi.waitFor(() => expect(dataPreparationCoordinator.ensure).toHaveBeenCalled())
+    expect(vi.mocked(dataPreparationCoordinator.ensure).mock.calls.some(([request]) =>
+      request.target.kind === 'instrument' && request.target.instrument_id === 43 && request.timeframe === 'D1' && !('start_at' in request),
+    )).toBe(true)
     expect(loadBars).toHaveBeenCalledTimes(1)
     expect(loadBars).toHaveBeenCalledWith('C', 'D1')
     wrapper.unmount()
@@ -362,7 +350,59 @@ describe('ChartPanel lifecycle fencing', () => {
     await flushPromises()
 
     expect(panelStore.loadBars).toHaveBeenCalledWith('=SPY-QQQ', 'D1')
-    expect(acquireSelectedHistory).not.toHaveBeenCalled()
+    expect(dataPreparationCoordinator.ensure).not.toHaveBeenCalled()
+    wrapper.unmount()
+  })
+
+  it('prepares restored panels without an artificial start bound and follows timeframe changes while cached bars remain visible', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const layoutStore = useLayoutStore()
+    layoutStore.layout = '1'
+    layoutStore.panels[0].symbol = 'SPY'
+    layoutStore.panels[0].timeframe = 'D1'
+
+    const panelStore = usePanelStore('p0')
+    const cachedBars = [{ time: 1, open: 10, high: 11, low: 9, close: 10.5, volume: 100 }]
+    vi.spyOn(panelStore, 'loadBars').mockImplementation(async (symbol: string, timeframe: any = 'D1') => {
+      panelStore.symbol = symbol
+      panelStore.timeframe = timeframe
+      panelStore.instrument = { id: 23, symbol, name: symbol, is_active: true, currency: 'USD' }
+      panelStore.bars = cachedBars as never
+    })
+    vi.spyOn(useDrawingsStore(), 'loadDrawings').mockResolvedValue()
+    vi.spyOn(useAlertsStore(), 'loadAlerts').mockResolvedValue()
+    let resolvePreparation!: (response: DataEnsureResponse) => void
+    vi.mocked(dataPreparationCoordinator.ensure).mockImplementationOnce(() => new Promise(resolve => { resolvePreparation = resolve }))
+
+    const wrapper = mount(ChartPanel, {
+      props: { panelId: 'p0' },
+      global: {
+        plugins: [pinia],
+        stubs: {
+          TimeframeSelector: {
+            emits: ['update:modelValue'],
+            template: '<button type="button" class="change-timeframe" @click="$emit(\'update:modelValue\', \'W1\')">Weekly</button>',
+          },
+          UPlotChart: { template: '<div />' },
+          RouterLink: routerLinkStub,
+        },
+      },
+    })
+    await vi.waitFor(() => expect(dataPreparationCoordinator.ensure).toHaveBeenCalledTimes(1))
+    const initialRequest = vi.mocked(dataPreparationCoordinator.ensure).mock.calls[0]?.[0]
+    expect(initialRequest).toMatchObject({ target: { kind: 'instrument', instrument_id: 23 }, timeframe: 'D1', datasets: ['identity', 'profile', 'history'] })
+    expect(initialRequest).not.toHaveProperty('start_at')
+    expect(panelStore.bars).toEqual(cachedBars)
+
+    await wrapper.get('.change-timeframe').trigger('click')
+    await vi.waitFor(() => expect(dataPreparationCoordinator.ensure).toHaveBeenCalledTimes(2))
+    const weeklyRequest = vi.mocked(dataPreparationCoordinator.ensure).mock.calls[1]?.[0]
+    expect(weeklyRequest).toMatchObject({ target: { kind: 'instrument', instrument_id: 23 }, timeframe: 'W1' })
+    expect(weeklyRequest).not.toHaveProperty('start_at')
+    expect(panelStore.bars).toEqual(cachedBars)
+
+    resolvePreparation(readyPreparationResponse())
     wrapper.unmount()
   })
 })

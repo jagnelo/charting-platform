@@ -1,7 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { apiGet, apiPost, loadWatchlistSources, loadWatchlists, resolveWatchlistSource, createWatchlist, addItem, loadUserSettings, toggleFollowedSource, togglePinnedSource, invalidateQueries } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn(), loadWatchlistSources: vi.fn(), loadWatchlists: vi.fn(), resolveWatchlistSource: vi.fn(), createWatchlist: vi.fn(), addItem: vi.fn(), loadUserSettings: vi.fn(), toggleFollowedSource: vi.fn(), togglePinnedSource: vi.fn(), invalidateQueries: vi.fn() }))
+const { apiGet, apiPost, loadWatchlistSources, loadWatchlists, resolveWatchlistSource, createWatchlist, addItem, loadUserSettings, toggleFollowedSource, togglePinnedSource, invalidateQueries, fetchQuery } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn(), loadWatchlistSources: vi.fn(), loadWatchlists: vi.fn(), resolveWatchlistSource: vi.fn(), createWatchlist: vi.fn(), addItem: vi.fn(), loadUserSettings: vi.fn(), toggleFollowedSource: vi.fn(), togglePinnedSource: vi.fn(), invalidateQueries: vi.fn(), fetchQuery: vi.fn(({ queryFn }: { queryFn: () => unknown }) => queryFn()) }))
 const defaultSources = vi.hoisted(() => [{ source_id: 'market-group:sp500', source_kind: 'index_membership', name: 'S&P 500', locked: true, can_follow: true, can_clone: true, can_edit_membership: false, member_count: 2, provenance: {} }])
 const sourceState = vi.hoisted(() => ({
   sources: defaultSources,
@@ -11,7 +11,7 @@ const sourceState = vi.hoisted(() => ({
 }))
 
 vi.mock('@/lib/api', () => ({ api: { get: apiGet, post: apiPost, delete: vi.fn() } }))
-vi.mock('@tanstack/vue-query', () => ({ useQueryClient: () => ({ invalidateQueries }) }))
+vi.mock('@tanstack/vue-query', () => ({ useQueryClient: () => ({ invalidateQueries, fetchQuery }) }))
 vi.mock('@/stores/watchlist', () => ({ useWatchlistStore: () => ({ watchlistSources: sourceState.sources, watchlistSourcesLoading: sourceState.loading, watchlistSourcesError: sourceState.error, watchlists: sourceState.watchlists, loadWatchlistSources, loadWatchlists, resolveWatchlistSource, createWatchlist, addItem }) }))
 vi.mock('@/stores/userSettings', () => ({ useUserSettingsStore: () => ({ followedSourceIds: [], pinnedSourceIds: [], loadSettings: loadUserSettings, toggleFollowedSource, togglePinnedSource }) }))
 
@@ -51,6 +51,7 @@ describe('MarketMapTool', () => {
     toggleFollowedSource.mockReset()
     togglePinnedSource.mockReset()
     invalidateQueries.mockReset()
+    fetchQuery.mockReset().mockImplementation(({ queryFn }: { queryFn: () => unknown }) => queryFn())
     sourceState.sources = [...defaultSources]
     sourceState.watchlists = []
     apiPost.mockResolvedValue(response)
@@ -1995,5 +1996,33 @@ describe('MarketMapTool', () => {
 
     const request = apiPost.mock.calls.map(call => call[1]).find(body => body?.color_metric === 'relative_return')
     expect(request).toEqual(expect.objectContaining({ reference_source_id: 'watchlist:reference', reference_symbol: null }))
+  })
+
+  it('prepares the selected and reference market groups using each source canonical key', async () => {
+    sourceState.sources = [
+      { ...defaultSources[0]!, stable_key: 'sp500-primary-key' },
+      {
+        ...defaultSources[0]!,
+        source_id: 'market-group:consumer-discretionary',
+        stable_key: 'consumer-discretionary-reference-key',
+        name: 'Consumer Discretionary',
+      },
+    ]
+    const wrapper = mount(MarketMapTool, {
+      props: {
+        configuration: {
+          source_id: 'market-group:sp500',
+          color_metric: 'relative_return',
+          reference_source_id: 'market-group:consumer-discretionary',
+        },
+      },
+    })
+    await flushPromises()
+
+    const preparedTargets = ensurePreparation.mock.calls.map(([request]) => request.target)
+    expect(preparedTargets).toContainEqual({ kind: 'market_group', group_key: 'sp500-primary-key' })
+    expect(preparedTargets).toContainEqual({ kind: 'market_group', group_key: 'consumer-discretionary-reference-key' })
+    expect(preparedTargets).toHaveLength(2)
+    wrapper.unmount()
   })
 })

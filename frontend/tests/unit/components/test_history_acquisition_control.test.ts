@@ -282,6 +282,36 @@ describe('HistoryAcquisitionControl', () => {
     expect(api.post).not.toHaveBeenCalled()
   })
 
+  it('keeps the expanded custom range inside a narrow viewport when its chart header anchor is offscreen', async () => {
+    vi.stubGlobal('innerWidth', 390)
+    vi.stubGlobal('innerHeight', 800)
+    const wrapper = mount(HistoryAcquisitionControl, {
+      props: { symbol: 'OIH', timeframe: 'D1', adjusted: true },
+      attachTo: document.body,
+    })
+    const details = wrapper.get('details').element as HTMLDetailsElement
+    const summary = wrapper.get('summary').element
+    const panel = wrapper.get('.history-acquisition__body').element as HTMLDivElement
+    vi.spyOn(summary, 'getBoundingClientRect').mockReturnValue({
+      x: 350, y: 700, left: 350, top: 700, right: 430, bottom: 724, width: 80, height: 24,
+      toJSON: () => ({}),
+    } as DOMRect)
+    Object.defineProperty(panel, 'scrollHeight', { configurable: true, value: 240 })
+    await wrapper.get('summary').trigger('click')
+    expect(details.open).toBe(true)
+    window.dispatchEvent(new Event('resize'))
+    await vi.waitFor(() => expect(panel.style.left).toBe('62px'))
+
+    expect(panel.style.top).toBe('454px')
+    expect(panel.style.width).toBe('320px')
+    expect(panel.style.maxHeight).toBe('240px')
+    expect(wrapper.get('[aria-label="History start date"]').exists()).toBe(true)
+    expect(wrapper.get('[aria-label="History end date"]').exists()).toBe(true)
+    expect(api.get).not.toHaveBeenCalled()
+    expect(api.post).not.toHaveBeenCalled()
+    wrapper.unmount()
+  })
+
   it('clips a manual custom range to actual availability and reports the loaded boundary', async () => {
     vi.mocked(api.get)
       .mockResolvedValueOnce(missingCoverage as never)

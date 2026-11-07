@@ -12,6 +12,7 @@ import { useLayoutStore } from '@/stores/layout'
 import { useOptionsExposureStore } from '@/stores/optionsExposure'
 import { usePresetsStore } from '@/stores/presets'
 import { useRadarStore } from '@/stores/radar'
+import { useWatchlistStore } from '@/stores/watchlist'
 import { holdingDrilldownRouteQuery, type ETFHoldingDrilldownContext } from '@/lib/etfHoldingDrilldown'
 
 const route = {
@@ -179,6 +180,33 @@ describe('ChartView radar handoff', () => {
     expect(chart.wrapper.get('.watchlist-panel-stub').attributes('data-compact-default')).toBe('true')
     expect(chart.wrapper.get('.chart-body').exists()).toBe(true)
     chart.wrapper.unmount()
+  })
+
+  it('exposes the chart watchlist picker as a named keyboard-operable menu', async () => {
+    const { releasePresets, wrapper } = mountDeferredPresetsChart()
+    const watchlistStore = useWatchlistStore()
+    watchlistStore.watchlists = [
+      { id: 1, name: 'Research', is_default: false, is_managed: false, is_locked: false, position: 0, items: [] },
+    ]
+    await flushPromises()
+    releasePresets()
+    await flushPromises()
+
+    const trigger = wrapper.get('.wl-star')
+    expect(trigger.attributes('aria-label')).toBe('Add SPY to a watchlist')
+    expect(trigger.attributes('aria-expanded')).toBe('false')
+    await trigger.trigger('click')
+    expect(trigger.attributes('aria-expanded')).toBe('true')
+    const menu = wrapper.get('[role="group"][aria-label="Add active symbol to watchlist"]')
+    expect(trigger.attributes('aria-controls')).toBe(menu.attributes('id'))
+    expect(menu.get('button[aria-label="Add SPY to Research"]').text()).toBe('Research')
+    const newWatchlist = menu.get('button.wqm-new')
+    expect(newWatchlist.text()).toBe('+ New watchlist')
+    document.body.appendChild(wrapper.element)
+    const addButton = menu.get('button[aria-label="Add SPY to Research"]')
+    addButton.element.focus()
+    expect(document.activeElement).toBe(addButton.element)
+    wrapper.unmount()
   })
 
   it('refreshes newly acquired history from local storage without clearing cached bars', async () => {

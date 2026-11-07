@@ -14950,9 +14950,9 @@ progress:
   - PLATFORM-PREP-6
   - PLATFORM-PREP-7
   total: 8
-  current_phase: workspace_read_consistency
-  current_blocker: The forced real-PostgreSQL concurrent replacement regression passes. Root owns cleanup of its unique leased database and the existing-fixture M15 panel recheck; exact-source CI and combined release gates remain pending.
-  next_action: Root cleans the exact workspace-read database lease, then reviews the frozen backend successor containing the M15 fixture and single-snapshot workspace reads; preserve all D1/W1/MN data and native holds.
+  current_phase: tc_a2_common_context_import
+  current_blocker: Root's compatible UI compile/runtime and exact-source, combined, native and release gates remain pending; the TC a2 ChartPanel delta has not yet been compiled in Root's 84b runtime.
+  next_action: Root builds and reviews the exact a2 common UI source with Provider182; then continue Root-owned combined/native/exact-source qualification without replaying producer suites.
 local_validation_profile: "full_stack_browser"
 local_validation_reason: >-
   API, persistence, queue, worker and provider-history routing are in scope; cumulative profile remains full_stack_browser/full_integration.
@@ -14988,7 +14988,7 @@ current_gate_checkpoint: >-
   jobs. The isolated real-PostgreSQL regression held the mocked history boundary, confirmed a second authenticated ensure returned within
   five seconds and reused the child, and verified both parents remain attached to the persisted continuation. The imported ETF view fixture
   now includes its actual SPY context; its focused module passed 20/20. Ruff, format, compile and diff checks pass. These are focused local
-  results only; Root's ordinary repeated-HTTP verification, exact-source CI and combined gates remain pending. Root has released the exact ETF basket async-materialization dependency from 055641eaafab37a8160908e974a3ec1a4483e7c6: only baskets.py and test_baskets.py were imported, and all five declared source blobs, hashes and 100644 modes match the contract. Focused ETF adapter/checkpoint-consumer modules passed 702 tests; Ruff check/format and diff checks pass. The integration regression uses the standard db_engine fixture which creates and drops all registered tables, so it was not pointed at Root's shared browser database; Root's isolated HTTP/PG replay remains pending. Root additionally released TC source 45ea51bfa78b6ae167462b518358164a5a3e29f4; exactly the ten Provider-declared import paths match all 77 manifest file hashes/blobs/modes. Root released Strategy source f2f6d37a3384ff7e6f3d8d425bad3b39cc5a23ba; its two declared research files match exact SHA/blob guards. The retained R29 latency review measured the four allowed API endpoints twice (all HTTP 200): snapshot 2.022/2.064s, breadth 2.048/1.729s, breadth history 2.052/2.117s, family readiness 0.343/0.360s; one extra breadth sample was 2.231s. One prior fake-account login used the CJS fallback password and returned 401; Root then supplied the exact private fake-account record. Total local HTTP count was 12 including that failure. A read-only PostgreSQL activity sample observed no long-running query or wait, but EXPLAIN ANALYZE on the old selected-series bar query took 1391.348ms for 20,064 rows; its correlated EXISTS caused an index lookup for each row (20,064 loops / 40,128 shared hits). The new batch-selected read returned the same 20,064 rows in 561.53ms helper wall time; its selected-bar SELECT took 135.02ms and no longer contains per-bar correlated EXISTS. Focused analysis tests passed 2/2, Ruff check/format and diff checks passed. No provider requests, production/public dataset writes, schema changes, or quota/policy/ledger/hold changes occurred; the permitted login updated only the isolated fake account's last_login_at. Root must rebuild and remeasure the compatible source; no browser, release, exact-source CI, or full-roadmap completion is claimed.
+  results only; Root's ordinary repeated-HTTP verification, exact-source CI and combined gates remain pending. Root has released the exact ETF basket async-materialization dependency from 055641eaafab37a8160908e974a3ec1a4483e7c6: only baskets.py and test_baskets.py were imported, and all five declared source blobs, hashes and 100644 modes match the contract. Focused ETF adapter/checkpoint-consumer modules passed 702 tests; Ruff check/format and diff checks pass. The integration regression uses the standard db_engine fixture which creates and drops all registered tables, so it was not pointed at Root's shared browser database; Root's isolated HTTP/PG replay remains pending. Root additionally released TC source 45ea51bfa78b6ae167462b518358164a5a3e29f4; exactly the ten Provider-declared import paths match all 77 manifest file hashes/blobs/modes. Root released Strategy source f2f6d37a3384ff7e6f3d8d425bad3b39cc5a23ba; its two declared research files match exact SHA/blob guards. The retained R29 latency review measured the four allowed API endpoints twice (all HTTP 200): snapshot 2.022/2.064s, breadth 2.048/1.729s, breadth history 2.052/2.117s, family readiness 0.343/0.360s; one extra breadth sample was 2.231s. One prior fake-account login used the CJS fallback password and returned 401; Root then supplied the exact private fake-account record. Total local HTTP count was 12 including that failure. A read-only PostgreSQL activity sample observed no long-running query or wait, but EXPLAIN ANALYZE on the old selected-series bar query took 1391.348ms for 20,064 rows; its correlated EXISTS caused an index lookup for each row (20,064 loops / 40,128 shared hits). The new batch-selected read returned the same 20,064 rows in 561.53ms helper wall time; its selected-bar SELECT took 135.02ms and no longer contains per-bar correlated EXISTS. Focused analysis tests passed 2/2, Ruff check/format and diff checks passed. No provider requests, production/public dataset writes, schema changes, or quota/policy/ledger/hold changes occurred; the permitted login updated only the isolated fake account's last_login_at. Root must rebuild and remeasure the compatible source; no browser, release, exact-source CI, or full-roadmap completion is claimed. The current common UI dependency is TC a2e222251d4ea796d0d4bfb6b0e8705f503c1e4d (22 Provider paths imported from its 83-row manifest); the exact a2 ChartPanel delta remains uncompiled by Root. Current active ETF b0db and Strategy f652 imports remain pinned; older common imports stay historical only.
 previously_accepted_provider_history_identity_human_closure_authorization: >-
   Root accepted the prior bounded derived-history and retained-issuer-identity checkpoint under standing human delegation. Its evidence
   remains in derived_refresh_issuer_identity_followup and the append-only journal; it does not accept this newly activated scope.
@@ -15361,3 +15361,104 @@ provider_workspace_read_consistency_20261107:
   prior_m15_fixture_checkpoint: provider-default-m15-controlled-e2e-fixture-20261107 remains in this successor's ancestry; its 8-test unit result is preserved above.
   exact_source_ci_and_combined_release: pending Root-owned
   broader_provider_roadmap: open
+
+approved_development_dependency_imports:
+- source_sha: a2e222251d4ea796d0d4bfb6b0e8705f503c1e4d
+  manifest_path: ops/workstreams/feat-market-data-provider-platform/development-dependency-imports/a2e222251d4ea796d0d4bfb6b0e8705f503c1e4d.json
+  manifest_sha256: 6e6c1233cc1fe168528779908b57cd777e09ea2317367ff3a1e5e7826a145ba1
+  paths:
+  - frontend/package-lock.json
+  - frontend/package.json
+  - frontend/src/App.vue
+  - frontend/src/components/chart/ChartPanel.vue
+  - frontend/src/components/chart/HistoryAcquisitionControl.vue
+  - frontend/src/components/chart/UPlotChart.vue
+  - frontend/src/components/common/Notification.vue
+  - frontend/src/components/common/SearchBar.vue
+  - frontend/src/components/radar/RadarDetailPreviewChart.vue
+  - frontend/src/components/workstation/EasyScanTool.vue
+  - frontend/src/components/workstation/MarketGaugeTool.vue
+  - frontend/src/components/workstation/MarketMapTool.vue
+  - frontend/src/components/workstation/RatioUPlot.vue
+  - frontend/src/components/workstation/RelativeRotationTool.vue
+  - frontend/src/components/workstation/ToolWindow.vue
+  - frontend/src/components/workstation/VirtualWatchlistTool.vue
+  - frontend/src/components/workstation/WorkspaceLayoutHost.vue
+  - frontend/src/components/workstation/WorkstationToolContent.vue
+  - frontend/src/lib/api.ts
+  - frontend/src/lib/authSession.ts
+  - frontend/src/lib/dataPreparation.ts
+  - frontend/src/lib/etfHoldingDrilldown.ts
+  - frontend/src/lib/workstation/benchmarkFamilySources.ts
+  - frontend/src/lib/workstation/instrumentCalendar.ts
+  - frontend/src/lib/workstation/marketMap.ts
+  - frontend/src/lib/workstation/ohlcvRequests.ts
+  - frontend/src/lib/workstation/toolActivation.ts
+  - frontend/src/main.ts
+  - frontend/src/router/index.ts
+  - frontend/src/stores/alerts.ts
+  - frontend/src/stores/auth.ts
+  - frontend/src/stores/chart.ts
+  - frontend/src/stores/layout.ts
+  - frontend/src/stores/panelLinks.ts
+  - frontend/src/stores/radar.ts
+  - frontend/src/stores/recentInstruments.ts
+  - frontend/src/stores/userSettings.ts
+  - frontend/src/stores/watchlist.ts
+  - frontend/src/stores/workspace.ts
+  - frontend/src/views/AlertsView.vue
+  - frontend/src/views/ChartView.vue
+  - frontend/src/views/ScreenerView.vue
+  - frontend/src/views/SettingsView.vue
+  - frontend/src/views/WatchlistView.vue
+  - frontend/src/views/WorkstationView.vue
+  - frontend/tests/e2e/auth_session_boundary.spec.ts
+  - frontend/tests/e2e/flows.spec.ts
+  - frontend/tests/e2e/helpers.ts
+  - frontend/tests/e2e/tc2000_visual.spec.ts
+  - frontend/tests/unit/components/test_chart_panel_lifecycle.test.ts
+  - frontend/tests/unit/components/test_easy_scan_tool.test.ts
+  - frontend/tests/unit/components/test_history_acquisition_control.test.ts
+  - frontend/tests/unit/components/test_market_gauge_tool.test.ts
+  - frontend/tests/unit/components/test_market_map_tool.test.ts
+  - frontend/tests/unit/components/test_radar_detail_preview_chart.test.ts
+  - frontend/tests/unit/components/test_ratio_uplot.test.ts
+  - frontend/tests/unit/components/test_relative_rotation_tool.test.ts
+  - frontend/tests/unit/components/test_search_bar.test.ts
+  - frontend/tests/unit/components/test_tool_window.test.ts
+  - frontend/tests/unit/components/test_uplot_chart_context.test.ts
+  - frontend/tests/unit/components/test_workspace_layout_host.test.ts
+  - frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts
+  - frontend/tests/unit/e2e/test_browser_diagnostics.test.ts
+  - frontend/tests/unit/lib/test_api_client.test.ts
+  - frontend/tests/unit/lib/test_auth_session.test.ts
+  - frontend/tests/unit/lib/test_benchmark_family_sources.test.ts
+  - frontend/tests/unit/lib/test_data_preparation.test.ts
+  - frontend/tests/unit/lib/test_instrument_calendar.test.ts
+  - frontend/tests/unit/lib/test_market_map.test.ts
+  - frontend/tests/unit/lib/test_tool_activation.test.ts
+  - frontend/tests/unit/lib/workstation_ohlcv_requests.test.ts
+  - frontend/tests/unit/router/test_app_shell.test.ts
+  - frontend/tests/unit/router/test_application_routes.test.ts
+  - frontend/tests/unit/setup.ts
+  - frontend/tests/unit/stores/test_drawings_store.test.ts
+  - frontend/tests/unit/stores/test_stores.test.ts
+  - frontend/tests/unit/stores/test_workspace_store.test.ts
+  - frontend/tests/unit/views/test_alerts_view_creation_path.test.ts
+  - frontend/tests/unit/views/test_chart_view_radar_handoff.test.ts
+  - frontend/tests/unit/views/test_screener_view_accessibility.test.ts
+  - frontend/tests/unit/views/test_settings_view.test.ts
+  - frontend/tests/unit/views/test_workstation_capabilities.test.ts
+  - frontend/tests/unit/views/test_workstation_popout_bindings.test.ts
+- source_sha: b0db1656ad8505e2aaa39546d60487015aca00d4
+  manifest_path: ops/workstreams/feat-market-data-provider-platform/development-dependency-imports/b0db1656ad8505e2aaa39546d60487015aca00d4.json
+  manifest_sha256: 764d1e285eb4909be2a63fbb1b9873f68f5988d4685cacf270ad5662f826c168
+  paths:
+  - backend/app/services/baskets.py
+  - backend/tests/integration/api/test_baskets.py
+- source_sha: f6521237fc3656c4630ee40e8043be17c63f7405
+  manifest_path: ops/workstreams/feat-market-data-provider-platform/development-dependency-imports/f6521237fc3656c4630ee40e8043be17c63f7405.json
+  manifest_sha256: b3751e306d9d5f8a64d978de1d4793b84ff7524e13031e1ccd7bf90e938fe922
+  paths:
+  - backend/app/routers/research.py
+  - backend/tests/unit/routers/test_research_router.py

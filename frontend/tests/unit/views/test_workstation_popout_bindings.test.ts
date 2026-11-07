@@ -42,6 +42,8 @@ const harness = vi.hoisted(() => {
     isPersistenceLeader: true,
     loading: false,
     error: null,
+    snapshotSaveStatus: 'saved' as 'saved' | 'saving' | 'error',
+    snapshotSaveError: null as string | null,
     constituentETF: null,
     etfHoldings: {} as Record<string, { snapshot?: { id: number; etf_symbol: string } } | null>,
     etfConstituentSnapshotErrors: {} as Record<string, string | null>,
@@ -66,6 +68,7 @@ const harness = vi.hoisted(() => {
     loadETFIndustries: vi.fn().mockResolvedValue(undefined),
     loadTechnical: vi.fn().mockResolvedValue(undefined),
     scheduleSnapshot: vi.fn(),
+    saveSnapshot: vi.fn().mockResolvedValue(true),
     setActiveWindow: vi.fn(),
     updateToolLinkGroup: vi.fn(),
     updateToolTimeframe: vi.fn(),
@@ -77,6 +80,7 @@ const harness = vi.hoisted(() => {
     selectIndustry: vi.fn(),
     closeTool: vi.fn(),
     cloneActiveTab: vi.fn(),
+    renameTab: vi.fn(() => true),
     captureTabRecovery: vi.fn(),
     deleteTab: vi.fn(),
     restoreDeletedTab: vi.fn(),
@@ -305,6 +309,8 @@ describe('WorkstationView pop-out bindings', () => {
     harness.workspace.linkedSymbol = 'SPY'
     harness.workspace.constituentETF = null
     harness.workspace.error = null
+    harness.workspace.snapshotSaveStatus = 'saved'
+    harness.workspace.snapshotSaveError = null
     harness.workspace.etfHoldings = {}
     harness.workspace.etfConstituentSnapshotErrors = {}
     harness.workspace.technicals = {}
@@ -317,6 +323,7 @@ describe('WorkstationView pop-out bindings', () => {
     harness.workspace.loadDefault = vi.fn().mockResolvedValue(undefined)
     harness.workspace.activeTab = harness.workspace.workspace.tabs[0]
     harness.workspace.openTool.mockReset()
+    harness.workspace.renameTab.mockReset().mockReturnValue(true)
     harness.workspace.marketGroups = { 'us-benchmarks': { members: [] }, 'sp500-sectors': { members: [] } }
     harness.workspace.groupSnapshots = {}
     harness.workspace.breadth = {}
@@ -637,11 +644,75 @@ describe('WorkstationView pop-out bindings', () => {
 
       await recoveryNotice.get('button[role="menuitem"]').trigger('click')
       expect(harness.workspace.restoreDeletedTab).toHaveBeenCalledWith(recovery)
-      expect(wrapper.find('.workstation__layout-recovery').exists()).toBe(false)
+      expect(harness.workspace.saveSnapshot).toHaveBeenCalledTimes(1)
+      await vi.waitFor(() => expect(wrapper.find('.workstation__layout-recovery').exists()).toBe(false))
     } finally {
       confirm.mockRestore()
       wrapper.unmount()
     }
+  })
+
+  it('keeps layout recovery visible through save failure and until a retry is acknowledged', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    const baseTab = harness.workspace.workspace.tabs[0]
+    const deletedTab = { ...baseTab, id: 2, stable_key: 'layout-recovery', name: 'Saved layout', position: 1 }
+    harness.workspace.workspace.tabs = [baseTab, deletedTab]
+    const recovery = { workspace_id: 1, tab: deletedTab, position: 1 }
+    harness.workspace.captureTabRecovery.mockReturnValue(recovery)
+    harness.workspace.deleteTab.mockImplementation((stableKey: string) => {
+      harness.workspace.workspace.tabs = harness.workspace.workspace.tabs.filter(tab => tab.stable_key !== stableKey)
+      return true
+    })
+    harness.workspace.restoreDeletedTab.mockReturnValue(true)
+    let finishSave!: (saved: boolean) => void
+    const pendingSave = new Promise<boolean>(resolve => { finishSave = resolve })
+    harness.workspace.saveSnapshot.mockReturnValueOnce(pendingSave).mockResolvedValueOnce(true)
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+
+    try {
+      await wrapper.get('button[title="Manage workspace layouts"]').trigger('click')
+      await wrapper.get('button[aria-label="Delete layout Saved layout"]').trigger('click')
+      await wrapper.get('.workstation__layout-recovery button[role="menuitem"]').trigger('click')
+      await vi.waitFor(() => expect(wrapper.get('.workstation__layout-recovery').text()).toContain('Restoring layout'))
+      expect(wrapper.get('.workstation__layout-recovery button[role="menuitem"]').attributes('disabled')).toBeDefined()
+      expect(wrapper.find('.workstation__layout-recovery').exists()).toBe(true)
+      finishSave(false)
+      await vi.waitFor(() => expect(wrapper.get('.workstation__layout-recovery').text()).toContain('was not saved'))
+      expect(wrapper.get('.workstation__layout-recovery button[role="menuitem"]').text()).toBe('Retry save')
+      expect(harness.workspace.restoreDeletedTab).toHaveBeenCalledTimes(1)
+
+      await wrapper.get('.workstation__layout-recovery button[role="menuitem"]').trigger('click')
+      await vi.waitFor(() => expect(wrapper.find('.workstation__layout-recovery').exists()).toBe(false))
+      expect(harness.workspace.restoreDeletedTab).toHaveBeenCalledTimes(1)
+      expect(harness.workspace.saveSnapshot).toHaveBeenCalledTimes(2)
+    } finally {
+      confirm.mockRestore()
+      wrapper.unmount()
+    }
+  })
+
+  it('announces workspace save failure and offers a keyboard-focusable retry', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    harness.workspace.snapshotSaveStatus = 'error'
+    harness.workspace.snapshotSaveError = 'Workspace changed elsewhere.'
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+
+    const status = wrapper.get('[aria-label="Workspace save status"]')
+    expect(status.attributes('role')).toBe('status')
+    expect(status.text()).toBe('Workspace save failed')
+    const retry = wrapper.get('button.workstation__snapshot-save-retry')
+    expect(retry.text()).toBe('Retry save')
+    expect(retry.element.tagName).toBe('BUTTON')
+    await retry.trigger('click')
+    expect(harness.workspace.saveSnapshot).toHaveBeenCalledTimes(1)
+    wrapper.unmount()
   })
 
   it('announces an unavailable pop-out tool as an assertive recovery alert', async () => {
@@ -2500,6 +2571,24 @@ describe('WorkstationView pop-out bindings', () => {
     wrapper.unmount()
   })
 
+  it('keeps a layout rename draft through an unrelated render and commits it before blur', async () => {
+    routeState.path = '/chart'
+    routeState.params = {}
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    await wrapper.get('button[title="Manage workspace layouts"]').trigger('click')
+    const renameField = wrapper.findAll('input[aria-label="Rename layout"]').at(-1)!
+    ;(renameField.element as HTMLInputElement).value = 'Review Layout'
+    await renameField.trigger('input')
+
+    expect(harness.workspace.renameTab).toHaveBeenCalledWith('us-top-down', 'Review Layout')
+    await wrapper.vm.$forceUpdate()
+    await nextTick()
+    expect((renameField.element as HTMLInputElement).value).toBe('Review Layout')
+    wrapper.unmount()
+  })
+
   it('closes autocomplete before an outside tool pointer can be intercepted', async () => {
     routeState.path = '/'
     routeState.params = {}
@@ -2915,6 +3004,7 @@ describe('WorkstationView pop-out bindings', () => {
     })
     await vi.waitFor(() => expect(harness.workspace.refreshMarketAnalysis).toHaveBeenCalled())
     await vi.waitFor(() => expect(harness.chart.loadBars).toHaveBeenCalledWith('SPY', 'D1', 'candles', true))
+    expect(harness.workspace.refreshMarketAnalysis).toHaveBeenCalledTimes(1)
     expect(harness.chart.bars).toEqual([cachedBar])
     finishInitialRefresh()
     await flushPromises()
