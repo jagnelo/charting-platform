@@ -50,7 +50,7 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "current_blocker": "Root R378 terminal profile is red (33 passed/32 failed, zero retries). Strategy updated only its Study/Results/Library and workstation E2E contracts: the generic market-group wait now requires actual rows; an empty personal WatchList is created through public controls and SPY membership/list identity are checked through reload; duplicate Results panes are avoided and persisted immutable SPY run detail is asserted separately from editable XLB draft. Factory Study still receives no_eligible_history_provider with has_pending_work=false and null requested bounds for retained 2024-01-01..2025-12-29; do not claim validation or run success. R378 also showed Library assets GET 200 while the common host stayed Loading tool\u2026; Strategy now waits for the exact response and seeded row, while persistent lazy activation/status behavior is TC-owned. Root owns the next combined browser profile; all18 roadmap criteria and safety holds remain open.",
+  "current_blocker": "R14f catalogue failure was a private test context leak: Market Map first tile SPYV/instrument18 replaced the intended SPY active symbol, so later Relative Strength lacked aligned bars. Exact q=SPY canonical search returned SPY/instrument2 first. The lifecycle test now asserts the Map selection and restores saved SPY through public controls. Root owns next browser qualification; no product defect or browser rerun is claimed.",
   "current_execution_checkpoint": {
     "authority": "Human-activated platform-usability plan; existing session-local goal aligned in place by Root, no objective/accounting reset.",
     "full_roadmap_preserved": true,
@@ -60,7 +60,6 @@
     "status": "in_progress"
   },
   "dirty_paths": [
-    "frontend/tests/e2e/strategy_study_journey.spec.ts",
     "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts",
     "ops/workstreams/feat-strategy-lab-v2/handoff.md",
     "ops/workstreams/feat-strategy-lab-v2/session.json",
@@ -104,7 +103,7 @@
   "last_checkpoint": "2026-11-07T19:28:47Z",
   "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Root to consume and run the two Strategy-owned E2E spec updates in the next combined profile; keep SPY history/default-source availability and shared Library lazy activation/status unresolved until actual evidence.",
+  "next_action": "Root to consume the private lifecycle-test successor and run the assigned catalogue smoke; retain all previous outcomes and full-roadmap gates.",
   "parent_branch": "staging",
   "plan_hash": "aa4900899cbce55fa6895a6a928364a60164739ed8618a0585838d8790e87188",
   "planning_required": false,
@@ -135,11 +134,11 @@
       "SU3",
       "SU4"
     ],
-    "current_blocker": "Root R378 terminal profile is red (33 passed/32 failed, zero retries). Strategy updated only its Study/Results/Library and workstation E2E contracts: the generic market-group wait now requires actual rows; an empty personal WatchList is created through public controls and SPY membership/list identity are checked through reload; duplicate Results panes are avoided and persisted immutable SPY run detail is asserted separately from editable XLB draft. Factory Study still receives no_eligible_history_provider with has_pending_work=false and null requested bounds for retained 2024-01-01..2025-12-29; do not claim validation or run success. R378 also showed Library assets GET 200 while the common host stayed Loading tool\u2026; Strategy now waits for the exact response and seeded row, while persistent lazy activation/status behavior is TC-owned. Root owns the next combined browser profile; all18 roadmap criteria and safety holds remain open.",
+    "current_blocker": "R14f catalogue failure was a private test context leak: Market Map first tile SPYV/instrument18 replaced the intended SPY active symbol, so later Relative Strength lacked aligned bars. Exact q=SPY canonical search returned SPY/instrument2 first. The lifecycle test now asserts the Map selection and restores saved SPY through public controls. Root owns next browser qualification; no product defect or browser rerun is claimed.",
     "current_phase": "strategy-study-usability-2026-11-06",
-    "next_action": "Root to consume and run the two Strategy-owned E2E spec updates in the next combined profile; keep SPY history/default-source availability and shared Library lazy activation/status unresolved until actual evidence.",
+    "next_action": "Root to consume the private lifecycle-test successor and run the assigned catalogue smoke; retain all previous outcomes and full-roadmap gates.",
     "total": 9,
-    "updated_at": "2026-11-07T20:53:16Z"
+    "updated_at": "2026-11-07T22:23:07Z"
   },
   "remote": "b555268b8237d1c50e34b39320b4cb18a8bd9a03",
   "remote_sha": "b555268b8237d1c50e34b39320b4cb18a8bd9a03",
@@ -246,7 +245,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for Strategy Lab v2 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-11-07T20:53:16Z",
+  "updated_at": "2026-11-07T22:23:07Z",
   "validation_tier": "full_integration",
   "workstream": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2",
   "workstream_files": [

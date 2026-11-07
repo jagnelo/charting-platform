@@ -518,8 +518,19 @@ async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUT
     await expect(tiles).toBeVisible({ timeout: 30_000 })
     const tile = tiles.locator('.market-map-tool__tile').first()
     await expect(tile).toBeVisible()
+    const activeSymbol = page.getByRole('combobox', { name: 'Active symbol', exact: true })
+    const startingSymbol = (await activeSymbol.inputValue()).trim().toUpperCase()
+    expect(startingSymbol).toBe('SPY')
+    const tileSymbol = (await tile.getAttribute('title'))?.split(' · ', 1)[0]?.trim().toUpperCase()
+    expect(tileSymbol).toMatch(/^[A-Z0-9._-]+$/)
     await tile.click()
     await expect(tile).toHaveAttribute('aria-pressed', 'true')
+    await expect(activeSymbol).toHaveValue(tileSymbol!)
+    if (tileSymbol !== startingSymbol) {
+      await activeSymbol.fill(startingSymbol)
+      await page.getByRole('button', { name: 'Go', exact: true }).click()
+      await expect(activeSymbol).toHaveValue(startingSymbol)
+    }
   } else if (kind === 'study') {
     await tool.getByLabel('Factory study').selectOption('positive_streak')
     // The offline positive factory witness uses the retained controlled D1
