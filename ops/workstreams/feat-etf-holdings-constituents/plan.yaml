@@ -6344,6 +6344,22 @@ provider_runtime_dependency_active_f84c7020:
   consumer_validation: frontend type-check passed; Playwright discovery lists9 cases across owned basket/holdings/S&P specs. Browser and DB bodies were not run.
   state: Development dependency only; Root owns the compatible fixture and combined release gates.
 
+provider_runtime_dependency_active_8c264774:
+  authority: Root released exact Provider source 8c26477498b1963231b0770e30e1ab8087d023a9 for development consumption; no staging or deployment acceptance.
+  previous_active_dependency: f84c7020932558ecfc52a355c24ef360ff71386c
+  manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider8c264774-runtime-development-consumption-contract.json
+  manifest_sha256: e4422b07e2758de6e3c872b0e7de001b6782d7d487b4df6210bceb6087d39449
+  changed_paths_since_previous: [backend/app/services/baskets.py, backend/app/services/data_preparation.py, backend/app/services/ohlcv_coverage.py, backend/tests/integration/api/test_baskets.py, backend/tests/unit/services/test_data_preparation_service.py]
+  imported_paths: [backend/app/services/data_preparation.py, backend/app/services/ohlcv_coverage.py, backend/tests/unit/services/test_data_preparation_service.py]
+  already_exact_paths: [backend/app/services/baskets.py, backend/tests/integration/api/test_baskets.py]
+  active_manifest_records: 59
+  verification: all59 status_from139/Git-blob/SHA256/executable-bit entries match exact source8c264; only the three nonmatching declared delta paths were imported.
+  provider_validation: Root reports79 focused coverage/preparation tests and pinned Ruff check/format pass on the five changed files; no Provider unit suite was replayed by ETF.
+  consumer_validation: frontend type-check and three-case basket Playwright discovery pass; no browser or DB body was run by ETF after this import.
+  r20_evidence: Root R20 source41a300bb had2 passes and2 failures. CRUD and uncached ETF preparation passed; controlled source basket provenance reached the mutation assertion, where PATCH returned the expected ownership-scoped404 rather than the predecessor403 expectation. The current test asserts exact404 body and unchanged shared basket; browser replay pending.
+  shared_chart_finding: The R20 trace has a successful basket OHLCV200, then three unresolved GET /api/v1/baskets/10 member-list requests and zero member-ID ensure requests. Workstation callers pass localOnly=true, and the shared chart loader awaits the member GET before dispatching ensure. TC owns the unresolved request diagnosis; generation/remount is not established by this trace.
+  state: Development dependency only; Root owns the compatible runtime, combined browser qualification and final release gates.
+
 tc_common_runtime_dependency_active_ce2262ab:
   authority: Root released exact TC source ce2262ab2d47fc1ccda96f0c2aa7c8839e4e03f9 for development consumption; imported only the ETF consumer's declared paths, without TC records.
   previous_active_dependency: 5a783e745b211cfe8b3dd20cb77d275149f15de2

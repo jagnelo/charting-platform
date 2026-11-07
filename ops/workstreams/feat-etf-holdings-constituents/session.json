@@ -25,7 +25,8 @@
     "baseline": "139b350238b5e1c8a170dce5af09a805301d857e",
     "focused_validation": "Provider580571e4 manifest51/51 and TC4cfee manifest66/66 verified. Workstation covered-bar case passed in Root's existing fixture. Current S&P spec SHA256 0a5ec5bc7aa0dd8a4b02851af55836fe8d152c54a0d3288ac8601a14617a6423; frontend type-check and two-case discovery passed. Root's r7 failure was on prior EED spec005bbb95 and is retained; the corrected current spec has not been browser-run. Root owns its existing-fixture rerun and combined qualification. Current ETF preparation fixture mocks now use the shared DataEnsureRequest instrument ID/symbol union; frontend type-check and 4-case Playwright discovery passed. Provider33e1fd44 manifest verified58/58; its9 declared deltas are imported in this checkpoint. No browser body was run here; Root owns retained-fixture replay and combined qualification. R14 follow-up: type-check passed, 8 owned Playwright cases discovered, scoped Ruff check/format passed, and the five existing historical-basket unit cases passed. Root owns the pending actual HTTP/browser replay; no local browser or database integration run was performed.",
     "name": "ETF automatic issuer-holdings preparation and context independence",
-    "provider_contract": "The ETF preparation hook consumes Root-released Provider runtime source 33e1fd44829daee4b0f604b5507261bb10b7a711, imported only through its nine declared delta paths over 580571e41b9797589bf205b61d337f8c92ec04c6; all58 current manifest records verified. Earlier Provider dependencies remain preserved as history; no Provider workstream records were imported.",
+    "provider_contract": "The ETF preparation hook consumes Root-released Provider runtime source 8c26477498b1963231b0770e30e1ab8087d023a9, manifest provider8c264774-runtime-development-consumption-contract.json SHA256 e4422b07e2758de6e3c872b0e7de001b6782d7d487b4df6210bceb6087d39449. All59 manifest paths verify; three declared deltas were imported and two ETF basket paths already matched exact d731 blobs. Earlier Provider dependencies remain preserved as history; no Provider workstream records were imported.",
+    "latest_r20_evidence": "Root R20 on frontend e8/backend F84/test source 41a300bb4b8360bbefe8cb8583675b77c0c34e76 completed2/4: ordinary basket CRUD and uncached ETF preparation passed; delayed basket member preparation and the predecessor read-only403 expectation failed. The trace shows basket OHLCV200 followed by three unresolved GET /api/v1/baskets/10 requests and zero member-ID ensure requests. Current Workstation callers pass localOnly=true; chart.ts awaits the basket member GET before ensure dispatch, so TC owns diagnosis of the unresolved request and no generation/remount cause is claimed. ETF test correction at1fe692f989b1a4affc5129c6f2921f6bbd4a99d5 now asserts exact404 detail and unchanged readable source basket; this corrected source has not been browser-run.",
     "scope": "Automatic holdings dataset preparation for exact resolved ETF intent; holdings remain independent from price/history; preserve route/cache/freshness/quota and selected-fund provenance.",
     "source_paths": [
       "backend/app/schemas/data_preparation.py",
@@ -133,7 +134,7 @@
     "token_budget": null,
     "updated_at_epoch": 1793716359
   },
-  "current_blocker_latest": "The Workstation unknown-ticker test now awaits the exact successful TCNEW/M1 local response matching the covered timestamp/close, after excluding the initial empty read. Type-check and seven-case discovery pass. Root owns the immediate single-case browser rerun in its existing b0/4cfee fixture; no browser result is claimed here.",
+  "current_blocker_latest": "Provider8c264 development import is exact across all59 manifest entries; three declared deltas were imported and the two basket paths already matched. R20 passed ordinary basket CRUD and uncached ETF preparation but found no member-ID ensures: basket OHLCV returned200, then three /api/v1/baskets/10 member-list GETs remained unresolved before teardown. TC owns that shared Workstation/chart runtime investigation. The ETF-owned snapshot-basket test now asserts exact404 ownership denial and unchanged readback; type-check/discovery pass, corrected browser body remains pending Root.",
   "current_checkpoint_acceptance": {
     "checkpoint_id": "platform-usability-etf-holdings-2026-11-06",
     "human_activation": "Complete platform-usability plan explicitly activated; implementation only, no checkpoint accepted yet.",
@@ -1140,8 +1141,8 @@
     "status": "Root-delegated bounded software checkpoint accepted; exact final-source CI pending.",
     "validated_implementation_sha": "b6d67ce93104a0a2cf83b1c41f385513b3c230f8"
   },
-  "plan_hash": "96a76c22ea3166558d2a32b2bc66fe853dea7a862620a20e18af1140af14225b",
-  "plan_sha256": "96a76c22ea3166558d2a32b2bc66fe853dea7a862620a20e18af1140af14225b",
+  "plan_hash": "b5b69017e6ff1b042e67835f24cd68eeb0dc0189281c140b49ca37b6c82d12a5",
+  "plan_sha256": "b5b69017e6ff1b042e67835f24cd68eeb0dc0189281c140b49ca37b6c82d12a5",
   "planning_required": false,
   "planning_state": "ready",
   "previous_active_changeset": {

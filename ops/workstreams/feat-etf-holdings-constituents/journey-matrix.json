@@ -526,10 +526,10 @@
           },
           "browser_evidence": {
             "path": "frontend/tests/e2e/baskets_journey.spec.ts",
-            "case": "ordinary basket lifecycle persists edits and opens the shared dashboard chart before background preparation settles",
+            "case": "ordinary basket lifecycle persists edits across save, reload, member-chart navigation, cancel and delete",
             "mode": "authenticated actual API",
-            "body_run": false,
-            "status": "pending Root combined browser profile"
+            "body_run": true,
+            "status": "Root R20 passed the unchanged CRUD/member-chart/cancel/delete journey on test source41a300bb; final combined profile remains pending."
           }
         },
         {
@@ -633,17 +633,17 @@
           "api_contract": [
             "GET /api/v1/baskets",
             "GET /api/v1/baskets/{id}/snapshots",
-            "API edit/delete of system-managed baskets must reject"
+            "PATCH/DELETE of a system-managed basket not owned by the caller return exact404 {detail: Basket not found}; the shared basket remains readable and unchanged"
           ],
           "normal_flow_targets": [
             "BWET reported futures/cash must remain non-equity rows in read-only source baskets; XHB, IGV, SPY, RSP and QQQ source-basket inputs remain bound to their exact snapshot and lineage"
           ],
           "browser_evidence": {
             "path": "frontend/tests/e2e/baskets_journey.spec.ts",
-            "case": "existing issuer snapshot basket displays read-only source lineage from basket APIs",
-            "mode": "authenticated actual API with read-only negative API requests and unchanged readback",
-            "body_run": false,
-            "status": "pending Root combined browser profile"
+            "case": "controlled snapshot basket materializes through the normal API and displays read-only source lineage",
+            "mode": "authenticated actual API with exact not-found mutation denials and unchanged readback",
+            "body_run": true,
+            "status": "R20 reached the read-only mutation check after source-lineage/readback assertions; actual PATCH returned404, while the predecessor expected403. Current test source1fe692f asserts exact404 body and unchanged readback; corrected body replay remains pending."
           }
         },
         {
@@ -674,10 +674,10 @@
           ],
           "browser_evidence": {
             "path": "frontend/tests/e2e/baskets_journey.spec.ts",
-            "case": "ordinary basket lifecycle persists edits and opens the shared dashboard chart before background preparation settles",
-            "coverage": "The actual-API story holds the first accepted member ensure response, verifies all other resolved-member requests submit, then checks the real basket endpoint returns finite bars while held and the visible shared primary chart displays an ordinary OHLC/date tooltip matching that response. Browser body remains Root-owned. Spec SHA256 76d1b9cedef51121c326a72707415d9997568bc824ebb1a2944c006e75625327.",
-            "body_run": false,
-            "status": "pending Root combined seeded-backend browser profile; exact TC5a shared runtime is imported."
+            "case": "opening a basket submits each member preparation independently while cached chart data stays visible",
+            "coverage": "The current actual-API test intends to hold the first accepted member ensure, verify all resolved-member submissions, then prove cached basket bars/tooltip remain visible. Root R20 actually reached basket OHLCV200 but emitted zero member-ID ensures; its trace shows three unresolved GET /api/v1/baskets/10 membership requests. The current shared chart loader awaits that response before ensure dispatch. Current test SHA256 4c0778071c712fdc65ad21e710da02e17a5d3d6618815dfdc7cbd324126de90b; browser body is failed on predecessor frontend e8/backend F84 and the shared runtime cause remains TC-owned.",
+            "body_run": true,
+            "status": "Root R20 failed the required member-preparation outcome; do not treat zero requests as deduplication or acceptance."
           },
           "contract_gap_owner": "TC owns the chart/basket-load integration in the shared chart path. The currently identified entry point is frontend/src/stores/chart.ts::chartStore.loadBars() BASKET:<id> branch; ETF does not add another coordinator or queue."
         },
@@ -704,11 +704,11 @@
           ],
           "browser_evidence": {
             "path": "frontend/tests/e2e/baskets_journey.spec.ts",
-            "case": "ordinary basket lifecycle persists edits and opens the shared dashboard chart before background preparation settles",
+            "case": "ordinary basket lifecycle persists edits across save, reload, member-chart navigation, cancel and delete",
             "mode": "authenticated actual API",
-            "coverage": "The journey clicks the saved MSFT member symbol, confirms /chart/MSFT and the visible shared workspace, reads the basket back to verify membership is unchanged, then opens the basket token. Body not run by this owner.",
-            "body_run": false,
-            "status": "pending Root combined browser profile"
+            "coverage": "R20 passed the actual journey: clicking the saved MSFT member symbol confirmed /chart/MSFT and visible workspace, the basket readback preserved membership, and the same story completed basket chart navigation.",
+            "body_run": true,
+            "status": "Passed in Root R20 on test source41a300bb; final combined profile remains pending."
           }
         }
       ]
