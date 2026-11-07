@@ -1637,7 +1637,7 @@ function openHoldingChart(
   confirmedIdentity?: InstrumentAcquireResponse,
 ) {
   void router.push({
-    path: `/legacy/chart/${encodeURIComponent(symbol)}`,
+    path: `/chart/${encodeURIComponent(symbol)}`,
     query: { ...holdingDrilldownRouteQuery(context), holding_history_intent: 'selected' },
     state: holdingDrilldownRouteState(context, confirmedIdentity),
   })

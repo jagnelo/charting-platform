@@ -4451,6 +4451,7 @@ async def test_spdr_adapter_parses_fund_scoped_workbook_and_preserves_row_types(
                         "USD",
                     ],
                     ["Cash & Other", "", "", "", "0.10", "", "20", "USD"],
+                    ["US DOLLAR", "", "999USDZ92", "", "0.01", "", "1", "USD"],
                     [
                         "Cash disclosure " + ("legal footer " * 30),
                         "",
@@ -4472,11 +4473,12 @@ async def test_spdr_adapter_parses_fund_scoped_workbook_and_preserves_row_types(
     result = await adapter.fetch_latest(symbol="SPY")
 
     assert [request[0] for request in FakeAsyncClient.requested] == [workbook_url]
-    assert [row.symbol for row in result.rows] == ["NVDA", None, None]
-    assert [row.holding_type for row in result.rows] == ["equity", "derivative", "cash"]
+    assert [row.symbol for row in result.rows] == ["NVDA", None, None, None]
+    assert [row.holding_type for row in result.rows] == ["equity", "derivative", "cash", "cash"]
+    assert [row.row_type for row in result.rows] == ["security", "other", "cash", "cash"]
     assert result.rows[0].cusip == "67066G104"
     assert result.rows[0].weight == Decimal("0.07908008")
-    assert len(result.rows) == 3
+    assert len(result.rows) == 4
     assert result.legal_metadata["composition_date"] == "2026-07-14"
 
 
@@ -29660,7 +29662,9 @@ async def test_amplify_selected_account_keeps_freight_derivatives_nonchartable_a
     assert freight.symbol is None
     assert freight.extra_data["StockTicker"] == "C5TCM"
     assert freight.extra_data["CUSIP"] == "C5TCM M26"
-    assert freight.extra_data["SecurityName"] == "Capesize 5TC FFA 180kt Timecharter Average M Jun 26"
+    assert (
+        freight.extra_data["SecurityName"] == "Capesize 5TC FFA 180kt Timecharter Average M Jun 26"
+    )
     assert freight.extra_data["Account"] == "BWET"
     assert freight.shares == Decimal("-200")
     assert freight.market_value == Decimal("-7039200.00")

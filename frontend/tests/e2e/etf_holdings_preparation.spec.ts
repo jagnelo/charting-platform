@@ -6,6 +6,7 @@ type EnsureRequest = { target: { kind: 'instrument'; symbol: string }; datasets:
 
 function ensureResponse(symbol: string, status: EnsureStatus, requestId = `etf-${symbol.toLowerCase()}`) {
   const now = new Date().toISOString()
+  const instrumentIds: Record<string, number> = { FNEW: 701, QQQ: 704, RACE: 702, BWET: 811 }
   return {
     request_id: requestId,
     status,
@@ -16,7 +17,8 @@ function ensureResponse(symbol: string, status: EnsureStatus, requestId = `etf-$
     dependencies: [{
       dependency_id: `holdings-${symbol.toLowerCase()}`,
       depends_on: [],
-      instrument_id: null,
+      instrument_id: instrumentIds[symbol] ?? null,
+      symbol,
       dataset: 'holdings',
       status,
       requested_start: null,
@@ -26,10 +28,12 @@ function ensureResponse(symbol: string, status: EnsureStatus, requestId = `etf-$
       reason_code: status === 'waiting' ? 'provider_quota_wait' : null,
       retry_at: status === 'waiting' ? new Date(Date.now() + 60_000).toISOString() : null,
       updated_at: now,
+      covered_ranges: [],
     }],
     completed: status === 'ready' ? 1 : 0,
     total: 1,
     last_progress_at: now,
+    has_pending_work: status === 'waiting',
   }
 }
 
@@ -282,6 +286,19 @@ test.describe('ETF holdings preparation', () => {
     })
     expect(holdingsQueries).toContainEqual({ q: 'FNEW Example', sort: 'weight', direction: 'desc' })
     expect(holdingsQueries).toContainEqual({ q: 'FNEW Example', sort: 'symbol', direction: 'asc' })
+
+    await page.getByRole('button', { name: 'View history' }).click()
+    await expect(page).toHaveURL(/\/chart\/FNEW1\?.*holding_history_intent=selected/)
+    const drilldownUrl = new URL(page.url())
+    expect(drilldownUrl.searchParams.get('holding_snapshot_id')).toBe('901')
+    expect(drilldownUrl.searchParams.get('holding_composition_date')).toBe('2026-11-05')
+    expect(drilldownUrl.searchParams.get('holding_known_at')).toBe('2026-11-06T10:15:00Z')
+    expect(drilldownUrl.searchParams.get('holding_provenance')).toBe('issuer_current_holdings')
+    expect(drilldownUrl.searchParams.get('holding_source_provider')).toBe('controlled-fixture')
+    expect(drilldownUrl.searchParams.get('holding_instrument_id')).toBe('1701')
+    expect(drilldownUrl.searchParams.get('holding_row_id')).toBe('9010')
+    expect(drilldownUrl.searchParams.get('holding_reported_symbol')).toBe('FNEW1')
+    expect(drilldownUrl.searchParams.get('holding_type')).toBe('equity')
     expect(loggedIn).toBeUndefined()
   })
 

@@ -181,6 +181,7 @@ function holdingsPage(overrides: Record<string, unknown> = {}) {
 
 function preparationResponse(symbol: string, status: 'ready' | 'unavailable' = 'ready') {
   const now = '2026-11-06T12:00:00Z'
+  const instrumentIds: Record<string, number> = { EVOL: 991, SPY: 10, XLE: 30, XLF: 40 }
   return {
     request_id: `prepare-${symbol.toLowerCase()}`,
     status,
@@ -191,7 +192,8 @@ function preparationResponse(symbol: string, status: 'ready' | 'unavailable' = '
     dependencies: [{
       dependency_id: `dep-${symbol.toLowerCase()}`,
       depends_on: [],
-      instrument_id: null,
+      instrument_id: instrumentIds[symbol] ?? null,
+      symbol,
       dataset: 'holdings',
       status,
       requested_start: null,
@@ -201,10 +203,12 @@ function preparationResponse(symbol: string, status: 'ready' | 'unavailable' = '
       reason_code: status === 'unavailable' ? 'no_eligible_provider_data' : null,
       retry_at: null,
       updated_at: now,
+      covered_ranges: [],
     }],
     completed: 1,
     total: 1,
     last_progress_at: now,
+    has_pending_work: false,
   }
 }
 
@@ -572,7 +576,7 @@ describe('ETFHoldingsView', () => {
       'MSFT',
     )
     expect(routerPush).toHaveBeenCalledWith({
-      path: '/legacy/chart/MSFT',
+      path: '/chart/MSFT',
       query: { ...holdingDrilldownRouteQuery(selectedContext), holding_history_intent: 'selected' },
       state: holdingDrilldownRouteState(selectedContext),
     })
@@ -791,7 +795,7 @@ describe('ETFHoldingsView', () => {
       'MSFT',
     )
     expect(routerPush).toHaveBeenCalledWith({
-      path: '/legacy/chart/MSFT',
+      path: '/chart/MSFT',
       query: { ...holdingDrilldownRouteQuery(selectedContext), holding_history_intent: 'selected' },
       state: holdingDrilldownRouteState(selectedContext),
     })
@@ -918,7 +922,7 @@ describe('ETFHoldingsView', () => {
     }, confirmedIdentity)
     await nextTick()
     expect(routerPush).toHaveBeenCalledWith({
-      path: '/legacy/chart/UNXQ',
+      path: '/chart/UNXQ',
       query: { ...holdingDrilldownRouteQuery(context), holding_history_intent: 'selected' },
       state: holdingDrilldownRouteState(context, confirmedIdentity),
     })

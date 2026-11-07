@@ -23,7 +23,7 @@
   ],
   "active_changeset": {
     "baseline": "139b350238b5e1c8a170dce5af09a805301d857e",
-    "focused_validation": "Backend ETF preparation/hook focused tests 29 passed; ETFHoldingsView unit tests 23 passed; frontend vue-tsc --noEmit passed; new ETF-only Playwright spec listed two tests but browser bodies were not run. Basket real PostgreSQL CRUD passed 1/1 with exact owned cleanup; separate receipt is in the current handoff/validation history.",
+    "focused_validation": "ETFHoldingsView canonical /chart provenance route: 24 unit tests passed; frontend type-check passed; E2E spec lists 4 browser cases with bodies pending Root combined profile.",
     "name": "ETF automatic issuer-holdings preparation and context independence",
     "provider_contract": "Exact Provider-owned DTO files copied unchanged from authorized source 3d10c4c4662249b53a6e3fc497f1d260b59b2079; ETF hook implements the published signature and fields.",
     "scope": "Automatic holdings dataset preparation for exact resolved ETF intent; holdings remain independent from price/history; preserve route/cache/freshness/quota and selected-fund provenance.",
@@ -38,10 +38,34 @@
       "frontend/tests/unit/views/test_etf_holdings_view.test.ts",
       "backend/app/services/baskets.py",
       "backend/tests/integration/api/test_baskets.py",
-      "frontend/src/lib/dataPreparation.ts",
       "frontend/tests/e2e/etf_holdings_preparation.spec.ts"
     ],
-    "status": "in_progress"
+    "status": "in_progress",
+    "consumed_shared_dependencies": {
+      "source": "aea0be57abd036dd308a18f9dd07b976767cb8a9",
+      "contract_path": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-aea-shared-library-development-consumption-contract.json",
+      "contract_sha256": "528e1db8a4edac0edf6b377cda4542218bf10e472652984a6322cd191229c64e",
+      "previous_source": "877df044d2496c5f1be0e86b4dd49503cc6e55db",
+      "paths": [
+        {
+          "path": "frontend/src/lib/api.ts",
+          "git_blob": "81b12b469db6f4d5c543887f72952d8accf31688",
+          "sha256": "b657ee72d3e7947508dc4148e3e370c73bddb190bebcb3eef45fb4efa3099519"
+        },
+        {
+          "path": "frontend/src/lib/authSession.ts",
+          "git_blob": "08a2ca831c277009bcf139699d22e569f5d1dac0",
+          "sha256": "8ed6b9dca7d36ca0da329b3f5885f470a25e3a0362599a326336bdcad42aaba8"
+        },
+        {
+          "path": "frontend/src/lib/dataPreparation.ts",
+          "git_blob": "d80c749cf193b36e58aaffbf376b282b9771ace0",
+          "sha256": "a7201e3c9b68148b498871fd4fc9b2a6504478cd44c2455bb47d4402da9cb1ce"
+        }
+      ],
+      "previous_877_path_sha256": "c1157a680c5a461647b82b18bd9923c53d36a401dd3397c2361e91b125d43a0d",
+      "state": "development dependency only; final TC/Root gates pending"
+    }
   },
   "active_follow_up": {
     "id": "platform-usability-etf-holdings-2026-11-06",
@@ -109,7 +133,7 @@
     "token_budget": null,
     "updated_at_epoch": 1793716359
   },
-  "current_blocker_latest": "ETFHoldingsView now consumes the exact unchanged TC dataPreparation client and requests holdings automatically on deliberate selection; 23 view unit tests and vue-tsc pass, and the two ETF-only Playwright cases are listed but not run. Provider runtime wiring, TC reconciliation of the legacy on_demand_acquisition.spec.ts expectation, and Root-owned combined profile remain pending.",
+  "current_blocker_latest": "ETF holding history now routes through /chart with snapshot/row provenance preserved; TC's matching Workstation handoff parser and Root combined browser/native profile remain pending.",
   "current_checkpoint_acceptance": {
     "checkpoint_id": "platform-usability-etf-holdings-2026-11-06",
     "human_activation": "Complete platform-usability plan explicitly activated; implementation only, no checkpoint accepted yet.",
@@ -1067,7 +1091,7 @@
     "status": "Root-delegated bounded software checkpoint accepted; exact final-source CI pending.",
     "validated_implementation_sha": "b6d67ce93104a0a2cf83b1c41f385513b3c230f8"
   },
-  "plan_hash": "23213057488b75415cae93c9337d04062185c9453edad804c067e54f2ef018f7",
+  "plan_hash": "63078d3f8e539472a8335f5f5733430b5edf92dd568a4c4b6fdbe37aac929734",
   "plan_sha256": "a35e2bd12fc7a3b8ddfe6ff951d0cb879f15fd999d266f908cbdfe3747948624",
   "planning_required": false,
   "planning_state": "ready",
@@ -3479,8 +3503,8 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "15 Tier-0 and 156 Tier-1 ETF roadmap criteria remain open. Provider source 17d628296e5a0f3bc1dac1abd564619ac62a0298 is consumed locally for development; its full release gates and Root-owned combined qualification remain pending. The ETF-only browser journey bodies have not been run in this worktree.",
-    "current_phase": "ETF hook uses the exact Provider DTOs, exact persisted-snapshot/capability checks, and typed retry preservation; focused service/view checks pass.",
+    "current_blocker": "15 Tier-0 and 156 Tier-1 ETF roadmap criteria remain open. Provider074 and TC aea0 remain development imports; Root combined browser/native qualification and TC Workstation handoff parsing remain pending.",
+    "current_phase": "ETF selected-row drilldown uses canonical /chart and preserves the existing lineage query/state; focused unit and type checks pass.",
     "total": 5
   },
   "provider_release": {
@@ -4187,5 +4211,18 @@
       "ops/workstreams/feat-market-data-provider-platform/validation.jsonl"
     ],
     "state": "development dependency only; Producer release gates and Root combined qualification remain pending"
+  },
+  "root_released_tc_shared_library_consumption": {
+    "source": "aea0be57abd036dd308a18f9dd07b976767cb8a9",
+    "contract_path": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-aea-shared-library-development-consumption-contract.json",
+    "contract_sha256": "528e1db8a4edac0edf6b377cda4542218bf10e472652984a6322cd191229c64e",
+    "previous_877_pin_preserved": true,
+    "imported_paths": [
+      "frontend/src/lib/api.ts",
+      "frontend/src/lib/authSession.ts",
+      "frontend/src/lib/dataPreparation.ts"
+    ],
+    "exact_blobs_verified": true,
+    "state": "development-only; no TC application, shared store, browser, or release acceptance claimed"
   }
 }

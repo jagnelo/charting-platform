@@ -5722,8 +5722,8 @@ acceptance_criteria:
 progress:
   completed: []
   total: 5
-  current_phase: ETF hook and shared-client view handoff are implemented; exact Provider074 development runtime is imported and hash-verified. Basket CRUD/recovery and owner journey coverage are progressing in this worktree.
-  current_blocker: Provider full release/exact CI and Root's combined browser profile remain pending. ETF-only and basket browser bodies are authored/listed but not run by this owner; TC owns shared browser integration and legacy E2E reconciliation.
+  current_phase: ETF holding drilldowns now use the canonical /chart route while preserving selected snapshot/row provenance; focused ETF view tests and type-check pass. Provider/TC shared dependencies remain development imports, and the Root-owned combined browser/native profile is pending.
+  current_blocker: ETF and basket Playwright bodies remain pending Root's combined profile; TC must consume the retained ETF holding handoff on Workstation startup. Provider/TC shared release gates and Root's genuine-flow qualification remain open.
 integration_checkpoint:
   id: platform-usability-etf-holdings-2026-11-06
   scope: Implement the ETF-owned holdings preparation callable and ETFHoldingsView automatic request/provenance behavior under the complete human-activated platform-usability plan.
@@ -5735,8 +5735,11 @@ integration_checkpoint:
   - backend/app/routers/etf_holdings.py
   - backend/tests/unit/services/test_etf_holdings_preparation.py
   - frontend/src/views/ETFHoldingsView.vue
-  - frontend/src/lib/dataPreparation.ts
   - frontend/tests/e2e/etf_holdings_preparation.spec.ts
+  consumed_shared_paths:
+  - frontend/src/lib/api.ts
+  - frontend/src/lib/authSession.ts
+  - frontend/src/lib/dataPreparation.ts
   excluded_shared_paths:
   - backend/app/services/provider_runtime.py
   - backend/app/routers/data_ensure.py
@@ -5756,7 +5759,7 @@ integration_checkpoint:
   source_http_requests: 0
   real_quota_or_production_mutation: false
   full_platform_release_gates: Root-owned after the assigned domains implement their slices; no full roadmaps are marked complete here.
-  remaining: Provider must publish and integrate the actual shared runtime hook; TC must reconcile the legacy ETF-view E2E assertion; Root owns the combined functional/visual profile and any live proof.
+  remaining: Provider074 remains a development import pending its full release gates; TC owns application/store integration and the stale shared API-client signal-identity test; Root owns the combined functional/visual profile and genuine-source proof.
   focused_validation: "Backend ETF preparation/helper/hook: 29 passed with known quota retry propagation; Ruff check/format passed. ETFHoldingsView unit suite: 23 passed; frontend vue-tsc --noEmit passed; Playwright discovery listed both ETF preparation cases. The browser cases were not executed. Basket PostgreSQL CRUD passed 1/1 in its separately recorded attempt004 with exact cleanup. No provider request, production operation, or combined browser profile was run for this view handoff."
   integration_capture: exact branch HEAD
 status: in_progress
@@ -5782,23 +5785,43 @@ root_allocated_basket_crud_followup_2026_11_06:
   status: focused implementation ready for Root review; broad platform and ETF roadmaps remain open.
 
 root_allocated_etf_view_shared_preparation_consumption_2026_11_06:
-  authority: Root released exact TC client consumption for ETF-owned view/components; imported dependency is not edited and TC owns its records.
+  authority: Root released the exact TC shared-library successor for development consumption in this ETF worktree; TC retains source ownership and no acceptance or integration is claimed.
   dependency:
+    source_commit: aea0be57abd036dd308a18f9dd07b976767cb8a9
+    base: 139b350238b5e1c8a170dce5af09a805301d857e
+    previous_source_commit: 877df044d2496c5f1be0e86b4dd49503cc6e55db
+    contract_path: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-aea-shared-library-development-consumption-contract.json
+    contract_sha256: 528e1db8a4edac0edf6b377cda4542218bf10e472652984a6322cd191229c64e
+    paths:
+    - path: frontend/src/lib/api.ts
+      git_blob: 81b12b469db6f4d5c543887f72952d8accf31688
+      sha256: b657ee72d3e7947508dc4148e3e370c73bddb190bebcb3eef45fb4efa3099519
+    - path: frontend/src/lib/authSession.ts
+      git_blob: 08a2ca831c277009bcf139699d22e569f5d1dac0
+      sha256: 8ed6b9dca7d36ca0da329b3f5885f470a25e3a0362599a326336bdcad42aaba8
+    - path: frontend/src/lib/dataPreparation.ts
+      git_blob: d80c749cf193b36e58aaffbf376b282b9771ace0
+      sha256: a7201e3c9b68148b498871fd4fc9b2a6504478cd44c2455bb47d4402da9cb1ce
+    consumption: Imported the exact three blobs together; no shared module edits. The previous 877 dataPreparation-only import remains recorded below as superseded history.
+  historical_dependency_877:
     source_commit: 877df044d2496c5f1be0e86b4dd49503cc6e55db
     path: frontend/src/lib/dataPreparation.ts
-    source_git_blob: 71fd0bd48d4fb1b1a8e21b90b39fd549367e91d6
+    git_blob: 71fd0bd48d4fb1b1a8e21b90b39fd549367e91d6
     sha256: c1157a680c5a461647b82b18bd9923c53d36a401dd3397c2361e91b125d43a0d
-    consumption: Exact unchanged TC blob imported into this ETF worktree; used dataPreparationCoordinator.ensure and preparationStatusMessage only from ETFHoldingsView.
-  behavior: Deliberate exact-fund selection submits one holdings dataset request using a verified instrument ID only when already explicitly confirmed, otherwise the selected ticker. A current snapshot stays visible during preparation; ready responses reload only an exact-symbol profile and its dated provenance. Unavailable/waiting/failed responses remain status text and do not promote stale capability. A rapid switch aborts the old UI subscription and selection-generation checks reject late results. Existing manual holdings controls remain optional.
+    state: superseded_by_aea0be57abd036dd308a18f9dd07b976767cb8a9; preserved as history
+  behavior: Deliberate exact-fund selection submits a shared holdings request; cached snapshots remain visible while requests progress and selection fences prevent stale responses replacing the active fund. The imported validator requires server symbol, covered-range lineage and timestamps; controlled ETF responses now match the released shape. Existing explicit refresh controls remain optional.
   owned_paths:
   - frontend/src/views/ETFHoldingsView.vue
-  - frontend/src/lib/dataPreparation.ts
   - frontend/tests/unit/views/test_etf_holdings_view.test.ts
   - frontend/tests/e2e/etf_holdings_preparation.spec.ts
-  validation: ETFHoldingsView unit tests 23 passed; vue-tsc --noEmit passed; Playwright listed two focused ETF cases, no browser test bodies run.
-  shared_test_handoff: TC-owned frontend/tests/e2e/on_demand_acquisition.spec.ts test at line 1051 still asserts automatic IWM /etf-holdings/IWM/acquire after selection; it must be reconciled to /data/ensure by its owner before the combined profile. No shared test or TC worktree was edited.
-  remaining: Provider runtime import/wiring and Root-owned single combined functional/strict-visual profile are pending. No runtime, provider, production, source, quota, policy, or data operation is claimed.
-
+  validation:
+    focused_component: "tests/unit/views/test_etf_holdings_view.test.ts: 24 passed"
+    frontend_typecheck: npm run type-check passed
+    boundary_guard: "backend/tests/unit/test_frontend_provider_boundary.py: 1 passed"
+    e2e_discovery: "tests/e2e/etf_holdings_preparation.spec.ts: 4 tests listed; bodies not run"
+    shared_api_test: "TC-owned test_api_client.test.ts: 12 passed, 1 failed because the old assertion expects fetch signal object identity; the new source composes caller cancellation with the auth-session boundary. No TC test was edited."
+  shared_test_handoff: TC-owned frontend/tests/e2e/on_demand_acquisition.spec.ts retains its earlier selection expectation and remains pending owner reconciliation. TC also owns the API-client signal assertion noted above.
+  remaining: Provider full release gates, TC application/store integration, final exact-source CI, and Root's combined browser/native qualification remain pending. No browser body, Source HTTP, provider policy/quota, production or shared worktree mutation is claimed.
 root_allocated_basket_ui_lifecycle_2026_11_06:
   authority: Root assigned the adjacent Baskets lifecycle to the existing ETF owner under the human-approved platform-usability plan; exact partition is recorded in basket-ui-ownership-partition.json. This is not a separate release or a closure of the full roadmap.
   source_base: c87c3ce2e4469d88e731cad8c1ce3ef0c618b921

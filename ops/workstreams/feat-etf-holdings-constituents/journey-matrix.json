@@ -76,10 +76,10 @@
           "action": "Open history for a resolved constituent with selected holding provenance",
           "controls": ["Select holding row", "View history"],
           "journeys": ["J06", "J08", "J12"],
-          "outcome": "Navigation carries canonical instrument identity plus snapshot ID, composition date, known-at, source and row provenance. Historical chart intent does not grant current-analysis eligibility.",
+          "outcome": "Navigation uses /chart/{constituent} and carries canonical instrument identity plus snapshot ID, composition date, known-at, source and row provenance. Historical chart intent does not grant current-analysis eligibility.",
           "focused_evidence": [{"path": "frontend/tests/unit/views/test_etf_holdings_view.test.ts", "cases": ["opens resolved constituent history without promoting stale parent eligibility", "does not route an old page row while a newly selected snapshot is still loading"]}],
-          "api_contract": ["Selected row is sourced from GET /api/v1/etf-holdings/{symbol}/holdings; chart route is /legacy/chart/{constituent} with holding lineage query/state"],
-          "browser_evidence": {"path": "frontend/tests/e2e/etf_holdings_preparation.spec.ts", "case": "an unresolved ETF holding row explicitly resolves its reported equity and carries lineage into D1 history", "mode": "controlled browser/API fixtures", "coverage": "Ordinary clicks select the reported row, resolve an exact candidate, and carry snapshot/row/source lineage to history. This is not backend or issuer acceptance.", "body_run": false, "status": "pending Root combined browser profile"}
+          "api_contract": ["Selected row is sourced from GET /api/v1/etf-holdings/{symbol}/holdings; canonical dashboard route is /chart/{constituent} with holding lineage query/state"],
+          "browser_evidence": {"path": "frontend/tests/e2e/etf_holdings_preparation.spec.ts", "case": "an uncached ETF row opens the canonical chart route with selected snapshot and row lineage", "mode": "controlled browser/API fixtures", "coverage": "Ordinary clicks select the returned row and open /chart with the exact dated snapshot, known_at, provenance, source provider, canonical instrument and row context. This is a browser route contract only, not backend or issuer acceptance.", "body_run": false, "status": "pending Root combined browser profile"}
         },
         {
           "action": "Resolve an eligible unresolved reported equity and open its exact confirmed candidate; retain non-chartable, held and unresolved rows honestly",

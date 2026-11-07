@@ -4970,7 +4970,7 @@ class SpdrHoldingsAdapter(IssuerCsvHoldingsAdapter):
     @staticmethod
     def _classify_row(*, name: str | None, source_ticker: str | None) -> tuple[str, str]:
         text = " ".join(part for part in (name, source_ticker) if part).upper()
-        if any(token in text for token in ("CASH", "MONEY MARKET", "TREASURY BILL")):
+        if any(token in text for token in ("CASH", "MONEY MARKET", "TREASURY BILL", "US DOLLAR")):
             return "cash", "cash"
         if any(token in text for token in ("OPTION", "FUTURE", "SWAP", "FORWARD")) or re.search(
             r"\b\d{6}[CP]\d{8}\b",

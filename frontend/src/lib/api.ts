@@ -1,3 +1,5 @@
+import { assertAuthSessionCurrent, beginAuthSessionBoundary, captureAuthSession } from '@/lib/authSession'
+
 /**
  * Authenticated API client with automatic token refresh on 401.
  */
@@ -44,23 +46,37 @@ function getToken(): string | null {
 }
 
 export async function refreshAccessToken(): Promise<string | null> {
+  const session = captureAuthSession()
   const refreshToken = localStorage.getItem('refresh_token')
   if (!refreshToken) {
     clearTokens()
+    beginAuthSessionBoundary()
     return null
   }
 
-  const res = await fetch(`${BASE}/auth/refresh?refresh_token=${encodeURIComponent(refreshToken)}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-  })
+  const controller = new AbortController()
+  const abortForSession = () => controller.abort()
+  session.signal.addEventListener('abort', abortForSession, { once: true })
+  let res: Response
+  try {
+    res = await fetch(`${BASE}/auth/refresh?refresh_token=${encodeURIComponent(refreshToken)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
+    })
+    assertAuthSessionCurrent(session)
+  } finally {
+    session.signal.removeEventListener('abort', abortForSession)
+  }
 
   if (!res.ok) {
     clearTokens()
+    beginAuthSessionBoundary()
     return null
   }
 
   const tokens: TokenPair = await res.json()
+  assertAuthSessionCurrent(session)
   setTokens(tokens)
   return tokens.access_token
 }
@@ -73,6 +89,7 @@ async function request<T>(
   retry = true,
   options?: ApiRequestOptions,
 ): Promise<T> {
+  const session = captureAuthSession()
   let url = `${BASE}${path}`
   if (params && Object.keys(params).length) {
     const qs = new URLSearchParams(
@@ -91,26 +108,43 @@ async function request<T>(
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (token) headers['Authorization'] = `Bearer ${token}`
 
-  const opts: RequestInit = { method, headers, signal: options?.signal }
+  const controller = new AbortController()
+  const abortForSession = () => controller.abort()
+  const abortForCaller = () => controller.abort(options?.signal?.reason)
+  session.signal.addEventListener('abort', abortForSession, { once: true })
+  options?.signal?.addEventListener('abort', abortForCaller, { once: true })
+  if (session.signal.aborted) abortForSession()
+  if (options?.signal?.aborted) abortForCaller()
+  const opts: RequestInit = { method, headers, signal: controller.signal }
   if (body !== undefined) opts.body = JSON.stringify(body)
 
-  const res = await fetch(url, opts)
+  try {
+    const res = await fetch(url, opts)
+    assertAuthSessionCurrent(session)
 
-  if (res.status === 401 && retry && !path.startsWith('/auth/')) {
-    const newToken = await refreshAccessToken()
-    if (newToken) {
-      return request<T>(method, path, body, params, false, options)
+    if (res.status === 401 && retry && !path.startsWith('/auth/')) {
+      const newToken = await refreshAccessToken()
+      assertAuthSessionCurrent(session)
+      if (newToken) {
+        return request<T>(method, path, body, params, false, options)
+      }
+      throw new Error('Authentication required')
     }
-    throw new Error('Authentication required')
-  }
 
-  if (!res.ok) {
-    const text = await res.text()
-    throw new ApiError(method, path, res.status, text)
-  }
+    if (!res.ok) {
+      const text = await res.text()
+      assertAuthSessionCurrent(session)
+      throw new ApiError(method, path, res.status, text)
+    }
 
-  if (res.status === 204) return undefined as T
-  return res.json() as Promise<T>
+    if (res.status === 204) return undefined as T
+    const payload = await res.json() as T
+    assertAuthSessionCurrent(session)
+    return payload
+  } finally {
+    session.signal.removeEventListener('abort', abortForSession)
+    options?.signal?.removeEventListener('abort', abortForCaller)
+  }
 }
 
 export const api = {
