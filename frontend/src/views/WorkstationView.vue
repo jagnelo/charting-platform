@@ -74,7 +74,12 @@
             <div class="workstation__layout-list">
               <div v-for="tab in workspaceStore.workspace?.tabs ?? []" :key="tab.stable_key" class="workstation__layout-item" draggable="true" @dragstart="dragTabKey = tab.stable_key" @dragover.prevent @drop.prevent="dropTab(tab.stable_key)" @dragend="dragTabKey = null">
                 <button type="button" role="menuitem" tabindex="-1" class="workstation__layout-select" :class="{ active: tab.stable_key === workspaceStore.activeTabKey }" @click="selectWorkspaceTab(tab.stable_key); closeShellMenuToTrigger('workspace')">{{ tab.name }}</button>
-                <input aria-label="Rename layout" :value="tab.name" @change="renameTab(tab.stable_key, ($event.target as HTMLInputElement).value)" />
+                <input
+                  aria-label="Rename layout"
+                  :value="layoutRenameDrafts[tab.stable_key] ?? tab.name"
+                  @input="updateLayoutRenameDraft(tab.stable_key, $event)"
+                  @change="commitLayoutRenameDraft(tab.stable_key, $event)"
+                />
                 <button type="button" class="workstation__layout-delete" :disabled="(workspaceStore.workspace?.tabs.length ?? 0) <= 1" :aria-label="`Delete layout ${tab.name}`" :title="`Delete layout ${tab.name}`" @click="deleteTab(tab.stable_key, tab.name)"><WorkstationGlyph kind="delete" /><span>Delete</span></button>
               </div>
             </div>
@@ -500,6 +505,7 @@ let symbolSubmissionInFlight = false
 let lastSymbolSelectionError: string | null = null
 let lastDiscoveryQuery = ''
 const symbolSearchEnabled = ref(false)
+const layoutRenameDrafts = ref<Record<string, string>>({})
 const searchPanelVisible = computed(() => symbolSearchEnabled.value && Boolean(symbolDraft.value.trim()))
 const searchStateText = computed(() => {
   if (!searchPanelVisible.value) return ''
@@ -2170,6 +2176,22 @@ async function openStudyLab() {
 
 function renameTab(stableKey: string, name: string) {
   workspaceStore.renameTab(stableKey, name)
+}
+
+function updateLayoutRenameDraft(stableKey: string, event: Event) {
+  const value = (event.target as HTMLInputElement).value
+  layoutRenameDrafts.value = { ...layoutRenameDrafts.value, [stableKey]: value }
+  // Commit the local name while the field is edited so an older in-flight
+  // snapshot cannot replace it before the browser emits change on blur.
+  renameTab(stableKey, value)
+}
+
+function commitLayoutRenameDraft(stableKey: string, event: Event) {
+  const value = (event.target as HTMLInputElement).value
+  renameTab(stableKey, value)
+  const next = { ...layoutRenameDrafts.value }
+  delete next[stableKey]
+  layoutRenameDrafts.value = next
 }
 
 function deleteTab(stableKey: string, name: string) {

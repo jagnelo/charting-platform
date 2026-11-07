@@ -210,6 +210,9 @@ async def materialize_etf_holdings_basket(
         source_snapshot_id=snapshot.id,
         is_system_managed=True,
         is_read_only=True,
+        # Initialize the collection before flush so clear()/append() below
+        # cannot trigger implicit async lazy loading on a new basket.
+        members=[],
     )
     basket.name = f"{etf_instrument.symbol} holdings {snapshot.composition_date.isoformat()}"
     basket.description = (
@@ -245,6 +248,11 @@ async def materialize_etf_holdings_basket(
     if existing is None:
         db.add(basket)
         await db.flush()
+
+    # Explicitly load the relationship in async context before mutating it.
+    # This covers both a new basket after flush and an existing identity-map
+    # object whose collection may have expired during earlier request work.
+    await db.refresh(basket, attribute_names=["members"])
 
     basket.members.clear()
     await db.flush()

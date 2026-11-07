@@ -428,6 +428,9 @@ const selectedRunDetailQuery = useQuery({
     return api.get<ResearchRunSummary>(`/research/runs/${runId}`)
   },
   enabled: computed(() => Boolean(selectedRun.value?.id && selectedRun.value.artifacts.length === 0 && (selectedRun.value.artifact_count ?? 0) > 0)),
+  // Detail failures are recoverable through the visible Retry action below.
+  // Avoid background retries hiding that user-controlled recovery state.
+  retry: false,
   staleTime: 5_000,
 })
 const detailLoading = computed(() => selectedRunDetailQuery.isFetching.value)

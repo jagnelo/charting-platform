@@ -77,6 +77,7 @@ const harness = vi.hoisted(() => {
     selectIndustry: vi.fn(),
     closeTool: vi.fn(),
     cloneActiveTab: vi.fn(),
+    renameTab: vi.fn(() => true),
     captureTabRecovery: vi.fn(),
     deleteTab: vi.fn(),
     restoreDeletedTab: vi.fn(),
@@ -317,6 +318,7 @@ describe('WorkstationView pop-out bindings', () => {
     harness.workspace.loadDefault = vi.fn().mockResolvedValue(undefined)
     harness.workspace.activeTab = harness.workspace.workspace.tabs[0]
     harness.workspace.openTool.mockReset()
+    harness.workspace.renameTab.mockReset().mockReturnValue(true)
     harness.workspace.marketGroups = { 'us-benchmarks': { members: [] }, 'sp500-sectors': { members: [] } }
     harness.workspace.groupSnapshots = {}
     harness.workspace.breadth = {}
@@ -2497,6 +2499,24 @@ describe('WorkstationView pop-out bindings', () => {
     await historyButton.trigger('click')
     await wrapper.trigger('keydown', { key: 'Escape' })
     expect(wrapper.find('.workstation__recent-symbols').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('keeps a layout rename draft through an unrelated render and commits it before blur', async () => {
+    routeState.path = '/chart'
+    routeState.params = {}
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    await wrapper.get('button[title="Manage workspace layouts"]').trigger('click')
+    const renameField = wrapper.findAll('input[aria-label="Rename layout"]').at(-1)!
+    ;(renameField.element as HTMLInputElement).value = 'Review Layout'
+    await renameField.trigger('input')
+
+    expect(harness.workspace.renameTab).toHaveBeenCalledWith('us-top-down', 'Review Layout')
+    await wrapper.vm.$forceUpdate()
+    await nextTick()
+    expect((renameField.element as HTMLInputElement).value).toBe('Review Layout')
     wrapper.unmount()
   })
 

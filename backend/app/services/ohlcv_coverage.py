@@ -399,18 +399,27 @@ def _calendar_missing_slices(
     if timeframe == Timeframe.D1:
         local_start = start.astimezone(_XNYS_TZ)
         local_end = end.astimezone(_XNYS_TZ)
+        close_label_count = sum(13 <= value.astimezone(_XNYS_TZ).hour < 18 for value in ordered)
+        close_labelled = bool(ordered) and close_label_count * 2 >= len(ordered)
         for session in sorted(_xnys_session_days(local_start.date(), local_end.date())):
             bar_start = datetime.combine(session, time.min, tzinfo=_XNYS_TZ).astimezone(UTC)
             session_close = datetime.combine(session, time(16), tzinfo=_XNYS_TZ).astimezone(UTC)
             # Daily bars represent completed sessions. Do not manufacture a
             # missing tail for a session that has not closed yet.
-            if bar_start < start or session_close > end:
+            if close_labelled:
+                if session_close < start or session_close > end:
+                    continue
+            elif bar_start < start or session_close > end:
                 continue
             next_midnight = datetime.combine(
                 session + timedelta(days=1), time.min, tzinfo=_XNYS_TZ
             ).astimezone(UTC)
             periods.append(
-                (session, bar_start, min(next_midnight - timedelta(microseconds=1), end))
+                (
+                    session,
+                    session_close if close_labelled else bar_start,
+                    min(next_midnight - timedelta(microseconds=1), end),
+                )
             )
 
         # Both canonical UTC-midnight labels and native NY-midnight labels
@@ -470,11 +479,15 @@ def _calendar_missing_slices(
     previous_index, previous = first_index, first
     for current_index, current in missing[1:]:
         if current_index != previous_index + 1:
-            slices.append((first[1], previous[2]))
+            slice_start, slice_end = max(first[1], start), min(previous[2], end)
+            slices.append(
+                (slice_start, slice_end) if slice_start < slice_end else (first[1], previous[2])
+            )
             first_index, first = current_index, current
         previous = current
         previous_index = current_index
-    slices.append((first[1], previous[2]))
+    slice_start, slice_end = max(first[1], start), min(previous[2], end)
+    slices.append((slice_start, slice_end) if slice_start < slice_end else (first[1], previous[2]))
     return slices
 
 

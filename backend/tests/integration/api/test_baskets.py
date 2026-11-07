@@ -80,6 +80,48 @@ def test_user_can_create_update_and_delete_manual_basket(
     assert missing.status_code == 404
 
 
+def test_historical_etf_basket_materializes_and_reuses_loaded_members(
+    client, admin_headers, auth_headers
+):
+    composition_date = (datetime.now(UTC).date() - timedelta(days=1)).isoformat()
+    ingest = client.post(
+        "/api/v1/etf-holdings/DIA/ingest",
+        headers=admin_headers,
+        json={
+            "composition_date": composition_date,
+            "source_provider": "basket-async-regression",
+            "rows": [
+                {"symbol": "AAPL", "name": "Apple Inc.", "weight": "0.60"},
+                {"symbol": "MSFT", "name": "Microsoft Corporation", "weight": "0.40"},
+            ],
+        },
+    )
+    assert ingest.status_code == 200, ingest.text
+    snapshot_id = ingest.json()["id"]
+
+    materialized = client.get(
+        f"/api/v1/etf-holdings/DIA/basket?snapshot_id={snapshot_id}",
+        headers=auth_headers,
+    )
+    assert materialized.status_code == 200, materialized.text
+    first = materialized.json()
+    assert first["is_system_managed"] is True
+    assert first["is_read_only"] is True
+    assert first["source_snapshot_id"] == snapshot_id
+    assert first["metadata"]["source_provider"] == "basket-async-regression"
+    assert [member["symbol"] for member in first["members"]] == ["AAPL", "MSFT"]
+
+    repeated = client.get(
+        f"/api/v1/etf-holdings/DIA/basket?snapshot_id={snapshot_id}",
+        headers=auth_headers,
+    )
+    assert repeated.status_code == 200, repeated.text
+    second = repeated.json()
+    assert second["id"] == first["id"]
+    assert second["source_snapshot_id"] == snapshot_id
+    assert [member["symbol"] for member in second["members"]] == ["AAPL", "MSFT"]
+
+
 @pytest.mark.asyncio
 async def test_manual_basket_crud_uses_real_async_session(db_engine):
     """Exercise the normal basket endpoints with PostgreSQL-backed AsyncSessions."""
@@ -195,6 +237,96 @@ async def test_manual_basket_crud_uses_real_async_session(db_engine):
             if remaining_user is not None:
                 await session.delete(remaining_user)
         await async_engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_etf_basket_materialization_refreshes_expired_members(db_engine):
+    """Exercise first and repeated materialization with a real AsyncSession."""
+    from app.models.asset_class import AssetClass, InstrumentType
+    from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
+    from app.models.instrument import Instrument
+    from app.services.baskets import materialize_etf_holdings_basket
+
+    suffix = uuid4().hex[:10]
+    async_url = db_engine.url.set(drivername="postgresql+asyncpg")
+    async_engine = create_async_engine(async_url, poolclass=NullPool)
+    session_factory = async_sessionmaker(async_engine, expire_on_commit=False)
+
+    async with session_factory() as session:
+        try:
+            asset_class = AssetClass(name=f"Basket ETF class {suffix}")
+            instrument_type = InstrumentType(
+                name=f"Basket ETF type {suffix}", asset_class=asset_class
+            )
+            etf = Instrument(
+                symbol=f"E{suffix[:8]}",
+                name="Materialization regression ETF",
+                currency="USD",
+                instrument_type=instrument_type,
+                is_active=True,
+            )
+            constituent = Instrument(
+                symbol=f"C{suffix[:8]}",
+                name="Materialization regression constituent",
+                currency="USD",
+                instrument_type=instrument_type,
+                is_active=True,
+            )
+            profile = ETFProfile(instrument=etf, adapter_key="fixture", adapter_status="resolved")
+            snapshot = ETFHoldingsSnapshot(
+                etf_profile=profile,
+                composition_date=datetime.now(UTC).date() - timedelta(days=1),
+                provenance="issuer_native",
+                source_provider="basket-async-regression",
+                source_quality="issuer_disclosed",
+                completeness_status="complete",
+                row_count=1,
+                resolved_count=1,
+                unresolved_count=0,
+                snapshot_hash=f"basket-async-{suffix}",
+            )
+            snapshot.rows.append(
+                ETFHolding(
+                    constituent_instrument=constituent,
+                    position=0,
+                    reported_symbol=constituent.symbol,
+                    reported_name=constituent.name,
+                    weight=Decimal("1.0"),
+                    holding_type="equity",
+                    row_type="security",
+                    source_row_hash=f"basket-row-{suffix}",
+                    is_resolved=True,
+                )
+            )
+            session.add_all([asset_class, instrument_type, etf, constituent, profile, snapshot])
+            await session.flush()
+
+            first = await materialize_etf_holdings_basket(
+                session,
+                etf.symbol,
+                snapshot_id=snapshot.id,
+                allow_non_current=True,
+            )
+            assert first is not None
+            basket_id = first.id
+            assert [member.instrument_id for member in first.members] == [constituent.id]
+
+            session.expire(first, ["members"])
+            repeated = await materialize_etf_holdings_basket(
+                session,
+                etf.symbol,
+                snapshot_id=snapshot.id,
+                allow_non_current=True,
+            )
+
+            assert repeated is not None
+            assert repeated.id == basket_id
+            assert repeated.is_read_only is True
+            assert repeated.source_snapshot_id == snapshot.id
+            assert [member.instrument_id for member in repeated.members] == [constituent.id]
+        finally:
+            await session.rollback()
+            await async_engine.dispose()
 
 
 def test_custom_basket_rejects_unknown_duplicate_and_unbalanced_members(

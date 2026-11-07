@@ -592,10 +592,13 @@ test('S&P 500 RRG renders deep D1/W1/MN data and survives selection, resize, max
   const pageResponses = new Map<AnalysisTimeframe, RotationResponse>()
   const directResponses = new Map<AnalysisTimeframe, RotationResponse>()
 
-  const initialD1Response = page.waitForResponse(response => response.ok() && rotationResponseFor(response, 'D1'))
+  // Consume the response body as soon as it arrives; a later navigation can
+  // invalidate Playwright's retained response body even though the response
+  // itself was matched before reload completed.
+  const initialD1Payload = page.waitForResponse(response => response.ok() && rotationResponseFor(response, 'D1'))
+    .then(response => response.json() as Promise<RotationResponse>)
   await page.reload()
-  const reloadedD1 = await initialD1Response
-  const d1Payload = await reloadedD1.json() as RotationResponse
+  const d1Payload = await initialD1Payload
   pageResponses.set('D1', d1Payload)
   // The saved workspace may restore its primary Technicals dock tab. Restore
   // the maximized window first, then activate Relative Rotation through its

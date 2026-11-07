@@ -9,8 +9,8 @@
       <input ref="fileInput" class="code-library-tool__file" type="file" accept="application/json,.json" @change="importAsset" />
     </header>
     <form v-if="creating" :id="createFormId" class="code-library-tool__create" aria-label="Create Python asset" @submit.prevent="createAsset">
-      <input v-model.trim="newName" aria-label="New Python asset name" placeholder="Asset name" />
-      <input v-model.trim="newStableKey" aria-label="New Python asset key" placeholder="stable-key" />
+      <input v-model.trim="newName" aria-label="New Python asset name" placeholder="Asset name" @input="newAssetSaveNotice = ''" />
+      <input v-model.trim="newStableKey" aria-label="New Python asset key" placeholder="stable-key" @input="newAssetSaveNotice = ''" />
       <select v-model="newKind" aria-label="New Python asset kind" @change="invalidateNewValidation"><option value="study">Study</option><option value="plot">Plot</option><option value="column">Column</option><option value="condition">Condition</option><option value="signal">Signal</option></select>
       <select v-if="newKind === 'condition'" v-model="newConditionContract" aria-label="New Python condition output contract" @change="invalidateNewValidation"><option value="boolean">Boolean predicate</option><option value="series">Numeric series target</option></select>
       <PythonSourceEditor v-model="newSource" ariaLabel="New Python asset source" @update:model-value="invalidateNewValidation" />
@@ -23,6 +23,7 @@
         <pre v-if="newValidation.diagnostics.length">{{ formatDiagnostics(newValidation.diagnostics) }}</pre>
         <small v-else>Outputs: {{ newValidation.output_contracts.join(', ') || 'none' }} · Dependencies: {{ newValidation.dependencies.join(', ') || 'none' }}</small>
       </div>
+      <p v-if="newAssetSaveNotice" class="code-library-tool__notice" role="status" aria-live="polite" aria-atomic="true">{{ newAssetSaveNotice }}</p>
     </form>
     <p v-if="error" class="code-library-tool__error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</p>
     <p v-if="!error && loading && !assets.length" class="code-library-tool__notice" role="status" aria-live="polite" aria-atomic="true">Loading user-owned assets…</p>
@@ -132,6 +133,7 @@ const newStableKey = ref('')
 const newKind = ref<'study' | 'plot' | 'column' | 'condition' | 'signal'>('study')
 const newConditionContract = ref<'boolean' | 'series'>('boolean')
 const newSource = ref("output.scalar('value', 0)")
+const newAssetSaveNotice = ref('')
 const newValidation = ref<ValidationResult | null>(null)
 const newValidationSource = ref<string | null>(null)
 const newValidationContract = ref<string | null>(null)
@@ -218,6 +220,7 @@ function invalidateNewValidation() {
   newValidation.value = null
   newValidationSource.value = null
   newValidationContract.value = null
+  newAssetSaveNotice.value = ''
 }
 function markNewValidationStale(message: string) {
   newValidation.value = { valid: false, diagnostics: [{ message }], dependencies: [], output_contracts: [] }
@@ -254,7 +257,7 @@ async function createAsset() {
   const source = newSource.value
   const kind = newKind.value
   const outputContract = newOutputContract()
-  creatingBusy.value = true; error.value = ''
+  creatingBusy.value = true; error.value = ''; newAssetSaveNotice.value = ''
   try {
     const cachedValidationMatches = newValidation.value?.valid
       && newValidationSource.value === source
@@ -275,7 +278,16 @@ async function createAsset() {
     const asset = await api.post<CodeAsset>('/code/assets', { stable_key: stableKey, name, kind, initial_version: { source, output_contract: outputContract, parameter_schema: {}, default_parameters: {} } })
     await invalidateCodeAssets(queryClient)
     assets.value = [...assets.value, asset].sort((left, right) => left.name.localeCompare(right.name))
-    creating.value = false; newName.value = ''; newStableKey.value = ''; newKind.value = 'study'; newConditionContract.value = 'boolean'; newSource.value = "output.scalar('value', 0)"; invalidateNewValidation()
+    const currentDraftMatchesSubmission = newName.value === name
+      && newStableKey.value === stableKey
+      && newKind.value === kind
+      && newSource.value === source
+      && newOutputContract() === outputContract
+    if (currentDraftMatchesSubmission) {
+      creating.value = false; newName.value = ''; newStableKey.value = ''; newKind.value = 'study'; newConditionContract.value = 'boolean'; newSource.value = "output.scalar('value', 0)"; invalidateNewValidation()
+    } else {
+      newAssetSaveNotice.value = `Created Python asset “${asset.name}”. Your newer draft remains in the form.`
+    }
   } catch (cause: any) { error.value = cause?.message ?? 'Unable to create Python asset' }
   finally { creatingBusy.value = false }
 }

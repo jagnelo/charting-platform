@@ -156,6 +156,87 @@ describe('WorkspaceLayoutHost', () => {
     wrapper.unmount()
   })
 
+  it('adds one appended dock tool without rebuilding or dropping its mounted sibling', async () => {
+    const layout = {
+      root: { type: 'stack', content: [
+        { type: 'component', componentName: 'workstation-tool', title: 'Chart', componentState: { instance_key: 'chart-1', title: 'Chart', tool_type: 'chart' } },
+      ] },
+    } as any
+    const addedLayout = {
+      root: { type: 'stack', content: [
+        layout.root.content[0],
+        { type: 'component', componentName: 'workstation-tool', title: 'Benchmarks', componentState: { instance_key: 'benchmark-1', title: 'Benchmarks', tool_type: 'watchlist' } },
+      ] },
+    } as any
+    const renderTool = vi.fn((tool: any) => h('div', { 'data-tool': tool.instance_key }))
+    const wrapper = mount(WorkspaceLayoutHost, { props: { layout, activeWindowKey: 'chart-1', renderTool } })
+    const gl = goldenLayouts[0]
+    const stack: any = {
+      type: 'stack',
+      contentItems: [],
+      header: { tabs: [] as any[] },
+      isMaximised: false,
+      active: null as any,
+      setActiveComponentItem(item: any) { this.active = item },
+      getActiveComponentItem() { return this.active },
+      removeChild: vi.fn((item: any) => {
+        stack.contentItems = stack.contentItems.filter((candidate: any) => candidate !== item)
+        stack.header.tabs = stack.header.tabs.filter((tab: any) => tab.contentItem !== item)
+        item.destroy?.()
+        gl.saved = { root: { type: 'stack', content: stack.contentItems.map((candidate: any) => ({
+          type: 'component',
+          componentName: 'workstation-tool',
+          title: candidate.config.componentState.title,
+          componentState: candidate.config.componentState,
+        })) } }
+      }),
+      addComponent: vi.fn((_type: string, state: any, _title: string) => {
+        const item: any = {
+          type: 'component',
+          config: { componentState: state },
+          parentItem: stack,
+          show: vi.fn(),
+          hide: vi.fn(),
+        }
+        stack.contentItems.push(item)
+        stack.header.tabs.push({ contentItem: item, element: document.createElement('div') })
+        const cleanupHandlers = new Map<string, () => void>()
+        item.destroy = () => cleanupHandlers.get('destroy')?.()
+        gl.factory!({ parent: item, on: vi.fn((event: string, callback: () => void) => cleanupHandlers.set(event, callback)) }, state)
+      }),
+    }
+    const chartItem: any = {
+      type: 'component',
+      config: { componentState: { instance_key: 'chart-1' } },
+      parentItem: stack,
+      show: vi.fn(),
+      hide: vi.fn(),
+    }
+    stack.contentItems.push(chartItem)
+    stack.header.tabs.push({ contentItem: chartItem, element: document.createElement('div') })
+    gl.root = { contentItems: [stack] }
+    const chartCleanupHandlers = new Map<string, () => void>()
+    chartItem.destroy = () => chartCleanupHandlers.get('destroy')?.()
+    gl.factory!({ parent: chartItem, on: vi.fn((event: string, callback: () => void) => chartCleanupHandlers.set(event, callback)) }, { instance_key: 'chart-1', title: 'Chart', tool_type: 'chart' })
+
+    await wrapper.setProps({ layout: addedLayout, activeWindowKey: 'benchmark-1' })
+    await nextTick()
+
+    expect(goldenLayouts).toHaveLength(1)
+    expect(gl.destroyed).toBe(false)
+    expect(stack.addComponent).toHaveBeenCalledWith('workstation-tool', addedLayout.root.content[1].componentState, 'Benchmarks')
+    expect(renderTool.mock.calls.map(([tool]) => tool.instance_key)).toEqual(['chart-1', 'benchmark-1'])
+    expect(stack.contentItems.map((item: any) => item.config.componentState.instance_key)).toEqual(['chart-1', 'benchmark-1'])
+    gl.saved = addedLayout
+    renderTool.mock.calls[1][1].close()
+    await nextTick()
+    expect(stack.removeChild).toHaveBeenCalledWith(expect.objectContaining({ config: { componentState: expect.objectContaining({ instance_key: 'benchmark-1' }) } }), false)
+    expect(stack.contentItems.map((item: any) => item.config.componentState.instance_key)).toEqual(['chart-1'])
+    expect(goldenLayouts).toHaveLength(1)
+    expect(gl.destroyed).toBe(false)
+    wrapper.unmount()
+  })
+
   it('closes a tool by rebuilding the serializable tree before Golden Layout teardown', async () => {
     const layout = {
       root: {

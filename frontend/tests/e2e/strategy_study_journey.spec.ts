@@ -1,14 +1,97 @@
 import { test, expect } from './helpers'
+import type { Page } from '@playwright/test'
+
+const retainedStudyStartDate = '2024-01-02'
+const retainedStudyEndDate = '2025-12-29'
+
+async function activateDockToolTab(page: Page, title: string) {
+  const tab = page.locator(`.lm_tab[title="${title}"]`).last()
+  await expect(tab).toBeVisible()
+  await tab.click()
+  await expect(tab).toHaveClass(/lm_active/)
+}
+
+async function openStudyResultsTool(page: Page) {
+  await page.goto('/chart')
+  await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
+  await page.getByRole('button', { name: 'Study', exact: true }).click()
+  await page.getByRole('button', { name: 'Add tool', exact: true }).click()
+  await page.getByRole('menu', { name: 'Workstation tools' }).getByRole('menuitem', { name: 'Study Results', exact: true }).click()
+  await activateDockToolTab(page, 'Study Results')
+  const results = page.locator('.research-results-tool:visible').last()
+  await expect(results).toBeVisible({ timeout: 15_000 })
+  return results
+}
+
+function recoveryRun(id: number, status: string, artifactCount = 0, artifacts: Array<Record<string, unknown>> = []) {
+  return {
+    id,
+    status,
+    created_at: `2026-11-07T10:${String(id % 60).padStart(2, '0')}:00Z`,
+    code_version_id: id + 100,
+    output_contract: 'study',
+    reproducibility_hash: `controlled-recovery-${id}`,
+    run_config: {},
+    dataset_manifest: { source: 'controlled-browser-fixture', symbols: ['SPY'] },
+    diagnostics: [],
+    warnings: [],
+    artifacts,
+    artifact_count: artifactCount,
+  }
+}
+
+function controlledResponseUrl(path: string) {
+  return new URL(`/api/v1${path}`, process.env.STACK_URL ?? 'http://localhost').href
+}
+
+function controlled503(responseId: string) {
+  return {
+    status: 503,
+    headers: { 'x-controlled-response-id': responseId },
+    contentType: 'application/json',
+    body: JSON.stringify({ detail: 'Controlled temporary failure', response_id: responseId }),
+  }
+}
+
+function isStudyHistoryEnsure(request: import('@playwright/test').Request, symbols: ReadonlySet<string>) {
+  if (request.method() !== 'POST' || new URL(request.url()).pathname !== '/api/v1/data/ensure') return false
+  let body: {
+    target?: { kind?: string; symbol?: string }
+    datasets?: string[]
+    timeframe?: string
+    adjusted?: boolean
+    start_at?: string | null
+    end_at?: string | null
+  }
+  try {
+    body = request.postDataJSON() as typeof body
+  } catch {
+    return false
+  }
+  return body.target?.kind === 'instrument'
+    && typeof body.target.symbol === 'string'
+    && symbols.has(body.target.symbol.toUpperCase())
+    && body.datasets?.length === 1
+    && body.datasets[0] === 'history'
+    && body.timeframe === 'D1'
+    && body.adjusted === true
+    && (body.start_at ?? null) === null
+    && (body.end_at ?? null) === null
+}
 
 test('Study journey keeps saved identity, refreshes Results, and returns from Python Library on the immutable version', async ({ page, loggedIn, browserDiagnostics }) => {
   test.setTimeout(150_000)
   const studyName = `Study journey ${Date.now()}`
-  const runRequests: Array<{ code_version_id?: number }> = []
+  const runRequests: Array<{
+    code_version_id?: number
+    run_config?: { start_date?: string; end_date?: string }
+    dataset_manifest?: { start_date?: string; end_date?: string }
+  }> = []
   let codeAssetCreations = 0
   page.on('request', request => {
     if (request.method() !== 'POST') return
     const pathname = new URL(request.url()).pathname
-    if (pathname.endsWith('/research/runs')) runRequests.push(request.postDataJSON() as { code_version_id?: number })
+    if (pathname.endsWith('/research/runs')) runRequests.push(request.postDataJSON() as typeof runRequests[number])
     if (pathname.endsWith('/code/assets')) codeAssetCreations += 1
   })
   await page.goto('/chart')
@@ -20,13 +103,17 @@ test('Study journey keeps saved identity, refreshes Results, and returns from Py
   await page.getByRole('menu', { name: 'Workstation tools' }).getByRole('menuitem', { name: 'Study Results', exact: true }).click()
   const results = page.locator('.research-results-tool:visible').last()
   await expect(results).toBeVisible({ timeout: 15_000 })
-  await expect(results.getByRole('list', { name: 'Persisted research runs' })).toBeVisible()
+  const resultsRegion = page.getByRole('region', { name: 'Study Lab research results' }).last()
+  await expect(resultsRegion.getByRole('status')).toContainText('No persisted studies yet. Run a study in the adjacent Study Lab pane.')
 
+  await activateDockToolTab(page, 'Study Lab')
   const study = page.locator('.study-lab-tool:visible').last()
   await expect(study).toBeVisible({ timeout: 15_000 })
   await study.getByRole('combobox', { name: 'Factory study' }).selectOption('positive_streak')
   await study.getByRole('textbox', { name: 'Study name' }).fill(studyName)
   await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
+  await study.getByLabel('Study start date').fill(retainedStudyStartDate)
+  await study.getByLabel('Study end date').fill(retainedStudyEndDate)
   const immutableSource = await study.getByRole('textbox', { name: 'Study Python source' }).inputValue()
   const preparationResponse = page.waitForResponse(response => response.request().method() === 'POST' && new URL(response.url()).pathname.endsWith('/data/ensure'))
   await study.getByRole('button', { name: 'Validate study' }).click()
@@ -37,6 +124,8 @@ test('Study journey keeps saved identity, refreshes Results, and returns from Py
     datasets: ['history'],
     timeframe: 'D1',
     adjusted: true,
+    start_at: `${retainedStudyStartDate}T00:00:00.000Z`,
+    end_at: `${retainedStudyEndDate}T23:59:59.999Z`,
   })
   await expect(study.getByRole('status', { name: 'Study data preparation' })).toContainText('ready', { timeout: 90_000 })
   await expect(study).toContainText('Validated for isolated execution', { timeout: 15_000 })
@@ -44,6 +133,10 @@ test('Study journey keeps saved identity, refreshes Results, and returns from Py
   await study.getByRole('button', { name: 'Run study', exact: true }).click()
   const firstRunBody = (await firstRunRequest).postDataJSON() as { code_version_id?: number }
   expect(Number.isInteger(firstRunBody.code_version_id)).toBe(true)
+  expect(runRequests[0]).toMatchObject({
+    run_config: { start_date: retainedStudyStartDate, end_date: retainedStudyEndDate },
+    dataset_manifest: { start_date: retainedStudyStartDate, end_date: retainedStudyEndDate },
+  })
   expect(codeAssetCreations).toBe(1)
   await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
 
@@ -51,19 +144,25 @@ test('Study journey keeps saved identity, refreshes Results, and returns from Py
   const runId = runLabel.match(/Run #(\d+)/)?.[1]
   expect(runId).toBeTruthy()
   await expect(study.getByRole('status', { name: 'Saved run dataset' })).toContainText(`Saved run #${runId} dataset: symbol SPY`)
-  const completedRun = results.getByRole('button', { name: `Run ${runId}, completed, 8 artifacts` })
+  await expect(study.getByRole('status', { name: 'Saved run dataset' })).toContainText(`from ${retainedStudyStartDate}`)
+  await expect(study.getByRole('status', { name: 'Saved run dataset' })).toContainText(`through ${retainedStudyEndDate}`)
+  await activateDockToolTab(page, 'Study Results')
+  const activeResults = page.locator('.research-results-tool:visible').last()
+  const completedRun = activeResults.getByRole('button', { name: `Run ${runId}, completed, 8 artifacts` })
   await expect(completedRun).toBeVisible({ timeout: 15_000 })
   await completedRun.click()
-  const resultDetail = results.locator(`article[aria-label="Research run ${runId} details"]`)
+  const resultDetail = activeResults.locator(`article[aria-label="Research run ${runId} details"]`)
   await expect(resultDetail).toBeVisible()
   await expect(resultDetail.locator('.research-results-tool__artifacts > article')).toHaveCount(8, { timeout: 15_000 })
 
+  await activateDockToolTab(page, 'Study Lab')
   const savedDraft = page.waitForResponse(response => response.request().method() === 'PUT' && new URL(response.url()).pathname.endsWith('/snapshot'))
   await study.getByRole('textbox', { name: 'Study symbol' }).fill('XLB')
   expect((await savedDraft).ok()).toBe(true)
   await study.getByRole('button', { name: 'Validate study' }).click()
   await expect(study).toContainText('Validated for isolated execution', { timeout: 15_000 })
   await expect(study.locator('.study-lab-tool__dataset-summary')).toContainText('Current draft dataset: XLB')
+  await expect(study.locator('.study-lab-tool__dataset-summary')).toContainText(`${retainedStudyStartDate} → ${retainedStudyEndDate}`)
   await expect(study.getByRole('status', { name: 'Saved run dataset' })).toContainText(`Saved run #${runId} dataset: symbol SPY`)
   await expect(study.locator('.study-lab-tool__metrics article').filter({ hasText: 'current_streak' })).toBeVisible()
 
@@ -72,8 +171,12 @@ test('Study journey keeps saved identity, refreshes Results, and returns from Py
   await page.getByRole('button', { name: 'Study', exact: true }).click()
   const restoredStudy = page.locator('.study-lab-tool:visible').last()
   await expect(restoredStudy.locator('.study-lab-tool__dataset-summary')).toContainText('Current draft dataset: XLB')
+  await expect(restoredStudy.locator('.study-lab-tool__dataset-summary')).toContainText(`${retainedStudyStartDate} → ${retainedStudyEndDate}`)
   await expect(restoredStudy.getByRole('status', { name: 'Saved run dataset' })).toContainText(`Saved run #${runId} dataset: symbol SPY`)
+  await expect(restoredStudy.getByRole('status', { name: 'Saved run dataset' })).toContainText(`from ${retainedStudyStartDate}`)
+  await expect(restoredStudy.getByRole('status', { name: 'Saved run dataset' })).toContainText(`through ${retainedStudyEndDate}`)
   await expect(restoredStudy.locator('.study-lab-tool__metrics article').filter({ hasText: 'current_streak' })).toBeVisible()
+  await activateDockToolTab(page, 'Study Results')
   const restoredResults = page.locator('.research-results-tool:visible').last()
   const restoredRun = restoredResults.getByRole('button', { name: `Run ${runId}, completed, 8 artifacts` })
   await expect(restoredRun).toBeVisible()
@@ -83,6 +186,7 @@ test('Study journey keeps saved identity, refreshes Results, and returns from Py
 
   await page.getByRole('button', { name: 'Add tool', exact: true }).click()
   await page.getByRole('menu', { name: 'Workstation tools' }).getByRole('menuitem', { name: 'Python Library', exact: true }).click()
+  await activateDockToolTab(page, 'Python Library')
   const library = page.locator('.code-library-tool:visible').last()
   await expect(library.getByRole('button', { name: `Open ${studyName} in Study Lab`, exact: true })).toBeVisible({ timeout: 15_000 })
   const libraryAsset = library.locator('.code-library-tool__asset').filter({ hasText: studyName }).first()
@@ -112,8 +216,12 @@ test('Study journey keeps saved identity, refreshes Results, and returns from Py
   await expect(returnedStudy).toContainText('Validated for isolated execution', { timeout: 15_000 })
   const returnedRunRequest = page.waitForRequest(request => request.method() === 'POST' && new URL(request.url()).pathname.endsWith('/research/runs'))
   await returnedStudy.getByRole('button', { name: 'Run study', exact: true }).click()
-  const returnedRunBody = (await returnedRunRequest).postDataJSON() as { code_version_id?: number }
+  const returnedRunBody = (await returnedRunRequest).postDataJSON() as typeof runRequests[number]
   expect(returnedRunBody.code_version_id).toBe(savedVersionBody.id)
+  expect(returnedRunBody).toMatchObject({
+    run_config: { start_date: retainedStudyStartDate, end_date: retainedStudyEndDate },
+    dataset_manifest: { start_date: retainedStudyStartDate, end_date: retainedStudyEndDate },
+  })
   await expect(returnedStudy.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
   expect(runRequests).toHaveLength(2)
   expect(codeAssetCreations).toBe(1)
@@ -153,6 +261,7 @@ test('Study prepares SPY before validating and completes a configured high-low b
   await page.getByRole('button', { name: 'Study', exact: true }).click()
   await page.getByRole('button', { name: 'Add tool', exact: true }).click()
   await page.getByRole('menu', { name: 'Workstation tools' }).getByRole('menuitem', { name: 'Study Results', exact: true }).click()
+  await activateDockToolTab(page, 'Study Lab')
   const study = page.locator('.study-lab-tool:visible').last()
   await expect(study).toBeVisible({ timeout: 15_000 })
   await study.getByRole('combobox', { name: 'Factory study' }).selectOption('high_low_breakouts')
@@ -162,6 +271,8 @@ test('Study prepares SPY before validating and completes a configured high-low b
   await expect(lookback).toHaveAttribute('max', '252')
   await lookback.fill('10')
   await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
+  await study.getByLabel('Study start date').fill(retainedStudyStartDate)
+  await study.getByLabel('Study end date').fill(retainedStudyEndDate)
 
   const preparationResponse = page.waitForResponse(response => response.request().method() === 'POST'
     && new URL(response.url()).pathname.endsWith('/data/ensure'))
@@ -177,6 +288,8 @@ test('Study prepares SPY before validating and completes a configured high-low b
     datasets: ['history'],
     timeframe: 'D1',
     adjusted: true,
+    start_at: `${retainedStudyStartDate}T00:00:00.000Z`,
+    end_at: `${retainedStudyEndDate}T23:59:59.999Z`,
   })
   expect(preparation.target).toMatchObject({ kind: 'instrument', symbol: 'SPY' })
   await expect.poll(() => preparation.status === 'ready' || observedPreparationStatuses.some(status =>
@@ -200,13 +313,24 @@ test('Study prepares SPY before validating and completes a configured high-low b
   expect(Number.isInteger(run.code_version_id)).toBe(true)
   createdRunId = run.id!
   expect(created.request().postDataJSON()).toMatchObject({
-    run_config: { symbol: 'SPY', parameters: { lookback: 10 } },
+    run_config: {
+      symbol: 'SPY',
+      parameters: { lookback: 10 },
+      start_date: retainedStudyStartDate,
+      end_date: retainedStudyEndDate,
+    },
+    dataset_manifest: { start_date: retainedStudyStartDate, end_date: retainedStudyEndDate },
   })
 
   try {
     await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
     await expect(study.getByRole('status', { name: /new_high_count metric/ })).toBeVisible()
     await expect(study.getByRole('status', { name: /new_low_count metric/ })).toBeVisible()
+    const highCount = Number(await study.getByRole('status', { name: /new_high_count metric/ }).locator('strong').innerText())
+    const lowCount = Number(await study.getByRole('status', { name: /new_low_count metric/ }).locator('strong').innerText())
+    expect(Number.isFinite(highCount)).toBe(true)
+    expect(highCount).toBeGreaterThan(0)
+    expect(Number.isFinite(lowCount)).toBe(true)
   } catch (cause) {
     let persistedRun: unknown = null
     let readbackStatus: number | null = null
@@ -262,10 +386,11 @@ test('Study preparation submits every universe member and benchmark while one me
     last_progress_at: '2026-11-06T12:00:01Z',
   })
 
+  const studySymbols = new Set(['SPY', 'XLK', 'QQQ'])
   await page.route('**/api/v1/data/**', async route => {
     const request = route.request()
     const url = new URL(request.url())
-    if (request.method() === 'POST' && url.pathname.endsWith('/data/ensure')) {
+    if (isStudyHistoryEnsure(request, studySymbols)) {
       const body = request.postDataJSON() as { target: { kind: string; symbol?: string } }
       submittedTargets.push(body.target)
       if (submittedTargets.length === 3) resolveAllSubmitted()
@@ -273,7 +398,7 @@ test('Study preparation submits every universe member and benchmark while one me
       await route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify(responseFor(`study-${symbol}`, 'queued', 1, symbol)) })
       return
     }
-    const poll = url.pathname.match(/\/data\/requests\/study-([^/]+)$/)
+    const poll = url.pathname.match(/\/api\/v1\/data\/requests\/(study-[^/]+)$/)
     if (request.method() === 'GET' && poll) {
       const symbol = decodeURIComponent(poll[1])
       if (symbol === 'SPY') await heldPrimary
@@ -297,6 +422,7 @@ test('Study preparation submits every universe member and benchmark while one me
   await page.getByRole('button', { name: 'Study', exact: true }).click()
   await page.getByRole('button', { name: 'Add tool', exact: true }).click()
   await page.getByRole('menu', { name: 'Workstation tools' }).getByRole('menuitem', { name: 'Study Results', exact: true }).click()
+  await activateDockToolTab(page, 'Study Lab')
   const study = page.locator('.study-lab-tool:visible').last()
   await expect(study).toBeVisible({ timeout: 15_000 })
   await study.getByRole('textbox', { name: 'Study universe' }).fill('SPY, XLK')
@@ -366,10 +492,11 @@ test('Study ignores obsolete preparation after the selected symbol changes and v
     last_progress_at: '2026-11-07T00:00:01Z',
   })
 
+  const studySymbols = new Set(['SPY', 'QQQ', 'XLB'])
   await page.route('**/api/v1/data/**', async route => {
     const request = route.request()
     const url = new URL(request.url())
-    if (request.method() === 'POST' && url.pathname.endsWith('/data/ensure')) {
+    if (isStudyHistoryEnsure(request, studySymbols)) {
       const body = request.postDataJSON() as { target: { symbol?: string } }
       const symbol = body.target.symbol ?? 'unknown'
       submittedTargets.push(symbol)
@@ -380,7 +507,7 @@ test('Study ignores obsolete preparation after the selected symbol changes and v
       await route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify(responseFor(requestId, 'queued', 1, symbol)) })
       return
     }
-    const poll = url.pathname.match(/\/data\/requests\/(context-[^/]+)$/)
+    const poll = url.pathname.match(/\/api\/v1\/data\/requests\/(context-[^/]+)$/)
     if (request.method() === 'GET' && poll) {
       const requestId = decodeURIComponent(poll[1])
       if (requestId === 'context-SPY-1') {
@@ -412,6 +539,7 @@ test('Study ignores obsolete preparation after the selected symbol changes and v
   await page.getByRole('button', { name: 'Study', exact: true }).click()
   await page.getByRole('button', { name: 'Add tool', exact: true }).click()
   await page.getByRole('menu', { name: 'Workstation tools' }).getByRole('menuitem', { name: 'Study Results', exact: true }).click()
+  await activateDockToolTab(page, 'Study Lab')
   const study = page.locator('.study-lab-tool:visible').last()
   await expect(study).toBeVisible({ timeout: 15_000 })
   await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
@@ -483,9 +611,6 @@ test('Results supports ordinary controls through a controlled persisted-run API'
   let persistedRuns = [breadthRun, queuedRun, ...Array.from({ length: 24 }, (_, index) => makeRun(7998 - index))]
   const olderRun = makeRun(7900, 'completed', '2026-11-06T00:00:00Z')
   let nextRunId = 8100
-  let cancelAttempts = 0
-  let detailAttempts = 0
-  let firstSnapshotRerun = true
   const rerunRequests: Array<{ sourceRunId: number; snapshot: string | null }> = []
 
   await page.route('**/api/v1/research/runs**', async route => {
@@ -500,22 +625,12 @@ test('Results supports ordinary controls through a controlled persisted-run API'
     }
     const detail = pathname.match(/\/research\/runs\/(\d+)$/)
     if (request.method() === 'GET' && detail) {
-      detailAttempts += 1
-      if (detailAttempts === 1) {
-        await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ detail: 'controlled result detail unavailable' }) })
-        return
-      }
       const run = persistedRuns.find(item => item.id === Number(detail[1])) ?? olderRun
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(run) })
       return
     }
     const cancel = pathname.match(/\/research\/runs\/(\d+)\/cancel$/)
     if (request.method() === 'POST' && cancel) {
-      cancelAttempts += 1
-      if (cancelAttempts === 1) {
-        await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ detail: 'controlled cancellation unavailable' }) })
-        return
-      }
       const runId = Number(cancel[1])
       persistedRuns = persistedRuns.map(run => run.id === runId ? { ...run, status: 'canceled' } : run)
       const canceled = persistedRuns.find(run => run.id === runId)!
@@ -527,11 +642,6 @@ test('Results supports ordinary controls through a controlled persisted-run API'
       const sourceRunId = Number(rerun[1])
       const snapshot = url.searchParams.get('snapshot')
       rerunRequests.push({ sourceRunId, snapshot })
-      if (sourceRunId === 8000 && snapshot === 'true' && firstSnapshotRerun) {
-        firstSnapshotRerun = false
-        await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ detail: 'controlled rerun unavailable' }) })
-        return
-      }
       const source = persistedRuns.find(run => run.id === sourceRunId) ?? breadthRun
       const queued = makeRun(nextRunId++, 'queued', new Date(Date.UTC(2026, 10, 6, 12, 10 + rerunRequests.length, 0)).toISOString())
       queuedRun.artifacts = []
@@ -550,17 +660,14 @@ test('Results supports ordinary controls through a controlled persisted-run API'
   await page.getByRole('button', { name: 'Study', exact: true }).click()
   await page.getByRole('button', { name: 'Add tool', exact: true }).click()
   await page.getByRole('menu', { name: 'Workstation tools' }).getByRole('menuitem', { name: 'Study Results', exact: true }).click()
+  await activateDockToolTab(page, 'Study Results')
   const results = page.locator('.research-results-tool:visible').last()
   await expect(results.getByRole('button', { name: 'Run 8000, completed, 3 artifacts' })).toBeVisible()
   const runList = results.getByRole('list', { name: 'Persisted research runs' })
   await expect(runList.locator('.research-results-tool__run-select').nth(0)).toHaveAccessibleName('Run 8000, completed, 3 artifacts')
   await expect(runList.locator('.research-results-tool__run-select').nth(1)).toHaveAccessibleName('Run 7999, queued, 0 artifacts')
   const selectedDetail = results.locator('article[aria-label="Research run 8000 details"]')
-  await expect(selectedDetail.getByRole('alert')).toBeVisible()
-  expect(detailAttempts).toBe(1)
-  await selectedDetail.getByRole('button', { name: 'Retry', exact: true }).click()
   await expect(selectedDetail.locator('.research-results-tool__artifacts > article')).toHaveCount(3)
-  expect(detailAttempts).toBe(2)
 
   await results.getByRole('button', { name: 'Load older runs', exact: true }).click()
   await expect(results.getByRole('button', { name: 'Run 7900, completed, 0 artifacts' })).toBeVisible()
@@ -584,15 +691,9 @@ test('Results supports ordinary controls through a controlled persisted-run API'
 
   await results.getByRole('button', { name: 'Run 7999, queued, 0 artifacts' }).click()
   await results.getByRole('button', { name: 'Cancel', exact: true }).click()
-  await expect(results.getByRole('alert')).toContainText('Unable to cancel run #7999:')
-  await expect(results.getByRole('button', { name: 'Cancel', exact: true })).toBeEnabled()
-  await results.getByRole('button', { name: 'Cancel', exact: true }).click()
   await expect(results.getByRole('button', { name: 'Run 7999, canceled, 0 artifacts' })).toBeVisible()
 
   await results.getByRole('button', { name: 'Run 8000, completed, 3 artifacts' }).click()
-  await results.getByRole('button', { name: 'Rerun snapshot', exact: true }).click()
-  await expect(results.getByRole('alert')).toContainText('Unable to queue rerun for run #8000:')
-  await expect(results.getByRole('button', { name: 'Rerun snapshot', exact: true })).toBeEnabled()
   await results.getByRole('button', { name: 'Rerun snapshot', exact: true }).click()
   await expect(results.getByRole('button', { name: 'Run 8100, queued, 0 artifacts' })).toBeVisible()
   await expect(runList.locator('.research-results-tool__run-select').first()).toHaveAccessibleName('Run 8100, queued, 0 artifacts')
@@ -600,9 +701,141 @@ test('Results supports ordinary controls through a controlled persisted-run API'
   await expect(results.getByRole('button', { name: 'Run 8101, queued, 0 artifacts' })).toBeVisible()
   expect(rerunRequests).toEqual([
     { sourceRunId: 8000, snapshot: 'true' },
-    { sourceRunId: 8000, snapshot: 'true' },
     { sourceRunId: 8100, snapshot: 'false' },
   ])
+  await browserDiagnostics.expectNoCriticalIssues()
+})
+
+test('Results detail exposes a single controlled failure and explicit Retry loads saved artifacts', async ({ page, loggedIn, browserDiagnostics }) => {
+  const responseId = crypto.randomUUID()
+  const summary = recoveryRun(8201, 'completed', 1)
+  const detail = recoveryRun(8201, 'completed', 1, [
+    { id: 9201, name: 'current_streak', artifact_type: 'scalar', payload: { type: 'scalar', value: 4 } },
+  ])
+  let detailRequests = 0
+  await page.route('**/api/v1/research/runs**', async route => {
+    const request = route.request()
+    const url = new URL(request.url())
+    if (request.method() === 'GET' && url.pathname === '/api/v1/research/runs') {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([summary]) })
+      return
+    }
+    if (request.method() === 'GET' && url.pathname === '/api/v1/research/runs/8201') {
+      detailRequests += 1
+      if (detailRequests === 1) {
+        await route.fulfill(controlled503(responseId))
+      } else {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(detail) })
+      }
+      return
+    }
+    await route.continue()
+  })
+  browserDiagnostics.allowExpectedControlledApiResponseFault(
+    controlledResponseUrl('/research/runs/8201'), 'GET', responseId,
+  )
+
+  const results = await openStudyResultsTool(page)
+  await expect(results.getByRole('button', { name: 'Run 8201, completed, 1 artifact' })).toBeVisible()
+  await expect(results.getByRole('alert')).toContainText(responseId)
+  expect(detailRequests).toBe(1)
+
+  const retryRequest = page.waitForRequest(request =>
+    request.method() === 'GET' && new URL(request.url()).pathname === '/api/v1/research/runs/8201',
+  )
+  await results.getByRole('button', { name: 'Retry', exact: true }).click()
+  await retryRequest
+  const selectedDetail = results.locator('article[aria-label="Research run 8201 details"]')
+  await expect(selectedDetail.locator('.research-results-tool__artifacts > article[aria-label="current_streak scalar result"]')).toBeVisible()
+  await expect(selectedDetail.locator('.research-results-tool__artifacts > article')).toHaveCount(1)
+  expect(detailRequests).toBe(2)
+  await browserDiagnostics.expectNoCriticalIssues()
+})
+
+test('Results keeps queued cancel available after one controlled failure and retries to canceled', async ({ page, loggedIn, browserDiagnostics }) => {
+  const responseId = crypto.randomUUID()
+  let currentRun = recoveryRun(8202, 'queued')
+  let cancelRequests = 0
+  await page.route('**/api/v1/research/runs**', async route => {
+    const request = route.request()
+    const url = new URL(request.url())
+    if (request.method() === 'GET' && url.pathname === '/api/v1/research/runs') {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([currentRun]) })
+      return
+    }
+    if (request.method() === 'POST' && url.pathname === '/api/v1/research/runs/8202/cancel') {
+      cancelRequests += 1
+      if (cancelRequests === 1) {
+        await route.fulfill(controlled503(responseId))
+      } else {
+        currentRun = { ...currentRun, status: 'canceled' }
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(currentRun) })
+      }
+      return
+    }
+    await route.continue()
+  })
+  browserDiagnostics.allowExpectedControlledApiResponseFault(
+    controlledResponseUrl('/research/runs/8202/cancel'), 'POST', responseId,
+  )
+
+  const results = await openStudyResultsTool(page)
+  await expect(results.getByRole('button', { name: 'Run 8202, queued, 0 artifacts' })).toBeVisible()
+  await results.getByRole('button', { name: 'Cancel', exact: true }).click()
+  await expect(results.getByRole('alert')).toContainText(responseId)
+  await expect(results.getByRole('button', { name: 'Cancel', exact: true })).toBeEnabled()
+  expect(cancelRequests).toBe(1)
+  await expect(results.locator('.research-results-tool__run-select')).toHaveCount(1)
+
+  await results.getByRole('button', { name: 'Cancel', exact: true }).click()
+  await expect(results.getByRole('button', { name: 'Run 8202, canceled, 0 artifacts' })).toBeVisible()
+  expect(cancelRequests).toBe(2)
+  await browserDiagnostics.expectNoCriticalIssues()
+})
+
+test('Results creates no rerun after a controlled failure and the explicit retry queues one snapshot', async ({ page, loggedIn, browserDiagnostics }) => {
+  const responseId = crypto.randomUUID()
+  const sourceRun = recoveryRun(8203, 'completed')
+  let runs = [sourceRun]
+  let rerunRequests = 0
+  const acceptedRun = recoveryRun(8210, 'queued')
+  await page.route('**/api/v1/research/runs**', async route => {
+    const request = route.request()
+    const url = new URL(request.url())
+    if (request.method() === 'GET' && url.pathname === '/api/v1/research/runs') {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(runs) })
+      return
+    }
+    if (request.method() === 'POST' && url.pathname === '/api/v1/research/runs/8203/rerun') {
+      expect(url.searchParams.get('snapshot')).toBe('true')
+      rerunRequests += 1
+      if (rerunRequests === 1) {
+        await route.fulfill(controlled503(responseId))
+      } else {
+        runs = [acceptedRun, sourceRun]
+        await route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify(acceptedRun) })
+      }
+      return
+    }
+    await route.continue()
+  })
+  browserDiagnostics.allowExpectedControlledApiResponseFault(
+    controlledResponseUrl('/research/runs/8203/rerun?snapshot=true'), 'POST', responseId,
+  )
+
+  const results = await openStudyResultsTool(page)
+  await expect(results.getByRole('button', { name: 'Run 8203, completed, 0 artifacts' })).toBeVisible()
+  await results.getByRole('button', { name: 'Rerun snapshot', exact: true }).click()
+  await expect(results.getByRole('alert')).toContainText(responseId)
+  await expect(results.getByRole('button', { name: 'Run 8210, queued, 0 artifacts' })).toHaveCount(0)
+  await expect(results.getByRole('button', { name: 'Rerun snapshot', exact: true })).toBeEnabled()
+  expect(rerunRequests).toBe(1)
+  await expect(results.locator('.research-results-tool__run-select')).toHaveCount(1)
+
+  await results.getByRole('button', { name: 'Rerun snapshot', exact: true }).click()
+  await expect(results.getByRole('button', { name: 'Run 8210, queued, 0 artifacts' })).toBeVisible()
+  await expect(results.locator('.research-results-tool__run-select').filter({ hasText: 'Run #8210' })).toHaveCount(1)
+  expect(rerunRequests).toBe(2)
   await browserDiagnostics.expectNoCriticalIssues()
 })
 
@@ -676,6 +909,7 @@ test('Python Library supports create, import, clone, archive, export and filter 
   await page.getByRole('button', { name: 'Study', exact: true }).click()
   await page.getByRole('button', { name: 'Add tool', exact: true }).click()
   await page.getByRole('menu', { name: 'Workstation tools' }).getByRole('menuitem', { name: 'Python Library', exact: true }).click()
+  await activateDockToolTab(page, 'Python Library')
   const library = page.locator('.code-library-tool:visible').last()
   await expect(library.getByRole('listitem').filter({ hasText: 'Seed Study' })).toBeVisible()
 
@@ -741,20 +975,43 @@ test('closing Study Lab while run creation is pending preserves the durable run 
   await page.getByRole('button', { name: 'Study', exact: true }).click()
   await page.getByRole('button', { name: 'Add tool', exact: true }).click()
   await page.getByRole('menu', { name: 'Workstation tools' }).getByRole('menuitem', { name: 'Study Results', exact: true }).click()
+  await activateDockToolTab(page, 'Study Results')
   const results = page.locator('.research-results-tool:visible').last()
-  await expect(results.getByRole('list', { name: 'Persisted research runs' })).toBeVisible({ timeout: 15_000 })
+  const resultsRegion = page.getByRole('region', { name: 'Study Lab research results' }).last()
+  await expect(resultsRegion.getByRole('status')).toContainText('No persisted studies yet. Run a study in the adjacent Study Lab pane.')
+  await activateDockToolTab(page, 'Study Lab')
   const study = page.locator('.study-lab-tool:visible').last()
   await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
+  await study.getByLabel('Study start date').fill(retainedStudyStartDate)
+  await study.getByLabel('Study end date').fill(retainedStudyEndDate)
+  const preparationResponse = page.waitForResponse(response => response.request().method() === 'POST'
+    && new URL(response.url()).pathname.endsWith('/data/ensure'))
   const validationResponse = page.waitForResponse(response => response.request().method() === 'POST'
     && new URL(response.url()).pathname.endsWith('/code/validate'))
   await study.getByRole('button', { name: 'Validate study', exact: true }).click()
+  const prepared = await preparationResponse
+  expect(prepared.ok()).toBe(true)
+  expect(prepared.request().postDataJSON()).toMatchObject({
+    target: { kind: 'instrument', symbol: 'SPY' },
+    datasets: ['history'],
+    timeframe: 'D1',
+    adjusted: true,
+    start_at: `${retainedStudyStartDate}T00:00:00.000Z`,
+    end_at: `${retainedStudyEndDate}T23:59:59.999Z`,
+  })
   expect((await validationResponse).ok()).toBe(true)
   await expect(study).toContainText('Validated for isolated execution', { timeout: 90_000 })
 
+  const createdRequest = page.waitForRequest(request => request.method() === 'POST'
+    && new URL(request.url()).pathname.endsWith('/research/runs'))
   const createdResponse = page.waitForResponse(response => response.request().method() === 'POST'
     && new URL(response.url()).pathname.endsWith('/research/runs'))
   await study.getByRole('button', { name: 'Run study', exact: true }).click()
   await createStarted
+  expect((await createdRequest).postDataJSON()).toMatchObject({
+    run_config: { start_date: retainedStudyStartDate, end_date: retainedStudyEndDate },
+    dataset_manifest: { start_date: retainedStudyStartDate, end_date: retainedStudyEndDate },
+  })
   const studyWindow = page.locator('.tool-window').filter({ has: study })
   await studyWindow.getByRole('button', { name: 'Close tool', exact: true }).click()
   await expect(study).toBeHidden()
@@ -763,6 +1020,7 @@ test('closing Study Lab while run creation is pending preserves the durable run 
   const created = await createdResponse
   expect(created.status()).toBe(202)
   const run = await created.json() as { id: number }
+  await activateDockToolTab(page, 'Study Results')
   const runRow = results.getByRole('button', { name: new RegExp(`^Run ${run.id},`) })
   await expect(runRow).toBeVisible({ timeout: 15_000 })
   expect(await runRow.getAttribute('aria-label')).not.toContain('canceled')

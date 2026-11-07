@@ -1407,6 +1407,65 @@ describe('workspace store layout tabs', () => {
     expect(apiDelete).toHaveBeenCalledWith('/workspaces/11')
   })
 
+  it('reconciles cloned layout component identities and persists the repaired dock tree', async () => {
+    const source = {
+      id: 77, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 8,
+      schema_version: 1, settings: { factory_id: 'us-top-down' },
+      tabs: [{
+        id: 90, stable_key: 'us-top-down', name: 'US Top Down', position: 0,
+        active_window_key: 'benchmark-list',
+        layout_config: { root: { type: 'stack', content: [
+          { type: 'component', componentName: 'workstation-tool', title: 'Benchmarks', componentState: { instance_key: 'benchmark-list' } },
+          { type: 'component', componentName: 'workstation-tool', title: 'Chart', componentState: { instance_key: 'chart-main' } },
+        ] } },
+        windows: [
+          { id: 1, instance_key: 'benchmark-list', tool_type: 'watchlist', title: 'Benchmarks', link_group: 'blue', configuration: { market_group: 'us-benchmarks' }, style: {}, state_schema_version: 1, position: 0 },
+          { id: 2, instance_key: 'chart-main', tool_type: 'chart', title: 'Chart', link_group: 'blue', configuration: { symbol: 'SPY' }, style: {}, state_schema_version: 1, position: 1 },
+        ],
+      }],
+    }
+    const cloned = {
+      ...source,
+      id: 78,
+      name: 'US Top Down Copy',
+      is_default: false,
+      revision: 1,
+      tabs: [{
+        ...source.tabs[0],
+        id: 91,
+        windows: [
+          { ...source.tabs[0].windows[0], id: 3, instance_key: 'benchmark-list-copy-1' },
+          { ...source.tabs[0].windows[1], id: 4, instance_key: 'chart-copy-1' },
+        ],
+      }],
+    }
+    const saved = { ...cloned, revision: 2 }
+    apiPost.mockResolvedValueOnce(cloned)
+    apiGet.mockResolvedValueOnce([])
+    apiPut.mockResolvedValueOnce(saved)
+    const store = useWorkspaceStore()
+    store.workspace = source
+
+    const result = await store.cloneWorkspace()
+
+    expect(result?.tabs[0]).toMatchObject({
+      active_window_key: 'benchmark-list-copy-1',
+      layout_config: { root: { content: [
+        { componentState: { instance_key: 'benchmark-list-copy-1' } },
+        { componentState: { instance_key: 'chart-copy-1' } },
+      ] } },
+    })
+    await vi.waitFor(() => expect(apiPut).toHaveBeenCalledWith('/workspaces/78/snapshot', expect.objectContaining({
+      tabs: [expect.objectContaining({
+        active_window_key: 'benchmark-list-copy-1',
+        layout_config: expect.objectContaining({ root: expect.objectContaining({ content: expect.arrayContaining([
+          expect.objectContaining({ componentState: { instance_key: 'benchmark-list-copy-1' } }),
+          expect.objectContaining({ componentState: { instance_key: 'chart-copy-1' } }),
+        ]) }) }),
+      })],
+    })))
+  })
+
   it('settles a stale layout snapshot before renaming the active workspace', async () => {
     const base = {
       id: 10, user_id: 3, name: 'New Workspace', is_default: false, position: 1, revision: 4,

@@ -285,6 +285,55 @@ describe('CodeLibraryTool', () => {
     }))
   })
 
+  it('preserves a newer create draft when the submitted asset is created late', async () => {
+    const pendingCreate = deferred<typeof asset>()
+    apiPost.mockImplementation((path: string) => path === '/code/validate'
+      ? Promise.resolve({ valid: true, diagnostics: [], dependencies: [], output_contracts: ['study', 'scalar'] })
+      : path === '/code/assets' ? pendingCreate.promise : Promise.resolve({}))
+    const wrapper = mount(CodeLibraryTool)
+    await flushPromises()
+    await wrapper.findAll('button').find(button => button.text() === 'New')!.trigger('click')
+    const submittedName = 'Submitted study'
+    const submittedKey = 'submitted-study'
+    const submittedSource = "output.scalar('value', 1)"
+    await wrapper.get('[aria-label="New Python asset name"]').setValue(submittedName)
+    await wrapper.get('[aria-label="New Python asset key"]').setValue(submittedKey)
+    await wrapper.get('[aria-label="New Python asset source"]').setValue(submittedSource)
+    await wrapper.get('form[aria-label="Create Python asset"]').trigger('submit')
+    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      stable_key: submittedKey,
+      name: submittedName,
+      initial_version: expect.objectContaining({ source: submittedSource }),
+    })))
+
+    const currentName = 'Newer draft'
+    const currentKey = 'newer-draft'
+    const currentSource = "output.scalar('value', 2)"
+    await wrapper.get('[aria-label="New Python asset name"]').setValue(currentName)
+    await wrapper.get('[aria-label="New Python asset key"]').setValue(currentKey)
+    await wrapper.get('[aria-label="New Python asset source"]').setValue(currentSource)
+    pendingCreate.resolve({
+      ...asset,
+      id: 14,
+      stable_key: submittedKey,
+      name: submittedName,
+      versions: [{ ...asset.versions[0], id: 18, source: submittedSource }],
+    })
+    await flushPromises()
+
+    expect(wrapper.text()).toContain(submittedName)
+    expect(wrapper.get('.code-library-tool__create > p[role="status"]').text()).toContain(`Created Python asset “${submittedName}”`)
+    expect(wrapper.get('.code-library-tool__create > p[role="status"]').text()).toContain('Your newer draft remains in the form')
+    expect(wrapper.get('[aria-label="New Python asset name"]').element).toHaveProperty('value', currentName)
+    expect(wrapper.get('[aria-label="New Python asset key"]').element).toHaveProperty('value', currentKey)
+    expect(wrapper.get('[aria-label="New Python asset source"]').element).toHaveProperty('value', currentSource)
+    expect(wrapper.find('.code-library-tool__validation').exists()).toBe(false)
+
+    await wrapper.get('[aria-label="New Python asset source"]').setValue("output.scalar('value', 3)")
+    expect(wrapper.find('.code-library-tool__create > p[role="status"]').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
   it('shows source diagnostics and blocks persistence when validation fails', async () => {
     apiPost.mockImplementation((path: string) => path === '/code/validate'
       ? Promise.resolve({ valid: false, diagnostics: [{ code: 'forbidden_import', message: 'Imports are not permitted', line: 1, column: 1 }], dependencies: [], output_contracts: [] })

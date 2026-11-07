@@ -3307,7 +3307,7 @@
     {
       "source": "frontend/src/views/WorkstationView.vue",
       "control_count": 47,
-      "signature_sha256": "d46258603b029796b5d96a4144a4986dd471b55481b63da87dea52b40a63066d",
+      "signature_sha256": "b59541d5821c645cdb83327a75988ba6a739b0d1f32eaf6c3dadf1157cafdce0",
       "journeys": [
         "TC01",
         "TC02",

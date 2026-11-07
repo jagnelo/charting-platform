@@ -6,6 +6,23 @@ type SearchCandidate = {
   instrument_id: number
 }
 
+async function resolveCanonicalInstrument(
+  request: import('@playwright/test').APIRequestContext,
+  headers: Record<string, string>,
+  symbol: string,
+): Promise<SearchCandidate> {
+  const response = await request.get('/api/v1/instruments/search', {
+    headers,
+    params: { q: symbol, canonical_only: 'true' },
+  })
+  expect(response.ok(), `Search API should resolve ${symbol}`).toBeTruthy()
+  const candidates = await response.json() as SearchCandidate[]
+  const exact = candidates.filter(candidate => candidate.symbol.toUpperCase() === symbol)
+  expect(exact, `Search API should return one canonical ${symbol} instrument`).toHaveLength(1)
+  expect(Number.isSafeInteger(exact[0]?.instrument_id) && (exact[0]?.instrument_id ?? 0) > 0).toBeTruthy()
+  return exact[0]
+}
+
 async function chooseResolvedInstrument(page: import('@playwright/test').Page, symbol: string) {
   const input = page.getByPlaceholder('Add instrument')
   const responsePromise = page.waitForResponse(response => {
@@ -23,7 +40,7 @@ async function chooseResolvedInstrument(page: import('@playwright/test').Page, s
   return canonical!
 }
 
-test('ordinary basket lifecycle persists edits and opens the shared dashboard chart before background preparation settles', async ({
+test('ordinary basket lifecycle persists edits across save, reload, member-chart navigation, cancel and delete', async ({
   page,
   request,
   loggedIn,
@@ -109,103 +126,6 @@ test('ordinary basket lifecycle persists edits and opens the shared dashboard ch
     expect(basketAfterMemberChart.ok()).toBeTruthy()
     const unchangedBasket = await basketAfterMemberChart.json() as { members: Array<{ instrument_id: number }> }
     expect(unchangedBasket.members.map(member => member.instrument_id)).toEqual([amzn.instrument_id, added.instrument_id])
-    await page.goto('/legacy/baskets')
-    await page.locator('.basket-card').filter({ hasText: basketBName }).click()
-
-    const ensureCalls: Array<{ instrument_id: number; datasets: string[]; timeframe: string }> = []
-    page.on('request', requestEvent => {
-      if (requestEvent.method() !== 'POST' || new URL(requestEvent.url()).pathname !== '/api/v1/data/ensure') return
-      const body = requestEvent.postDataJSON() as { target?: { instrument_id?: number }; datasets?: string[]; timeframe?: string }
-      if (body.target?.instrument_id) ensureCalls.push({
-        instrument_id: body.target.instrument_id,
-        datasets: body.datasets ?? [],
-        timeframe: body.timeframe ?? '',
-      })
-    })
-    await page.locator('.basket-card').filter({ hasText: /Lifecycle A/ }).click()
-    const selectedA = await request.get(`/api/v1/baskets/${basketA.id}`, { headers })
-    expect(selectedA.status()).toBe(200)
-    const selectedABody = await selectedA.json() as { members: Array<{ instrument_id: number }> }
-    expect(selectedABody.members.length).toBeGreaterThan(1)
-    let releaseFirstEnsure!: () => void
-    let firstEnsureWasHeld = false
-    let firstEnsureWasReleased = false
-    const firstEnsureGate = new Promise<void>(resolve => { releaseFirstEnsure = resolve })
-    await page.route('**/api/v1/data/ensure', async route => {
-      const body = route.request().postDataJSON() as { target?: { instrument_id?: number } }
-      if (body.target?.instrument_id === selectedABody.members[0]?.instrument_id) {
-        const response = await route.fetch()
-        firstEnsureWasHeld = true
-        await firstEnsureGate
-        firstEnsureWasReleased = true
-        await route.fulfill({ response })
-        return
-      }
-      await route.continue()
-    })
-    const basketChartRequest = page.waitForResponse(response =>
-      new URL(response.url()).pathname.startsWith(`/api/v1/baskets/${basketA.id}/ohlcv/`))
-    const ensureResponse = page.waitForResponse(response =>
-      response.request().method() === 'POST' && new URL(response.url()).pathname === '/api/v1/data/ensure')
-    await page.getByTestId('basket-open-chart').click()
-    await expect(page).toHaveURL(new RegExp(`/chart/BASKET%3A${basketA.id}$`), { timeout: 30_000 })
-    await expect(page.locator('.workspace-layout-host')).toBeVisible()
-    let syntheticBars: Array<{ timestamp: string; close: number }> = []
-    try {
-      // The first real preparation response is held after the server accepts it.
-      // Later member submissions and valid cached basket output must still proceed.
-      await expect.poll(() => firstEnsureWasHeld).toBeTruthy()
-      await expect.poll(() => ensureCalls.length).toBe(selectedABody.members.length)
-      expect(firstEnsureWasHeld).toBeTruthy()
-      expect(firstEnsureWasReleased).toBeFalsy()
-      expect(ensureCalls).toEqual(selectedABody.members.map(member => ({
-        instrument_id: member.instrument_id,
-        datasets: ['history'],
-        timeframe: 'D1',
-      })))
-      const basketChartResponse = await basketChartRequest
-      expect(basketChartResponse.status()).toBe(200)
-      syntheticBars = await basketChartResponse.json() as Array<{ timestamp: string; close: number }>
-      expect(syntheticBars.length).toBeGreaterThan(0)
-      expect(syntheticBars.every(bar => Number.isFinite(bar.close))).toBeTruthy()
-
-      // The held preparation must not prevent the already available basket
-      // series from reaching the visible shared chart. Tie its ordinary OHLC
-      // tooltip back to the real basket response, not merely a mounted canvas.
-      const primaryChart = page.locator('.tool-window[data-window-key="primary-chart"]')
-      await expect(primaryChart).toBeVisible()
-      const chartRoot = primaryChart.locator('.chart-root')
-      await expect(chartRoot).toBeVisible()
-      const renderer = chartRoot.locator('.uplot-wrapper .uplot')
-      await expect(renderer).toBeVisible()
-      for (let attempt = 0; attempt < 3; attempt += 1) {
-        if (await chartRoot.getAttribute('data-date-pointer-mode') === 'on_with_values') break
-        await chartRoot.focus()
-        await chartRoot.press('.')
-      }
-      await expect(chartRoot).toHaveAttribute('data-date-pointer-mode', 'on_with_values')
-      const rendererBox = await renderer.boundingBox()
-      expect(rendererBox).toBeTruthy()
-      const tooltip = primaryChart.locator('.ohlcv-info')
-      const priorTooltip = await tooltip.getAttribute('aria-label')
-      await page.mouse.move(rendererBox!.x + rendererBox!.width * 0.58, rendererBox!.y + rendererBox!.height * 0.46)
-      await expect(tooltip).toBeVisible()
-      await expect.poll(async () => (await tooltip.getAttribute('aria-label')) !== priorTooltip).toBe(true)
-      const label = (await tooltip.getAttribute('aria-label')) ?? ''
-      const tooltipDate = label.split('.')[0]
-      const tooltipClose = label.match(/close ([0-9]+(?:\.[0-9]+)?)/i)?.[1]
-      expect(tooltipClose, 'visible basket OHLC tooltip exposes a close').toBeTruthy()
-      expect(syntheticBars.some(bar => {
-        const timestamp = new Date(bar.timestamp)
-        const date = `${timestamp.getFullYear()}-${String(timestamp.getMonth() + 1).padStart(2, '0')}-${String(timestamp.getDate()).padStart(2, '0')}`
-        return date === tooltipDate && bar.close.toFixed(4) === tooltipClose
-      }), 'visible basket tooltip matches the held-window API response').toBeTruthy()
-    } finally {
-      releaseFirstEnsure()
-    }
-    const prepared = await ensureResponse
-    expect(prepared.ok()).toBeTruthy()
-    expect(firstEnsureWasReleased).toBeTruthy()
 
     await page.goto('/legacy/baskets')
     await page.locator('.basket-card').filter({ hasText: basketBName }).click()
@@ -229,7 +149,155 @@ test('ordinary basket lifecycle persists edits and opens the shared dashboard ch
   expect(loggedIn).toBeUndefined()
 })
 
-test('issuer snapshot basket materializes through the normal API and displays read-only source lineage', async ({ page, request, loggedIn }) => {
+test('opening a basket submits each member preparation independently while cached chart data stays visible', async ({
+  page,
+  request,
+  loggedIn,
+}) => {
+  const token = await page.evaluate(() => localStorage.getItem('access_token'))
+  expect(token).toBeTruthy()
+  const headers = { Authorization: `Bearer ${token}` }
+  const canonicalMembers = await Promise.all(['AAPL', 'MSFT'].map(symbol =>
+    resolveCanonicalInstrument(request, headers, symbol)))
+  const created = await request.post('/api/v1/baskets', {
+    headers,
+    data: {
+      name: `Delayed preparation ${Date.now()}`,
+      weighting_scheme: 'equal',
+      members: canonicalMembers.map(member => ({ instrument_id: member.instrument_id })),
+    },
+  })
+  const createdText = await created.text()
+  expect(created.status(), `POST /api/v1/baskets returned ${createdText}`).toBe(200)
+  const basket = JSON.parse(createdText) as {
+    id: number
+    name: string
+    members: Array<{ instrument_id: number; symbol?: string }>
+  }
+  const memberIds = new Set(canonicalMembers.map(member => member.instrument_id))
+  const memberIdBySymbol = new Map(canonicalMembers.map(member => [member.symbol.toUpperCase(), member.instrument_id]))
+  expect(basket.members.map(member => member.instrument_id)).toEqual([...memberIds])
+
+  let chartEntryStarted = false
+  let firstEnsureWasHeld = false
+  let firstEnsureWasReleased = false
+  let firstEnsureStatus: number | null = null
+  let releaseFirstEnsure!: () => void
+  const firstEnsureGate = new Promise<void>(resolve => { releaseFirstEnsure = resolve })
+  const chartEnsureCalls: Array<{ instrument_id: number; datasets: string[]; timeframe: string; adjusted: boolean }> = []
+  const acceptedChartEnsureIds: number[] = []
+
+  try {
+    await page.goto('/legacy/baskets')
+    await expect(page.getByRole('heading', { name: 'Baskets' })).toBeVisible()
+    await page.locator('.basket-card').filter({ hasText: basket.name }).click()
+    await page.route('**/api/v1/data/ensure', async route => {
+      if (!chartEntryStarted) return route.continue()
+      const body = route.request().postDataJSON() as {
+        target?: { kind?: string; instrument_id?: number; symbol?: string }
+        datasets?: string[]
+        timeframe?: string
+        adjusted?: boolean
+      }
+      if (body.target?.kind !== 'instrument') return route.continue()
+      const targetId = body.target?.instrument_id
+        ?? memberIdBySymbol.get(body.target?.symbol?.trim().toUpperCase() ?? '')
+      if (!targetId || !memberIds.has(targetId) || body.timeframe !== 'D1' || !body.datasets?.includes('history')) {
+        return route.continue()
+      }
+
+      const response = await route.fetch()
+      chartEnsureCalls.push({
+        instrument_id: targetId,
+        datasets: body.datasets,
+        timeframe: body.timeframe,
+        adjusted: body.adjusted === true,
+      })
+      if (response.ok()) acceptedChartEnsureIds.push(targetId)
+      if (!firstEnsureWasHeld) {
+        firstEnsureStatus = response.status()
+        firstEnsureWasHeld = true
+        await firstEnsureGate
+        firstEnsureWasReleased = true
+      }
+      await route.fulfill({ response })
+    })
+
+    const basketChartResponse = page.waitForResponse(response =>
+      new URL(response.url()).pathname.startsWith(`/api/v1/baskets/${basket.id}/ohlcv/`))
+    chartEntryStarted = true
+    await page.getByTestId('basket-open-chart').click()
+    await expect(page).toHaveURL(new RegExp(`/chart/BASKET%3A${basket.id}$`), { timeout: 30_000 })
+    await expect(page.locator('.workspace-layout-host')).toBeVisible()
+
+    try {
+      // This hold begins only after the ordinary Open chart action. Verify the
+      // current chart action reaches the server independently for every member.
+      await expect.poll(() => firstEnsureWasHeld).toBeTruthy()
+      await expect.poll(() => new Set(acceptedChartEnsureIds).size).toBe(memberIds.size)
+      expect(firstEnsureStatus).not.toBeNull()
+      expect(firstEnsureStatus).toBeGreaterThanOrEqual(200)
+      expect(firstEnsureStatus).toBeLessThan(300)
+      expect(firstEnsureWasReleased).toBeFalsy()
+      expect(new Set(chartEnsureCalls.map(call => call.instrument_id))).toEqual(memberIds)
+      expect(chartEnsureCalls).toHaveLength(memberIds.size)
+      expect(chartEnsureCalls.every(call =>
+        call.timeframe === 'D1' && call.adjusted && call.datasets.includes('history'))).toBeTruthy()
+      const requestKeys = chartEnsureCalls.map(call => JSON.stringify([
+        call.instrument_id,
+        [...call.datasets].sort(),
+        call.timeframe,
+        call.adjusted,
+      ]))
+      expect(new Set(requestKeys).size, 'identical member preparations are deduplicated').toBe(requestKeys.length)
+      expect(new Set(acceptedChartEnsureIds)).toEqual(memberIds)
+
+      const chartResponse = await basketChartResponse
+      expect(chartResponse.status()).toBe(200)
+      const bars = await chartResponse.json() as Array<{ timestamp: string; close: number }>
+      expect(bars.length).toBeGreaterThan(0)
+      expect(bars.every(bar => Number.isFinite(bar.close) && bar.close > 0)).toBeTruthy()
+
+      const primaryChart = page.locator('.tool-window[data-window-key="primary-chart"]')
+      await expect(primaryChart).toBeVisible()
+      const chartRoot = primaryChart.locator('.chart-root')
+      await expect(chartRoot).toBeVisible()
+      const renderer = chartRoot.locator('.uplot-wrapper .uplot')
+      await expect(renderer).toBeVisible()
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        if (await chartRoot.getAttribute('data-date-pointer-mode') === 'on_with_values') break
+        await chartRoot.focus()
+        await chartRoot.press('.')
+      }
+      await expect(chartRoot).toHaveAttribute('data-date-pointer-mode', 'on_with_values')
+      const rendererBox = await renderer.boundingBox()
+      expect(rendererBox).toBeTruthy()
+      const tooltip = primaryChart.locator('.ohlcv-info')
+      const priorTooltip = await tooltip.getAttribute('aria-label')
+      await page.mouse.move(rendererBox!.x + rendererBox!.width * 0.58, rendererBox!.y + rendererBox!.height * 0.46)
+      await expect(tooltip).toBeVisible()
+      await expect.poll(async () => (await tooltip.getAttribute('aria-label')) !== priorTooltip).toBe(true)
+      const label = (await tooltip.getAttribute('aria-label')) ?? ''
+      const tooltipDate = label.split('.')[0]
+      const tooltipClose = label.match(/close ([0-9]+(?:\.[0-9]+)?)/i)?.[1]
+      expect(tooltipClose, 'visible basket OHLC tooltip exposes a close').toBeTruthy()
+      expect(bars.some(bar => {
+        const timestamp = new Date(bar.timestamp)
+        const date = `${timestamp.getFullYear()}-${String(timestamp.getMonth() + 1).padStart(2, '0')}-${String(timestamp.getDate()).padStart(2, '0')}`
+        return date === tooltipDate && bar.close.toFixed(4) === tooltipClose
+      }), 'visible basket tooltip matches the returned cached chart series').toBeTruthy()
+    } finally {
+      releaseFirstEnsure()
+    }
+    await expect.poll(() => firstEnsureWasReleased).toBeTruthy()
+  } finally {
+    releaseFirstEnsure()
+    await request.delete(`/api/v1/baskets/${basket.id}`, { headers }).catch(() => undefined)
+  }
+  expect(loggedIn).toBeUndefined()
+})
+
+test('controlled snapshot basket materializes through the normal API and displays read-only source lineage', async ({ page, request, loggedIn }) => {
   await page.goto('/legacy/baskets')
 
   const token = await page.evaluate(() => localStorage.getItem('access_token'))
@@ -278,13 +346,13 @@ test('issuer snapshot basket materializes through the normal API and displays re
   expect(sourceBasket?.is_system_managed).toBe(true)
   expect(sourceBasket?.source_snapshot_id).toBe(profile?.latest_snapshot_id)
   expect(sourceBasket?.composition_date).toBeTruthy()
-  expect(sourceBasket?.metadata?.source_provider).toBeTruthy()
-  expect(sourceBasket?.metadata?.provenance).toBeTruthy()
+  expect(sourceBasket?.metadata?.source_provider).toBe('e2e_reference')
+  expect(sourceBasket?.metadata?.provenance).toBe('controlled_fixture')
   expect(sourceBasket?.metadata?.known_at).toBeTruthy()
   expect(sourceBasket?.metadata?.source_identifier).toBeTruthy()
   expect(sourceBasket?.metadata?.source_url).toBeTruthy()
   expect(sourceBasket?.metadata?.snapshot_hash).toBeTruthy()
-  expect(sourceBasket?.metadata?.source_artifact_hash).toBeTruthy()
+  expect(sourceBasket?.metadata?.source_artifact_hash).toBeNull()
   await page.locator('.basket-card').filter({ hasText: sourceBasket!.name }).click()
   const provenance = page.getByTestId('basket-source-provenance')
   await expect(provenance).toBeVisible()
@@ -292,7 +360,7 @@ test('issuer snapshot basket materializes through the normal API and displays re
   await expect(provenance).toContainText(String(sourceBasket?.metadata?.source_provider ?? ''))
   await expect(provenance).toContainText(String(sourceBasket?.metadata?.provenance ?? ''))
   await expect(provenance).toContainText(String(sourceBasket?.metadata?.source_identifier ?? ''))
-  await expect(provenance).toContainText(String(sourceBasket?.metadata?.source_artifact_hash ?? ''))
+  await expect(provenance).not.toContainText('source artifact')
   await expect(page.getByTestId('basket-snapshot-history')).toContainText(String(sourceBasket?.metadata?.known_at ?? ''))
   await expect(page.getByRole('button', { name: 'Delete' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled()

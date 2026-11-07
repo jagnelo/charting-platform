@@ -1218,6 +1218,57 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     return JSON.parse(JSON.stringify(value)) as T
   }
 
+  function remapClonedWorkspaceWindowKeys(source: WorkspaceState, cloned: WorkspaceState) {
+    let changed = false
+    const tabs = cloned.tabs.map(clonedTab => {
+      const sourceTab = source.tabs.find(tab => tab.stable_key === clonedTab.stable_key)
+        ?? source.tabs.find(tab => tab.position === clonedTab.position)
+      if (!sourceTab || sourceTab.windows.length !== clonedTab.windows.length) return clonedTab
+
+      const sourceByPosition = new Map(sourceTab.windows.map(window => [window.position, window]))
+      const remappedKeys = new Map<string, string>()
+      for (const window of clonedTab.windows) {
+        const original = sourceByPosition.get(window.position)
+        if (!original || original.tool_type !== window.tool_type) return clonedTab
+        remappedKeys.set(original.instance_key, window.instance_key)
+      }
+      if (!remappedKeys.size) return clonedTab
+
+      let layoutChanged = false
+      const remapLayoutKeys = (value: unknown): unknown => {
+        if (Array.isArray(value)) return value.map(remapLayoutKeys)
+        if (!value || typeof value !== 'object') return value
+        const record = value as Record<string, unknown>
+        if (record.type === 'component') {
+          const state = record.componentState
+          if (state && typeof state === 'object') {
+            const componentState = state as Record<string, unknown>
+            const key = componentState.instance_key
+            if (typeof key === 'string' && remappedKeys.has(key)) {
+              layoutChanged ||= remappedKeys.get(key) !== key
+              return {
+                ...record,
+                componentState: { ...componentState, instance_key: remappedKeys.get(key) },
+              }
+            }
+          }
+        }
+        return Object.fromEntries(Object.entries(record).map(([key, child]) => [key, remapLayoutKeys(child)]))
+      }
+
+      const layoutConfig = remapLayoutKeys(clonedTab.layout_config) as Record<string, unknown>
+      const activeWindowKey = clonedTab.active_window_key
+        ? remappedKeys.get(clonedTab.active_window_key) ?? clonedTab.active_window_key
+        : null
+      const activeChanged = activeWindowKey !== clonedTab.active_window_key
+      if (!layoutChanged && !activeChanged) return clonedTab
+      changed = true
+      return { ...clonedTab, layout_config: layoutConfig, active_window_key: activeWindowKey }
+    })
+
+    return changed ? { workspace: { ...cloned, tabs }, changed } : { workspace: cloned, changed }
+  }
+
   function sameJson(left: unknown, right: unknown) {
     return JSON.stringify(left) === JSON.stringify(right)
   }
@@ -1872,13 +1923,19 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (!workspace.value) return null
     try {
       await settleSnapshotBeforeWorkspaceMutation()
-      const clone = await api.post<WorkspaceState>(`/workspaces/${workspace.value.id}/clone`, {})
-      workspace.value = clone
+      const source = workspace.value
+      const clone = await api.post<WorkspaceState>(`/workspaces/${source.id}/clone`, {})
+      const corrected = remapClonedWorkspaceWindowKeys(source, clone)
+      workspace.value = corrected.workspace
       persistedWorkspace = cloneSerializable(clone)
-      activeTabKey.value = clone.tabs[0]?.stable_key ?? 'us-top-down'
+      activeTabKey.value = corrected.workspace.tabs[0]?.stable_key ?? 'us-top-down'
       error.value = null
+      // Some server versions clone window records but retain the source layout's
+      // component keys. Persist the reconciled identity once so reload and other
+      // windows see the same usable clone rather than only a client-side repair.
+      if (corrected.changed) scheduleSnapshot()
       await refreshWorkspaces()
-      return clone
+      return corrected.workspace
     } catch (cause: any) { error.value = cause?.message ?? 'Unable to clone workspace'; return null }
   }
 
