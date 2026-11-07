@@ -5722,9 +5722,9 @@ acceptance_criteria:
 progress:
   completed: []
   total: 5
-  current_phase: Provider b0eae597 and TC 4cfee476 are consumed from their exact Root manifests (47/47 and66/66 current-file records). The owned Workstation fixture waits for the exact successful TCNEW/M1 local response matching the accepted covered bar, excluding the earlier empty read. Frontend type-check passed and Playwright discovery lists seven acquisition cases.
-  current_blocker: Root owns the approved single-case browser rerun in its existing b0/4cfee fixture; no browser body was executed locally. Preserve canonical identity, M1 coverage, actual bar/date, calendar, no-direct-write/no-legacy-acquisition, unresolved listing, context-fence and all full-roadmap requirements.
-current_provider_b0eae597_development_import:
+  current_phase: Provider21be2915 and TC4cfee476 are consumed from their exact Root manifests (49/49 and66/66 current-file records). The assigned Workstation covered-bar case passed in Root's existing fixture. The S&P journey now uses split-adjusted bars and ratio responses consistently and activates Relative Rotation through its visible dock tab; type-check and two-case discovery pass. Root owns the current calendar-latency isolation and S&P browser bodies plus combined qualification.
+  current_blocker: Root owns the current shared-runtime browser isolation and combined qualification; no additional source request, fixture, or local browser execution is authorized here. Preserve canonical identity, M1 coverage, actual bar/date, calendar, no-direct-write/no-legacy-acquisition, unresolved listing, context-fence and all full-roadmap requirements.
+previous_provider_b0eae597_development_import:
   source: b0eae5974801e320b3da858d7e1a33829b206430
   previous_source: 5cdc5ee06e26b191d889212b8cd1554d28abbc8f
   manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providerb0eae597-runtime-development-consumption-contract.json
@@ -5732,6 +5732,14 @@ current_provider_b0eae597_development_import:
   changed_paths_imported: 2
   manifest_records_verified: 47
   purpose: Root-released retry/continuation contract dependency; development import only, no Provider workstream edits.
+current_provider_21be2915_development_import:
+  source: 21be29150de8298e15d34bb9eed8207b92917a34
+  previous_source: b0eae5974801e320b3da858d7e1a33829b206430
+  manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider21be2915-runtime-development-consumption-contract.json
+  manifest_sha256: ebab538d0daa266ba40c07a38bc39f474bee332bd3a28e9fb03f04eedc37a1f5
+  changed_paths_imported: 2
+  manifest_records_verified: 49
+  purpose: Root-released calendar/event latency development dependency; exact import only, no Provider workstream edits or acceptance claim.
 current_tc_4cfee476_development_import:
   source: 4cfee47689ebeffa05ccae5f1b7cc690f6a871b8
   previous_source: ce2262ab2d47fc1ccda96f0c2aa7c8839e4e03f9
