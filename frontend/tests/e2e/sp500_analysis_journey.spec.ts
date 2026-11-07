@@ -340,18 +340,50 @@ async function assertRotationPainted(page: Page, payload: RotationResponse): Pro
     }
     const bounds = element.getBoundingClientRect()
     const pixelRatio = element.width / bounds.width
+    const viewportIntersection = {
+      left: Math.max(bounds.left, 0),
+      top: Math.max(bounds.top, 0),
+      right: Math.min(bounds.right, window.innerWidth),
+      bottom: Math.min(bounds.bottom, window.innerHeight),
+    }
+    const clippingAncestors: Array<Record<string, unknown>> = []
+    for (let ancestor = element.parentElement; ancestor; ancestor = ancestor.parentElement) {
+      const style = getComputedStyle(ancestor)
+      if ([style.overflow, style.overflowX, style.overflowY].some(value => value !== 'visible')) {
+        const rect = ancestor.getBoundingClientRect()
+        clippingAncestors.push({
+          tag: ancestor.tagName,
+          className: typeof ancestor.className === 'string' ? ancestor.className : '',
+          overflow: style.overflow,
+          overflowX: style.overflowX,
+          overflowY: style.overflowY,
+          rect: { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom, width: rect.width, height: rect.height },
+        })
+      }
+    }
     const latestMarkers = audit.markers
       .filter(marker => marker.radius >= 3.4 * pixelRatio)
       .slice(-expectedRows.length)
     const tailPaths = audit.tails.slice(-expectedRows.length)
     const exactMarkerPixel = (x: number, y: number, color: [number, number, number]) => {
+      let exactOpaquePixels = 0
+      const samples: Array<{ dx: number; dy: number; rgba: number[] }> = []
       for (let dy = -1; dy <= 1; dy += 1) for (let dx = -1; dx <= 1; dx += 1) {
         const px = Math.round(x) + dx, py = Math.round(y) + dy
         if (px < 0 || py < 0 || px >= element.width || py >= element.height) continue
         const offset = (py * element.width + px) * 4
-        if (image[offset] === color[0] && image[offset + 1] === color[1] && image[offset + 2] === color[2] && image[offset + 3] > 245) return true
+        const rgba = [image[offset], image[offset + 1], image[offset + 2], image[offset + 3]]
+        samples.push({ dx, dy, rgba })
+        if (rgba[0] === color[0] && rgba[1] === color[1] && rgba[2] === color[2] && rgba[3] > 245) exactOpaquePixels += 1
       }
-      return false
+      const neighborhood: Array<{ dx: number; dy: number; rgba: number[] }> = []
+      for (let dy = -4; dy <= 4; dy += 1) for (let dx = -4; dx <= 4; dx += 1) {
+        const px = Math.round(x) + dx, py = Math.round(y) + dy
+        if (px < 0 || py < 0 || px >= element.width || py >= element.height) continue
+        const offset = (py * element.width + px) * 4
+        neighborhood.push({ dx, dy, rgba: [image[offset], image[offset + 1], image[offset + 2], image[offset + 3]] })
+      }
+      return { hit: exactOpaquePixels > 0, exactOpaquePixels, samples, neighborhood }
     }
     const tailRasterHits = (path: Array<{ x: number; y: number }>, color: [number, number, number]) => {
       let hits = 0
@@ -386,22 +418,90 @@ async function assertRotationPainted(page: Page, payload: RotationResponse): Pro
       }
       return hits
     }
+    const markerRasterHits = latestMarkers.map((marker, index) => {
+      const row = expectedRows[index]
+      return exactMarkerPixel(marker.x, marker.y, stateColors[row?.state ?? '']).hit
+    })
+    const tailHitCounts = tailPaths.map((path, index) =>
+      tailRasterHits(path.points, stateColors[expectedRows[index]?.state ?? '']),
+    )
+    const markerDiagnostics = latestMarkers.map((marker, index) => {
+      const row = expectedRows[index]
+      const stateColor = stateColors[row?.state ?? '']
+      const pixelEvidence = exactMarkerPixel(marker.x, marker.y, stateColor)
+      const overlaps = latestMarkers.flatMap((other, otherIndex) => {
+        if (index === otherIndex) return []
+        const distance = Math.hypot(marker.x - other.x, marker.y - other.y)
+        return distance <= marker.radius + other.radius + 1
+          ? [{ index: otherIndex, symbol: expectedRows[otherIndex]?.symbol, color: other.color, x: other.x, y: other.y, radius: other.radius, centerDistance: distance }]
+          : []
+      })
+      return {
+        index,
+        symbol: row?.symbol,
+        state: row?.state,
+        x: marker.x,
+        y: marker.y,
+        radius: marker.radius,
+        color: marker.color,
+        expectedColor: stateColor,
+        rasterHit: pixelEvidence.hit,
+        exactOpaquePixels: pixelEvidence.exactOpaquePixels,
+        centerSamples: pixelEvidence.samples,
+        nearbyPixelRgba: pixelEvidence.neighborhood,
+        overlappingMarkers: overlaps,
+      }
+    })
+    const rasterDiagnostic = {
+      canvas: {
+        width: element.width,
+        height: element.height,
+        rect: { left: bounds.left, top: bounds.top, right: bounds.right, bottom: bounds.bottom, width: bounds.width, height: bounds.height },
+        pixelRatio,
+        viewport: { width: window.innerWidth, height: window.innerHeight },
+        viewportIntersection,
+        plotBackground,
+        clippingAncestors,
+      },
+      eventCounts: { allMarkers: audit.markers.length, selectedMarkers: latestMarkers.length, allTailPaths: audit.tails.length, selectedTailPaths: tailPaths.length },
+      markers: markerDiagnostics,
+      tails: tailPaths.map((path, index) => ({
+        index,
+        symbol: expectedRows[index]?.symbol,
+        state: expectedRows[index]?.state,
+        color: path.color,
+        alpha: path.alpha,
+        expectedColor: stateColors[expectedRows[index]?.state ?? ''],
+        points: path.points,
+      })),
+    }
     return {
       width: element.width,
       height: element.height,
       painted,
+      rasterDiagnostic,
       markers: latestMarkers.map((marker, index) => ({
         ...marker,
-        rasterHit: exactMarkerPixel(marker.x, marker.y, stateColors[expectedRows[index]?.state ?? '']),
+        rasterHit: markerDiagnostics[index]?.rasterHit ?? false,
       })),
       tails: tailPaths.map((path, index) => ({
         ...path,
         expectedColor: Object.entries(stateColors).find(([, color]) => `#${color.map(value => value.toString(16).padStart(2, '0')).join('')}` === path.color)?.[0],
         requiredState: expectedRows[index]?.state,
-        rasterHits: tailRasterHits(path.points, stateColors[expectedRows[index]?.state ?? '']),
+        rasterHits: tailHitCounts[index],
       })),
     }
   }, payload.rows)
+  const rasterFailed = paint.markers.length !== payload.rows.length
+    || paint.tails.length !== payload.rows.length
+    || paint.markers.some(marker => !marker.rasterHit)
+    || paint.tails.some(tail => tail.rasterHits < 5)
+  if (rasterFailed) {
+    const diagnosticAttachment = `rrg-raster-${payload.timeframe.toLowerCase()}.json`
+    const diagnosticBody = JSON.stringify(paint.rasterDiagnostic, null, 2)
+    await test.info().attach(diagnosticAttachment, { body: diagnosticBody, contentType: 'application/json' })
+    console.info('RRG_RASTER_DIAGNOSTIC', diagnosticAttachment, diagnosticBody)
+  }
   expect(paint.width).toBeGreaterThan(250)
   expect(paint.height).toBeGreaterThan(140)
   expect(paint.painted, 'RRG canvas must contain painted axes, quadrants and actual plotted data').toBeGreaterThan(150)
@@ -434,7 +534,7 @@ async function assertRotationPainted(page: Page, payload: RotationResponse): Pro
 }
 
 async function installRotationCanvasAudit(page: Page): Promise<void> {
-  await page.addInitScript(() => {
+  const installAudit = () => {
     const selector = '[role="group"][aria-label="Relative rotation trend and momentum plane"]'
     const colors = new Set(['#61c58c', '#e7bc68', '#6dbbe6', '#df8181'])
     const audit = { markers: [] as Array<{ x: number; y: number; radius: number; color: string }>, tails: [] as Array<{ color: string; alpha: number; points: Array<{ x: number; y: number }> }> }
@@ -472,7 +572,11 @@ async function installRotationCanvasAudit(page: Page): Promise<void> {
       }
       return Reflect.apply(originalStroke, this, arguments)
     }
-  })
+  }
+  // Keep the audit available both in the current document and after the
+  // ordinary reload exercised by this journey.
+  await page.addInitScript(installAudit)
+  await page.evaluate(installAudit)
 }
 
 async function clearRotationCanvasAudit(page: Page): Promise<void> {

@@ -5019,9 +5019,9 @@ approved_development_dependency_imports:
   - frontend/tests/unit/components/test_research_results_tool.test.ts
   - frontend/tests/unit/components/test_study_lab_tool.test.ts
   - frontend/tests/unit/e2e/test_browser_diagnostics.test.ts
-- source_sha: 9f3ffcd9bf85d8458c14630ab244694a4dfca127
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/9f3ffcd9bf85d8458c14630ab244694a4dfca127.json
-  manifest_sha256: ac05b473a34025e912da02c57ee40187d30ab6daf68ba136539a21575e3320a0
+- source_sha: 96ca7e5be2a949babb098bd5c413c468d878a5e1
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/96ca7e5be2a949babb098bd5c413c468d878a5e1.json
+  manifest_sha256: db50862391a3964ee0bbd4dbd53c021ec7ea9e82460227a11ac12e4bb8028e17
   paths:
   - frontend/src/components/workstation/InstrumentNoteTool.vue
   - frontend/src/views/BasketsView.vue

@@ -1137,18 +1137,27 @@ async function prepareSelectedHoldings(symbol: string, instrumentId: number | nu
 
     const loaded = await api.get<ETFProfile[]>('/etf-holdings', { q: normalized })
     if (generation !== fundSelectionGeneration || pendingFund.value?.symbol !== normalized) return
-    const updatedProfile = (Array.isArray(loaded) ? loaded : []).find(
-      candidate => candidate.symbol.trim().toUpperCase() === normalized,
+    const matchingProfiles = (Array.isArray(loaded) ? loaded : []).filter(candidate =>
+      candidate.symbol.trim().toUpperCase() === normalized
+      && (instrumentId == null || candidate.instrument_id === instrumentId),
     )
-    if (!updatedProfile
-      || (instrumentId != null && updatedProfile.instrument_id !== instrumentId)) {
+    if (matchingProfiles.length > 1) {
+      preparationMessage.value = `Multiple saved ETF profiles match ${normalized}. Resolve an exact listing before opening its holdings.`
+      return
+    }
+    const updatedProfile = matchingProfiles[0]
+    if (!updatedProfile) {
       preparationMessage.value = `${normalized} preparation completed without a matching holdings profile. Any previous snapshot remains unchanged.`
       return
     }
     const index = profiles.value.findIndex(candidate => candidate.id === updatedProfile.id)
     if (index >= 0) profiles.value.splice(index, 1, updatedProfile)
     else profiles.value = [updatedProfile, ...profiles.value]
-    await selectProfile(updatedProfile, updatedProfile.instrument_id, false)
+    // A profile row found after symbol-bound preparation is still a read-only
+    // database result. Preserve only the verified identity that authorized the
+    // ensure request; later explicit refresh actions must resolve identity if
+    // this selection began without a verified instrument ID.
+    await selectProfile(updatedProfile, instrumentId, false)
     if (generation === fundSelectionGeneration && pendingFund.value?.symbol === normalized) {
       preparationMessage.value = preparationStatusMessage(response)
     }

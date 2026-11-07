@@ -1392,6 +1392,107 @@ describe('ETFHoldingsView', () => {
     wrapper.unmount()
   })
 
+  it('uses a loaded stored profile for an ordinary symbol selection without trusting its local ID', async () => {
+    const diaProfile = {
+      ...profile,
+      id: 16,
+      instrument_id: 160,
+      symbol: 'DIA',
+      name: 'SPDR Dow Jones Industrial Average ETF Trust',
+      latest_snapshot_id: 54,
+    }
+    const xlbCapability = {
+      ...profile.holdings_capability,
+      availability: 'stale',
+      usable_for_current_analysis: false,
+      reason: 'The retained XLB snapshot is not current for analysis.',
+    }
+    const xlbProfile = {
+      ...profile,
+      id: 17,
+      instrument_id: 701,
+      symbol: 'XLB',
+      name: 'State Street Materials Select Sector SPDR ETF',
+      latest_snapshot_id: 16,
+      latest_composition_date: '2026-01-02',
+      holdings_capability: xlbCapability,
+    }
+    const datedSnapshot = (source: { id: number; instrument_id: number; name: string }, snapshotId: number, symbol: string) => ({
+      ...holdingsPage().snapshot,
+      id: snapshotId,
+      etf_profile_id: source.id,
+      etf_instrument_id: source.instrument_id,
+      etf_symbol: symbol,
+      etf_name: source.name,
+      composition_date: '2026-01-02',
+      known_at: '2026-01-03T00:00:00Z',
+      provenance: 'controlled_fixture',
+      source_provider: 'e2e_reference',
+      source_quality: 'controlled_fixture',
+      source_identifier: `e2e:${symbol}:2026-01-02`,
+      source_url: `https://issuer.example.test/holdings/${symbol.toLowerCase()}`,
+    })
+    const pageFor = (source: { id: number; instrument_id: number; name: string }, snapshotId: number, symbol: string) => holdingsPage({
+      snapshot: datedSnapshot(source, snapshotId, symbol),
+      holdings: [{
+        ...holdingsPage().holdings[0],
+        id: snapshotId * 100,
+        snapshot_id: snapshotId,
+        constituent_symbol: symbol === 'XLB' ? 'LIN' : 'GS',
+        constituent_name: symbol === 'XLB' ? 'Linde plc' : 'Goldman Sachs Group',
+        reported_symbol: symbol === 'XLB' ? 'LIN' : 'GS',
+        reported_name: symbol === 'XLB' ? 'Linde plc' : 'Goldman Sachs Group',
+      }],
+      total: 1,
+      has_next: false,
+    })
+    const diaDate = { ...dates[0], snapshot_id: 54, composition_date: '2026-01-02' }
+    const xlbDate = { ...dates[0], snapshot_id: 16, composition_date: '2026-01-02' }
+
+    vi.mocked(api.get).mockImplementation(async (path, params) => {
+      if (path === '/etf-holdings' && (params as { q?: string } | undefined)?.q === undefined) {
+        return [diaProfile, xlbProfile] as never
+      }
+      if (path === '/etf-holdings/DIA/dates') return [diaDate] as never
+      if (path === '/etf-holdings/DIA/holdings') return pageFor(diaProfile, 54, 'DIA') as never
+      if (path === '/etf-holdings/DIA/diff') return diffPayload() as never
+      if (path === '/etf-holdings/DIA/weight-evolution') return weightEvolutionPayload() as never
+      if (path === '/etf-holdings/DIA/transitions') return transitionTimelinePayload() as never
+      if (path === '/etf-holdings/XLB/capability') return xlbCapability as never
+      if (path === '/etf-holdings/XLB/dates') return [xlbDate] as never
+      if (path === '/etf-holdings/XLB/holdings') return pageFor(xlbProfile, 16, 'XLB') as never
+      if (path === '/etf-holdings/XLB/diff') return diffPayload() as never
+      if (path === '/etf-holdings/XLB/weight-evolution') return weightEvolutionPayload() as never
+      if (path === '/etf-holdings/XLB/transitions') return transitionTimelinePayload() as never
+      return [] as never
+    })
+    let finishPreparation!: (response: unknown) => void
+    vi.mocked(api.post).mockImplementation(() => new Promise(resolve => { finishPreparation = resolve }) as never)
+
+    const wrapper = mount(ETFHoldingsView)
+    await vi.waitFor(() => expect(wrapper.get('.panel-title-row h2').text()).toBe('DIA'))
+    await vi.waitFor(() => expect(wrapper.findAll('button.profile-card')).toHaveLength(2))
+    await wrapper.findComponent({ name: 'SearchBar' }).vm.$emit('select', 'XLB', {
+      symbol: 'XLB', name: xlbProfile.name, exchange: 'NYSE Arca', type: 'ETF',
+    })
+
+    await vi.waitFor(() => expect(api.post).toHaveBeenCalledWith('/data/ensure', {
+      target: { kind: 'instrument', symbol: 'XLB' }, datasets: ['holdings'],
+    }, expect.objectContaining({ signal: expect.any(AbortSignal) })))
+    expect(wrapper.get('.panel-title-row h2').text()).toBe('XLB')
+    expect(wrapper.get('.holdings-table').text()).toContain('LIN')
+    expect(wrapper.get('[data-testid="etf-snapshot-source-identifier"]').text()).toBe('e2e:XLB:2026-01-02')
+    expect(api.get).not.toHaveBeenCalledWith('/etf-holdings', { q: 'XLB' })
+    expect(api.post).toHaveBeenCalledTimes(1)
+
+    finishPreparation(preparationResponse('XLB', 'unavailable'))
+    await vi.waitFor(() => expect(wrapper.get('[data-testid="etf-preparation-status"]').text())
+      .toContain('No reviewed data source can provide this request.'))
+    expect(wrapper.get('.panel-title-row h2').text()).toBe('XLB')
+    expect(wrapper.get('.holdings-table').text()).toContain('LIN')
+    wrapper.unmount()
+  })
+
   it('discovers and deliberately selects a confirmed Exchange Traded Vehicle without admitting ETNs', async () => {
     vi.mocked(api.get).mockImplementation(async (path: string) => {
       if (path === '/etf-holdings') return []
@@ -1543,6 +1644,147 @@ describe('ETFHoldingsView', () => {
     await vi.waitFor(() => expect(wrapper.get('[data-testid="etf-preparation-status"]').text()).toContain('No reviewed data source can provide this request.'))
     expect(api.post).toHaveBeenCalledTimes(1)
     expect(wrapper.find('.holdings-browser').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('fails closed when ready symbol preparation returns multiple exact stored listings', async () => {
+    const firstListing = {
+      ...profile,
+      id: 21,
+      instrument_id: 210,
+      symbol: 'OIH',
+      name: 'Oil Services ETF · NYSE Arca',
+    }
+    const secondListing = {
+      ...profile,
+      id: 22,
+      instrument_id: 220,
+      symbol: 'OIH',
+      name: 'Oil Services ETF · Cboe BZX',
+    }
+    let exactLookupCount = 0
+    vi.mocked(api.get).mockImplementation((path, params) => {
+      if (path !== '/etf-holdings') return Promise.resolve([]) as never
+      const query = (params as { q?: string } | undefined)?.q
+      if (query === undefined) return Promise.resolve([]) as never
+      if (query !== 'OIH') return Promise.resolve([]) as never
+      exactLookupCount += 1
+      return Promise.resolve(exactLookupCount === 1 ? [] : [firstListing, secondListing]) as never
+    })
+    vi.mocked(api.post).mockResolvedValueOnce(preparationResponse('OIH') as never)
+
+    const wrapper = mount(ETFHoldingsView)
+    await wrapper.findComponent({ name: 'SearchBar' }).vm.$emit('select', 'OIH', {
+      symbol: 'OIH', name: 'Oil Services ETF', exchange: 'NYSE Arca', type: 'ETF',
+    })
+
+    await vi.waitFor(() => expect(wrapper.get('[data-testid="etf-preparation-status"]').text())
+      .toContain('Multiple saved ETF profiles match OIH.'))
+    expect(api.post).toHaveBeenCalledWith('/data/ensure', {
+      target: { kind: 'instrument', symbol: 'OIH' }, datasets: ['holdings'],
+    }, expect.objectContaining({ signal: expect.any(AbortSignal) }))
+    expect(api.post).toHaveBeenCalledTimes(1)
+    expect(exactLookupCount).toBe(2)
+    expect(wrapper.get('.panel-title-row h2').text()).toBe('OIH')
+    expect(wrapper.find('.holdings-browser').exists()).toBe(false)
+    expect(api.get).not.toHaveBeenCalledWith('/etf-holdings/OIH/dates', expect.anything())
+    expect(api.get).not.toHaveBeenCalledWith('/etf-holdings/OIH/holdings', expect.anything())
+    wrapper.unmount()
+  })
+
+  it('does not promote a post-ensure stored profile ID into refresh authority', async () => {
+    const oihProfile = {
+      ...profile,
+      id: 21,
+      instrument_id: 210,
+      symbol: 'OIH',
+      name: 'Oil Services ETF',
+      latest_snapshot_id: 95,
+      latest_composition_date: '2026-11-05',
+    }
+    const oihPage = holdingsPage({
+      snapshot: {
+        ...holdingsPage().snapshot,
+        id: 95,
+        etf_profile_id: oihProfile.id,
+        etf_instrument_id: oihProfile.instrument_id,
+        etf_symbol: 'OIH',
+        etf_name: oihProfile.name,
+        composition_date: '2026-11-05',
+        source_identifier: 'e2e:OIH:2026-11-05',
+      },
+      holdings: [{ ...holdingsPage().holdings[0], id: 9501, snapshot_id: 95, constituent_symbol: 'HAL' }],
+      total: 1,
+      has_next: false,
+    })
+    const oihDate = { ...dates[0], snapshot_id: 95, composition_date: '2026-11-05' }
+    let exactLookupCount = 0
+    vi.mocked(api.get).mockImplementation((path, params) => {
+      if (path !== '/etf-holdings') {
+        if (path === '/etf-holdings/OIH/dates') return Promise.resolve([oihDate]) as never
+        if (path === '/etf-holdings/OIH/holdings') return Promise.resolve(oihPage) as never
+        if (path === '/etf-holdings/OIH/diff') return Promise.resolve(diffPayload()) as never
+        if (path === '/etf-holdings/OIH/weight-evolution') return Promise.resolve(weightEvolutionPayload()) as never
+        if (path === '/etf-holdings/OIH/transitions') return Promise.resolve(transitionTimelinePayload()) as never
+        return Promise.resolve([]) as never
+      }
+      const query = (params as { q?: string } | undefined)?.q
+      if (query === undefined) return Promise.resolve([]) as never
+      if (query !== 'OIH') return Promise.resolve([]) as never
+      exactLookupCount += 1
+      return Promise.resolve(exactLookupCount === 1 ? [] : [oihProfile]) as never
+    })
+    vi.mocked(api.post).mockImplementation((path) => {
+      if (path === '/data/ensure') return Promise.resolve(preparationResponse('OIH')) as never
+      if (path === '/instruments/acquire') {
+        return Promise.resolve({
+          request_id: 'verified-oih',
+          status: 'resolved',
+          instrument: { instrument_id: 210, symbol: 'OIH', identity_status: 'verified' },
+          source_outcomes: [],
+        }) as never
+      }
+      if (path === '/etf-holdings/OIH/acquire') {
+        return Promise.resolve({
+          request_id: 'oih-holdings',
+          instrument_id: 210,
+          symbol: 'OIH',
+          outcome: 'cached',
+          refresh: false,
+          refresh_attempted: false,
+          refresh_succeeded: false,
+          profile: oihProfile,
+          snapshot: oihPage.snapshot,
+          capability: oihProfile.holdings_capability,
+          source_provider: 'issuer-test',
+          source_operation: null,
+          provider_request_log_ids: [],
+        }) as never
+      }
+      return Promise.reject(new Error(`Unexpected POST ${path}`)) as never
+    })
+
+    const wrapper = mount(ETFHoldingsView)
+    await wrapper.findComponent({ name: 'SearchBar' }).vm.$emit('select', 'OIH', {
+      symbol: 'OIH', name: 'Oil Services ETF', exchange: 'NYSE Arca', type: 'ETF',
+    })
+    await vi.waitFor(() => expect(wrapper.get('.panel-title-row h2').text()).toBe('OIH'))
+    await vi.waitFor(() => expect(wrapper.get('.holdings-table').text()).toContain('HAL'))
+    expect(exactLookupCount).toBe(2)
+    expect(api.post).toHaveBeenCalledTimes(1)
+    expect(api.post).toHaveBeenCalledWith('/data/ensure', {
+      target: { kind: 'instrument', symbol: 'OIH' }, datasets: ['holdings'],
+    }, expect.objectContaining({ signal: expect.any(AbortSignal) }))
+
+    await wrapper.get('[data-testid="etf-check-stored"]').trigger('click')
+    await vi.waitFor(() => expect(api.post).toHaveBeenCalledWith('/instruments/acquire', expect.objectContaining({
+      symbol: 'OIH',
+    })))
+    await vi.waitFor(() => expect(api.post).toHaveBeenCalledWith('/etf-holdings/OIH/acquire', expect.objectContaining({
+      instrument_id: 210,
+      refresh: false,
+    })))
+    expect(wrapper.get('.holdings-table').text()).toContain('HAL')
     wrapper.unmount()
   })
 
