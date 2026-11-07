@@ -100,6 +100,12 @@ _EXPLICIT_ACQUISITION_SEAL = object()
 _EXPLICIT_ACQUISITION_CONTEXT: contextvars.ContextVar[object | None] = contextvars.ContextVar(
     "provider_runtime_explicit_acquisition", default=None
 )
+_HISTORY_BOUND_WITNESS_CONTEXT: contextvars.ContextVar[dict[str, Any] | None] = (
+    contextvars.ContextVar("provider_runtime_history_bound_witness", default=None)
+)
+_BOUNDED_UNKNOWN_HISTORY_CONTEXT: contextvars.ContextVar[dict[str, Any] | None] = (
+    contextvars.ContextVar("provider_runtime_bounded_unknown_history", default=None)
+)
 _ETF_INITIAL_QUALIFICATION_OPERATIONS = frozenset(
     {
         "fetch_etf_holdings_sec_submissions",
@@ -212,6 +218,7 @@ def bind_explicit_provider_acquisition(
         # eligible operation and remain restricted to their configured source.
         (ProviderCapability.ACCOUNT_USAGE, "fetch_account_usage"),
         (ProviderCapability.PRICE_HISTORY, "fetch_ohlcv"),
+        (ProviderCapability.PRICE_HISTORY, "get_earliest_timestamp"),
         # Durable server-owned preparation can invoke the existing bounded
         # multi-provider history planner for one exact canonical instrument.
         (ProviderCapability.PRICE_HISTORY, "bulk_fetch"),
@@ -1175,6 +1182,7 @@ def _operation_family(operation: str) -> str:
 PROVIDER_SERVICE_OPERATION_ALIASES = {
     "bulk_fetch": "fetch_ohlcv",
     "fetch_rfr_ohlcv": "fetch_ohlcv",
+    "get_earliest_timestamp": "fetch_ohlcv",
     "reconcile_universe_page": "discover_universe_page",
 }
 
@@ -1406,9 +1414,140 @@ def _dimension_applies_to_operation(dimension: dict[str, Any], operation: str) -
     if not isinstance(applies_to, list) or not applies_to:
         return False
     family = _operation_family(operation)
-    return operation in {str(item) for item in applies_to} or family in {
-        str(item) for item in applies_to
+    applies = {str(item) for item in applies_to}
+    upstream_family = PROVIDER_SERVICE_OPERATION_ALIASES.get(family, family)
+    return operation in applies or family in applies or upstream_family in applies
+
+
+def _history_witness_admits(
+    witness: dict[str, Any] | None,
+    *,
+    data_source: DataSource,
+    entitlement: ProviderEntitlement,
+    history_reason: str | None,
+    capability: ProviderCapability,
+    instrument_id: int | None,
+    provider_symbol: str | None,
+    operation: str,
+    adjusted: bool | None,
+    requested_start: datetime | None,
+    now: datetime,
+) -> bool:
+    """Validate the worker's short-lived, exact-source bound witness."""
+
+    # A source-specific earliest-history observation may fill a missing bound,
+    # but it cannot supersede an explicit or malformed entitlement contract.
+    if (
+        not isinstance(witness, dict)
+        or history_reason != "history_depth_unknown"
+        or capability != ProviderCapability.PRICE_HISTORY
+    ):
+        return False
+    parts = operation.split(":", 1)
+    if len(parts) != 2 or parts[0] != "fetch_ohlcv" or requested_start is None:
+        return False
+    if (
+        witness.get("version") != 1
+        or witness.get("provider_name") != data_source.name
+        or witness.get("data_source_id") != data_source.id
+        or witness.get("instrument_id") != instrument_id
+        or witness.get("canonical_symbol") != str(provider_symbol or "").strip().upper()
+        or witness.get("timeframe") != parts[1]
+        or witness.get("adjusted") is not adjusted
+        or witness.get("adjusted") is not False
+        or witness.get("adjustment_basis") != "raw"
+        or witness.get("feed_scope") != "twelve_data:time_series"
+        or witness.get("session") != "regular"
+        or witness.get("currency") is None
+        or witness.get("entitlement_revision") != entitlement.revision
+    ):
+        return False
+    try:
+        earliest = _as_utc(datetime.fromisoformat(str(witness["earliest_start"])))
+        observed_at = _as_utc(datetime.fromisoformat(str(witness["observed_at"])))
+        stale_after = _as_utc(datetime.fromisoformat(str(witness["stale_after"])))
+        requested = _as_utc(requested_start)
+    except (KeyError, TypeError, ValueError):
+        return False
+    return observed_at <= now and stale_after > now and requested >= earliest
+
+
+def _bounded_unknown_history_admits(
+    scope: dict[str, Any] | None,
+    *,
+    provider_name: str,
+    instrument_id: int | None,
+    provider_symbol: str | None,
+    operation: str,
+    adjusted: bool | None,
+    requested_start: datetime | None,
+    now: datetime,
+) -> bool:
+    if not isinstance(scope, dict) or requested_start is None:
+        return False
+    parts = operation.split(":", 1)
+    if len(parts) != 2 or parts[0] != "fetch_ohlcv":
+        return False
+    try:
+        scope_start = _as_utc(datetime.fromisoformat(str(scope["start_at"])))
+        scope_end = _as_utc(datetime.fromisoformat(str(scope["end_at"])))
+        requested = _as_utc(requested_start)
+    except (KeyError, TypeError, ValueError):
+        return False
+    return (
+        scope.get("provider_name") == provider_name
+        and scope.get("instrument_id") == instrument_id
+        and scope.get("canonical_symbol") == str(provider_symbol or "").strip().upper()
+        and scope.get("timeframe") == parts[1]
+        and scope.get("adjusted") is adjusted
+        and scope_start == requested
+        and scope_start < scope_end
+        and scope.get("expires_at")
+        and _as_utc(datetime.fromisoformat(str(scope["expires_at"]))) > now
+    )
+
+
+@contextmanager
+def bind_history_bound_witness(witness: dict[str, Any] | None):
+    """Bind a persisted worker witness to one subsequent history resolution."""
+
+    token = _HISTORY_BOUND_WITNESS_CONTEXT.set(dict(witness) if isinstance(witness, dict) else None)
+    try:
+        yield
+    finally:
+        _HISTORY_BOUND_WITNESS_CONTEXT.reset(token)
+
+
+@contextmanager
+def bind_bounded_unknown_history(
+    *,
+    provider_name: str,
+    instrument_id: int,
+    canonical_symbol: str,
+    timeframe: str,
+    adjusted: bool,
+    start_at: datetime,
+    end_at: datetime,
+):
+    """Allow one exact bounded request when this source publishes no floor."""
+
+    if end_at <= start_at:
+        raise ValueError("bounded unknown-history scope must have a positive interval")
+    scope = {
+        "provider_name": provider_name,
+        "instrument_id": instrument_id,
+        "canonical_symbol": canonical_symbol.strip().upper(),
+        "timeframe": timeframe,
+        "adjusted": adjusted,
+        "start_at": _as_utc(start_at).isoformat(),
+        "end_at": _as_utc(end_at).isoformat(),
+        "expires_at": (datetime.now(UTC) + timedelta(minutes=10)).isoformat(),
     }
+    token = _BOUNDED_UNKNOWN_HISTORY_CONTEXT.set(scope)
+    try:
+        yield scope
+    finally:
+        _BOUNDED_UNKNOWN_HISTORY_CONTEXT.reset(token)
 
 
 def _usage_cost_for_operation(
@@ -3525,10 +3664,37 @@ async def resolve_provider_chain(
                 )
             except Exception:  # noqa: BLE001 - a failed bound must fail closed.
                 continue
-            history_allowed, _history_reason = provider_history_entitlement_matches(
+            history_allowed, history_reason = provider_history_entitlement_matches(
                 entitlement, provider_history_start, now=now
             )
-            if not history_allowed:
+            witness = _HISTORY_BOUND_WITNESS_CONTEXT.get()
+            witnessed = _history_witness_admits(
+                witness,
+                data_source=data_source,
+                entitlement=entitlement,
+                history_reason=history_reason,
+                capability=capability,
+                instrument_id=instrument_id,
+                provider_symbol=provider_symbol,
+                operation=operation or "",
+                adjusted=adjusted,
+                requested_start=provider_history_start,
+                now=now,
+            )
+            bounded_unknown = (
+                history_reason == "history_depth_unknown"
+                and _bounded_unknown_history_admits(
+                    _BOUNDED_UNKNOWN_HISTORY_CONTEXT.get(),
+                    provider_name=data_source.name,
+                    instrument_id=instrument_id,
+                    provider_symbol=provider_symbol,
+                    operation=operation or "",
+                    adjusted=adjusted,
+                    requested_start=provider_history_start,
+                    now=now,
+                )
+            )
+            if not history_allowed and not witnessed and not bounded_unknown:
                 continue
         # This check is also enforced above for all runtime callers. Keep the
         # plan review check here for the account-usage bootstrap path.

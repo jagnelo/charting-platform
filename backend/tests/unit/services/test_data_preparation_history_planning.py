@@ -109,6 +109,9 @@ async def test_initial_job_resumed_after_native_usage_keeps_its_selected_provide
         adjusted,
         end,
         request_id,
+        priority,
+        requested_start,
+        preparation,
         excluded_provider_names,
         required_provider_name,
     ):
@@ -141,6 +144,322 @@ async def test_initial_job_resumed_after_native_usage_keeps_its_selected_provide
         "required_provider_name": "second-free",
         "excluded_provider_names": frozenset(),
     }
+
+
+@pytest.mark.parametrize("unknown_provider", ["twelve_data", "fmp"])
+@pytest.mark.asyncio
+async def test_bounded_older_range_uses_source_without_advertised_floor(
+    monkeypatch, unknown_provider
+):
+    end = datetime(2026, 11, 7, tzinfo=UTC)
+    requested_start = datetime(2017, 1, 3, tzinfo=UTC)
+    massive = SimpleNamespace(
+        provider_name="massive",
+        entitlement=SimpleNamespace(
+            quota_policy={"history_constraints": {"max_lookback_years": 2}}
+        ),
+    )
+    unknown = SimpleNamespace(
+        provider_name=unknown_provider,
+        entitlement=SimpleNamespace(quota_policy={}),
+    )
+
+    async def fake_resolve(_db, _capability, **_kwargs):
+        return [massive, unknown]
+
+    def fake_bound(constraints, *, now):
+        return now.replace(year=now.year - constraints["max_lookback_years"]), None
+
+    monkeypatch.setattr("app.services.provider_runtime.resolve_provider_chain", fake_resolve)
+    monkeypatch.setattr("app.services.provider_runtime.provider_history_bound_start", fake_bound)
+    preparation = {"range_mode": "bounded", "adjusted": False}
+    start, provider_name, reason = await data_tasks._deepest_admitted_history_start(
+        object(),
+        SimpleNamespace(id=71, symbol="TEST"),
+        Timeframe.D1,
+        adjusted=False,
+        end=end,
+        request_id="bounded-unknown-depth",
+        requested_start=requested_start,
+        preparation=preparation,
+    )
+
+    assert (start, provider_name, reason) == (requested_start, unknown_provider, None)
+    assert preparation["bounded_unknown_depth_provider"] == unknown_provider
+
+
+@pytest.mark.asyncio
+async def test_deepest_plan_uses_scoped_symbol_witness_for_unknown_source(monkeypatch):
+    end = datetime(2026, 11, 7, tzinfo=UTC)
+    source = SimpleNamespace(
+        provider_name="twelve_data",
+        entitlement=SimpleNamespace(quota_policy={}),
+    )
+    calls = {}
+
+    async def fake_resolve(_db, _capability, **_kwargs):
+        return [source]
+
+    async def fake_witness(_db, _instrument, timeframe, _resolved, **kwargs):
+        calls["timeframe"] = timeframe
+        calls["preparation"] = kwargs["preparation"]
+        return {
+            "provider_name": "twelve_data",
+            "timeframe": timeframe.value,
+            "earliest_start": "2016-01-04T05:00:00+00:00",
+            "listing_id": 52,
+            "mic": "XNAS",
+            "adjusted": False,
+        }
+
+    monkeypatch.setattr("app.services.provider_runtime.resolve_provider_chain", fake_resolve)
+    monkeypatch.setattr(data_tasks, "_twelve_data_history_bound_witness", fake_witness)
+    preparation = {"range_mode": "deepest_admitted", "adjusted": False}
+    start, provider_name, reason = await data_tasks._deepest_admitted_history_start(
+        object(),
+        SimpleNamespace(id=72, symbol="TEST"),
+        Timeframe.D1,
+        adjusted=False,
+        end=end,
+        request_id="witnessed-deepest",
+        preparation=preparation,
+    )
+
+    assert (start, provider_name, reason) == (
+        datetime(2016, 1, 4, 5, tzinfo=UTC),
+        "twelve_data",
+        None,
+    )
+    assert preparation["history_bound_witness"]["listing_id"] == 52
+    assert calls["timeframe"] is Timeframe.D1
+
+
+def test_history_bound_witness_and_bounded_unknown_scopes_are_exact():
+    from app.services.provider_runtime import (
+        _bounded_unknown_history_admits,
+        _dimension_applies_to_operation,
+        _history_witness_admits,
+        provider_history_entitlement_matches,
+    )
+
+    now = datetime(2026, 11, 7, tzinfo=UTC)
+    requested_start = datetime(2018, 1, 2, tzinfo=UTC)
+    source = SimpleNamespace(name="twelve_data", id=9)
+    entitlement = SimpleNamespace(revision=3)
+    witness = {
+        "version": 1,
+        "provider_name": "twelve_data",
+        "data_source_id": 9,
+        "instrument_id": 71,
+        "domain_key": "issuer:test",
+        "canonical_symbol": "TEST",
+        "provider_symbol": "TEST.US",
+        "listing_id": 12,
+        "mic": "XNAS",
+        "currency": "USD",
+        "timeframe": "D1",
+        "adjusted": False,
+        "adjustment_basis": "raw",
+        "feed_scope": "twelve_data:time_series",
+        "session": "regular",
+        "entitlement_revision": 3,
+        "earliest_start": "2016-01-01T05:00:00+00:00",
+        "observed_at": "2026-11-07T00:00:00+00:00",
+        "stale_after": "2026-12-07T00:00:00+00:00",
+    }
+    kwargs = {
+        "data_source": source,
+        "entitlement": entitlement,
+        "history_reason": "history_depth_unknown",
+        "capability": ProviderCapability.PRICE_HISTORY,
+        "instrument_id": 71,
+        "provider_symbol": "TEST",
+        "operation": "fetch_ohlcv:D1",
+        "adjusted": False,
+        "requested_start": requested_start,
+        "now": now,
+    }
+    assert _history_witness_admits(witness, **kwargs)
+    assert not _history_witness_admits(
+        witness,
+        **{**kwargs, "history_reason": "history_depth_exceeded"},
+    )
+    assert not _history_witness_admits(
+        witness,
+        **{**kwargs, "history_reason": "history_depth_invalid"},
+    )
+    known_floor_entitlement = SimpleNamespace(
+        revision=3,
+        quota_policy={"history_constraints": {"max_lookback_years": 2}},
+    )
+    history_allowed, known_floor_reason = provider_history_entitlement_matches(
+        known_floor_entitlement, requested_start, now=now
+    )
+    assert not history_allowed and known_floor_reason == "history_depth_exceeded"
+    assert not _history_witness_admits(
+        witness,
+        **{
+            **kwargs,
+            "entitlement": known_floor_entitlement,
+            "history_reason": known_floor_reason,
+        },
+    )
+    assert not _history_witness_admits({**witness, "data_source_id": 10}, **kwargs)
+    assert not _history_witness_admits({**witness, "adjusted": True}, **kwargs)
+    assert not _history_witness_admits({**witness, "entitlement_revision": 2}, **kwargs)
+
+    bounded_scope = {
+        "provider_name": "twelve_data",
+        "instrument_id": 71,
+        "canonical_symbol": "TEST",
+        "timeframe": "D1",
+        "adjusted": False,
+        "start_at": requested_start.isoformat(),
+        "end_at": "2018-02-01T00:00:00+00:00",
+        "expires_at": "2026-11-07T00:10:00+00:00",
+    }
+    assert _bounded_unknown_history_admits(
+        bounded_scope,
+        provider_name="twelve_data",
+        instrument_id=71,
+        provider_symbol="TEST",
+        operation="fetch_ohlcv:D1",
+        adjusted=False,
+        requested_start=requested_start,
+        now=now,
+    )
+    assert not _bounded_unknown_history_admits(
+        bounded_scope,
+        provider_name="massive",
+        instrument_id=71,
+        provider_symbol="TEST",
+        operation="fetch_ohlcv:D1",
+        adjusted=False,
+        requested_start=requested_start,
+        now=now,
+    )
+    assert _dimension_applies_to_operation(
+        {"applies_to_operations": ["fetch_ohlcv"]}, "get_earliest_timestamp"
+    )
+
+
+@pytest.mark.asyncio
+async def test_twelve_data_witness_waits_for_native_usage_before_transport(monkeypatch):
+    from app.tasks.data_tasks import _twelve_data_history_bound_witness
+
+    async def baseline_denied(*_args, **_kwargs):
+        return None, "native_usage_refresh_not_enabled_for_provider", True
+
+    async def provider_call(*_args, **_kwargs):
+        raise AssertionError("a held native baseline must prevent transport")
+
+    monkeypatch.setattr(data_tasks, "_native_usage_job_for_operation_baseline", baseline_denied)
+    monkeypatch.setattr("app.services.provider_runtime.execute_provider_call", provider_call)
+    preparation = {}
+    result = await _twelve_data_history_bound_witness(
+        object(),
+        SimpleNamespace(id=72, symbol="TEST"),
+        Timeframe.D1,
+        SimpleNamespace(provider_name="twelve_data"),
+        end=datetime(2026, 11, 7, tzinfo=UTC),
+        request_id="native-held-witness",
+        priority=10,
+        preparation=preparation,
+    )
+    assert result is None
+    assert (
+        preparation["history_bound_usage_hold"] == "native_usage_refresh_not_enabled_for_provider"
+    )
+
+    async def queued_baseline(*_args, **_kwargs):
+        return SimpleNamespace(id=991), None, True
+
+    monkeypatch.setattr(data_tasks, "_native_usage_job_for_operation_baseline", queued_baseline)
+    queued_preparation = {}
+    result = await _twelve_data_history_bound_witness(
+        object(),
+        SimpleNamespace(id=72, symbol="TEST"),
+        Timeframe.D1,
+        SimpleNamespace(provider_name="twelve_data"),
+        end=datetime(2026, 11, 7, tzinfo=UTC),
+        request_id="native-queued-witness",
+        priority=10,
+        preparation=queued_preparation,
+    )
+    assert result is None
+    assert queued_preparation["history_bound_usage_job_id"] == 991
+
+
+@pytest.mark.asyncio
+async def test_twelve_data_witness_persists_exact_scope_and_reuses_fresh_value(monkeypatch):
+    from app.tasks.data_tasks import _twelve_data_history_bound_witness
+
+    class Result:
+        def all(self):
+            return [
+                (
+                    "TEST.US",
+                    "XNAS",
+                    datetime(1995, 1, 1, tzinfo=UTC),
+                    52,
+                    "USD",
+                    datetime(2000, 1, 1, tzinfo=UTC),
+                    "XNAS",
+                    "America/New_York",
+                    "issuer:test",
+                    "USD",
+                )
+            ]
+
+    class FakeDb:
+        async def execute(self, _statement):
+            return Result()
+
+    async def admitted_baseline(*_args, **_kwargs):
+        return None, None, False
+
+    calls = []
+
+    async def provider_call(*args, **kwargs):
+        calls.append((args, kwargs))
+        return SimpleNamespace(result=datetime(1990, 1, 2, 5, tzinfo=UTC))
+
+    monkeypatch.setattr(data_tasks, "_native_usage_job_for_operation_baseline", admitted_baseline)
+    monkeypatch.setattr("app.services.provider_runtime.execute_provider_call", provider_call)
+    preparation = {}
+    resolved = SimpleNamespace(
+        provider_name="twelve_data",
+        data_source=SimpleNamespace(id=18),
+        entitlement=SimpleNamespace(revision=4),
+    )
+    args = (
+        FakeDb(),
+        SimpleNamespace(id=72, symbol="TEST", domain_key="issuer:test", currency="USD"),
+        Timeframe.D1,
+        resolved,
+    )
+    kwargs = {
+        "end": datetime(2026, 11, 7, tzinfo=UTC),
+        "request_id": "persisted-symbol-witness",
+        "priority": 30,
+        "preparation": preparation,
+    }
+    first = await _twelve_data_history_bound_witness(*args, **kwargs)
+    second = await _twelve_data_history_bound_witness(*args, **kwargs)
+
+    assert first == second
+    assert first["provider_symbol"] == "TEST.US"
+    assert first["earliest_start"] == "2000-01-01T00:00:00+00:00"
+    assert first["listing_id"] == 52
+    assert first["mic"] == "XNAS"
+    assert first["feed_scope"] == "twelve_data:time_series"
+    assert first["adjustment_basis"] == "raw"
+    assert first["entitlement_revision"] == 4
+    assert first["source_operation"] == "get_earliest_timestamp"
+    assert len(preparation["history_bound_witnesses"]) == 1
+    assert len(calls) == 1
+    assert calls[0][0][2] == "get_earliest_timestamp"
+    assert calls[0][1]["operation_cost_overrides"] == {"twelve_data": 1}
 
 
 @pytest.mark.asyncio

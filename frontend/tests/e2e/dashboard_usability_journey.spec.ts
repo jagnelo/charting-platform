@@ -246,7 +246,7 @@ test('Dashboard creates useful seeded quote and chart widgets and restores saved
   await page.goto('/dashboard')
   await expect(page.locator('.dashboard-view')).toBeVisible()
 
-  const chartBars = dailyBarsResponse(page, 'SPY', 500)
+  const chartBars = dailyBarsResponse(page, 'SPY', 300)
   const chartWidget = await addWidget(page, 'Simple Chart')
   const chartModal = page.locator('.config-modal')
   const title = chartModal.getByPlaceholder('Widget title')
@@ -288,7 +288,7 @@ test('Dashboard creates useful seeded quote and chart widgets and restores saved
   await expect.poll(async () => (await persistedDashboard(page)).tabs.flatMap(tab => tab.widgets)
     .find(widget => widget.id === comparisonWidget.id)?.config.targets?.length).toBe(2)
 
-  const comparisonXlbBars = dailyBarsResponse(page, 'XLB', 500)
+  const comparisonXlbBars = dailyBarsResponse(page, 'XLB', 300)
   const comparisonXlbPreparation = preparationResponse(page, 'XLB')
   const changeSecondTarget = page.waitForResponse(response =>
     response.request().method() === 'PATCH'
@@ -324,10 +324,10 @@ test('Dashboard creates useful seeded quote and chart widgets and restores saved
   expect(widgetsBeforeReload.find(widget => widget.id === comparisonWidget.id)?.config.targets)
     .toMatchObject([{ symbol: 'SPY' }, { symbol: 'XLB', label: 'XLB' }])
 
-  const restoredChartBars = dailyBarsResponse(page, 'SPY', 500)
+  const restoredChartBars = dailyBarsResponse(page, 'SPY', 300)
   const restoredQuoteBars = dailyBarsResponse(page, 'SPY', 2)
   const restoredQuoteInstrument = instrumentProfileResponse(page, 'SPY')
-  const restoredComparisonXlbBars = dailyBarsResponse(page, 'XLB', 500)
+  const restoredComparisonXlbBars = dailyBarsResponse(page, 'XLB', 300)
   await page.reload()
   await expect(page.locator('.dashboard-view')).toBeVisible()
   await assertUsefulBars(await restoredChartBars, 50)

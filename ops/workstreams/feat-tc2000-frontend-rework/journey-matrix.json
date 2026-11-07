@@ -25,22 +25,22 @@
       "source_sha256": "b37cad11a09cba6ef40e4c3884f936f9fc54b8b7c2da0d9eae757d9ceac7e9d8"
     },
     "provider_runtime_import": {
-      "source_commit": "dd05c5e8318ff59a90f879867cae9664dcc0de4f",
-      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/dd05c5e8318ff59a90f879867cae9664dcc0de4f.json",
-      "manifest_sha256": "0be00f63f7c9c77b2f4c41696657e122bd54265ff68b614f6e9d958b074493e9",
-      "qualification": "Exact Provider dd05 runtime is imported for development, including the reviewed cash-equity session/calendar and evolving sector fixture changes; exact source CI, combined browser and release acceptance remain pending."
+      "source_commit": "22c31cd3e7f35e361e286ef40576d379aaf44449",
+      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/22c31cd3e7f35e361e286ef40576d379aaf44449.json",
+      "manifest_sha256": "a5079b0eb78a8fd67e48e94a7d749bc171ffa2b21165fc9c59c405501dc2db85",
+      "qualification": "Exact Provider 22c31 development backend import is present; producer CI, combined browser and release acceptance remain pending."
     },
     "etf_domain_runtime_import": {
-      "source_commit": "cfd23fa17244b2eaa645682f4f63d6ac24a88f5a",
-      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/cfd23fa17244b2eaa645682f4f63d6ac24a88f5a.json",
-      "manifest_sha256": "1479618fe4a8c043b01882e5f226d44daea3732c6e9ffdd83e5a55d33568823b",
-      "qualification": "Exact current ETF-owned 11-path source and updated Settings/Rows public-disclosure journey are imported; browser execution and release acceptance remain Root-owned and pending."
+      "source_commit": "5e49669e455dcbc89a767bbefd38a0682e06f999",
+      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/5e49669e455dcbc89a767bbefd38a0682e06f999.json",
+      "manifest_sha256": "75131b2bb1e6f5624134716c315e0f10d46f438b14ae758e04ded73e96a5b0f7",
+      "qualification": "Exact ETF 5e496 development import is present, including the S&P journey test; browser execution and release acceptance remain Root-owned and pending."
     },
     "strategy_runtime_import": {
-      "source_commit": "55851d2b953ce38de5afe59ba90b613ffde08f87",
-      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/55851d2b953ce38de5afe59ba90b613ffde08f87.json",
-      "manifest_sha256": "068d5e3bbc2f57878e33c8b0c355f216831d90e2b09ec978483bff0f0cdbd2de",
-      "qualification": "Exact current Strategy-owned 25-path source and updated Settings/Rows public-disclosure journey are imported; browser execution and release acceptance remain Root-owned and pending."
+      "source_commit": "8ae5f9aca10803f300b6d5a41a3bced447f70ebc",
+      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/8ae5f9aca10803f300b6d5a41a3bced447f70ebc.json",
+      "manifest_sha256": "f625db8197f511cb60d07c9f04a278699db1cc5e2751fee62c5c4340152edff9",
+      "qualification": "Exact Strategy 8ae5f9ac development import is present, including cached-first dashboard widgets and whole-flow witnesses; browser execution and release acceptance remain Root-owned and pending."
     },
     "superseded_runtime_imports": {
       "strategy_8dfeed": {
@@ -78,6 +78,24 @@
         "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/182173f346d4a27694a46beba057102a5b7449e6.json",
         "manifest_sha256": "8d48966b85588d46222de04b1ade9401379db284688253280ef8630d40a73a56",
         "qualification": "Provider 182 adds the controlled M15 fixture and consistent workspace reads for development; exact-source CI and combined browser acceptance remain pending."
+      },
+      "provider_dd05": {
+        "source_commit": "dd05c5e8318ff59a90f879867cae9664dcc0de4f",
+        "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/dd05c5e8318ff59a90f879867cae9664dcc0de4f.json",
+        "manifest_sha256": "0be00f63f7c9c77b2f4c41696657e122bd54265ff68b614f6e9d958b074493e9",
+        "qualification": "Exact Provider dd05 runtime is imported for development, including the reviewed cash-equity session/calendar and evolving sector fixture changes; exact source CI, combined browser and release acceptance remain pending."
+      },
+      "etf_cfd23": {
+        "source_commit": "cfd23fa17244b2eaa645682f4f63d6ac24a88f5a",
+        "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/cfd23fa17244b2eaa645682f4f63d6ac24a88f5a.json",
+        "manifest_sha256": "1479618fe4a8c043b01882e5f226d44daea3732c6e9ffdd83e5a55d33568823b",
+        "qualification": "Exact current ETF-owned 11-path source and updated Settings/Rows public-disclosure journey are imported; browser execution and release acceptance remain Root-owned and pending."
+      },
+      "strategy_55851": {
+        "source_commit": "55851d2b953ce38de5afe59ba90b613ffde08f87",
+        "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/55851d2b953ce38de5afe59ba90b613ffde08f87.json",
+        "manifest_sha256": "068d5e3bbc2f57878e33c8b0c355f216831d90e2b09ec978483bff0f0cdbd2de",
+        "qualification": "Exact current Strategy-owned 25-path source and updated Settings/Rows public-disclosure journey are imported; browser execution and release acceptance remain Root-owned and pending."
       }
     }
   },

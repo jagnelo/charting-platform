@@ -332,8 +332,26 @@ async function assertRotationPainted(page: Page, payload: RotationResponse): Pro
   const canvas = plot.locator('canvas').first()
   await expect(canvas).toBeVisible()
   const paint = await canvas.evaluate((element: HTMLCanvasElement, expectedRows: RotationRow[]) => {
+    const bounds = element.getBoundingClientRect()
+    const viewportContained = bounds.left >= 0 && bounds.top >= 0
+      && bounds.right <= window.innerWidth && bounds.bottom <= window.innerHeight
     const context = element.getContext('2d', { willReadFrequently: true })
-    if (!context) return { width: element.width, height: element.height, painted: 0, markers: [], tails: [] }
+    if (!context) return {
+      width: element.width,
+      height: element.height,
+      cssWidth: bounds.width,
+      cssHeight: bounds.height,
+      viewportContained,
+      clippingContained: false,
+      painted: 0,
+      markers: [],
+      tails: [],
+      rasterDiagnostic: {
+        canvas: { width: element.width, height: element.height, cssWidth: bounds.width, cssHeight: bounds.height, viewportContained, clippingContained: false },
+        markers: [],
+        tails: [],
+      },
+    }
     const image = context.getImageData(0, 0, element.width, element.height).data
     const stateColors: Record<string, [number, number, number]> = {
       leading: [97, 197, 140], weakening: [231, 188, 104], improving: [109, 187, 230], lagging: [223, 129, 129],
@@ -354,14 +372,14 @@ async function assertRotationPainted(page: Page, payload: RotationResponse): Pro
         points: Array<{ x: number; y: number }>
         preMarkerSamples: Array<{
           segmentIndex: number
+          sampleIndex: number
+          fraction: number
           x: number
           y: number
-          before: number[][]
-          after: number[][]
+          pixels: Array<{ x: number; y: number; before: number[]; after: number[] }>
         }>
       }>
     }
-    const bounds = element.getBoundingClientRect()
     const pixelRatio = element.width / bounds.width
     const viewportIntersection = {
       left: Math.max(bounds.left, 0),
@@ -369,21 +387,49 @@ async function assertRotationPainted(page: Page, payload: RotationResponse): Pro
       right: Math.min(bounds.right, window.innerWidth),
       bottom: Math.min(bounds.bottom, window.innerHeight),
     }
-    const clippingAncestors: Array<Record<string, unknown>> = []
+    const clippingAncestors: Array<{
+      tag: string
+      className: string
+      overflow: string
+      overflowX: string
+      overflowY: string
+      clipsX: boolean
+      clipsY: boolean
+      rect: { left: number; top: number; right: number; bottom: number; width: number; height: number }
+      clipRect: { left: number; top: number; right: number; bottom: number; width: number; height: number }
+      containsCanvas: boolean
+    }> = []
     for (let ancestor = element.parentElement; ancestor; ancestor = ancestor.parentElement) {
       const style = getComputedStyle(ancestor)
       if ([style.overflow, style.overflowX, style.overflowY].some(value => value !== 'visible')) {
         const rect = ancestor.getBoundingClientRect()
+        const clipRect = {
+          left: rect.left + ancestor.clientLeft,
+          top: rect.top + ancestor.clientTop,
+          right: rect.left + ancestor.clientLeft + ancestor.clientWidth,
+          bottom: rect.top + ancestor.clientTop + ancestor.clientHeight,
+          width: ancestor.clientWidth,
+          height: ancestor.clientHeight,
+        }
+        const clipsX = style.overflowX !== 'visible'
+        const clipsY = style.overflowY !== 'visible'
+        const containsCanvas = (!clipsX || (bounds.left >= clipRect.left && bounds.right <= clipRect.right))
+          && (!clipsY || (bounds.top >= clipRect.top && bounds.bottom <= clipRect.bottom))
         clippingAncestors.push({
           tag: ancestor.tagName,
           className: typeof ancestor.className === 'string' ? ancestor.className : '',
           overflow: style.overflow,
           overflowX: style.overflowX,
           overflowY: style.overflowY,
+          clipsX,
+          clipsY,
           rect: { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom, width: rect.width, height: rect.height },
+          clipRect,
+          containsCanvas,
         })
       }
     }
+    const clippingContained = clippingAncestors.every(ancestor => ancestor.containsCanvas)
     const latestMarkers = audit.markers
       .filter(marker => marker.radius >= 3.4 * pixelRatio)
       .slice(-expectedRows.length)
@@ -468,40 +514,70 @@ async function assertRotationPainted(page: Page, payload: RotationResponse): Pro
     }
     const tailRasterEvidence = (
       path: Array<{ x: number; y: number }>,
-      samples: Array<{ segmentIndex: number; x: number; y: number; before: number[][]; after: number[][] }>,
+      samples: Array<{
+        segmentIndex: number
+        sampleIndex: number
+        fraction: number
+        x: number
+        y: number
+        pixels: Array<{ x: number; y: number; before: number[]; after: number[] }>
+      }>,
       color: [number, number, number],
     ) => {
       let hits = 0
       let sourceOverSegments = 0
       let finalVisibleSegments = 0
-      const segmentResults: Array<{ segmentIndex: number; sourceOver: boolean; finalVisible: boolean }> = []
+      const segmentResults: Array<{
+        segmentIndex: number
+        sampleCount: number
+        sourceOver: boolean
+        finalVisible: boolean
+        pairedVisible: boolean
+        sampleResults: Array<{
+          sampleIndex: number
+          fraction: number
+          sourceOverPixels: number
+          finalVisiblePixels: number
+          pairedVisiblePixels: Array<{ x: number; y: number; before: number[]; after: number[]; final: number[] }>
+        }>
+      }> = []
       for (let index = 1; index < path.length; index += 1) {
-        const sample = samples.find(candidate => candidate.segmentIndex === index - 1)
-        const sourceOver = Boolean(sample && sample.before.some((before, pixelIndex) => {
-          const after = sample.after[pixelIndex]
-          return Boolean(after && sourceOverStrokeChangedPixel(before, after, color))
-        }))
-        if (sourceOver) sourceOverSegments += 1
-
-        const x = Math.round((path[index - 1].x + path[index].x) / 2)
-        const y = Math.round((path[index - 1].y + path[index].y) / 2)
-        let finalVisible = false
-        for (let dy = -1; dy <= 1 && !finalVisible; dy += 1) for (let dx = -1; dx <= 1; dx += 1) {
-          const px = x + dx, py = y + dy
-          if (px < 0 || py < 0 || px >= element.width || py >= element.height) continue
-          // Do not let the latest-point marker itself masquerade as a visible
-          // tail pixel. The actual final canvas must retain tail-colored raster
-          // outside every audited marker interior.
-          if (latestMarkers.some(marker => Math.hypot(px - marker.x, py - marker.y) < marker.radius)) continue
-          const offset = (py * element.width + px) * 4
-          if (finalCanvasStrokePixel([image[offset], image[offset + 1], image[offset + 2], image[offset + 3]], color)) {
-            finalVisible = true
-            break
+        const segmentSamples = samples.filter(candidate => candidate.segmentIndex === index - 1)
+        const sampleResults = segmentSamples.map(sample => {
+          const pixelResults = sample.pixels.map(pixel => {
+            const sourceOver = sourceOverStrokeChangedPixel(pixel.before, pixel.after, color)
+            const overlapsMarker = latestMarkers.some(marker =>
+              Math.hypot(pixel.x - marker.x, pixel.y - marker.y) < marker.radius,
+            )
+            const offset = (pixel.y * element.width + pixel.x) * 4
+            const final = [image[offset], image[offset + 1], image[offset + 2], image[offset + 3]]
+            const finalVisible = !overlapsMarker && finalCanvasStrokePixel(final, color)
+            return { ...pixel, final, sourceOver, finalVisible }
+          })
+          return {
+            sampleIndex: sample.sampleIndex,
+            fraction: sample.fraction,
+            sourceOverPixels: pixelResults.filter(pixel => pixel.sourceOver).length,
+            finalVisiblePixels: pixelResults.filter(pixel => pixel.finalVisible).length,
+            pairedVisiblePixels: pixelResults
+              .filter(pixel => pixel.sourceOver && pixel.finalVisible)
+              .map(({ x, y, before, after, final }) => ({ x, y, before, after, final })),
           }
-        }
+        })
+        const sourceOver = sampleResults.some(sample => sample.sourceOverPixels > 0)
+        if (sourceOver) sourceOverSegments += 1
+        const finalVisible = sampleResults.some(sample => sample.finalVisiblePixels > 0)
         if (finalVisible) finalVisibleSegments += 1
-        if (sourceOver && finalVisible) hits += 1
-        segmentResults.push({ segmentIndex: index - 1, sourceOver, finalVisible })
+        const pairedVisible = sampleResults.some(sample => sample.pairedVisiblePixels.length > 0)
+        if (pairedVisible) hits += 1
+        segmentResults.push({
+          segmentIndex: index - 1,
+          sampleCount: segmentSamples.length,
+          sourceOver,
+          finalVisible,
+          pairedVisible,
+          sampleResults,
+        })
       }
       return { hits, sourceOverSegments, finalVisibleSegments, segmentResults }
     }
@@ -544,6 +620,10 @@ async function assertRotationPainted(page: Page, payload: RotationResponse): Pro
       canvas: {
         width: element.width,
         height: element.height,
+        cssWidth: bounds.width,
+        cssHeight: bounds.height,
+        viewportContained,
+        clippingContained,
         rect: { left: bounds.left, top: bounds.top, right: bounds.right, bottom: bounds.bottom, width: bounds.width, height: bounds.height },
         pixelRatio,
         viewport: { width: window.innerWidth, height: window.innerHeight },
@@ -570,6 +650,10 @@ async function assertRotationPainted(page: Page, payload: RotationResponse): Pro
     return {
       width: element.width,
       height: element.height,
+      cssWidth: bounds.width,
+      cssHeight: bounds.height,
+      viewportContained,
+      clippingContained,
       painted,
       rasterDiagnostic,
       markers: latestMarkers.map((marker, index) => ({
@@ -588,14 +672,45 @@ async function assertRotationPainted(page: Page, payload: RotationResponse): Pro
     || paint.tails.length !== payload.rows.length
     || paint.markers.some(marker => !marker.rasterHit)
     || paint.tails.some(tail => tail.rasterHits < 5)
-  if (rasterFailed) {
+    || paint.cssHeight < 100
+    || !paint.viewportContained
+    || !paint.clippingContained
+  if (payload.timeframe === 'D1') {
+    console.info('RRG_D1_FINAL_SAMPLE_SUMMARY', JSON.stringify({
+      canvas: {
+        width: paint.width,
+        height: paint.height,
+        cssWidth: paint.cssWidth,
+        cssHeight: paint.cssHeight,
+        viewportContained: paint.viewportContained,
+        clippingContained: paint.clippingContained,
+      },
+      markers: paint.markers.map(marker => ({ x: marker.x, y: marker.y, rasterHit: marker.rasterHit })),
+      tails: paint.rasterDiagnostic.tails.map((tail: any) => ({
+        symbol: tail.symbol,
+        sourceOverSegments: tail.sourceOverSegments,
+        finalVisibleSegments: tail.finalVisibleSegments,
+        hits: tail.segmentResults.filter((segment: any) => segment.pairedVisible).length,
+        segments: tail.segmentResults.map((segment: any) => ({
+          segmentIndex: segment.segmentIndex,
+          sampleCount: segment.sampleCount,
+          sourceOver: segment.sourceOver,
+          finalVisible: segment.finalVisible,
+          pairedVisible: segment.pairedVisible,
+        })),
+      })),
+    }))
+  }
+  if (rasterFailed || payload.timeframe === 'D1') {
     const diagnosticAttachment = `rrg-raster-${payload.timeframe.toLowerCase()}.json`
     const diagnosticBody = JSON.stringify(paint.rasterDiagnostic, null, 2)
     await test.info().attach(diagnosticAttachment, { body: diagnosticBody, contentType: 'application/json' })
-    console.info('RRG_RASTER_DIAGNOSTIC', diagnosticAttachment, diagnosticBody)
+    if (rasterFailed) console.info('RRG_RASTER_DIAGNOSTIC', diagnosticAttachment, diagnosticBody)
   }
   expect(paint.width).toBeGreaterThan(250)
-  expect(paint.height).toBeGreaterThan(140)
+  expect(paint.cssHeight).toBeGreaterThanOrEqual(100)
+  expect(paint.viewportContained, 'full canvas stays inside the browser viewport').toBe(true)
+  expect(paint.clippingContained, 'full canvas stays inside every overflow clipping ancestor').toBe(true)
   expect(paint.painted, 'RRG canvas must contain painted axes, quadrants and actual plotted data').toBeGreaterThan(150)
   expect(paint.markers, 'each returned sector has an audited latest point marker').toHaveLength(payload.rows.length)
   expect(paint.tails, 'each returned sector has an audited tail stroke').toHaveLength(payload.rows.length)
@@ -639,10 +754,11 @@ async function installRotationCanvasAudit(page: Page): Promise<void> {
         points: Array<{ x: number; y: number }>
         preMarkerSamples: Array<{
           segmentIndex: number
+          sampleIndex: number
+          fraction: number
           x: number
           y: number
-          before: number[][]
-          after: number[][]
+          pixels: Array<{ x: number; y: number; before: number[]; after: number[] }>
         }>
       }>,
     }
@@ -676,18 +792,28 @@ async function installRotationCanvasAudit(page: Page): Promise<void> {
       const color = String(this.strokeStyle).toLowerCase()
       const points = paths.get(this) ?? []
       const isTailStroke = isRotationCanvas(this) && colors.has(color) && this.globalAlpha < 1 && points.length >= 10
-      let preMarkerSamples: Array<{ segmentIndex: number; x: number; y: number; before: number[][]; after: number[][] }> = []
+      let preMarkerSamples: Array<{
+        segmentIndex: number
+        sampleIndex: number
+        fraction: number
+        x: number
+        y: number
+        pixels: Array<{ x: number; y: number; before: number[]; after: number[] }>
+      }> = []
       let sampleBounds: { left: number; top: number; width: number; height: number } | undefined
       let beforePixels: Uint8ClampedArray | undefined
       if (isTailStroke) {
         const rect = this.canvas.getBoundingClientRect()
         const ratioX = rect.width > 0 ? this.canvas.width / rect.width : 1
         const ratioY = rect.height > 0 ? this.canvas.height / rect.height : 1
-        const centers = points.slice(1).map((point, index) => ({
+        const sampleFractions = [0.15, 0.325, 0.5, 0.675, 0.85]
+        const centers = points.slice(1).flatMap((point, index) => sampleFractions.map((fraction, sampleIndex) => ({
           segmentIndex: index,
-          x: Math.round(((points[index].x + point.x) / 2) * ratioX),
-          y: Math.round(((points[index].y + point.y) / 2) * ratioY),
-        }))
+          sampleIndex,
+          fraction,
+          x: Math.round((points[index].x + (point.x - points[index].x) * fraction) * ratioX),
+          y: Math.round((points[index].y + (point.y - points[index].y) * fraction) * ratioY),
+        })))
         const left = Math.max(0, Math.min(...centers.map(center => center.x - 1)))
         const top = Math.max(0, Math.min(...centers.map(center => center.y - 1)))
         const right = Math.min(this.canvas.width, Math.max(...centers.map(center => center.x + 2)))
@@ -696,14 +822,14 @@ async function installRotationCanvasAudit(page: Page): Promise<void> {
           sampleBounds = { left, top, width: right - left, height: bottom - top }
           beforePixels = this.getImageData(left, top, sampleBounds.width, sampleBounds.height).data
           preMarkerSamples = centers.map(center => {
-            const before: number[][] = []
+            const pixels: Array<{ x: number; y: number; before: number[]; after: number[] }> = []
             for (let dy = -1; dy <= 1; dy += 1) for (let dx = -1; dx <= 1; dx += 1) {
               const x = center.x + dx, y = center.y + dy
               if (x < left || y < top || x >= right || y >= bottom) continue
               const offset = ((y - top) * sampleBounds!.width + (x - left)) * 4
-              before.push(Array.from(beforePixels!.slice(offset, offset + 4)))
+              pixels.push({ x, y, before: Array.from(beforePixels!.slice(offset, offset + 4)), after: [] })
             }
-            return { ...center, before, after: [] }
+            return { ...center, pixels }
           })
         }
       }
@@ -712,11 +838,9 @@ async function installRotationCanvasAudit(page: Page): Promise<void> {
         if (sampleBounds && beforePixels) {
           const afterPixels = this.getImageData(sampleBounds.left, sampleBounds.top, sampleBounds.width, sampleBounds.height).data
           for (const sample of preMarkerSamples) {
-            for (let dy = -1; dy <= 1; dy += 1) for (let dx = -1; dx <= 1; dx += 1) {
-              const x = sample.x + dx, y = sample.y + dy
-              if (x < sampleBounds.left || y < sampleBounds.top || x >= sampleBounds.left + sampleBounds.width || y >= sampleBounds.top + sampleBounds.height) continue
-              const offset = ((y - sampleBounds.top) * sampleBounds.width + (x - sampleBounds.left)) * 4
-              sample.after.push(Array.from(afterPixels.slice(offset, offset + 4)))
+            for (const pixel of sample.pixels) {
+              const offset = ((pixel.y - sampleBounds.top) * sampleBounds.width + (pixel.x - sampleBounds.left)) * 4
+              pixel.after = Array.from(afterPixels.slice(offset, offset + 4))
             }
           }
         }
@@ -907,7 +1031,8 @@ test('SPY and all eleven sector charts use real bars, and both sector/SPY ratios
 
 test('S&P 500 RRG renders deep D1/W1/MN data and survives selection, resize, maximize, layout copy, and tab restore', async ({ page, request, loggedIn }) => {
   void loggedIn
-  test.setTimeout(240_000)
+  const d1DiagnosticOnly = process.env.ETF_RRG_D1_DIAGNOSTIC === '1'
+  test.setTimeout(d1DiagnosticOnly ? 160_000 : 240_000)
   await installRotationCanvasAudit(page)
   const token = await bearerToken(page)
   const monthlyBars = await Promise.all(SP500_SYMBOLS.map(symbol => getJson<Bar[]>(
@@ -1008,6 +1133,7 @@ test('S&P 500 RRG renders deep D1/W1/MN data and survives selection, resize, max
   }
   await setDisclosureOpen(settingsDisclosure, false)
   await assertRotationPainted(page, d1Payload)
+  if (d1DiagnosticOnly) return
 
   for (const timeframe of ['W1', 'MN'] as const) {
     await clearRotationCanvasAudit(page)

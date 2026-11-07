@@ -79,6 +79,29 @@ describe('CodeLibraryTool', () => {
     expect(apiPost).toHaveBeenCalledWith('/code/assets/4/archive', { is_archived: true })
   })
 
+  it('retains the validated state for the exact version draft after the async check resolves', async () => {
+    const validation = deferred<{ valid: boolean; diagnostics: unknown[]; dependencies: string[]; output_contracts: string[] }>()
+    apiPost.mockImplementation((path: string) => path === '/code/validate' ? validation.promise : Promise.resolve({}))
+    const wrapper = mount(CodeLibraryTool)
+    await flushPromises()
+    const assetRow = wrapper.get('.code-library-tool__asset')
+    await assetRow.get('details summary').trigger('click')
+    const source = "output.scalar('n', 2)"
+    await assetRow.get('[aria-label="Python source for Streak study"]').setValue(source)
+    await assetRow.findAll('button').find(button => button.text() === 'Validate')!.trigger('click')
+
+    expect(apiPost).toHaveBeenCalledWith('/code/validate', { source })
+    expect(assetRow.text()).toContain('Validating…')
+    validation.resolve({ valid: true, diagnostics: [], dependencies: [], output_contracts: ['study', 'scalar'] })
+    await flushPromises()
+
+    const state = assetRow.get('.code-library-tool__validation')
+    expect(state.attributes('role')).toBe('status')
+    expect(state.find('strong').text()).toBe('Validated')
+    expect(wrapper.vm.$.setupState.versionValidations[4]).toMatchObject({ valid: true, output_contracts: ['study', 'scalar'] })
+    wrapper.unmount()
+  })
+
   it('keeps a validated Library draft retryable after immutable version persistence fails', async () => {
     let saveAttempts = 0
     apiPost.mockImplementation((path: string) => {

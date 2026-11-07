@@ -1,9 +1,8 @@
 <template>
   <div class="details-widget">
-    <div v-if="loading" class="widget-state">{{ preparationMessage || `Preparing ${symbol}...` }}</div>
+    <div v-if="loading && !instrument" class="widget-state">{{ preparationMessage || `Loading cached details for ${symbol}...` }}</div>
     <div v-else-if="!symbol" class="widget-state">Choose an instrument</div>
-    <div v-else-if="preparationMessage" class="widget-state error">{{ preparationMessage }}</div>
-    <div v-else-if="error" class="widget-state error">{{ error }}</div>
+    <div v-else-if="error && !instrument" class="widget-state error">{{ error }}</div>
     <template v-else-if="instrument">
       <div class="details-main">
         <div class="details-symbol">{{ instrument.symbol }}</div>
@@ -16,6 +15,8 @@
           <b>{{ row.value || '-' }}</b>
         </div>
       </div>
+      <div v-if="preparationMessage" class="details-preparation" role="status">{{ preparationMessage }}</div>
+      <div v-if="error" class="details-preparation error" role="status">{{ error }} Cached instrument details remain available.</div>
     </template>
   </div>
 </template>
@@ -24,7 +25,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { api } from '@/lib/api'
 import { ensureKnownInstrumentSymbol } from '@/lib/instruments'
-import { dataPreparationCoordinator, instrumentHistoryPreparationRequest, preparationStatusMessage } from '@/lib/dataPreparation'
+import { dataPreparationCoordinator, instrumentHistoryPreparationRequest, preparationStatusMessage, PreparationProgressRefreshQueue, shouldRefreshAnalysisProgress } from '@/lib/dataPreparation'
 import type { Instrument } from '@/types'
 
 const props = defineProps<{ config: Record<string, any>; overrideSymbol?: string }>()
@@ -78,6 +79,7 @@ async function refresh() {
   refreshController?.abort()
   const controller = new AbortController()
   refreshController = controller
+  let preparationSettled = false
   preparationMessage.value = ''
   if (!symbol.value) {
     instrument.value = null
@@ -88,40 +90,66 @@ async function refresh() {
   }
   loading.value = true
   error.value = null
+  instrument.value = null
   try {
     const requestedSymbol = symbol.value
     const target = await resolveTarget(requestedSymbol)
     if (!mounted || seq !== refreshSeq) return
-    const prepared = await dataPreparationCoordinator.ensure(
+    const isCurrent = () => mounted && seq === refreshSeq && !controller.signal.aborted
+    const queue = new PreparationProgressRefreshQueue()
+    const readCachedDetails = async (refreshHistory = false) => {
+      const loadedInstrument = await api.get<Instrument>(`/instruments/${encodeURIComponent(target)}`)
+      if (!isCurrent()) return
+      instrument.value = loadedInstrument
+      const hasYearRange = loadedInstrument.is_synthetic
+        || Boolean(loadedInstrument.stats?.week52_high && loadedInstrument.stats?.week52_low)
+      if (refreshHistory && !hasYearRange) {
+        // This is an ordinary local-series read. It may populate the profile's
+        // cached range fields, but does not wait for or trigger a provider path.
+        await api.get(`/ohlcv/${encodeURIComponent(target)}/D1`, { limit: 260 }).catch(() => null)
+        if (!isCurrent()) return
+        const refreshedInstrument = await api.get<Instrument>(`/instruments/${encodeURIComponent(target)}`)
+        if (isCurrent()) instrument.value = refreshedInstrument
+      }
+    }
+    const initialRead = readCachedDetails(true)
+    const refreshForProgress = (response: import('@/lib/dataPreparation').DataEnsureResponse) =>
+      queue.request(response, async () => {
+        await initialRead
+        if (!isCurrent() || !queue.isLatest(response)) return
+        await readCachedDetails(response.status === 'ready')
+      })
+    const preparation = dataPreparationCoordinator.ensure(
       instrumentHistoryPreparationRequest({ kind: 'instrument', symbol: target }, 'D1'),
       {
         signal: controller.signal,
         onProgress: progress => {
-          if (mounted && seq === refreshSeq) preparationMessage.value = preparationStatusMessage(progress.response)
+          if (!isCurrent()) return
+          preparationMessage.value = preparationStatusMessage(progress.response)
+          if (shouldRefreshAnalysisProgress(progress.response)) {
+            void refreshForProgress(progress.response).catch(cause => {
+              if (isCurrent()) error.value = cause?.message ?? 'Cached instrument details could not be refreshed.'
+            })
+          }
         },
       },
     )
-    if (!mounted || seq !== refreshSeq) return
-    preparationMessage.value = prepared.status === 'ready' ? '' : preparationStatusMessage(prepared)
-    if (prepared.status !== 'ready') return
-    const loadedInstrument = await api.get<Instrument>(`/instruments/${encodeURIComponent(target)}`)
-    if (!mounted || seq !== refreshSeq) return
-    instrument.value = loadedInstrument
-    if (
-      !instrument.value.is_synthetic
-      && (!instrument.value.stats?.week52_high || !instrument.value.stats?.week52_low)
-    ) {
-      await api.get(`/ohlcv/${encodeURIComponent(target)}/D1`, { limit: 260 })
-      if (!mounted || seq !== refreshSeq) return
-      const refreshedInstrument = await api.get<Instrument>(`/instruments/${encodeURIComponent(target)}`)
-      if (!mounted || seq !== refreshSeq) return
-      instrument.value = refreshedInstrument
-    }
+    void preparation.then(async prepared => {
+      if (!isCurrent()) return
+      preparationMessage.value = prepared.status === 'ready' ? '' : preparationStatusMessage(prepared)
+      await refreshForProgress(prepared)
+    }).catch(() => {
+      if (isCurrent()) preparationMessage.value = 'Data preparation could not be completed; showing cached instrument details.'
+    }).finally(() => {
+      preparationSettled = true
+      if (refreshController === controller) refreshController = null
+    })
+    await initialRead
   } catch (e: any) {
     if (mounted && seq === refreshSeq && !controller.signal.aborted) error.value = e?.message ?? 'Instrument unavailable'
   } finally {
     if (mounted && seq === refreshSeq) loading.value = false
-    if (refreshController === controller) refreshController = null
+    if (preparationSettled && refreshController === controller) refreshController = null
   }
 }
 
@@ -190,6 +218,8 @@ onBeforeUnmount(() => {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.details-preparation { color: #9c9c77; font-size: 10px; }
+.details-preparation.error { color: #ef9a9a; }
 .widget-state {
   height: 100%;
   display: flex;

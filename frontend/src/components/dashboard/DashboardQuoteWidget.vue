@@ -1,18 +1,18 @@
 <template>
   <div class="quote-widget">
-    <div v-if="loading" class="widget-state">{{ preparationMessage || `Preparing ${symbol}...` }}</div>
+    <div v-if="loading && !instrument" class="widget-state">{{ preparationMessage || `Loading cached quote for ${symbol}...` }}</div>
     <div v-else-if="!symbol" class="widget-state">Choose an instrument</div>
-    <div v-else-if="preparationMessage" class="widget-state error">{{ preparationMessage }}</div>
-    <div v-else-if="error" class="widget-state error">{{ error }}</div>
-    <template v-else>
+    <div v-else-if="error && !instrument" class="widget-state error">{{ error }}</div>
+    <template v-else-if="instrument || lastClose != null">
       <div class="quote-top">
         <div>
           <div class="quote-symbol">{{ instrument?.symbol ?? symbol }}</div>
-          <div class="quote-name">{{ instrument?.name }}</div>
+          <div class="quote-name">{{ instrument?.name || 'Instrument details are unavailable; cached price data is retained.' }}</div>
         </div>
         <router-link class="quote-open" :to="`/chart/${encodeURIComponent(symbol)}`">Chart</router-link>
       </div>
-      <div class="quote-price">{{ formatMoney(lastClose, instrument?.currency) }}</div>
+      <div v-if="lastClose != null" class="quote-price">{{ formatMoney(lastClose, instrument?.currency) }}</div>
+      <div v-else class="quote-price quote-price--empty">No cached price is available.</div>
       <div class="quote-change" :class="changePct >= 0 ? 'up' : 'down'">
         {{ changePct >= 0 ? '+' : '' }}{{ (changePct * 100).toFixed(2) }}%
       </div>
@@ -20,6 +20,8 @@
         <span>{{ instrument?.currency || 'Currency -' }}</span>
         <span>{{ instrument?.equity_detail?.sector || 'Sector -' }}</span>
       </div>
+      <div v-if="preparationMessage" class="quote-preparation" role="status">{{ preparationMessage }}</div>
+      <div v-if="error" class="quote-preparation error" role="status">{{ error }}</div>
     </template>
   </div>
 </template>
@@ -29,7 +31,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { api } from '@/lib/api'
 import { formatMoney } from '@/lib/format'
 import { ensureKnownInstrumentSymbol } from '@/lib/instruments'
-import { dataPreparationCoordinator, instrumentHistoryPreparationRequest, preparationStatusMessage } from '@/lib/dataPreparation'
+import { dataPreparationCoordinator, instrumentHistoryPreparationRequest, preparationStatusMessage, PreparationProgressRefreshQueue, shouldRefreshAnalysisProgress } from '@/lib/dataPreparation'
 import type { Instrument } from '@/types'
 
 const props = defineProps<{ config: Record<string, any>; overrideSymbol?: string }>()
@@ -57,6 +59,7 @@ async function refresh() {
   refreshController?.abort()
   const controller = new AbortController()
   refreshController = controller
+  let preparationSettled = false
   preparationMessage.value = ''
   if (!symbol.value) {
     instrument.value = null
@@ -69,39 +72,79 @@ async function refresh() {
   }
   loading.value = true
   error.value = null
+  instrument.value = null
+  lastClose.value = null
+  prevClose.value = null
   try {
     const requestedSymbol = symbol.value
     const target = await resolveTarget(requestedSymbol)
     if (!mounted || seq !== refreshSeq) return
-    const prepared = await dataPreparationCoordinator.ensure(
+    const isCurrent = () => mounted && seq === refreshSeq && !controller.signal.aborted
+    const queue = new PreparationProgressRefreshQueue()
+    const readCachedQuote = async () => {
+      const [profile, history] = await Promise.allSettled([
+        api.get<Instrument>(`/instruments/${encodeURIComponent(target)}`),
+        api.get<Array<{ close: number }>>(`/ohlcv/${encodeURIComponent(target)}/D1`, { limit: 2 }),
+      ])
+      if (!isCurrent()) return
+      if (profile.status === 'fulfilled') instrument.value = profile.value
+      if (history.status === 'fulfilled') {
+        const bars = history.value
+        const latest = bars[bars.length - 1]
+        const previous = bars[bars.length - 2] ?? latest
+        if (latest) {
+          lastClose.value = Number(latest.close)
+          prevClose.value = Number(previous?.close ?? latest.close)
+        }
+      }
+      if (profile.status === 'rejected' && history.status === 'rejected') throw profile.reason
+      if (history.status === 'rejected' || lastClose.value == null) error.value = 'Cached price history is unavailable.'
+      else if (profile.status === 'rejected') error.value = 'Instrument details are unavailable; the cached price remains visible.'
+      else error.value = null
+    }
+    const initialRead = readCachedQuote()
+    const refreshForProgress = (response: import('@/lib/dataPreparation').DataEnsureResponse) =>
+      queue.request(response, async () => {
+        await initialRead
+        if (!isCurrent() || !queue.isLatest(response)) return
+        await readCachedQuote()
+      })
+    const preparation = dataPreparationCoordinator.ensure(
       instrumentHistoryPreparationRequest({ kind: 'instrument', symbol: target }, 'D1'),
       {
         signal: controller.signal,
         onProgress: progress => {
-          if (mounted && seq === refreshSeq) preparationMessage.value = preparationStatusMessage(progress.response)
+          if (!isCurrent()) return
+          preparationMessage.value = preparationStatusMessage(progress.response)
+          if (shouldRefreshAnalysisProgress(progress.response)) {
+            void refreshForProgress(progress.response).catch(cause => {
+              if (isCurrent()) error.value = cause?.message ?? 'Cached quote could not be refreshed.'
+            })
+          }
         },
       },
     )
-    if (!mounted || seq !== refreshSeq) return
-    preparationMessage.value = prepared.status === 'ready' ? '' : preparationStatusMessage(prepared)
-    if (prepared.status !== 'ready') return
-    const loadedInstrument = await api.get<Instrument>(`/instruments/${encodeURIComponent(target)}`)
-    if (!mounted || seq !== refreshSeq) return
-    instrument.value = loadedInstrument
-    const bars = await api.get<Array<{ close: number }>>(`/ohlcv/${encodeURIComponent(target)}/D1`, { limit: 2 })
-    if (!mounted || seq !== refreshSeq) return
-    const latest = bars[bars.length - 1]
-    const prev = bars[bars.length - 2] ?? latest
-    if (!latest) throw new Error('Prepared daily history contains no bars yet.')
-    lastClose.value = Number(latest.close)
-    prevClose.value = Number(prev?.close ?? latest.close)
+    void preparation.then(async prepared => {
+      if (!isCurrent()) return
+      preparationMessage.value = prepared.status === 'ready' ? '' : preparationStatusMessage(prepared)
+      await refreshForProgress(prepared)
+      if (prepared.status === 'ready' && isCurrent() && lastClose.value == null) {
+        preparationMessage.value = 'Prepared daily history contains no bars yet.'
+      }
+    }).catch(cause => {
+      if (isCurrent()) preparationMessage.value = 'Data preparation could not be completed; showing cached quote data.'
+    }).finally(() => {
+      preparationSettled = true
+      if (refreshController === controller) refreshController = null
+    })
+    await initialRead
   } catch (e: any) {
     if (mounted && seq === refreshSeq && !controller.signal.aborted) {
       error.value = e?.message ?? 'Quote unavailable'
     }
   } finally {
     if (mounted && seq === refreshSeq) loading.value = false
-    if (refreshController === controller) refreshController = null
+    if (preparationSettled && refreshController === controller) refreshController = null
   }
 }
 
@@ -154,6 +197,7 @@ onBeforeUnmount(() => {
   font-size: 10px;
 }
 .quote-price { color: #eee; font-size: 24px; font-weight: 700; }
+.quote-price--empty { color: #777; font-size: 12px; }
 .quote-change { font-size: 13px; font-weight: 700; }
 .quote-change.up { color: #81c784; }
 .quote-change.down { color: #ef5350; }
@@ -171,6 +215,8 @@ onBeforeUnmount(() => {
   padding: 3px 5px;
   background: #111;
 }
+.quote-preparation { color: #9c9c77; font-size: 10px; }
+.quote-preparation.error { color: #ef9a9a; }
 .widget-state {
   height: 100%;
   display: flex;

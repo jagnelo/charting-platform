@@ -4987,14 +4987,136 @@ development_dependency_import_history:
       - backend/tests/unit/workers/test_arq_worker.py
     state: superseded_development_import
     superseded_by: dd05c5e8318ff59a90f879867cae9664dcc0de4f
+  - source_sha: dd05c5e8318ff59a90f879867cae9664dcc0de4f
+    manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/dd05c5e8318ff59a90f879867cae9664dcc0de4f.json
+    manifest_sha256: 0be00f63f7c9c77b2f4c41696657e122bd54265ff68b614f6e9d958b074493e9
+    paths:
+    - backend/app/main.py
+    - backend/app/providers/alpaca.py
+    - backend/app/providers/massive.py
+    - backend/app/routers/analysis.py
+    - backend/app/routers/data_preparation.py
+    - backend/app/routers/ohlcv.py
+    - backend/app/routers/research.py
+    - backend/app/routers/workspaces.py
+    - backend/app/schemas/data_preparation.py
+    - backend/app/services/baskets.py
+    - backend/app/services/bulk_fetch.py
+    - backend/app/services/data_preparation.py
+    - backend/app/services/data_preparation_contracts.py
+    - backend/app/services/derived_timeframes.py
+    - backend/app/services/e2e_seed.py
+    - backend/app/services/etf_holdings_adapters.py
+    - backend/app/services/etf_holdings_preparation.py
+    - backend/app/services/etf_holdings_refresh.py
+    - backend/app/services/evaluator_preflight.py
+    - backend/app/services/exchange_sessions.py
+    - backend/app/services/instrument_events.py
+    - backend/app/services/instrument_mastering.py
+    - backend/app/services/market_data.py
+    - backend/app/services/market_refresh_queue.py
+    - backend/app/services/market_series.py
+    - backend/app/services/ohlcv_coverage.py
+    - backend/app/services/provider_runtime.py
+    - backend/app/services/screener_engine.py
+    - backend/app/services/workstation_tool_catalogue.py
+    - backend/app/tasks/data_tasks.py
+    - backend/app/workers/arq_worker.py
+    - backend/tests/integration/api/test_baskets.py
+    - backend/tests/integration/api/test_workspace_read_consistency_postgres.py
+    - backend/tests/integration/test_data_preparation_queue_postgres.py
+    - backend/tests/unit/conftest.py
+    - backend/tests/unit/providers/test_new_providers.py
+    - backend/tests/unit/routers/test_analysis_router.py
+    - backend/tests/unit/routers/test_calendar_router.py
+    - backend/tests/unit/routers/test_data_preparation_router.py
+    - backend/tests/unit/routers/test_ohlcv_router.py
+    - backend/tests/unit/routers/test_research_router.py
+    - backend/tests/unit/routers/test_workspace_tool_catalogue.py
+    - backend/tests/unit/services/test_data_preparation_contracts.py
+    - backend/tests/unit/services/test_data_preparation_history_planning.py
+    - backend/tests/unit/services/test_data_preparation_service.py
+    - backend/tests/unit/services/test_derived_timeframes.py
+    - backend/tests/unit/services/test_e2e_seed.py
+    - backend/tests/unit/services/test_etf_holdings_adapters.py
+    - backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py
+    - backend/tests/unit/services/test_etf_holdings_native_qualification.py
+    - backend/tests/unit/services/test_etf_holdings_preparation.py
+    - backend/tests/unit/services/test_etf_holdings_preparation_hook.py
+    - backend/tests/unit/services/test_etf_issuer_catalog.py
+    - backend/tests/unit/services/test_evaluator_preflight.py
+    - backend/tests/unit/services/test_exchange_catalog.py
+    - backend/tests/unit/services/test_market_data.py
+    - backend/tests/unit/services/test_market_refresh_queue.py
+    - backend/tests/unit/services/test_market_series_defaults.py
+    - backend/tests/unit/services/test_provider_quota_coordinator.py
+    - backend/tests/unit/services/test_provider_runtime.py
+    - backend/tests/unit/services/test_workstation_tool_catalogue.py
+    - backend/tests/unit/tasks/test_data_tasks.py
+    - backend/tests/unit/tasks/test_native_usage_prerequisite.py
+    - backend/tests/unit/workers/test_arq_worker.py
+    state: superseded_development_import
+    superseded_by: 22c31cd3e7f35e361e286ef40576d379aaf44449
+  - source_sha: cfd23fa17244b2eaa645682f4f63d6ac24a88f5a
+    manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/cfd23fa17244b2eaa645682f4f63d6ac24a88f5a.json
+    manifest_sha256: 1479618fe4a8c043b01882e5f226d44daea3732c6e9ffdd83e5a55d33568823b
+    paths:
+    - frontend/src/components/workstation/InstrumentNoteTool.vue
+    - frontend/src/views/BasketsView.vue
+    - frontend/src/views/ETFHoldingsView.vue
+    - frontend/tests/e2e/baskets_journey.spec.ts
+    - frontend/tests/e2e/etf_holdings_preparation.spec.ts
+    - frontend/tests/e2e/on_demand_acquisition.spec.ts
+    - frontend/tests/e2e/sp500_analysis_journey.spec.ts
+    - frontend/tests/e2e/supporting_features_journey.spec.ts
+    - frontend/tests/unit/components/test_instrument_note_tool.test.ts
+    - frontend/tests/unit/views/test_baskets_view.test.ts
+    - frontend/tests/unit/views/test_etf_holdings_view.test.ts
+    state: superseded_development_import
+    superseded_by: 5e49669e455dcbc89a767bbefd38a0682e06f999
+
+  - source_sha: 55851d2b953ce38de5afe59ba90b613ffde08f87
+    manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/55851d2b953ce38de5afe59ba90b613ffde08f87.json
+    manifest_sha256: 068d5e3bbc2f57878e33c8b0c355f216831d90e2b09ec978483bff0f0cdbd2de
+    paths:
+      - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
+      - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
+      - frontend/src/components/dashboard/DashboardInstrumentSearch.vue
+      - frontend/src/components/dashboard/DashboardLineChartWidget.vue
+      - frontend/src/components/dashboard/DashboardQuoteWidget.vue
+      - frontend/src/components/workstation/CodeLibraryTool.vue
+      - frontend/src/components/workstation/ResearchResultsTool.vue
+      - frontend/src/components/workstation/StudyLabTool.vue
+      - frontend/src/lib/workstation/researchQueryKeys.ts
+      - frontend/src/stores/dashboard.ts
+      - frontend/src/views/DashboardView.vue
+      - frontend/tests/e2e/dashboard_usability_journey.spec.ts
+      - frontend/tests/e2e/helpers.ts
+      - frontend/tests/e2e/strategy_study_journey.spec.ts
+      - frontend/tests/e2e/workstation_lifecycle_journey.spec.ts
+      - frontend/tests/unit/components/test_code_library_tool.test.ts
+      - frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts
+      - frontend/tests/unit/components/test_dashboard_instrument_search.test.ts
+      - frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts
+      - frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts
+      - frontend/tests/unit/components/test_research_results_tool.test.ts
+      - frontend/tests/unit/components/test_study_lab_tool.test.ts
+      - frontend/tests/unit/e2e/test_browser_diagnostics.test.ts
+      - frontend/tests/unit/stores/test_dashboard_store.test.ts
+      - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts
+    state: superseded_development_import
+    superseded_by: 8ae5f9aca10803f300b6d5a41a3bced447f70ebc
+
 approved_development_dependency_imports:
-- source_sha: dd05c5e8318ff59a90f879867cae9664dcc0de4f
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/dd05c5e8318ff59a90f879867cae9664dcc0de4f.json
-  manifest_sha256: 0be00f63f7c9c77b2f4c41696657e122bd54265ff68b614f6e9d958b074493e9
+- source_sha: 22c31cd3e7f35e361e286ef40576d379aaf44449
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/22c31cd3e7f35e361e286ef40576d379aaf44449.json
+  manifest_sha256: a5079b0eb78a8fd67e48e94a7d749bc171ffa2b21165fc9c59c405501dc2db85
   paths:
+  - backend/app/config.py
   - backend/app/main.py
   - backend/app/providers/alpaca.py
   - backend/app/providers/massive.py
+  - backend/app/providers/optional_market_data.py
   - backend/app/routers/analysis.py
   - backend/app/routers/data_preparation.py
   - backend/app/routers/ohlcv.py
@@ -5028,6 +5150,7 @@ approved_development_dependency_imports:
   - backend/tests/integration/test_data_preparation_queue_postgres.py
   - backend/tests/unit/conftest.py
   - backend/tests/unit/providers/test_new_providers.py
+  - backend/tests/unit/providers/test_optional_market_data.py
   - backend/tests/unit/routers/test_analysis_router.py
   - backend/tests/unit/routers/test_calendar_router.py
   - backend/tests/unit/routers/test_data_preparation_router.py
@@ -5056,9 +5179,9 @@ approved_development_dependency_imports:
   - backend/tests/unit/tasks/test_data_tasks.py
   - backend/tests/unit/tasks/test_native_usage_prerequisite.py
   - backend/tests/unit/workers/test_arq_worker.py
-- source_sha: 55851d2b953ce38de5afe59ba90b613ffde08f87
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/55851d2b953ce38de5afe59ba90b613ffde08f87.json
-  manifest_sha256: 068d5e3bbc2f57878e33c8b0c355f216831d90e2b09ec978483bff0f0cdbd2de
+- source_sha: 8ae5f9aca10803f300b6d5a41a3bced447f70ebc
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/8ae5f9aca10803f300b6d5a41a3bced447f70ebc.json
+  manifest_sha256: f625db8197f511cb60d07c9f04a278699db1cc5e2751fee62c5c4340152edff9
   paths:
   - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
   - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
@@ -5085,10 +5208,9 @@ approved_development_dependency_imports:
   - frontend/tests/unit/e2e/test_browser_diagnostics.test.ts
   - frontend/tests/unit/stores/test_dashboard_store.test.ts
   - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts
-
-- source_sha: cfd23fa17244b2eaa645682f4f63d6ac24a88f5a
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/cfd23fa17244b2eaa645682f4f63d6ac24a88f5a.json
-  manifest_sha256: 1479618fe4a8c043b01882e5f226d44daea3732c6e9ffdd83e5a55d33568823b
+- source_sha: 5e49669e455dcbc89a767bbefd38a0682e06f999
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/5e49669e455dcbc89a767bbefd38a0682e06f999.json
+  manifest_sha256: 75131b2bb1e6f5624134716c315e0f10d46f438b14ae758e04ded73e96a5b0f7
   paths:
   - frontend/src/components/workstation/InstrumentNoteTool.vue
   - frontend/src/views/BasketsView.vue
