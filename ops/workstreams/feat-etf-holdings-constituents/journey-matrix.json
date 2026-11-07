@@ -678,9 +678,9 @@
           "browser_evidence": {
             "path": "frontend/tests/e2e/baskets_journey.spec.ts",
             "case": "opening a basket submits each member preparation independently while cached chart data stays visible",
-            "coverage": "The R32 AAPL/MSFT synthetic response was empty because those members had zero common retained candles, so the fixture premise was invalid. The current actual-API story first verifies selected adjusted D1 SPY/QQQ bars and >=20 shared timestamps, then checks all returned basket timestamps and weighted closes against those cached rows while holding the first member preparation. Current spec SHA256 b6b0d4e138ee31c573fc39d80463c933e35712e62d5dc0b90c5698c06a059ef7.",
-            "body_run": false,
-            "status": "Root browser replay pending; current cached-series premise and exact weighted readback have not been browser-qualified."
+            "coverage": "The R32 AAPL/MSFT synthetic response was empty because those members had zero common retained candles, so the fixture premise was invalid. The current actual-API story verifies selected adjusted D1 QQQ/RSP bars and >=20 shared timestamps, then checks all returned basket timestamps and weighted closes against those cached rows while holding the first member preparation. Exact current spec SHA256 2a4799fe9a0b7893aa9660d5d79d2ba5ffb5b0bfe1073457e3947ded3fdcb5f4.",
+            "body_run": true,
+            "status": "Root R37 passed this actual-API manual-basket chart/preparation case on frontend7c2f4238, backend23b6aba9 and exact test source295cad868501b4e27803e98c55ec250c6a629e0d (1/3 cases passed overall). Cached QQQ/RSP weighted reads and independent member submissions passed. The source-basket/unresolved-member variant and final combined profile remain pending. Receipt: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/validation-fixture/focused-etf-tests-r37-receipt.json."
           },
           "contract_gap_owner": "TC owns the chart/basket-load integration in the shared chart path. The currently identified entry point is frontend/src/stores/chart.ts::chartStore.loadBars() BASKET:<id> branch; ETF does not add another coordinator or queue."
         },
