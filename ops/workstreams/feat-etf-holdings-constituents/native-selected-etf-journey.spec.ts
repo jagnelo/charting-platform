@@ -163,6 +163,16 @@ async function currentHoldings(request: APIRequestContext, symbol: string, instr
   return { snapshot, holdings: page.holdings }
 }
 
+async function assertVisibleFundRows(page: Page, symbol: string, holdings: Holding[]) {
+  const rows = page.locator('.constituent-tool').getByRole('option')
+  await expect.poll(async () => {
+    const labels = await rows.evaluateAll(items => items.map(item => item.getAttribute('aria-label') ?? ''))
+    return labels.length > 0 && labels.every(label => holdings.some(row =>
+      (row.constituent_symbol ?? row.reported_symbol)
+      && label.startsWith(`${row.constituent_symbol ?? row.reported_symbol} `)))
+  }, { message: `${symbol} visible rows must match its selected dated snapshot`, timeout: 30_000 }).toBeTruthy()
+}
+
 async function selectVisibleResolvedHolding(page: Page, holdings: Holding[]) {
   const resolved = new Map(holdings.filter(row => {
     const type = row.holding_type.trim().toLowerCase().replace(/[\s_-]+/g, '')
@@ -216,12 +226,7 @@ test('genuine BWET to XHB to IGV selection retains current holdings provenance o
       sourceIdentifier: fund.snapshot.source_identifier, completeness: fund.snapshot.completeness_status,
       rowCount: fund.snapshot.row_count,
     })
-    const rows = page.locator('.constituent-tool').getByRole('option')
-    await expect.poll(async () => {
-      const labels = await rows.evaluateAll(items => items.map(item => item.getAttribute('aria-label') ?? ''))
-      return labels.length > 0 && labels.every(label => fund.holdings.some(row =>
-        (row.constituent_symbol ?? row.reported_symbol) && label.startsWith(`${row.constituent_symbol ?? row.reported_symbol} `)))
-    }, { message: `${symbol} rows must switch to its own dated snapshot`, timeout: 30_000 }).toBeTruthy()
+    await assertVisibleFundRows(page, symbol, fund.holdings)
     if (symbol !== 'BWET') await expect(page.getByTestId('active-holding-lineage')).toHaveCount(0)
     if (symbol === 'BWET') {
       const row = await selectVisibleResolvedHolding(page, fund.holdings)
@@ -261,6 +266,7 @@ test('genuine BWET to XHB to IGV selection retains current holdings provenance o
   const reopenedFund = await currentHoldings(request, 'IGV', igvListing!.instrument_id, token!)
   expect(reopenedFund.snapshot.id).toBe(igv!.snapshot.id)
   await expect(page.getByTestId('active-holding-lineage')).toHaveCount(0)
+  await assertVisibleFundRows(page, 'IGV', reopenedFund.holdings)
 
   await page.reload()
   await expect(page.locator('.workspace-layout-host')).toBeVisible()
@@ -269,6 +275,7 @@ test('genuine BWET to XHB to IGV selection retains current holdings provenance o
   await assertSelectedBars(page, request, 'IGV', token!)
   const reloadedFund = await currentHoldings(request, 'IGV', igvListing!.instrument_id, token!)
   expect(reloadedFund.snapshot.id).toBe(igv!.snapshot.id)
+  await assertVisibleFundRows(page, 'IGV', reloadedFund.holdings)
 
   expect(evidence.map(item => item.symbol)).toEqual(['BWET', 'XHB', 'IGV'])
   expect(evidence.every(item => item.httpStatus === 200 && item.requestId && item.status)).toBeTruthy()
