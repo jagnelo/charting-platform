@@ -33656,3 +33656,34 @@ roadmap remains in progress.
 Root's retained e870 evidence showed BWET's automatic history child planned the Massive two-year floor from the request end timestamp, then the later worker admission check found that moving floor had advanced and resolved no provider before transport. The instrument is a canonical US ETV; the current resolver intentionally routes ETV price history to Massive only, so this was not an alternate-provider mapping defect. Automatic relative floors now use current planning time with a one-day in-window margin; fixed earliest dates and explicit caller ranges are unchanged. Typed no-eligible-provider outcomes now remain empty/unavailable with `no_eligible_history_provider`, and empty results no longer enqueue older chunks or claim partial progress.
 
 The cold canonical ETV regression uses the real resolver/planner, one exact Massive listing binding, no alternate mapping, and no provider request. The history planning and preparation response modules passed 62/62; Ruff check/format and the workstream/diff guards pass. Root owns replay against the retained no-seed native runtime and exact-source/combined qualification. No live provider call, runtime/DB write, policy/ledger/quota mutation, or source identity/lineage change occurred here. The full Provider roadmap remains active.
+
+
+## 2026-11-07 — holdings negative recovery and derived cache readiness
+
+Root's e08b native receipt showed that BWET chart history succeeded, while a
+same-hour holdings ensure reused completed child 739 after issuer policies had
+been enabled. The shared queue now preserves that negative job and creates one
+deterministic recovery child for a fresh ensure. Equivalent requests join the
+recovery child, its ETF request ID is distinct from the original held attempt,
+and a recorded future retry time is respected. Existing issuer admission and
+native quota checks still govern execution; the ETF-owned acquisition bridge
+was not changed.
+
+Root's derived-timeframe receipt showed W1/MN rows being added but queried
+before flush with the application's autoflush-disabled session. The retained
+state also had a null source signature, pending status, zero row count, and
+null bounds despite existing derived rows. Materialization now flushes before
+projecting persisted rows, republishes derived coverage and counts from those
+rows, inherits source D1 timestamps/expiry, and writes the selected D1
+adjustment basis, version, and derivation provenance on coarse bars. The normal
+coarse-read refresh check repairs pending or count-inconsistent state even
+when its source signature is null.
+
+The two directly affected service modules passed 58/58 unit tests. Ruff check
+and format passed for the four changed Python paths. The regressions cover
+holdings negative recovery/coalescing and retry timing, plus an autoflush-false
+cached W1/MN repair with null and present prior signatures, lineage, and
+freshness assertions. No provider HTTP,
+database/runtime mutation, quota/ledger/policy change, migration, or fixture
+was used. Root owns the retained native-runtime replay, exact-source CI and
+combined release qualification; the full Provider roadmap remains open.

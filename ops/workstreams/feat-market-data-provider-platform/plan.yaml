@@ -15545,3 +15545,21 @@ provider_exact_identity_profile_fallback_followup_20261107:
     no_provider_http_or_runtime_mutation: true
   root_native_replay_exact_source_ci_and_combined_release: pending Root-owned
   full_platform_goal_and_roadmaps: remain open
+provider_e08b_holdings_recovery_and_derived_state_20261107:
+  id: provider-e08b-holdings-recovery-and-derived-state-20261107
+  status: focused_local_green_root_runtime_replay_pending
+  base_source: e08bdf4aac086845603091cd0638903a47136d3b
+  root_findings:
+    - /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/root-native-e08b-holdings-negative-recovery-review.json
+    - /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/root-native-e08b-derived-timeframe-product-review.json
+  implementation:
+    - A completed negative holdings child remains immutable; one deterministic same-hour recovery child is queued and equivalent requests attach to it. Its nested issuer request ID is distinct, and a known future retry_at prevents early recovery.
+    - Derived W1/MN materialization flushes before reading rows, repairs pending or count-inconsistent cached state on the normal read check even when the retained source signature is null, and copies adjustment basis/version/provenance from the selected D1 series.
+    - Derived dataset state uses actual derived rows and inherits source D1 fetched/observed/expiry evidence; no current expiry is invented.
+  focused_validation:
+    command: backend/.venv/bin/pytest backend/tests/unit/services/test_data_preparation_service.py backend/tests/unit/services/test_derived_timeframes.py -q
+    result: 58 passed; Ruff check and format passed on the four changed Python paths; workstream and diff validation passed.
+    coverage: holdings recovery/coalescing and future-retry guard; autoflush-disabled stale derived cache recovery with both null and present source signatures, row lineage, source freshness and subsequent normal-read freshness check.
+  no_provider_http_or_database_mutation: true
+  root_native_runtime_replay_exact_source_ci_and_combined_release: pending Root-owned
+  full_platform_goal_and_roadmaps: remain open
