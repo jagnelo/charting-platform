@@ -1,5 +1,5 @@
 import { flushPromises, mount } from '@vue/test-utils'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { apiGet, apiPost, loadWatchlistSources, loadWatchlists, resolveWatchlistSource, createWatchlist, addItem, loadUserSettings, toggleFollowedSource, togglePinnedSource, invalidateQueries } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn(), loadWatchlistSources: vi.fn(), loadWatchlists: vi.fn(), resolveWatchlistSource: vi.fn(), createWatchlist: vi.fn(), addItem: vi.fn(), loadUserSettings: vi.fn(), toggleFollowedSource: vi.fn(), togglePinnedSource: vi.fn(), invalidateQueries: vi.fn() }))
 const defaultSources = vi.hoisted(() => [{ source_id: 'market-group:sp500', source_kind: 'index_membership', name: 'S&P 500', locked: true, can_follow: true, can_clone: true, can_edit_membership: false, member_count: 2, provenance: {} }])
@@ -16,6 +16,21 @@ vi.mock('@/stores/watchlist', () => ({ useWatchlistStore: () => ({ watchlistSour
 vi.mock('@/stores/userSettings', () => ({ useUserSettingsStore: () => ({ followedSourceIds: [], pinnedSourceIds: [], loadSettings: loadUserSettings, toggleFollowedSource, togglePinnedSource }) }))
 
 import MarketMapTool from '@/components/workstation/MarketMapTool.vue'
+import { dataPreparationCoordinator, type DataEnsureResponse } from '@/lib/dataPreparation'
+
+const readyPreparation: DataEnsureResponse = {
+  request_id: 'map-ready', status: 'ready', created_at: '2026-11-07T10:00:00Z', updated_at: '2026-11-07T10:00:01Z',
+  version: 1, target: { kind: 'market_group', group_key: 'sp500' }, dependencies: [], completed: 2, total: 2,
+  last_progress_at: '2026-11-07T10:00:01Z', has_pending_work: false,
+}
+let ensurePreparation: ReturnType<typeof vi.spyOn>
+
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  let reject!: (reason?: unknown) => void
+  const promise = new Promise<T>((done, fail) => { resolve = done; reject = fail })
+  return { promise, resolve, reject }
+}
 
 const response = {
   source: sourceState.sources[0],
@@ -40,7 +55,13 @@ describe('MarketMapTool', () => {
     sourceState.watchlists = []
     apiPost.mockResolvedValue(response)
     apiGet.mockResolvedValue([])
+    ensurePreparation = vi.spyOn(dataPreparationCoordinator, 'ensure').mockImplementation(async (_request, options) => {
+      options?.onProgress?.({ response: readyPreparation, completed: 2, total: 2, activeDependencies: 0 })
+      return readyPreparation
+    })
   })
+
+  afterEach(() => ensurePreparation.mockRestore())
 
   it('runs an automatically selected initial source only once', async () => {
     const wrapper = mount(MarketMapTool)
@@ -48,6 +69,110 @@ describe('MarketMapTool', () => {
 
     expect(apiPost.mock.calls.filter(([path]) => path === '/analysis/market-map')).toHaveLength(1)
     wrapper.unmount()
+  })
+
+  it('starts shared preparation even when the first analysis read is pending and recovers its failure from the prepared result', async () => {
+    const progress = (version: number): DataEnsureResponse => ({
+      request_id: 'map-preparation',
+      status: 'ready',
+      created_at: '2026-11-07T10:00:00Z',
+      updated_at: `2026-11-07T10:00:0${version}Z`,
+      version,
+      target: { kind: 'market_group', group_key: 'sp500' },
+      dependencies: [],
+      completed: 2,
+      total: 2,
+      last_progress_at: `2026-11-07T10:00:0${version}Z`,
+      has_pending_work: false,
+    })
+    const preparation = deferred<DataEnsureResponse>()
+    let onPreparationProgress: ((value: { response: DataEnsureResponse; completed: number; total: number; activeDependencies: number }) => void) | undefined
+    ensurePreparation.mockImplementation((_request, options) => {
+      onPreparationProgress = options?.onProgress as typeof onPreparationProgress
+      return preparation.promise
+    })
+    const initialRead = deferred<unknown>()
+    let mapReads = 0
+    apiPost.mockImplementation((path: string) => path === '/analysis/market-map'
+      ? (++mapReads === 1 ? initialRead.promise : Promise.resolve(response))
+      : Promise.resolve(response))
+    const wrapper = mount(MarketMapTool, { props: { configuration: { source_id: 'market-group:sp500' } } })
+    try {
+      await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/analysis/market-map', expect.any(Object)))
+      await vi.waitFor(() => expect(ensurePreparation).toHaveBeenCalledTimes(1))
+      expect(mapReads).toBe(1)
+
+      initialRead.reject(new Error('local result is not yet available'))
+      await vi.waitFor(() => expect(wrapper.find('[role="alert"]').exists()).toBe(true))
+      onPreparationProgress?.({ response: { ...progress(2), status: 'partial', has_pending_work: true }, completed: 1, total: 2, activeDependencies: 1 })
+      await vi.waitFor(() => expect(mapReads).toBeGreaterThan(1))
+      await vi.waitFor(() => expect(wrapper.find('.market-map-tool__tile').exists()).toBe(true))
+      preparation.resolve(progress(3))
+      await flushPromises()
+
+      expect(ensurePreparation).toHaveBeenCalledWith(expect.objectContaining({
+        target: { kind: 'market_group', group_key: 'sp500' },
+        datasets: ['history', 'profile', 'fundamentals'],
+        timeframe: 'D1',
+        adjusted: true,
+      }), expect.objectContaining({ signal: expect.any(AbortSignal), onProgress: expect.any(Function) }))
+      expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
+  it('refreshes canonical stale membership while keeping genuinely unavailable private sources disabled', async () => {
+    const priorSources = sourceState.sources
+    const staleCanonical = { ...defaultSources[0]!, provenance: { availability: 'stale' } }
+    const unavailableFamily = { ...defaultSources[0]!, source_id: 'benchmark-family:sp500:value', provenance: { availability: 'unavailable' } }
+    sourceState.sources = [staleCanonical, unavailableFamily]
+    const wrapper = mount(MarketMapTool, { props: { configuration: { source_id: staleCanonical.source_id } } })
+    try {
+      await vi.waitFor(() => expect(ensurePreparation).toHaveBeenCalledTimes(1))
+      expect(loadWatchlistSources).toHaveBeenCalled()
+      expect(ensurePreparation).toHaveBeenCalledWith(expect.objectContaining({
+        target: { kind: 'market_group', group_key: 'sp500' }, datasets: ['history', 'profile', 'fundamentals'],
+      }), expect.any(Object))
+      expect(wrapper.find(`option[value="${unavailableFamily.source_id}"]`).attributes('disabled')).toBeDefined()
+    } finally {
+      wrapper.unmount()
+      sourceState.sources = priorSources
+    }
+  })
+
+  it('prepares the exact canonical comparison leg independently for relative-return maps', async () => {
+    apiPost.mockImplementation((path: string) => path === '/instruments/resolve-canonical'
+      ? Promise.resolve({ resolved: [{ symbol: 'SPY', instrument_id: 990001 }], missing: [] })
+      : Promise.resolve(response))
+    const wrapper = mount(MarketMapTool, { props: { configuration: { source_id: 'market-group:sp500', color_metric: 'relative_return', reference_symbol: 'SPY' } } })
+    try {
+      await vi.waitFor(() => expect(ensurePreparation).toHaveBeenCalledTimes(2))
+      expect(ensurePreparation.mock.calls.map(([request]) => request.target)).toEqual(expect.arrayContaining([
+        { kind: 'market_group', group_key: 'sp500' },
+        { kind: 'instrument', instrument_id: 990001 },
+      ]))
+      expect(apiPost).toHaveBeenCalledWith('/analysis/market-map', expect.objectContaining({
+        reference_symbol: 'SPY', color_metric: 'relative_return',
+      }))
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
+  it('prepares a comparison universe as its own shared family target', async () => {
+    const wrapper = mount(MarketMapTool, { props: { configuration: {
+      source_id: 'market-group:sp500', color_metric: 'relative_return', reference_source_id: 'benchmark-family:sp500:cap_weight',
+    } } })
+    try {
+      await vi.waitFor(() => expect(ensurePreparation).toHaveBeenCalledTimes(2))
+      expect(ensurePreparation.mock.calls.map(([request]) => request.target)).toEqual(expect.arrayContaining([
+        { kind: 'market_group', group_key: 'sp500' },
+        { kind: 'family', family_key: 'sp500' },
+      ]))
+    } finally {
+      wrapper.unmount()
+    }
   })
 
   it('does not replay initialization after a user refresh and erase its selection', async () => {
@@ -880,7 +1005,7 @@ describe('MarketMapTool', () => {
     expect(wrapper.emitted('configuration')?.at(-1)?.[0]).toEqual(expect.objectContaining({ timeframe: 'W1' }))
     await wrapper.get('.market-map-tool__run').trigger('click')
     await flushPromises()
-    expect(apiPost).toHaveBeenLastCalledWith('/analysis/market-map', expect.objectContaining({ timeframe: 'W1' }))
+    expect(apiPost.mock.calls.filter(([path]) => path === '/analysis/market-map').at(-1)).toEqual(['/analysis/market-map', expect.objectContaining({ timeframe: 'W1' })])
 
     await wrapper.get('.market-map-tool__tile').trigger('click')
     expect(wrapper.emitted('select')).toEqual([['NVDA', 1]])
@@ -1050,9 +1175,9 @@ describe('MarketMapTool', () => {
     expect(wrapper.findAll('.market-map-tool__breadcrumbs button')[1].attributes('aria-pressed')).toBe('true')
 
     await wrapper.get('[aria-label="Zoom in Market Map"]').trigger('click')
-    expect(wrapper.find('[aria-live="polite"]').text()).toBe('125%')
+    expect(wrapper.find('.market-map-tool__viewport-zoom').text()).toBe('125%')
     await wrapper.get('[aria-label="Reset Market Map viewport"]').trigger('click')
-    expect(wrapper.find('[aria-live="polite"]').text()).toBe('100%')
+    expect(wrapper.find('.market-map-tool__viewport-zoom').text()).toBe('100%')
     expect(apiPost.mock.calls.length).toBeGreaterThan(0)
   })
 
@@ -1190,7 +1315,7 @@ describe('MarketMapTool', () => {
     await vi.waitFor(() => expect(mapRuns).toBe(2))
     await vi.waitFor(() => expect(wrapper.text()).toContain('Cached result'))
     expect(wrapper.text()).not.toContain('Snapshot · Morning leaders')
-    expect(apiPost).toHaveBeenLastCalledWith('/analysis/market-map', expect.objectContaining({ source_id: 'market-group:sp500' }))
+    expect(apiPost.mock.calls.filter(([path]) => path === '/analysis/market-map').at(-1)).toEqual(['/analysis/market-map', expect.objectContaining({ source_id: 'market-group:sp500' })])
     expect(wrapper.get('[aria-label="Market Map snapshot"]').element.value).toBe('')
     wrapper.unmount()
   })

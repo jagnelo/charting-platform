@@ -44,7 +44,7 @@
           <div :id="optionsListId" class="search-option-list" role="listbox" aria-label="Symbol search results">
           <div
             v-for="(r, i) in results"
-            :key="r.symbol"
+            :key="`${r.symbol}:${r.exchange}:${r.instrument_id ?? 'unresolved'}`"
             :id="optionId(i)"
             :class="['result-item', { highlighted: i === highlightIdx }]"
             role="option"
@@ -112,6 +112,9 @@
         {{ errorMessage || expressionHint }}
       </div>
     </div>
+    <p v-if="preparationMessage" class="search-message search-preparation-message" role="status" aria-live="polite">
+      {{ preparationMessage }}
+    </p>
   </div>
 </template>
 
@@ -133,6 +136,11 @@ import {
   type InstrumentAcquireResponse,
 } from '@/lib/onDemandAcquisition'
 import { scheduleTickerDiscovery, shouldDiscoverTicker, tickerDiscoveryMessage } from '@/lib/workstationSymbolSearch'
+import {
+  dataPreparationCoordinator,
+  instrumentHistoryPreparationRequest,
+  preparationStatusMessage,
+} from '@/lib/dataPreparation'
 
 interface SearchResult { symbol: string; name: string; exchange: string; type: string; instrument_id?: number | null; identity_status?: string; explicitlyResolved?: boolean }
 
@@ -161,7 +169,7 @@ const props = withDefaults(defineProps<{
   showScreenerLink: undefined,
   resultTypes: () => [],
   allowExpressions: true,
-  allowSourceDiscovery: false,
+  allowSourceDiscovery: true,
   readonly: false,
   sourceDiscoveryOnly: false,
   openOnMount: false,
@@ -196,6 +204,7 @@ const discoveryMessage = ref('')
 const discoveryError = ref('')
 const discoveryRetryAt = ref<string | null>(null)
 const discoveryHeld = ref(false)
+const preparationMessage = ref('')
 const optionExplicitlyNavigated = ref(false)
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 let discoveryTimer: ReturnType<typeof setTimeout> | null = null
@@ -205,6 +214,9 @@ let retryTimer: ReturnType<typeof setTimeout> | null = null
 let resolveRetryWait: ((ready: boolean) => void) | null = null
 let pendingEnterIntent: { generation: number; query: string; lastRetryAtMs: number } | null = null
 let candidateResolutionSequence = 0
+let preparationSequence = 0
+let pendingRecentSelection: { generation: number; symbol: string } | null = null
+let autoResolvedIdentity: { generation: number; instrumentId: number; response: InstrumentAcquireResponse } | null = null
 
 const showRecentResults = computed(() => props.showRecent)
 const showScreenerShortcut = computed(() =>
@@ -247,12 +259,18 @@ const activeOptionId = computed(() => {
 watch(() => props.modelValue, value => {
   if (value !== query.value) {
     invalidateSearch()
+    preparationSequence += 1
+    preparationMessage.value = ''
     query.value = value ?? ''
   }
 })
 
 async function onInput() {
   const generation = ++searchGeneration
+  pendingRecentSelection = null
+  autoResolvedIdentity = null
+  preparationSequence += 1
+  preparationMessage.value = ''
   cancelKnownRetryWait()
   pendingEnterIntent = null
   finishPendingSearch()
@@ -297,7 +315,32 @@ async function onInput() {
       })
       if (generation !== searchGeneration || query.value.trim() !== requested) return
       results.value = loaded.filter(matchesResultTypeScope)
+      const exactResults = results.value.filter(result => result.symbol.trim().toUpperCase() === requested.toUpperCase())
+      if (exactResults.length > 1) {
+        highlightIdx.value = -1
+        errorMessage.value = `More than one listing matches ${requested.toUpperCase()}. Choose the correct exchange listing.`
+        finishSearch(generation)
+        return
+      }
       highlightIdx.value = results.value.length ? 0 : -1
+      if (exactResults.length === 1) {
+        const exactResult = exactResults[0]
+        const identityStatus = exactResult.identity_status?.trim().toLowerCase()
+        const requiredSymbol = props.requiredResolvedSymbol.trim().toUpperCase()
+        if (requiredSymbol && requested.toUpperCase() !== requiredSymbol) {
+          errorMessage.value = `This picker must match the exact reported ticker ${requiredSymbol}.`
+          finishSearch(generation)
+          return
+        }
+        const explicitlyConflictingIdentity = ['conflict', 'identity_conflict', 'mismatch', 'ambiguous'].includes(identityStatus ?? '')
+        if (Number.isSafeInteger(exactResult.instrument_id) && Number(exactResult.instrument_id) > 0
+          && !explicitlyConflictingIdentity) {
+          const preparationId = ++preparationSequence
+          startSelectionPreparation(requested, exactResult, undefined, preparationId)
+        }
+        finishSearch(generation)
+        return
+      }
       if (props.allowSourceDiscovery && shouldDiscoverTicker(requested, results.value)) {
         if (!scheduleDiscovery(requested, generation)) finishSearch(generation)
       } else {
@@ -350,6 +393,35 @@ async function discoverTicker(requested: string, generation: number) {
         ? `Ticker availability is temporarily held${discoveryRetryAt.value ? `; checking again after ${new Date(discoveryRetryAt.value).toLocaleTimeString()}` : '. Enter to check again when ready.'}`
         : tickerDiscoveryMessage(response.status, discoveryCandidates.value.length)
       if (!results.value.length && discoveryCandidates.value.length && highlightIdx.value < 0) highlightIdx.value = 0
+
+      const recentSelection = pendingRecentSelection
+      if (recentSelection?.generation === generation && recentSelection.symbol === queryKey && !discoveryHeld.value) {
+        const exactCandidates = discoveryCandidates.value.filter(candidate =>
+          candidate.symbol.trim().toUpperCase() === recentSelection.symbol,
+        )
+        pendingRecentSelection = null
+        if (exactCandidates.length === 1) {
+          await resolveCandidate(exactCandidates[0])
+          break
+        }
+        pendingEnterIntent = null
+        if (exactCandidates.length > 1) {
+          discoveryMessage.value = `More than one listing matches ${recentSelection.symbol}. Choose the correct exchange listing.`
+        }
+      }
+
+      const exactDiscovered = discoveryCandidates.value.filter(candidate =>
+        candidate.symbol.trim().toUpperCase() === queryKey,
+      )
+      if (!recentSelection && !props.requiredResolvedSymbol.trim() && !discoveryHeld.value) {
+        if (exactDiscovered.length === 1) {
+          await resolveCandidate(exactDiscovered[0], false)
+          break
+        }
+        if (exactDiscovered.length > 1) {
+          discoveryMessage.value = `More than one listing matches ${queryKey}. Choose the correct exchange listing.`
+        }
+      }
 
       const intent = pendingEnterIntent
       if (!discoveryHeld.value || !discoveryRetryAt.value || !intent
@@ -460,14 +532,14 @@ function retryHeldDiscoveryForEnter(requested: string, generation: number) {
   return pending.promise
 }
 
-async function resolveCandidate(candidate: InstrumentDiscoveryCandidate) {
+async function resolveCandidate(candidate: InstrumentDiscoveryCandidate, selectOnResolve = true) {
   pendingEnterIntent = null
   candidateResolutionSequence += 1
   cancelKnownRetryWait()
-  return resolveCandidateAttempt(candidate, candidateResolutionSequence)
+  return resolveCandidateAttempt(candidate, candidateResolutionSequence, selectOnResolve)
 }
 
-async function resolveCandidateAttempt(candidate: InstrumentDiscoveryCandidate, resolutionId: number) {
+async function resolveCandidateAttempt(candidate: InstrumentDiscoveryCandidate, resolutionId: number, selectOnResolve: boolean) {
   const generation = searchGeneration
   const queryKey = query.value.trim().toUpperCase()
   const requiredSymbol = props.requiredResolvedSymbol.trim().toUpperCase()
@@ -515,6 +587,10 @@ async function resolveCandidateAttempt(candidate: InstrumentDiscoveryCandidate, 
         discoveryMessage.value = 'The resolved canonical symbol does not match the exact reported ticker.'
         return
       }
+      if (!selectOnResolve && response.instrument.symbol.trim().toUpperCase() !== candidate.symbol.trim().toUpperCase()) {
+        discoveryMessage.value = 'The resolved canonical symbol does not match the exact ticker. No data was prepared.'
+        return
+      }
       if (requiredSymbol && !['resolved', 'verified'].includes(response.instrument.identity_status.trim().toLowerCase())) {
         discoveryMessage.value = 'The provider did not verify this canonical identity. The holding was not opened.'
         return
@@ -523,12 +599,27 @@ async function resolveCandidateAttempt(candidate: InstrumentDiscoveryCandidate, 
         symbol: response.instrument.symbol,
         name: candidate.name,
         exchange: candidate.exchange,
-        type: candidate.type,
+        type: response.instrument.instrument_type ?? candidate.type,
         instrument_id: response.instrument.instrument_id,
         identity_status: response.instrument.identity_status,
         explicitlyResolved: true,
       }
-      commitSelection(result.symbol, result.name, result, response)
+      if (selectOnResolve) {
+        commitSelection(result.symbol, result.name, result, response)
+      } else {
+        const identityStatus = response.instrument.identity_status.trim().toLowerCase()
+        if (!['resolved', 'verified'].includes(identityStatus)) {
+          discoveryMessage.value = 'The provider did not verify this canonical identity. No data was prepared.'
+          return
+        }
+        autoResolvedIdentity = { generation, instrumentId: Number(response.instrument.instrument_id), response }
+        results.value = [result]
+        discoveryCandidates.value = []
+        highlightIdx.value = 0
+        discoveryMessage.value = 'Ticker identity verified; preparing its available data.'
+        const preparationId = ++preparationSequence
+        startSelectionPreparation(result.symbol, result, response, preparationId)
+      }
       return
     }
   } catch {
@@ -561,11 +652,76 @@ function candidateOptionId(index: number) {
 }
 
 function select(r: SearchResult) {
-  commitSelection(r.symbol, r.name, r)
+  const requiredSymbol = props.requiredResolvedSymbol.trim().toUpperCase()
+  if (requiredSymbol && r.symbol.trim().toUpperCase() !== requiredSymbol) {
+    errorMessage.value = `This picker must match the exact reported ticker ${requiredSymbol}.`
+    return
+  }
+  const resolvedIdentity = autoResolvedIdentity
+  const confirmedIdentity = resolvedIdentity?.generation === searchGeneration
+    && resolvedIdentity.instrumentId === r.instrument_id
+    ? resolvedIdentity.response
+    : undefined
+  commitSelection(r.symbol, r.name, r, confirmedIdentity)
 }
 
-function selectRecent(symbol: string) {
-  commitSelection(symbol)
+async function selectRecent(symbol: string) {
+  const requested = symbol.trim()
+  if (!requested) return
+  invalidateSearch()
+  const generation = searchGeneration
+  preparationSequence += 1
+  preparationMessage.value = ''
+  query.value = requested
+  results.value = []
+  discoveryCandidates.value = []
+  discoveryMessage.value = ''
+  discoveryError.value = ''
+  discoveryRetryAt.value = null
+  discoveryHeld.value = false
+  errorMessage.value = ''
+  optionExplicitlyNavigated.value = false
+  dropdownDismissed.value = false
+  loading.value = true
+  beginPendingSearch(generation, requested)
+  try {
+    const loaded = await api.get<SearchResult[]>('/instruments/search', {
+      q: requested,
+      canonical_only: true,
+      ...(props.resultTypes.length ? { types: props.resultTypes.join(',') } : {}),
+    })
+    if (generation !== searchGeneration || query.value.trim().toUpperCase() !== requested.toUpperCase()) return
+    results.value = loaded.filter(matchesResultTypeScope)
+    const exact = results.value.filter(result => result.symbol.trim().toUpperCase() === requested.toUpperCase())
+    if (exact.length === 1) {
+      select(exact[0])
+      return
+    }
+    if (exact.length > 1) {
+      results.value = exact
+      highlightIdx.value = -1
+      errorMessage.value = `More than one listing matches ${requested.toUpperCase()}. Choose the correct exchange listing.`
+      finishSearch(generation)
+      return
+    }
+    results.value = []
+    highlightIdx.value = -1
+    if (props.allowSourceDiscovery && shouldDiscoverTicker(requested, [])) {
+      pendingRecentSelection = { generation, symbol: requested.toUpperCase() }
+      pendingEnterIntent = { generation, query: requested, lastRetryAtMs: 0 }
+      scheduleDiscovery(requested, generation)
+    } else {
+      errorMessage.value = 'No exact canonical listing is available for this recent symbol.'
+      finishSearch(generation)
+    }
+  } catch {
+    if (generation === searchGeneration) {
+      errorMessage.value = 'Unable to verify this recent symbol. No listing was selected.'
+      finishSearch(generation)
+    }
+  } finally {
+    if (generation === searchGeneration) loading.value = false
+  }
 }
 
 async function selectExpression() {
@@ -588,7 +744,17 @@ function commitSelection(
   result?: SearchResult,
   confirmedIdentity?: InstrumentAcquireResponse,
 ) {
+  const requiredSymbol = props.requiredResolvedSymbol.trim().toUpperCase()
+  if (requiredSymbol && symbol.trim().toUpperCase() !== requiredSymbol) {
+    errorMessage.value = `This picker must match the exact reported ticker ${requiredSymbol}.`
+    return
+  }
   invalidateSearch()
+  pendingRecentSelection = null
+  autoResolvedIdentity = null
+  const preparationId = ++preparationSequence
+  loading.value = false
+  startSelectionPreparation(symbol, result, confirmedIdentity, preparationId)
   emit('update:modelValue', symbol)
   if (confirmedIdentity) emit('select', symbol, result, confirmedIdentity)
   else emit('select', symbol, result)
@@ -604,14 +770,103 @@ function commitSelection(
   errorMessage.value = ''
 }
 
+function startSelectionPreparation(
+  symbol: string,
+  result: SearchResult | undefined,
+  confirmedIdentity: InstrumentAcquireResponse | undefined,
+  preparationId: number,
+) {
+  if (result?.type.trim().toLowerCase() === 'synthetic' || symbol.trim().startsWith('=')) return
+  const instrumentId = result?.instrument_id
+  const target = Number.isSafeInteger(instrumentId) && Number(instrumentId) > 0
+    ? { kind: 'instrument' as const, instrument_id: Number(instrumentId) }
+    : { kind: 'instrument' as const, symbol: symbol.trim() }
+  const canonicalType = (confirmedIdentity?.instrument?.instrument_type ?? result?.type ?? '')
+    .trim().toUpperCase().replace(/[-_]/g, ' ').replace(/\s+/g, ' ')
+  const datasets = ['identity', 'profile', 'history'] as Array<'identity' | 'profile' | 'history' | 'holdings'>
+  if (['ETF', 'INDEX ETF', 'EXCHANGE TRADED FUND', 'ETV', 'EXCHANGE TRADED VEHICLE'].includes(canonicalType)) {
+    datasets.push('holdings')
+  }
+  preparationMessage.value = `Preparing ${symbol} data…`
+  const request = instrumentHistoryPreparationRequest(target, 'D1', true)
+  request.datasets = datasets
+  void dataPreparationCoordinator.ensure(
+    request,
+    {
+      onProgress: ({ response }) => {
+        if (preparationId === preparationSequence) preparationMessage.value = preparationStatusMessage(response)
+      },
+    },
+  ).then(response => {
+    if (preparationId === preparationSequence) preparationMessage.value = preparationStatusMessage(response)
+  }).catch(() => {
+    if (preparationId === preparationSequence) {
+      preparationMessage.value = 'Data preparation could not be checked. The selected instrument remains available.'
+    }
+  })
+}
+
 async function selectFirst() {
   if (isExpression.value) { void selectExpression(); return }
   if (query.value.trim()) {
-    if (props.mode === 'chart' && !optionExplicitlyNavigated.value) {
+    const exactLocalResults = results.value.filter(result =>
+      result.symbol.trim().toUpperCase() === query.value.trim().toUpperCase(),
+    )
+    if (exactLocalResults.length > 1 && !optionExplicitlyNavigated.value) {
+      errorMessage.value = `More than one listing matches ${query.value.trim().toUpperCase()}. Choose the correct exchange listing.`
+      return
+    }
+    if (props.mode === 'picker' && !optionExplicitlyNavigated.value && props.allowSourceDiscovery
+      && ((pendingSearch?.generation === searchGeneration && pendingSearch.query === query.value.trim()) || discoveryHeld.value)) {
       const submittedQuery = query.value.trim()
-      const exact = results.value.find(result =>
+      // A prefix query can already have a useful visible local result while
+      // source discovery is only scheduled. Preserve picker Enter semantics
+      // for that result; only exact ticker intent waits for canonical resolve.
+      if (highlightIdx.value >= 0 && highlightIdx.value < results.value.length
+        && results.value[highlightIdx.value].symbol.trim().toUpperCase() !== submittedQuery.toUpperCase()) {
+        select(results.value[highlightIdx.value])
+        return
+      }
+      const generation = searchGeneration
+      const pending = pendingSearch
+      if (pending?.generation === generation && pending.query === submittedQuery) {
+        pendingEnterIntent = { generation, query: submittedQuery, lastRetryAtMs: 0 }
+        await pending.promise
+      } else if (discoveryHeld.value) {
+        await retryHeldDiscoveryForEnter(submittedQuery, generation)
+      }
+      if (generation !== searchGeneration || query.value.trim() !== submittedQuery) return
+      if (pendingEnterIntent?.generation === generation) pendingEnterIntent = null
+
+      const exactResults = results.value.filter(result =>
         result.symbol.trim().toUpperCase() === submittedQuery.toUpperCase(),
       )
+      if (exactResults.length > 1) {
+        errorMessage.value = `More than one listing matches ${submittedQuery.toUpperCase()}. Choose the correct exchange listing.`
+        return
+      }
+      if (exactResults.length === 1) {
+        select(exactResults[0])
+        return
+      }
+      if (highlightIdx.value >= 0 && highlightIdx.value < results.value.length) {
+        select(results.value[highlightIdx.value])
+        return
+      }
+      if (discoveryHeld.value) return
+      const exactCandidates = discoveryCandidates.value.filter(candidate =>
+        candidate.symbol.trim().toUpperCase() === submittedQuery.toUpperCase(),
+      )
+      if (exactCandidates.length > 1) {
+        discoveryMessage.value = `More than one listing matches ${submittedQuery.toUpperCase()}. Choose the correct exchange listing.`
+      } else if (exactCandidates.length === 1 || discoveryCandidates.value.length) {
+        discoveryMessage.value = 'Choose a matching ticker listing before continuing.'
+      }
+      return
+    }
+    if (props.mode === 'chart' && !optionExplicitlyNavigated.value) {
+      const submittedQuery = query.value.trim()
+      const exact = exactLocalResults[0]
       if (exact) {
         select(exact)
         return
@@ -627,6 +882,13 @@ async function selectFirst() {
         await retryHeldDiscoveryForEnter(submittedQuery, generation)
         if (generation !== searchGeneration || query.value.trim() !== submittedQuery) return
         if (pendingEnterIntent?.generation === generation) pendingEnterIntent = null
+      }
+      const resolvedExact = results.value.find(result =>
+        result.symbol.trim().toUpperCase() === submittedQuery.toUpperCase(),
+      )
+      if (resolvedExact) {
+        select(resolvedExact)
+        return
       }
       if (discoveryHeld.value) return
       if (optionExplicitlyNavigated.value) {
@@ -644,6 +906,8 @@ async function selectFirst() {
         void resolveCandidate(exactCandidates[0])
       } else if (exactCandidates.length > 1) {
         discoveryMessage.value = `More than one listing matches ${submittedQuery.toUpperCase()}. Choose the correct exchange listing.`
+      } else if (discoveryCandidates.value.length) {
+        discoveryMessage.value = 'Choose a matching ticker listing before continuing.'
       } else {
         commitSelection(submittedQuery)
       }
@@ -654,6 +918,10 @@ async function selectFirst() {
       return
     }
     if (highlightIdx.value >= results.value.length && discoveryCandidates.value.length) {
+      if (!optionExplicitlyNavigated.value) {
+        discoveryMessage.value = 'Choose a ticker listing before continuing.'
+        return
+      }
       void resolveCandidate(discoveryCandidates.value[highlightIdx.value - results.value.length] ?? discoveryCandidates.value[0])
       return
     }
@@ -764,6 +1032,7 @@ onMounted(() => {
   }
 })
 onUnmounted(() => {
+  preparationSequence += 1
   invalidateSearch()
   document.removeEventListener('mousedown', handleClickOutside)
 })

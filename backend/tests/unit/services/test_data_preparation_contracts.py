@@ -10,6 +10,7 @@ from app.schemas.data_preparation import (
     InstrumentPreparationTarget,
     PreparationDataset,
     PreparationDependencyResponse,
+    ScreenerPreparationTarget,
 )
 from app.services.data_preparation_contracts import (
     DatasetPreparationContext,
@@ -28,6 +29,20 @@ def test_ensure_request_accepts_every_existing_chart_timeframe() -> None:
         )
         assert request.timeframe is timeframe
         assert request.target == InstrumentPreparationTarget(kind="instrument", instrument_id=12)
+
+
+def test_screener_target_is_owner_resolved_and_requires_history() -> None:
+    request = DataEnsureRequest.model_validate(
+        {
+            "target": {"kind": "screener", "screener_id": 27},
+            "datasets": ["history"],
+        }
+    )
+    assert request.target == ScreenerPreparationTarget(kind="screener", screener_id=27)
+    with pytest.raises(ValidationError):
+        DataEnsureRequest.model_validate(
+            {"target": {"kind": "screener", "screener_id": 27}, "datasets": ["profile"]}
+        )
 
 
 def test_analysis_contract_uses_existing_names_and_derives_rrg_warmup() -> None:

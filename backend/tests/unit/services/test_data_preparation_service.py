@@ -41,6 +41,222 @@ def test_monthly_rrg_priority_floor_includes_both_lookbacks_and_result_tail():
 
 
 @pytest.mark.asyncio
+async def test_screener_universe_reuses_engine_membership_without_scope_widening(
+    db, user, instrument, instrument_type, screener
+):
+    from app.models.basket import Basket, BasketMember
+    from app.models.screener import ScreenerDefinition
+    from app.models.user import User
+    from app.models.watchlist import Watchlist, WatchlistItem
+    from app.services.screener_engine import _resolve_universe_members
+
+    async_db = AsyncSessionAdapter(db)
+    ids, reason = await _resolve_universe_members(async_db, screener)
+    assert ids == [instrument.id]
+    assert reason is None
+
+    owned_watchlist = Watchlist(user_id=user.id, name="Owned")
+    owned_basket = Basket(user_id=user.id, name="Owned basket")
+    db.add_all([owned_watchlist, owned_basket])
+    db.flush()
+    db.add_all(
+        [
+            WatchlistItem(watchlist_id=owned_watchlist.id, instrument_id=instrument.id),
+            BasketMember(basket_id=owned_basket.id, instrument_id=instrument.id),
+        ]
+    )
+    db.flush()
+    valid_screens = [
+        ScreenerDefinition(
+            user_id=user.id,
+            name="Custom member",
+            conditions={},
+            universe_type="custom",
+            universe_instrument_ids=[instrument.id],
+            timeframe="D1",
+        ),
+        ScreenerDefinition(
+            user_id=user.id,
+            name="Owned watchlist",
+            conditions={},
+            universe_type="watchlist",
+            universe_watchlist_id=owned_watchlist.id,
+            timeframe="D1",
+        ),
+        ScreenerDefinition(
+            user_id=user.id,
+            name="Owned basket",
+            conditions={},
+            universe_type="basket",
+            universe_basket_id=owned_basket.id,
+            timeframe="D1",
+        ),
+        ScreenerDefinition(
+            user_id=user.id,
+            name="Owned asset class",
+            conditions={},
+            universe_type="asset_class",
+            universe_asset_class_id=instrument_type.asset_class_id,
+            timeframe="D1",
+        ),
+    ]
+    db.add_all(valid_screens)
+    db.flush()
+    for valid in valid_screens:
+        ids, reason = await _resolve_universe_members(async_db, valid)
+        assert ids == [instrument.id]
+        assert reason is None
+
+    foreign = User(
+        username="foreign-screener-owner",
+        email="foreign-screener-owner@example.com",
+        hashed_password="test-only",
+        is_active=True,
+    )
+    db.add(foreign)
+    db.flush()
+    private_watchlist = Watchlist(user_id=foreign.id, name="Private")
+    private_basket = Basket(user_id=foreign.id, name="Private basket")
+    db.add_all([private_watchlist, private_basket])
+    db.flush()
+    db.add_all(
+        [
+            WatchlistItem(watchlist_id=private_watchlist.id, instrument_id=instrument.id),
+            BasketMember(basket_id=private_basket.id, instrument_id=instrument.id),
+        ]
+    )
+    db.flush()
+
+    empty_custom = ScreenerDefinition(
+        user_id=user.id,
+        name="Empty custom",
+        conditions={},
+        universe_type="custom",
+        universe_instrument_ids=[],
+        timeframe="D1",
+    )
+    missing_watchlist = ScreenerDefinition(
+        user_id=user.id,
+        name="Missing watchlist",
+        conditions={},
+        universe_type="watchlist",
+        universe_watchlist_id=None,
+        timeframe="D1",
+    )
+    foreign_watchlist = ScreenerDefinition(
+        user_id=user.id,
+        name="Foreign watchlist",
+        conditions={},
+        universe_type="watchlist",
+        universe_watchlist_id=private_watchlist.id,
+        timeframe="D1",
+    )
+    foreign_basket = ScreenerDefinition(
+        user_id=user.id,
+        name="Foreign basket",
+        conditions={},
+        universe_type="basket",
+        universe_basket_id=private_basket.id,
+        timeframe="D1",
+    )
+    db.add_all([empty_custom, missing_watchlist, foreign_watchlist, foreign_basket])
+    db.flush()
+
+    for invalid, expected_reason in (
+        (empty_custom, "empty_custom_universe"),
+        (missing_watchlist, "watchlist_unavailable"),
+        (foreign_watchlist, "watchlist_unavailable"),
+        (foreign_basket, "basket_unavailable"),
+    ):
+        ids, reason = await _resolve_universe_members(async_db, invalid)
+        assert ids == []
+        assert reason == expected_reason
+
+
+@pytest.mark.asyncio
+async def test_screener_ensure_uses_saved_timeframe_and_returns_bounded_snapshot_parent(
+    db, user, screener, instrument
+):
+    from app.schemas.data_preparation import DataEnsureRequest
+
+    async_db = AsyncSessionAdapter(db)
+    screener.timeframe = "W1"
+    await async_db.flush()
+    request = DataEnsureRequest.model_validate(
+        {"target": {"kind": "screener", "screener_id": screener.id}, "datasets": ["history"]}
+    )
+    parent = await create_data_preparation_request(async_db, owner_user_id=user.id, request=request)
+    data = parent.metadata_payload["data_preparation"]
+    assert data["normalized_request"]["timeframe"] == "W1"
+    assert data["target"].get("snapshot_id"), data
+    assert data["target"]["snapshot_id"] == data["screener_snapshot"]["snapshot_id"]
+    assert data["screener_snapshot"]["member_count"] == 1
+    assert len(data["dependencies"]) == 1
+    assert data["dependencies"][0]["reason_code"] == "screener_universe_expansion_pending"
+
+    response = await get_data_preparation_response(async_db, parent=parent, owner_user_id=user.id)
+    assert response.status == "queued"
+    assert response.has_pending_work is True
+    assert response.target["snapshot_id"] == data["screener_snapshot"]["snapshot_id"]
+
+    explicit_mismatch = DataEnsureRequest.model_validate(
+        {
+            "target": {"kind": "screener", "screener_id": screener.id},
+            "datasets": ["history"],
+            "timeframe": "D1",
+        }
+    )
+    with pytest.raises(HTTPException) as mismatch:
+        await create_data_preparation_request(
+            async_db, owner_user_id=user.id, request=explicit_mismatch
+        )
+    assert mismatch.value.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_screener_idempotency_fingerprint_changes_with_saved_membership(
+    db, user, screener, instrument, instrument_type
+):
+    from app.models.instrument import Instrument
+    from app.schemas.data_preparation import DataEnsureRequest
+
+    async_db = AsyncSessionAdapter(db)
+    request = DataEnsureRequest.model_validate(
+        {
+            "target": {"kind": "screener", "screener_id": screener.id},
+            "datasets": ["history"],
+        }
+    )
+    await create_data_preparation_request(
+        async_db,
+        owner_user_id=user.id,
+        request=request,
+        idempotency_key="saved-screener-view",
+    )
+    second = Instrument(
+        symbol="MSFT",
+        name="Microsoft",
+        currency="USD",
+        instrument_type_id=instrument_type.id,
+        is_active=True,
+    )
+    db.add(second)
+    db.flush()
+    screener.universe_type = "custom"
+    screener.universe_instrument_ids = [instrument.id, second.id]
+    db.flush()
+
+    with pytest.raises(HTTPException) as conflict:
+        await create_data_preparation_request(
+            async_db,
+            owner_user_id=user.id,
+            request=request,
+            idempotency_key="saved-screener-view",
+        )
+    assert conflict.value.status_code == 409
+
+
+@pytest.mark.asyncio
 async def test_preparation_request_uses_tracking_parent_and_shared_history_children(db, instrument):
     async_db = AsyncSessionAdapter(db)
     request = DataEnsureRequest.model_validate(

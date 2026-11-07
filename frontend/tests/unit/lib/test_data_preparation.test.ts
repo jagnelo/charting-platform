@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { api } from '@/lib/api'
-import { DataEnsureRequest, DataEnsureResponse, DataPreparationCoordinator, instrumentHistoryPreparationRequest, isPreparationTimeframe, PreparationDependency, PreparationProgressRefreshQueue, preparationStatusMessage, shouldRefreshAnalysisProgress } from '@/lib/dataPreparation'
+import { DataEnsureRequest, DataEnsureResponse, DataPreparationCoordinator, instrumentHistoryPreparationRequest, isPreparationTimeframe, PreparationDependency, PreparationProgressRefreshQueue, preparationStatusMessage, savedScreenerPreparationContextKey, shouldRefreshAnalysisProgress } from '@/lib/dataPreparation'
 
 const baseTime = '2026-11-06T12:00:00.000Z'
 const request: DataEnsureRequest = { target: { kind: 'instrument', symbol: 'SPY' }, timeframe: 'D1', datasets: ['identity', 'history'] }
@@ -94,6 +94,56 @@ describe('DataPreparationCoordinator', () => {
     expect(second.request_id).toBe(first.request_id)
     expect(progressA).toHaveBeenCalledWith(expect.objectContaining({ completed: 0, total: 2 }))
     expect(progressB).toHaveBeenCalledWith(expect.objectContaining({ response: expect.objectContaining({ version: 2 }) }))
+  })
+
+  it('accepts only a positive saved-screener target and sends the approved target shape unchanged', async () => {
+    const screenerRequest: DataEnsureRequest = {
+      target: { kind: 'screener', screener_id: 73 },
+      datasets: ['history'],
+      timeframe: 'MN',
+    }
+    const client = { post: vi.fn().mockResolvedValue(response('ready', 1)), get: vi.fn() }
+    await expect(coordinator(client).ensure(screenerRequest)).resolves.toMatchObject({ status: 'ready' })
+    expect(client.post).toHaveBeenCalledWith('/data/ensure', screenerRequest, expect.anything())
+
+    const invalidClient = { post: vi.fn(), get: vi.fn() }
+    await expect(coordinator(invalidClient).ensure({ ...screenerRequest, target: { kind: 'screener', screener_id: 0 } })).rejects.toThrow(/positive screener/i)
+    expect(invalidClient.post).not.toHaveBeenCalled()
+  })
+
+  it('does not share an in-flight screener preparation across different saved-definition contexts', async () => {
+    const screenerRequest: DataEnsureRequest = {
+      target: { kind: 'screener', screener_id: 73 },
+      datasets: ['history'],
+      timeframe: 'D1',
+    }
+    const client = { post: vi.fn().mockResolvedValue(response('ready', 1)), get: vi.fn() }
+    const service = coordinator(client)
+
+    await Promise.all([
+      service.ensure(screenerRequest, { contextKey: 'definition-v1' }),
+      service.ensure(screenerRequest, { contextKey: 'definition-v2' }),
+    ])
+
+    expect(client.post).toHaveBeenCalledTimes(2)
+    expect(client.post.mock.calls.map(call => call[1])).toEqual([screenerRequest, screenerRequest])
+  })
+
+  it('builds the same deterministic local identity for EasyScan and Gauge saved definitions', () => {
+    const fromEasyScan = savedScreenerPreparationContextKey({
+      id: 73, updated_at: baseTime, universe_type: 'custom', universe_instrument_ids: [2, 1],
+      timeframe: 'W1', conditions: { field: 'close', op: 'gt' }, schedule: null,
+    })
+    const fromGauge = savedScreenerPreparationContextKey({
+      schedule: null, conditions: { op: 'gt', field: 'close' }, timeframe: 'W1',
+      universe_instrument_ids: [2, 1], universe_type: 'custom', updated_at: baseTime, id: 73,
+    })
+    const editedUniverse = savedScreenerPreparationContextKey({
+      id: 73, updated_at: baseTime, universe_type: 'watchlist', universe_watchlist_id: 9,
+      timeframe: 'W1', conditions: { field: 'close', op: 'gt' },
+    })
+    expect(fromGauge).toBe(fromEasyScan)
+    expect(editedUniverse).not.toBe(fromEasyScan)
   })
 
   it('waits only until a server-supplied temporary retry time', async () => {

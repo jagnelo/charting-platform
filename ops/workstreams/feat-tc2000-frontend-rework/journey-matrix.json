@@ -1529,6 +1529,34 @@
       "source_commit": "bc45155d964c357802de14991f3aac02c5fab29c",
       "source_blob": "c2c82d2e551f6f257a814d02b203a5402a2d3943",
       "source_sha256": "b37cad11a09cba6ef40e4c3884f936f9fc54b8b7c2da0d9eae757d9ceac7e9d8"
+    ,
+      "browser_specs": [
+        {
+          "path": "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts",
+          "source_commit": "b555268b8237d1c50e34b39320b4cb18a8bd9a03",
+          "source_blob": "8c8b735f2384676e478ef1a2637f0d1e20eb8b4c",
+          "source_sha256": "ef84f5f843479bcf9f6203ee55b1945017dab1d2898769e66140731fdc20801e",
+          "execution_status": "authored_pending_combined_browser_run",
+          "cases": [
+            {
+              "name": "duplicates a factory layout with remapped panels, preserves the original, and reloads both",
+              "journeys": ["TC06", "TC07"]
+            },
+            {
+              "name": "closes and recreates every factory tool through the public catalogue with useful defaults",
+              "journeys": ["TC06"]
+            },
+            {
+              "name": "renames, reorders, cancels and confirms layout deletion, then undoes and reloads",
+              "journeys": ["TC07"]
+            },
+            {
+              "name": "duplicates and safely deletes a workspace while preserving its source and tool content through resize and maximize",
+              "journeys": ["TC07"]
+            }
+          ]
+        }
+      ]
     }
   ],
   "journeys": [
