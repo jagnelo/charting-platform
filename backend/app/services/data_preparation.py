@@ -15,6 +15,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.asset_class import AssetClass, InstrumentType
+from app.models.data_source import DataSource
 from app.models.etf_holdings import ETFProfile
 from app.models.instrument import Instrument
 from app.models.market_data_foundation import MarketRefreshJob, MarketSeries, MarketSeriesDefault
@@ -391,14 +392,49 @@ async def _default_datasets(
     return datasets
 
 
-async def _profile_is_fresh(db: AsyncSession, instrument_id: int, *, now: datetime) -> bool:
+def _profile_payload_has_field(provider_name: str, payload: dict, field_name: str) -> bool:
+    extra = payload.get("extra") if isinstance(payload, dict) else None
+    extra = extra if isinstance(extra, dict) else {}
+    direct = payload.get(field_name) if isinstance(payload, dict) else None
+    if direct is None:
+        direct = extra.get(field_name)
+    if isinstance(direct, str) and direct.strip():
+        return True
+    if field_name == "industry" and provider_name.strip().lower() == "massive":
+        # Massive's SIC description is an actual source field. It can satisfy
+        # an industry request only with its matching SIC code and is labelled
+        # SEC_SIC during profile reconciliation; it is never treated as GICS.
+        sic_code = extra.get("sic_code")
+        return bool(
+            isinstance(sic_code, str | int)
+            and not isinstance(sic_code, bool)
+            and str(sic_code).strip()
+            and isinstance(extra.get("sic_description"), str)
+            and extra.get("sic_description", "").strip()
+        )
+    return False
+
+
+async def _profile_is_fresh(
+    db: AsyncSession,
+    instrument_id: int,
+    *,
+    now: datetime,
+    required_profile_fields: list[str] | tuple[str, ...] = (),
+) -> bool:
     rows = (
         await db.execute(
-            select(InstrumentProfileSnapshot.fetched_at, ProviderPolicy.freshness_seconds)
+            select(
+                InstrumentProfileSnapshot.fetched_at,
+                InstrumentProfileSnapshot.payload,
+                DataSource.name,
+                ProviderPolicy.freshness_seconds,
+            )
             .join(
                 ProviderPolicy,
                 ProviderPolicy.data_source_id == InstrumentProfileSnapshot.data_source_id,
             )
+            .join(DataSource, DataSource.id == InstrumentProfileSnapshot.data_source_id)
             .where(
                 InstrumentProfileSnapshot.instrument_id == instrument_id,
                 ProviderPolicy.capability == ProviderCapability.INSTRUMENT_METADATA,
@@ -407,11 +443,18 @@ async def _profile_is_fresh(db: AsyncSession, instrument_id: int, *, now: dateti
             .order_by(InstrumentProfileSnapshot.fetched_at.desc())
         )
     ).all()
-    for fetched_at, freshness_seconds in rows:
+    required = tuple(str(field).strip().lower() for field in required_profile_fields)
+    for fetched_at, payload, provider_name, freshness_seconds in rows:
         if fetched_at is None or not freshness_seconds:
             continue
         observed = fetched_at if fetched_at.tzinfo else fetched_at.replace(tzinfo=UTC)
-        if now - observed.astimezone(UTC) <= timedelta(seconds=int(freshness_seconds)):
+        payload = payload if isinstance(payload, dict) else {}
+        has_fields = all(
+            _profile_payload_has_field(provider_name, payload, field) for field in required
+        )
+        if has_fields and now - observed.astimezone(UTC) <= timedelta(
+            seconds=int(freshness_seconds)
+        ):
             return True
     return False
 
@@ -460,7 +503,12 @@ async def _lock_parent_for_update(db: AsyncSession, parent_id: int) -> MarketRef
 
 
 async def _dataset_initial_state(
-    db: AsyncSession, instrument_id: int, dataset: PreparationDataset, *, now: datetime
+    db: AsyncSession,
+    instrument_id: int,
+    dataset: PreparationDataset,
+    *,
+    now: datetime,
+    required_profile_fields: list[str] | tuple[str, ...] = (),
 ) -> tuple[str, str | None]:
     instrument = await db.get(Instrument, instrument_id)
     if instrument is None:
@@ -470,7 +518,12 @@ async def _dataset_initial_state(
             return "ready", None
         return "unavailable", "canonical_identity_unqualified"
     if dataset is PreparationDataset.PROFILE:
-        if await _profile_is_fresh(db, instrument_id, now=now):
+        if await _profile_is_fresh(
+            db,
+            instrument_id,
+            now=now,
+            required_profile_fields=required_profile_fields,
+        ):
             return "ready", None
         return "waiting", "profile_refresh_pending"
     if dataset is PreparationDataset.HOLDINGS:
@@ -492,6 +545,7 @@ async def _enqueue_identity_profile_job(
     symbol: str,
     instrument_id: int | None,
     refresh_profile: bool = False,
+    required_profile_fields: list[str] | tuple[str, ...] = (),
     owner_user_id: int | None,
     priority: int,
     now: datetime,
@@ -499,7 +553,13 @@ async def _enqueue_identity_profile_job(
     # Identity/profile work is shared by canonical target and freshness scope;
     # every owner request remains separately tracked in parent_refs.
     key = "prep-identity:" + _digest(
-        [symbol.upper(), instrument_id, refresh_profile, now.strftime("%Y-%m-%dT%H")]
+        [
+            symbol.upper(),
+            instrument_id,
+            refresh_profile,
+            sorted(set(required_profile_fields)),
+            now.strftime("%Y-%m-%dT%H"),
+        ]
     )
     await _acquire_enqueue_lock(db, key)
     prior_refs = await _existing_parent_refs(db, key)
@@ -515,6 +575,7 @@ async def _enqueue_identity_profile_job(
                 "symbol": symbol.upper(),
                 "instrument_id": instrument_id,
                 "refresh_profile": refresh_profile,
+                "required_profile_fields": sorted(set(required_profile_fields)),
                 "parent_refs": prior_refs,
             }
         },
@@ -755,6 +816,9 @@ async def create_data_preparation_request(
     unresolved_symbols = instrument_plan.unresolved_symbols
     resolution_reason = instrument_plan.reason_code
     datasets = request.datasets or await _default_datasets(db, instrument_ids)
+    required_profile_fields = (
+        request.required_profile_fields if PreparationDataset.PROFILE in datasets else []
+    )
     parent = MarketRefreshJob(
         request_key=request_key,
         capability=_TRACKING_CAPABILITY,
@@ -803,6 +867,7 @@ async def create_data_preparation_request(
             request_id=request_id,
             symbol=symbol,
             instrument_id=None,
+            required_profile_fields=required_profile_fields,
             owner_user_id=owner_user_id,
             priority=parent.priority,
             now=now,
@@ -877,7 +942,14 @@ async def create_data_preparation_request(
             and instrument.primary_identifier_value
         )
         profile_is_fresh = (
-            await _profile_is_fresh(db, instrument_id, now=now) if instrument is not None else False
+            await _profile_is_fresh(
+                db,
+                instrument_id,
+                now=now,
+                required_profile_fields=required_profile_fields,
+            )
+            if instrument is not None
+            else False
         )
         if instrument is not None and (
             not identity_is_qualified
@@ -891,6 +963,7 @@ async def create_data_preparation_request(
                 symbol=instrument.symbol,
                 instrument_id=instrument_id,
                 refresh_profile=PreparationDataset.PROFILE in datasets and not profile_is_fresh,
+                required_profile_fields=required_profile_fields,
                 owner_user_id=owner_user_id,
                 priority=parent.priority,
                 now=now,
@@ -898,7 +971,11 @@ async def create_data_preparation_request(
         for dataset in ordered_datasets:
             dependency_id = str(uuid4())
             current_status, reason = await _dataset_initial_state(
-                db, instrument_id, dataset, now=now
+                db,
+                instrument_id,
+                dataset,
+                now=now,
+                required_profile_fields=required_profile_fields,
             )
             status = current_status
             job_ids: list[int] = []
@@ -1215,6 +1292,7 @@ async def record_identity_preparation_outcome(
     reason_code: str | None,
     retry_at: datetime | None = None,
     parent_job_id: int | None = None,
+    dataset_filter: PreparationDataset | None = None,
     now: datetime | None = None,
 ) -> None:
     """Persist a terminal/waiting identity outcome without hiding other data."""
@@ -1233,6 +1311,7 @@ async def record_identity_preparation_outcome(
             status=status,
             reason_code=reason_code,
             retry_at=retry_at,
+            dataset_filter=dataset_filter,
             now=now,
         )
 
@@ -1245,6 +1324,7 @@ async def _record_parent_identity_outcome(
     status: str,
     reason_code: str | None,
     retry_at: datetime | None = None,
+    dataset_filter: PreparationDataset | None = None,
     now: datetime | None = None,
 ) -> None:
     parent = await _lock_parent_for_update(db, parent_id)
@@ -1264,6 +1344,8 @@ async def _record_parent_identity_outcome(
         and identity_job.id in [int(value) for value in dependency.get("job_ids", [])]
     }
     for dependency in dependencies:
+        if dataset_filter is not None and dependency.get("dataset") != dataset_filter.value:
+            continue
         references_job = identity_job.id in [int(value) for value in dependency.get("job_ids", [])]
         waiting_for_identity = dependency.get(
             "reason_code"
