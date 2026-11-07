@@ -605,7 +605,8 @@
           "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts :: duplicates and safely deletes a workspace while preserving its source and tool content through resize and maximize",
           "frontend/src/views/WorkstationView.vue :: Duplicate workspace and Delete workspace",
           "frontend/src/stores/workspace.ts :: cloneWorkspace and deleteCurrentWorkspace"
-        ]
+        ],
+        "browser_evidence": "Root R33 screenshot and R34 exact-source bounded diagnostic show the Chart renders after resize/maximize/restore: .chart-tool canvas.first() is canvas.drawing-canvas with0 nontransparent/0 exact series pixels; .chart-tool .uplot canvas has4223 nontransparent/1696 exact series-color pixels. The test oracle now reads .chart-tool .uplot canvas and still requires >20 actual series-color pixels. R34's full workspace journey did not pass; only this one-canvas diagnostic passed its paint premise. The corrected full browser body remains pending Root and no journey pass is claimed."
       }
     ],
     "execution_boundary": "Type-check, Playwright --list and workstream validation only; four test bodies and all runtime content witnesses remain unexecuted pending Root combined qualification. No browser session or fixture was started."

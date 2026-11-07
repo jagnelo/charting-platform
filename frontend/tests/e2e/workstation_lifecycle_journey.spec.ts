@@ -210,7 +210,7 @@ async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUT
     await expect(tool.locator('.watchlist__row').first()).toBeVisible({ timeout: 20_000 })
     await expect.poll(() => tool.locator('.watchlist__row').count()).toBeGreaterThan(0)
   } else if (kind === 'chart' || kind === 'ratio') {
-    const plot = kind === 'chart' ? tool.locator('.chart-tool canvas').first() : tool.locator('.ratio-chart__host canvas').first()
+    const plot = kind === 'chart' ? tool.locator('.chart-tool .uplot canvas').first() : tool.locator('.ratio-chart__host canvas').first()
     await expect(plot).toBeVisible({ timeout: 20_000 })
     const seriesColors = kind === 'chart' ? [[38, 166, 154], [239, 83, 80]] as Array<[number, number, number]> : [[107, 192, 239]] as Array<[number, number, number]>
     await expect.poll(() => plottedSeriesPixels(plot, seriesColors), { timeout: 30_000 }).toBeGreaterThan(20)
