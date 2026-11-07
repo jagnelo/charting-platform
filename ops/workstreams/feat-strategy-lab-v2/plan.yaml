@@ -1258,40 +1258,26 @@ progress:
       - ops/workstreams/feat-strategy-lab-v2/validation.jsonl
     status: in_progress
   current_blocker: >-
-    Root's R26 controlled resource comparison on frontend77190340/backenddcd3c823 ran the same three
-    journeys and assertions with relay CPU raised from0.25 to1.0; it ended1pass/2fail in182.7s with
-    nr_throttled unchanged. The ordinary high-low Study prepare/validate/run/results journey passed.
-    The RRG maximize/reload Restore action and the initial Study Results empty-state loading assertion
-    still fail; neither is accepted or release evidence. Root's trace shows the Results list GET was
-    pending at capture but does not establish why it failed to settle. Strategy gates that initial
-    query on the pane's first positive visibility observation and now gives the request an abortable
-    15-second deadline with a visible retry path, covered by focused stalled-read and successful
-    shared-cache recovery regressions. A successful run-list cache update clears only the list-load
-    error, not unrelated mutation errors. The request's backend/relay latency remains unknown. The
-    Strategy list endpoint now avoids
-    loading saved artifact JSON payloads for ordinary count-only list responses while preserving full
-    payload reads on run detail; its focused research-router module passes15/15. This bounded I/O
-    reduction is not proof of the pending Results request's cause. Root reported four affected ordinary
-    browser journeys running against TC1fdc92f1 and Providerdd70319e; no terminal result is recorded
-    here. Local Strategy work also
-    fixes the
-    R25-proven lookback truncation: an explicit bounded date range now uses the existing5000-row
-    per-series safety cap while unbounded/set-based members retain their existing500-row budget.
-    Focused Strategy component tests, research-router tests, type-check and Playwright discovery have
-    passed on the current work in prior checks; Ruff/format and diff checks pass now. Root has started
-    four affected ordinary browser journeys against the current TC1fdc92f1/Providerdd70319e context;
-    this record has no terminal outcome. The RRG Restore defect remains open with TC; preserve the
-    18-criterion roadmap and disabled holds.
+    Root's R26 partial result remains historical. R40 later exposed a concrete Study reload defect on
+    frontenda52f8784/backend23b6: workspace GET restored the independent XLB draft with immutable
+    Run7, then the mounted Study overwrote the draft with linked SPY. Strategy fixed draft-symbol
+    precedence from complete parent snapshots and added an asynchronous saved-run/parent-echo/remount
+    regression. The owned workstation rename locator was also corrected to use the stable accessible
+    textbox. Exact local source c9cee0090b7aea5fab12d165e0e045721b080663 passes the Study unit module
+    68/68, frontend type-check, and discovery of all14 owned Study/workstation journeys; no browser
+    body has run on this exact source. Root's later R42 receipt concerns separate RRG graph paint and
+    default plot geometry, not the Study repair. Root owns the combined browser slot and exact-source
+    result. Preserve R40/R26 failures as history, the full18-criterion roadmap, and every disabled
+    native, broker, capital, paid/trial, and provider-live hold.
   next_action: >-
-    Hand Root the next coherent Strategy candidate, including the bounded lookback repair, truthful
-    deferred-evaluation UI, the Results visibility-gated and deadline-bounded initial query with
-    explicit retry, the count-only Results list I/O reduction, and exact TC1fdc92f1/Providerdd70319e
-    development imports. Root should report the four assigned ordinary journeys on its existing
-    fixture; retain prior R26 failures until their causes are fixed and verified. Do not start another
-    fixture or treat focused tests, imported producer checks, or prior partial browser results as
-    exact-current-source/full-profile acceptance. Preserve all18 roadmap criteria and disabled native,
-    broker, capital, paid/trial, and provider-live holds.
-  updated_at: "2026-11-07T09:59:05Z"
+    Provide Root the clean exact Strategy candidate c9cee0090b7aea5fab12d165e0e045721b080663 for the
+    existing combined browser slot. Require exact-source rerun of the saved-XLB-draft/immutable-SPY-run
+    reload journey and the Strategy workstation lifecycle journeys; treat discovery and unit checks as
+    authored/focused evidence only. Diagnose any new actual failure within Strategy-owned paths, retain
+    all previous reds, and do not launch a duplicate fixture or claim release/full-roadmap acceptance.
+    Preserve the full18-criterion roadmap and disabled native, broker, capital, paid/trial, and
+    provider-live holds.
+  updated_at: "2026-11-07T12:10:12Z"
 roadmap_goal: >-
   Implement the production-grade, local-first Strategy Lab v2 backend for
   reproducible portfolio backtesting, walk-forward and search experiments, and
