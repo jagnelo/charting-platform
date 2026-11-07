@@ -10,6 +10,7 @@
     </header>
     <p v-if="error" class="market-gauge__error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</p>
     <p v-else-if="preparationNotice" class="market-gauge__preparation" role="status" aria-live="polite" aria-atomic="true">{{ preparationNotice }}</p>
+    <p v-if="scanReplacementPending" class="market-gauge__preparation" role="status" aria-live="polite" aria-atomic="true">A replacement scan is {{ latestScanStatus }}; the last completed gauge remains visible.</p>
     <p v-else-if="scansQuery.isPending.value && !gauge" class="market-gauge__state" role="status" aria-live="polite" aria-atomic="true">Loading saved scans…</p>
     <template v-if="gauge">
       <div class="market-gauge__reading"><b>{{ percentage }}</b><span>{{ gauge.matched_count }} matches</span></div>
@@ -18,7 +19,7 @@
       <small v-if="gauge.data_provenance" class="market-gauge__lineage">{{ gauge.data_provenance }} · {{ gauge.calculation_version }}</small>
       <small v-if="gauge.exclusions.length" class="market-gauge__warnings" :title="gauge.exclusions.map(item => item.message).join('\n')">Coverage warnings: {{ gauge.exclusions.length }}</small>
     </template>
-    <p v-else-if="!error && !scansQuery.isPending.value" class="market-gauge__state" role="status" aria-live="polite" aria-atomic="true">Choose a retained EasyScan result.</p>
+    <p v-else-if="!error && !scanReplacementPending && !scansQuery.isPending.value" class="market-gauge__state" role="status" aria-live="polite" aria-atomic="true">Choose a retained EasyScan result.</p>
   </section>
 </template>
 
@@ -55,6 +56,7 @@ type Gauge = {
   freshness_detail: Record<string, number>
   exclusions: Array<{ code?: string; message: string }>
 }
+type ScanResult = { id?: number; result_data?: Record<string, unknown> }
 const selectedId = ref('')
 const gaugeRoot = ref<HTMLElement | null>(null)
 const surfaceVisible = ref(true)
@@ -82,6 +84,21 @@ const savedScanQuery = useQuery({
   staleTime: 0,
   refetchOnWindowFocus: true,
 })
+const scanResultsQuery = useQuery({
+  queryKey: computed(() => ['workstation', 'screener-history', selectedId.value]),
+  queryFn: async () => (await api.get<ScanResult[]>(`/screeners/${encodeURIComponent(selectedId.value)}/results`, { limit: 20 })) ?? [],
+  enabled: computed(() => Boolean(selectedId.value) && surfaceVisible.value && documentVisible.value),
+  staleTime: 0,
+  refetchOnWindowFocus: true,
+  refetchInterval: query => {
+    const latest = query.state.data?.[0]
+    const status = String(latest?.result_data?._status ?? '').toLowerCase()
+    return ['queued', 'pending', 'running', 'leased'].includes(status) ? 350 : false
+  },
+})
+const latestScanResult = computed(() => scanResultsQuery.data.value?.[0] ?? null)
+const latestScanStatus = computed(() => String(latestScanResult.value?.result_data?._status ?? '').toLowerCase())
+const scanReplacementPending = computed(() => ['queued', 'pending', 'running', 'leased'].includes(latestScanStatus.value))
 const gaugeQuery = useQuery({
   queryKey: computed(() => ['workstation', 'market-gauge', selectedId.value]),
   queryFn: async () => {
@@ -89,14 +106,15 @@ const gaugeQuery = useQuery({
     if (!result) throw new Error('Market gauge refresh returned no data')
     return result
   },
-  enabled: computed(() => Boolean(selectedId.value) && surfaceVisible.value && documentVisible.value),
+  enabled: computed(() => Boolean(selectedId.value) && surfaceVisible.value && documentVisible.value
+    && scanResultsQuery.isFetched.value && !scanReplacementPending.value),
   staleTime: 30_000,
   refetchInterval: 60_000,
   refetchOnWindowFocus: true,
 })
 const scans = computed(() => scansQuery.data.value ?? [])
 const gauge = computed(() => gaugeQuery.data.value ?? null)
-const loading = computed(() => scansQuery.isFetching.value || savedScanQuery.isFetching.value || gaugeQuery.isFetching.value)
+const loading = computed(() => scansQuery.isFetching.value || savedScanQuery.isFetching.value || scanResultsQuery.isFetching.value || gaugeQuery.isFetching.value)
 const error = computed(() => {
   if (savedScanQuery.error.value) return 'The saved EasyScan definition is unavailable; existing gauge results remain visible.'
   const cause = scansQuery.error.value ?? gaugeQuery.error.value
@@ -111,6 +129,12 @@ watch([selectedId, surfaceVisible, documentVisible], () => {
   preparationContextKey = ''
   preparationNotice.value = ''
   preparationRefreshQueue = new PreparationProgressRefreshQueue()
+})
+watch([selectedId, latestScanStatus], ([id, status], [previousId, previousStatus]) => {
+  if (id && id === previousId && ['queued', 'pending', 'running', 'leased'].includes(previousStatus)
+    && !['queued', 'pending', 'running', 'leased'].includes(status)) {
+    void gaugeQuery.refetch()
+  }
 })
 watch([() => savedScanQuery.data.value, surfaceVisible, documentVisible], ([definition, visible]) => {
   if (!definition || !selectedId.value || !visible || !documentVisible.value) return
@@ -146,6 +170,8 @@ watch([() => savedScanQuery.data.value, surfaceVisible, documentVisible], ([defi
       if (refreshAnalysis) {
         void preparationRefreshQueue.request(progress.response, async () => {
           if (!isCurrent()) return
+          await scanResultsQuery.refetch()
+          if (!isCurrent() || scanReplacementPending.value) return
           await gaugeQuery.refetch()
         })
       }
@@ -162,7 +188,8 @@ async function refresh() {
   await scansQuery.refetch()
   if (selectedId.value) {
     await savedScanQuery.refetch()
-    await gaugeQuery.refetch()
+    await scanResultsQuery.refetch()
+    if (!scanReplacementPending.value) await gaugeQuery.refetch()
   }
 }
 onMounted(() => {

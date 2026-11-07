@@ -1981,18 +1981,17 @@ status: in_progress
 progress:
   completed: []
   total: 9
-  current_phase: 'Current focused successor: common virtual-tool tab activation, lazy
-    body mounting regression, actual chart-wrapper sizing on resize, shared watchlist
-    header flow, Market Map readiness dedup, portable nested-template action inventory,
-    and exact Provider33/ETF055 development imports. Remaining analysis entrypoints,
-    catalogue/lifecycle/routes and combined browser journeys stay open.'
-  current_blocker: No local focused-test blocker. Root-owned actual R13/R14 and combined
-    browser/visual proof remain pending; TC still owns unfinished analysis entrypoints,
-    shared search consumers, lifecycle and route/action journeys.
-  next_action: Root to build the exact current source and verify ordinary tab activation,
-    lazy tool bodies, chart resize and sector-list rendering; continue remaining TC-owned
-    journeys after the focused browser handoff. Do not claim full platform acceptance
-    from focused unit/type/inventory results.
+  current_phase: 'Current focused successor: EasyScan/Gauge follow matching asynchronous
+    replacement runs while retaining completed results, and Workstation preserves the
+    saved Library Study symbol and dataset defaults on return. Strategy2144 imports are
+    current; remaining full-platform journeys stay open.'
+  current_blocker: No local focused-test blocker. Root-owned rendered factory/browser
+    confirmation, exact-tip CI, combined qualification, native proof, and release gates
+    remain pending.
+  next_action: Root to build the exact current frontend and verify saved Library return,
+    Gauge/Scan recovery, and remaining affected journeys. Continue unfinished route,
+    factory, analysis, lifecycle, visual, and complete route/action acceptance only
+    after the coordinated browser review; do not claim full platform acceptance.
   updated_at: '2026-11-07'
 historical_checkpoint_status_archive: 'Current boundary (2026-10-22): published HEAD is a7c8ecba208ce6c79d8f1a5d7294500122e462e5;
   one test-only change in workstation_performance.spec.ts and the four owned records are pending review. Exact hosted CI39693019337
@@ -5194,9 +5193,9 @@ approved_development_dependency_imports:
   - frontend/tests/unit/components/test_instrument_note_tool.test.ts
   - frontend/tests/unit/views/test_baskets_view.test.ts
   - frontend/tests/unit/views/test_etf_holdings_view.test.ts
-- source_sha: 116f667affc98e0fef5bc4fcaabbd5d460158032
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/116f667affc98e0fef5bc4fcaabbd5d460158032.json
-  manifest_sha256: e6b4d12a316c4ce883f58e5657a011f07638470232869ba5d7cbfcc1e171d66f
+- source_sha: 2144d9647a33eadd4fcce973933c4c9fdc8cef4d
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/2144d9647a33eadd4fcce973933c4c9fdc8cef4d.json
+  manifest_sha256: 53630e070ea5604a97327e5144add8c70b6f0c442ab8e14c90e1d96de509886d
   paths:
   - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
   - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue

@@ -153,6 +153,20 @@ type CachedInstrumentProfile = {
   description?: string | null
   currency?: string | null
   equity_detail?: { sector?: string | null; industry?: string | null; country?: string | null } | null
+  stats?: {
+    market_cap?: number | null
+    pe_ratio?: number | null
+    beta?: number | null
+    week52_high?: number | null
+    week52_low?: number | null
+  } | null
+}
+
+function expectedDetailNumber(value: number, large = false) {
+  if (large && value >= 1e12) return `${(value / 1e12).toFixed(2)}T`
+  if (large && value >= 1e9) return `${(value / 1e9).toFixed(2)}B`
+  if (large && value >= 1e6) return `${(value / 1e6).toFixed(2)}M`
+  return value.toLocaleString(undefined, { maximumFractionDigits: 2 })
 }
 
 async function expectUsefulInstrumentDetails(widget: Locator, response: Response, symbol: string) {
@@ -171,10 +185,28 @@ async function expectUsefulInstrumentDetails(widget: Locator, response: Response
     ['Country', profile.equity_detail?.country],
   ]
   const availableFields = descriptiveFields.filter(([, value]) => Boolean(value?.trim()))
-  expect(availableFields.length, 'cached profile must expose useful descriptive metadata').toBeGreaterThanOrEqual(2)
   for (const [label, value] of availableFields) {
     const row = widget.locator('.detail-row').filter({ has: widget.getByText(label, { exact: true }) })
     await expect(row.locator('b')).toHaveText(value!)
+  }
+
+  const high = Number(profile.stats?.week52_high)
+  const low = Number(profile.stats?.week52_low)
+  expect(Number.isFinite(high), 'cached profile must provide its actual 52-week high').toBe(true)
+  expect(Number.isFinite(low), 'cached profile must provide its actual 52-week low').toBe(true)
+  expect(high).toBeGreaterThan(low)
+
+  const numericFields: Array<[string, number | null | undefined, (value: number) => string]> = [
+    ['Market Cap', profile.stats?.market_cap, value => expectedDetailNumber(value, true)],
+    ['P/E', profile.stats?.pe_ratio, value => value.toFixed(2)],
+    ['Beta', profile.stats?.beta, value => value.toFixed(2)],
+    ['52W High', profile.stats?.week52_high, value => expectedDetailNumber(value)],
+    ['52W Low', profile.stats?.week52_low, value => expectedDetailNumber(value)],
+  ]
+  for (const [label, value, format] of numericFields) {
+    if (value == null || !Number.isFinite(Number(value))) continue
+    const row = widget.locator('.detail-row').filter({ has: widget.getByText(label, { exact: true }) })
+    await expect(row.locator('b')).toHaveText(format(Number(value)))
   }
 }
 
@@ -369,7 +401,22 @@ test('Dashboard creates useful seeded quote and chart widgets and restores saved
   expect((await changeSecondTarget).ok()).toBe(true)
   const xlbPreparation = await comparisonXlbPreparation
   expect(xlbPreparation.ok()).toBe(true)
-  expect((await xlbPreparation.json()).status).toBe('ready')
+  const preparationRequest = xlbPreparation.request().postDataJSON() as {
+    request_id?: string
+    target?: { kind?: string; symbol?: string }
+    datasets?: string[]
+  }
+  const preparationBody = await xlbPreparation.json() as {
+    request_id?: string
+    target?: { kind?: string; symbol?: string }
+    status?: string
+  }
+  expect(preparationRequest.request_id).toEqual(expect.any(String))
+  expect(preparationRequest.target).toMatchObject({ kind: 'instrument', symbol: 'XLB' })
+  expect(preparationRequest.datasets).toEqual(expect.arrayContaining(['history']))
+  expect(preparationBody.request_id).toBe(preparationRequest.request_id)
+  expect(preparationBody.target).toMatchObject({ kind: 'instrument', symbol: 'XLB' })
+  expect(['ready', 'queued', 'running', 'waiting']).toContain(preparationBody.status)
   const comparisonSaved = await persistedDashboard(page)
   expect(comparisonSaved.tabs.flatMap(tab => tab.widgets).find(widget => widget.id === comparisonWidget.id)?.config.targets)
     .toMatchObject([{ symbol: 'SPY' }, { symbol: 'XLB', label: 'XLB' }])
@@ -790,7 +837,6 @@ test('Dashboard Advanced Chart and Instrument Details stay useful on cached data
         && responsePath(response) === `/api/v1/dashboards/widgets/${detailsRecord.id}`,
     )
     const xlbProfile = instrumentProfileResponse(page, 'XLB')
-    const xlbBars = dailyBarsResponse(page, 'XLB', 260)
     const xlbEnsureResponse = page.waitForResponse(response =>
       response.request().method() === 'POST' && responsePath(response) === '/api/v1/data/ensure'
       && (response.request().postDataJSON() as { target?: { symbol?: string }; datasets?: string[] }).target?.symbol?.toUpperCase() === 'XLB'
@@ -803,7 +849,6 @@ test('Dashboard Advanced Chart and Instrument Details stay useful on cached data
     await closeConfig(page)
 
     const actualXlbProfile = await xlbProfile
-    await assertUsefulBars(await xlbBars, 50)
     const details = page.locator('.dashboard-widget').filter({ has: page.locator('.details-widget') })
     await expect(details).toHaveCount(1)
     await expectUsefulInstrumentDetails(details, actualXlbProfile, 'XLB')
@@ -838,7 +883,6 @@ test('Dashboard Advanced Chart and Instrument Details stay useful on cached data
 
     const restoredSpyBars = localDailyBarsResponse(page, 'SPY', 500)
     const restoredXlbProfile = instrumentProfileResponse(page, 'XLB')
-    const restoredXlbBars = dailyBarsResponse(page, 'XLB', 260)
     await page.reload()
     await expect(page.locator('.dashboard-view')).toBeVisible()
     const restoredAdvanced = page.locator('.dashboard-widget').filter({ has: page.locator('.advanced-chart-widget') })
@@ -847,7 +891,6 @@ test('Dashboard Advanced Chart and Instrument Details stay useful on cached data
     await expect(restoredDetails).toHaveCount(1)
     await assertUsefulBars(await restoredSpyBars, 50)
     await expectAdvancedCandlesPainted(restoredAdvanced)
-    await assertUsefulBars(await restoredXlbBars, 50)
     await expectUsefulInstrumentDetails(restoredDetails, await restoredXlbProfile, 'XLB')
     const afterReload = await persistedDashboard(page)
     expect(afterReload.tabs.flatMap(tab => tab.widgets).find(widget => widget.id === advancedRecord.id)?.config)

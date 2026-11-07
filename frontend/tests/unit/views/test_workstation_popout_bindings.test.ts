@@ -264,8 +264,9 @@ function appendChartPlotTarget(parent: Element, windowKey: string) {
 }
 
 const ToolStub = defineComponent({
-  emits: ['conditionFilterMode', 'pinnedBooleanKeys', 'columnGroups', 'stackedColumnKeys', 'configuration', 'selectProxy', 'selectIndustry', 'compare', 'ratio', 'row-action'],
+  emits: ['conditionFilterMode', 'pinnedBooleanKeys', 'columnGroups', 'stackedColumnKeys', 'configuration', 'selectProxy', 'selectIndustry', 'compare', 'ratio', 'row-action', 'open-study'],
   template: `<div class="tool-stub">
+    <button class="open-study" @click="$emit('open-study', { name: 'Saved XLB study', versionId: 42, source: 'return 1', outputContract: 'scalar', parameterSchema: {}, defaultParameters: { symbol: 'XLB', timeframe: 'W1', benchmark: 'QQQ', adjustment: 'raw', session: 'all', universe_source_id: 'saved-universe', symbols: 'XLB,XLK', start_date: '2025-01-01', end_date: '2025-12-31', as_of: '2025-12-31' } })">Open saved study</button>
     <button class="mode" @click="$emit('conditionFilterMode', 'benchmark-list', 'active')">mode</button>
     <button class="pin" @click="$emit('pinnedBooleanKeys', 'benchmark-list', ['above_ma50'])">pin</button>
     <button class="groups" @click="$emit('columnGroups', 'benchmark-list', { rsi14: 'Momentum' })">groups</button>
@@ -331,6 +332,44 @@ describe('WorkstationView pop-out bindings', () => {
     harness.recent.recent = [{ symbol: 'XLK', name: 'Technology Select Sector SPDR Fund', viewedAt: 2 }]
     harness.drawings.activeToolType = null
     harness.drawings.setActiveTool.mockClear()
+  })
+
+  it('preserves a saved Library study symbol and dataset defaults when opening the immutable version', async () => {
+    routeState.path = '/popout/benchmark-list'
+    routeState.params = { windowKey: 'benchmark-list' }
+    harness.workspace.linkedSymbol = 'SPY'
+    harness.workspace.activeTab.active_window_key = 'study-lab-return'
+    harness.workspace.openTool.mockReturnValue({ instance_key: 'study-lab-return', title: 'Study Lab' })
+    const wrapper = mount(WorkstationView, {
+      attachTo: document.body,
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    wrapper.element.insertAdjacentHTML('beforeend', '<div class="workspace-layout-host__virtual-tool" data-tool-key="study-lab-return"></div>')
+    try {
+      await wrapper.get('.open-study').trigger('click')
+      await flushPromises()
+
+      expect(harness.workspace.openTool).toHaveBeenCalledWith(
+        expect.objectContaining({ tool_type: 'study_lab' }),
+        expect.objectContaining({
+          study_asset_version_id: 42,
+          symbol: 'XLB',
+          timeframe: 'W1',
+          benchmark: 'QQQ',
+          adjustment: 'raw',
+          session: 'all',
+          universe_source_id: 'saved-universe',
+          symbols: 'XLB,XLK',
+          start_date: '2025-01-01',
+          end_date: '2025-12-31',
+          as_of: '2025-12-31',
+        }),
+      )
+      expect(harness.workspace.linkedSymbol).toBe('SPY')
+    } finally {
+      wrapper.unmount()
+      wrapper.element.remove()
+    }
   })
 
   it('opens shared feature routes from the workstation and closes after selection', async () => {

@@ -20,7 +20,7 @@
     },
     "strategy_matrix_provenance": {
       "canonical_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
-      "source_commit": "116f667affc98e0fef5bc4fcaabbd5d460158032",
+      "source_commit": "2144d9647a33eadd4fcce973933c4c9fdc8cef4d",
       "source_blob": "949bc17f48f0b6237b3cec231fae8b1949adf8c7",
       "source_sha256": "92ea7eef8191c0a5c5d817c532e9012bd3633edd4cff89d3f4c1248101e96c0c"
     },
@@ -37,10 +37,10 @@
       "qualification": "Exact ETF 2450abb9 development import is present; browser execution and release acceptance remain Root-owned and pending."
     },
     "strategy_runtime_import": {
-      "source_commit": "116f667affc98e0fef5bc4fcaabbd5d460158032",
-      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/116f667affc98e0fef5bc4fcaabbd5d460158032.json",
-      "manifest_sha256": "e6b4d12a316c4ce883f58e5657a011f07638470232869ba5d7cbfcc1e171d66f",
-      "qualification": "Exact Strategy116 development source and all 27 manifest entries are imported and hash-verified; Root browser execution, exact-source CI, combined qualification, and release acceptance remain pending."
+      "source_commit": "2144d9647a33eadd4fcce973933c4c9fdc8cef4d",
+      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/2144d9647a33eadd4fcce973933c4c9fdc8cef4d.json",
+      "manifest_sha256": "53630e070ea5604a97327e5144add8c70b6f0c442ab8e14c90e1d96de509886d",
+      "qualification": "Exact Strategy2144 development source and all 27 manifest entries are imported and hash-verified; Root browser execution, exact-source CI, combined qualification, and release acceptance remain pending."
     },
     "superseded_runtime_imports": {
       "strategy_8dfeed": {
@@ -108,6 +108,12 @@
         "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/5e49669e455dcbc89a767bbefd38a0682e06f999.json",
         "manifest_sha256": "75131b2bb1e6f5624134716c315e0f10d46f438b14ae758e04ded73e96a5b0f7",
         "qualification": "Superseded by the exact frozen owner successor in the current development import pin; retained as history."
+      },
+      "strategy_73c4398d": {
+        "source_commit": "116f667affc98e0fef5bc4fcaabbd5d460158032",
+        "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/116f667affc98e0fef5bc4fcaabbd5d460158032.json",
+        "manifest_sha256": "e6b4d12a316c4ce883f58e5657a011f07638470232869ba5d7cbfcc1e171d66f",
+        "qualification": "Superseded by exact Strategy2144 successor; previous import manifest and evidence are retained."
       }
     }
   },
@@ -2438,13 +2444,13 @@
       "journey_count": 18,
       "status": "owner_matrix_imported_browser_pending",
       "canonical_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
-      "source_commit": "116f667affc98e0fef5bc4fcaabbd5d460158032",
+      "source_commit": "2144d9647a33eadd4fcce973933c4c9fdc8cef4d",
       "source_blob": "949bc17f48f0b6237b3cec231fae8b1949adf8c7",
       "source_sha256": "92ea7eef8191c0a5c5d817c532e9012bd3633edd4cff89d3f4c1248101e96c0c",
       "browser_specs": [
         {
           "path": "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts",
-          "source_commit": "116f667affc98e0fef5bc4fcaabbd5d460158032",
+          "source_commit": "2144d9647a33eadd4fcce973933c4c9fdc8cef4d",
           "source_blob": "9d6668848f49cd1d094b46314ac4709915c89b10",
           "source_sha256": "5617047eb2ff94e900b47c6568630c48d1eefc57fca27dd8127d02dfca3e75e8",
           "execution_status": "authored_pending_combined_browser_run",
@@ -2478,9 +2484,9 @@
         },
         {
           "path": "frontend/tests/e2e/dashboard_usability_journey.spec.ts",
-          "source_commit": "116f667affc98e0fef5bc4fcaabbd5d460158032",
-          "source_blob": "8767d03b75548333762f84d2726f4496905d6f39",
-          "source_sha256": "3c03f4c4d17907cf907633282b636833d91aa5e0c063632cfa1af80269e4e0b2",
+          "source_commit": "2144d9647a33eadd4fcce973933c4c9fdc8cef4d",
+          "source_blob": "41c0456ed579fbf19c59ea17eacb2689ad156668",
+          "source_sha256": "b792a6710bd73ca6b5c3fe3c2b0149a856d7442fd0407ea50773eb092bf31996",
           "execution_status": "authored_pending_root_run",
           "cases": [
             {
@@ -2536,9 +2542,9 @@
               ]
             }
           ],
-          "source_commit": "116f667affc98e0fef5bc4fcaabbd5d460158032",
-          "source_blob": "fda501f16bef9ed17e85258e70a68166be82f1f9",
-          "source_sha256": "ec34dbdf7bd2e9328be7811a5cec3ec3234e4b92a737cd56baaf2e44a7f88868"
+          "source_commit": "2144d9647a33eadd4fcce973933c4c9fdc8cef4d",
+          "source_blob": "ee3313fea5602fe46b338c7b9498c58f2f34a49f",
+          "source_sha256": "b6dcf58560cde27980be4350b84ea2ef8a5af08fcaad13ac069b07f2936f17d4"
         }
       ]
     }
@@ -2754,9 +2760,10 @@
         "frontend/tests/unit/components/test_easy_scan_tool.test.ts",
         "frontend/tests/unit/components/test_study_lab_tool.test.ts",
         "frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts",
-        "frontend/tests/e2e/dashboard_usability_journey.spec.ts"
+        "frontend/tests/e2e/dashboard_usability_journey.spec.ts",
+        "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts"
       ],
-      "pending_reason": "Current code starts Market Map universe and comparison-leg preparation independently of its local analysis read; Breadth starts group and configured snapshot benchmark preparation alongside local reads; EasyScan and Gauge prepare the exact saved screener/timeframe. Focused tests cover these contracts and progress refresh. Root still owns full visible analysis journeys, cross-tool D1/W1/MN data outcomes, and combined browser acceptance.",
+      "pending_reason": "Focused units now cover replacement-run status selection for EasyScan and Market Gauge plus saved Library dataset-context transfer, including symbol. Root still owns visible factory/browser confirmation, cross-tool D1/W1/MN data outcomes, exact-tip CI, and combined browser acceptance; none is claimed complete.",
       "journey_ids": [
         "TC08"
       ],

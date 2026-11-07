@@ -2432,7 +2432,7 @@ async function openStudyDefinition(definition: StudyDefinitionOpen) {
     parameter_schema: JSON.stringify(definition.parameterSchema ?? {}),
     study_default_parameters: defaults,
   }
-  const stringDefaults = ['universe_source_id', 'symbols', 'timeframe', 'benchmark', 'adjustment', 'session', 'start_date', 'end_date', 'as_of']
+  const stringDefaults = ['symbol', 'universe_source_id', 'symbols', 'timeframe', 'benchmark', 'adjustment', 'session', 'start_date', 'end_date', 'as_of']
   for (const key of stringDefaults) {
     if (typeof defaults[key] === 'string' && defaults[key].trim()) configuration[key] = defaults[key]
   }

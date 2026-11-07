@@ -78,6 +78,7 @@ import { computed, getCurrentInstance, onBeforeUnmount, onMounted, ref } from 'v
 import { useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
 import { invalidateCodeAssets } from '@/lib/workstation/libraryQueries'
+import { useWorkspaceStore } from '@/stores/workspace'
 import PythonSourceEditor from './PythonSourceEditor.vue'
 
 interface CodeVersion {
@@ -116,6 +117,7 @@ const emit = defineEmits<{ 'open-study': [payload: StudyOpenPayload] }>()
 
 const assets = ref<CodeAsset[]>([])
 const queryClient = useQueryClient()
+const workspaceStore = useWorkspaceStore()
 const filter = ref('')
 const loading = ref(false)
 const error = ref('')
@@ -311,13 +313,27 @@ function openableVersion(asset: CodeAsset, versionNumber: number) {
 function openStudyVersion(asset: CodeAsset, versionNumber: number) {
   const version = asset.versions.find(item => item.version_number === versionNumber) ?? latestVersion(asset)
   if (!version || typeof version.id !== 'number' || !Number.isInteger(version.id)) return
+  const studyWindows = (workspaceStore.activeTab?.windows ?? []).filter(window => window.tool_type === 'study_lab')
+  const matchingStudy = [...studyWindows].reverse().find(window => window.configuration.study_run_name === asset.name)
+    ?? [...studyWindows].reverse().find(window => window.configuration.study_name === asset.name)
+  const retainedDatasetContext: Record<string, string> = {}
+  for (const key of [
+    'symbol', 'timeframe', 'benchmark', 'adjustment', 'session',
+    'universe_source_id', 'symbols', 'start_date', 'end_date', 'as_of',
+  ] as const) {
+    const value = matchingStudy?.configuration[key]
+    if (typeof value === 'string' && value.trim()) retainedDatasetContext[key] = value
+  }
   emit('open-study', {
     name: asset.name,
     versionId: version.id,
     source: version.source,
     outputContract: version.output_contract,
     parameterSchema: version.parameter_schema ?? {},
-    defaultParameters: version.default_parameters ?? {},
+    // Reopening an immutable version is a source change, not a request to
+    // discard the current Study's dataset context. WorkstationView maps these
+    // string defaults back to the Study dataset controls on open.
+    defaultParameters: { ...(version.default_parameters ?? {}), ...retainedDatasetContext },
   })
 }
 function openStudy(asset: CodeAsset) {
