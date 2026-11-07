@@ -33806,3 +33806,12 @@ The previous checkpoint's 68 focused results remain intact and were not
 rerun. Root owns the build and native replay; exact-source CI and combined
 release qualification remain pending, and the full Provider roadmap remains
 open.
+
+
+## 2026-11-07 — worker retry recovery after identifier failure
+
+Root's retained native worker trace showed a PostgreSQL `VARCHAR(80)` truncation while repeated normalization rewrote duplicate `INTERNAL` identifier values with ever-growing `__superseded__<row-id>` suffixes. The offending value reached 92 characters. The artifact proves the row type and locally generated suffix; it does not identify the external provider that originally supplied the prefix. The repair now deactivates duplicate internal rows without rewriting their historical values.
+
+The worker now saves the original exception, rolls back the failed transaction, asynchronously refreshes the job, checks the originally claimed lease token, and uses the existing queue CAS to persist retry state. Other claimed jobs are refreshed after a rollback before access. Identity outcome projection explicitly refreshes expired metadata while retaining loaded hold updates. A secondary retry-persistence error is surfaced and chained from the original error.
+
+The separate Redis connection timeout occurred in ARQ `processmain`; current evidence does not establish it as a consequence of the PostgreSQL error, so no Redis restart policy or code behavior was changed. Four focused affected modules passed 118 tests; pinned Ruff check/format and diff checks passed. Root owns the PostgreSQL native replay and exact-source CI; the full Provider/platform roadmaps remain open.

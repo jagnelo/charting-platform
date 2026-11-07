@@ -15734,3 +15734,36 @@ provider_preserve_etf_future_source_hook_regression_20261107:
   provider_http_or_runtime_or_quota_ledger_policy_mutation: false
   exact_source_build_replay_and_ci: pending Root-owned
   full_platform_goal_and_roadmaps: remain open
+
+
+provider_native_worker_retry_identity_20261107:
+  id: provider-native-worker-retry-identity-20261107
+  status: focused_local_green_root_native_replay_and_exact_ci_pending
+  base_source: 13630db12d4f0f5810b9baa73725f75fb7e653cc
+  root_finding: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/root-native13630-worker-retry-identity-review.json
+  diagnosis:
+    - The failing rows are InstrumentIdentifierType.INTERNAL; ensure_internal_identifier generated repeated __superseded__ row-id suffixes locally on every repair. A retained value reached 92 characters against the identifier_value VARCHAR(80) contract. The artifact does not establish which external provider originally supplied the prefix, so no provider attribution is inferred.
+    - The database error leaves the AsyncSession failed and rollback expires ORM state. The retry path previously read job.attempts/metadata before rollback, and identity outcome projection could synchronously read expired metadata.
+    - A separate Redis TimeoutError was recorded in ARQ processmain while connecting to Redis. The evidence does not tie it causally to the PostgreSQL truncation; no speculative Redis restart/retry behavior was changed.
+  implementation:
+    - Duplicate internal identifiers are deactivated without rewriting their historical value. Repeated repair is idempotent and never truncates or mutates source identity evidence.
+    - On job failure, the worker saves the original error text, rolls back, asynchronously refreshes the job, verifies the originally claimed lease token, and only then persists the retry through the existing compare-and-set queue path. Other claimed ORM jobs are refreshed after rollback before use. Secondary persistence errors remain visible and chained from the original error.
+    - Identity outcome recording checks ORM expiry state and explicitly refreshes expired metadata asynchronously, while preserving loaded in-memory hold updates.
+  changed_paths:
+    - backend/app/services/instrument_mastering.py
+    - backend/app/services/data_preparation.py
+    - backend/app/tasks/data_tasks.py
+    - backend/tests/unit/services/test_etf_holdings_bootstrap.py
+    - backend/tests/unit/services/test_data_preparation_contracts.py
+    - backend/tests/unit/tasks/test_data_tasks.py
+    - backend/tests/unit/workers/test_arq_worker.py
+  focused_validation:
+    command: backend/.venv/bin/pytest backend/tests/unit/services/test_etf_holdings_bootstrap.py backend/tests/unit/services/test_data_preparation_contracts.py backend/tests/unit/tasks/test_data_tasks.py backend/tests/unit/workers/test_arq_worker.py -q; pinned Ruff check and format --check on all seven changed Python paths; git diff --check
+    result: 118 passed in 3.86s; Ruff check and format passed; git diff --check passed.
+    regressions:
+      - An 80-character stale INTERNAL identifier remains unchanged and inactive after repeated normalization; the canonical internal identifier remains active.
+      - A failed worker transaction is rolled back before async job refresh and retry; the original error and claimed lease token are preserved.
+      - Expired identity-job metadata is explicitly refreshed before projection.
+  provider_http_runtime_or_quota_ledger_policy_mutation: false
+  exact_source_and_root_native_replay: pending Root-owned
+  full_platform_roadmaps: remain open
