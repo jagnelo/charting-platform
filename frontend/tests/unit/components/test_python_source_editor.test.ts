@@ -1,5 +1,6 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
+import { nextTick } from 'vue'
 
 import PythonSourceEditor from '@/components/workstation/PythonSourceEditor.vue'
 
@@ -55,6 +56,35 @@ describe('PythonSourceEditor', () => {
     expect(editor.attributes('aria-invalid')).toBeUndefined()
     expect(editor.attributes('aria-describedby')).toBe(describedBy?.[1])
     wrapper.unmount()
+  })
+
+  it('dismisses the overlay before an outside action without consuming that action click', async () => {
+    const action = document.createElement('button')
+    action.type = 'button'
+    action.textContent = 'Validate'
+    document.body.append(action)
+    let actionClicks = 0
+    action.addEventListener('click', () => { actionClicks += 1 })
+    const wrapper = mount(PythonSourceEditor, {
+      attachTo: document.body,
+      props: { modelValue: 'market.', ariaLabel: 'Python source' },
+    })
+    const editor = wrapper.find('[aria-label="Python source"]')
+    ;(editor.element as HTMLTextAreaElement).setSelectionRange(7, 7)
+    await editor.trigger('focus')
+    await editor.trigger('keyup')
+    const suggestions = wrapper.get('[role="listbox"]')
+    expect(suggestions.exists()).toBe(true)
+
+    action.dispatchEvent(new Event('pointerdown', { bubbles: true, cancelable: true }))
+    await nextTick()
+    expect(wrapper.find('[role="listbox"]').exists()).toBe(false)
+    action.click()
+    expect(actionClicks).toBe(1)
+    expect((editor.element as HTMLTextAreaElement).value).toBe('market.')
+
+    wrapper.unmount()
+    action.remove()
   })
 
   it('normalizes line endings and trailing whitespace without changing code semantics', async () => {

@@ -1,5 +1,5 @@
 import { test, expect } from './helpers'
-import type { Locator, Page, Response, Route } from '@playwright/test'
+import type { Locator, Page, Request, Response, Route } from '@playwright/test'
 
 type DashboardWidget = {
   id: number
@@ -67,6 +67,15 @@ function dailyBarsResponse(page: Page, symbol: string, limit: number) {
   }, { timeout: 20_000 })
 }
 
+function localDailyBarsResponse(page: Page, symbol: string, limit: number) {
+  return page.waitForResponse(response => {
+    if (response.request().method() !== 'GET') return false
+    const url = new URL(response.url())
+    return url.pathname === `/api/v1/ohlcv/local/${encodeURIComponent(symbol)}/D1`
+      && Number(url.searchParams.get('limit')) === limit
+  }, { timeout: 20_000 })
+}
+
 function preparationResponse(page: Page, symbol: string) {
   return page.waitForResponse(response => {
     if (response.request().method() !== 'POST' || responsePath(response) !== '/api/v1/data/ensure') return false
@@ -111,6 +120,68 @@ async function expectSeriesPainted(chart: Locator, color: string) {
     }
     return matching
   }, { red, green, blue }), { timeout: 5_000, intervals: [100, 250, 500] }).toBeGreaterThan(8)
+}
+
+async function expectAdvancedCandlesPainted(widget: Locator) {
+  const plot = widget.locator('.advanced-chart-widget .chart-root .uplot')
+  await expect(plot).toBeVisible()
+  const canvas = plot.locator('canvas').first()
+  await expect(canvas).toBeVisible()
+  await expect.poll(() => canvas.evaluate(element => {
+    const canvas = element as HTMLCanvasElement
+    const context = canvas.getContext('2d')
+    if (!context || !canvas.width || !canvas.height) return 0
+    const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data
+    let candles = 0
+    for (let offset = 0; offset < pixels.length; offset += 4) {
+      if (pixels[offset + 3]! <= 220) continue
+      const up = Math.abs(pixels[offset]! - 38) <= 10
+        && Math.abs(pixels[offset + 1]! - 166) <= 10
+        && Math.abs(pixels[offset + 2]! - 154) <= 10
+      const down = Math.abs(pixels[offset]! - 239) <= 10
+        && Math.abs(pixels[offset + 1]! - 83) <= 10
+        && Math.abs(pixels[offset + 2]! - 80) <= 10
+      if (up || down) candles++
+    }
+    return candles
+  }), { timeout: 30_000, intervals: [100, 250, 500] }).toBeGreaterThan(20)
+}
+
+type CachedInstrumentProfile = {
+  symbol: string
+  name?: string | null
+  description?: string | null
+  currency?: string | null
+  equity_detail?: { sector?: string | null; industry?: string | null; country?: string | null } | null
+}
+
+async function expectUsefulInstrumentDetails(widget: Locator, response: Response, symbol: string) {
+  expect(response.ok()).toBe(true)
+  const profile = await response.json() as CachedInstrumentProfile
+  expect(profile.symbol).toBe(symbol)
+  const name = profile.name || profile.description
+  expect(name?.trim()).toBeTruthy()
+  await expect(widget.locator('.details-symbol')).toHaveText(symbol)
+  await expect(widget.locator('.details-name')).toHaveText(name!)
+
+  const descriptiveFields: Array<[string, string | null | undefined]> = [
+    ['Currency', profile.currency],
+    ['Sector', profile.equity_detail?.sector],
+    ['Industry', profile.equity_detail?.industry],
+    ['Country', profile.equity_detail?.country],
+  ]
+  const availableFields = descriptiveFields.filter(([, value]) => Boolean(value?.trim()))
+  expect(availableFields.length, 'cached profile must expose useful descriptive metadata').toBeGreaterThanOrEqual(2)
+  for (const [label, value] of availableFields) {
+    const row = widget.locator('.detail-row').filter({ has: widget.getByText(label, { exact: true }) })
+    await expect(row.locator('b')).toHaveText(value!)
+  }
+}
+
+function deferredGate() {
+  let release!: () => void
+  const promise = new Promise<void>(resolve => { release = resolve })
+  return { promise, release }
 }
 
 async function expectComparisonTooltip(page: Page, chart: Locator, symbols: string[]) {
@@ -633,4 +704,163 @@ test('Dashboard search resolves exact and explicit candidates and ignores a supe
   await browserDiagnostics.expectNoCriticalIssues()
   // Discovery/acquire and the resulting history-unavailable response are controlled transition fixtures;
   // this journey does not claim genuine source discovery or history acquisition.
+})
+
+test('Dashboard Advanced Chart and Instrument Details stay useful on cached data while each preparation is pending and after reload', async ({ page, loggedIn, browserDiagnostics }) => {
+  test.setTimeout(180_000)
+  const spyGate = deferredGate()
+  const xlbGate = deferredGate()
+  const releasedSymbols = new Set<string>()
+  const heldRequests = new Set<Request>()
+  const completedRequests = new Set<Request>()
+  let markSpyEnsureStarted!: () => void
+  let markXlbEnsureStarted!: () => void
+  const spyEnsureStarted = new Promise<void>(resolve => { markSpyEnsureStarted = resolve })
+  const xlbEnsureStarted = new Promise<void>(resolve => { markXlbEnsureStarted = resolve })
+
+  await page.route('**/api/v1/data/ensure', async route => {
+    const body = route.request().postDataJSON() as {
+      target?: { kind?: string; symbol?: string }
+      datasets?: string[]
+      timeframe?: string
+    }
+    const symbol = body.target?.symbol?.toUpperCase()
+    if (body.target?.kind === 'instrument' && body.timeframe === 'D1'
+      && body.datasets?.includes('history') && symbol === 'SPY' && !releasedSymbols.has(symbol)) {
+      heldRequests.add(route.request())
+      markSpyEnsureStarted()
+      await spyGate.promise
+    } else if (body.target?.kind === 'instrument' && body.timeframe === 'D1'
+      && body.datasets?.includes('history') && symbol === 'XLB' && !releasedSymbols.has(symbol)) {
+      heldRequests.add(route.request())
+      markXlbEnsureStarted()
+      await xlbGate.promise
+    }
+    await route.continue()
+  })
+  page.on('response', response => {
+    if (response.request().method() !== 'POST' || responsePath(response) !== '/api/v1/data/ensure') return
+    completedRequests.add(response.request())
+  })
+
+  try {
+    await page.goto('/dashboard')
+    await expect(page.locator('.dashboard-view')).toBeVisible()
+
+    const spyBars = localDailyBarsResponse(page, 'SPY', 500)
+    const spyEnsureResponse = page.waitForResponse(response =>
+      response.request().method() === 'POST' && responsePath(response) === '/api/v1/data/ensure'
+      && (response.request().postDataJSON() as { target?: { symbol?: string }; datasets?: string[] }).target?.symbol?.toUpperCase() === 'SPY'
+      && (response.request().postDataJSON() as { datasets?: string[] }).datasets?.includes('history') === true,
+      { timeout: 20_000 },
+    )
+    const advancedRecord = await addWidget(page, 'Advanced Chart')
+    await closeConfig(page)
+    await spyEnsureStarted
+
+    const actualSpyBars = await assertUsefulBars(await spyBars, 50)
+    const advanced = page.locator('.dashboard-widget').filter({ has: page.locator('.advanced-chart-widget') })
+    await expect(advanced).toHaveCount(1)
+    await expect(advanced.locator('.advanced-chart-widget .chart-root')).toBeVisible()
+    await expectAdvancedCandlesPainted(advanced)
+    expect(actualSpyBars.at(-1)?.close).toBeGreaterThan(0)
+    const heldSpyRequests = [...heldRequests].filter(request =>
+      (request.postDataJSON() as { target?: { symbol?: string } }).target?.symbol?.toUpperCase() === 'SPY',
+    )
+    expect(heldSpyRequests.length).toBeGreaterThan(0)
+    expect(heldSpyRequests.some(request => completedRequests.has(request))).toBe(false)
+
+    releasedSymbols.add('SPY')
+    spyGate.release()
+    const spyPreparation = await spyEnsureResponse
+    expect(spyPreparation.ok()).toBe(true)
+    expect(heldRequests.has(spyPreparation.request())).toBe(true)
+    expect(completedRequests.has(spyPreparation.request())).toBe(true)
+    expect((spyPreparation.request().postDataJSON() as { target?: unknown; datasets?: string[]; timeframe?: string })).toMatchObject({
+      target: { kind: 'instrument', symbol: 'SPY' },
+      timeframe: 'D1',
+    })
+    expect((spyPreparation.request().postDataJSON() as { datasets?: string[] }).datasets)
+      .toEqual(expect.arrayContaining(['profile', 'history']))
+
+    const detailsRecord = await addWidget(page, 'Instrument Details')
+    const detailsSearch = page.locator('.config-modal .dash-search-input')
+    const detailsSave = page.waitForResponse(response =>
+      response.request().method() === 'PATCH'
+        && responsePath(response) === `/api/v1/dashboards/widgets/${detailsRecord.id}`,
+    )
+    const xlbProfile = instrumentProfileResponse(page, 'XLB')
+    const xlbBars = dailyBarsResponse(page, 'XLB', 260)
+    const xlbEnsureResponse = page.waitForResponse(response =>
+      response.request().method() === 'POST' && responsePath(response) === '/api/v1/data/ensure'
+      && (response.request().postDataJSON() as { target?: { symbol?: string }; datasets?: string[] }).target?.symbol?.toUpperCase() === 'XLB'
+      && (response.request().postDataJSON() as { datasets?: string[] }).datasets?.includes('history') === true,
+      { timeout: 20_000 },
+    )
+    await detailsSearch.fill('XLB')
+    expect((await detailsSave).ok()).toBe(true)
+    await xlbEnsureStarted
+    await closeConfig(page)
+
+    const actualXlbProfile = await xlbProfile
+    await assertUsefulBars(await xlbBars, 50)
+    const details = page.locator('.dashboard-widget').filter({ has: page.locator('.details-widget') })
+    await expect(details).toHaveCount(1)
+    await expectUsefulInstrumentDetails(details, actualXlbProfile, 'XLB')
+    const heldXlbRequests = [...heldRequests].filter(request =>
+      (request.postDataJSON() as { target?: { symbol?: string } }).target?.symbol?.toUpperCase() === 'XLB',
+    )
+    expect(heldXlbRequests.length).toBeGreaterThan(0)
+    expect(heldXlbRequests.some(request => completedRequests.has(request))).toBe(false)
+
+    releasedSymbols.add('XLB')
+    xlbGate.release()
+    const xlbPreparation = await xlbEnsureResponse
+    expect(xlbPreparation.ok()).toBe(true)
+    expect(heldRequests.has(xlbPreparation.request())).toBe(true)
+    expect(completedRequests.has(xlbPreparation.request())).toBe(true)
+    expect((xlbPreparation.request().postDataJSON() as { target?: unknown; datasets?: string[]; timeframe?: string })).toMatchObject({
+      target: { kind: 'instrument', symbol: 'XLB' },
+      timeframe: 'D1',
+    })
+    expect((xlbPreparation.request().postDataJSON() as { datasets?: string[] }).datasets)
+      .toEqual(expect.arrayContaining(['profile', 'history']))
+
+    const beforeReload = await persistedDashboard(page)
+    expect(beforeReload.tabs.flatMap(tab => tab.widgets).find(widget => widget.id === advancedRecord.id)).toMatchObject({
+      widget_type: 'advanced_chart',
+      config: { symbol: 'SPY', timeframe: 'D1', chartType: 'candles' },
+    })
+    expect(beforeReload.tabs.flatMap(tab => tab.widgets).find(widget => widget.id === detailsRecord.id)).toMatchObject({
+      widget_type: 'instrument_details',
+      config: { symbol: 'XLB', timeframe: 'D1' },
+    })
+
+    const restoredSpyBars = localDailyBarsResponse(page, 'SPY', 500)
+    const restoredXlbProfile = instrumentProfileResponse(page, 'XLB')
+    const restoredXlbBars = dailyBarsResponse(page, 'XLB', 260)
+    await page.reload()
+    await expect(page.locator('.dashboard-view')).toBeVisible()
+    const restoredAdvanced = page.locator('.dashboard-widget').filter({ has: page.locator('.advanced-chart-widget') })
+    const restoredDetails = page.locator('.dashboard-widget').filter({ has: page.locator('.details-widget') })
+    await expect(restoredAdvanced).toHaveCount(1)
+    await expect(restoredDetails).toHaveCount(1)
+    await assertUsefulBars(await restoredSpyBars, 50)
+    await expectAdvancedCandlesPainted(restoredAdvanced)
+    await assertUsefulBars(await restoredXlbBars, 50)
+    await expectUsefulInstrumentDetails(restoredDetails, await restoredXlbProfile, 'XLB')
+    const afterReload = await persistedDashboard(page)
+    expect(afterReload.tabs.flatMap(tab => tab.widgets).find(widget => widget.id === advancedRecord.id)?.config)
+      .toMatchObject({ symbol: 'SPY', timeframe: 'D1', chartType: 'candles' })
+    expect(afterReload.tabs.flatMap(tab => tab.widgets).find(widget => widget.id === detailsRecord.id)?.config)
+      .toMatchObject({ symbol: 'XLB', timeframe: 'D1' })
+    await browserDiagnostics.expectNoCriticalIssues()
+    // Only POST /data/ensure is held. Instrument profiles and OHLCV responses above are real backend reads;
+    // no profile/history response or provider outcome is fabricated by this journey.
+  } finally {
+    releasedSymbols.add('SPY')
+    releasedSymbols.add('XLB')
+    spyGate.release()
+    xlbGate.release()
+  }
 })

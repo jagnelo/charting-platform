@@ -290,12 +290,13 @@
         "frontend/tests/unit/components/test_code_library_tool.test.ts :: keeps a validated Library draft retryable after immutable version persistence fails",
         "frontend/tests/unit/components/test_code_library_tool.test.ts :: announces successful source validation as a polite status",
         "frontend/tests/unit/components/test_code_library_tool.test.ts :: blocks a syntactically valid source whose output contract disagrees with the asset kind",
-        "frontend/tests/unit/components/test_code_library_tool.test.ts :: accepts unchanged existing-version source with its normal trailing newline"
+        "frontend/tests/unit/components/test_code_library_tool.test.ts :: accepts unchanged existing-version source with its normal trailing newline",
+        "frontend/tests/unit/components/test_python_source_editor.test.ts :: dismisses the overlay before an outside action without consuming that action click"
       ],
       "api_evidence": [
         "POST /code/validate; POST /code/assets/{id}/versions; backend/tests/integration/api/test_code.py :: test_code_assets_are_immutable_versions and test_code_asset_rejects_defaults_that_violate_its_parameter_schema"
       ],
-      "browser_evidence": "Authored in frontend/tests/e2e/strategy_study_journey.spec.ts: delayed-save context is component-tested; the normal browser path edits, validates, saves a new immutable version, returns to Study and submits a run with the new version ID. Execution remains pending Root's combined browser gate.",
+      "browser_evidence": "Root R56 passed one isolated existing-asset diagnostic: a trusted Validate click submitted the exact edited source to /api/v1/code/validate, returned200/valid=true, and displayed Validated. This is not the full cold Study-to-Library journey. Root R58b traced that full-flow click miss to the SDK suggestions being dismissed on document pointerdown and reflowing the target before mouseup. Strategy now places the bounded suggestion popup above the editor component, preserving ordinary Validate/Save hit targets and accessible pointer/keyboard choices. Focused unit test and type-check pass; the complete edited-source validation, immutable save, return and run browser journey remains pending Root.",
       "approved_journey": [
         "J10 Study: immutable saved version and return into Study workflow",
         "J12 recovery: delayed validation/refresh failure"
@@ -479,31 +480,60 @@
       "surface": "DashboardInstrumentSearch",
       "route": "/dashboard Configure symbol/comparison member search.",
       "actions": [
+        "auto-resolve a uniquely identified exact cached ticker even while external discovery is held",
         "resolve an uncached unique exact query",
         "choose explicitly from an ambiguous prefix result",
         "change query while an earlier discovery response is delayed"
       ],
-      "visible_outcome": "A controlled uncached QZX exact result resolves only its full identity binding; ambiguous AMB-A/AMB-B candidates are not acquired until AMB-B is explicitly chosen; after OLD is superseded by NEW, only a current NEW candidate reaches acquisition and saved config.",
+      "visible_outcome": "A uniquely resolved cached XLB selection commits without waiting for held external discovery; a superseded late local identity response cannot overwrite the newer query. A controlled uncached QZX exact result resolves only its full identity binding; ambiguous AMB-A/AMB-B candidates are not acquired until AMB-B is explicitly chosen; after OLD is superseded by NEW, only a current NEW candidate reaches acquisition and saved config.",
       "unit_evidence": [
         "frontend/tests/unit/components/test_dashboard_instrument_search.test.ts :: keeps prefix discovery results as candidates until the user explicitly selects one",
         "frontend/tests/unit/components/test_dashboard_instrument_search.test.ts :: resolves one unique exact ticker without exposing provider choices",
         "frontend/tests/unit/components/test_dashboard_instrument_search.test.ts :: does not guess when an exact ticker has multiple listing candidates",
-        "frontend/tests/unit/components/test_dashboard_instrument_search.test.ts :: ignores a superseded discovery response after the query changes"
+        "frontend/tests/unit/components/test_dashboard_instrument_search.test.ts :: ignores a superseded discovery response after the query changes",
+        "frontend/tests/unit/components/test_dashboard_instrument_search.test.ts :: selects an exact cached listing while external discovery remains held",
+        "frontend/tests/unit/components/test_dashboard_instrument_search.test.ts :: ignores a late exact cached resolution after a newer search intent"
       ],
       "api_evidence": [
         "POST /api/v1/instruments/discover and /api/v1/instruments/acquire plus shared /api/v1/data/ensure contract.",
         "The E2E discovery, identity resolution, unused-default QQQ/DIA preparation and unavailable-history responses are controlled route fixtures. This is not genuine source discovery, provider acquisition, or a history-fetch claim."
       ],
-      "browser_evidence": "Root R49 ran the predecessor 4-case Dashboard source once:1pass/3fail/100.73s; save rollback/retry passed, with two browser test setup defects and one real portal-dismissal defect. Current limit/retry setup and portal containment corrections are local and unexecuted; Root owns the next combined run.",
+      "browser_evidence": "Root R57 is terminal 5 pass / 4 fail in 396.66s on the predecessor source. Its exact cached-XLB selection failure remains the owned issue addressed here; the new local resolver and held-discovery behavior have not run in a browser.",
       "approved_journey": [
         "J01 first-use/return: identity-aware instrument selection",
         "J11 supporting: listing-safe Dashboard configuration",
         "J12 recovery: stale search response fencing"
       ]
+    },
+    {
+      "surface": "Dashboard Advanced Chart and Instrument Details",
+      "route": "/dashboard via public widget catalogue and Configure actions.",
+      "actions": [
+        "create an Advanced Chart with its seeded SPY D1 candle configuration",
+        "show cached SPY candles and real local bars while its D1 history preparation request is held",
+        "create Instrument Details and select seeded XLB through the ordinary search control",
+        "show real XLB profile metadata and local D1 bars while XLB preparation is held independently",
+        "release each preparation separately, verify the submitted target/dataset request, then reload and verify both saved widgets"
+      ],
+      "visible_outcome": "The Advanced Chart paints actual seeded SPY candle pixels with a finite returned-bar witness during held SPY preparation; Instrument Details shows the actual XLB name and at least two returned descriptive fields with actual XLB bars during its separate held preparation. Each real ensure request is then released and checked, and both widget identities/configurations and useful content survive reload.",
+      "unit_evidence": [
+        "frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts :: cached chart data remains visible while preparation is pending and stale contexts are fenced",
+        "frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts :: cached profile/history remains useful while preparation is pending and contexts are fenced",
+        "frontend/tests/unit/components/test_dashboard_instrument_search.test.ts :: selects an exact cached listing while external discovery remains held"
+      ],
+      "api_evidence": [
+        "GET /api/v1/ohlcv/local/SPY/D1?limit=500 and GET /api/v1/instruments/XLB plus the local XLB D1 history response are ordinary backend reads.",
+        "The E2E holds only matching POST /api/v1/data/ensure requests, then continues those real requests and asserts their instrument target, D1 timeframe, profile/history datasets and success response. It does not fabricate profile, OHLCV, or preparation results."
+      ],
+      "browser_evidence": "Authored and discovered as a fifth Dashboard journey; browser body is pending Root's next combined candidate. The frozen R57 run does not include this added journey or the exact-cache search repair.",
+      "approved_journey": [
+        "J01 first-use/return: useful cached market context",
+        "J11 supporting: independent history-backed widget preparation and persisted dashboard configuration"
+      ]
     }
   ],
   "known_coverage_gaps": [
-    "Root has run predecessor Strategy/Workstation and Dashboard bodies (R46 and R49) with real failures preserved; current owner corrections are focused-tested/type-checked/discovered but have not been browser-executed. Root's combined source run remains required.",
+    "Root R57 is terminal 5 pass / 4 fail in 396.66s on its frozen predecessor: two Strategy-owned failures were the cached exact-XLB selection path and the whole Study-to-Library cold-flow source witness; TC owns the asynchronous EasyScan lifecycle repair. The current cached-search and five-case Dashboard source changes are focused-checked/discovered only; Root must execute them on a new combined candidate.",
     "The new Library-to-Study return is specified in the Study E2E but remains unexecuted until Root's compatible Producer API and combined profile are available.",
     "The visible Paper forward mode is not activated or qualified by this usability scope; retain existing forward/native/broker/capital holds and report the boundary rather than treating UI presence as support."
   ],
@@ -511,13 +541,13 @@
   "approved_plan": " /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/APPROVED-PLAN.md",
   "tc_common_runtime": {
     "owner": "TC",
-    "current_source": "1fdc92f1a1628d191ad1d5b2f0ba071a80df5052",
-    "contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-1fdc92f1-common-runtime-development-consumption-contract.json",
-    "contract_sha256": "fddaab9536bb885b9656e861ece0df60481466e365e2b04612c953404f57b70d",
-    "active_manifest_entries": 77,
-    "qualification": "Exact development consumption only: all five Strategy old_guards matched TC45; the five declared paths were imported, and all77 manifest SHA256/Git blob/status/executable-bit records match the consumer tree. Root reports the exact frontend build and four affected ordinary browser journeys running; terminal browser results are pending. This does not establish browser or release acceptance.",
-    "delta_paths_over_previous": 5,
-    "previous_source": "45ea51bfa78b6ae167462b518358164a5a3e29f4",
+    "current_source": "e902e83597661de1e5a636a2d94902b0fe01b747",
+    "contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-e902e835-common-runtime-development-consumption-contract.json",
+    "contract_sha256": "a87a59f7c1e76e1c8273e2949b67d676d72a43ee2b691463f82482567c71683f",
+    "active_manifest_entries": 86,
+    "qualification": "Exact development consumption only: the two declared Strategy paths matched their guarded2666 bytes before import; all86 source manifest rows match SHA256/Git blob/status_from139/executable mode. Root reports24 EasyScan tests/type/scope pass; browser and release acceptance remain pending.",
+    "delta_paths_over_previous": 2,
+    "previous_source": "2666aa559afbff7cff8dff6b50ead357ae1f654f",
     "historical_delta_paths_over_d5": 10,
     "superseded_runtime": {
       "source": "ce2262ab2d47fc1ccda96f0c2aa7c8839e4e03f9",
@@ -538,8 +568,8 @@
   "workstation_lifecycle": {
     "owner": "Strategy browser-spec author; TC owns shared workstation product and global matrix",
     "spec": "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts",
-    "source_pin": "TC a2e222251d4ea796d0d4bfb6b0e8705f503c1e4d; Provider182173f346d4a27694a46beba057102a5b7449e6; ETF SearchBar remains exact a0c5250 dependency",
-    "status": "authored_with_predecessor_R46_evidence_current_corrections_pending_Root_browser_run",
+    "source_pin": "TC e902e83597661de1e5a636a2d94902b0fe01b747; Provider22c31cd3e7f35e361e286ef40576d379aaf44449; ETF SearchBar remains exact a0c5250 dependency",
+    "status": "authored_with_R57_terminal_evidence_and_current_corrections_pending_Root_browser_run",
     "journeys": [
       {
         "id": "WL1",
@@ -563,12 +593,12 @@
           "derive the canonical 21-entry authenticated tool catalogue and all 8 default factory layouts",
           "fail if any catalogue entry or factory window lacks a useful-outcome mapping",
           "close and recreate all 21 catalogue entries through public Add tool controls",
-          "run a one-instrument EasyScan and select its retained result in Market Gauge",
+          "run a one-instrument EasyScan, wait for that exact run to complete with useful coverage, and select its retained result in Market Gauge",
           "inspect Study Lab run and persisted Study Results artifact, create/validate/save a Python Library asset",
           "seed My Favorites through the Chart window star action before reading its rows",
           "verify chart and ratio series-color pixels, Market Map tile selection, and Relative Rotation marker-arc centers plus keyboard tooltip"
         ],
-        "visible_outcome": "The spec derives tool titles and the eight factory layouts from the authenticated canonical endpoints; missing catalogue/factory mappings fail. The factory Breadth window is mapped to the canonical breadth outcome, and the recreation flow closes alias panels by canonical catalogue key plus tool_type (for example breadth/breadth-summary and chart/primary-chart) before opening the public catalogue entry. All21 catalogue entries have visible outcomes including My Favorites populated by the public Chart star action, actual EasyScan coverage and finite Gauge reading, ordinary Study output in Results, saved validated Python Library asset, Market Map selection, chart/ratio series-color paint, and Relative Rotation markers captured from the current document's latest canvas frame: only arcs at least 3.4 DPR are eligible, centers must be finite, and each center pixel must be opaque and match a canonical state color. The failure report retains canvas bounds, frame counter, centers and RGBA values. Keyboard plot interaction remains asserted. The broad catalogue story has a240-second test timeout. Root R46 executed the predecessor and captured visible RRG point paint before the old marker audit failed. The current diagnostic correction is pending Root execution; no marker-center browser pass is claimed.",
+        "visible_outcome": "The spec derives tool titles and the eight factory layouts from the authenticated canonical endpoints; missing catalogue/factory mappings fail. The factory Breadth window is mapped to the canonical breadth outcome, and the recreation flow closes alias panels by canonical catalogue key plus tool_type (for example breadth/breadth-summary and chart/primary-chart) before opening the public catalogue entry. All21 catalogue entries have visible outcomes including My Favorites populated by the public Chart star action, actual EasyScan coverage and finite Gauge reading, ordinary Study output in Results, saved validated Python Library asset, Market Map selection, chart/ratio series-color paint, and Relative Rotation markers captured from the current document's latest canvas frame: only arcs at least 3.4 DPR are eligible, centers must be finite, and each center pixel must be opaque and match a canonical state color. The failure report retains canvas bounds, frame counter, centers and RGBA values. Keyboard plot interaction remains asserted. My Favorites Last and Chg % are compared to the latest two real canonical local SPY D1 bars; benchmark/sector configured-return checks remain. The EasyScan assertion waits for its exact run ID to appear as completed with nonzero evaluated coverage, then requires the visible counts and match total to agree with that terminal API result. The broad catalogue story retains its240-second test timeout. Root R57 terminal evidence includes full RRG graph/math/tails/selection/resize/maximize/copy/tab restore pass; TC's separate EasyScan async-polling defect remains assigned and this stricter recreated-tool journey is pending Root execution.",
         "evidence": [
           "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts :: closes and recreates every canonical catalogue tool with a per-family useful-content witness",
           "backend/app/services/workstation_tool_catalogue.py :: authenticated canonical 21-tool catalogue",
@@ -576,7 +606,7 @@
           "frontend/src/components/workstation/RelativeRotationTool.vue :: 3.5-DPR latest-point arcs and keyboard tooltip interaction",
           "frontend/src/components/workstation/MarketGaugeTool.vue and EasyScanTool.vue :: retained scan selection and evaluated/universe coverage"
         ],
-        "browser_evidence": "Root R46 predecessor test source fadd181 ran this journey and stopped at the marker-center assertion after visible point paint; the current per-frame diagnostic correction is authored but not executed. Root owns the next combined browser run."
+        "browser_evidence": "Root R57 terminal 5 pass / 4 fail: the full RRG graph/math/tail/selection/resize/maximize/copy/tab-restore journey passed. The independent EasyScan result was queued and TC owns the async polling product repair. The Strategy My Favorites canonical Last/Chg % comparison and exact terminal EasyScan browser assertion are authored but not run; Root owns the next combined run."
       },
       {
         "id": "WL3",
@@ -688,14 +718,18 @@
   ],
   "provider_runtime": {
     "owner": "Provider",
-    "current_source": "dd70319eb725dc6b5c1b4feb0ba5a5ba060efd04",
-    "contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providerdd70319e-runtime-development-consumption-contract.json",
-    "contract_sha256": "9679b42e3e8dc4190d1b221b7b4ce7c0b86b3cd66d90e5a4f936eb8e61c6e95e",
+    "current_source": "22c31cd3e7f35e361e286ef40576d379aaf44449",
+    "contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider22c31cd3-runtime-development-consumption-contract.json",
+    "contract_sha256": "a5079b0eb78a8fd67e48e94a7d749bc171ffa2b21165fc9c59c405501dc2db85",
     "strategy_import_paths": [
-      "backend/app/routers/analysis.py",
-      "backend/tests/unit/routers/test_analysis_router.py"
+      "backend/app/config.py",
+      "backend/app/providers/optional_market_data.py",
+      "backend/app/services/provider_runtime.py",
+      "backend/app/tasks/data_tasks.py",
+      "backend/tests/unit/providers/test_optional_market_data.py",
+      "backend/tests/unit/services/test_data_preparation_history_planning.py"
     ],
-    "source_manifest_entries_verified": 61,
-    "qualification": "Exact development consumption; the two declared Strategy imports match SHA256/Git blob/executable mode, and all61 source records match the exact source commit and base-to-source status. Root backend/worker rebuild is in progress; no browser/release acceptance is implied."
+    "source_manifest_entries_verified": 67,
+    "qualification": "Exact Provider22c31cd3 development import; six declared paths and all67 source records match the Root manifest. This is development context only; full browser/profile, exact-source CI, integrated and release acceptance remain pending."
   }
 }

@@ -42,7 +42,7 @@
     <p v-if="error" class="easy-scan__error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</p>
     <p v-if="plotDropStatus" class="easy-scan__drop-status" role="status" aria-live="polite" aria-atomic="true">{{ plotDropStatus }}</p>
     <p v-if="preparationNotice" class="easy-scan__preparation-notice" role="status" aria-live="polite" aria-atomic="true">{{ preparationNotice }}</p>
-    <p v-if="busy" class="easy-scan__state" role="status" aria-live="polite" aria-atomic="true"><span>{{ status }}</span><button v-if="pythonResearchRunId" type="button" @click="cancelPythonRun">Cancel</button></p>
+    <p v-if="busy || activeRunStatus" class="easy-scan__state" role="status" aria-live="polite" aria-atomic="true"><span>{{ activeRunStatus || status }}</span><button v-if="activeResearchRunId" type="button" @click="cancelPythonRun">Cancel</button></p>
     <div v-if="result" class="easy-scan__result">
       <label v-if="resultHistory.length" class="easy-scan__history">Result <select v-model="selectedResultId" aria-label="Scan result history"><option value="">Latest</option><option v-for="item in resultHistory" :key="item.id" :value="String(item.id)">{{ item.run_at ? new Date(item.run_at).toLocaleString() : `Run ${item.id}` }}</option></select></label>
       <span><b>{{ result.matched_ids?.length ?? 0 }}</b> matches · {{ coverageText }}</span>
@@ -114,19 +114,18 @@ const resultContextKey = ref('')
 const alertTrigger = ref('entered')
 const alertCreated = ref(false)
 const cancelRequested = ref(false)
+const activeResearchRunId = ref<number | null>(null)
+const activeRunStatus = ref('')
 const plotDropActive = ref(false)
 const plotDropStatus = ref('')
 const advancedToggle = ref<HTMLButtonElement | null>(null)
 const advancedRoot = ref<HTMLElement | null>(null)
 let mounted = false
 let loadGeneration = 0
+let runGeneration = 0
 let preparationController: AbortController | null = null
 let preparationContextKey = ''
 let preparationRefreshQueue = new PreparationProgressRefreshQueue()
-const pythonResearchRunId = computed(() => {
-  const value = result.value?.result_data?._python_research_run_id
-  return Number.isInteger(value) ? value as number : null
-})
 const validCondition = computed(() => Boolean(conditionName.value) && (advancedMode.value
   ? advancedGroup.value.conditions.length > 0
   : Number.isFinite(Number(value.value))))
@@ -229,8 +228,12 @@ async function saveCondition() {
   finally { busy.value = false }
 }
 async function run() {
-  if ((!selectedKey.value && !selectedPythonVersion.value) || !scanName.value) return
+  if (busy.value || (!selectedKey.value && !selectedPythonVersion.value) || !scanName.value) return
+  const generation = ++runGeneration
+  const isCurrentRun = () => mounted && generation === runGeneration
   busy.value = true; error.value = ''; preparationNotice.value = ''; alertCreated.value = false; cancelRequested.value = false; status.value = 'Preparing local EasyScan…'
+  activeResearchRunId.value = null
+  activeRunStatus.value = ''
   try {
     const universe: Record<string, unknown> = { universe_type: universeType.value, timeframe: scanTimeframe.value }
     if (scanSchedule.value !== 'manual') universe.schedule = scanSchedule.value === 'daily_close' ? '0 16 * * 1-5' : '0 16 * * 5'
@@ -261,6 +264,7 @@ async function run() {
       if (!found) throw cause
       scan = found
     }
+    if (!isCurrentRun()) return
     const priorResultContext = resultContextKey.value
     scanId.value = scan.id
     // Publish the canonical scan immediately. Several already-mounted Gauge and
@@ -274,7 +278,7 @@ async function run() {
     })
     const savedDefinition = await api.get<SavedScanDefinition>(`/screeners/${scan.id}`)
     if (!savedDefinition) throw new Error('The saved scan definition is unavailable; no scan was run.')
-    if (!mounted) return
+    if (!isCurrentRun()) return
     assertSavedScanMatchesIntent(savedDefinition, universe)
     const savedContext = savedScreenerContextKey(savedDefinition)
     if (priorResultContext && priorResultContext !== savedContext) {
@@ -289,25 +293,89 @@ async function run() {
     // without requiring a manual refresh or remount.
     await queryClient.invalidateQueries({ queryKey: ['workstation', 'screeners'] })
     await queryClient.refetchQueries({ queryKey: ['workstation', 'screeners'], type: 'all' })
+    if (!isCurrentRun()) return
     status.value = 'Evaluating canonical local data…'
-    result.value = await api.post<ScanResult>(`/screeners/${scan.id}/run`, {})
-    if (selectedPythonVersion.value) {
-      for (let attempt = 0; attempt < 30; attempt += 1) {
-        const status = String(result.value.result_data?._status ?? '')
-        if (['completed', 'failed', 'canceled'].includes(status)) break
-        await new Promise(resolve => setTimeout(resolve, 250))
-        const retained = await queryClient.fetchQuery<ScanResult[]>({
-          queryKey: ['workstation', 'screener-results', scan.id],
-          queryFn: async () => (await api.get<ScanResult[]>(`/screeners/${scan.id}/results`, { limit: 1 })) ?? [],
-          staleTime: 0,
-        })
-        if (retained[0]) result.value = retained[0]
+    const priorResult = result.value
+    const submitted = await api.post<ScanResult>(`/screeners/${scan.id}/run`, {})
+    if (!isCurrentRun()) return
+    const submittedStatus = scanResultStatus(submitted)
+    activeResearchRunId.value = scanResearchRunId(submitted)
+    const submittedResultId = scanResultRowId(submitted)
+    const submittedIsSynchronous = !submittedStatus && activeResearchRunId.value == null
+    if (submittedStatus === 'completed' || submittedIsSynchronous) {
+      result.value = submitted
+      activeRunStatus.value = 'Scan completed.'
+      activeResearchRunId.value = null
+    } else if (submittedStatus === 'failed' || submittedStatus === 'canceled') {
+      // A failed attempt is not a replacement for the last useful result.
+      result.value = priorResult
+      activeRunStatus.value = submittedStatus === 'failed' ? 'Scan failed.' : 'Scan canceled.'
+      activeResearchRunId.value = null
+      if (submitted.error) error.value = submitted.error
+    } else {
+      activeRunStatus.value = scanProgressMessage(submittedStatus)
+      if (activeResearchRunId.value == null && submittedResultId == null) {
+        result.value = priorResult
+        activeRunStatus.value = 'Scan submitted; its status identifier is unavailable.'
+        error.value = 'The scan status could not be tracked. The last completed result remains available.'
+      } else {
+        while (isCurrentRun()) {
+          await new Promise(resolve => setTimeout(resolve, 250))
+          if (!isCurrentRun()) return
+          const retained = await queryClient.fetchQuery<ScanResult[]>({
+            queryKey: ['workstation', 'screener-results', scan.id],
+            queryFn: async () => (await api.get<ScanResult[]>(`/screeners/${scan.id}/results`, { limit: 1 })) ?? [],
+            staleTime: 0,
+          })
+          if (!isCurrentRun()) return
+          const runId = activeResearchRunId.value
+          const matching = retained.find(item => runId != null
+            ? scanResearchRunId(item) === runId
+            : scanResultRowId(item) === submittedResultId)
+          if (!matching) continue
+          const currentStatus = scanResultStatus(matching)
+          if (currentStatus === 'completed') {
+            result.value = matching
+            activeRunStatus.value = 'Scan completed.'
+            activeResearchRunId.value = null
+            break
+          }
+          if (currentStatus === 'failed' || currentStatus === 'canceled') {
+            result.value = priorResult
+            activeRunStatus.value = currentStatus === 'failed' ? 'Scan failed.' : 'Scan canceled.'
+            activeResearchRunId.value = null
+            if (matching.error) error.value = matching.error
+            break
+          }
+          activeRunStatus.value = scanProgressMessage(currentStatus)
+        }
+        // Keep the last completed result visible while this run is queued/running.
       }
     }
+    if (!isCurrentRun()) return
     await queryClient.invalidateQueries({ queryKey: ['workstation', 'screener-history', scan.id] })
-    await loadResultHistory(scan.id)
-  } catch (cause: any) { if (mounted) error.value = cause?.message ?? 'Unable to run scan' }
-  finally { busy.value = false }
+    await loadResultHistory(scan.id, { selectLatest: activeRunStatus.value === 'Scan completed.' })
+  } catch (cause: any) { if (isCurrentRun()) error.value = cause?.message ?? 'Unable to run scan' }
+  finally { if (isCurrentRun()) busy.value = false }
+}
+
+function scanResultStatus(scanResult: ScanResult): string {
+  return String(scanResult.result_data?._status ?? '').toLowerCase()
+}
+
+function scanResearchRunId(scanResult: ScanResult): number | null {
+  const value = scanResult.result_data?._python_research_run_id
+  return Number.isSafeInteger(value) && Number(value) > 0 ? Number(value) : null
+}
+
+function scanResultRowId(scanResult: ScanResult): number | null {
+  return Number.isSafeInteger(scanResult.id) && Number(scanResult.id) > 0 ? Number(scanResult.id) : null
+}
+
+function scanProgressMessage(value: string): string {
+  if (value === 'queued' || value === 'pending') return 'Scan queued; waiting for results…'
+  if (value === 'running' || value === 'leased') return 'Scan running…'
+  return value ? `Scan status: ${value}.` : 'Scan submitted; waiting for results…'
 }
 
 function canonicalValue(value: unknown): unknown {
@@ -387,7 +455,7 @@ function startSavedScreenerPreparation(saved: SavedScanDefinition, contextKey: s
 function savedScreenerContextKey(saved: SavedScanDefinition): string {
   return savedScreenerPreparationContextKey(saved)
 }
-async function loadResultHistory(id: number) {
+async function loadResultHistory(id: number, options: { selectLatest?: boolean } = {}) {
   try {
     resultHistory.value = await queryClient.fetchQuery<ScanResult[]>({
       queryKey: ['workstation', 'screener-history', id],
@@ -395,7 +463,7 @@ async function loadResultHistory(id: number) {
       staleTime: 5_000,
     })
     const latest = resultHistory.value[0]
-    if (latest) {
+    if (latest && options.selectLatest !== false) {
       result.value = latest
       selectedResultId.value = latest.id == null ? '' : String(latest.id)
     }
@@ -405,11 +473,11 @@ async function loadResultHistory(id: number) {
   }
 }
 async function cancelPythonRun() {
-  if (!pythonResearchRunId.value || cancelRequested.value) return
+  if (!activeResearchRunId.value || cancelRequested.value) return
   cancelRequested.value = true
-  status.value = 'Cancel requested…'
-  try { await api.post(`/research/runs/${pythonResearchRunId.value}/cancel`, {}) }
-  catch (cause: any) { cancelRequested.value = false; error.value = cause?.message ?? 'Unable to cancel Python scan' }
+  activeRunStatus.value = 'Cancel requested…'
+  try { await api.post(`/research/runs/${activeResearchRunId.value}/cancel`, {}) }
+  catch (cause: any) { cancelRequested.value = false; error.value = cause?.message ?? 'Unable to cancel scan' }
 }
 async function createAlert() {
   if (!scanId.value || alertCreated.value) return
@@ -430,12 +498,12 @@ onMounted(() => {
   void load()
 })
 onBeforeUnmount(() => {
-  const runId = pythonResearchRunId.value
-  const state = String(result.value?.result_data?._status ?? '')
+  const runId = activeResearchRunId.value
   mounted = false
   loadGeneration += 1
+  runGeneration += 1
   preparationController?.abort()
-  if (runId && !['completed', 'failed', 'canceled'].includes(state)) void api.post(`/research/runs/${runId}/cancel`, {})
+  if (runId) void api.post(`/research/runs/${runId}/cancel`, {})
 })
 </script>
 
