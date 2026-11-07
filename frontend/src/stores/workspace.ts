@@ -1171,7 +1171,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   let channel: BroadcastChannel | null = null
   let leaderTimer: ReturnType<typeof setInterval> | null = null
   let snapshotTimer: ReturnType<typeof setTimeout> | null = null
-  let snapshotSavePromise: Promise<void> | null = null
+  let snapshotSavePromise: Promise<boolean> | null = null
   let snapshotPersistingGeneration: number | null = null
   let lastLocalWorkspaceMutationAt = 0
   const recentLinkGroupOverrides = new Map<string, { group: LinkGroup; symbol: string; at: number }>()
@@ -1188,6 +1188,26 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   let snapshotGeneration = 0
   let marketRefreshPromise: Promise<void> | null = null
   const analysisGenerations = new Map<string, number>()
+  const marketGroupLoads = new Map<string, Promise<MarketGroupState | null>>()
+  // The shell's shared refresh can overlap the identical reads started by an
+  // active analysis panel. Join same-query requests before allocating a new
+  // generation so the duplicate cannot invalidate useful in-flight data.
+  const sharedAnalysisLoads = new Map<string, Promise<unknown>>()
+
+  function shareAnalysisLoad<T>(resource: string, params: Record<string, unknown>, load: () => Promise<T | null>): Promise<T | null> {
+    const key = JSON.stringify([resource, params])
+    const existing = sharedAnalysisLoads.get(key) as Promise<T | null> | undefined
+    if (existing) return existing
+
+    // Set the map before running the loader so another same-turn caller joins
+    // instead of starting a second request for the same analysis inputs.
+    let request: Promise<T | null>
+    request = Promise.resolve().then(load).finally(() => {
+      if (sharedAnalysisLoads.get(key) === request) sharedAnalysisLoads.delete(key)
+    })
+    sharedAnalysisLoads.set(key, request)
+    return request
+  }
   const windowId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
     ? crypto.randomUUID()
     : `window-${Date.now()}-${Math.random().toString(36).slice(2)}`
@@ -1216,6 +1236,57 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
   function cloneSerializable<T>(value: T): T {
     return JSON.parse(JSON.stringify(value)) as T
+  }
+
+  function remapClonedWorkspaceWindowKeys(source: WorkspaceState, cloned: WorkspaceState) {
+    let changed = false
+    const tabs = cloned.tabs.map(clonedTab => {
+      const sourceTab = source.tabs.find(tab => tab.stable_key === clonedTab.stable_key)
+        ?? source.tabs.find(tab => tab.position === clonedTab.position)
+      if (!sourceTab || sourceTab.windows.length !== clonedTab.windows.length) return clonedTab
+
+      const sourceByPosition = new Map(sourceTab.windows.map(window => [window.position, window]))
+      const remappedKeys = new Map<string, string>()
+      for (const window of clonedTab.windows) {
+        const original = sourceByPosition.get(window.position)
+        if (!original || original.tool_type !== window.tool_type) return clonedTab
+        remappedKeys.set(original.instance_key, window.instance_key)
+      }
+      if (!remappedKeys.size) return clonedTab
+
+      let layoutChanged = false
+      const remapLayoutKeys = (value: unknown): unknown => {
+        if (Array.isArray(value)) return value.map(remapLayoutKeys)
+        if (!value || typeof value !== 'object') return value
+        const record = value as Record<string, unknown>
+        if (record.type === 'component') {
+          const state = record.componentState
+          if (state && typeof state === 'object') {
+            const componentState = state as Record<string, unknown>
+            const key = componentState.instance_key
+            if (typeof key === 'string' && remappedKeys.has(key)) {
+              layoutChanged ||= remappedKeys.get(key) !== key
+              return {
+                ...record,
+                componentState: { ...componentState, instance_key: remappedKeys.get(key) },
+              }
+            }
+          }
+        }
+        return Object.fromEntries(Object.entries(record).map(([key, child]) => [key, remapLayoutKeys(child)]))
+      }
+
+      const layoutConfig = remapLayoutKeys(clonedTab.layout_config) as Record<string, unknown>
+      const activeWindowKey = clonedTab.active_window_key
+        ? remappedKeys.get(clonedTab.active_window_key) ?? clonedTab.active_window_key
+        : null
+      const activeChanged = activeWindowKey !== clonedTab.active_window_key
+      if (!layoutChanged && !activeChanged) return clonedTab
+      changed = true
+      return { ...clonedTab, layout_config: layoutConfig, active_window_key: activeWindowKey }
+    })
+
+    return changed ? { workspace: { ...cloned, tabs }, changed } : { workspace: cloned, changed }
   }
 
   function sameJson(left: unknown, right: unknown) {
@@ -1872,13 +1943,19 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (!workspace.value) return null
     try {
       await settleSnapshotBeforeWorkspaceMutation()
-      const clone = await api.post<WorkspaceState>(`/workspaces/${workspace.value.id}/clone`, {})
-      workspace.value = clone
+      const source = workspace.value
+      const clone = await api.post<WorkspaceState>(`/workspaces/${source.id}/clone`, {})
+      const corrected = remapClonedWorkspaceWindowKeys(source, clone)
+      workspace.value = corrected.workspace
       persistedWorkspace = cloneSerializable(clone)
-      activeTabKey.value = clone.tabs[0]?.stable_key ?? 'us-top-down'
+      activeTabKey.value = corrected.workspace.tabs[0]?.stable_key ?? 'us-top-down'
       error.value = null
+      // Some server versions clone window records but retain the source layout's
+      // component keys. Persist the reconciled identity once so reload and other
+      // windows see the same usable clone rather than only a client-side repair.
+      if (corrected.changed) scheduleSnapshot()
       await refreshWorkspaces()
-      return clone
+      return corrected.workspace
     } catch (cause: any) { error.value = cause?.message ?? 'Unable to clone workspace'; return null }
   }
 
@@ -2085,65 +2162,77 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     return merged
   }
 
-  async function loadMarketGroup(stableKey: string) {
+  async function loadMarketGroup(stableKey: string, options: { useCache?: boolean } = {}) {
+    if (options.useCache && marketGroups.value[stableKey]) return marketGroups.value[stableKey]
+    const pending = marketGroupLoads.get(stableKey)
+    if (pending) return pending
     const requestKey = `top-down:market-group:${stableKey}`
     const generation = beginAnalysisRequest(requestKey)
     if (!documentIsVisible()) return null
     marketGroupErrors.value = { ...marketGroupErrors.value, [stableKey]: null }
-    try {
-      const group = await api.get<MarketGroupState>(`/market-groups/${encodeURIComponent(stableKey)}`)
-      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
-      let hydratedGroup = group
-      // Older persisted/backend fixtures may expose the benchmark root before
-      // the family registry was added.  Recover the registry from the explicit
-      // child endpoint instead of hard-coding family symbols or silently
-      // changing the selected universe.
-      if (stableKey === 'us-benchmarks' && group.provenance && !Array.isArray(group.provenance.benchmark_families)) {
-        try {
-          const children = await api.get<MarketGroupState[]>('/market-groups/us-benchmarks/children')
-          const families = children
-            .filter(child => child.group_type === 'benchmark_family')
-            .map(child => ({ logical_key: child.stable_key, name: child.name }))
-          if (families.length) {
-            hydratedGroup = { ...group, provenance: { ...group.provenance, benchmark_families: families } }
+    let request: Promise<MarketGroupState | null>
+    request = (async () => {
+      try {
+        const group = await api.get<MarketGroupState>(`/market-groups/${encodeURIComponent(stableKey)}`)
+        if (!isCurrentAnalysisRequest(requestKey, generation)) return null
+        let hydratedGroup = group
+        // Older persisted/backend fixtures may expose the benchmark root before
+        // the family registry was added.  Recover the registry from the explicit
+        // child endpoint instead of hard-coding family symbols or silently
+        // changing the selected universe.
+        if (stableKey === 'us-benchmarks' && group.provenance && !Array.isArray(group.provenance.benchmark_families)) {
+          try {
+            const children = await api.get<MarketGroupState[]>('/market-groups/us-benchmarks/children')
+            const families = children
+              .filter(child => child.group_type === 'benchmark_family')
+              .map(child => ({ logical_key: child.stable_key, name: child.name }))
+            if (families.length) {
+              hydratedGroup = { ...group, provenance: { ...group.provenance, benchmark_families: families } }
+            }
+          } catch {
+            // Keep the root response and its explicit provenance. A missing child
+            // registry is surfaced by the UI as unavailable rather than inferred.
           }
-        } catch {
-          // Keep the root response and its explicit provenance. A missing child
-          // registry is surfaced by the UI as unavailable rather than inferred.
         }
+        marketGroups.value = { ...marketGroups.value, [stableKey]: hydratedGroup }
+        return hydratedGroup
+      } catch (cause: any) {
+        if (!isCurrentAnalysisRequest(requestKey, generation)) return null
+        error.value = cause?.message ?? `Unable to load ${stableKey}`
+        marketGroupErrors.value = { ...marketGroupErrors.value, [stableKey]: error.value }
+        return null
       }
-      marketGroups.value = { ...marketGroups.value, [stableKey]: hydratedGroup }
-      return hydratedGroup
-    } catch (cause: any) {
-      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
-      error.value = cause?.message ?? `Unable to load ${stableKey}`
-      marketGroupErrors.value = { ...marketGroupErrors.value, [stableKey]: error.value }
-      return null
-    }
+    })().finally(() => {
+      if (marketGroupLoads.get(stableKey) === request) marketGroupLoads.delete(stableKey)
+    })
+    marketGroupLoads.set(stableKey, request)
+    return request
   }
 
-  async function loadGroupSnapshot(stableKey: string, benchmark?: string, options: { timeframe?: string; adjusted?: boolean; as_of?: string; new_high_lookback?: number; near_threshold?: number } = {}) {
-    const requestKey = `top-down:group-snapshot:${stableKey}`
-    const generation = beginAnalysisRequest(requestKey)
-    if (!documentIsVisible()) return null
-    groupSnapshotErrors.value = { ...groupSnapshotErrors.value, [stableKey]: null }
-    try {
-      const params = {
-        ...(benchmark ? { benchmark } : {}),
-        ...(options.timeframe ? { timeframe: options.timeframe } : {}),
-        ...(typeof options.adjusted === 'boolean' ? { adjusted: options.adjusted } : {}),
-        ...(options.as_of ? { as_of: options.as_of } : {}),
-      }
-      const snapshot = await api.get<GroupSnapshotState>(`/analysis/groups/${encodeURIComponent(stableKey)}/snapshot`, params)
-      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
-      groupSnapshots.value = { ...groupSnapshots.value, [stableKey]: snapshot }
-      return snapshot
-    } catch (cause: any) {
-      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
-      error.value = cause?.message ?? `Unable to calculate ${stableKey}`
-      groupSnapshotErrors.value = { ...groupSnapshotErrors.value, [stableKey]: error.value }
-      return null
+  function loadGroupSnapshot(stableKey: string, benchmark?: string, options: { timeframe?: string; adjusted?: boolean; as_of?: string; new_high_lookback?: number; near_threshold?: number } = {}) {
+    const params = {
+      ...(benchmark ? { benchmark } : {}),
+      ...(options.timeframe ? { timeframe: options.timeframe } : {}),
+      ...(typeof options.adjusted === 'boolean' ? { adjusted: options.adjusted } : {}),
+      ...(options.as_of ? { as_of: options.as_of } : {}),
     }
+    return shareAnalysisLoad(`group-snapshot:${stableKey}`, params, async () => {
+      const requestKey = `top-down:group-snapshot:${stableKey}`
+      const generation = beginAnalysisRequest(requestKey)
+      if (!documentIsVisible()) return null
+      groupSnapshotErrors.value = { ...groupSnapshotErrors.value, [stableKey]: null }
+      try {
+        const snapshot = await api.get<GroupSnapshotState>(`/analysis/groups/${encodeURIComponent(stableKey)}/snapshot`, params)
+        if (!isCurrentAnalysisRequest(requestKey, generation)) return null
+        groupSnapshots.value = { ...groupSnapshots.value, [stableKey]: snapshot }
+        return snapshot
+      } catch (cause: any) {
+        if (!isCurrentAnalysisRequest(requestKey, generation)) return null
+        error.value = cause?.message ?? `Unable to calculate ${stableKey}`
+        groupSnapshotErrors.value = { ...groupSnapshotErrors.value, [stableKey]: error.value }
+        return null
+      }
+    })
   }
 
   async function loadBenchmarkFamilyRatios(
@@ -2579,65 +2668,69 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
   }
 
-  async function loadBreadth(stableKey: string, options: { timeframe?: string; adjusted?: boolean; as_of?: string; new_high_lookback?: number; near_threshold?: number } = {}) {
-    const requestKey = `top-down:breadth:${stableKey}`
-    const generation = beginAnalysisRequest(requestKey)
-    if (!documentIsVisible()) return null
-    breadthLoading.value = { ...breadthLoading.value, [stableKey]: true }
-    breadthErrors.value = { ...breadthErrors.value, [stableKey]: null }
-    try {
-      const params = {
-        ...(options.timeframe ? { timeframe: options.timeframe } : {}),
-        ...(typeof options.adjusted === 'boolean' ? { adjusted: options.adjusted } : {}),
-        ...(options.as_of ? { as_of: options.as_of } : {}),
-        ...(options.new_high_lookback ? { new_high_lookback: options.new_high_lookback } : {}),
-        ...(options.near_threshold ? { near_threshold: options.near_threshold } : {}),
-      }
-      const snapshot = Object.keys(params).length
-        ? await api.get<BreadthState>(`/analysis/groups/${encodeURIComponent(stableKey)}/breadth`, params)
-        : await api.get<BreadthState>(`/analysis/groups/${encodeURIComponent(stableKey)}/breadth`)
-      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
-      breadth.value = { ...breadth.value, [stableKey]: snapshot }
-      return snapshot
-    } catch (cause: any) {
-      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
-      const message = cause?.message ?? `Unable to calculate breadth for ${stableKey}`
-      error.value = message
-      breadthErrors.value = { ...breadthErrors.value, [stableKey]: message }
-      return null
-    } finally {
-      if (isCurrentAnalysisRequest(requestKey, generation)) breadthLoading.value = { ...breadthLoading.value, [stableKey]: false }
+  function loadBreadth(stableKey: string, options: { timeframe?: string; adjusted?: boolean; as_of?: string; new_high_lookback?: number; near_threshold?: number } = {}) {
+    const params = {
+      ...(options.timeframe ? { timeframe: options.timeframe } : {}),
+      ...(typeof options.adjusted === 'boolean' ? { adjusted: options.adjusted } : {}),
+      ...(options.as_of ? { as_of: options.as_of } : {}),
+      ...(options.new_high_lookback ? { new_high_lookback: options.new_high_lookback } : {}),
+      ...(options.near_threshold ? { near_threshold: options.near_threshold } : {}),
     }
+    return shareAnalysisLoad(`breadth:${stableKey}`, params, async () => {
+      const requestKey = `top-down:breadth:${stableKey}`
+      const generation = beginAnalysisRequest(requestKey)
+      if (!documentIsVisible()) return null
+      breadthLoading.value = { ...breadthLoading.value, [stableKey]: true }
+      breadthErrors.value = { ...breadthErrors.value, [stableKey]: null }
+      try {
+        const snapshot = Object.keys(params).length
+          ? await api.get<BreadthState>(`/analysis/groups/${encodeURIComponent(stableKey)}/breadth`, params)
+          : await api.get<BreadthState>(`/analysis/groups/${encodeURIComponent(stableKey)}/breadth`)
+        if (!isCurrentAnalysisRequest(requestKey, generation)) return null
+        breadth.value = { ...breadth.value, [stableKey]: snapshot }
+        return snapshot
+      } catch (cause: any) {
+        if (!isCurrentAnalysisRequest(requestKey, generation)) return null
+        const message = cause?.message ?? `Unable to calculate breadth for ${stableKey}`
+        error.value = message
+        breadthErrors.value = { ...breadthErrors.value, [stableKey]: message }
+        return null
+      } finally {
+        if (isCurrentAnalysisRequest(requestKey, generation)) breadthLoading.value = { ...breadthLoading.value, [stableKey]: false }
+      }
+    })
   }
 
-  async function loadBreadthHistory(stableKey: string, options: { timeframe?: string; adjusted?: boolean; as_of?: string; new_high_lookback?: number; near_threshold?: number } = {}) {
-    const requestKey = `top-down:breadth-history:${stableKey}`
-    const generation = beginAnalysisRequest(requestKey)
-    if (!documentIsVisible()) return null
-    breadthHistoryLoading.value = { ...breadthHistoryLoading.value, [stableKey]: true }
-    breadthHistoryErrors.value = { ...breadthHistoryErrors.value, [stableKey]: null }
-    try {
-      const params = {
-        limit: 500,
-        ...(options.timeframe ? { timeframe: options.timeframe } : {}),
-        ...(typeof options.adjusted === 'boolean' ? { adjusted: options.adjusted } : {}),
-        ...(options.as_of ? { as_of: options.as_of } : {}),
-        ...(options.new_high_lookback ? { new_high_lookback: options.new_high_lookback } : {}),
-        ...(options.near_threshold ? { near_threshold: options.near_threshold } : {}),
-      }
-      const history = await api.get<BreadthHistoryState>(`/analysis/groups/${encodeURIComponent(stableKey)}/breadth/history`, params)
-      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
-      breadthHistory.value = { ...breadthHistory.value, [stableKey]: history }
-      return history
-    } catch (cause: any) {
-      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
-      const message = cause?.message ?? `Unable to calculate historical breadth for ${stableKey}`
-      error.value = message
-      breadthHistoryErrors.value = { ...breadthHistoryErrors.value, [stableKey]: message }
-      return null
-    } finally {
-      if (isCurrentAnalysisRequest(requestKey, generation)) breadthHistoryLoading.value = { ...breadthHistoryLoading.value, [stableKey]: false }
+  function loadBreadthHistory(stableKey: string, options: { timeframe?: string; adjusted?: boolean; as_of?: string; new_high_lookback?: number; near_threshold?: number } = {}) {
+    const params = {
+      limit: 500,
+      ...(options.timeframe ? { timeframe: options.timeframe } : {}),
+      ...(typeof options.adjusted === 'boolean' ? { adjusted: options.adjusted } : {}),
+      ...(options.as_of ? { as_of: options.as_of } : {}),
+      ...(options.new_high_lookback ? { new_high_lookback: options.new_high_lookback } : {}),
+      ...(options.near_threshold ? { near_threshold: options.near_threshold } : {}),
     }
+    return shareAnalysisLoad(`breadth-history:${stableKey}`, params, async () => {
+      const requestKey = `top-down:breadth-history:${stableKey}`
+      const generation = beginAnalysisRequest(requestKey)
+      if (!documentIsVisible()) return null
+      breadthHistoryLoading.value = { ...breadthHistoryLoading.value, [stableKey]: true }
+      breadthHistoryErrors.value = { ...breadthHistoryErrors.value, [stableKey]: null }
+      try {
+        const history = await api.get<BreadthHistoryState>(`/analysis/groups/${encodeURIComponent(stableKey)}/breadth/history`, params)
+        if (!isCurrentAnalysisRequest(requestKey, generation)) return null
+        breadthHistory.value = { ...breadthHistory.value, [stableKey]: history }
+        return history
+      } catch (cause: any) {
+        if (!isCurrentAnalysisRequest(requestKey, generation)) return null
+        const message = cause?.message ?? `Unable to calculate historical breadth for ${stableKey}`
+        error.value = message
+        breadthHistoryErrors.value = { ...breadthHistoryErrors.value, [stableKey]: message }
+        return null
+      } finally {
+        if (isCurrentAnalysisRequest(requestKey, generation)) breadthHistoryLoading.value = { ...breadthHistoryLoading.value, [stableKey]: false }
+      }
+    })
   }
 
   async function loadGenericBreadth(
@@ -3050,35 +3143,40 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     persistedWorkspace = cloneSerializable(saved)
   }
 
-  async function saveSnapshot() {
+  async function saveSnapshot(): Promise<boolean> {
+    if (snapshotTimer) {
+      clearTimeout(snapshotTimer)
+      snapshotTimer = null
+    }
     if (snapshotSavePromise) {
       // A newer edit can arrive while this request is pending. Compare the
       // live generation with the one owned by the in-flight request so that a
       // waiting save retries instead of treating the newer edit as persisted.
       const waitingGeneration = snapshotPersistingGeneration ?? snapshotGeneration
-      await snapshotSavePromise
+      const saved = await snapshotSavePromise
       if (workspace.value && snapshotGeneration !== waitingGeneration) return saveSnapshot()
-      return
+      return saved
     }
-    if (!workspace.value) return
+    if (!workspace.value) return false
     const current = workspace.value
     const baseRevision = current.revision
     const generation = snapshotGeneration
     snapshotPersistingGeneration = generation
     const payloadAtStart = snapshotPayload(current)
     const startedWithStructuralLocalChange = snapshotHasStructuralLocalChange(payloadAtStart, persistedWorkspace)
-    const persist = (async () => {
+    const persist = (async (): Promise<boolean> => {
       try {
         const saved = await api.put<WorkspaceState>(`/workspaces/${current.id}/snapshot`, payloadAtStart)
-        if (workspace.value?.id !== current.id) return
+        if (workspace.value?.id !== current.id) return false
         if (generation !== snapshotGeneration) {
           acknowledgeSupersededSnapshot(saved, current.id, baseRevision)
-          return
+          return false
         }
         workspace.value = saved
         persistedWorkspace = cloneSerializable(workspace.value)
         recentClosedWindowOverrides.clear()
         announceWorkspaceSnapshot(workspace.value)
+        return true
       } catch (cause: any) {
         if (String(cause?.message ?? '').includes(' 409:')) {
           // Always reconcile a revision conflict against the latest remote
@@ -3094,42 +3192,43 @@ export const useWorkspaceStore = defineStore('workspace', () => {
           // recovery copy that preserves the user's original mutation.
           if (generation !== snapshotGeneration && !startedWithStructuralLocalChange) {
             scheduleSnapshot()
-            return
+            return false
           }
           try {
             const latest = await api.get<WorkspaceState>(`/workspaces/${current.id}`)
             const merged = mergeDisjointWindowChanges(persistedWorkspace, current, latest)
             if (merged) {
               const saved = await api.put<WorkspaceState>(`/workspaces/${latest.id}/snapshot`, snapshotPayload(merged))
-              if (workspace.value?.id !== current.id) return
+              if (workspace.value?.id !== current.id) return false
               if (generation !== snapshotGeneration) {
                 acknowledgeSupersededSnapshot(saved, current.id, baseRevision)
-                return
+                return false
               }
               workspace.value = saved
               persistedWorkspace = cloneSerializable(saved)
               recentClosedWindowOverrides.clear()
               announceWorkspaceSnapshot(saved)
               error.value = null
-              return
+              return true
             }
             const recovery = await preserveConflictRecovery(current)
             workspace.value = latest
             persistedWorkspace = cloneSerializable(latest)
             activeTabKey.value = latest.tabs[0]?.stable_key ?? 'us-top-down'
             error.value = `Workspace changed elsewhere. Your local changes were preserved as '${recovery.name}'.`
-            return
+            return false
           } catch (recoveryCause: any) {
             error.value = `Workspace changed elsewhere and recovery failed: ${recoveryCause?.message ?? 'unknown error'}`
-            return
+            return false
           }
         }
         error.value = cause?.message ?? 'Unable to save workspace snapshot'
+        return false
       }
     })()
     snapshotSavePromise = persist
     try {
-      await persist
+      return await persist
     } finally {
       if (snapshotSavePromise === persist) {
         snapshotSavePromise = null

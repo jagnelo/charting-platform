@@ -319,6 +319,48 @@ describe('useChartStore', () => {
     expect(store.bars).toEqual([])
   })
 
+  it('submits basket member preparation while the synthetic chart read is still pending', async () => {
+    const timestamp = '2026-11-07T12:00:00Z'
+    const basket = { id: 9, members: [
+      { id: 1, instrument_id: 21, symbol: 'AAPL', position: 0 },
+      { id: 2, instrument_id: 35, symbol: 'MSFT', position: 1 },
+    ] }
+    let resolveBars!: (value: unknown) => void
+    const pendingBars = new Promise(resolve => { resolveBars = resolve })
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/baskets/9/ohlcv/D1') return pendingBars as any
+      if (path === '/baskets/9') return Promise.resolve(basket) as any
+      return Promise.resolve([]) as any
+    })
+    ;(api.post as ReturnType<typeof vi.fn>).mockImplementation((path: string, body: Record<string, any>) => {
+      if (path !== '/data/ensure') return Promise.resolve({}) as any
+      const instrumentId = body.target.instrument_id
+      const symbol = instrumentId === 21 ? 'AAPL' : 'MSFT'
+      const dependency = (dataset: 'identity' | 'profile' | 'history') => ({
+        dependency_id: `${dataset}:${instrumentId}:D1`, depends_on: [], instrument_id: instrumentId, symbol,
+        dataset, status: 'ready', requested_start: null, requested_end: null, covered_start: null,
+        covered_end: null, reason_code: null, retry_at: null, updated_at: timestamp, covered_ranges: [],
+      })
+      return Promise.resolve({
+        request_id: `basket-${instrumentId}`, status: 'ready', created_at: timestamp, updated_at: timestamp,
+        version: 1, target: body.target, dependencies: ['identity', 'profile', 'history'].map(dataset => dependency(dataset as 'identity' | 'profile' | 'history')),
+        completed: 3, total: 3, last_progress_at: timestamp, has_pending_work: false,
+      }) as any
+    })
+
+    const store = useChartStore()
+    const chartRead = store.loadBars('BASKET:9', 'D1', 'candles', true)
+    await vi.waitFor(() => expect(api.get).toHaveBeenCalledWith('/baskets/9'))
+    await vi.waitFor(() => expect(api.post.mock.calls.filter(([path]) => path === '/data/ensure')).toHaveLength(2))
+    expect(store.loading).toBe(true)
+    expect(api.get).toHaveBeenCalledWith('/baskets/9/ohlcv/D1', expect.any(Object))
+
+    resolveBars([{ ts: '2026-11-06T00:00:00Z', open: 100, high: 102, low: 99, close: 101, volume: 1000 }])
+    await chartRead
+    expect(store.bars).toHaveLength(1)
+    expect(api.post.mock.calls.filter(([path]) => path === '/data/ensure').map(([, body]) => body.target.instrument_id)).toEqual([21, 35])
+  })
+
   it('submits every basket member even when the first member is held', async () => {
     const timestamp = '2026-11-06T12:00:00Z'
     const waiting = {
