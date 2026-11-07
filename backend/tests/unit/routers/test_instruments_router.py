@@ -1803,6 +1803,131 @@ class TestExplicitAcquireCanonicalIdentity:
         assert binding.one_or_none() is not None
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize("fallback_exchange", ["XNAS", "XNYS"])
+    async def test_weak_search_provider_profile_falls_through_to_exact_listing_authority(
+        self, db, monkeypatch, fallback_exchange
+    ):
+        async_db = AsyncSessionAdapter(db)
+        symbol = "SPYFALLBACK"
+        weak_edgar_profile = InstrumentProfile(
+            provider="edgar",
+            symbol=symbol,
+            canonical_symbol=symbol,
+            name="Exact symbol without security identity",
+            currency="USD",
+            quote_type="ETF",
+            exchange="XNAS",
+            identifiers=[],
+            listings=[],
+        )
+        qualified_profile = InstrumentProfile(
+            provider="massive",
+            symbol=symbol,
+            canonical_symbol=symbol,
+            name="Exact symbol with listing and security identity",
+            currency="USD",
+            quote_type="ETF",
+            exchange="XNAS",
+            identifiers=[
+                IdentifierRecord(
+                    identifier_type="figi",
+                    identifier_value="BBG00SPYFALLBACK1",
+                    is_primary=True,
+                )
+            ],
+            listings=[
+                ListingRecord(
+                    provider_symbol=symbol,
+                    exchange_code=fallback_exchange,
+                    currency="USD",
+                    provider_instrument_type="ETF",
+                    is_primary=True,
+                )
+            ],
+        )
+
+        async def search(_db, query, *, source_outcomes=None):
+            assert query == symbol
+            source_outcomes.append(
+                {
+                    "provider": "edgar",
+                    "capability": ProviderCapability.INSTRUMENT_SEARCH.value,
+                    "operation": "search_instruments",
+                    "status": "cache_hit",
+                    "reason_code": "fresh_search_snapshot",
+                }
+            )
+            return [
+                {
+                    "symbol": symbol,
+                    "exchange": "XNAS",
+                    "type": "ETF",
+                    "provider": "edgar",
+                }
+            ]
+
+        async def weak_profile(*_args, **_kwargs):
+            return weak_edgar_profile
+
+        async def resolved_chain(_db, capability, **kwargs):
+            assert capability is ProviderCapability.INSTRUMENT_METADATA
+            assert kwargs["operation"] == "get_instrument_profile"
+            assert kwargs["provider_symbol"] == symbol
+            return [
+                SimpleNamespace(provider_name="edgar"),
+                SimpleNamespace(provider_name="massive"),
+            ]
+
+        async def exact_call(_db, capability, operation, **kwargs):
+            from app.services.provider_runtime import _EXPLICIT_ACQUISITION_CONTEXT
+
+            scope = _EXPLICIT_ACQUISITION_CONTEXT.get()
+            assert scope is not None
+            assert scope.symbol == symbol
+            assert scope.provider_names == frozenset({"massive"})
+            assert capability is ProviderCapability.INSTRUMENT_METADATA
+            assert operation == "get_instrument_profile"
+            assert kwargs["provider_name"] == "massive"
+            assert kwargs["provider_symbol"] == symbol
+            return SimpleNamespace(provider_name="massive", result=qualified_profile)
+
+        monkeypatch.setattr("app.routers.instruments.search_provider_instruments_async", search)
+        monkeypatch.setattr("app.routers.instruments.get_provider_profile_async", weak_profile)
+        monkeypatch.setattr("app.routers.instruments.resolve_provider_chain", resolved_chain)
+        monkeypatch.setattr("app.routers.instruments.execute_provider_call", exact_call)
+
+        response = await acquire_instrument(
+            InstrumentAcquireRequest(symbol=symbol, request_id="weak-profile-fallback"),
+            async_db,
+        )
+
+        if fallback_exchange == "XNAS":
+            assert response.status == "resolved"
+            assert response.instrument is not None
+            assert response.instrument.symbol == symbol
+            assert response.instrument.domain_key == "figi:BBG00SPYFALLBACK1"
+        else:
+            assert response.status == "identity_conflict"
+            assert response.reason_code == "stable_identity_or_listing_authority_missing"
+            assert db.query(Instrument).filter_by(symbol=symbol).one_or_none() is None
+        assert any(
+            outcome.provider == "edgar"
+            and outcome.reason_code == "stable_identity_or_listing_authority_missing"
+            for outcome in response.source_outcomes
+        )
+        if fallback_exchange == "XNAS":
+            assert any(
+                outcome.provider == "massive" and outcome.status == "attempted"
+                for outcome in response.source_outcomes
+            )
+        else:
+            assert any(
+                outcome.provider == "massive"
+                and outcome.reason_code == "provider_profile_listing_mismatch"
+                for outcome in response.source_outcomes
+            )
+
+    @pytest.mark.asyncio
     async def test_exact_profile_absence_stays_no_match(self, db, monkeypatch):
         async_db = AsyncSessionAdapter(db)
         symbol = "QXABSENT"

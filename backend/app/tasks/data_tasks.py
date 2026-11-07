@@ -10,7 +10,7 @@ from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from sqlalchemy import or_, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -60,6 +60,17 @@ def _configured_native_usage_providers() -> tuple[str, ...]:
             str(provider).strip().lower() for provider in configured if str(provider).strip()
         )
     )
+
+
+def _native_usage_refresh_succeeded_for_provider(result: dict, provider_name: str) -> bool:
+    """Accept one provider's multiple named observations without accepting peers."""
+
+    providers = {
+        str(value or "").strip().lower()
+        for value in (result.get("providers") or [])
+        if str(value or "").strip()
+    }
+    return result.get("status") == "refreshed" and providers == {provider_name.strip().lower()}
 
 
 async def _native_operation_baseline_states(
@@ -161,6 +172,8 @@ async def _native_usage_job_for_operation_baseline(
     from app.services.provider_runtime import (
         account_usage_reconciled_dimensions,
         policy_allows_account_usage_bootstrap,
+        policy_has_known_quota,
+        provider_contract_operation_cost_known,
         quota_dimensions,
         resolve_provider_chain,
     )
@@ -181,11 +194,25 @@ async def _native_usage_job_for_operation_baseline(
     )
     if usage is None:
         return None, "native_usage_provider_not_resolved", True
-    if not policy_allows_account_usage_bootstrap(usage.policy, "fetch_account_usage"):
+    bootstrap_allowed = policy_allows_account_usage_bootstrap(usage.policy, "fetch_account_usage")
+    normally_admitted = False
+    if not bootstrap_allowed:
+        normally_admitted = policy_has_known_quota(usage.policy) and (
+            provider_contract_operation_cost_known(
+                usage.policy,
+                usage.data_source,
+                "fetch_account_usage",
+            )
+        )
+    if not bootstrap_allowed and not normally_admitted:
         return None, "native_usage_bootstrap_not_admitted", True
 
     usage_policy_dimensions = quota_dimensions(usage.policy)
-    reconciled = account_usage_reconciled_dimensions(usage.policy, "fetch_account_usage")
+    reconciled = account_usage_reconciled_dimensions(
+        usage.policy,
+        "fetch_account_usage",
+        require_bootstrap=bootstrap_allowed,
+    )
     compatible_dimensions: list[dict] = []
     for history_dimension, history_state in unknown:
         name = str(history_dimension["name"])
@@ -289,7 +316,14 @@ async def _native_usage_prerequisite_for_operation(
     request_id: str,
     now: datetime,
 ) -> tuple[MarketRefreshJob | None, str | None, bool, dict | None]:
-    """Find the first admitted provider operation needing native refresh."""
+    """Find an admitted native refresh prerequisite without blocking fallbacks.
+
+    An eligible resolver candidate may still be unusable because its native
+    usage pool is unknown and account-usage refresh is not admitted. Keep that
+    provider's hold, but inspect later exact-chain candidates before holding the
+    whole operation. The ordinary executor remains responsible for reserving
+    and selecting the provider that actually transports the operation.
+    """
 
     from app.services.provider_runtime import resolve_provider_chain
 
@@ -306,6 +340,7 @@ async def _native_usage_prerequisite_for_operation(
             instrument_id=instrument_id,
             provider_symbol=provider_symbol,
         )
+    held_candidates: list[dict] = []
     for resolved in chain:
         job, reason, needed = await _native_usage_job_for_operation_baseline(
             db,
@@ -315,33 +350,59 @@ async def _native_usage_prerequisite_for_operation(
             priority=priority,
             now=now,
         )
-        if needed:
-            baseline, _baseline_reason = await _native_operation_baseline_states(
-                db,
-                resolved.provider_name,
-                capability=capability,
-                operation=operation,
-                now=now,
-            )
-            dimension_names = []
-            if baseline is not None:
-                _policy, states = baseline
-                dimension_names = [
-                    str(dimension.get("name") or "")
-                    for dimension, state in states
-                    if state.get("status") == "unknown" and str(dimension.get("name") or "")
-                ]
-            return (
-                job,
-                reason,
-                True,
-                {
-                    "provider_name": resolved.provider_name,
-                    "capability": capability.value,
-                    "operation": operation,
-                    "dimension_names": dimension_names,
-                },
-            )
+        if not needed:
+            # Let the existing executor attempt the chain. It has the final,
+            # atomic admission decision and will continue after a candidate's
+            # current capacity is exhausted without sending an unreserved call.
+            return None, None, False, None
+
+        baseline, _baseline_reason = await _native_operation_baseline_states(
+            db,
+            resolved.provider_name,
+            capability=capability,
+            operation=operation,
+            now=now,
+        )
+        dimension_names = []
+        if baseline is not None:
+            _policy, states = baseline
+            dimension_names = [
+                str(dimension.get("name") or "")
+                for dimension, state in states
+                if state.get("status") == "unknown" and str(dimension.get("name") or "")
+            ]
+        context = {
+            "provider_name": resolved.provider_name,
+            "capability": capability.value,
+            "operation": operation,
+            "dimension_names": dimension_names,
+        }
+        if job is not None and not reason:
+            # A durable admitted prerequisite is useful work; preserve the
+            # normal wait/resume path instead of trying a later source before
+            # its pool has been observed.
+            return job, None, True, context
+        if job is not None and job.status != "completed":
+            return job, reason, True, context
+
+        # No admitted refresh can repair this candidate (or its prerequisite
+        # completed without qualification). Record it and continue the exact
+        # resolver chain so a later verified provider can serve the request.
+        held_candidates.append(
+            {**context, "reason_code": reason or "native_usage_refresh_not_qualified"}
+        )
+
+    if held_candidates:
+        first = held_candidates[0]
+        return (
+            None,
+            first["reason_code"],
+            True,
+            {
+                **{key: value for key, value in first.items() if key != "reason_code"},
+                "provider_holds": held_candidates,
+            },
+        )
     return None, None, False, None
 
 
@@ -354,9 +415,10 @@ async def resume_native_usage_held_identity_jobs(
     """Requeue held identity/profile children after their exact native pool verifies.
 
     This only revisits durable children whose prior result was a native-usage
-    admission hold.  It requires the same provider to be currently eligible
-    for the exact identity/profile operation and every recorded unknown quota
-    dimension to have a verified baseline before changing queue or parent state.
+    admission hold. It re-resolves the exact logical operation and resumes only
+    when the provider whose usage observation triggered this call is currently
+    eligible and every one of its quota dimensions has a verified baseline.
+    The original provider hold remains in child history for auditability.
     """
 
     normalized_provider = str(provider_name or "").strip().lower()
@@ -376,17 +438,6 @@ async def resume_native_usage_held_identity_jobs(
                     MarketRefreshJob.capability == ProviderCapability.INSTRUMENT_METADATA.value,
                     MarketRefreshJob.status == "completed",
                     MarketRefreshJob.result_summary["reason_code"].as_string().in_(reasons),
-                    or_(
-                        MarketRefreshJob.metadata_payload["data_preparation_child"][
-                            "native_usage_hold"
-                        ]["provider_name"].as_string()
-                        == normalized_provider,
-                        MarketRefreshJob.metadata_payload["data_preparation_child"][
-                            "native_usage_hold"
-                        ]["provider_name"]
-                        .as_string()
-                        .is_(None),
-                    ),
                 )
                 .with_for_update(skip_locked=True)
                 .execution_options(populate_existing=True)
@@ -402,8 +453,6 @@ async def resume_native_usage_held_identity_jobs(
             continue
         hold = child.get("native_usage_hold")
         if isinstance(hold, dict):
-            if str(hold.get("provider_name") or "").strip().lower() != normalized_provider:
-                continue
             try:
                 capability = ProviderCapability(str(hold.get("capability") or ""))
             except ValueError:
@@ -441,7 +490,6 @@ async def resume_native_usage_held_identity_jobs(
             operations=frozenset({(capability, operation)}),
             instrument_id=instrument_id,
             symbol=symbol,
-            provider_names=frozenset({normalized_provider}),
         ):
             from app.services.provider_runtime import resolve_provider_chain
 
@@ -453,23 +501,37 @@ async def resume_native_usage_held_identity_jobs(
                 provider_symbol=symbol,
                 read_only=True,
             )
-        if not any(item.provider_name == normalized_provider for item in chain):
-            continue
-        baseline, baseline_reason = await _native_operation_baseline_states(
-            db,
-            normalized_provider,
-            capability=capability,
-            operation=operation,
-            now=current,
-        )
-        if baseline is None or baseline_reason:
-            continue
-        _policy, states = baseline
-        by_name = {str(dimension.get("name") or ""): state for dimension, state in states}
-        required_dimensions = dimension_names or set(by_name)
-        if not required_dimensions or any(
-            by_name.get(name, {}).get("status") != "verified" for name in required_dimensions
-        ):
+        current_provider_verified = False
+        for candidate in chain:
+            baseline, baseline_reason = await _native_operation_baseline_states(
+                db,
+                candidate.provider_name,
+                capability=capability,
+                operation=operation,
+                now=current,
+            )
+            if baseline is None or baseline_reason:
+                continue
+            _policy, states = baseline
+            by_name = {
+                str(dimension.get("name") or ""): state
+                for dimension, state in states
+                if str(dimension.get("name") or "")
+            }
+            required_dimensions = (
+                (dimension_names or set(by_name))
+                if candidate.provider_name == normalized_provider
+                else set(by_name)
+            )
+            if not required_dimensions or any(
+                by_name.get(name, {}).get("status") != "verified" for name in required_dimensions
+            ):
+                continue
+            if any(state.get("status") != "verified" for state in by_name.values()):
+                continue
+            if candidate.provider_name == normalized_provider:
+                current_provider_verified = True
+        if not current_provider_verified:
             continue
 
         refs = list(child.get("parent_refs") or [])
@@ -542,6 +604,11 @@ async def resume_native_usage_held_identity_jobs(
                 parent_updated = True
         if not parent_updated:
             continue
+        previous_holds = list(child.get("native_usage_hold_history") or [])
+        if isinstance(hold, dict):
+            previous_holds.append(deepcopy(hold))
+        if previous_holds:
+            child["native_usage_hold_history"] = previous_holds
         child.pop("native_usage_hold", None)
         payload = deepcopy(job.metadata_payload or {})
         payload["data_preparation_child"] = child
@@ -631,9 +698,7 @@ async def _run_native_usage_refresh_job(db, request: dict) -> dict:
         provider_names=frozenset({provider_name}),
     ):
         usage_result = await refresh_provider_account_usage(db, provider_name=provider_name)
-    if usage_result.get("status") == "refreshed" and usage_result.get("providers") == [
-        provider_name
-    ]:
+    if _native_usage_refresh_succeeded_for_provider(usage_result, provider_name):
         await resume_native_usage_held_identity_jobs(db, provider_name=provider_name)
     target_dimensions = {
         str(item.get("name") or "")
@@ -661,9 +726,7 @@ async def _run_native_usage_refresh_job(db, request: dict) -> dict:
             and state.get("status") == "verified"
         }
     baseline_verified = bool(target_dimensions) and verified_dimensions == target_dimensions
-    provider_observed = usage_result.get("status") == "refreshed" and usage_result.get(
-        "providers"
-    ) == [provider_name]
+    provider_observed = _native_usage_refresh_succeeded_for_provider(usage_result, provider_name)
     return {
         "preparation_status": "ready" if provider_observed and baseline_verified else "held",
         "reason_code": (
@@ -2940,9 +3003,7 @@ async def refresh_provider_account_usage_snapshots(ctx: dict) -> dict:
                 ):
                     provider_name = provider.strip().lower()
                     result = await refresh_provider_account_usage(db, provider_name=provider_name)
-                    if result.get("status") == "refreshed" and result.get("providers") == [
-                        provider_name
-                    ]:
+                    if _native_usage_refresh_succeeded_for_provider(result, provider_name):
                         resumed = await resume_native_usage_held_identity_jobs(
                             db, provider_name=provider_name
                         )

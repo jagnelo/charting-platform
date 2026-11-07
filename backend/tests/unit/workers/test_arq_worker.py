@@ -1034,7 +1034,7 @@ async def test_provider_account_usage_refresh_task_uses_only_explicit_deduplicat
 
     async def fake_refresh(db, *, provider_name):
         calls.append((db, provider_name))
-        return {"status": "refreshed", "providers": [provider_name]}
+        return {"status": "refreshed", "providers": [provider_name, provider_name]}
 
     monkeypatch.setattr(data_tasks, "AsyncSessionLocal", lambda: SessionContext())
     monkeypatch.setattr(
@@ -1046,7 +1046,7 @@ async def test_provider_account_usage_refresh_task_uses_only_explicit_deduplicat
 
     assert result == {
         "providers": ["marketdata_app"],
-        "results": [{"status": "refreshed", "providers": ["marketdata_app"]}],
+        "results": [{"status": "refreshed", "providers": ["marketdata_app", "marketdata_app"]}],
     }
     assert calls == [("db", "marketdata_app")]
     resume.assert_awaited_once_with("db", provider_name="marketdata_app")

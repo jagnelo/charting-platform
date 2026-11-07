@@ -645,6 +645,146 @@ async def _retained_issuer_security_identifiers(
     return retained
 
 
+async def _fallback_exact_identity_profile(
+    db: AsyncSession,
+    *,
+    request_id: str,
+    symbol: str,
+    rejected_provider: str | None,
+    required_exchange: str | None,
+    existing: Instrument | None,
+) -> tuple[
+    InstrumentProfile | None, str | None, str | None, list[InstrumentAcquisitionSourceOutcome]
+]:
+    """Try later admitted metadata sources when an exact profile lacks authority.
+
+    Search results remain discovery hints. A fallback profile is accepted only
+    when its own provider returns the exact ticker, the exact selected listing
+    (when one is already selected), and a stable security identifier or
+    previously verified retained issuer identifiers.
+    """
+
+    retained_identifiers = (
+        await _retained_issuer_security_identifiers(db, existing) if existing is not None else {}
+    )
+    outcomes: list[InstrumentAcquisitionSourceOutcome] = []
+
+    def outcome(provider: str, status: str, reason: str | None, error: Exception | None = None):
+        outcomes.append(
+            InstrumentAcquisitionSourceOutcome(
+                provider=provider,
+                capability=ProviderCapability.INSTRUMENT_METADATA.value,
+                operation="get_instrument_profile",
+                status=status,
+                reason_code=reason,
+                error_type=type(error).__name__ if error is not None else None,
+                retry_at=getattr(error, "retry_at", None),
+            )
+        )
+
+    with bind_explicit_provider_acquisition(
+        request_id=request_id,
+        operations=frozenset({(ProviderCapability.INSTRUMENT_METADATA, "get_instrument_profile")}),
+        symbol=symbol,
+    ):
+        chain = await resolve_provider_chain(
+            db,
+            ProviderCapability.INSTRUMENT_METADATA,
+            operation="get_instrument_profile",
+            provider_symbol=symbol,
+        )
+    for resolved in chain:
+        candidate = str(resolved.provider_name or "").strip().lower()
+        if not candidate or candidate == str(rejected_provider or "").strip().lower():
+            continue
+        try:
+            with bind_explicit_provider_acquisition(
+                request_id=request_id,
+                operations=frozenset(
+                    {(ProviderCapability.INSTRUMENT_METADATA, "get_instrument_profile")}
+                ),
+                symbol=symbol,
+                provider_names=frozenset({candidate}),
+            ):
+                execution = await execute_provider_call(
+                    db,
+                    ProviderCapability.INSTRUMENT_METADATA,
+                    "get_instrument_profile",
+                    provider_symbol=symbol,
+                    usage_identity=symbol,
+                    provider_name=candidate,
+                    invoke=lambda provider, actual_symbol: provider.get_instrument_profile(
+                        actual_symbol or symbol
+                    ),
+                    response_items=lambda result: 1 if result is not None else 0,
+                    treat_empty_as_failure=True,
+                )
+        except (
+            ProviderRequestScopeDeniedError,
+            ProviderRateLimitError,
+            ProviderQuotaAdmissionError,
+            ProviderQuotaCoordinatorError,
+            ProviderQuotaUnknownError,
+            ProviderNoDataError,
+        ) as exc:
+            status, reason = _provider_profile_lookup_error(exc)
+            outcome(candidate, status, reason, exc)
+            continue
+
+        profile = execution.result
+        profile_ids = (
+            {
+                str(
+                    getattr(item.identifier_type, "value", item.identifier_type)
+                ).lower(): item.identifier_value
+                for item in (profile.identifiers or [])
+            }
+            if profile is not None
+            else {}
+        )
+        listings = (
+            [
+                listing
+                for listing in (profile.listings or [])
+                if _normalized_symbol_key(listing.provider_symbol) == symbol
+                and (
+                    required_exchange is None
+                    or str(listing.exchange_code or "").strip().upper() == required_exchange
+                )
+            ]
+            if profile is not None
+            else []
+        )
+        if (
+            profile is None
+            or str(profile.provider or "").strip().lower() != candidate
+            or (profile.canonical_symbol or "").strip().upper() != symbol
+        ):
+            outcome(candidate, "failed", "provider_profile_unavailable_or_mismatched")
+            continue
+        if not listings:
+            outcome(
+                candidate,
+                "no_match",
+                "provider_profile_listing_mismatch"
+                if profile.listings
+                else "stable_identity_or_listing_authority_missing",
+            )
+            continue
+        if not choose_domain_key(profile_ids) and not choose_domain_key(retained_identifiers):
+            outcome(candidate, "no_match", "stable_identity_or_listing_authority_missing")
+            continue
+        listing = next((item for item in listings if item.is_primary), listings[0])
+        exchange = (
+            required_exchange
+            or str(profile.exchange or listing.exchange_code or "").strip().upper()
+            or None
+        )
+        outcome(candidate, "attempted", None)
+        return profile, candidate, exchange, outcomes
+    return None, None, None, outcomes
+
+
 @router.post("/acquire", response_model=InstrumentAcquireResponse)
 async def acquire_instrument(
     body: InstrumentAcquireRequest,
@@ -953,10 +1093,88 @@ async def acquire_instrument(
         if exact_exchange_code
         else None
     )
+    profile_identifiers = (
+        {
+            str(
+                getattr(item.identifier_type, "value", item.identifier_type)
+            ).lower(): item.identifier_value
+            for item in (profile.identifiers or [])
+        }
+        if profile is not None
+        else {}
+    )
+    retained_for_fallback = {}
+    if not choose_domain_key(profile_identifiers) and existing is not None:
+        retained_for_fallback = await _retained_issuer_security_identifiers(db, existing)
+    profile_has_listing = (
+        any(
+            _normalized_symbol_key(listing.provider_symbol) == symbol
+            and (
+                requested_exchange_code is None
+                or str(listing.exchange_code or "").strip().upper() == requested_exchange_code
+            )
+            for listing in (profile.listings or [])
+        )
+        if profile is not None
+        else False
+    )
+    profile_has_stable_identity = bool(
+        choose_domain_key(profile_identifiers) or choose_domain_key(retained_for_fallback)
+    )
+    if (
+        selected_provider is None
+        and profile is not None
+        and _profile_exact_match(profile, symbol)
+        and (not profile_has_listing or not profile_has_stable_identity)
+    ):
+        profile_outcome.status = "no_match"
+        profile_outcome.reason_code = (
+            "provider_profile_listing_mismatch"
+            if not profile_has_listing and profile.listings
+            else "stable_identity_or_listing_authority_missing"
+        )
+        outcomes.append(profile_outcome)
+        (
+            fallback_profile,
+            fallback_provider,
+            fallback_exchange,
+            fallback_outcomes,
+        ) = await _fallback_exact_identity_profile(
+            db,
+            request_id=body.request_id,
+            symbol=symbol,
+            rejected_provider=provider_name,
+            required_exchange=requested_exchange_code,
+            existing=existing,
+        )
+        outcomes.extend(fallback_outcomes)
+        if fallback_profile is not None:
+            profile = fallback_profile
+            provider_name = fallback_provider
+            exact_exchange_code = fallback_exchange
+            profile_outcome = InstrumentAcquisitionSourceOutcome(
+                provider=provider_name,
+                capability=ProviderCapability.INSTRUMENT_METADATA.value,
+                operation="get_instrument_profile",
+                status="attempted",
+            )
+            profile_listings = [
+                listing
+                for listing in (profile.listings or [])
+                if _normalized_symbol_key(listing.provider_symbol) == symbol
+            ]
+        elif fallback_outcomes and all(item.status == "held" for item in fallback_outcomes):
+            return InstrumentAcquireResponse(
+                request_id=body.request_id,
+                status="held",
+                reason_code="exact_profile_not_admitted",
+                source_outcomes=outcomes,
+            )
     if profile is None:
         profile_outcome.status = "no_match"
         profile_outcome.reason_code = "exact_profile_not_found"
-        outcomes.append(profile_outcome)
+        if profile_outcome not in outcomes:
+            outcomes.append(profile_outcome)
         return InstrumentAcquireResponse(
             request_id=body.request_id,
             status="no_match",

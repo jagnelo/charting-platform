@@ -33584,3 +33584,12 @@ or provider request was made. Focused route/resolver/queue verification passed
 18/18; Ruff and diff checks passed. Root owns rebuilding and replaying the
 existing no-seed runtime, exact-source CI, and combined release gates. The
 complete Provider roadmap remains in progress.
+
+
+## 2026-11-07 — native metadata fallback and cold-start recovery
+
+The Root review `root-native-metadata-fallback-defect-review.json` showed that an unknown first provider (Finnhub) could hold an otherwise valid search/profile operation and that resumed children were filtered to the original hold provider. The worker now tries the exact resolver chain before holding, resumes a prior child only when the provider whose native observation triggered recovery is still eligible for the same operation and all of its quota dimensions verify, and preserves the former provider hold in child history. Search/profile identity acquisition also continues after a weak exact-symbol profile, accepting a later profile only when its own provider, symbol, selected listing and stable security identity (or verified retained issuer identity) agree. It does not cross a selected listing or infer identifiers.
+
+The existing per-operation prerequisite path is sufficient for cold first use: an explicitly allowlisted provider with either the narrow bootstrap permission or a fully known normal account-usage quota/cost and explicit pool mapping gets a durable usage job in the shared queue. Unknown usage contracts stay held. Same-provider duplicate usage observations now count as one provider result; mixed provider sets do not satisfy a provider-specific refresh. The existing daily cron remains maintenance, not a prerequisite for first use.
+
+Focused offline checks passed 37/37 across native prerequisite/resume behavior, quota mapping, scheduled refresh, and exact-profile fallback/negative listing cases. Ruff check/format and `git diff --check` pass. No provider HTTP, native ledger/policy/quota changes, database fixture or runtime operation occurred. Root owns preserved-DB replay and exact-source CI; wider Provider criteria remain open.
