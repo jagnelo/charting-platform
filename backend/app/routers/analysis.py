@@ -1815,6 +1815,8 @@ async def _bars_by_instrument(
 ) -> dict[int, list[OHLCVBar]]:
     if not instrument_ids:
         return {}
+    from app.services.market_data import _default_series_bar_condition
+
     bars = (
         await db.execute(
             select(OHLCVBar)
@@ -1822,6 +1824,7 @@ async def _bars_by_instrument(
                 OHLCVBar.instrument_id.in_(instrument_ids),
                 OHLCVBar.timeframe == timeframe,
                 OHLCVBar.is_adjusted.is_(adjusted),
+                _default_series_bar_condition(OHLCVBar.instrument_id, timeframe, adjusted),
             )
             .order_by(OHLCVBar.instrument_id, OHLCVBar.ts)
         )

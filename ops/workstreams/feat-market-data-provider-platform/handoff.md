@@ -1,5 +1,26 @@
 # feat/market-data-provider-platform
 
+## 2026-11-07 — R23 selected-series and date-bound coverage repair
+
+Root's retained R23 trace showed two shared backend defects. The RRG analysis
+loader queried every adjusted series for a symbol/timeframe, so retained coarse
+rows could duplicate timestamps from the newly derived canonical W1/MN series.
+It now applies the same selected-default-series predicate as ordinary local
+OHLCV reads. A focused regression retains incompatible RAW coarse rows, adds
+canonical split-adjusted D1, materializes W1/MN twice, and verifies analysis
+inputs/tails stay strictly increasing without deleting or relabeling the old
+rows.
+
+The shared evaluator preflight also treated date-only D1 midnight/end-of-day
+bounds as literal bar timestamps. It now aligns an observed endpoint date to
+that day's actual close-labelled bar; an absent endpoint date and interior gaps
+remain incomplete. This is generic date-only range handling, not a Study or
+fixture exception. The affected analysis, evaluator-preflight, and derivation
+unit modules pass 55 tests; Ruff check/format and `git diff --check` pass. No
+provider transport, database fixture, retained/public data, or policy/ledger
+was touched. Full exact-source CI and Root's combined release qualification
+remain pending; the overall Provider roadmap remains in progress.
+
 ## 2026-11-07 — consumed ETF issuer-basket materialization dependency
 
 Root released source `055641eaafab37a8160908e974a3ec1a4483e7c6` for exact development consumption under `etf055641ea-domain-backend-development-consumption-contract.json` (SHA-256 `e981824b12ac3812b16676b8643978a448aa03239cb9169a598585c4b3619c90`). Imported only `backend/app/services/baskets.py` and `backend/tests/integration/api/test_baskets.py`; verified all five manifest files against the exact Git blobs, SHA-256 values, and `100644` modes.
