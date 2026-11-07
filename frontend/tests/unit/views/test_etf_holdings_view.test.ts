@@ -1367,6 +1367,12 @@ describe('ETFHoldingsView', () => {
     await vi.waitFor(() => expect(api.post).toHaveBeenCalledWith('/data/ensure', {
       target: { kind: 'instrument', symbol: 'XLB' }, datasets: ['holdings'],
     }, expect.objectContaining({ signal: expect.any(AbortSignal) })))
+    const exactProfileLookupIndex = vi.mocked(api.get).mock.calls.findIndex(([path, params]) =>
+      path === '/etf-holdings' && (params as { q?: string } | undefined)?.q === 'XLB',
+    )
+    expect(exactProfileLookupIndex).toBeGreaterThanOrEqual(0)
+    expect(vi.mocked(api.get).mock.invocationCallOrder[exactProfileLookupIndex])
+      .toBeLessThan(vi.mocked(api.post).mock.invocationCallOrder[0]!)
     expect(startupProfilesResolved).toBe(false)
     expect(wrapper.get('[data-testid="etf-preparation-status"]').text()).toContain('Preparing XLB holdings.')
     expect(wrapper.get('.panel-title-row h2').text()).toBe('XLB')
