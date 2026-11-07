@@ -137,7 +137,8 @@ test('supporting watchlists — keyboard create, membership, rename recovery, re
 
   const search = page.getByRole('combobox', { name: 'Symbol…' })
   await search.fill('SPY')
-  const spyChoice = page.getByRole('option').filter({ hasText: /^SPY\b/ }).first()
+  const spyChoice = page.getByRole('listbox', { name: 'Symbol search results' })
+    .getByRole('option', { name: /^SPY\b/ }).first()
   await expect(spyChoice).toBeVisible({ timeout: 10_000 })
   const addItemResponse = page.waitForResponse(response =>
     new URL(response.url()).pathname === `/api/v1/watchlists/${secondList.id}/items`
