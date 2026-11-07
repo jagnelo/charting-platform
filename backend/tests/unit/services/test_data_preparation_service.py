@@ -302,6 +302,33 @@ async def test_existing_held_request_reprojects_ready_after_compatible_cache_arr
     assert response.dependencies[0].covered_end == datetime(2026, 1, 5, tzinfo=UTC)
 
 
+@pytest.mark.parametrize(
+    ("reason_code", "expected_reason"),
+    [
+        ("future_dated_source", "future_dated_source"),
+        (None, "preparation_job_failed"),
+    ],
+)
+@pytest.mark.asyncio
+async def test_failed_completed_preparation_preserves_typed_reason_or_uses_fallback(
+    db, instrument, reason_code, expected_reason
+):
+    async_db, request_id = await _create_previously_held_history_request(db, instrument)
+    parent = await load_owner_request(async_db, request_id=request_id, owner_user_id=81)
+    dependency = parent.metadata_payload["data_preparation"]["dependencies"][0]
+    child = await async_db.get(MarketRefreshJob, dependency["job_ids"][0])
+    child.result_summary = {
+        "preparation_status": "failed",
+        "reason_code": reason_code,
+    }
+    await async_db.commit()
+
+    response = await get_data_preparation_response(async_db, parent=parent, owner_user_id=81)
+
+    assert response.dependencies[0].status == "failed"
+    assert response.dependencies[0].reason_code == expected_reason
+
+
 @pytest.mark.asyncio
 async def test_existing_held_request_keeps_partial_gaps_and_reason_after_cache_arrives(
     db, instrument

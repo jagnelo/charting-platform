@@ -33726,3 +33726,22 @@ passed. The Redis close-timeout fix is included in this same coherent
 successor. No provider HTTP, live runtime, database fixture, quota/ledger/
 policy mutation or migration was used. Root owns native replay, exact-source
 CI and combined release qualification; broader roadmaps remain open.
+
+## 2026-11-07 — typed ETF future-date outcome survives shared status projection
+
+Root released the exact two-file ETF dependency from `01cf9e6a`:
+`etf_holdings_refresh.py` and its bootstrap regression module. Both old-byte
+guards were clean before import; the resulting SHA-256 values match the
+consumption contract. This preserves the adapter's `future_dated_source`
+classification and date guard for the retained Nov 9 source rows; it does not
+turn that future composition into current holdings.
+
+The shared data-preparation response now keeps a completed failed child’s
+supplied typed `reason_code`, using `preparation_job_failed` only when the
+worker supplied none. A focused projection test covers both cases and exposes
+no exception text. The combined focused slice passed 55/55, including the
+imported ETF bootstrap module and the existing Redis/coarse-cache regressions.
+Ruff check/format and workstream/diff validation passed. Root still owns
+genuine replay and exact-source release qualification; XHB/IGV and future-dated
+BWET outcomes remain distinct native cases, and the full Provider roadmap
+remains open.

@@ -2169,7 +2169,17 @@ async def get_data_preparation_response(
                         retry_at,
                     )
                 elif "failed" in preparation_statuses:
-                    item_status, reason = "failed", "preparation_job_failed"
+                    item_status, reason = (
+                        "failed",
+                        next(
+                            (
+                                outcome.get("reason_code")
+                                for outcome in outcomes
+                                if outcome.get("reason_code")
+                            ),
+                            "preparation_job_failed",
+                        ),
+                    )
                 elif preparation_statuses & {"unavailable", "no_match", "identity_conflict"}:
                     item_status, reason = (
                         "unavailable",

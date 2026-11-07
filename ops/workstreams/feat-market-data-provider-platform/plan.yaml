@@ -15611,3 +15611,33 @@ provider_shared_coarse_cache_readiness_and_redis_cleanup_20261107:
   policy_quota_ledger_database_fixture_or_migration_change: false
   exact_source_ci_and_root_native_replay: pending Root-owned
   full_platform_goal_and_roadmaps: remain open
+
+provider_etf_future_holdings_reason_projection_20261107:
+  id: provider-etf-future-holdings-reason-projection-20261107
+  status: focused_local_green_root_native_replay_pending
+  base_source: dcf2b38e2498910a4e12f42dcf2aeed98b502ab5
+  imported_dependency:
+    source: 01cf9e6a39f777f85e2c6b4cffa3b2949021d7fe
+    contract: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/etf01cf9e6a-domain-backend-development-consumption-contract.json
+    paths:
+      - backend/app/services/etf_holdings_refresh.py
+      - backend/tests/unit/services/test_etf_holdings_bootstrap.py
+    verified_sha256:
+      backend/app/services/etf_holdings_refresh.py: c64d737b9f5ca0af7c7b960afe3bea9fc03c2ccc0e7e6b0c97dd29b563e0d4bf
+      backend/tests/unit/services/test_etf_holdings_bootstrap.py: 9ad12a772e769c0cce3323dfb8d25688c2e77242dd3f4e34c61d139dd21c4d0c
+  implementation:
+    - Preserve the ETF acquisition's typed future_dated_source result and current-date guard exactly as released; no future composition is reclassified as current.
+    - Data-preparation status projection preserves a completed failed child’s supplied reason_code; preparation_job_failed remains the fallback only when no reason_code was supplied.
+  changed_paths:
+    - backend/app/services/etf_holdings_refresh.py
+    - backend/app/services/data_preparation.py
+    - backend/tests/unit/services/test_etf_holdings_bootstrap.py
+    - backend/tests/unit/services/test_data_preparation_service.py
+  focused_validation:
+    command: backend/.venv/bin/pytest -q backend/tests/unit/services/test_data_preparation_service.py::test_monthly_preparation_repairs_pending_derived_state_before_cache_reuse backend/tests/unit/services/test_data_preparation_service.py::test_failed_completed_preparation_preserves_typed_reason_or_uses_fallback backend/tests/unit/routers/test_ohlcv_router.py::TestOHLCVRouter::test_local_weekly_monthly_read_refreshes_stale_derived_history_once backend/tests/unit/routers/test_analysis_router.py::test_rrg_route_repairs_pending_derived_state_from_retained_daily_cache backend/tests/unit/routers/test_data_preparation_router.py backend/tests/unit/services/test_etf_holdings_bootstrap.py
+    result: 55 passed in 9.84s; Ruff check/format, workstream validation and git diff check passed.
+    regressions: future_dated_source is projected without raw error text; missing reason_code falls back to preparation_job_failed; cached W1/MN recovery, durable ensure and Redis cleanup timeout regressions remain green.
+  provider_http_or_runtime_mutation: false
+  quota_ledger_policy_or_hold_mutation: false
+  exact_source_ci_and_root_native_replay: pending Root-owned
+  full_platform_goal_and_roadmaps: remain open
