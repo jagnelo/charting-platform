@@ -1,12 +1,17 @@
 from __future__ import annotations
 
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, time
 
 import pytest
 from sqlalchemy import select
 
 from app.models.exchange import Exchange
 from app.models.listing import InstrumentListing
+from app.models.market_data_foundation import (
+    CalendarExceptionKind,
+    ExchangeCalendarException,
+    ExchangeSessionRule,
+)
 from app.services.exchange_catalog import (
     coerce_listing_lifecycle_at,
     normalize_exchange_mic,
@@ -125,3 +130,78 @@ async def test_known_exchange_gets_versioned_weekday_session_baseline(db, instru
     assert window is not None
     assert window.opens_at.hour == 13
     assert window.closes_at.hour == 20
+
+
+@pytest.mark.asyncio
+async def test_us_regular_session_uses_holidays_early_closes_and_explicit_overrides(db, instrument):
+    async_db = AsyncSessionAdapter(db)
+    await upsert_instrument_listing(async_db, instrument, instrument.symbol, exchange_code="NASDAQ")
+    exchange = db.execute(select(Exchange).where(Exchange.mic == "XNAS")).scalar_one()
+
+    # The supported US regular-session calendar applies even when the optional
+    # dated-exception table has no row for Thanksgiving.
+    assert await resolve_session_window(async_db, exchange.id, date(2026, 11, 26)) is None
+
+    for early_close in (date(2026, 11, 27), date(2026, 12, 24)):
+        window = await resolve_session_window(async_db, exchange.id, early_close)
+        assert window is not None
+        assert window.opens_at.hour == 14 and window.opens_at.minute == 30
+        assert window.closes_at.hour == 18 and window.closes_at.minute == 0
+
+    # The stored exchange timezone still controls DST conversion on ordinary days.
+    dst_window = await resolve_session_window(async_db, exchange.id, date(2026, 3, 9))
+    assert dst_window is not None
+    assert (dst_window.opens_at.hour, dst_window.opens_at.minute) == (13, 30)
+    assert dst_window.closes_at.hour == 20
+
+    # An explicit dated exception remains authoritative over the recurring basis.
+    db.add(
+        ExchangeCalendarException(
+            exchange_id=exchange.id,
+            session_date=date(2026, 11, 27),
+            session_code="regular",
+            exception_kind=CalendarExceptionKind.EARLY_CLOSE,
+            opens_at=time(10),
+            closes_at=time(14),
+            source="reviewed_test_exception",
+        )
+    )
+    db.flush()
+    overridden = await resolve_session_window(async_db, exchange.id, date(2026, 11, 27))
+    assert overridden is not None
+    assert overridden.source == "calendar_exception"
+    assert (overridden.opens_at.hour, overridden.closes_at.hour) == (15, 19)
+
+
+@pytest.mark.asyncio
+async def test_us_holiday_basis_does_not_apply_to_non_us_venues_or_unknown_ids(db, instrument):
+    async_db = AsyncSessionAdapter(db)
+    await upsert_instrument_listing(async_db, instrument, instrument.symbol, exchange_code="NASDAQ")
+    canadian = Exchange(
+        mic="XTSE",
+        name="Toronto Stock Exchange test venue",
+        country_code="CA",
+        timezone="America/Toronto",
+        market_open="09:30",
+        market_close="16:00",
+        currency="CAD",
+    )
+    db.add(canadian)
+    db.flush()
+    db.add(
+        ExchangeSessionRule(
+            exchange_id=canadian.id,
+            session_code="regular",
+            weekday=3,
+            opens_at=time(9, 30),
+            closes_at=time(16),
+            valid_from=date(2000, 1, 1),
+            provenance={"source": "test"},
+        )
+    )
+    db.flush()
+
+    canadian_window = await resolve_session_window(async_db, canadian.id, date(2026, 11, 26))
+    assert canadian_window is not None
+    assert (canadian_window.opens_at.hour, canadian_window.closes_at.hour) == (14, 21)
+    assert await resolve_session_window(async_db, 999_999, date(2026, 11, 26)) is None

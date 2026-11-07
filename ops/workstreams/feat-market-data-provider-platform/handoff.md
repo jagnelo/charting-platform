@@ -33455,3 +33455,38 @@ Root released common source `a2e222251d4ea796d0d4bfb6b0e8705f503c1e4d` for exact
 The current `approved_development_dependency_imports` pointer now has only the latest common TC source `a2e22225`, while retaining the active imported ETF basket pin `b0db1656` and Strategy research pin `f6521237`. Earlier common sources remain in historical checkpoint records and are not accumulated as current pins. The unrelated dirty frontend files outside the 22-path consumer block remain untouched.
 
 The concise no-seed bootstrap procedure is `/tmp/provider-genuine-phase-bootstrap-20261107.md` (40 lines, SHA-256 `96a7787242ea51a2a4a5fe6c30991d662d6589c890f8e9630942d9f75538ef4e`). It is an operator handoff only; no DB, service, policy, credential or quota operation was performed. Root's 84b compile/runtime does not include the additional a2 ChartPanel delta, so no compile/typecheck or producer suite is claimed here. Root owns the compatible UI build, runtime/browser qualification, native phase and final exact-source/release gates. Broader Provider/ETF roadmaps and all holds remain open.
+
+## 2026-11-07 — R50 controlled sector RRG fixture and XNYS maintenance calendar
+
+Root's R50 review showed degenerate controlled sector/benchmark relative paths
+in the final RRG tail. The E2E-only sector generator now overlays deterministic,
+symbol-specific evolving relative returns across its controlled D1 history and
+uses a separate `sector-relative-path-v2` source-series/provenance identity.
+SPY's recent 520 bars remain byte-for-byte pinned by the existing digest, with
+its positive final eight sessions asserted. Tests exercise distinct finite
+sector paths after D1/W1/MN derivation and require at least five nontrivial
+segments in every ten-point calculated RRG tail. Repeated seeding retains
+sector row IDs; the disabled seed path still performs no DB I/O. No existing
+provider, non-E2E, or retained database rows were modified.
+
+The same successor applies the existing XNYS holiday basis to US regular-session
+maintenance windows and preserves explicit dated exceptions. Thanksgiving is a
+closure; supported 13:00 closes, DST conversion, non-US sessions, unknown
+venues, and Saturday New Year behavior are covered. In particular, a Saturday
+January 1 does not create a prior-Friday closure.
+
+Focused verification passed 14 tests across the E2E seed module, the relevant
+exchange-session cases, and the XNYS coverage cases. Ruff check/format and
+`git diff --check` passed on six Python paths. Root's fresh seeded database,
+rendered RRG visual, exact-source CI, and combined release qualification remain
+pending. No provider HTTP, retained/public database, quota, policy, or ledger
+operation was performed.
+
+The 16 frontend paths that remained dirty after the initial a2 import were each
+verified byte-for-byte against the same released a2 Git blobs and `100644`
+modes; they are included with the exact common-source import in this coherent
+successor. Other unrelated frontend edits remain outside this change. The
+no-seed operator procedure remains at
+`/tmp/provider-genuine-phase-bootstrap-20261107.md` (SHA-256
+`96a7787242ea51a2a4a5fe6c30991d662d6589c890f8e9630942d9f75538ef4e`); no
+bootstrap helper has been executed and no database or service was changed.
