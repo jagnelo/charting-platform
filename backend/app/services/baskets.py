@@ -249,6 +249,11 @@ async def materialize_etf_holdings_basket(
         db.add(basket)
         await db.flush()
 
+    # Explicitly load the relationship in async context before mutating it.
+    # This covers both a new basket after flush and an existing identity-map
+    # object whose collection may have expired during earlier request work.
+    await db.refresh(basket, attribute_names=["members"])
+
     basket.members.clear()
     await db.flush()
     seen_instruments: set[int] = set()
