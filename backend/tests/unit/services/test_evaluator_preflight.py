@@ -50,6 +50,83 @@ async def test_preflight_reports_full_coverage_without_queueing(db, instrument):
 
 
 @pytest.mark.asyncio
+async def test_date_only_daily_preflight_accepts_close_labelled_endpoint_sessions(db, instrument):
+    session_dates = [datetime(2024, 1, day, 21, tzinfo=UTC) for day in (2, 3, 4, 5)]
+    close_bars = [
+        OHLCVBar(
+            instrument_id=instrument.id,
+            timeframe=Timeframe.D1,
+            ts=timestamp,
+            open=Decimal("100"),
+            high=Decimal("101"),
+            low=Decimal("99"),
+            close=Decimal("100"),
+            volume=Decimal("1000"),
+            is_adjusted=True,
+        )
+        for timestamp in session_dates
+    ]
+
+    result = await preflight_ohlcv(
+        AsyncSessionAdapter(db),
+        evaluator="research_dataset",
+        instrument_ids=[instrument.id],
+        timeframe=Timeframe.D1,
+        date_from=datetime(2024, 1, 2, tzinfo=UTC),
+        date_to=datetime(2024, 1, 5, 23, 59, 59, 999999, tzinfo=UTC),
+        cached_bars={instrument.id: close_bars},
+        now=datetime(2024, 1, 8, tzinfo=UTC),
+    )
+
+    item = result.items[0]
+    assert item.status.value == "ready"
+    assert item.bar_count == 4
+    assert item.covered_start == session_dates[0]
+    assert item.covered_end == session_dates[-1]
+    assert item.missing_slices == ()
+
+
+@pytest.mark.asyncio
+async def test_date_only_daily_preflight_keeps_missing_edge_and_interior_sessions_partial(
+    db, instrument
+):
+    start = datetime(2024, 1, 2, tzinfo=UTC)
+    end = datetime(2024, 1, 9, 23, 59, 59, 999999, tzinfo=UTC)
+    # Missing the Jan 2 edge and two interior sessions must remain visible;
+    # only close-label slivers on observed bound dates are normalized away.
+    bars = [
+        OHLCVBar(
+            instrument_id=instrument.id,
+            timeframe=Timeframe.D1,
+            ts=datetime(2024, 1, day, 21, tzinfo=UTC),
+            open=Decimal("100"),
+            high=Decimal("101"),
+            low=Decimal("99"),
+            close=Decimal("100"),
+            volume=Decimal("1000"),
+            is_adjusted=True,
+        )
+        for day in (3, 4, 9)
+    ]
+
+    result = await preflight_ohlcv(
+        AsyncSessionAdapter(db),
+        evaluator="research_dataset",
+        instrument_ids=[instrument.id],
+        timeframe=Timeframe.D1,
+        date_from=start,
+        date_to=end,
+        cached_bars={instrument.id: bars},
+        now=datetime(2024, 1, 10, tzinfo=UTC),
+    )
+
+    item = result.items[0]
+    assert item.status.value == "partial"
+    assert item.bar_count == 3
+    assert item.missing_slices
+
+
+@pytest.mark.asyncio
 async def test_preflight_uses_per_instrument_session_calendar_for_daily_date_ranges(
     db, instrument, instrument_b
 ):

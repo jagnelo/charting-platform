@@ -130,10 +130,11 @@ describe('WorkstationToolContent missing chart history entrypoint', () => {
       state_schema_version: 1,
       position: 0,
     }
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     const wrapper = mount(WorkstationToolContent, {
       props: { tool, activeWindowKey: tool.instance_key },
       global: {
-        plugins: [pinia, [VueQueryPlugin, { queryClient: new QueryClient({ defaultOptions: { queries: { retry: false } } }) }]],
+        plugins: [pinia, [VueQueryPlugin, { queryClient }]],
         stubs: {
           VirtualWatchlistTool: true,
           ToolWindow: ToolWindowShell,
@@ -151,13 +152,77 @@ describe('WorkstationToolContent missing chart history entrypoint', () => {
     expect(wrapper.get('[aria-label="Selected benchmark family roles"]').text()).toContain('SPY')
     expect(apiGet).toHaveBeenCalledWith('/market-groups/sp500')
     wrapper.unmount()
+
+    // Opening/closing a docked tool may remount virtual roots. The same
+    // all-family readiness context should share one authenticated query across
+    // that remount instead of repeating the expensive global calculation.
+    const remounted = mount(WorkstationToolContent, {
+      props: { tool, activeWindowKey: tool.instance_key },
+      global: {
+        plugins: [pinia, [VueQueryPlugin, { queryClient }]],
+        stubs: {
+          VirtualWatchlistTool: true,
+          ToolWindow: ToolWindowShell,
+          UPlotChart: EmptyChartStub,
+          ChartPlotLibrary: true,
+          ChartTemplateControl: true,
+          DrawingToolbar: true,
+        },
+      },
+    })
+    await flushPromises()
+    expect(apiGet.mock.calls.filter(([path]) => path === '/analysis/benchmark-families/readiness')).toHaveLength(1)
+    remounted.unmount()
+    queryClient.clear()
   })
 
-  it('prepares the configured breadth group after its local read and refreshes that analysis as worker progress arrives', async () => {
+  it('keeps both constituent context and missing-snapshot messages in normal flow', async () => {
     const pinia = createPinia()
     setActivePinia(pinia)
+    const tool: WorkspaceWindowState = {
+      id: 31, instance_key: 'constituent-list', tool_type: 'watchlist', title: 'Constituents',
+      link_group: 'blue', configuration: { workspace_role: 'constituents' }, style: {}, state_schema_version: 1, position: 0,
+    }
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const wrapper = mount(WorkstationToolContent, {
+      props: { tool },
+      global: {
+        plugins: [pinia, [VueQueryPlugin, { queryClient }]],
+        stubs: {
+          VirtualWatchlistTool: { template: '<div class="watchlist-caption">{{ label }}</div>', props: ['label'] },
+          ToolWindow: ToolWindowShell,
+          UPlotChart: EmptyChartStub,
+          ChartPlotLibrary: true,
+          ChartTemplateControl: true,
+          DrawingToolbar: true,
+        },
+      },
+    })
+    await flushPromises()
+
+    const instruction = wrapper.get('.constituent-tool__empty-context')
+    const caption = wrapper.get('.watchlist-caption')
+    const pane = wrapper.get('.constituent-tool')
+    expect(instruction.text()).toContain('Choose an ETF or industry')
+    expect(caption.text()).toContain('No point-in-time ETF holdings snapshot')
+    expect(instruction.element.parentElement).toBe(pane.element)
+    expect(caption.element.parentElement).toBe(pane.element)
+    expect(Array.from(pane.element.children).indexOf(instruction.element)).toBeLessThan(
+      Array.from(pane.element.children).indexOf(caption.element),
+    )
+
+    wrapper.unmount()
+    queryClient.clear()
+  })
+
+  it('starts breadth preparation independently of delayed local reads and refreshes on worker progress', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const initialBreadthRead = deferred<unknown>()
+    let breadthReads = 0
     apiGet.mockImplementation((path: string) => {
       if (path === '/market-groups/sp500-sectors') return Promise.resolve({ members: [], provenance: {} })
+      if (path === '/analysis/groups/sp500-sectors/breadth' && breadthReads++ === 0) return initialBreadthRead.promise
       if (path.startsWith('/analysis/groups/sp500-sectors/')) return Promise.resolve({ group_key: 'sp500-sectors', rows: [], members: [] })
       return Promise.resolve([])
     })
@@ -193,7 +258,9 @@ describe('WorkstationToolContent missing chart history entrypoint', () => {
     expect(new Set(ensure.mock.calls.map(([request]) => request.target.kind === 'instrument' ? `instrument:${request.target.symbol}` : `${request.target.kind}:${request.target.group_key ?? request.target.family_key}`))).toEqual(new Set(['market_group:sp500-sectors', 'instrument:SPY']))
 
     const breadthRead = () => apiGet.mock.calls.filter(([path]) => path === '/analysis/groups/sp500-sectors/breadth').length
-    expect(breadthRead()).toBeGreaterThanOrEqual(1)
+    expect(breadthRead()).toBe(1)
+    initialBreadthRead.resolve({ group_key: 'sp500-sectors', rows: [], members: [] })
+    await flushPromises()
     const readsBeforeProgress = breadthRead()
     const partial: DataEnsureResponse = {
       request_id: 'breadth-progress', status: 'partial', created_at: '2026-11-07T10:00:00Z', updated_at: '2026-11-07T10:00:01Z', version: 2,

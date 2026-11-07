@@ -75,8 +75,10 @@ function isStudyHistoryEnsure(request: import('@playwright/test').Request, symbo
     && body.datasets[0] === 'history'
     && body.timeframe === 'D1'
     && body.adjusted === true
-    && (body.start_at ?? null) === null
-    && (body.end_at ?? null) === null
+    && Object.prototype.hasOwnProperty.call(body, 'start_at')
+    && Object.prototype.hasOwnProperty.call(body, 'end_at')
+    && body.start_at === null
+    && body.end_at === null
 }
 
 test('Study journey keeps saved identity, refreshes Results, and returns from Python Library on the immutable version', async ({ page, loggedIn, browserDiagnostics }) => {
@@ -101,6 +103,7 @@ test('Study journey keeps saved identity, refreshes Results, and returns from Py
   const addTool = page.getByRole('button', { name: 'Add tool', exact: true })
   await addTool.click()
   await page.getByRole('menu', { name: 'Workstation tools' }).getByRole('menuitem', { name: 'Study Results', exact: true }).click()
+  await activateDockToolTab(page, 'Study Results')
   const results = page.locator('.research-results-tool:visible').last()
   await expect(results).toBeVisible({ timeout: 15_000 })
   const resultsRegion = page.getByRole('region', { name: 'Study Lab research results' }).last()
@@ -664,8 +667,8 @@ test('Results supports ordinary controls through a controlled persisted-run API'
   const results = page.locator('.research-results-tool:visible').last()
   await expect(results.getByRole('button', { name: 'Run 8000, completed, 3 artifacts' })).toBeVisible()
   const runList = results.getByRole('list', { name: 'Persisted research runs' })
-  await expect(runList.locator('.research-results-tool__run-select').nth(0)).toHaveAccessibleName('Run 8000, completed, 3 artifacts')
-  await expect(runList.locator('.research-results-tool__run-select').nth(1)).toHaveAccessibleName('Run 7999, queued, 0 artifacts')
+  await expect(runList.getByRole('button', { name: 'Run 8000, completed, 3 artifacts', exact: true })).toBeVisible()
+  await expect(runList.getByRole('button', { name: 'Run 7999, queued, 0 artifacts', exact: true })).toBeVisible()
   const selectedDetail = results.locator('article[aria-label="Research run 8000 details"]')
   await expect(selectedDetail.locator('.research-results-tool__artifacts > article')).toHaveCount(3)
 
@@ -678,9 +681,9 @@ test('Results supports ordinary controls through a controlled persisted-run API'
   await expect(results).toContainText('Run 8000 vs 7999')
 
   await results.getByRole('button', { name: 'Run 8000, completed, 3 artifacts' }).click()
-  await results.getByRole('searchbox', { name: 'occurrences symbol filter' }).fill('SPY')
-  await results.getByRole('combobox', { name: 'occurrences event type filter' }).selectOption('member_entered')
-  await expect(results.getByRole('list', { name: 'occurrences filtered occurrences' }).getByRole('listitem')).toHaveCount(1)
+  await selectedDetail.getByRole('searchbox', { name: 'occurrences symbol filter' }).fill('SPY')
+  await selectedDetail.getByRole('combobox', { name: 'occurrences event type filter' }).selectOption('member_entered')
+  await expect(selectedDetail.getByRole('list', { name: 'occurrences filtered occurrences' }).getByRole('listitem')).toHaveCount(1)
 
   const exportReady = page.waitForEvent('download')
   await results.locator('[aria-label="sample_count scalar result"] button[title="Export sample_count"]').click()
@@ -785,7 +788,8 @@ test('Results keeps queued cancel available after one controlled failure and ret
   await expect(results.getByRole('alert')).toContainText(responseId)
   await expect(results.getByRole('button', { name: 'Cancel', exact: true })).toBeEnabled()
   expect(cancelRequests).toBe(1)
-  await expect(results.locator('.research-results-tool__run-select')).toHaveCount(1)
+  const runList = results.getByRole('list', { name: 'Persisted research runs' })
+  await expect(runList.getByRole('button', { name: 'Run 8202, queued, 0 artifacts', exact: true })).toHaveCount(1)
 
   await results.getByRole('button', { name: 'Cancel', exact: true }).click()
   await expect(results.getByRole('button', { name: 'Run 8202, canceled, 0 artifacts' })).toBeVisible()
@@ -830,11 +834,12 @@ test('Results creates no rerun after a controlled failure and the explicit retry
   await expect(results.getByRole('button', { name: 'Run 8210, queued, 0 artifacts' })).toHaveCount(0)
   await expect(results.getByRole('button', { name: 'Rerun snapshot', exact: true })).toBeEnabled()
   expect(rerunRequests).toBe(1)
-  await expect(results.locator('.research-results-tool__run-select')).toHaveCount(1)
+  const runList = results.getByRole('list', { name: 'Persisted research runs' })
+  await expect(runList.getByRole('button', { name: 'Run 8203, completed, 0 artifacts', exact: true })).toHaveCount(1)
 
   await results.getByRole('button', { name: 'Rerun snapshot', exact: true }).click()
   await expect(results.getByRole('button', { name: 'Run 8210, queued, 0 artifacts' })).toBeVisible()
-  await expect(results.locator('.research-results-tool__run-select').filter({ hasText: 'Run #8210' })).toHaveCount(1)
+  await expect(runList.getByRole('button', { name: 'Run 8210, queued, 0 artifacts', exact: true })).toHaveCount(1)
   expect(rerunRequests).toBe(2)
   await browserDiagnostics.expectNoCriticalIssues()
 })

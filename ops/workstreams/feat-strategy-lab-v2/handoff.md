@@ -19836,3 +19836,39 @@ Local evidence: 78 focused Results/diagnostic unit tests passed on unchanged inp
 ### Provider f84 basket-gap receipt correction (2026-11-07T07:43:40Z)
 
 Root inspected the two previously preserved basket paths and verified they matched older Provider33 bytes, not newer owned content. Under `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider-f84-consumer-lagging-basket-gap-closure.json` (SHA256 `ae6d32ef09611856454d042046303fa096d61dd3e5102dcbf01193b7ae66cd70`), only `backend/app/services/baskets.py` and `backend/tests/integration/api/test_baskets.py` were imported from exact f84 after old Provider33 and new f84 blob/SHA/mode guards. All58 Strategy consumer files now match f84. The prior handoff and validation classification is preserved as history and superseded here. ETF7ea source is separate and untouched. No Provider suite was replayed.
+
+### Study bounded-lookback correction and R26 browser evidence (2026-11-07)
+
+Root's R25 authenticated proof (`root-r25-real-research-rerun-proof.json` and
+`root-r25-real-research-artifacts-proof.json`) established that the ordinary runner can produce eight
+nonempty typed artifacts from the full520-bar SPY manifest when lookback is absent. The same bounded
+request with `lookback=20` was deferred because `research.py` limited materialization to500 rows. This
+Strategy-owned repair now preserves an explicit user date interval under the existing5000-row
+per-series limit while retaining the500-row limit for unbounded/set-based members; a focused router
+regression covers bounded and unbounded behavior. It does not fabricate artifacts or change coverage
+requirements.
+
+Root review rejected the earlier helper-only assertion because it would not catch a reverted
+materializer call site. That test was replaced before publication with an actual
+`_materialize_declared_dataset` exercise using520 local D1 bars and `lookback=20`; it asserts all520
+rows and `full`/`ready` preflight. The same test checks the unbounded batch path still returns500
+rows with full coverage. The focused15-test research router module passed after this correction.
+
+Root's R26 controlled comparison used frontend `77190340a4a2335e8f7f9a30ee32ded599a714ef` and
+backend `dcd3c823f9f76ed65b65d8b6c3628e1bc02a222e`; only relay CPU changed from0.25 to1.0. It ended
+`1 pass / 2 failures` in182.7 seconds, with `nr_throttled` unchanged. The ordinary high-low Study
+prepare/validate/run/results journey passed on the retained fixture. RRG maximize/reload still failed
+at Restore, and the initial Study Results empty-state remained at Loading. This is one ordinary Study
+journey proof, not exact-current-source browser qualification or release acceptance.
+
+The current frontend component suites previously passed132/132 Results/Study tests, the research
+router module passed15 tests, frontend type-check exited0, and Playwright discovered14 authored
+Study/workstation journeys. The post-import-sort Ruff check and format check for
+`research.py` and `test_research_router.py` pass, as does `git diff --check`. No new browser, fixture,
+service, provider, or deployment action ran. Provider `dcd3c823` and TC common runtime `77190340` are
+the current development inputs; their accepted manifests and earlier pins remain historical.
+
+Next: hand Root the coherent source containing the bounded-lookback fix and truthful deferred
+evaluation display. Root/TC own the still-failing Results initial mount and RRG Restore issues. The
+current local candidate has not run in a browser; full combined qualification, all original18
+roadmap criteria, and native/broker/capital/paid/trial/provider-live holds remain open.

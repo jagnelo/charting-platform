@@ -1197,12 +1197,19 @@ progress:
       preparation coordinator in Study controls so explicit Validate/Run actions prepare the
       selected dataset first; never acquire data inside evaluation or mutate saved-run identity.
       Maintain the Strategy-owned J10/J11/J12 action matrix as an input to TC's global inventory,
-      distinguishing component/API evidence from exact-source browser acceptance. Consume exact Provider source580571e41b9797589bf205b61d337f8c92ec04c6 under provider580571e4-runtime-development-consumption-contract.json (manifest SHA256 4eda89809b752114c73c95083a260672d0fe0f02f5921cc9b29535dc02ca11c7) at all51 active backend paths. Only analysis.py and test_analysis_router.py changed over21be2915, and both current files matched the exact predecessor before import. All51 entries match source SHA256, Git blob, status_from139, and executable-bit semantics. Root reports35 focused analysis-router tests plus pinned Ruff check/format pass; Strategy did not rerun Provider tests. Prior21be and earlier Provider pins remain historical. This development import is not release acceptance. Consume the authenticated durable ensure/status contract through the exact
+      distinguishing component/API evidence from exact-source browser acceptance. The current Provider
+      development source is dcd3c823f9f76ed65b65d8b6c3628e1bc02a222e under
+      providerdcd3c823-runtime-development-consumption-contract.json (manifest SHA256
+      723300fa7f2119d3e1856710904f0abe743288cee7f1ab52a685bbb0d2f4d5b3). Strategy consumed its
+      declared ten paths after old-byte guards; the owned research router now has an additional
+      Strategy bounded-range fix. Earlier Provider pins remain historical. This is development
+      consumption, not release acceptance. Consume the authenticated durable ensure/status contract through the exact
       TC-owned shared preparation client without duplicating worker, acquisition, quota, or provider
       behavior. The TC runtime history preserves the earlier AEA, D5, and5a pins. The prior TC ce2262ab common-runtime pin imported19 declared paths over5a and all66 entries were verified;
-      the current common-runtime pin is exact source 4cfee47689ebeffa05ccae5f1b7cc690f6a871b8 under
-      tc-4cfee476-common-runtime-development-consumption-contract.json. Only its four declared paths over ce
-      were imported, then all66 manifest entries were verified by SHA256, Git blob, source status, and executable-bit semantics. The two ETF-owned SearchBar files already matched
+      the current common-runtime pin is exact source 77190340a4a2335e8f7f9a30ee32ded599a714ef under
+      tc-77190340-common-runtime-development-consumption-contract.json. Strategy consumed its declared
+      nineteen delta paths and verified the active66-file manifest; the 4cfee and earlier pins remain
+      historical. The two ETF-owned SearchBar files already matched
       their exact a0c5250 dependency and were left unchanged. Prior D5/5a/ce test evidence is not fresh4c qualification; exact-source CI and combined browser acceptance remain pending. This is
       development consumption, not browser acceptance. Author the separately reserved Strategy workstation
       lifecycle journey; its public-UI browser body remains pending Root's combined slot. Repair the
@@ -1248,27 +1255,25 @@ progress:
       - ops/workstreams/feat-strategy-lab-v2/validation.jsonl
     status: in_progress
   current_blocker: >-
-    Root owns the affected Study normal-user browser reruns against the latest Strategy source and the combined
-    backend/browser acceptance. The current Library follow-up preserves byte-exact source identity, including a trailing newline, during asynchronous validation; its focused regression and type-check pass. Study/Results focused component suites now pass129/129 across2 files;
-    frontend type-check passes. The accepted late rerun/cancel shared-cache behavior has unit coverage but
-    no separate browser body; all authored Study browser bodies remain pending Root's fixture run. Provider580571e4 is the active development dependency: its two analysis/readiness paths were imported over21be2915 after predecessor-byte guards; all51 entries match source SHA256, Git blob, status_from139, and executable-bit records. Root reports35 focused analysis-router tests and pinned Ruff check/format pass; Strategy did not rerun Provider tests. Earlier pins remain historical; exact-source CI, combined browser qualification, and release remain pending.
-    The separate b1a94d98 CI42332618010 was cancelled at the45-minute Playwright job limit and is not green.
-    Earlier focused Strategy/Dashboard and shared auth/preparation checks against TC-d5e8 passed190/190
-    across11 files with frontend type-check exit0; these are historical evidence and were not rerun for
-    ce2262ab. The current imported66-path TC manifest is4cfee476, with four declared paths over ce2262ab; all66 entries
-    match Git blob/SHA256/status/executable-bit evidence. Browser evidence remains Root-owned; the Study/Results/Library browser stories, including the seven-case
-    Study spec and F8p run-status witness, are authored/discovered but unexecuted. The prior D5 and5a
-    pins and their qualification records remain historical. The current runtime retains the strict DTO and
-    preparation contracts; the Strategy Study component suite previously passed63/63 after the
-    fail-closed Validate repair, but no ce-specific suite or browser body ran here. Preserve the full
-    18-criterion roadmap and disabled holds.
+    Root's R26 controlled resource comparison on frontend77190340/backenddcd3c823 ran the same three
+    journeys and assertions with relay CPU raised from0.25 to1.0; it ended1pass/2fail in182.7s with
+    nr_throttled unchanged. The ordinary high-low Study prepare/validate/run/results journey passed.
+    The RRG maximize/reload Restore action and the initial Study Results empty-state loading assertion
+    still fail; neither is accepted or release evidence. Local Strategy work additionally fixes the
+    R25-proven lookback truncation: an explicit bounded date range now uses the existing5000-row
+    per-series safety cap while unbounded/set-based members retain their existing500-row budget.
+    Focused Strategy component tests, research-router tests, type-check and Playwright discovery have
+    passed on the current work in prior checks; the two backend Ruff checks/format checks and diff
+    check pass now. This local candidate has not run in a browser. Root owns the next fixture run and
+    common dock/RRG repair; preserve the18-criterion roadmap and disabled holds.
   next_action: >-
-    Hand the frozen Strategy consumer source, including late accepted rerun/cancel cache publication and
-    its129/129 focused Study/Results suite, to Root for the existing-fixture normal user-flow rerun and
-    single combined backend/browser/visual qualification. Discovery
-    and focused unit evidence do not count as browser execution. Preserve full-profile assertions,
-    all18 original roadmap criteria, and disabled-operation holds; do not treat controlled transitions
-    as genuine acquisition or close the full checkpoint early.
+    Freeze and hand this coherent Strategy candidate to Root, including the bounded lookback repair,
+    truthful deferred-evaluation UI, current TC771/Providerdcd development imports, and corrected
+    Study/Results/workstation locators. Root should run only the assigned affected journeys on its
+    existing fixture; retain the two R26 failures until their actual causes are fixed and verified.
+    Do not start another fixture or treat the single R26 Study pass, focused tests, or type-check as
+    browser/full-profile acceptance. Preserve all18 roadmap criteria and disabled native, broker,
+    capital, paid/trial, and provider-live holds.
   updated_at: "2026-11-07T05:36:55Z"
 roadmap_goal: >-
   Implement the production-grade, local-first Strategy Lab v2 backend for

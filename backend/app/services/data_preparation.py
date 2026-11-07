@@ -34,6 +34,11 @@ from app.schemas.data_preparation import (
     ScreenerPreparationTarget,
 )
 from app.services.market_refresh_queue import _acquire_enqueue_lock, enqueue_refresh_job
+from app.services.ohlcv_coverage import (
+    CoverageStatus,
+    OhlcvCoverageAssessment,
+    assess_ohlcv_coverage,
+)
 
 _TRACKING_CAPABILITY = "data_preparation_request"
 _OWNER_TRACKING_ROLE = "owner_request_tracking"
@@ -244,6 +249,87 @@ async def _persisted_derived_coverage_ranges(
             )
         )
     return sorted(ranges, key=lambda item: (item.start_at, item.market_series_id or 0))
+
+
+async def _retained_history_coverage(
+    db: AsyncSession,
+    *,
+    instrument_id: int,
+    timeframe: Timeframe,
+    adjusted: bool,
+    requested_start: datetime | None,
+    requested_end: datetime | None,
+) -> tuple[OhlcvCoverageAssessment | None, list[PreparationCoveredRange]]:
+    """Assess only the ordinary selected series before requiring a provider."""
+    if requested_start is None or requested_end is None:
+        return None, []
+
+    from app.services.market_data import _coverage_calendar, _default_series_bar_condition
+
+    instrument = await db.get(Instrument, instrument_id)
+    if instrument is None:
+        return None, []
+    start, end = _as_utc(requested_start), _as_utc(requested_end)
+    bars = list(
+        (
+            await db.execute(
+                select(OHLCVBar)
+                .where(
+                    OHLCVBar.instrument_id == instrument_id,
+                    OHLCVBar.timeframe == timeframe,
+                    OHLCVBar.ts >= start,
+                    OHLCVBar.ts <= end,
+                    _default_series_bar_condition(instrument_id, timeframe, adjusted),
+                )
+                .order_by(OHLCVBar.ts)
+            )
+        ).scalars()
+    )
+    assessment = assess_ohlcv_coverage(
+        bars, timeframe, start, end, calendar=_coverage_calendar(instrument)
+    )
+    gaps = assessment.missing_slices
+    ranges: list[PreparationCoveredRange] = []
+    segment: list[OHLCVBar] = []
+
+    def append_segment() -> None:
+        if not segment:
+            return
+        first, last = segment[0], segment[-1]
+        ranges.append(
+            PreparationCoveredRange(
+                start_at=_as_utc(first.ts),
+                end_at=_as_utc(last.ts),
+                data_source_id=first.data_source_id,
+                market_series_id=first.market_series_id,
+                adjustment_basis=str(first.adjustment_basis or "unknown"),
+                adjustment_version=str(first.adjustment_version or "unknown"),
+                is_adjusted=bool(first.is_adjusted),
+            )
+        )
+
+    previous: datetime | None = None
+    for bar in bars:
+        timestamp = _as_utc(bar.ts)
+        gap_before = previous is not None and any(
+            previous < gap_start and timestamp > gap_end for gap_start, gap_end in gaps
+        )
+        lineage_changed = bool(
+            segment
+            and (
+                segment[-1].market_series_id != bar.market_series_id
+                or segment[-1].data_source_id != bar.data_source_id
+                or segment[-1].adjustment_basis != bar.adjustment_basis
+                or segment[-1].adjustment_version != bar.adjustment_version
+            )
+        )
+        if gap_before or lineage_changed:
+            append_segment()
+            segment = []
+        segment.append(bar)
+        previous = timestamp
+    append_segment()
+    return assessment, ranges
 
 
 async def _resolve_symbol(db: AsyncSession, symbol: str) -> tuple[int | None, str | None]:
@@ -1002,40 +1088,105 @@ async def _enqueue_instrument_dependencies(
                 "updated_at": now.isoformat(),
             }
             if dataset is PreparationDataset.HISTORY:
-                warmup_job: MarketRefreshJob | None = None
                 prerequisite_job_ids = [identity_job.id] if identity_job else []
-                if request.timeframe in {Timeframe.W1, Timeframe.MN}:
-                    warmup_job = await _enqueue_history_dependency(
-                        db,
-                        parent_job_id=parent_job_id,
-                        request_id=request_id,
-                        dependency_id=dep_id,
-                        instrument_id=instrument_id,
-                        request=request,
-                        priority=priority,
-                        timeframe=Timeframe.D1,
-                        wait_for_job_ids=prerequisite_job_ids or None,
-                        now=now,
-                    )
-                    dependency["depends_on"] = [f"history:{instrument_id}:D1"]
-                    dependency["job_ids"].append(warmup_job.id)
-                    prerequisite_job_ids.append(warmup_job.id)
-                history_job = await _enqueue_history_dependency(
+                requested_coverage, retained_ranges = await _retained_history_coverage(
                     db,
-                    parent_job_id=parent_job_id,
-                    request_id=request_id,
-                    dependency_id=dep_id,
                     instrument_id=instrument_id,
-                    request=request,
-                    priority=priority,
                     timeframe=request.timeframe,
-                    wait_for_job_ids=prerequisite_job_ids or None,
-                    derived_only=warmup_job is not None,
-                    now=now,
+                    adjusted=request.adjusted,
+                    requested_start=request.start_at,
+                    requested_end=request.end_at,
                 )
-                dependency["job_ids"].append(history_job.id)
-                dependency["status"] = "queued"
-                dependency["reason_code"] = None
+                dependency["covered_ranges"] = [
+                    item.model_dump(mode="json") for item in retained_ranges
+                ]
+                if len(retained_ranges) == 1:
+                    dependency["covered_start"] = retained_ranges[0].start_at.isoformat()
+                    dependency["covered_end"] = retained_ranges[0].end_at.isoformat()
+                if (
+                    requested_coverage is not None
+                    and requested_coverage.status is CoverageStatus.READY
+                ):
+                    dependency["status"] = "ready"
+                    dependency["reason_code"] = None
+                else:
+
+                    async def enqueue_missing(
+                        timeframe: Timeframe,
+                        assessment,
+                        *,
+                        wait_for: list[int],
+                        derived_only: bool = False,
+                    ) -> list[MarketRefreshJob]:
+                        missing = list(assessment.missing_slices) if assessment is not None else []
+                        if not missing:
+                            missing = [(request.start_at, request.end_at)]
+                        jobs: list[MarketRefreshJob] = []
+                        for start_at, end_at in missing:
+                            child_request = (
+                                request.model_copy(update={"start_at": start_at, "end_at": end_at})
+                                if start_at is not None and end_at is not None
+                                else request
+                            )
+                            jobs.append(
+                                await _enqueue_history_dependency(
+                                    db,
+                                    parent_job_id=parent_job_id,
+                                    request_id=request_id,
+                                    dependency_id=dep_id,
+                                    instrument_id=instrument_id,
+                                    request=child_request,
+                                    priority=priority,
+                                    timeframe=timeframe,
+                                    wait_for_job_ids=wait_for or None,
+                                    derived_only=derived_only,
+                                    now=now,
+                                )
+                            )
+                        return jobs
+
+                    if request.timeframe in {Timeframe.W1, Timeframe.MN}:
+                        daily_coverage, _ = await _retained_history_coverage(
+                            db,
+                            instrument_id=instrument_id,
+                            timeframe=Timeframe.D1,
+                            adjusted=request.adjusted,
+                            requested_start=request.start_at,
+                            requested_end=request.end_at,
+                        )
+                        daily_jobs: list[MarketRefreshJob] = []
+                        if (
+                            daily_coverage is None
+                            or daily_coverage.status is not CoverageStatus.READY
+                        ):
+                            daily_jobs = await enqueue_missing(
+                                Timeframe.D1,
+                                daily_coverage,
+                                wait_for=prerequisite_job_ids,
+                            )
+                            dependency["depends_on"] = [f"history:{instrument_id}:D1"]
+                            dependency["job_ids"].extend(job.id for job in daily_jobs)
+                        prerequisite_job_ids.extend(job.id for job in daily_jobs)
+                        coarse_jobs = await enqueue_missing(
+                            request.timeframe,
+                            requested_coverage,
+                            wait_for=prerequisite_job_ids,
+                            derived_only=True,
+                        )
+                        dependency["job_ids"].extend(job.id for job in coarse_jobs)
+                    else:
+                        jobs = await enqueue_missing(
+                            request.timeframe,
+                            requested_coverage,
+                            wait_for=prerequisite_job_ids,
+                        )
+                        dependency["job_ids"].extend(job.id for job in jobs)
+                    if requested_coverage is not None and requested_coverage.bar_count:
+                        dependency["status"] = "partial"
+                        dependency["reason_code"] = "history_coverage_partial"
+                    else:
+                        dependency["status"] = "queued"
+                        dependency["reason_code"] = None
             elif dataset is PreparationDataset.HOLDINGS and status == "queued":
                 holdings_job = await _enqueue_etf_holdings_job(
                     db,
@@ -2001,33 +2152,58 @@ async def get_data_preparation_response(
         coverage_ranges: list[PreparationCoveredRange] = []
         covered_start = dependency.get("covered_start")
         covered_end = dependency.get("covered_end")
-        if dependency.get("dataset") == PreparationDataset.HISTORY.value and (
-            child_jobs or background_jobs
-        ):
+        if dependency.get("dataset") == PreparationDataset.HISTORY.value:
             normalized_request = data.get("normalized_request") or {}
             timeframe = str(normalized_request.get("timeframe") or Timeframe.D1.value)
             timeframe_enum = Timeframe(timeframe)
-            if timeframe_enum in {Timeframe.W1, Timeframe.MN}:
-                coverage_ranges = await _persisted_derived_coverage_ranges(
-                    db,
-                    instrument_id=int(dependency.get("instrument_id") or 0),
-                    timeframe=timeframe_enum,
-                    adjusted=bool(normalized_request.get("adjusted", True)),
-                    requested_start=(
-                        _as_utc(datetime.fromisoformat(normalized_request["start_at"]))
-                        if normalized_request.get("start_at")
-                        else None
-                    ),
-                    requested_end=(
-                        _as_utc(datetime.fromisoformat(normalized_request["end_at"]))
-                        if normalized_request.get("end_at")
-                        else None
-                    ),
+            requested_start = (
+                _as_utc(datetime.fromisoformat(normalized_request["start_at"]))
+                if normalized_request.get("start_at")
+                else None
+            )
+            requested_end = (
+                _as_utc(datetime.fromisoformat(normalized_request["end_at"]))
+                if normalized_request.get("end_at")
+                else None
+            )
+            retained_coverage, retained_ranges = await _retained_history_coverage(
+                db,
+                instrument_id=int(dependency.get("instrument_id") or 0),
+                timeframe=timeframe_enum,
+                adjusted=bool(normalized_request.get("adjusted", True)),
+                requested_start=requested_start,
+                requested_end=requested_end,
+            )
+            if retained_coverage is not None:
+                # Persisted selected-series rows are authoritative for both the
+                # fully cached path and any partial output while children run.
+                coverage_ranges = retained_ranges
+                history_jobs_pending = any(
+                    job.status in _PENDING_PREPARATION_JOB_STATUSES
+                    for job in [*child_jobs, *background_jobs]
                 )
-            else:
-                coverage_ranges = _verified_coverage_ranges(
-                    [*child_jobs, *background_jobs], timeframe=timeframe
-                )
+                if retained_coverage.status is CoverageStatus.READY and not history_jobs_pending:
+                    item_status, reason, retry_at = "ready", None, None
+                elif (
+                    retained_coverage.status is CoverageStatus.PARTIAL and not history_jobs_pending
+                ):
+                    # Keep an old provider hold visible while exposing useful
+                    # cached portions and the exact remaining gaps.
+                    item_status = "partial"
+            elif child_jobs or background_jobs:
+                if timeframe_enum in {Timeframe.W1, Timeframe.MN}:
+                    coverage_ranges = await _persisted_derived_coverage_ranges(
+                        db,
+                        instrument_id=int(dependency.get("instrument_id") or 0),
+                        timeframe=timeframe_enum,
+                        adjusted=bool(normalized_request.get("adjusted", True)),
+                        requested_start=requested_start,
+                        requested_end=requested_end,
+                    )
+                else:
+                    coverage_ranges = _verified_coverage_ranges(
+                        [*child_jobs, *background_jobs], timeframe=timeframe
+                    )
             if len(coverage_ranges) == 1:
                 covered_start = coverage_ranges[0].start_at
                 covered_end = coverage_ranges[0].end_at

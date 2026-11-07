@@ -36,7 +36,7 @@
     "status": "pending",
     "spec": "frontend/tests/e2e/strategy_study_journey.spec.ts",
     "dashboard_spec": "frontend/tests/e2e/dashboard_usability_journey.spec.ts",
-    "qualification": "Root ran all7 Strategy Study journeys once on frontend9273ea06/backend580571e4 using exact test source06897e9640432466f7dd5b15baac92e8916f07da; result7failed/118.09s, zero retries, not qualified. Root observed that ordinary clicks leave the Study Lab dock tab inactive and the common ToolContent remains at Loading tool\u2026 despite its lazy JS/CSS and Library API returning200; this is a shared TC dock/async-mount defect, not an empty/success result. Root owns that repair; Strategy must not force-click or bypass visibility. The current owned spec preserves ordinary tab clicks and corrects the Results root-region locator and the controlled mock contract, but this revision has not run in a browser. Results detail/cancel/rerun failure handling remains covered by the existing ResearchResultsTool component tests; its browser story uses successful API responses to retain strict BrowserDiagnostics. Root owns the next seven-body replay after a coherent TC successor and the combined qualification. No Strategy browser acceptance or full-release acceptance is claimed.",
+    "qualification": "Root R26 ran the same three journeys and assertions on frontend77190340/backenddcd3c823, changing relay CPU0.25 to1.0 only; terminal result1pass/2fail in182.7s with nr_throttled delta0. The ordinary high-low Study preparation/validate/run/results journey passed. RRG maximize/reload still fails at Restore and the initial Study Results empty-state remains Loading; no release acceptance is claimed. The exact current local candidate has not run in a browser. Earlier R13 and R24 red receipts remain history. Root owns TC shared dock/RRG repairs and the next combined qualification; Strategy does not force-click or bypass visibility.",
     "workstation_spec": "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts"
   },
   "journeys": [
@@ -58,7 +58,7 @@
         "POST /code/validate is validation-only: backend/tests/integration/api/test_code.py :: test_code_validation_never_executes_source",
         "POST /research/runs preserves typed run parameters: backend/tests/integration/api/test_code.py :: test_research_run_merges_defaults_and_rejects_schema_invalid_parameters"
       ],
-      "browser_evidence": "The authored Study flow checks the fresh-user empty Results state before a real Study validate/run, then verifies automatic persisted-row/artifact arrival, an XLB draft snapshot while the saved SPY run stays immutable, reload, and return from Library. Root R13 executed the then-current source but failed all7 cases when common TC dock activation left Study Lab inactive; current locator/mock corrections are not browser-executed. Browser acceptance remains pending. The normal seeded Study path now uses public date inputs for the retained 2024-01-02 through 2025-12-29 range, asserts exact preparation/run bounds and saved SPY identity/date summary across XLB draft edit and reload; authored only, not browser-executed.",
+      "browser_evidence": "The authored Study flow checks the fresh-user empty Results state before a real Study validate/run, then verifies automatic persisted-row/artifact arrival, an XLB draft snapshot while the saved SPY run stays immutable, reload, and return from Library. Root R26 passed the ordinary high-low Study preparation/validate/run/results journey on frontend77190340/backenddcd3c823; its other two cases failed (RRG Restore after maximize/reload and fresh Results initially stuck Loading). This is one retained-fixture journey, not full browser acceptance. The bounded 2024-01-02 through 2025-12-29 path asserts preparation/run bounds and saved SPY identity across XLB draft edit/reload, but the current local candidate has not run in a browser. The exact source browser gate remains pending.",
       "approved_journey": [
         "J10 Study: edit/validate/run/results/cancel/return supported workflow"
       ]
@@ -508,13 +508,13 @@
   "approved_plan": " /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/APPROVED-PLAN.md",
   "tc_common_runtime": {
     "owner": "TC",
-    "current_source": "4cfee47689ebeffa05ccae5f1b7cc690f6a871b8",
-    "contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-4cfee476-common-runtime-development-consumption-contract.json",
-    "contract_sha256": "dfe2e5cec52458f76fccfb71a0af9d5627e46f810c84fd8c8b2bfc232e2c754f",
+    "current_source": "77190340a4a2335e8f7f9a30ee32ded599a714ef",
+    "contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-77190340-common-runtime-development-consumption-contract.json",
+    "contract_sha256": "bb02e23726e7c419c54d35bbd6bfc41ed2e4cf40bf5747f7a5b531753cd7c6fd",
     "active_manifest_entries": 66,
-    "qualification": "Exact development consumption only; the four declared paths over ce2262ab and all66 active manifest entries were hash/blob/status/mode verified. Root reports90 focused owner tests/type checks and five browser cases; remaining family-latency/uncached-timing and combined release qualification remain pending.",
-    "delta_paths_over_previous": 4,
-    "previous_source": "ce2262ab2d47fc1ccda96f0c2aa7c8839e4e03f9",
+    "qualification": "Exact development consumption only; Strategy imported the nineteen declared delta paths and verified the active66-file manifest by SHA/blob/status/executable-bit. R26 used this frontend source in one pass/two failures; common-runtime and combined release acceptance remain pending.",
+    "delta_paths_over_previous": 19,
+    "previous_source": "5a783e745b211cfe8b3dd20cb77d275149f15de2",
     "historical_delta_paths_over_d5": 10,
     "superseded_runtime": {
       "source": "ce2262ab2d47fc1ccda96f0c2aa7c8839e4e03f9",
@@ -527,7 +527,7 @@
   "workstation_lifecycle": {
     "owner": "Strategy browser-spec author; TC owns shared workstation product and global matrix",
     "spec": "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts",
-    "source_pin": "TC 4cfee47689ebeffa05ccae5f1b7cc690f6a871b8; Provider b0eae5974801e320b3da858d7e1a33829b206430 development dependencies; ETF SearchBar remains exact a0c5250 dependency",
+    "source_pin": "TC 77190340a4a2335e8f7f9a30ee32ded599a714ef; Provider dcd3c823f9f76ed65b65d8b6c3628e1bc02a222e development dependency; ETF SearchBar remains exact a0c5250 dependency",
     "status": "authored_discovery_only_browser_pending_root_combined_slot",
     "journeys": [
       {

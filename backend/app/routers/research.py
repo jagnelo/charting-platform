@@ -62,6 +62,14 @@ def _wire_timestamps(values: list[datetime]) -> list[str]:
     return [wire_datetime(value) or "" for value in values]
 
 
+def _bounded_series_history_limit(options: dict, *, lookback: int | None, fallback: int) -> int:
+    """Keep a bounded user-requested interval intact while retaining the global row cap."""
+
+    if lookback is None or options.get("start") is not None or options.get("end") is not None:
+        return MAX_HISTORY_LIMIT
+    return fallback
+
+
 class ResearchEventSignalPromotionRequest(BaseModel):
     """Naming and output selection metadata for a lineage-preserving event promotion."""
 
@@ -607,8 +615,12 @@ async def _materialize_declared_dataset(
     history_limit = max(
         BATCH_HISTORY_LIMIT, (lookback + 1) if lookback is not None else BATCH_HISTORY_LIMIT
     )
-    benchmark_history_limit = max(
-        MAX_HISTORY_LIMIT if lookback is None else history_limit, history_limit
+    # A code lookback is an evaluator requirement, not permission to truncate a
+    # user's bounded date interval. Keep bounded single/reference series under
+    # the existing per-dataset safety cap; set-based batch members retain their
+    # smaller BATCH_HISTORY_LIMIT row budget below.
+    benchmark_history_limit = _bounded_series_history_limit(
+        options, lookback=lookback, fallback=history_limit
     )
     benchmark_dataset = await _materialize_benchmark_dataset(
         db, options, history_limit=benchmark_history_limit

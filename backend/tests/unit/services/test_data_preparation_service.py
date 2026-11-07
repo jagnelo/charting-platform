@@ -1,4 +1,6 @@
+from copy import deepcopy
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -8,7 +10,13 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 
 from app.models.data_source import DataSource
-from app.models.market_data_foundation import MarketRefreshJob
+from app.models.market_data_foundation import (
+    AdjustmentBasis,
+    MarketRefreshJob,
+    MarketSeries,
+    MarketSeriesDefault,
+)
+from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_observation import InstrumentProfileSnapshot
 from app.models.provider_runtime import ProviderCapability, ProviderPolicy
 from app.schemas.data_preparation import DataEnsureRequest
@@ -20,10 +28,344 @@ from app.services.data_preparation import (
     create_maintenance_data_preparation_request,
     expand_resolved_identity_dependency,
     get_data_preparation_response,
+    load_owner_request,
 )
 from app.services.instrument_mastering import reconcile_instrument_profile
 from app.services.market_refresh_queue import claim_refresh_jobs
 from tests.unit.conftest import AsyncSessionAdapter
+
+
+def _add_selected_cached_history(
+    db, instrument, *, days, adjusted=True, currency="EUR", close_labelled=False
+):
+    instrument.currency = currency
+    source = DataSource(name="retained-cache-test")
+    db.add(source)
+    db.flush()
+    series = MarketSeries(
+        instrument_id=instrument.id,
+        data_source_id=source.id,
+        feed_scope="retained-cache-test",
+        session_code="regular",
+        timeframe=Timeframe.D1.value,
+        adjustment_basis=AdjustmentBasis.SPLIT_ADJUSTED if adjusted else AdjustmentBasis.RAW,
+        adjustment_version="retained-test-v1",
+        is_canonical=True,
+        is_active=True,
+    )
+    db.add(series)
+    db.flush()
+    db.add(
+        MarketSeriesDefault(
+            instrument_id=instrument.id,
+            timeframe=Timeframe.D1.value,
+            is_adjusted=adjusted,
+            market_series_id=series.id,
+            selection_reason="retained-cache-test",
+        )
+    )
+    bars = []
+    for day in days:
+        bar = OHLCVBar(
+            instrument_id=instrument.id,
+            data_source_id=source.id,
+            market_series_id=series.id,
+            timeframe=Timeframe.D1,
+            ts=datetime(2026, 1, day, 21 if close_labelled else 0, tzinfo=UTC),
+            open=Decimal("10"),
+            high=Decimal("11"),
+            low=Decimal("9"),
+            close=Decimal("10"),
+            volume=Decimal("100"),
+            is_adjusted=adjusted,
+            adjustment_basis="split_adjusted" if adjusted else "raw",
+            adjustment_version="retained-test-v1",
+            scope_key=f"series:{series.id}:regular",
+        )
+        bars.append(bar)
+    db.add_all(bars)
+    db.flush()
+    return series, bars
+
+
+def _history_request(instrument, *, start_day, end_day, adjusted=True):
+    return DataEnsureRequest.model_validate(
+        {
+            "target": {"kind": "instrument", "instrument_id": instrument.id},
+            "datasets": ["history"],
+            "timeframe": "D1",
+            "adjusted": adjusted,
+            "start_at": f"2026-01-{start_day:02d}T00:00:00Z",
+            "end_at": f"2026-01-{end_day:02d}T00:00:00Z",
+        }
+    )
+
+
+def _qualify_test_instrument(instrument):
+    instrument.identity_status = "resolved"
+    instrument.domain_key = f"test:retained:{instrument.symbol}"
+    instrument.primary_identifier_type = "figi"
+    instrument.primary_identifier_value = "BBG000GENV001"
+
+
+async def _create_previously_held_history_request(db, instrument):
+    async_db = AsyncSessionAdapter(db)
+    parent = await create_data_preparation_request(
+        async_db,
+        owner_user_id=81,
+        request=_history_request(instrument, start_day=1, end_day=5),
+    )
+    data = deepcopy(parent.metadata_payload["data_preparation"])
+    dependency = data["dependencies"][0]
+    child = db.get(MarketRefreshJob, dependency["job_ids"][0])
+    child.status = "completed"
+    child.result_summary = {
+        "preparation_status": "held",
+        "reason_code": "no_eligible_history_provider",
+        "data_status": "empty",
+    }
+    dependency["status"] = "waiting"
+    dependency["reason_code"] = "no_eligible_history_provider"
+    data["status"] = "waiting"
+    parent.metadata_payload = {"data_preparation": data}
+    await async_db.commit()
+    db.expire_all()
+    return async_db, data["request_id"]
+
+
+@pytest.mark.asyncio
+async def test_fully_retained_selected_range_is_ready_without_provider_job(
+    db, instrument, monkeypatch
+):
+    import app.services.data_preparation as preparation
+
+    _qualify_test_instrument(instrument)
+    selected, _ = _add_selected_cached_history(db, instrument, days=[1, 2, 3, 4, 5])
+
+    async def no_external_dependency(*args, **kwargs):
+        raise AssertionError("covered selected-series history must not enter provider admission")
+
+    monkeypatch.setattr(preparation, "_enqueue_history_dependency", no_external_dependency)
+    async_db = AsyncSessionAdapter(db)
+    parent = await create_data_preparation_request(
+        async_db,
+        owner_user_id=81,
+        request=_history_request(instrument, start_day=1, end_day=5),
+    )
+    response = await get_data_preparation_response(async_db, parent=parent, owner_user_id=81)
+
+    assert response.status == "ready"
+    assert response.has_pending_work is False
+    assert response.dependencies[0].status == "ready"
+    assert response.dependencies[0].covered_start == datetime(2026, 1, 1, tzinfo=UTC)
+    assert response.dependencies[0].covered_end == datetime(2026, 1, 5, tzinfo=UTC)
+    assert response.dependencies[0].covered_ranges[0].market_series_id == selected.id
+    assert response.dependencies[0].covered_ranges[0].data_source_id == selected.data_source_id
+    assert response.dependencies[0].covered_ranges[0].adjustment_basis == "split_adjusted"
+    assert parent.metadata_payload["data_preparation"]["dependencies"][0]["job_ids"] == []
+
+
+@pytest.mark.asyncio
+async def test_close_labelled_retained_range_is_ready_at_exact_bounds(db, instrument, monkeypatch):
+    import app.services.data_preparation as preparation
+
+    _qualify_test_instrument(instrument)
+    selected, _ = _add_selected_cached_history(
+        db, instrument, days=[2, 3, 4, 5], currency="USD", close_labelled=True
+    )
+
+    async def no_external_dependency(*args, **kwargs):
+        raise AssertionError("complete retained range must not enter provider admission")
+
+    monkeypatch.setattr(preparation, "_enqueue_history_dependency", no_external_dependency)
+    request = DataEnsureRequest.model_validate(
+        {
+            "target": {"kind": "instrument", "instrument_id": instrument.id},
+            "datasets": ["history"],
+            "timeframe": "D1",
+            "adjusted": True,
+            "start_at": "2026-01-02T21:00:00Z",
+            "end_at": "2026-01-05T21:00:00Z",
+        }
+    )
+    async_db = AsyncSessionAdapter(db)
+    parent = await create_data_preparation_request(async_db, owner_user_id=81, request=request)
+    response = await get_data_preparation_response(async_db, parent=parent, owner_user_id=81)
+
+    assert response.status == "ready"
+    assert response.has_pending_work is False
+    assert response.dependencies[0].covered_start == datetime(2026, 1, 2, 21, tzinfo=UTC)
+    assert response.dependencies[0].covered_end == datetime(2026, 1, 5, 21, tzinfo=UTC)
+    assert response.dependencies[0].covered_ranges[0].market_series_id == selected.id
+
+
+@pytest.mark.asyncio
+async def test_missing_close_labelled_first_session_is_not_treated_as_ready(db, instrument):
+    _qualify_test_instrument(instrument)
+    _add_selected_cached_history(
+        db, instrument, days=[3, 4, 5], currency="USD", close_labelled=True
+    )
+    request = DataEnsureRequest.model_validate(
+        {
+            "target": {"kind": "instrument", "instrument_id": instrument.id},
+            "datasets": ["history"],
+            "timeframe": "D1",
+            "adjusted": True,
+            "start_at": "2026-01-02T21:00:00Z",
+            "end_at": "2026-01-05T21:00:00Z",
+        }
+    )
+    parent = await create_data_preparation_request(
+        AsyncSessionAdapter(db), owner_user_id=81, request=request
+    )
+    dependency = parent.metadata_payload["data_preparation"]["dependencies"][0]
+    children = [db.get(MarketRefreshJob, value) for value in dependency["job_ids"]]
+    assert dependency["status"] == "partial"
+    assert len(children) == 1
+    assert children[0].start_at == datetime(2026, 1, 2, 21)
+
+
+@pytest.mark.asyncio
+async def test_existing_held_request_reprojects_ready_after_compatible_cache_arrives(
+    db, instrument
+):
+    _qualify_test_instrument(instrument)
+    async_db, request_id = await _create_previously_held_history_request(db, instrument)
+    _add_selected_cached_history(db, instrument, days=[1, 2, 3, 4, 5])
+    await async_db.commit()
+    db.expire_all()
+
+    parent = await load_owner_request(async_db, request_id=request_id, owner_user_id=81)
+    response = await get_data_preparation_response(async_db, parent=parent, owner_user_id=81)
+
+    assert response.status == "ready"
+    assert response.has_pending_work is False
+    assert response.dependencies[0].reason_code is None
+    assert response.dependencies[0].covered_start == datetime(2026, 1, 1, tzinfo=UTC)
+    assert response.dependencies[0].covered_end == datetime(2026, 1, 5, tzinfo=UTC)
+
+
+@pytest.mark.asyncio
+async def test_existing_held_request_keeps_partial_gaps_and_reason_after_cache_arrives(
+    db, instrument
+):
+    _qualify_test_instrument(instrument)
+    async_db, request_id = await _create_previously_held_history_request(db, instrument)
+    _add_selected_cached_history(db, instrument, days=[3, 4, 5])
+    await async_db.commit()
+    db.expire_all()
+
+    parent = await load_owner_request(async_db, request_id=request_id, owner_user_id=81)
+    response = await get_data_preparation_response(async_db, parent=parent, owner_user_id=81)
+
+    assert response.status == "partial"
+    assert response.has_pending_work is False
+    assert response.dependencies[0].status == "partial"
+    assert response.dependencies[0].reason_code == "no_eligible_history_provider"
+    assert response.dependencies[0].covered_start == datetime(2026, 1, 3, tzinfo=UTC)
+    assert response.dependencies[0].covered_end == datetime(2026, 1, 5, tzinfo=UTC)
+
+
+@pytest.mark.asyncio
+async def test_partial_retained_range_queues_only_missing_edge_and_reports_cache(db, instrument):
+    _qualify_test_instrument(instrument)
+    _add_selected_cached_history(db, instrument, days=[3, 4, 5])
+    async_db = AsyncSessionAdapter(db)
+    parent = await create_data_preparation_request(
+        async_db,
+        owner_user_id=81,
+        request=_history_request(instrument, start_day=1, end_day=5),
+    )
+    dependency = parent.metadata_payload["data_preparation"]["dependencies"][0]
+    children = [db.get(MarketRefreshJob, value) for value in dependency["job_ids"]]
+    assert dependency["status"] == "partial"
+    assert len(children) == 1
+    assert children[0].start_at == datetime(2026, 1, 1)
+    assert children[0].end_at == datetime(2026, 1, 2)
+
+    response = await get_data_preparation_response(async_db, parent=parent, owner_user_id=81)
+    assert response.dependencies[0].status == "partial"
+    assert response.has_pending_work is True
+    assert response.dependencies[0].covered_start == datetime(2026, 1, 3, tzinfo=UTC)
+    assert response.dependencies[0].covered_end == datetime(2026, 1, 5, tzinfo=UTC)
+
+
+@pytest.mark.asyncio
+async def test_retained_internal_gap_is_reported_and_only_gap_is_queued(db, instrument):
+    _qualify_test_instrument(instrument)
+    selected, _ = _add_selected_cached_history(db, instrument, days=[1, 2, 8, 9])
+    alternate = MarketSeries(
+        instrument_id=instrument.id,
+        data_source_id=selected.data_source_id,
+        feed_scope="alternate-cache-test",
+        session_code="regular",
+        timeframe=Timeframe.D1.value,
+        adjustment_basis=AdjustmentBasis.SPLIT_ADJUSTED,
+        adjustment_version="alternate-test-v1",
+        is_canonical=True,
+        is_active=True,
+    )
+    db.add(alternate)
+    db.flush()
+    db.add_all(
+        [
+            OHLCVBar(
+                instrument_id=instrument.id,
+                data_source_id=selected.data_source_id,
+                market_series_id=alternate.id,
+                timeframe=Timeframe.D1,
+                ts=datetime(2026, 1, day, tzinfo=UTC),
+                open=Decimal("10"),
+                high=Decimal("11"),
+                low=Decimal("9"),
+                close=Decimal("10"),
+                volume=Decimal("100"),
+                is_adjusted=True,
+                adjustment_basis="split_adjusted",
+                adjustment_version="alternate-test-v1",
+                scope_key=f"series:{alternate.id}:regular",
+            )
+            for day in range(3, 8)
+        ]
+    )
+    db.flush()
+    async_db = AsyncSessionAdapter(db)
+    parent = await create_data_preparation_request(
+        async_db,
+        owner_user_id=81,
+        request=_history_request(instrument, start_day=1, end_day=9),
+    )
+    dependency = parent.metadata_payload["data_preparation"]["dependencies"][0]
+    children = [db.get(MarketRefreshJob, value) for value in dependency["job_ids"]]
+    assert len(children) == 1
+    assert children[0].start_at == datetime(2026, 1, 3)
+    assert children[0].end_at == datetime(2026, 1, 7)
+    response = await get_data_preparation_response(async_db, parent=parent, owner_user_id=81)
+    assert response.dependencies[0].status == "partial"
+    assert len(response.dependencies[0].covered_ranges) == 2
+    assert response.dependencies[0].covered_start is None
+    assert response.dependencies[0].covered_end is None
+
+
+@pytest.mark.asyncio
+async def test_incompatible_adjustment_basis_does_not_satisfy_retained_history(db, instrument):
+    _qualify_test_instrument(instrument)
+    _add_selected_cached_history(db, instrument, days=[1, 2, 3], adjusted=True)
+    async_db = AsyncSessionAdapter(db)
+    parent = await create_data_preparation_request(
+        async_db,
+        owner_user_id=81,
+        request=_history_request(instrument, start_day=1, end_day=3, adjusted=False),
+    )
+    dependency = parent.metadata_payload["data_preparation"]["dependencies"][0]
+    children = [db.get(MarketRefreshJob, value) for value in dependency["job_ids"]]
+    assert dependency["status"] == "queued"
+    assert dependency["covered_ranges"] == []
+    assert len(children) == 1
+    assert (children[0].start_at, children[0].end_at) == (
+        datetime(2026, 1, 1),
+        datetime(2026, 1, 3),
+    )
 
 
 def test_monthly_rrg_priority_floor_includes_both_lookbacks_and_result_tail():
