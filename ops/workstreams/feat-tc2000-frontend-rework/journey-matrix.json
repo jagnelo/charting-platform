@@ -37,10 +37,10 @@
       "qualification": "Exact ETF 2450abb9 development import is present; browser execution and release acceptance remain Root-owned and pending."
     },
     "strategy_runtime_import": {
-      "source_commit": "2144d9647a33eadd4fcce973933c4c9fdc8cef4d",
-      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/2144d9647a33eadd4fcce973933c4c9fdc8cef4d.json",
-      "manifest_sha256": "53630e070ea5604a97327e5144add8c70b6f0c442ab8e14c90e1d96de509886d",
-      "qualification": "Exact Strategy2144 development source and all 27 manifest entries are imported and hash-verified; Root browser execution, exact-source CI, combined qualification, and release acceptance remain pending."
+      "source_commit": "6f81120613ffbb1e43a5dc05c51ef2315afe9421",
+      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/6f81120613ffbb1e43a5dc05c51ef2315afe9421.json",
+      "manifest_sha256": "640f4163f7f32671d2e86b1d3f2e15b73a70a58d6d91e2fa8554d99704eb906d",
+      "qualification": "Exact Strategy 6f811206 test-only successor and all 27 manifest entries are imported and hash-verified; authored browser journeys, exact-source CI, combined qualification, and release acceptance remain pending Root."
     },
     "superseded_runtime_imports": {
       "strategy_8dfeed": {
@@ -2450,9 +2450,9 @@
       "browser_specs": [
         {
           "path": "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts",
-          "source_commit": "2144d9647a33eadd4fcce973933c4c9fdc8cef4d",
-          "source_blob": "9d6668848f49cd1d094b46314ac4709915c89b10",
-          "source_sha256": "5617047eb2ff94e900b47c6568630c48d1eefc57fca27dd8127d02dfca3e75e8",
+          "source_commit": "6f81120613ffbb1e43a5dc05c51ef2315afe9421",
+          "source_blob": "cbd6a5377721fefdd61bce0a8c652aeeae290a47",
+          "source_sha256": "aec0a42b2d5f7305fee6fa01fbdf5d501083a3ed40e66c26a62d09c9d3ff0724",
           "execution_status": "authored_pending_combined_browser_run",
           "cases": [
             {
@@ -2484,9 +2484,9 @@
         },
         {
           "path": "frontend/tests/e2e/dashboard_usability_journey.spec.ts",
-          "source_commit": "2144d9647a33eadd4fcce973933c4c9fdc8cef4d",
-          "source_blob": "41c0456ed579fbf19c59ea17eacb2689ad156668",
-          "source_sha256": "b792a6710bd73ca6b5c3fe3c2b0149a856d7442fd0407ea50773eb092bf31996",
+          "source_commit": "6f81120613ffbb1e43a5dc05c51ef2315afe9421",
+          "source_blob": "a19cad4a76282784559aa6c29e0aacb1247a5e0a",
+          "source_sha256": "a5ebdb6a73fb54c080d3d6a86a2a03817ce4af185c44c4d9e614b682405c9a3b",
           "execution_status": "authored_pending_root_run",
           "cases": [
             {
@@ -2542,9 +2542,9 @@
               ]
             }
           ],
-          "source_commit": "2144d9647a33eadd4fcce973933c4c9fdc8cef4d",
-          "source_blob": "ee3313fea5602fe46b338c7b9498c58f2f34a49f",
-          "source_sha256": "b6dcf58560cde27980be4350b84ea2ef8a5af08fcaad13ac069b07f2936f17d4"
+          "source_commit": "6f81120613ffbb1e43a5dc05c51ef2315afe9421",
+          "source_blob": "db55cdb7fcd6f852c462fed80c82048bfbf58d91",
+          "source_sha256": "decbd6d99a1ea175f6ace8e8564804aa24a794d9df0f2255a122a7804306b408"
         }
       ]
     }

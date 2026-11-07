@@ -2037,17 +2037,8 @@ watch(activeSymbol, async symbol => {
 // Older persisted workspaces used the shorter `industries` instance key. Keep
 // that serialized state behavior-compatible while new factory layouts use the
 // explicit `industry-list` key.
-const isIndustryTool = computed(() => {
-  const instanceKey = props.tool.instance_key.toLowerCase()
-  const title = (props.tool.title ?? '').toLowerCase()
-  return workspaceToolRole(props.tool) === 'industry-universe'
-    || instanceKey === 'industry-list'
-    || instanceKey === 'industries'
-    || title.includes('industr')
-})
-const isSectorTool = computed(() => workspaceToolRole(props.tool) === 'sector-universe'
-  || props.tool.instance_key === 'sector-list'
-  || (props.tool.title ?? '').toLowerCase().includes('sector'))
+const isIndustryTool = computed(() => workspaceToolRole(props.tool) === 'industry-universe')
+const isSectorTool = computed(() => workspaceToolRole(props.tool) === 'sector-universe')
 // Resolve isolated Grey timeframes through the live workspace store rather
 // than the detached Golden Layout component-state object. Shared groups are
 // already reactive through the link bus; Grey must track per-tool edits too.
@@ -3571,10 +3562,7 @@ async function saveGenericBreadthDefinition() {
 }
 const technical = computed(() => workspaceStore.technicals[activeSymbol.value])
 const selectedETF = computed(() => workspaceStore.constituentETF ?? '')
-const isConstituentTool = computed(() => workspaceToolRole(props.tool) === 'constituent-universe'
-  || props.tool.instance_key === 'constituent-list'
-  || (props.tool.title ?? '').toLowerCase().includes('constituent')
-  || (props.tool.title ?? '').toLowerCase().includes('component'))
+const isConstituentTool = computed(() => workspaceToolRole(props.tool) === 'constituent-universe')
 // A persisted generic watchlist flag must not override a factory semantic role.
 // Older or cloned Industry/Constituent windows can carry `personal: true`; keep
 // rendering their dated domain surface even when its source rows are empty.
@@ -4530,7 +4518,7 @@ const technicalMAs = computed(() => [technical.value?.sma20, technical.value?.sm
   .map(value => formatNumber(value)).join(' / '))
 function breadthMetric(key: string) {
   const value = key.startsWith('ma')
-    ? breadth.value?.above_ma[key]
+    ? breadth.value?.above_ma?.[key]
     : key === 'near_52w_high' ? breadth.value?.near_52w?.high
       : key === 'near_52w_low' ? breadth.value?.near_52w?.low
         : key === 'new_high' ? breadth.value?.new_highs?.lookback

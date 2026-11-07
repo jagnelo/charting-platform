@@ -108,8 +108,8 @@ test('Study journey keeps saved identity, refreshes Results, and returns from Py
   const studyName = `Study journey ${Date.now()}`
   const runRequests: Array<{
     code_version_id?: number
-    run_config?: { start_date?: string; end_date?: string }
-    dataset_manifest?: { start_date?: string; end_date?: string }
+    run_config?: { symbol?: string; start_date?: string; end_date?: string }
+    dataset_manifest?: { symbol?: string; start_date?: string; end_date?: string }
   }> = []
   let codeAssetCreations = 0
   page.on('request', request => {
@@ -284,13 +284,15 @@ test('Study journey keeps saved identity, refreshes Results, and returns from Py
   await expect(returnedStudy).toBeVisible({ timeout: 15_000 })
   await expect(returnedStudy.getByRole('textbox', { name: 'Study name' })).toHaveValue(studyName)
   await expect(returnedStudy.getByRole('textbox', { name: 'Study Python source' })).toHaveValue(savedVersionBody.source!)
+  await expect(returnedStudy.getByRole('textbox', { name: 'Study symbol' })).toHaveValue('XLB')
   await expect(returnedStudy.getByLabel('Study start date')).toHaveValue(retainedStudyStartDate)
   await expect(returnedStudy.getByLabel('Study end date')).toHaveValue(retainedStudyEndDate)
   expect(runRequests).toHaveLength(1)
 
+  const returnedStudySymbols = new Set(['XLB'])
   const returnedPreparation = page.waitForResponse(response => isStudyHistoryEnsure(
     response.request(),
-    preparationSymbols,
+    returnedStudySymbols,
     `${retainedStudyStartDate}T00:00:00.000Z`,
     `${retainedStudyEndDate}T23:59:59.999Z`,
   ))
@@ -298,14 +300,70 @@ test('Study journey keeps saved identity, refreshes Results, and returns from Py
   expect((await returnedPreparation).ok()).toBe(true)
   await expect(returnedStudy).toContainText('Validated for isolated execution', { timeout: 15_000 })
   const returnedRunRequest = page.waitForRequest(request => request.method() === 'POST' && new URL(request.url()).pathname.endsWith('/research/runs'))
+  const returnedRunCreateResponse = page.waitForResponse(response => response.request().method() === 'POST'
+    && new URL(response.url()).pathname.endsWith('/research/runs'))
   await returnedStudy.getByRole('button', { name: 'Run study', exact: true }).click()
   const returnedRunBody = (await returnedRunRequest).postDataJSON() as typeof runRequests[number]
+  const returnedRunAccepted = await returnedRunCreateResponse
+  expect(returnedRunAccepted.status()).toBe(202)
   expect(returnedRunBody.code_version_id).toBe(savedVersionBody.id)
   expect(returnedRunBody).toMatchObject({
-    run_config: { symbol: 'SPY', start_date: retainedStudyStartDate, end_date: retainedStudyEndDate },
+    run_config: { symbol: 'XLB', start_date: retainedStudyStartDate, end_date: retainedStudyEndDate },
     dataset_manifest: { start_date: retainedStudyStartDate, end_date: retainedStudyEndDate },
   })
+  const acceptedRun = await returnedRunAccepted.json() as { id?: number }
+  expect(Number.isInteger(acceptedRun.id)).toBe(true)
   await expect(returnedStudy.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
+  const returnedRunDetailResponse = await page.request.get(new URL(`/api/v1/research/runs/${acceptedRun.id}`, page.url()).toString())
+  expect(returnedRunDetailResponse.ok()).toBe(true)
+  const returnedRunDetail = await returnedRunDetailResponse.json() as {
+    status?: string
+    evaluation_status?: string
+    run_config?: { symbol?: string; start_date?: string; end_date?: string }
+    dataset_manifest?: {
+      source?: string
+      symbol?: string
+      instrument_id?: number
+      timeframe?: string
+      adjustment?: string
+      session?: string
+      start_date?: string
+      end_date?: string
+      timestamps?: string[]
+      closes?: Array<number | null>
+      metadata?: { symbol?: string; instrument_id?: number }
+      coverage_preflight?: { items?: Array<{ instrument_id?: number; status?: string }> }
+    }
+  }
+  expect(returnedRunDetail).toMatchObject({
+    status: 'completed',
+    evaluation_status: 'completed',
+    run_config: { symbol: 'XLB', start_date: retainedStudyStartDate, end_date: retainedStudyEndDate },
+    dataset_manifest: {
+      source: 'canonical_database',
+      symbol: 'XLB',
+      timeframe: 'D1',
+      adjustment: 'split_adjusted',
+      session: 'regular',
+      start_date: retainedStudyStartDate,
+      end_date: retainedStudyEndDate,
+    },
+  })
+  const returnedManifest = returnedRunDetail.dataset_manifest!
+  expect(Number.isInteger(returnedManifest.instrument_id)).toBe(true)
+  expect(returnedManifest.instrument_id).toBeGreaterThan(0)
+  expect(returnedManifest.metadata).toMatchObject({ symbol: 'XLB', instrument_id: returnedManifest.instrument_id })
+  expect(returnedManifest.timestamps?.length).toBeGreaterThan(0)
+  expect(returnedManifest.timestamps?.length).toBe(returnedManifest.closes?.length)
+  expect(returnedManifest.closes?.every(value => typeof value === 'number' && Number.isFinite(value))).toBe(true)
+  const firstReturnedBar = Date.parse(returnedManifest.timestamps![0])
+  const lastReturnedBar = Date.parse(returnedManifest.timestamps![returnedManifest.timestamps!.length - 1])
+  expect(Number.isFinite(firstReturnedBar)).toBe(true)
+  expect(Number.isFinite(lastReturnedBar)).toBe(true)
+  expect(firstReturnedBar).toBeGreaterThanOrEqual(Date.parse(`${retainedStudyStartDate}T00:00:00.000Z`))
+  expect(lastReturnedBar).toBeLessThanOrEqual(Date.parse(`${retainedStudyEndDate}T23:59:59.999Z`))
+  const coverage = returnedManifest.coverage_preflight?.items?.find(item => item.instrument_id === returnedManifest.instrument_id)
+  expect(coverage).toMatchObject({ instrument_id: returnedManifest.instrument_id, status: 'ready' })
   expect(runRequests).toHaveLength(2)
   expect(codeAssetCreations).toBe(1)
   await browserDiagnostics.expectNoCriticalIssues()

@@ -164,7 +164,8 @@
       <button type="button" aria-label="Export Market Map CSV" :disabled="!map" @click="exportCsv">Export CSV</button>
       <button v-if="snapshotSelectionId" type="button" aria-label="Delete selected Market Map snapshot" :disabled="snapshotLoading" @click="deleteSnapshot">Delete snapshot</button>
     </div>
-    <p v-if="sourcesError" class="market-map-tool__status market-map-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">{{ sourcesError }}</p>
+    <p v-if="sourcesError" class="market-map-tool__status market-map-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">Universe list unavailable: {{ sourcesError }}</p>
+    <p v-else-if="initialUniverseMessage" class="market-map-tool__status" role="status" aria-live="polite" aria-atomic="true">{{ initialUniverseMessage }}</p>
     <p v-if="error" class="market-map-tool__status market-map-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</p>
     <p v-if="preparationStatus" class="market-map-tool__status" role="status" aria-live="polite" aria-atomic="true">{{ preparationStatus }}</p>
     <p v-if="snapshotError" class="market-map-tool__status market-map-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">{{ snapshotError }}</p>
@@ -307,7 +308,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
-import { formatSourceFailureClass as formatFailureClass, sourceAvailability, sourceAvailabilitySuffix, sourceIsNotCurrent } from '@/lib/workstation/sourceCapability'
+import { formatSourceFailureClass as formatFailureClass, initialMarketMapSource, sourceAvailability, sourceAvailabilitySuffix, sourceIsNotCurrent } from '@/lib/workstation/sourceCapability'
 import { useWatchlistStore } from '@/stores/watchlist'
 import { useUserSettingsStore } from '@/stores/userSettings'
 import { invalidateCodeAssets } from '@/lib/workstation/libraryQueries'
@@ -386,6 +387,7 @@ const startDate = ref(String(props.configuration.start_date ?? ''))
 const endDate = ref(String(props.configuration.end_date ?? ''))
 const loading = ref(false)
 const error = ref('')
+const initialUniverseMessage = ref('')
 const map = ref<MarketMap | null>(null)
 const selectedNode = ref<string | null>(null)
 const selectedMembers = ref<MarketMapCell[]>([])
@@ -522,6 +524,10 @@ function canRefreshCanonicalSource(source: WatchlistSource | null | undefined): 
 
 function canRunSource(source: WatchlistSource | null | undefined): boolean {
   return Boolean(source && (isSourceSelectable(source) || canRefreshCanonicalSource(source)))
+}
+
+function chooseInitialUniverse(): string | null {
+  return initialMarketMapSource(sources.value)?.source_id ?? null
 }
 
 function sourceKindLabel(kind: WatchlistSourceKind): string {
@@ -2127,7 +2133,10 @@ onMounted(async () => {
   window.addEventListener('resize', scheduleCanvasDraw)
   await userSettingsStore.loadSettings()
   if (!componentMounted) return
-  if (!sources.value.length) await watchlistStore.loadWatchlistSources()
+  const needsDefaultUniverse = !sourceId.value && !explicitSymbols.value.trim()
+  // A blank new tool needs a fresh list before choosing a default. A list
+  // loaded for another panel may still put a pending zero-member ETF first.
+  if (needsDefaultUniverse || !sources.value.length) await watchlistStore.loadWatchlistSources()
   if (!componentMounted) return
   if (!watchlistStore.watchlists.length) await watchlistStore.loadWatchlists()
   if (!componentMounted) return
@@ -2140,14 +2149,19 @@ onMounted(async () => {
     snapshotError.value = cause instanceof Error ? cause.message : 'Unable to load Market Map snapshots'
   }
   if (!componentMounted) return
-  if (!sourceId.value && !explicitSymbols.value.trim()) {
-    const preferred = sources.value.find((item: WatchlistSource) => isSourceSelectable(item) && (item.source_kind === 'index_membership' || item.source_kind === 'etf_holdings'))
-      ?? sources.value.find((item: WatchlistSource) => isSourceSelectable(item))
+  if (!sourceId.value && !explicitSymbols.value.trim() && !sourcesError.value) {
+    const preferred = chooseInitialUniverse()
     if (preferred) {
       // The mount path explicitly runs its chosen initial source below; prevent
       // the source watcher from racing it with the same first request.
       skipInitialSourceWatcher = true
-      sourceId.value = preferred.source_id
+      // Equal area is available for every populated source kind, including
+      // ETF proxy members that do not carry company market capitalization.
+      // Existing saved/user-selected universes retain their configured metric.
+      if (!props.configuration.source_id && (props.configuration.area_metric == null || props.configuration.area_metric === 'market_cap')) areaMetric.value = 'equal'
+      sourceId.value = preferred
+    } else {
+      initialUniverseMessage.value = 'No populated current universe is available yet. Choose a compatible universe or enter explicit symbols.'
     }
   }
   if (!componentMounted) return

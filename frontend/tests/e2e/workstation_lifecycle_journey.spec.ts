@@ -270,12 +270,38 @@ async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUT
       if (await rows.count() === 0) {
         const listName = `Factory journey ${Date.now()}`
         await tool.getByLabel('Personal watchlist name').fill(listName)
+        const createResponsePromise = page.waitForResponse(response => {
+          const request = response.request()
+          const url = new URL(response.url())
+          if (request.method() !== 'POST' || url.pathname !== '/api/v1/watchlists') return false
+          try {
+            return request.postDataJSON()?.name === listName
+          } catch {
+            return false
+          }
+        })
         await tool.getByRole('button', { name: 'Create personal watchlist', exact: true }).click()
+        const createResponse = await createResponsePromise
+        expect(createResponse.status()).toBe(200)
+        const createdList = await createResponse.json() as { id: number; name: string }
+        expect(Number.isInteger(createdList.id)).toBe(true)
+        expect(createdList.name).toBe(listName)
         const personalList = tool.getByLabel('Personal watchlist', { exact: true })
-        await expect(personalList.locator('option').filter({ hasText: listName })).toBeAttached()
+        await expect(personalList.locator(`option[value="${createdList.id}"]`)).toHaveText(listName, { timeout: 15_000 })
+        await expect(personalList).toHaveValue(String(createdList.id), { timeout: 15_000 })
       }
       await tool.getByRole('textbox', { name: 'Add symbol to personal watchlist', exact: true }).fill('SPY')
+      const selectedListId = await tool.getByLabel('Personal watchlist', { exact: true }).inputValue()
+      expect(Number.isInteger(Number(selectedListId))).toBe(true)
+      const addResponsePromise = page.waitForResponse(response => response.request().method() === 'POST'
+        && new URL(response.url()).pathname === `/api/v1/watchlists/${selectedListId}/items`)
       await tool.getByRole('button', { name: 'Add symbol to personal watchlist', exact: true }).click()
+      const addResponse = await addResponsePromise
+      expect(addResponse.status()).toBe(200)
+      const addedItem = await addResponse.json() as { id: number; instrument_id: number; symbol?: string | null }
+      expect(Number.isInteger(addedItem.id)).toBe(true)
+      expect(Number.isInteger(addedItem.instrument_id)).toBe(true)
+      expect(addedItem.symbol).toBe('SPY')
       await expect(spyRow).toBeVisible({ timeout: 20_000 })
     }
     const firstRow = rows.first()
@@ -510,7 +536,9 @@ async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUT
     await create.getByLabel('New Python asset name').fill(assetName)
     await create.getByLabel('New Python asset key').fill(`factory-journey-${Date.now()}`)
     await create.getByLabel('New Python asset kind').selectOption('study')
-    await create.getByLabel('New Python asset source').fill("output.scalar('catalogue_value', 1)")
+    const librarySource = create.getByRole('textbox', { name: 'New Python asset source', exact: true })
+    await expect(librarySource).toBeVisible()
+    await librarySource.fill("output.scalar('catalogue_value', 1)")
     await create.getByRole('button', { name: 'Validate', exact: true }).click()
     await expect(create).toContainText('Validated', { timeout: 20_000 })
     await create.getByRole('button', { name: 'Create asset', exact: true }).click()

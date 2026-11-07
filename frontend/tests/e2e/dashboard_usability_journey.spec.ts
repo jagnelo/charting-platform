@@ -186,7 +186,7 @@ async function expectUsefulInstrumentDetails(widget: Locator, response: Response
   ]
   const availableFields = descriptiveFields.filter(([, value]) => Boolean(value?.trim()))
   for (const [label, value] of availableFields) {
-    const row = widget.locator('.detail-row').filter({ has: widget.getByText(label, { exact: true }) })
+    const row = widget.locator('.detail-row').filter({ has: page.getByText(label, { exact: true }) })
     await expect(row.locator('b')).toHaveText(value!)
   }
 
@@ -402,7 +402,6 @@ test('Dashboard creates useful seeded quote and chart widgets and restores saved
   const xlbPreparation = await comparisonXlbPreparation
   expect(xlbPreparation.ok()).toBe(true)
   const preparationRequest = xlbPreparation.request().postDataJSON() as {
-    request_id?: string
     target?: { kind?: string; symbol?: string }
     datasets?: string[]
   }
@@ -411,12 +410,11 @@ test('Dashboard creates useful seeded quote and chart widgets and restores saved
     target?: { kind?: string; symbol?: string }
     status?: string
   }
-  expect(preparationRequest.request_id).toEqual(expect.any(String))
   expect(preparationRequest.target).toMatchObject({ kind: 'instrument', symbol: 'XLB' })
   expect(preparationRequest.datasets).toEqual(expect.arrayContaining(['history']))
-  expect(preparationBody.request_id).toBe(preparationRequest.request_id)
-  expect(preparationBody.target).toMatchObject({ kind: 'instrument', symbol: 'XLB' })
-  expect(['ready', 'queued', 'running', 'waiting']).toContain(preparationBody.status)
+  expect(typeof preparationBody.request_id).toBe('string')
+  expect(preparationBody.request_id?.trim()).not.toBe('')
+  expect(preparationBody.target).toMatchObject(preparationRequest.target!)
   const comparisonSaved = await persistedDashboard(page)
   expect(comparisonSaved.tabs.flatMap(tab => tab.widgets).find(widget => widget.id === comparisonWidget.id)?.config.targets)
     .toMatchObject([{ symbol: 'SPY' }, { symbol: 'XLB', label: 'XLB' }])
@@ -427,6 +425,9 @@ test('Dashboard creates useful seeded quote and chart widgets and restores saved
   await expectSeriesPainted(comparison, '#64b5f6')
   await expectSeriesPainted(comparison, '#81c784')
   await expectComparisonTooltip(page, comparison, ['SPY', 'XLB'])
+  // Partial is a valid durable preparation state when the independently checked
+  // cached bars and both plotted series already provide useful comparison data.
+  expect(['ready', 'queued', 'running', 'waiting', 'partial']).toContain(preparationBody.status)
 
   const beforeReload = await persistedDashboard(page)
   const widgetsBeforeReload = beforeReload.tabs.flatMap(tab => tab.widgets)

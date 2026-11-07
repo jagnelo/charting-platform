@@ -111,16 +111,22 @@ const WORKSPACE_TOOL_ROLES = new Set(['benchmark-universe', 'sector-universe', '
  * workspaces are recognized once by their historical key; new and cloned
  * windows carry the role in serializable configuration instead. */
 export function workspaceToolRole(tool: Pick<WorkspaceWindowState, 'instance_key' | 'tool_type' | 'configuration'>): string | null {
-  const configured = typeof tool.configuration.workspace_role === 'string' ? tool.configuration.workspace_role : ''
-  if (WORKSPACE_TOOL_ROLES.has(configured)) return configured
-  if (tool.tool_type === 'chart' && (tool.instance_key === 'ratio-chart' || tool.instance_key.startsWith('ratio-chart-')
-    || tool.configuration.auto_ratio === true)) return 'relative-strength'
+  // The concrete catalogue type owns the renderer contract. A copied chart
+  // must never become a specialized watchlist because of a stale role field.
+  if (tool.tool_type === 'chart') {
+    if (tool.instance_key === 'ratio-chart' || tool.instance_key.startsWith('ratio-chart-')
+      || tool.configuration.auto_ratio === true) return 'relative-strength'
+    return null
+  }
   if (tool.tool_type !== 'watchlist') return null
+  const configured = typeof tool.configuration.workspace_role === 'string' ? tool.configuration.workspace_role : ''
+  if (WORKSPACE_TOOL_ROLES.has(configured) && configured !== 'relative-strength') return configured
   const group = typeof tool.configuration.market_group === 'string' ? tool.configuration.market_group.toLowerCase() : ''
-  if (group === 'us-benchmarks' || tool.instance_key === 'benchmark-list') return 'benchmark-universe'
-  if (group === 'sp500-sectors' || tool.instance_key === 'sector-list' || tool.instance_key === 'sectors') return 'sector-universe'
-  if (group === 'selected-sector-industries' || tool.instance_key === 'industry-list' || tool.instance_key === 'industries') return 'industry-universe'
-  if (group === 'selected-industry-constituents' || tool.instance_key === 'constituent-list' || tool.instance_key === 'components') return 'constituent-universe'
+  const key = tool.instance_key.toLowerCase()
+  if (group === 'us-benchmarks' || key === 'benchmark-list' || key.startsWith('benchmark-list-')) return 'benchmark-universe'
+  if (group === 'sp500-sectors' || ['sector-list', 'sectors'].some(prefix => key === prefix || key.startsWith(`${prefix}-`))) return 'sector-universe'
+  if (group === 'selected-sector-industries' || ['industry-list', 'industries'].some(prefix => key === prefix || key.startsWith(`${prefix}-`))) return 'industry-universe'
+  if (group === 'selected-industry-constituents' || ['constituent-list', 'components'].some(prefix => key === prefix || key.startsWith(`${prefix}-`))) return 'constituent-universe'
   return null
 }
 
