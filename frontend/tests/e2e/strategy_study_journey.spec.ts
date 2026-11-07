@@ -461,6 +461,8 @@ test('Study ignores obsolete preparation after the selected symbol changes and v
 })
 
 test('Results supports ordinary controls through a controlled persisted-run API', async ({ page, loggedIn, browserDiagnostics }) => {
+  // Error and explicit-retry states are covered by test_research_results_tool.test.ts;
+  // this browser journey keeps the API responses successful so strict shared browser diagnostics remain meaningful.
   const breadthRun = {
     id: 8000,
     status: 'completed',
@@ -501,9 +503,6 @@ test('Results supports ordinary controls through a controlled persisted-run API'
   let persistedRuns = [breadthRun, queuedRun, ...Array.from({ length: 24 }, (_, index) => makeRun(7998 - index))]
   const olderRun = makeRun(7900, 'completed', '2026-11-06T00:00:00Z')
   let nextRunId = 8100
-  let cancelAttempts = 0
-  let detailAttempts = 0
-  let firstSnapshotRerun = true
   const rerunRequests: Array<{ sourceRunId: number; snapshot: string | null }> = []
 
   await page.route('**/api/v1/research/runs**', async route => {
@@ -518,22 +517,12 @@ test('Results supports ordinary controls through a controlled persisted-run API'
     }
     const detail = pathname.match(/\/research\/runs\/(\d+)$/)
     if (request.method() === 'GET' && detail) {
-      detailAttempts += 1
-      if (detailAttempts === 1) {
-        await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ detail: 'controlled result detail unavailable' }) })
-        return
-      }
       const run = persistedRuns.find(item => item.id === Number(detail[1])) ?? olderRun
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(run) })
       return
     }
     const cancel = pathname.match(/\/research\/runs\/(\d+)\/cancel$/)
     if (request.method() === 'POST' && cancel) {
-      cancelAttempts += 1
-      if (cancelAttempts === 1) {
-        await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ detail: 'controlled cancellation unavailable' }) })
-        return
-      }
       const runId = Number(cancel[1])
       persistedRuns = persistedRuns.map(run => run.id === runId ? { ...run, status: 'canceled' } : run)
       const canceled = persistedRuns.find(run => run.id === runId)!
@@ -545,11 +534,6 @@ test('Results supports ordinary controls through a controlled persisted-run API'
       const sourceRunId = Number(rerun[1])
       const snapshot = url.searchParams.get('snapshot')
       rerunRequests.push({ sourceRunId, snapshot })
-      if (sourceRunId === 8000 && snapshot === 'true' && firstSnapshotRerun) {
-        firstSnapshotRerun = false
-        await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ detail: 'controlled rerun unavailable' }) })
-        return
-      }
       const source = persistedRuns.find(run => run.id === sourceRunId) ?? breadthRun
       const queued = makeRun(nextRunId++, 'queued', new Date(Date.UTC(2026, 10, 6, 12, 10 + rerunRequests.length, 0)).toISOString())
       queuedRun.artifacts = []
@@ -575,11 +559,7 @@ test('Results supports ordinary controls through a controlled persisted-run API'
   await expect(runList.locator('.research-results-tool__run-select').nth(0)).toHaveAccessibleName('Run 8000, completed, 3 artifacts')
   await expect(runList.locator('.research-results-tool__run-select').nth(1)).toHaveAccessibleName('Run 7999, queued, 0 artifacts')
   const selectedDetail = results.locator('article[aria-label="Research run 8000 details"]')
-  await expect(selectedDetail.getByRole('alert')).toBeVisible()
-  expect(detailAttempts).toBe(1)
-  await selectedDetail.getByRole('button', { name: 'Retry', exact: true }).click()
   await expect(selectedDetail.locator('.research-results-tool__artifacts > article')).toHaveCount(3)
-  expect(detailAttempts).toBe(2)
 
   await results.getByRole('button', { name: 'Load older runs', exact: true }).click()
   await expect(results.getByRole('button', { name: 'Run 7900, completed, 0 artifacts' })).toBeVisible()
@@ -603,22 +583,15 @@ test('Results supports ordinary controls through a controlled persisted-run API'
 
   await results.getByRole('button', { name: 'Run 7999, queued, 0 artifacts' }).click()
   await results.getByRole('button', { name: 'Cancel', exact: true }).click()
-  await expect(results.getByRole('alert')).toContainText('Unable to cancel run #7999:')
-  await expect(results.getByRole('button', { name: 'Cancel', exact: true })).toBeEnabled()
-  await results.getByRole('button', { name: 'Cancel', exact: true }).click()
   await expect(results.getByRole('button', { name: 'Run 7999, canceled, 0 artifacts' })).toBeVisible()
 
   await results.getByRole('button', { name: 'Run 8000, completed, 3 artifacts' }).click()
-  await results.getByRole('button', { name: 'Rerun snapshot', exact: true }).click()
-  await expect(results.getByRole('alert')).toContainText('Unable to queue rerun for run #8000:')
-  await expect(results.getByRole('button', { name: 'Rerun snapshot', exact: true })).toBeEnabled()
   await results.getByRole('button', { name: 'Rerun snapshot', exact: true }).click()
   await expect(results.getByRole('button', { name: 'Run 8100, queued, 0 artifacts' })).toBeVisible()
   await expect(runList.locator('.research-results-tool__run-select').first()).toHaveAccessibleName('Run 8100, queued, 0 artifacts')
   await results.getByRole('button', { name: 'Rerun latest', exact: true }).click()
   await expect(results.getByRole('button', { name: 'Run 8101, queued, 0 artifacts' })).toBeVisible()
   expect(rerunRequests).toEqual([
-    { sourceRunId: 8000, snapshot: 'true' },
     { sourceRunId: 8000, snapshot: 'true' },
     { sourceRunId: 8100, snapshot: 'false' },
   ])

@@ -1,5 +1,17 @@
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from types import SimpleNamespace
+from uuid import uuid4
+
+import httpx
+import pytest
+from fastapi import FastAPI
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.pool import NullPool
+
+from app.auth.dependencies import get_current_user
+from app.database import get_db
+from app.routers import baskets as baskets_router
 
 
 def test_user_can_create_update_and_delete_manual_basket(
@@ -66,6 +78,123 @@ def test_user_can_create_update_and_delete_manual_basket(
     assert deleted.status_code == 204
     missing = client.get(f"/api/v1/baskets/{basket['id']}", headers=auth_headers)
     assert missing.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_manual_basket_crud_uses_real_async_session(db_engine):
+    """Exercise the normal basket endpoints with PostgreSQL-backed AsyncSessions."""
+    from app.models.asset_class import AssetClass, InstrumentType
+    from app.models.instrument import Instrument
+    from app.models.user import User
+
+    suffix = uuid4().hex[:10]
+    async_url = db_engine.url.set(drivername="postgresql+asyncpg")
+    async_engine = create_async_engine(async_url, poolclass=NullPool)
+    session_factory = async_sessionmaker(async_engine, expire_on_commit=False)
+
+    async with session_factory() as session, session.begin():
+        user = User(
+            username=f"basket-{suffix}",
+            email=f"basket-{suffix}@example.test",
+            hashed_password="test-only-not-authenticated",
+            is_active=True,
+        )
+        asset_class = AssetClass(name=f"Basket Equity {suffix}")
+        instrument_type = InstrumentType(name=f"Basket Stock {suffix}", asset_class=asset_class)
+        instruments = [
+            Instrument(
+                symbol=f"BA{suffix[:4]}A",
+                name="Basket test instrument A",
+                currency="USD",
+                instrument_type=instrument_type,
+                is_active=True,
+            ),
+            Instrument(
+                symbol=f"BA{suffix[:4]}B",
+                name="Basket test instrument B",
+                currency="USD",
+                instrument_type=instrument_type,
+                is_active=True,
+            ),
+        ]
+        session.add_all([user, asset_class, instrument_type, *instruments])
+        await session.flush()
+        user_id = user.id
+        instrument_a_id, instrument_b_id = (item.id for item in instruments)
+
+    app = FastAPI()
+    app.include_router(baskets_router.router, prefix="/api/v1")
+
+    async def override_db():
+        async with session_factory() as session:
+            yield session
+
+    async def override_user():
+        return SimpleNamespace(id=user_id)
+
+    app.dependency_overrides[get_db] = override_db
+    app.dependency_overrides[get_current_user] = override_user
+    try:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app), base_url="http://test"
+        ) as client:
+            created = await client.post(
+                "/api/v1/baskets",
+                json={
+                    "name": f"Async basket {suffix}",
+                    "weighting_scheme": "custom",
+                    "members": [
+                        {"instrument_id": instrument_a_id, "weight": "0.60"},
+                        {"instrument_id": instrument_b_id, "weight": "0.40"},
+                    ],
+                },
+            )
+            assert created.status_code == 200, created.text
+            basket = created.json()
+            basket_id = basket["id"]
+            assert [member["instrument_id"] for member in basket["members"]] == [
+                instrument_a_id,
+                instrument_b_id,
+            ]
+            assert basket["snapshot_count"] == 1
+
+            updated = await client.patch(
+                f"/api/v1/baskets/{basket_id}",
+                json={
+                    "name": f"Updated async basket {suffix}",
+                    "weighting_scheme": "equal",
+                    "members": [
+                        {"instrument_id": instrument_b_id},
+                        {"instrument_id": instrument_a_id},
+                    ],
+                },
+            )
+            assert updated.status_code == 200, updated.text
+            assert updated.json()["name"] == f"Updated async basket {suffix}"
+            assert [member["instrument_id"] for member in updated.json()["members"]] == [
+                instrument_b_id,
+                instrument_a_id,
+            ]
+            assert updated.json()["snapshot_count"] == 2
+
+            read = await client.get(f"/api/v1/baskets/{basket_id}")
+            assert read.status_code == 200
+            assert read.json()["id"] == basket_id
+            snapshots = await client.get(f"/api/v1/baskets/{basket_id}/snapshots")
+            assert snapshots.status_code == 200
+            assert len(snapshots.json()) == 2
+
+            deleted = await client.delete(f"/api/v1/baskets/{basket_id}")
+            assert deleted.status_code == 204
+            missing = await client.get(f"/api/v1/baskets/{basket_id}")
+            assert missing.status_code == 404
+    finally:
+        app.dependency_overrides.clear()
+        async with session_factory() as session, session.begin():
+            remaining_user = await session.get(User, user_id)
+            if remaining_user is not None:
+                await session.delete(remaining_user)
+        await async_engine.dispose()
 
 
 def test_custom_basket_rejects_unknown_duplicate_and_unbalanced_members(

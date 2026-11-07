@@ -50,14 +50,14 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "current_blocker": "Root owns the existing combined browser qualification. Current focused Study/Results/Code Library suites pass148/148 (63/66/19), frontend type-check passes, and Playwright discovers all7 Strategy Study cases without executing browser bodies. The late successful Library create regression preserves a newer editable draft while announcing the completed asset. Provider580571e4 is the current development pin with all51 manifest entries verified; 21be and earlier pins remain historical. Actual browser/deployed acceptance and combined release remain pending; preserve all18 criteria and disabled holds.",
+  "current_blocker": "Root R13 ran the exact seven Strategy Study journeys once on frontend9273ea06/backend580571e4 and recorded7failed/118.09s/zero retries. Root observed common TC dock activation/ToolContent async mounting failures: ordinary Study Lab clicks leave the tab inactive; Results/Library APIs and lazy assets return200 but tools remain at Loading tool…. TC owns that shared repair; no force/internal-store workaround or timeout weakening is allowed. Strategy retains the corrected ordinary-click spec and fixes the Results root-region locator/mock contract. Provider33e1fd44 is the current development pin with all58 manifest paths SHA/blob/status/mode verified; Root owns backend/worker same-fixture rebuild and coarse-read/basket proof. Browser, full profile and release acceptance remain pending; preserve all18 criteria and disabled holds.",
   "current_execution_checkpoint": {
     "authority": "Human-activated platform-usability plan; existing session-local goal aligned in place by Root, no objective/accounting reset.",
     "full_roadmap_preserved": true,
-    "heavy_profile": "Root owns affected normal-user browser reruns and the combined profile. Study/Results/Code Library focused suites pass148/148; type-check passes and Study discovery lists7 cases without browser execution. Provider580571e4 is the exact active51-path dependency, imported after predecessor guards. These checks do not establish browser execution or release acceptance.",
+    "heavy_profile": "Root owns the seven-body replay after a coherent TC dock/ToolContent successor and the single combined profile. Exact R13 on source06897 ended7 failed/118.09s/zero retries, not qualified. Frontend type-check and Playwright discovery pass; the current Results mock uses successful responses, with failure/retry states covered by component tests. Provider33e1fd44 is the exact active58-path dependency, all manifest records verified; Root runtime proof remains pending. These results do not establish browser execution for the current modified test or release acceptance.",
     "id": "strategy-study-usability-2026-11-06",
     "status": "in_progress",
-    "next_action": "Hand current Strategy domain source f2c191a and exact Provider580571e4 dependency to Root for exact consumer pinning and the existing combined app qualification. Keep browser/release gates Root-owned; do not push or start a separate fixture."
+    "next_action": "Keep Strategy spec source frozen pending Root/TC repair of shared dock activation and async ToolContent mounting. After that exact successor, Root reruns the same seven bodies; Root also owns the same-fixture Provider33e1fd44 backend/worker runtime checks. Do not start a separate browser fixture or claim release acceptance."
   },
   "dirty_paths": [],
   "docker": {
@@ -93,12 +93,12 @@
     }
   ],
   "goal_unavailable_reason": null,
-  "head": "f2c191a67faf147a1d1c350c8354de8f2ba2e46d",
-  "implementation_sha": "f2c191a67faf147a1d1c350c8354de8f2ba2e46d",
-  "last_checkpoint": "2026-11-07T06:00:11Z",
+  "head": "06897e9640432466f7dd5b15baac92e8916f07da",
+  "implementation_sha": "06897e9640432466f7dd5b15baac92e8916f07da",
+  "last_checkpoint": "2026-11-07T06:48:26Z",
   "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Hand current Strategy domain source f2c191a and exact Provider580571e4 dependency to Root for exact consumer pinning and the existing combined app qualification. Keep browser/release gates Root-owned; do not push or start a separate fixture.",
+  "next_action": "Keep Strategy spec source frozen pending Root/TC repair of shared dock activation and async ToolContent mounting. After that exact successor, Root reruns the same seven bodies; Root also owns the same-fixture Provider33e1fd44 backend/worker runtime checks. Do not start a separate browser fixture or claim release acceptance.",
   "parent_branch": "staging",
   "plan_hash": "394feeed860b994c8c1f871a53e24faf07b3b7862cbaf0b19199dd78d4b67b5d",
   "planning_required": false,
@@ -250,5 +250,5 @@
   ],
   "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
   "worktree_id": "feat-strategy-lab-v2-7794d9e53d",
-  "updated_at": "2026-11-07T06:00:11Z"
+  "updated_at": "2026-11-07T06:48:26Z"
 }

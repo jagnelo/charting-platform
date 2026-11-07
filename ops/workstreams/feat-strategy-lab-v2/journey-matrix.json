@@ -36,7 +36,7 @@
     "status": "pending",
     "spec": "frontend/tests/e2e/strategy_study_journey.spec.ts",
     "dashboard_spec": "frontend/tests/e2e/dashboard_usability_journey.spec.ts",
-    "qualification": "The Study/Library spec contains the normal-user immutable-version and saved-Results journey plus controlled lifecycle/preparation transitions and an authored F8p high-low breakout run with ensure/run-status diagnostics. The separately Root-reserved Dashboard spec covers seeded SPY/XLB chart, quote and two-series comparison content with save/reload, controlled config/layout failure recovery, and controlled identity search transitions. The Strategy-owned specs are discovered but their browser bodies have not run on this candidate. Controlled search and error fixtures do not claim genuine acquisition. Root owns the single combined backend/browser/strict-visual qualification; older-source deployed journeys do not qualify this branch source. The separately Root-reserved workstation lifecycle file discovers four authored stories only; no browser body has run.",
+    "qualification": "Root ran all7 Strategy Study journeys once on frontend9273ea06/backend580571e4 using exact test source06897e9640432466f7dd5b15baac92e8916f07da; result7failed/118.09s, zero retries, not qualified. Root observed that ordinary clicks leave the Study Lab dock tab inactive and the common ToolContent remains at Loading tool… despite its lazy JS/CSS and Library API returning200; this is a shared TC dock/async-mount defect, not an empty/success result. Root owns that repair; Strategy must not force-click or bypass visibility. The current owned spec preserves ordinary tab clicks and corrects the Results root-region locator and the controlled mock contract, but this revision has not run in a browser. Results detail/cancel/rerun failure handling remains covered by the existing ResearchResultsTool component tests; its browser story uses successful API responses to retain strict BrowserDiagnostics. Root owns the next seven-body replay after a coherent TC successor and the combined qualification. No Strategy browser acceptance or full-release acceptance is claimed.",
     "workstation_spec": "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts"
   },
   "journeys": [
@@ -58,7 +58,7 @@
         "POST /code/validate is validation-only: backend/tests/integration/api/test_code.py :: test_code_validation_never_executes_source",
         "POST /research/runs preserves typed run parameters: backend/tests/integration/api/test_code.py :: test_research_run_merges_defaults_and_rejects_schema_invalid_parameters"
       ],
-      "browser_evidence": "Pending exact-source browser run. The Study journey currently edits SPY to XLB after saving and asserts the old SPY run stays unchanged.",
+      "browser_evidence": "The authored Study flow checks the fresh-user empty Results state before a real Study validate/run, then verifies automatic persisted-row/artifact arrival, an XLB draft snapshot while the saved SPY run stays immutable, reload, and return from Library. Root R13 executed the then-current source but failed all7 cases when common TC dock activation left Study Lab inactive; current locator/mock corrections are not browser-executed. Browser acceptance remains pending.",
       "approved_journey": [
         "J10 Study: edit/validate/run/results/cancel/return supported workflow"
       ]
@@ -112,7 +112,7 @@
         "POST /code/assets and POST /research/runs are covered by backend/tests/integration/api/test_code.py :: test_research_run_is_queued_for_isolated_runner and test_research_run_job_preserves_json_parameters_for_isolated_runner",
         "Run materialization/control validation: backend/tests/integration/api/test_code.py :: test_research_run_honors_study_dataset_controls_and_records_them and test_research_run_rejects_unsupported_study_dataset_controls"
       ],
-      "browser_evidence": "The ordinary immutable-version Study/Results/Library flow and F8p high_low_breakouts path are authored in frontend/tests/e2e/strategy_study_journey.spec.ts. F8p asserts a SPY history ensure request with D1 split-adjusted intent and requires the same request_id to reach server status ready before /code/validate; it checks typed lookback10 run config, completed status and both high/low metrics. On timeout it attaches persisted run readback/status, retaining the90-second completion bound. Both browser bodies remain pending Root combined execution; no native/broker behavior is included. An additional authored public-UI case closes Study Lab while POST /research/runs is pending, then requires the returned durable run to appear in the still-open Results tool without a cancel request; discovered but unexecuted pending Root’s existing fixture rerun.",
+      "browser_evidence": "The authored F8p high_low_breakouts flow asserts the SPY D1 split-adjusted ensure request, waits for the same request_id to become ready before validation, checks typed lookback10 run config, completion and both metrics, and retains the90-second status bound. R13 failed before these assertions because the common TC Study Lab tab did not activate; no successful browser execution is claimed.",
       "approved_journey": [
         "J10 Study: edit/validate/run/results/cancel/return supported workflow"
       ]
@@ -168,7 +168,7 @@
         "Stable newest-first server pagination: backend/tests/integration/api/test_code.py :: test_research_runs_list_is_user_scoped_and_newest_first",
         "Cursor ordering: backend/tests/integration/api/test_strategy_lab.py :: test_research_run_listing_uses_stable_created_at_id_cursor"
       ],
-      "browser_evidence": "Authored in frontend/tests/e2e/strategy_study_journey.spec.ts against a controlled persisted-run API whose list omits artifact bodies: verifies newest-first order, loads an older cursor page, recovers from one failed detail read via Retry, compares two run IDs, filters event occurrences and exports a scalar artifact. This is authored-only UI interaction evidence; execution and real backend behavior remain pending Root's combined gate.",
+      "browser_evidence": "The current controlled API browser story authors successful detail hydration, newest-first and older-page ordering, comparison, event filtering, scalar export and promotion. Detail-retry failure behavior remains covered by the existing ResearchResultsTool component test. R13 could not reach the mocked run row because the shared ToolContent remained in Loading tool…; this story has not passed in a browser.",
       "approved_journey": [
         "J10 Study: results/cancel/return supported workflow",
         "J12 recovery: pagination, filters, delayed failures and retry"
@@ -200,7 +200,7 @@
       "api_evidence": [
         "POST /research/runs/{id}/cancel and POST /research/runs/{id}/rerun?snapshot={true|false}; API list/run invariants are exercised by backend/tests/integration/api/test_code.py :: test_research_rerun_snapshot_retains_manifest and test_research_runs_list_is_user_scoped_and_newest_first"
       ],
-      "browser_evidence": "Authored in frontend/tests/e2e/strategy_study_journey.spec.ts against a controlled persisted-run API: first cancel and snapshot-rerun requests fail, the run-specific error remains visible and retryable, retries succeed, and latest rerun of queued successor 8100 uses its own request mode. This is authored-only UI interaction evidence, not actual backend/browser acceptance; Root's combined gate remains pending. Late accepted rerun/cancel responses are additionally covered at the shared-query-cache layer after unmount; no separate close-during-rerun/cancel browser body has run, and Root owns the browser qualification.",
+      "browser_evidence": "The current browser story authors successful queued cancellation, snapshot rerun and latest rerun of the queued successor. Cancel/rerun failure and retryable UI states remain covered by existing ResearchResultsTool component tests. The earlier browser mock emitted three unsupported controlled503s (a GET plus two POSTs) against the strict shared diagnostic, so the current mock now uses successful responses; no diagnostic allowlist is weakened. R13 failed earlier at common ToolContent loading, and the current story remains browser-pending.",
       "approved_journey": [
         "J10 Study: results/cancel/return supported workflow",
         "J12 recovery: pagination, filters, delayed failures and retry"
@@ -260,7 +260,7 @@
       "api_evidence": [
         "GET /code/assets, POST /code/assets, POST /code/assets/import, POST /code/assets/{id}/archive; backend/tests/integration/api/test_code.py :: test_code_assets_support_archive_clone_and_round_trip_import and test_code_asset_kind_and_declared_output_contract_must_match"
       ],
-      "browser_evidence": "Authored in frontend/tests/e2e/strategy_study_journey.spec.ts with controlled asset API responses: create/validate, export, import, clone, archive and filter interactions have visible outcomes. This is UI wiring evidence only; real API behavior and browser execution remain pending Root's combined gate. The separate persisted Study journey exercises immutable version save and return to Study. Late create-response draft preservation is component-tested only and remains pending Root’s combined browser execution.",
+      "browser_evidence": "The controlled Library browser story authors visible create/validate, export, import, clone, archive and filter outcomes. R13 returned the seeded API row and all five lazy JS/CSS assets successfully, but the shared ToolContent stayed at Loading tool… and the row was not rendered. TC owns the mount defect; current body is unqualified.",
       "approved_journey": [
         "J10 Study: immutable saved version and return into Study workflow",
         "J12 recovery: delayed validation/refresh failure"
@@ -314,7 +314,7 @@
       "api_evidence": [
         "WorkstationView openStudyDefinition forwards versionId/source/output contract/schema/defaults to a new Study Lab tool; subsequent POST /research/runs uses code_version_id and does not POST /code/assets again"
       ],
-      "browser_evidence": "Authored in frontend/tests/e2e/strategy_study_journey.spec.ts; the flow now includes Library edit/validate/save of a new version, return, and a run pinned to that new version ID. Actual browser execution remains pending Root's combined gate.",
+      "browser_evidence": "The authored Library-to-Study flow saves a new immutable version, returns through the public handoff and runs against the new version ID. Component coverage supports the identity contract; R13 did not reach this story because the common dock activation/mount issue failed earlier. Actual browser execution remains pending.",
       "approved_journey": [
         "J01 first-use/return: persistent workspace and automatic preparation",
         "J10 Study: return via immutable version, validate and run"
