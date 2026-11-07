@@ -990,6 +990,7 @@ async def _deepest_admitted_history_start(
     adjusted: bool,
     end: datetime,
     request_id: str,
+    excluded_provider_names: set[str] | frozenset[str] = frozenset(),
 ) -> tuple[datetime | None, str | None, str | None]:
     """Inspect reviewed, currently admitted provider bounds without transport."""
     from app.services.market_data import ohlcv_operation_cost_overrides
@@ -1018,7 +1019,10 @@ async def _deepest_admitted_history_start(
         )
     bounds: list[tuple[datetime, str]] = []
     unknown_bound = False
+    excluded = {str(name).strip().lower() for name in excluded_provider_names}
     for resolved in chain:
+        if resolved.provider_name.strip().lower() in excluded:
+            continue
         entitlement = resolved.entitlement
         quota_policy = entitlement.quota_policy if entitlement is not None else None
         constraints = (
@@ -1044,7 +1048,15 @@ def _optional_datetime(value) -> datetime | None:
     return parsed.replace(tzinfo=UTC) if parsed.tzinfo is None else parsed.astimezone(UTC)
 
 
-async def _history_chunk_plan(db, job, instrument, timeframe, preparation):
+async def _history_chunk_plan(
+    db,
+    job,
+    instrument,
+    timeframe,
+    preparation,
+    *,
+    excluded_provider_names: set[str] | frozenset[str] = frozenset(),
+):
     now = datetime.now(UTC)
     requested_end = _optional_datetime(preparation.get("range_end")) or job.end_at or now
     max_bars = max(1, int(settings.PROVIDER_ON_DEMAND_MAX_REQUESTED_BARS))
@@ -1059,6 +1071,7 @@ async def _history_chunk_plan(db, job, instrument, timeframe, preparation):
             adjusted=bool(preparation.get("adjusted", True)),
             end=requested_end,
             request_id=f"data-preparation-plan:{job.id}",
+            excluded_provider_names=excluded_provider_names,
         )
         if admitted_start is None:
             return None, None, None, None, None, reason
@@ -1089,6 +1102,61 @@ async def _history_chunk_plan(db, job, instrument, timeframe, preparation):
     if chunk_start is None or chunk_end is None or chunk_end < chunk_start:
         return None, None, deepest_start, requested_end, source_provider, "invalid_history_range"
     return chunk_start, chunk_end, deepest_start, requested_end, source_provider, None
+
+
+async def _history_chunk_plan_with_native_admission(
+    db,
+    job,
+    instrument,
+    timeframe,
+    preparation,
+    *,
+    priority: int,
+):
+    """Prefer the deepest provider whose native quota can actually be admitted.
+
+    The first unpinned chunk may fall back to another exact resolver candidate
+    when the deepest candidate's baseline is unknown and its normal usage
+    prerequisite is unavailable. Once a source is pinned (including a
+    continuation chunk), hold on that source rather than mixing lineages.
+    """
+
+    pinned_source = bool(preparation.get("source_provider") or preparation.get("chunk"))
+    excluded_provider_names: set[str] = set()
+    last_native_hold: str | None = None
+    while True:
+        candidate_preparation = deepcopy(preparation)
+        if not pinned_source:
+            candidate_preparation.pop("source_provider", None)
+        plan = await _history_chunk_plan(
+            db,
+            job,
+            instrument,
+            timeframe,
+            candidate_preparation,
+            excluded_provider_names=excluded_provider_names,
+        )
+        plan_reason = plan[5]
+        if plan_reason:
+            return plan, candidate_preparation, None, None, last_native_hold
+
+        source_provider = plan[4]
+        if not source_provider:
+            return plan, candidate_preparation, None, None, last_native_hold
+
+        usage_job, usage_hold, usage_needed = await _native_usage_job_for_operation_baseline(
+            db,
+            provider_name=source_provider,
+            capability=ProviderCapability.PRICE_HISTORY,
+            operation="fetch_ohlcv",
+            priority=priority,
+            now=datetime.now(UTC),
+        )
+        if usage_needed and usage_hold and not pinned_source:
+            excluded_provider_names.add(source_provider)
+            last_native_hold = usage_hold
+            continue
+        return plan, candidate_preparation, usage_job, usage_hold, None
 
 
 async def _enqueue_older_history_chunk(
@@ -1650,13 +1718,41 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                     )
                 elif preparation.get("range_mode") in {"deepest_admitted", "bounded"}:
                     (
+                        chunk_plan,
+                        preparation,
+                        usage_job,
+                        usage_hold,
+                        native_hold_after_fallbacks,
+                    ) = await _history_chunk_plan_with_native_admission(
+                        db,
+                        job,
+                        instrument,
+                        timeframe,
+                        preparation,
+                        priority=job.priority,
+                    )
+                    (
                         planned_start,
                         planned_end,
                         full_range_start,
                         full_range_end,
                         source_provider,
                         plan_reason,
-                    ) = await _history_chunk_plan(db, job, instrument, timeframe, preparation)
+                    ) = chunk_plan
+                    if native_hold_after_fallbacks:
+                        await complete_refresh_job(
+                            db,
+                            job,
+                            result_summary={
+                                "preparation_status": "held",
+                                "reason_code": native_hold_after_fallbacks,
+                                "retry_at": None,
+                                "instrument_id": instrument.id,
+                                "timeframe": timeframe.value,
+                            },
+                        )
+                        completed += 1
+                        continue
                     if plan_reason:
                         await complete_refresh_job(
                             db,
@@ -1670,26 +1766,44 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                         )
                         completed += 1
                         continue
-                    if source_provider:
-                        (
-                            usage_job,
-                            usage_hold,
-                            usage_needed,
-                        ) = await _native_usage_job_for_operation_baseline(
+                    if usage_hold is not None:
+                        await complete_refresh_job(
                             db,
-                            provider_name=source_provider,
-                            capability=ProviderCapability.PRICE_HISTORY,
-                            operation="fetch_ohlcv",
-                            priority=job.priority,
-                            now=datetime.now(UTC),
+                            job,
+                            result_summary={
+                                "preparation_status": "held",
+                                "reason_code": usage_hold,
+                                "retry_at": None,
+                                "instrument_id": instrument.id,
+                                "timeframe": timeframe.value,
+                            },
                         )
-                        if usage_needed and usage_hold is not None:
+                        completed += 1
+                        continue
+                    if usage_job is not None:
+                        preparation = deepcopy(preparation)
+                        wait_ids = list(
+                            dict.fromkeys(
+                                [
+                                    *(
+                                        int(value)
+                                        for value in preparation.get("wait_for_job_ids", [])
+                                    ),
+                                    int(usage_job.id),
+                                ]
+                            )
+                        )
+                        preparation["wait_for_job_ids"] = wait_ids
+                        payload = deepcopy(job.metadata_payload or {})
+                        payload["data_preparation_child"] = preparation
+                        job.metadata_payload = payload
+                        if usage_job.status == "completed":
                             await complete_refresh_job(
                                 db,
                                 job,
                                 result_summary={
                                     "preparation_status": "held",
-                                    "reason_code": usage_hold,
+                                    "reason_code": "native_usage_refresh_not_qualified",
                                     "retry_at": None,
                                     "instrument_id": instrument.id,
                                     "timeframe": timeframe.value,
@@ -1697,40 +1811,9 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                             )
                             completed += 1
                             continue
-                        if usage_needed and usage_job is not None:
-                            preparation = deepcopy(preparation)
-                            wait_ids = list(
-                                dict.fromkeys(
-                                    [
-                                        *(
-                                            int(value)
-                                            for value in preparation.get("wait_for_job_ids", [])
-                                        ),
-                                        int(usage_job.id),
-                                    ]
-                                )
-                            )
-                            preparation["wait_for_job_ids"] = wait_ids
-                            payload = deepcopy(job.metadata_payload or {})
-                            payload["data_preparation_child"] = preparation
-                            job.metadata_payload = payload
-                            if usage_job.status == "completed":
-                                await complete_refresh_job(
-                                    db,
-                                    job,
-                                    result_summary={
-                                        "preparation_status": "held",
-                                        "reason_code": "native_usage_refresh_not_qualified",
-                                        "retry_at": None,
-                                        "instrument_id": instrument.id,
-                                        "timeframe": timeframe.value,
-                                    },
-                                )
-                                completed += 1
-                                continue
-                            raise RefreshDependencyPending(
-                                retry_at=datetime.now(UTC) + timedelta(seconds=20)
-                            )
+                        raise RefreshDependencyPending(
+                            retry_at=datetime.now(UTC) + timedelta(seconds=20)
+                        )
                     try:
                         with bind_explicit_provider_acquisition(
                             request_id=f"data-preparation:{job.id}",

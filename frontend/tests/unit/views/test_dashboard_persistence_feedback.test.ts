@@ -91,6 +91,7 @@ describe('dashboard persistence recovery', () => {
   it('keeps the old saved symbol after a rejected edit and lets the user retry', async () => {
     ;(api.patch as ReturnType<typeof vi.fn>)
       .mockRejectedValueOnce(new Error('offline'))
+      .mockRejectedValueOnce(new Error('offline again'))
       .mockImplementationOnce(async (_path, patch) => ({ ...dashboard().tabs[0].widgets[0], ...(patch as object) }))
     const wrapper = mountView(dashboard())
     await flush()
@@ -103,6 +104,16 @@ describe('dashboard persistence recovery', () => {
     expect(store.activeTab?.widgets[0].config.symbol).toBe('AAPL')
     expect(document.body.textContent).toContain('The previous saved value was restored.')
     expect(document.body.querySelector('.mock-select-symbol')?.textContent).toBe('Select MSFT')
+
+    bodyButton('Cancel').click()
+    await flush()
+    expect(store.activeTab?.widgets[0].config.symbol).toBe('AAPL')
+    expect(document.body.textContent).not.toContain('The previous saved value was restored.')
+
+    bodyButton('Select MSFT').click()
+    await flush()
+    expect(store.activeTab?.widgets[0].config.symbol).toBe('AAPL')
+    expect(document.body.textContent).toContain('The previous saved value was restored.')
 
     bodyButton('Retry save').click()
     await flush()

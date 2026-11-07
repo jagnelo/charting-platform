@@ -207,6 +207,7 @@
               <button type="button" :disabled="configSavePending" @click="retryConfigSave">
                 {{ configSavePending ? 'Saving…' : 'Retry save' }}
               </button>
+              <button type="button" :disabled="configSavePending" @click="cancelConfigSave">Cancel</button>
             </div>
             <label class="config-field">
               <span>Title</span>
@@ -1280,6 +1281,14 @@ async function retryConfigSave() {
   const pending = pendingConfigSave.value
   if (!pending || configSavePending.value) return
   await persistConfig(pending.widget, pending.config)
+}
+
+function cancelConfigSave() {
+  if (configSavePending.value) return
+  configSaveGeneration++
+  configSaveError.value = ''
+  pendingConfigSave.value = null
+  instrumentSearchRevision.value += 1
 }
 
 function dismissLayoutSaveError() {

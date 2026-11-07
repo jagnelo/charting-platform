@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "scope": "Strategy-owned Study, Results, Python Library, and exposed Strategy route action inventory for the human-approved platform-usability release.",
+  "scope": "Strategy-owned Study, Results, Python Library, exposed Strategy route, and Root-reserved Dashboard action inventory for the human-approved platform-usability release.",
   "owner_boundary": {
     "strategy": [
       "StudyLabTool.vue",
@@ -10,6 +10,17 @@
       "StrategyLabV2View.vue",
       "their unit/API tests",
       "strategy_study_journey.spec.ts"
+    ],
+    "strategy_dashboard_reserved": [
+      "frontend/src/views/DashboardView.vue",
+      "frontend/src/stores/dashboard.ts",
+      "frontend/src/components/dashboard/DashboardQuoteWidget.vue",
+      "frontend/src/components/dashboard/DashboardLineChartWidget.vue",
+      "frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue",
+      "frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue",
+      "frontend/src/components/dashboard/DashboardInstrumentSearch.vue",
+      "their focused unit tests",
+      "frontend/tests/e2e/dashboard_usability_journey.spec.ts"
     ],
     "tc_shared": [
       "WorkstationView.vue shell and tool navigation",
@@ -21,7 +32,8 @@
   "browser_gate": {
     "status": "pending",
     "spec": "frontend/tests/e2e/strategy_study_journey.spec.ts",
-    "qualification": "The spec contains the normal-user Study/Library immutable-version and saved-Results journey, controlled Results/Library lifecycle interactions, delayed independent preparation, fail-closed unavailable-data handling, and stale-context cancellation. Source validation and Playwright discovery pass, but no browser has run on this candidate. Root owns the single combined backend/browser/strict-visual qualification; older-source deployed journeys do not qualify this branch source."
+    "dashboard_spec": "frontend/tests/e2e/dashboard_usability_journey.spec.ts",
+    "qualification": "The Study/Library spec contains the normal-user immutable-version and saved-Results journey plus controlled lifecycle and preparation transitions. The separately Root-reserved Dashboard spec covers seeded SPY/XLB chart, quote and two-series comparison content with save/reload, controlled config/layout failure recovery, and controlled identity search transitions. Both files are discovered but neither browser body has run on this candidate. Controlled search and error fixtures do not claim genuine acquisition. Root owns the single combined backend/browser/strict-visual qualification; older-source deployed journeys do not qualify this branch source."
   },
   "journeys": [
     {
@@ -378,10 +390,107 @@
         "J11 supporting: every reachable secondary page",
         "J12 recovery: invalid route identity and failed read retry"
       ]
+    },
+    {
+      "surface": "DashboardView and DashboardLineChartWidget / DashboardQuoteWidget",
+      "route": "/dashboard, using the ordinary signed-in default dashboard.",
+      "actions": [
+        "add and configure a simple SPY chart and quote card",
+        "add a two-target SPY/XLB comparison through the visible comparison editor",
+        "reload the dashboard and restore the saved widgets and comparison"
+      ],
+      "visible_outcome": "Normal seeded backend SPY/XLB OHLCV is shown as colored plotted series, the two-series comparison exposes both labels and values on hover, and the quote price matches the latest returned SPY close to display precision. Widget type, title and comparison targets persist and render after reload. Unused QQQ/DIA comparison defaults are explicitly held by controlled unavailable responses to avoid unrelated preparation work.",
+      "unit_evidence": [
+        "frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts :: submits every selected dataset independently and renders a ready peer while another waits",
+        "frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts :: prepares quote history before reading it and shows a terminal unavailable outcome",
+        "frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts :: existing configuration-save component coverage"
+      ],
+      "api_evidence": [
+        "backend/tests/integration/api/test_dashboards.py :: TestDashboardsFlow.test_widget_crud_and_layout_patch",
+        "backend/tests/unit/routers/test_dashboards_router.py :: TestDashboardsRouter.test_widget_crud_and_layout_patch",
+        "Seeded /ohlcv/{symbol}/D1 responses are checked for actual bars; the browser witness remains pending and does not claim a new acquisition.",
+        "The E2E controls unused default QQQ/DIA preparation with explicit unavailable fixture responses; it does not allow those defaults to trigger unrelated preparation."
+      ],
+      "browser_evidence": "Authored in frontend/tests/e2e/dashboard_usability_journey.spec.ts; Playwright discovery only. Exact-source browser execution is pending Root's single combined slot.",
+      "approved_journey": [
+        "J01 first-use/return: persistent workspace and useful seeded content",
+        "J11 supporting: normal-user Dashboard widget configuration and restore"
+      ]
+    },
+    {
+      "surface": "DashboardView transactional widget configuration",
+      "route": "/dashboard widget Configure dialog for simple and comparison charts.",
+      "actions": [
+        "change a saved symbol or comparison member",
+        "recover a controlled rejected save with visible Cancel or Retry save"
+      ],
+      "visible_outcome": "A controlled 503 leaves the server's previous SPY configuration unchanged, explains that rollback, and offers the existing Cancel and Retry save actions; retry persists the selected XLB value.",
+      "unit_evidence": [
+        "frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts :: keeps the old saved symbol after a rejected edit and lets the user retry",
+        "frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts :: rolls a rejected comparison target back and shows the same recoverable save error"
+      ],
+      "api_evidence": [
+        "PATCH /api/v1/dashboards/widgets/{id}; persisted default dashboard readback verifies the old and retried values.",
+        "The E2E 503 responses are controlled transition fixtures, not backend reliability evidence."
+      ],
+      "browser_evidence": "Authored controlled failure/recovery interactions in frontend/tests/e2e/dashboard_usability_journey.spec.ts; not executed.",
+      "approved_journey": [
+        "J11 supporting: recoverable edits without losing a saved Dashboard configuration",
+        "J12 recovery: explicit cancel and retry"
+      ]
+    },
+    {
+      "surface": "DashboardView widget layout persistence",
+      "route": "/dashboard edit mode drag and resize controls.",
+      "actions": [
+        "drag a saved Notes widget",
+        "resize the widget",
+        "recover each controlled layout-save failure with Retry layout save"
+      ],
+      "visible_outcome": "Each controlled rejected layout PATCH restores the last saved coordinates or dimensions, announces the rollback, and a successful retry updates persisted layout and the visible widget.",
+      "unit_evidence": [
+        "frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts :: explains a rolled-back layout save and retries the same layout",
+        "frontend/tests/unit/stores/test_dashboard_store.test.ts :: layout persistence and rollback cases"
+      ],
+      "api_evidence": [
+        "PATCH /api/v1/dashboards/tabs/{id}/widgets/layout; backend/tests/unit/routers/test_dashboards_router.py :: TestDashboardsRouter.test_widget_crud_and_layout_patch",
+        "The E2E 503 responses are controlled transition fixtures; no backend failure is claimed."
+      ],
+      "browser_evidence": "Authored drag/resize and rollback/retry interactions in frontend/tests/e2e/dashboard_usability_journey.spec.ts; not executed.",
+      "approved_journey": [
+        "J11 supporting: visible widget-layout persistence",
+        "J12 recovery: restore saved layout and retry"
+      ]
+    },
+    {
+      "surface": "DashboardInstrumentSearch",
+      "route": "/dashboard Configure symbol/comparison member search.",
+      "actions": [
+        "resolve an uncached unique exact query",
+        "choose explicitly from an ambiguous prefix result",
+        "change query while an earlier discovery response is delayed"
+      ],
+      "visible_outcome": "A controlled uncached QZX exact result resolves only its full identity binding; ambiguous AMB-A/AMB-B candidates are not acquired until AMB-B is explicitly chosen; after OLD is superseded by NEW, only a current NEW candidate reaches acquisition and saved config.",
+      "unit_evidence": [
+        "frontend/tests/unit/components/test_dashboard_instrument_search.test.ts :: keeps prefix discovery results as candidates until the user explicitly selects one",
+        "frontend/tests/unit/components/test_dashboard_instrument_search.test.ts :: resolves one unique exact ticker without exposing provider choices",
+        "frontend/tests/unit/components/test_dashboard_instrument_search.test.ts :: does not guess when an exact ticker has multiple listing candidates",
+        "frontend/tests/unit/components/test_dashboard_instrument_search.test.ts :: ignores a superseded discovery response after the query changes"
+      ],
+      "api_evidence": [
+        "POST /api/v1/instruments/discover and /api/v1/instruments/acquire plus shared /api/v1/data/ensure contract.",
+        "The E2E discovery, identity resolution, unused-default QQQ/DIA preparation and unavailable-history responses are controlled route fixtures. This is not genuine source discovery, provider acquisition, or a history-fetch claim."
+      ],
+      "browser_evidence": "Authored in frontend/tests/e2e/dashboard_usability_journey.spec.ts; Playwright discovery only and no provider or external HTTP. Browser execution remains pending Root.",
+      "approved_journey": [
+        "J01 first-use/return: identity-aware instrument selection",
+        "J11 supporting: listing-safe Dashboard configuration",
+        "J12 recovery: stale search response fencing"
+      ]
     }
   ],
   "known_coverage_gaps": [
-    "No current-source browser execution has exercised cancellation, either rerun mode, artifact promotion/export, Code Library create/import/version-save/archive or StrategyLabView/StrategyLabV2View route navigation; component/API tests are not browser acceptance.",
+    "No current-source browser execution has exercised the authored Study/Results/Library or Dashboard journeys; the new Dashboard stories are discovered source only until Root runs the combined browser profile.",
     "The new Library-to-Study return is specified in the Study E2E but remains unexecuted until Root's compatible Producer API and combined profile are available.",
     "The visible Paper forward mode is not activated or qualified by this usability scope; retain existing forward/native/broker/capital holds and report the boundary rather than treating UI presence as support."
   ],
