@@ -50,13 +50,13 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "current_blocker": "Root R67 is terminal with 1 pass / 2 test-oracle failures on frozen frontend bc88f4b7097098049fe7650fee794a23c46b43be. Strategy corrected the Details row locator, tied WatchList creation/membership assertions to successful API responses before the selected/useful UI state, and changed the returned Study journey to verify the server-enriched XLB canonical manifest on the completed detail response while preserving the raw request's XLB run_config and retained dates. Type-check, 19-case Dashboard/Study/workstation Playwright discovery, and git diff check pass; no browser body ran. Root owns the next browser run. TC-owned inventory rendering failures, the full combined qualification, and all original roadmap/safety holds remain open.",
+  "current_blocker": "Root R68 is terminal with 1 pass / 4 fail on frontend 851b4dbe556c2d03951fd20a245aefc2000d3c6b and backend ec44347092a140b3b0cf615da8f2e77dedf2d5cc. Strategy corrected the three assigned test contracts: both Dashboard Details loops scope label locators through the widget's page; the completed second Study run is read through the existing authenticated browser fetch and checked for persisted XLB canonical identity; Coverage now follows the public active symbol and compares the exact canonical D1 count/provenance. The reference-only checker reports no actionable unbound references; unrelated Node ambient and fixture/type advisories remain unqualified. No browser body or product change ran. TC owns the separate Gauge race repair; Root owns the next combined browser run. Full qualification, original roadmap and safety holds remain open.",
   "current_execution_checkpoint": {
     "authority": "Human-activated platform-usability plan; existing session-local goal aligned in place by Root, no objective/accounting reset.",
     "full_roadmap_preserved": true,
-    "heavy_profile": "Root R67 is terminal with 1 pass / 2 test-oracle failures on frozen frontend bc88f4b7097098049fe7650fee794a23c46b43be. This Strategy checkpoint is test-only: correct the Details row locator, bind WatchList creation and membership to actual successful API responses before verifying selected/useful UI state, and verify returned XLB through the completed server-enriched run detail without requiring symbol in the raw dataset_manifest request. Frontend type-check, 19-case Dashboard/Study/workstation Playwright discovery, and git diff check pass; no browser body ran. Root owns the next browser run. The full combined qualification, TC-owned inventory rendering, original roadmap, and safety holds remain open.",
+    "heavy_profile": "Root R68 is terminal with 1 pass / 4 fail on frontend 851b4dbe556c2d03951fd20a245aefc2000d3c6b and backend ec44347092a140b3b0cf615da8f2e77dedf2d5cc. Strategy's three assigned test-only corrections use widget.page() in both Details locator loops, the existing authenticated read pattern for completed Study detail, and current public active symbol plus exact canonical Coverage count/provenance. Reference-only semantic preflight reports no actionable unbound names; known Node ambient and unrelated semantic advisories are not claimed fixed. TC owns the separate Gauge race repair. No browser body or product changes ran. Root owns the next combined journey run; original roadmap and safety holds remain open.",
     "id": "strategy-study-usability-2026-11-06",
-    "next_action": "Hand Root this coherent test-only candidate for the next affected browser run. Do not run a local browser/native/full suite.",
+    "next_action": "Freeze and hand Root this test-only candidate for the next affected journey run. Do not run a local browser/native/full suite.",
     "status": "in_progress"
   },
   "dirty_paths": [
@@ -98,10 +98,10 @@
   "goal_unavailable_reason": null,
   "head": "8ae5f9aca10803f300b6d5a41a3bced447f70ebc",
   "implementation_sha": "55851d2b953ce38de5afe59ba90b613ffde08f87",
-  "last_checkpoint": "2026-11-07T19:00:40Z",
+  "last_checkpoint": "2026-11-07T19:28:47Z",
   "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Hand Root this coherent test-only candidate for the next affected browser run. Do not run a local browser/native/full suite.",
+  "next_action": "Freeze and hand Root this test-only candidate for the next affected journey run. Do not run a local browser/native/full suite.",
   "parent_branch": "staging",
   "plan_hash": "aa4900899cbce55fa6895a6a928364a60164739ed8618a0585838d8790e87188",
   "planning_required": false,
@@ -132,11 +132,11 @@
       "SU3",
       "SU4"
     ],
-    "current_blocker": "Root R67 is terminal with 1 pass / 2 test-oracle failures on frozen frontend bc88f4b7097098049fe7650fee794a23c46b43be. Strategy corrected the Details row locator, tied WatchList creation/membership assertions to successful API responses before the selected/useful UI state, and changed the returned Study journey to verify the server-enriched XLB canonical manifest on the completed detail response while preserving the raw request's XLB run_config and retained dates. Type-check, 19-case Dashboard/Study/workstation Playwright discovery, and git diff check pass; no browser body ran. Root owns the next browser run. TC-owned inventory rendering failures, the full combined qualification, and all original roadmap/safety holds remain open.",
+    "current_blocker": "Root R68 is terminal with 1 pass / 4 fail on frontend 851b4dbe556c2d03951fd20a245aefc2000d3c6b and backend ec44347092a140b3b0cf615da8f2e77dedf2d5cc. Strategy corrected the three assigned test contracts: both Dashboard Details loops scope label locators through the widget's page; the completed second Study run is read through the existing authenticated browser fetch and checked for persisted XLB canonical identity; Coverage now follows the public active symbol and compares the exact canonical D1 count/provenance. The reference-only checker reports no actionable unbound references; unrelated Node ambient and fixture/type advisories remain unqualified. No browser body or product change ran. TC owns the separate Gauge race repair; Root owns the next combined browser run. Full qualification, original roadmap and safety holds remain open.",
     "current_phase": "strategy-study-usability-2026-11-06",
-    "next_action": "Hand Root this coherent test-only candidate for the next affected browser run. Do not run a local browser/native/full suite.",
+    "next_action": "Freeze and hand Root this test-only candidate for the next affected journey run. Do not run a local browser/native/full suite.",
     "total": 9,
-    "updated_at": "2026-11-07T19:00:40Z"
+    "updated_at": "2026-11-07T19:28:47Z"
   },
   "remote": "b555268b8237d1c50e34b39320b4cb18a8bd9a03",
   "remote_sha": "b555268b8237d1c50e34b39320b4cb18a8bd9a03",
@@ -243,7 +243,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for Strategy Lab v2 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-11-07T19:00:40Z",
+  "updated_at": "2026-11-07T19:28:47Z",
   "validation_tier": "full_integration",
   "workstream": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2",
   "workstream_files": [

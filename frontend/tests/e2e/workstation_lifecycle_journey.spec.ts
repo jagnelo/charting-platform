@@ -364,11 +364,27 @@ async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUT
   } else if (kind === 'coverage') {
     const coverage = tool.locator('.coverage-summary')
     await expect(coverage).toBeVisible({ timeout: 20_000 })
-    await expect(coverage.getByText('Canonical instrument', { exact: true }).locator('..').locator('strong')).toHaveText('SPY')
+    const publicActiveSymbol = page.locator('.chart-header .symbol-info .sym').last()
+    await expect(publicActiveSymbol).toBeVisible()
+    const activeSymbol = (await publicActiveSymbol.innerText()).trim().toUpperCase()
+    expect(activeSymbol).toMatch(/^[A-Z0-9._-]+$/)
+    await expect(coverage).toHaveAttribute('aria-label', `${activeSymbol} coverage`)
+    const canonicalCoverageRead = await authenticatedJson(page, `/api/v1/coverage/instruments/${encodeURIComponent(activeSymbol)}`)
+    expect(canonicalCoverageRead.status).toBe(200)
+    const canonicalCoverage = canonicalCoverageRead.body as {
+      local_coverage?: Record<string, { oldest?: string | null; newest?: string | null; bar_count?: number }>
+    }
+    const canonicalDaily = canonicalCoverage.local_coverage?.D1
+    expect(canonicalDaily?.oldest).toBeTruthy()
+    expect(canonicalDaily?.newest).toBeTruthy()
+    expect(Number.isInteger(canonicalDaily?.bar_count)).toBe(true)
+    expect(canonicalDaily!.bar_count).toBeGreaterThan(0)
+    await expect(coverage.getByText('Canonical instrument', { exact: true }).locator('..').locator('strong')).toHaveText(activeSymbol)
     const dailyGrid = coverage.locator('.coverage-summary__grid')
     await expect(dailyGrid).toBeVisible({ timeout: 20_000 })
     const dailyBarCount = Number((await dailyGrid.locator('b').first().innerText()).replaceAll(',', ''))
-    expect(Number.isFinite(dailyBarCount) && dailyBarCount > 0, 'coverage must report actual local adjusted daily observations').toBe(true)
+    expect(dailyBarCount, 'coverage must report the exact canonical local daily bar count for the current active symbol').toBe(canonicalDaily!.bar_count)
+    await expect(coverage.locator('.coverage-summary__note')).toContainText('Local canonical data only')
   } else if (kind === 'notes') {
     const note = tool.getByRole('textbox', { name: 'Instrument note' })
     const content = `Lifecycle note ${Date.now()}`
