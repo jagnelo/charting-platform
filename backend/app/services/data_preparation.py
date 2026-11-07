@@ -33,6 +33,9 @@ from app.schemas.data_preparation import (
 from app.services.market_refresh_queue import _acquire_enqueue_lock, enqueue_refresh_job
 
 _TRACKING_CAPABILITY = "data_preparation_request"
+_OWNER_TRACKING_ROLE = "owner_request_tracking"
+_SYSTEM_TRACKING_ROLE = "system_maintenance_tracking"
+_TRACKING_ROLES = frozenset({_OWNER_TRACKING_ROLE, _SYSTEM_TRACKING_ROLE})
 _PRIORITY = {"visible": 10, "default": 50, "background": 100}
 _DATASET_ENQUEUE_ORDER = {
     PreparationDataset.IDENTITY: 0,
@@ -489,7 +492,7 @@ async def _enqueue_identity_profile_job(
     symbol: str,
     instrument_id: int | None,
     refresh_profile: bool = False,
-    owner_user_id: int,
+    owner_user_id: int | None,
     priority: int,
     now: datetime,
 ) -> MarketRefreshJob:
@@ -708,23 +711,29 @@ async def _enqueue_history_dependency(
 async def create_data_preparation_request(
     db: AsyncSession,
     *,
-    owner_user_id: int,
+    owner_user_id: int | None,
     request: DataEnsureRequest,
     idempotency_key: str | None = None,
     priority: str = "visible",
+    system_maintenance: bool = False,
+    now: datetime | None = None,
 ) -> MarketRefreshJob:
-    """Persist one owner request and its child jobs without provider I/O."""
+    """Persist owner or internal maintenance work without provider I/O."""
 
-    now = datetime.now(UTC)
+    if system_maintenance != (owner_user_id is None):
+        raise ValueError("system maintenance requests must not have an owner user id")
+
+    now = _as_utc(now or datetime.now(UTC))
     normalized = request.model_dump(mode="json")
     fingerprint = _digest(normalized)
     request_id = str(uuid4())
     idempotency_hash = _digest(idempotency_key.strip()) if idempotency_key else None
     request_key = (
-        f"data-preparation:{owner_user_id}:{idempotency_hash}"
+        f"data-preparation:{'maintenance' if system_maintenance else owner_user_id}:{idempotency_hash}"
         if idempotency_hash
         else f"data-preparation:{request_id}"
     )
+    tracking_role = _SYSTEM_TRACKING_ROLE if system_maintenance else _OWNER_TRACKING_ROLE
     await _acquire_enqueue_lock(db, request_key)
     existing = (
         await db.execute(
@@ -733,7 +742,11 @@ async def create_data_preparation_request(
     ).scalar_one_or_none()
     if existing is not None:
         prior = (existing.metadata_payload or {}).get("data_preparation") or {}
-        if prior.get("owner_user_id") != owner_user_id or prior.get("fingerprint") != fingerprint:
+        if (
+            prior.get("owner_user_id") != owner_user_id
+            or prior.get("role") != tracking_role
+            or prior.get("fingerprint") != fingerprint
+        ):
             raise HTTPException(status_code=409, detail={"code": "idempotency_key_conflict"})
         return existing
 
@@ -751,7 +764,7 @@ async def create_data_preparation_request(
         next_attempt_at=now,
         metadata_payload={
             "data_preparation": {
-                "role": "owner_request_tracking",
+                "role": tracking_role,
                 "owner_user_id": owner_user_id,
                 "request_id": request_id,
                 "fingerprint": fingerprint,
@@ -969,6 +982,27 @@ async def create_data_preparation_request(
     return parent
 
 
+async def create_maintenance_data_preparation_request(
+    db: AsyncSession,
+    *,
+    request: DataEnsureRequest,
+    idempotency_key: str,
+    priority: str = "background",
+    now: datetime | None = None,
+) -> MarketRefreshJob:
+    """Queue non-owner system maintenance through the same durable planner."""
+
+    return await create_data_preparation_request(
+        db,
+        owner_user_id=None,
+        request=request,
+        idempotency_key=idempotency_key,
+        priority=priority,
+        system_maintenance=True,
+        now=now,
+    )
+
+
 async def expand_resolved_identity_dependency(
     db: AsyncSession,
     *,
@@ -1009,7 +1043,7 @@ async def _expand_parent_identity_dependency(
     if parent is None:
         return
     source = (parent.metadata_payload or {}).get("data_preparation") or {}
-    if source.get("role") != "owner_request_tracking":
+    if source.get("role") not in _TRACKING_ROLES:
         return
     data = deepcopy(source)
     request = DataEnsureRequest.model_validate(data["normalized_request"])
@@ -1123,7 +1157,7 @@ async def _expand_parent_identity_dependency(
     if parent is None:
         return
     current_source = (parent.metadata_payload or {}).get("data_preparation") or {}
-    if current_source.get("role") != "owner_request_tracking":
+    if current_source.get("role") not in _TRACKING_ROLES:
         return
     data = deepcopy(current_source)
     dependencies = list(data.get("dependencies") or [])
@@ -1287,6 +1321,47 @@ def _deferred_job_reason(jobs: list[MarketRefreshJob]) -> str:
     return "provider_capacity_deferred"
 
 
+def _history_wait_projection(
+    jobs: list[MarketRefreshJob], *, useful_coverage: bool
+) -> tuple[str, str, datetime | None]:
+    """Project runnable work ahead of quota waits; expose the earliest wait only
+    when every remaining child is time-gated.
+    """
+
+    if any(job.status == "failed" for job in jobs):
+        return ("partial" if useful_coverage else "failed", "history_backfill_failed", None)
+    if any(job.status in {"queued", "leased"} for job in jobs):
+        if any(job.status == "leased" for job in jobs):
+            status = "partial" if useful_coverage else "running"
+        else:
+            status = "partial" if useful_coverage else "queued"
+        return status, "history_backfill_pending", None
+
+    timed_jobs = [job for job in jobs if job.status in {"deferred", "retry"}]
+    if timed_jobs:
+        retry_at = min(
+            (_as_utc(job.next_attempt_at) for job in timed_jobs if job.next_attempt_at is not None),
+            default=None,
+        )
+        return (
+            "partial" if useful_coverage else "waiting",
+            _deferred_job_reason(timed_jobs),
+            retry_at,
+        )
+    return ("partial" if useful_coverage else "queued", "history_backfill_pending", None)
+
+
+def _has_useful_history_output(jobs: list[MarketRefreshJob]) -> bool:
+    return any(
+        int((job.result_summary or {}).get("bars_observed") or 0) > 0
+        or (job.result_summary or {}).get("data_status") in {"ready", "partial"}
+        or (job.result_summary or {}).get("chunk_coverage_status") == "ready"
+        or (job.result_summary or {}).get("range_coverage_status") in {"ready", "partial"}
+        for job in jobs
+        if job.status == "completed"
+    )
+
+
 async def get_data_preparation_response(
     db: AsyncSession, *, parent: MarketRefreshJob, owner_user_id: int
 ) -> DataEnsureResponse:
@@ -1330,21 +1405,16 @@ async def get_data_preparation_response(
                 (_as_utc(job.updated_at) for job in [*child_jobs, *background_jobs]),
                 default=updated_at,
             )
-            if any(job.status == "failed" for job in background_jobs):
-                item_status, reason = "partial", "history_backfill_failed"
-            elif any(job.status == "deferred" for job in background_jobs):
-                deferred_jobs = [job for job in background_jobs if job.status == "deferred"]
-                item_status, reason = "partial", _deferred_job_reason(deferred_jobs)
-                retry_at = max(
-                    (
-                        _as_utc(job.next_attempt_at)
-                        for job in deferred_jobs
-                        if job.next_attempt_at is not None
+            remaining_background = [job for job in background_jobs if job.status != "completed"]
+            if remaining_background:
+                item_status, reason, retry_at = _history_wait_projection(
+                    remaining_background,
+                    useful_coverage=(
+                        dependency.get("status") in {"ready", "partial"}
+                        or _has_useful_history_output(child_jobs)
+                        or _has_useful_history_output(background_jobs)
                     ),
-                    default=None,
                 )
-            elif any(job.status != "completed" for job in background_jobs):
-                item_status, reason = "partial", "history_backfill_pending"
             else:
                 final_outcome = background_jobs[-1].result_summary or {}
                 if final_outcome.get("range_coverage_status") == "ready":
@@ -1433,20 +1503,13 @@ async def get_data_preparation_response(
                     )
                 else:
                     item_status, reason = "ready", None
-            elif "leased" in child_statuses:
-                item_status, reason = "running", None
-            elif "failed" in child_statuses:
-                item_status, reason = "failed", "preparation_job_failed"
-            elif "deferred" in child_statuses:
-                deferred_jobs = [job for job in child_jobs if job.status == "deferred"]
-                item_status, reason = "waiting", _deferred_job_reason(deferred_jobs)
-                retry_at = max(
-                    (
-                        _as_utc(job.next_attempt_at)
-                        for job in deferred_jobs
-                        if job.next_attempt_at is not None
+            elif child_statuses & {"queued", "leased", "deferred", "retry", "failed"}:
+                item_status, reason, retry_at = _history_wait_projection(
+                    child_jobs,
+                    useful_coverage=(
+                        dependency.get("status") in {"ready", "partial"}
+                        or _has_useful_history_output(child_jobs)
                     ),
-                    default=None,
                 )
             else:
                 item_status, reason = "queued", None

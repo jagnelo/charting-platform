@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from copy import deepcopy
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from types import SimpleNamespace
 from uuid import uuid4
@@ -1169,3 +1169,339 @@ async def test_joined_deferred_history_keeps_native_retry_for_both_owners(
             assert history.retry_at == provider_retry_at
         not_due = await claim_refresh_jobs(session, now=provider_retry_at - timedelta(minutes=1))
         assert all(job.id != child_id for job in not_due)
+
+
+async def test_startup_maintenance_uses_shared_planner_and_catalogue_defaults(
+    preparation_sessions, monkeypatch
+):
+    from app.models.market_data_foundation import MarketRefreshJob
+    from app.models.user import User
+    from app.models.watchlist import Watchlist, WatchlistItem
+    from app.models.workstation import Workspace, WorkspaceTab, WorkspaceWindow
+    from app.services.data_preparation import _TRACKING_CAPABILITY
+    from app.tasks import data_tasks
+
+    monkeypatch.setattr(data_tasks, "AsyncSessionLocal", preparation_sessions)
+    monkeypatch.setattr(data_tasks.settings, "E2E_SEED_MARKET_DATA", False)
+
+    async with preparation_sessions() as session:
+        stock_type_id, _ = await _create_instrument_types(session)
+        saved = _canonical_instrument("SAVEDX", stock_type_id, domain_prefix="saved-list")
+        panel = _canonical_instrument("PANELX", stock_type_id, domain_prefix="saved-panel")
+        discovered = _canonical_instrument("DISCOVX", stock_type_id, domain_prefix="discovered")
+        user = User(
+            username=f"maintenance-{uuid4().hex[:8]}",
+            email=f"maintenance-{uuid4().hex[:8]}@example.test",
+            hashed_password="test-only",
+        )
+        session.add_all([saved, panel, discovered, user])
+        await session.flush()
+        watchlist = Watchlist(user_id=user.id, name="Saved", position=0)
+        workspace = Workspace(
+            user_id=user.id,
+            name="Saved analysis",
+            is_default=True,
+            position=0,
+            tabs=[
+                WorkspaceTab(
+                    stable_key="saved-analysis",
+                    name="Saved analysis",
+                    position=0,
+                    windows=[
+                        WorkspaceWindow(
+                            instance_key="saved-panel",
+                            tool_type="chart",
+                            title="Saved panel",
+                            configuration={"symbol": "PANELX", "timeframe": "D1"},
+                            position=0,
+                        )
+                    ],
+                )
+            ],
+        )
+        session.add_all(
+            [
+                watchlist,
+                workspace,
+                WatchlistItem(watchlist=watchlist, instrument=saved, position=0),
+            ]
+        )
+        saved_id, discovered_id = saved.id, discovered.id
+        await session.commit()
+
+    result = await data_tasks.enqueue_workstation_maintenance({}, include_discovered=True)
+    assert result["mode"] == "shared_preparation_queue"
+    assert result["default"] > 0
+    assert result["background"] > 0
+
+    async with preparation_sessions() as session:
+        parents = list(
+            (
+                await session.execute(
+                    select(MarketRefreshJob).where(
+                        MarketRefreshJob.capability == _TRACKING_CAPABILITY
+                    )
+                )
+            ).scalars()
+        )
+        assert parents
+        assert all(
+            (job.metadata_payload or {}).get("data_preparation", {}).get("role")
+            == "system_maintenance_tracking"
+            for job in parents
+        )
+        requests = [
+            (job.metadata_payload or {}).get("data_preparation", {}).get("normalized_request", {})
+            for job in parents
+        ]
+        assert any(
+            request.get("target") == {"kind": "market_group", "group_key": "sp500-sectors"}
+            and (request.get("analysis") or {}).get("kind") == "rrg"
+            and (request.get("analysis") or {}).get("benchmark_symbol") == "SPY"
+            for request in requests
+        )
+        assert any(
+            (request.get("analysis") or {}).get("kind") == "ratio"
+            and [leg.get("symbol") for leg in request["analysis"]["legs"]] == ["SPY", "RSP"]
+            for request in requests
+        )
+        assert any(
+            request.get("target", {}).get("kind") == "instrument"
+            and request["target"].get("instrument_id") == saved_id
+            and job.priority == 50
+            for job in parents
+            for request in [
+                (job.metadata_payload or {})
+                .get("data_preparation", {})
+                .get("normalized_request", {})
+            ]
+        )
+        assert any(
+            request.get("target", {}).get("kind") == "instrument"
+            and request["target"].get("symbol") == "PANELX"
+            and job.priority == 50
+            for job in parents
+            for request in [
+                (job.metadata_payload or {})
+                .get("data_preparation", {})
+                .get("normalized_request", {})
+            ]
+        )
+        assert any(
+            request.get("target", {}).get("kind") == "instrument"
+            and request["target"].get("instrument_id") == discovered_id
+            and request.get("datasets") == ["history"]
+            and job.priority == 100
+            for job in parents
+            for request in [
+                (job.metadata_payload or {})
+                .get("data_preparation", {})
+                .get("normalized_request", {})
+            ]
+        )
+
+
+async def test_system_maintenance_identity_job_runs_without_an_owner_user(
+    preparation_sessions, monkeypatch
+):
+    from app.routers import instruments as instruments_router
+    from app.schemas.data_preparation import DataEnsureRequest
+    from app.schemas.instrument_acquisition import (
+        InstrumentAcquireResponse,
+        QualifiedInstrumentIdentity,
+    )
+    from app.services.data_preparation import (
+        create_maintenance_data_preparation_request,
+    )
+    from app.tasks import data_tasks
+
+    monkeypatch.setattr(data_tasks, "AsyncSessionLocal", preparation_sessions)
+    async with preparation_sessions() as session:
+        parent = await create_maintenance_data_preparation_request(
+            session,
+            request=DataEnsureRequest.model_validate(
+                {
+                    "target": {"kind": "instrument", "symbol": "MNTNEW"},
+                    "datasets": ["history"],
+                }
+            ),
+            idempotency_key="test-system-identity-mntnew",
+        )
+        parent_id = parent.id
+        identity_job_id = next(
+            dependency["job_ids"][0]
+            for dependency in parent.metadata_payload["data_preparation"]["dependencies"]
+            if dependency["dataset"] == "identity"
+        )
+        await session.commit()
+
+    async with preparation_sessions() as session:
+        _, stock_type_id = await _create_instrument_types(session)
+        canonical = _canonical_instrument("MNTNEW", stock_type_id, domain_prefix="maintenance")
+        session.add(canonical)
+        await session.flush()
+        instrument_id = canonical.id
+        await session.commit()
+
+    calls = []
+
+    async def fake_acquire(body, *, db, current_user):
+        calls.append((body.symbol, current_user))
+        return InstrumentAcquireResponse(
+            request_id=body.request_id,
+            status="resolved",
+            instrument=QualifiedInstrumentIdentity(
+                instrument_id=instrument_id,
+                symbol="MNTNEW",
+                identity_status="resolved",
+                domain_key="maintenance:mntnew",
+                primary_identifier_type="figi",
+                primary_identifier_value="BBG000TESTMNTNEW",
+            ),
+        )
+
+    monkeypatch.setattr(instruments_router, "acquire_instrument", fake_acquire)
+    result = await data_tasks.process_refresh_jobs({}, limit=1)
+    assert result["completed"] == 1
+    assert calls == [("MNTNEW", None)]
+
+    async with preparation_sessions() as session:
+        from app.models.market_data_foundation import MarketRefreshJob
+
+        parent = await session.get(MarketRefreshJob, parent_id)
+        identity_job = await session.get(MarketRefreshJob, identity_job_id)
+        assert identity_job.status == "completed"
+        dependencies = parent.metadata_payload["data_preparation"]["dependencies"]
+        identity = next(item for item in dependencies if item["dataset"] == "identity")
+        history = next(item for item in dependencies if item["dataset"] == "history")
+        assert identity["status"] == "queued"
+        assert identity["instrument_id"] == instrument_id
+        assert history["status"] == "queued"
+        assert history["instrument_id"] == instrument_id
+        assert history["job_ids"]
+
+
+async def test_system_maintenance_reenters_shared_preparation_for_later_observation(
+    preparation_sessions,
+):
+    from app.models.exchange import Exchange
+    from app.models.listing import InstrumentListing
+    from app.models.market_data_foundation import ExchangeSessionRule, MarketRefreshJob
+    from app.schemas.data_preparation import DataEnsureRequest
+    from app.services.data_preparation import create_maintenance_data_preparation_request
+    from app.tasks.data_tasks import _maintenance_history_end_at
+
+    first_observation = datetime(2026, 11, 6, 14, 5, tzinfo=UTC)
+    same_observation = datetime(2026, 11, 6, 14, 55, tzinfo=UTC)
+    later_observation = datetime(2026, 11, 6, 21, 5, tzinfo=UTC)
+    closed_session_observation = datetime(2026, 11, 7, 14, 5, tzinfo=UTC)
+
+    async with preparation_sessions() as session:
+        stock_type_id, _ = await _create_instrument_types(session)
+        exchange = Exchange(
+            mic=f"XNAS{uuid4().hex[:4]}",
+            name="Test Nasdaq",
+            country_code="USA",
+            timezone="America/New_York",
+            market_open="09:30",
+            market_close="16:00",
+        )
+        session.add(exchange)
+        await session.flush()
+        session.add_all(
+            [
+                ExchangeSessionRule(
+                    exchange_id=exchange.id,
+                    session_code="regular",
+                    weekday=weekday,
+                    opens_at=time(9, 30),
+                    closes_at=time(16, 0),
+                    crosses_midnight=False,
+                    trade_date_rule="local_open_date",
+                    valid_from=date(2020, 1, 1),
+                    provenance={"test": True},
+                )
+                for weekday in range(5)
+            ]
+        )
+        instrument = _canonical_instrument(
+            "MAINTX", stock_type_id, domain_prefix="maintenance-refresh"
+        )
+        instrument.listings.append(
+            InstrumentListing(
+                exchange_id=exchange.id,
+                ticker="MAINTX",
+                currency="USD",
+                is_primary=True,
+                is_active=True,
+            )
+        )
+        session.add(instrument)
+        await session.flush()
+        instrument_id = instrument.id
+        exchange_id = exchange.id
+        await session.commit()
+
+    request = DataEnsureRequest.model_validate(
+        {
+            "target": {"kind": "instrument", "instrument_id": instrument_id},
+            "timeframe": "D1",
+            "datasets": ["history"],
+        }
+    )
+
+    async def create_at(observed_at):
+        async with preparation_sessions() as session:
+            published_end = await _maintenance_history_end_at(
+                session,
+                instrument_ids={instrument_id},
+                timeframe=request.timeframe,
+                observed_at=observed_at,
+                primary_exchange_ids={instrument_id: {exchange_id}},
+            )
+            assert published_end is not None
+            bounded_request = request.model_copy(update={"end_at": published_end})
+            parent = await create_maintenance_data_preparation_request(
+                session,
+                request=bounded_request,
+                idempotency_key=f"workstation:{published_end.isoformat()}:maintenancex-history",
+                now=observed_at,
+            )
+            parent_id = parent.id
+            child_id = parent.metadata_payload["data_preparation"]["dependencies"][0]["job_ids"][0]
+            await session.commit()
+        return parent_id, child_id
+
+    first_parent, first_child = await create_at(first_observation)
+    same_parent, same_child = await create_at(same_observation)
+    later_parent, later_child = await create_at(later_observation)
+    closed_parent, closed_child = await create_at(closed_session_observation)
+
+    assert (same_parent, same_child) == (first_parent, first_child)
+    assert later_parent != first_parent
+    assert later_child != first_child
+    assert (closed_parent, closed_child) == (later_parent, later_child)
+
+    async with preparation_sessions() as session:
+        parents = list(
+            (
+                await session.execute(
+                    select(MarketRefreshJob).where(
+                        MarketRefreshJob.id.in_([first_parent, later_parent])
+                    )
+                )
+            ).scalars()
+        )
+        children = list(
+            (
+                await session.execute(
+                    select(MarketRefreshJob).where(
+                        MarketRefreshJob.id.in_([first_child, later_child])
+                    )
+                )
+            ).scalars()
+        )
+        assert len(parents) == 2
+        assert len(children) == 2
+        assert all(job.capability == "price_history" for job in children)
+        assert len({job.request_key for job in children}) == 2

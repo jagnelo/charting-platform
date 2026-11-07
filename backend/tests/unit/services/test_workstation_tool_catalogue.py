@@ -1,6 +1,8 @@
 from app.services.workstation_tool_catalogue import (
+    default_maintenance_request_specs,
     default_maintenance_tool_dependencies,
     factory_tool_configuration,
+    maintenance_request_specs,
     tool_catalogue,
 )
 
@@ -47,3 +49,42 @@ def test_factory_and_maintenance_project_the_same_semantic_defaults():
     assert factory_tool_configuration(
         "constituent-list", "watchlist", {"market_group": "custom"}
     ) == {"market_group": "custom"}
+
+
+def test_default_maintenance_projects_ratio_and_rrg_inputs_from_catalogue_config():
+    specs = default_maintenance_request_specs()
+    ratio = next(spec for spec in specs if (spec.get("analysis") or {}).get("kind") == "ratio")
+    rrg = next(spec for spec in specs if (spec.get("analysis") or {}).get("kind") == "rrg")
+
+    assert ratio["analysis"]["legs"] == [{"symbol": "SPY"}, {"symbol": "RSP"}]
+    assert rrg["target"] == {"kind": "market_group", "group_key": "sp500-sectors"}
+    assert rrg["analysis"]["benchmark_symbol"] == "SPY"
+    assert {spec["target"].get("group_key") for spec in specs} >= {
+        "sp500-sectors",
+        "us-benchmarks",
+    }
+    assert maintenance_request_specs("chart", {"expression": "=SPY/RSP"})[0]["analysis"] == {
+        "kind": "ratio",
+        "legs": [{"symbol": "SPY"}, {"symbol": "RSP"}],
+    }
+    custom_monthly = maintenance_request_specs(
+        "relative_rotation",
+        {
+            "group_key": "sp500-sectors",
+            "benchmark": "SPY",
+            "timeframe": "MN",
+            "sampling": 3,
+            "lookback": 24,
+            "tail_length": 12,
+            "history_points": 8,
+        },
+    )[0]
+    assert custom_monthly["timeframe"] == "MN"
+    assert custom_monthly["analysis"] == {
+        "kind": "rrg",
+        "lookback": 24,
+        "sampling": 3,
+        "tail_length": 12,
+        "history_length": 8,
+        "benchmark_symbol": "SPY",
+    }

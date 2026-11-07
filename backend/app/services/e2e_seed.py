@@ -160,6 +160,24 @@ _E2E_MARKET_NAMES = {
     "SOXX": "iShares Semiconductor ETF",
 }
 
+_E2E_RECENT_HISTORY_START = date(2024, 1, 2)
+_E2E_RECENT_HISTORY_BARS = 520
+_E2E_LONG_RRG_START = date(2019, 1, 2)
+_E2E_MONTHLY_RRG_SYMBOLS = (
+    "SPY",
+    "XLK",
+    "XLY",
+    "XLC",
+    "XLF",
+    "XLV",
+    "XLI",
+    "XLP",
+    "XLE",
+    "XLU",
+    "XLRE",
+    "XLB",
+)
+
 _E2E_INDUSTRIES = {
     "NVDA": "Semiconductors",
     "AMD": "Semiconductors",
@@ -337,12 +355,19 @@ async def seed_e2e_market_data(db: AsyncSession) -> None:
 
     # Enough deterministic daily history for RSI, moving averages, 52-week position,
     # ratios, breadth, and the positive-close Study Lab factory study.
-    start = date(2024, 1, 2)
+    start = _E2E_RECENT_HISTORY_START
     trading_days: list[date] = []
     cursor = start
-    while len(trading_days) < 520:
+    while len(trading_days) < _E2E_RECENT_HISTORY_BARS:
         if cursor.weekday() < 5:
             trading_days.append(cursor)
+        cursor += timedelta(days=1)
+
+    long_rrg_days: list[date] = []
+    cursor = _E2E_LONG_RRG_START
+    while cursor < start:
+        if cursor.weekday() < 5:
+            long_rrg_days.append(cursor)
         cursor += timedelta(days=1)
 
     base_prices = {
@@ -417,6 +442,37 @@ async def seed_e2e_market_data(db: AsyncSession) -> None:
                 )
             )
             previous = close
+
+        # Extend only the controlled SPY/sector RRG fixture. Keep the existing
+        # recent 520-row generator above unchanged; older history ends exactly
+        # at its opening baseline and has explicit E2E provenance through the
+        # shared controlled-fixture data source.
+        if symbol in _E2E_MONTHLY_RRG_SYMBOLS:
+            historical_previous = base * 0.72
+            for index, day in enumerate(long_rrg_days):
+                progress = (index + 1) / len(long_rrg_days)
+                close = base * (0.72 + 0.28 * progress)
+                if index == len(long_rrg_days) - 1:
+                    close = base
+                open_ = historical_previous
+                high = max(open_, close) * 1.004
+                low = min(open_, close) * 0.996
+                bars.append(
+                    OHLCVBar(
+                        instrument_id=instrument.id,
+                        data_source_id=source.id,
+                        timeframe=Timeframe.D1,
+                        ts=datetime.combine(day, time(21, 0), tzinfo=UTC),
+                        session="regular",
+                        open=Decimal(str(round(open_, 8))),
+                        high=Decimal(str(round(high, 8))),
+                        low=Decimal(str(round(low, 8))),
+                        close=Decimal(str(round(close, 8))),
+                        volume=Decimal(str(800_000 + (index % 31) * 9_000 + len(symbol) * 1_000)),
+                        is_adjusted=True,
+                    )
+                )
+                historical_previous = close
         db.add_all(bars)
     await db.flush()
 
@@ -424,7 +480,8 @@ async def seed_e2e_market_data(db: AsyncSession) -> None:
     # Analysis endpoints use this state for freshness; omitting it would make a
     # fully populated controlled fixture report ``unavailable``.
     fetched_at = datetime.now(UTC)
-    coverage_start = datetime.combine(trading_days[0], time(21, 0), tzinfo=UTC)
+    recent_coverage_start = datetime.combine(trading_days[0], time(21, 0), tzinfo=UTC)
+    long_coverage_start = datetime.combine(long_rrg_days[0], time(21, 0), tzinfo=UTC)
     coverage_end = datetime.combine(trading_days[-1], time(21, 0), tzinfo=UTC)
     for symbol, instrument in instruments.items():
         state = await db.scalar(
@@ -447,6 +504,8 @@ async def seed_e2e_market_data(db: AsyncSession) -> None:
         state.observed_at = fetched_at
         state.fetched_at = fetched_at
         state.stale_after = fetched_at + timedelta(days=1)
+        has_long_rrg_history = symbol in _E2E_MONTHLY_RRG_SYMBOLS
+        coverage_start = long_coverage_start if has_long_rrg_history else recent_coverage_start
         state.coverage_start = coverage_start
         state.coverage_end = coverage_end
         state.version = max(state.version or 1, 1)
@@ -456,9 +515,17 @@ async def seed_e2e_market_data(db: AsyncSession) -> None:
         state.extra_data = {
             "seed": "e2e",
             "controlled_fixture": True,
-            "bar_count": len(trading_days),
+            "bar_count": len(trading_days) + (len(long_rrg_days) if has_long_rrg_history else 0),
             "adjusted": True,
+            "extended_monthly_rrg_history": has_long_rrg_history,
         }
+
+    from app.services.derived_timeframes import materialize_derived_timeframes
+
+    for symbol in _E2E_MONTHLY_RRG_SYMBOLS:
+        instrument = instruments.get(symbol)
+        if instrument is not None:
+            await materialize_derived_timeframes(db, instrument.id, adjusted=True)
 
     # Create controlled, point-in-time ETF-proxy holdings for sector and industry drilldown.
     etf_symbols = {

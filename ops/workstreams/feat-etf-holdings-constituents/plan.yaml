@@ -5722,8 +5722,8 @@ acceptance_criteria:
 progress:
   completed: []
   total: 5
-  current_phase: ETF hook and shared-client view handoff are implemented; cached snapshots remain visible while holdings preparation runs, and current focused view tests/type-check pass.
-  current_blocker: Provider shared-runtime wiring and the Root-owned combined browser profile remain pending. The ETF-only journey spec is authored and listed but has not run; one TC-owned legacy E2E still expects the replaced automatic acquire call and needs owner reconciliation.
+  current_phase: ETF hook and shared-client view handoff are implemented; exact Provider074 development runtime is imported and hash-verified. Basket CRUD/recovery and owner journey coverage are progressing in this worktree.
+  current_blocker: Provider full release/exact CI and Root's combined browser profile remain pending. ETF-only and basket browser bodies are authored/listed but not run by this owner; TC owns shared browser integration and legacy E2E reconciliation.
 integration_checkpoint:
   id: platform-usability-etf-holdings-2026-11-06
   scope: Implement the ETF-owned holdings preparation callable and ETFHoldingsView automatic request/provenance behavior under the complete human-activated platform-usability plan.
@@ -6087,7 +6087,7 @@ provider_runtime_dependency_17d628296e5a:
   full_release_gates: pending; Root owns final CI, combined qualification and release;
     no acceptance or deployment is claimed.
 
-provider_runtime_dependency_active_99ce73:
+provider_runtime_dependency_99ce73:
   authority: Root released exact Provider source99ce73bbc67689aef5fc4fcffa76bcfebfa736da
     for development consumption in this same worktree; this is not product acceptance,
     integration, deployment, or full release qualification.
@@ -6116,3 +6116,30 @@ provider_runtime_dependency_active_99ce73:
     in progress and Root owns the combined profile.
   state: development dependency only; Provider full release, exact final CI, and combined
     acceptance remain pending.
+
+provider_runtime_dependency_active_07490844:
+  authority: Root released exact Provider source07490844c39d56e7023294f5e8798e4da2acdce0
+    for development consumption in this same worktree; this is not product acceptance,
+    integration, deployment, or full release qualification.
+  base: 139b350238b5e1c8a170dce5af09a805301d857e
+  previous_active_dependency: 99ce73bbc67689aef5fc4fcffa76bcfebfa736da
+  manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider074-runtime-development-consumption-contract.json
+  manifest_sha256: f01f558d28fe6dc5864a4c46187de3fac0906b536d72dec1ed6cb92c8fdf3cfc
+  changed_paths_since_99:
+    - backend/app/services/data_preparation.py
+    - backend/app/services/e2e_seed.py
+    - backend/app/services/workstation_tool_catalogue.py
+    - backend/app/tasks/data_tasks.py
+    - backend/app/workers/arq_worker.py
+    - backend/tests/integration/test_data_preparation_queue_postgres.py
+    - backend/tests/unit/services/test_data_preparation_service.py
+    - backend/tests/unit/services/test_e2e_seed.py
+    - backend/tests/unit/services/test_workstation_tool_catalogue.py
+    - backend/tests/unit/tasks/test_data_tasks.py
+    - backend/tests/unit/workers/test_arq_worker.py
+  active_import_file_records: 38
+  source_file_verification: all38 path/Git-blob/SHA256/status_from139 entries match exact released source.
+  excluded_source_records: the three Provider-owned workstream record paths are not product files and were not imported.
+  producer_evidence: 84cc35 maintenance 82 focused units and3 PostgreSQL cases; 074 fixture7 cases including default finite RRG outputs for all11 pairs at D1/W1/MN. These are Producer-reported development evidence, not final release qualification.
+  consumer_validation: not rerun during import; shared preparation and Root combined profile remain pending.
+  full_release_gates: pending; Root owns exact CI, combined qualification, staging/master and release.
