@@ -1019,6 +1019,9 @@ async def get_run(
     # offer only adapters that the source can execute safely.
     if run.code_version is not None:
         setattr(run, "output_contract", run.code_version.output_contract)
+    # The ORM row does not store this projection field. Keep the detail response
+    # consistent with /runs, which derives it from the persisted artifacts.
+    setattr(run, "artifact_count", len(run.artifacts))
     await db.flush()
     return run
 

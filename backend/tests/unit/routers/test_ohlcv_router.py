@@ -10,11 +10,143 @@ from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
 from app.services.derived_timeframes import materialize_derived_timeframes
 from app.services.distributed_locks import DistributedLockError
+from app.services.market_data import _default_series_bar_condition
 from app.services.provider_runtime import ProviderNoDataError
 from tests.unit.conftest import AsyncSessionAdapter
 
 
 class TestOHLCVRouter:
+    def test_seeded_weekly_monthly_reads_follow_the_fixture_series_not_a_stale_default(
+        self, client, auth_headers, db, instrument, monkeypatch
+    ):
+        monkeypatch.setattr(settings, "E2E_SEED_MARKET_DATA", True)
+        monkeypatch.setattr(settings, "PROVIDER_REQUEST_DRIVEN_ONLY", True)
+        fixture_source = db.query(DataSource).filter_by(name="e2e_reference").one_or_none()
+        if fixture_source is None:
+            fixture_source = DataSource(name="e2e_reference")
+            db.add(fixture_source)
+            db.flush()
+        retained_source = DataSource(name="retained-before-e2e-series")
+        db.add(retained_source)
+        db.flush()
+
+        for timeframe, ts in (
+            (Timeframe.W1, datetime(2026, 11, 2, tzinfo=UTC)),
+            (Timeframe.MN, datetime(2026, 11, 1, tzinfo=UTC)),
+        ):
+            retained = MarketSeries(
+                instrument_id=instrument.id,
+                data_source_id=retained_source.id,
+                feed_scope=f"retained-{timeframe.value}",
+                session_code="regular",
+                timeframe=timeframe.value,
+                adjustment_basis=AdjustmentBasis.SPLIT_ADJUSTED,
+                adjustment_version="retained-provider-v1",
+                is_canonical=True,
+                is_active=True,
+            )
+            fixture = MarketSeries(
+                instrument_id=instrument.id,
+                data_source_id=fixture_source.id,
+                feed_scope=f"e2e-derived-{timeframe.value}",
+                session_code="regular",
+                timeframe=timeframe.value,
+                adjustment_basis=AdjustmentBasis.SPLIT_ADJUSTED,
+                adjustment_version="e2e-fixture-v1",
+                is_canonical=False,
+                is_active=True,
+            )
+            db.add_all([retained, fixture])
+            db.flush()
+            db.add(
+                MarketSeriesDefault(
+                    instrument_id=instrument.id,
+                    timeframe=timeframe.value,
+                    is_adjusted=True,
+                    market_series_id=retained.id,
+                    selection_reason="pre-existing-provider-default",
+                )
+            )
+            for series, source, close in (
+                (retained, retained_source, Decimal("90")),
+                (fixture, fixture_source, Decimal("10")),
+            ):
+                db.add(
+                    OHLCVBar(
+                        instrument_id=instrument.id,
+                        data_source_id=source.id,
+                        market_series_id=series.id,
+                        timeframe=timeframe,
+                        ts=ts,
+                        open=close - Decimal("1"),
+                        high=close + Decimal("1"),
+                        low=close - Decimal("2"),
+                        close=close,
+                        volume=Decimal("100"),
+                        is_adjusted=True,
+                        is_derived=True,
+                        source_timeframe=Timeframe.D1.value,
+                        derivation_method="e2e-fixture-test",
+                        scope_key=f"series:{series.id}:regular",
+                    )
+                )
+        db.flush()
+
+        # The ordinary provider default points at a different source, so the
+        # old E2E source filter combined with that unscoped selector produced
+        # an empty result despite the controlled derived row being present.
+        for timeframe in (Timeframe.W1, Timeframe.MN):
+            unscoped_rows = (
+                db.query(OHLCVBar)
+                .filter(
+                    OHLCVBar.instrument_id == instrument.id,
+                    OHLCVBar.timeframe == timeframe,
+                    OHLCVBar.is_adjusted.is_(True),
+                    OHLCVBar.data_source_id == fixture_source.id,
+                    _default_series_bar_condition(instrument.id, timeframe, True),
+                )
+                .all()
+            )
+            assert unscoped_rows == []
+
+        for path in (
+            f"/api/v1/ohlcv/local/{instrument.symbol}/{Timeframe.W1.value}",
+            f"/api/v1/ohlcv/local/{instrument.symbol}/{Timeframe.MN.value}",
+            f"/api/v1/ohlcv/{instrument.symbol}/{Timeframe.W1.value}",
+            f"/api/v1/ohlcv/{instrument.symbol}/{Timeframe.MN.value}",
+        ):
+            response = client.get(path, params={"limit": 5000}, headers=auth_headers)
+            assert response.status_code == 200, response.text
+            assert len(response.json()) == 1
+            assert response.json()[0]["close"] == 10.0
+            assert response.json()[0]["is_derived"] is True
+
+        retained_rows = (
+            db.query(OHLCVBar)
+            .filter(
+                OHLCVBar.instrument_id == instrument.id,
+                OHLCVBar.data_source_id == retained_source.id,
+            )
+            .all()
+        )
+        fixture_rows = (
+            db.query(OHLCVBar)
+            .filter(
+                OHLCVBar.instrument_id == instrument.id,
+                OHLCVBar.data_source_id == fixture_source.id,
+            )
+            .all()
+        )
+        assert {row.close for row in retained_rows} == {Decimal("90")}
+        assert {row.close for row in fixture_rows} == {Decimal("10")}
+        retained_series = db.query(MarketSeries).filter_by(data_source_id=retained_source.id).all()
+        assert {
+            (row.timeframe, row.market_series_id)
+            for row in db.query(MarketSeriesDefault)
+            .filter(MarketSeriesDefault.instrument_id == instrument.id)
+            .all()
+        } == {(series.timeframe, series.id) for series in retained_series}
+
     def test_local_weekly_monthly_read_refreshes_stale_derived_history_once(
         self, client, auth_headers, db, instrument, monkeypatch
     ):

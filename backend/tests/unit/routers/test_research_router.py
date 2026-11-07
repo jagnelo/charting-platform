@@ -22,7 +22,10 @@ from app.routers.research import (
     _research_coverage_calendars,
     _research_manifest_fingerprint,
     _wire_timestamps,
+    get_run,
+    list_runs,
 )
+from app.schemas.code import ResearchRunOut
 
 
 class _AsyncSessionAdapter:
@@ -33,6 +36,160 @@ class _AsyncSessionAdapter:
     async def execute(self, statement):
         self.execute_count += 1
         return self.session.execute(statement)
+
+
+class _ScalarResult:
+    def __init__(self, value):
+        self.value = value
+
+    def scalar_one_or_none(self):
+        return self.value
+
+
+class _ResearchRunDetailSession:
+    def __init__(self, run):
+        self.run = run
+
+    async def execute(self, _statement):
+        return _ScalarResult(self.run)
+
+    async def flush(self):
+        return None
+
+
+class _ResearchRunListResult:
+    def __init__(self, runs):
+        self.runs = runs
+
+    def scalars(self):
+        return self
+
+    def all(self):
+        return self.runs
+
+
+class _ResearchRunListSession:
+    def __init__(self, runs):
+        self.runs = runs
+        self.statement = None
+
+    async def execute(self, statement):
+        self.statement = statement
+        return _ResearchRunListResult(self.runs)
+
+    async def flush(self):
+        return None
+
+
+@pytest.mark.asyncio
+async def test_research_run_detail_projects_artifact_count_from_persisted_artifacts(monkeypatch):
+    from app.routers import research
+
+    artifacts = [
+        SimpleNamespace(
+            id=index, artifact_type="scalar", name=f"metric-{index}", payload={"value": index}
+        )
+        for index in range(1, 9)
+    ]
+
+    def collect_persisted_output(run):
+        run.artifacts.extend(artifacts)
+        return True
+
+    monkeypatch.setattr(research, "collect_research_result", collect_persisted_output)
+    monkeypatch.setattr(research, "read_research_progress", lambda _run_id: {})
+    run = SimpleNamespace(
+        id=7,
+        user_id=1,
+        created_at=datetime(2026, 11, 6, tzinfo=UTC),
+        code_version_id=42,
+        code_version=SimpleNamespace(output_contract="study"),
+        status="completed",
+        evaluation_status="evaluated",
+        run_config={"symbol": "XLB"},
+        dataset_manifest={"datasets": [{"symbol": "XLB"}]},
+        reproducibility_hash="sha256:study-run",
+        diagnostics=[],
+        warnings=[],
+        resource_usage={},
+        logs="",
+        artifacts=[],
+        progress={},
+    )
+
+    response = await get_run(
+        7, db=_ResearchRunDetailSession(run), current_user=SimpleNamespace(id=1)
+    )
+    serialized = ResearchRunOut.model_validate(response)
+
+    assert serialized.artifact_count == 8
+    assert len(serialized.artifacts) == 8
+
+
+@pytest.mark.asyncio
+async def test_research_run_detail_hides_runs_owned_by_another_user():
+    class _NotFoundForCurrentOwnerSession:
+        statement = None
+
+        async def execute(self, statement):
+            self.statement = statement
+            return _ScalarResult(None)
+
+    session = _NotFoundForCurrentOwnerSession()
+    with pytest.raises(HTTPException) as error:
+        await get_run(7, db=session, current_user=SimpleNamespace(id=2))
+
+    compiled = str(session.statement.compile(compile_kwargs={"literal_binds": True}))
+    assert "research_run.id = 7" in compiled
+    assert "research_run.user_id = 2" in compiled
+    assert error.value.status_code == 404
+    assert error.value.detail == "Research run not found"
+
+
+@pytest.mark.asyncio
+async def test_research_run_list_projects_persisted_artifact_count_for_current_owner(monkeypatch):
+    from app.routers import research
+
+    artifacts = [
+        SimpleNamespace(
+            id=index, artifact_type="scalar", name=f"metric-{index}", payload={"value": index}
+        )
+        for index in range(1, 9)
+    ]
+
+    def collect_persisted_output(run):
+        run.artifacts.extend(artifacts)
+        return True
+
+    monkeypatch.setattr(research, "collect_research_result", collect_persisted_output)
+    monkeypatch.setattr(research, "read_research_progress", lambda _run_id: {})
+    run = SimpleNamespace(
+        id=9,
+        user_id=3,
+        created_at=datetime(2026, 11, 6, tzinfo=UTC),
+        code_version_id=42,
+        code_version=SimpleNamespace(output_contract="study"),
+        status="completed",
+        evaluation_status="evaluated",
+        run_config={"symbol": "XLB"},
+        dataset_manifest={"datasets": [{"symbol": "XLB"}]},
+        reproducibility_hash="sha256:study-run-list",
+        diagnostics=[],
+        warnings=[],
+        resource_usage={},
+        logs="",
+        artifacts=[],
+        progress={},
+    )
+    session = _ResearchRunListSession([run])
+
+    response = await list_runs(db=session, current_user=SimpleNamespace(id=3))
+    serialized = ResearchRunOut.model_validate(response[0])
+
+    compiled = str(session.statement.compile(compile_kwargs={"literal_binds": True}))
+    assert "research_run.user_id = 3" in compiled
+    assert serialized.artifact_count == 8
+    assert serialized.artifacts == []
 
 
 def _series(instrument_id: int, *, feed: str, canonical: bool = True) -> MarketSeries:
