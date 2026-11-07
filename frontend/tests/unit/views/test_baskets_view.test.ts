@@ -217,6 +217,34 @@ describe('BasketsView', () => {
     })
   })
 
+  it('preserves a new basket draft after create failure so the user can retry', async () => {
+    vi.mocked(api.get).mockResolvedValue([])
+    vi.mocked(api.post)
+      .mockRejectedValueOnce(new Error('Basket service unavailable'))
+      .mockResolvedValueOnce(basket({ id: 46, name: 'Retry basket' }))
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper.get('input[placeholder="Basket name"]').setValue('Retry basket')
+    await wrapper.get('.search-stub').trigger('click')
+    await wrapper.get('.btn-primary').trigger('click')
+    await flushPromises()
+
+    expect(api.post).toHaveBeenCalledTimes(1)
+    expect(wrapper.text()).toContain('Basket service unavailable')
+    expect((wrapper.get('input[placeholder="Basket name"]').element as HTMLInputElement).value)
+      .toBe('Retry basket')
+    expect(wrapper.get('.member-symbol').text()).toBe('AAPL')
+    expect(wrapper.get('h2').text()).toBe('New basket')
+
+    await wrapper.get('.btn-primary').trigger('click')
+    await flushPromises()
+
+    expect(api.post).toHaveBeenCalledTimes(2)
+    expect(wrapper.text()).toContain('Basket saved.')
+    expect(wrapper.get('.basket-card--active').text()).toContain('Retry basket')
+  })
+
   it('keeps custom weighted baskets disabled until fully allocated', async () => {
     vi.mocked(api.get).mockResolvedValue([])
 
