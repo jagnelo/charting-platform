@@ -1489,6 +1489,7 @@ describe('workspace store layout tabs', () => {
           { id: 31, instance_key: 'study-lab', tool_type: 'study_lab', title: 'Study Lab', link_group: 'blue', configuration: { symbol: 'XLB', study_run_id: 8, study_source: 'saved-run-source', timeframe: 'W1' }, style: {}, state_schema_version: 1, position: 1 },
           { id: 32, instance_key: 'notes', tool_type: 'notes', title: 'Notes', link_group: 'blue', configuration: { symbol: 'SPY' }, style: {}, state_schema_version: 1, position: 2 },
           { id: 33, instance_key: 'watchlist', tool_type: 'watchlist', title: 'WatchList', link_group: 'blue', configuration: { symbol: 'SPY' }, style: {}, state_schema_version: 1, position: 3 },
+          { id: 34, instance_key: 'grey-chart', tool_type: 'chart', title: 'Grey chart', link_group: 'grey', configuration: { symbol: 'IWM', instrument_id: 77 }, style: {}, state_schema_version: 1, position: 4 },
         ],
       }],
     }
@@ -1517,6 +1518,11 @@ describe('workspace store layout tabs', () => {
     })
     expect(windows.find(window => window.instance_key === 'notes')?.configuration.symbol).toBe('XLK')
     expect(windows.find(window => window.instance_key === 'watchlist')?.configuration).toMatchObject({ symbol: 'XLK', instrument_id: 42 })
+    expect(windows.find(window => window.instance_key === 'grey-chart')).toMatchObject({
+      link_group: 'grey',
+      configuration: { symbol: 'IWM', instrument_id: 77 },
+    })
+    expect(store.symbolForLinkGroup('grey', String(windows.find(window => window.instance_key === 'grey-chart')?.configuration.symbol))).toBe('IWM')
     expect(store.linkedSymbol).toBe('XLK')
   })
 
