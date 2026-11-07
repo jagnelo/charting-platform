@@ -101,16 +101,12 @@ export const useDashboardStore = defineStore('dashboard', () => {
 
   async function updateWidget(widgetId: number, patch: Partial<DashboardWidget>) {
     const local = findWidget(widgetId)
-    const previous = local ? { ...local, layout: { ...local.layout }, config: { ...local.config }, style: { ...local.style } } : null
-    if (local) Object.assign(local, patch)
-    try {
-      const updated = await api.patch<DashboardWidget>(`/dashboards/widgets/${widgetId}`, patch)
-      if (local) Object.assign(local, updated)
-      return updated
-    } catch (e) {
-      if (local && previous) Object.assign(local, previous)
-      throw e
-    }
+    // Keep the saved dashboard as the visible truth until the server accepts
+    // the edit. In particular, nested config edits must not leak into the
+    // stored widget before its PATCH succeeds.
+    const updated = await api.patch<DashboardWidget>(`/dashboards/widgets/${widgetId}`, patch)
+    if (local) Object.assign(local, updated)
+    return updated
   }
 
   async function deleteWidget(widgetId: number) {

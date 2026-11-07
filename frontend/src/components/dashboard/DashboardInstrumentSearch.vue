@@ -29,7 +29,7 @@
         <template v-else-if="!isExpression">
           <button
             v-for="(result, i) in results"
-            :key="result.symbol"
+            :key="`${result.symbol}:${result.exchange}:${result.provider}:${result.instrument_id ?? 'new'}`"
             type="button"
             :class="['dash-search-item', { highlighted: i === highlightIdx }]"
             @click="selectResult(result)"
@@ -37,7 +37,7 @@
           >
             <b>{{ result.symbol }}</b>
             <span>{{ result.name }}</span>
-            <small>{{ result.type || result.exchange }}</small>
+            <small>{{ result.type || 'Instrument' }}<span v-if="result.exchange"> · {{ result.exchange }}</span></small>
           </button>
         </template>
         <div
@@ -54,7 +54,12 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, onUnmounted, ref, watch } from 'vue'
-import { api } from '@/lib/api'
+import {
+  discoverInstruments,
+  resolveDiscoveredInstrument,
+  resolveExistingInstrument,
+  type InstrumentDiscoveryCandidate,
+} from '@/lib/onDemandAcquisition'
 import {
   ensureKnownInstrumentSymbol,
   formatInstrumentLookupError,
@@ -62,13 +67,6 @@ import {
   isExpressionInput,
   isResolvableExpressionInput,
 } from '@/lib/instruments'
-
-interface SearchResult {
-  symbol: string
-  name: string
-  exchange: string
-  type: string
-}
 
 const props = withDefaults(defineProps<{
   modelValue?: string
@@ -84,7 +82,7 @@ const emit = defineEmits<{
 }>()
 
 const query = ref(props.modelValue)
-const results = ref<SearchResult[]>([])
+const results = ref<InstrumentDiscoveryCandidate[]>([])
 const loading = ref(false)
 const error = ref('')
 const dismissed = ref(true)
@@ -139,6 +137,9 @@ function dismiss() {
 async function onInput() {
   dismissed.value = false
   error.value = ''
+  resolveSeq++
+  results.value = []
+  highlightIdx.value = 0
   if (timer) clearTimeout(timer)
   if (!trimmedQuery.value || isExpression.value) {
     searchSeq++
@@ -151,17 +152,24 @@ async function onInput() {
     if (!mounted || seq !== searchSeq) return
     loading.value = true
     try {
-      const loaded = await api.get<SearchResult[]>('/instruments/search', {
-        q: trimmedQuery.value,
-        canonical_only: true,
-      })
+      const requestedQuery = trimmedQuery.value
+      const loaded = await discoverInstruments(requestedQuery, [], 10)
       if (mounted && seq === searchSeq) {
-        results.value = loaded
+        results.value = loaded.candidates
         highlightIdx.value = 0
+        if (!loaded.candidates.length) {
+          error.value = discoveryStatusMessage(loaded.status)
+        } else if (loaded.status === 'held' || loaded.status === 'unavailable' || loaded.status === 'partial') {
+          error.value = discoveryStatusMessage(loaded.status)
+        }
+        const exact = loaded.status === 'complete'
+          ? loaded.candidates.filter(candidate => candidate.symbol.trim().toUpperCase() === requestedQuery.toUpperCase())
+          : []
+        if (exact.length === 1) await resolveCandidate(exact[0]!, seq)
       }
     } catch (e: any) {
       if (mounted && seq === searchSeq) {
-        error.value = e?.message ?? 'Search unavailable'
+        error.value = 'Instrument discovery is temporarily unavailable. Your current selection is unchanged.'
         results.value = []
       }
     } finally {
@@ -170,24 +178,49 @@ async function onInput() {
   }, 220)
 }
 
-async function selectResult(result: SearchResult) {
-  await selectSymbol(result.symbol)
+function discoveryStatusMessage(status: string) {
+  if (status === 'held') return 'Instrument discovery is temporarily held. Your current selection is unchanged.'
+  if (status === 'unavailable') return 'Instrument discovery is unavailable. Your current selection is unchanged.'
+  if (status === 'partial') return 'Some instrument candidates may be missing. Choose only a verified listing.'
+  return 'No matching instrument was found. Your current selection is unchanged.'
 }
 
-async function selectSymbol(symbol: string) {
+async function selectResult(candidate: InstrumentDiscoveryCandidate) {
+  await resolveCandidate(candidate)
+}
+
+async function resolveCandidate(
+  candidate: InstrumentDiscoveryCandidate,
+  expectedSearchSeq?: number,
+) {
+  if (expectedSearchSeq !== undefined && expectedSearchSeq !== searchSeq) return
   const seq = ++resolveSeq
   loading.value = true
+  error.value = ''
   try {
-    const resolved = await ensureKnownInstrumentSymbol(symbol, 'Instrument', { canonicalOnly: true })
-    if (mounted && seq === resolveSeq) commit(resolved)
-  } catch (e) {
+    const response = await resolveDiscoveredInstrument(candidate)
+    if (!mounted || seq !== resolveSeq || (expectedSearchSeq !== undefined && expectedSearchSeq !== searchSeq)) return
+    if (response.status !== 'resolved' || !response.instrument?.symbol) {
+      error.value = resolutionStatusMessage(response.status)
+      dismissed.value = false
+      return
+    }
+    commit(response.instrument.symbol)
+  } catch {
     if (mounted && seq === resolveSeq) {
-      error.value = formatInstrumentLookupError(symbol, e)
+      error.value = 'Instrument identity could not be confirmed. Your current selection is unchanged.'
       dismissed.value = false
     }
   } finally {
     if (mounted && seq === resolveSeq) loading.value = false
   }
+}
+
+function resolutionStatusMessage(status: string) {
+  if (status === 'held') return 'This instrument is temporarily unavailable for selection.'
+  if (status === 'identity_conflict') return 'Instrument identity could not be confirmed. Choose a different listing.'
+  if (status === 'no_match') return 'No verified instrument matched this selection. Choose a listed candidate.'
+  return 'Instrument could not be resolved. Your current selection is unchanged.'
 }
 
 async function selectExpression() {
@@ -224,6 +257,24 @@ function selectFirst() {
   if (highlightIdx.value < results.value.length) {
     void selectResult(results.value[highlightIdx.value])
     return
+  }
+  if (/^[A-Za-z0-9][A-Za-z0-9.-]{0,19}$/.test(trimmedQuery.value)) void resolveTypedExisting()
+}
+
+async function resolveTypedExisting() {
+  const requested = trimmedQuery.value
+  const seq = ++resolveSeq
+  loading.value = true
+  error.value = ''
+  try {
+    const response = await resolveExistingInstrument(requested)
+    if (!mounted || seq !== resolveSeq || requested !== trimmedQuery.value) return
+    if (response.status === 'resolved' && response.instrument?.symbol) commit(response.instrument.symbol)
+    else error.value = resolutionStatusMessage(response.status)
+  } catch {
+    if (mounted && seq === resolveSeq) error.value = 'Instrument identity could not be confirmed. Your current selection is unchanged.'
+  } finally {
+    if (mounted && seq === resolveSeq) loading.value = false
   }
 }
 

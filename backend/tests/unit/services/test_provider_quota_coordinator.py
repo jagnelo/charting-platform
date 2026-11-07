@@ -414,7 +414,6 @@ def test_unknown_current_window_baseline_blocks_until_exact_seed(tmp_path, monke
         )
         is None
     )
-
     seeded = reconcile_provider_quota_baseline(
         provider_name="fixture",
         capability="price_history",
@@ -451,6 +450,83 @@ def test_unknown_current_window_baseline_blocks_until_exact_seed(tmp_path, monke
         )
         is None
     )
+
+
+@pytest.mark.parametrize(
+    ("dimension_name", "window_seconds", "reset", "advance_seconds"),
+    [
+        ("requests_per_minute", 60, "rolling", 61),
+        ("requests_per_day", 86_400, "calendar_day_utc", 86_401),
+    ],
+)
+def test_nonexclusive_native_window_requires_fresh_observation_then_resumes(
+    tmp_path, monkeypatch, dimension_name, window_seconds, reset, advance_seconds
+):
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "quota.sqlite3"))
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_DATABASE_URL", "")
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_EXCLUSIVE_ACCOUNT_SCOPES", {})
+    dimension = _dimension(
+        name=dimension_name,
+        limit=20,
+        window_seconds=window_seconds,
+        reset=reset,
+        quota_group="account",
+    )
+    policy = _policy(dimension, reset=reset, scope="account")
+    observed_at = datetime(2026, 11, 6, 12, tzinfo=UTC)
+    reconcile_provider_quota_baseline(
+        provider_name="fixture",
+        capability="price_history",
+        policy=policy,
+        dimension_name=dimension_name,
+        used_units=7,
+        observed_at=observed_at,
+        evidence_reference="account-usage:fixture:2026-11-06",
+        source="provider_account_observation",
+        now=observed_at,
+    )
+
+    still_fresh = provider_quota_baseline_status(
+        provider_name="fixture",
+        capability="price_history",
+        policy=policy,
+        dimension_name=dimension_name,
+        now=observed_at + timedelta(seconds=min(advance_seconds - 2, 30)),
+    )
+    stale_at = observed_at + timedelta(seconds=advance_seconds)
+    after_window = provider_quota_baseline_status(
+        provider_name="fixture",
+        capability="price_history",
+        policy=policy,
+        dimension_name=dimension_name,
+        now=stale_at,
+    )
+    assert still_fresh["status"] == "verified"
+    assert after_window["status"] == "unknown"
+
+    # A genuine native observation reconciled through the existing baseline
+    # writer makes the same ordinary operation eligible again. No local-zero
+    # baseline or exclusive-account assumption is involved.
+    reconcile_provider_quota_baseline(
+        provider_name="fixture",
+        capability="price_history",
+        policy=policy,
+        dimension_name=dimension_name,
+        used_units=3,
+        observed_at=stale_at,
+        evidence_reference="account-usage:fixture:2026-11-06",
+        source="provider_account_observation",
+        now=stale_at,
+    )
+    resumed = provider_quota_baseline_status(
+        provider_name="fixture",
+        capability="price_history",
+        policy=policy,
+        dimension_name=dimension_name,
+        now=stale_at,
+    )
+    assert resumed["status"] == "verified"
+    assert resumed["effective_used_units"] == 3
 
 
 def test_native_five_per_minute_capacity_denial_exposes_conservative_retry_time(

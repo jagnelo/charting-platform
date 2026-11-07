@@ -23,6 +23,18 @@
     {
       "id": "SU6",
       "text": "Preserve all original 18 roadmap criteria and accepted checkpoint history; retain honest limits and disabled native/forward/broker/capital/provider-live scopes. Full platform profile and any Root-owned genuine target acceptance remain distinct and open."
+    },
+    {
+      "id": "SU7",
+      "text": "History/profile-backed Dashboard widgets use the shared preparation coordinator before local reads, submit comparison datasets independently, report per-target outcomes, and fence obsolete symbol/timeframe contexts without cancelling durable work."
+    },
+    {
+      "id": "SU8",
+      "text": "Dashboard search keeps prefix results as identity-bearing candidates; it resolves only a unique exact match from complete discovery or an explicit candidate choice, and failed symbol/comparison saves retain the prior configuration with visible retry feedback."
+    },
+    {
+      "id": "SU9",
+      "text": "Dashboard layout-save failures restore the saved arrangement, explain the failure, and allow a retry that reconciles the visible layout with the server."
     }
   ],
   "active_session_id": "02d5ffaa-53b5-4dec-b39c-0f36612b5436",
@@ -38,15 +50,47 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "current_blocker": "The authored Strategy consumer checkpoint is prepared against exact Provider074 and TC-aea dependencies. Type-check, the three focused Study/Results/Library component suites (145/145), Playwright discovery (five stories), and the unchanged frontend-provider boundary guard (1/1) pass. Root owns execution of the combined backend/browser/strict-visual profile; no browser or full profile has run on this dirty source. Preserve the full18-criterion roadmap and all disabled-operation holds.",
+  "current_blocker": "No exact-source branch CI or Root combined backend/browser acceptance exists for the current Provider732 and TC-aea dependencies plus the authored Study/Results/Library and Dashboard consumer changes. The active Provider pin contains all43 exact exported files, including13 changed paths over074; full Provider release qualification remains pending despite Root-reported owner tests and style checks. Focused Dashboard tests pass23/23 and frontend type-check exits0; browser evidence remains Root-owned. Study/Results/Library browser stories remain unexecuted. Preserve the complete18-criterion roadmap and disabled-operation holds.",
   "current_execution_checkpoint": {
     "authority": "Human-activated platform-usability plan; existing session-local goal aligned in place by Root, no objective/accounting reset.",
     "full_roadmap_preserved": true,
-    "heavy_profile": "Pending Root combined qualification after compatible Producer API release; no local browser or fixture launched for the Library-return extension.",
+    "heavy_profile": "Root owns the single combined backend/browser/strict-visual qualification for the current Provider732 and TC-aea inputs plus Strategy Study/Results/Library and reserved Dashboard changes; no separate local browser/full profile was launched.",
     "id": "strategy-study-usability-2026-11-06",
     "status": "in_progress"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "backend/app/providers/massive.py",
+    "backend/app/schemas/data_preparation.py",
+    "backend/app/services/data_preparation.py",
+    "backend/app/services/instrument_mastering.py",
+    "backend/app/services/market_data.py",
+    "backend/app/services/provider_runtime.py",
+    "backend/app/tasks/data_tasks.py",
+    "backend/tests/unit/providers/test_new_providers.py",
+    "backend/tests/unit/services/test_data_preparation_service.py",
+    "backend/tests/unit/services/test_market_data.py",
+    "backend/tests/unit/services/test_provider_quota_coordinator.py",
+    "backend/tests/unit/services/test_provider_runtime.py",
+    "backend/tests/unit/tasks/test_native_usage_prerequisite.py",
+    "frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue",
+    "frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue",
+    "frontend/src/components/dashboard/DashboardInstrumentSearch.vue",
+    "frontend/src/components/dashboard/DashboardLineChartWidget.vue",
+    "frontend/src/components/dashboard/DashboardQuoteWidget.vue",
+    "frontend/src/stores/dashboard.ts",
+    "frontend/src/views/DashboardView.vue",
+    "frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts",
+    "frontend/tests/unit/components/test_dashboard_instrument_search.test.ts",
+    "frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts",
+    "frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts",
+    "frontend/tests/unit/stores/test_dashboard_store.test.ts",
+    "frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts",
+    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
+    "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
+    "ops/workstreams/feat-strategy-lab-v2/provider-runtime-consumption.json",
+    "ops/workstreams/feat-strategy-lab-v2/session.json",
+    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
+  ],
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
@@ -85,9 +129,9 @@
   "last_checkpoint": "2026-11-06T22:49:25Z",
   "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Hold this coherent consumer context for Root's single combined qualification. After its exact-source evidence arrives, repair only concrete Strategy-owned findings; do not claim Playwright discovery as browser acceptance or close the full roadmap.",
+  "next_action": "Finish and hand off the bounded Dashboard consumer repair against Provider732 with focused evidence, then Root runs the single combined backend/browser/visual qualification. Keep browser evidence pending until that exact combined run executes; preserve full-profile assertions, all18 original roadmap criteria, and disabled-operation holds.",
   "parent_branch": "staging",
-  "plan_hash": "852922d46967b8b5c782421ddbcdde7be28850db79071a5094bee0ce7cbbfcc7",
+  "plan_hash": "19bb6722a2a5b5dcb22136f25ab086024cf222ea1b7910ffb80f5804035ec0ff",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -116,11 +160,11 @@
       "SU3",
       "SU4"
     ],
-    "current_blocker": "The authored Strategy consumer checkpoint is prepared against exact Provider074 and TC-aea dependencies. Type-check, the three focused Study/Results/Library component suites (145/145), Playwright discovery (five stories), and the unchanged frontend-provider boundary guard (1/1) pass. Root owns execution of the combined backend/browser/strict-visual profile; no browser or full profile has run on this dirty source. Preserve the full18-criterion roadmap and all disabled-operation holds.",
+    "current_blocker": "No exact-source branch CI or Root combined backend/browser acceptance exists for the current Provider732 and TC-aea dependencies plus the authored Study/Results/Library and Dashboard consumer changes. The active Provider pin contains all43 exact exported files, including13 changed paths over074; full Provider release qualification remains pending despite Root-reported owner tests and style checks. Focused Dashboard tests pass23/23 and frontend type-check exits0; browser evidence remains Root-owned. Study/Results/Library browser stories remain unexecuted. Preserve the complete18-criterion roadmap and disabled-operation holds.",
     "current_phase": "strategy-study-usability-2026-11-06",
-    "next_action": "Hold this coherent consumer context for Root's single combined qualification. After its exact-source evidence arrives, repair only concrete Strategy-owned findings; do not claim Playwright discovery as browser acceptance or close the full roadmap.",
-    "total": 6,
-    "updated_at": "2026-11-07T00:46:00Z"
+    "next_action": "Finish and hand off the bounded Dashboard consumer repair against Provider732 with focused evidence, then Root runs the single combined backend/browser/visual qualification. Keep browser evidence pending until that exact combined run executes; preserve full-profile assertions, all18 original roadmap criteria, and disabled-operation holds.",
+    "total": 9,
+    "updated_at": "2026-11-07T01:34:05Z"
   },
   "remote": "c7f0585fc6735bbfe5e768836092419b13ce8a25",
   "remote_sha": "c7f0585fc6735bbfe5e768836092419b13ce8a25",

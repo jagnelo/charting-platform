@@ -483,6 +483,24 @@ class MassiveProvider:
                 "delisted_utc": row.get("delisted_utc"),
             }
         )
+        sic_code = str(extra.get("sic_code") or "").strip()
+        sic_description = str(extra.get("sic_description") or "").strip()
+        if sic_code and sic_description and not str(extra.get("industry") or "").strip():
+            # A native SEC SIC description is useful industry evidence, but it
+            # remains explicitly labelled SEC_SIC and is never promoted to a
+            # GICS classification or inferred from a sector name.
+            extra.update(
+                {
+                    "industry": sic_description,
+                    "classification_system": "SEC_SIC",
+                    "industry_evidence": {
+                        "provider": self.name,
+                        "source_field": "sic_description",
+                        "sic_code": sic_code,
+                        "classification_system": "SEC_SIC",
+                    },
+                }
+            )
         return InstrumentProfile(
             provider=self.name,
             symbol=provider_symbol,

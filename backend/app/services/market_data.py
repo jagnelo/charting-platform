@@ -56,7 +56,11 @@ from app.providers.crypto_market_data import (
     estimate_kraken_latest_ohlcv_request_count,
     estimate_kraken_ohlcv_request_count,
 )
-from app.providers.errors import ProviderRateLimitError, bounded_redact_provider_message
+from app.providers.errors import (
+    ProviderNotConfiguredError,
+    ProviderRateLimitError,
+    bounded_redact_provider_message,
+)
 from app.providers.ibkr import (
     estimate_ibkr_current_price_request_count,
     estimate_ibkr_latest_ohlcv_request_count,
@@ -1982,14 +1986,109 @@ async def get_provider_profile_async(
     provider_name: str | None = None,
     persist: bool = True,
     raise_provider_errors: bool = False,
+    required_profile_fields: tuple[str, ...] | list[str] = (),
 ):
     cached = await _fresh_profile_from_cache(
         db,
         instrument_id=instrument_id,
         provider_symbol=provider_symbol,
     )
-    if cached is not None:
+    required_fields = tuple(
+        dict.fromkeys(str(field).strip().lower() for field in required_profile_fields)
+    )
+
+    def profile_has_required_fields(profile: InstrumentProfile | None) -> bool:
+        if profile is None:
+            return False
+        extra = profile.extra if isinstance(profile.extra, dict) else {}
+        for field in required_fields:
+            value = extra.get(field)
+            if isinstance(value, str) and value.strip():
+                continue
+            sic_code = extra.get("sic_code")
+            if (
+                field == "industry"
+                and profile.provider.strip().lower() == "massive"
+                and isinstance(sic_code, str | int)
+                and not isinstance(sic_code, bool)
+                and str(sic_code).strip()
+                and str(extra.get("sic_description") or "").strip()
+            ):
+                continue
+            return False
+        return True
+
+    if cached is not None and profile_has_required_fields(cached):
         return cached
+
+    if required_fields:
+        # A fresh generic profile is not evidence for a field-specific request.
+        # Walk only the normally admitted metadata chain, one provider at a
+        # time, and stop at the first source that supplies the requested field.
+        chain = await resolve_provider_chain(
+            db,
+            ProviderCapability.INSTRUMENT_METADATA,
+            operation="get_instrument_profile",
+            instrument_id=instrument_id,
+            provider_symbol=provider_symbol,
+        )
+        providers = [
+            item.provider_name
+            for item in chain
+            if provider_name is None or item.provider_name == provider_name
+        ]
+        if provider_name is not None and provider_name not in providers:
+            providers = []
+        last_profile = cached
+        last_expected_error: Exception | None = None
+        for candidate in providers:
+            try:
+                execution = await execute_provider_call(
+                    db,
+                    ProviderCapability.INSTRUMENT_METADATA,
+                    "get_instrument_profile",
+                    instrument_id=instrument_id,
+                    provider_symbol=provider_symbol,
+                    usage_identity=provider_symbol,
+                    provider_name=candidate,
+                    invoke=lambda provider, actual_symbol: provider.get_instrument_profile(
+                        actual_symbol or provider_symbol
+                    ),
+                    response_items=lambda result: 1 if result is not None else 0,
+                    treat_empty_as_failure=True,
+                )
+            except Exception as exc:
+                from app.services.provider_quota_coordinator import (
+                    ProviderQuotaAdmissionError,
+                    ProviderQuotaCoordinatorError,
+                )
+                from app.services.provider_runtime import ProviderNoDataError
+
+                if not isinstance(
+                    exc,
+                    ProviderNoDataError
+                    | ProviderRateLimitError
+                    | ProviderQuotaAdmissionError
+                    | ProviderQuotaCoordinatorError
+                    | ProviderNotConfiguredError,
+                ):
+                    raise
+                last_expected_error = exc
+                continue
+            profile = execution.result
+            if profile is None:
+                continue
+            last_profile = profile
+            if persist:
+                instrument = await db.get(Instrument, instrument_id) if instrument_id else None
+                await ingest_provider_profile(db, profile, instrument=instrument)
+            if profile_has_required_fields(profile):
+                return profile
+        if last_profile is not None:
+            return last_profile
+        if raise_provider_errors and last_expected_error is not None:
+            raise last_expected_error
+        return None
     try:
         execution = await execute_provider_call(
             db,

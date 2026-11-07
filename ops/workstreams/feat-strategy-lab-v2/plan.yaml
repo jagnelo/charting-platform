@@ -21,9 +21,12 @@ current_checkpoint:
     objective history, creation time, or accounting.
   scope: >-
     Strategy ownership covers Study/Results/Library components and views, Strategy Lab views/store,
-    Study-specific backend modules/tests, and a new Study-only browser journey. TC owns the shared
-    shell, workspace, ToolContent, shared helpers/types/styles and flows.spec.ts. No native, broker,
-    capital, paid/trial, provider-live, or other held scope is activated.
+    Study-specific backend modules/tests, and a new Study-only browser journey. Root additionally
+    reserved exactly DashboardView.vue, stores/dashboard.ts, the four assigned Dashboard widgets,
+    DashboardInstrumentSearch.vue, and their focused tests for automatic preparation, transactional
+    edits, recoverable layout persistence, and listing-aware search. TC owns the shared shell,
+    workspace, ToolContent, shared helpers/types/styles and flows.spec.ts. No native, broker, capital,
+    paid/trial, provider-live, or other held scope is activated.
 integration_checkpoint:
   id: strategy-lab-v2-first-human-study-inspector-2
   status: ready_for_integration
@@ -1155,9 +1158,23 @@ acceptance_criteria:
     Preserve all original 18 roadmap criteria and accepted checkpoint history; retain honest limits
     and disabled native/forward/broker/capital/provider-live scopes. Full platform profile and any
     Root-owned genuine target acceptance remain distinct and open.
+- id: SU7
+  text: >-
+    History/profile-backed Dashboard widgets use the shared preparation coordinator before local
+    reads, submit comparison datasets independently, report per-target outcomes, and fence obsolete
+    symbol/timeframe contexts without cancelling durable work.
+- id: SU8
+  text: >-
+    Dashboard search keeps prefix results as identity-bearing candidates; it resolves only a unique
+    exact match from complete discovery or an explicit candidate choice, and failed symbol/comparison
+    saves retain the prior configuration with visible retry feedback.
+- id: SU9
+  text: >-
+    Dashboard layout-save failures restore the saved arrangement, explain the failure, and allow a
+    retry that reconciles the visible layout with the server.
 progress:
   completed: [SU1, SU2, SU3, SU4]
-  total: 6
+  total: 9
   current_phase: strategy-study-usability-2026-11-06
   active_changeset:
     id: strategy-study-usability-2026-11-06
@@ -1169,18 +1186,32 @@ progress:
       preparation coordinator in Study controls so explicit Validate/Run actions prepare the
       selected dataset first; never acquire data inside evaluation or mutate saved-run identity.
       Maintain the Strategy-owned J10/J11/J12 action matrix as an input to TC's global inventory,
-      distinguishing component/API evidence from exact-source browser acceptance. Consume the
-      Root-released Provider runtime successor 07490844c39d56e7023294f5e8798e4da2acdce0 at the
-      exact active 38 backend paths recorded in provider-runtime-consumption.json. Its eleven
-      changed paths were imported over the archived 99 v2 export; 99, 17d, and 55b remain historical
-      import receipts. The 074 successor is released for development consumption, while
-      the single combined full qualification remains Root-owned and pending. Strategy consumes the
-      authenticated durable ensure/status contract
-      through the existing shared TC data-preparation client; it does not duplicate worker,
-      acquisition, quota, or provider behavior. The active TC shared client pin is the exact
-      three-module library release aea0be57abd036dd308a18f9dd07b976767cb8a9; the earlier single-file
-      877 import is retained as history. TC App/store authentication changes are not imported.
+      distinguishing component/API evidence from exact-source browser acceptance. Consume corrected
+      Root-released Provider source 732da0f9f84ee495ee58ca3b9f8311839291ff59 at the exact active43
+      backend paths in provider-runtime-consumption.json; its13 changed paths were imported over the
+      archived074 export, while074,99v2,17d, and55b remain historical. Root's combined qualification
+      remains pending. Consume the authenticated durable ensure/status contract through the exact
+      TC-owned shared preparation client without duplicating worker, acquisition, quota, or provider
+      behavior. The active TC client pin remains the exact three-module aea0be57 release; TC App/store
+      authentication changes are not imported. Repair the seven Root-reserved Dashboard product
+      files and focused tests: prepare profile/history before reads, submit independent per-target
+      preparation and abort obsolete subscriptions, preserve listing-bound discovery, persist symbol
+      and comparison edits transactionally, and expose layout rollback/retry. The joint browser proof
+      remains Root-owned and pending.
     owned_paths:
+      - frontend/src/views/DashboardView.vue
+      - frontend/src/stores/dashboard.ts
+      - frontend/src/components/dashboard/DashboardQuoteWidget.vue
+      - frontend/src/components/dashboard/DashboardLineChartWidget.vue
+      - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
+      - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
+      - frontend/src/components/dashboard/DashboardInstrumentSearch.vue
+      - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts
+      - frontend/tests/unit/stores/test_dashboard_store.test.ts
+      - frontend/tests/unit/components/test_dashboard_instrument_search.test.ts
+      - frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts
+      - frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts
+      - frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts
       - frontend/src/components/workstation/StudyLabTool.vue
       - frontend/src/components/workstation/ResearchResultsTool.vue
       - frontend/src/components/workstation/CodeLibraryTool.vue
@@ -1200,24 +1231,23 @@ progress:
     status: in_progress
   current_blocker: >-
     No exact-source branch CI or Root combined backend/browser acceptance exists for the current
-    074 dependency plus the authored Study preparation, Results recovery, and Library lifecycle
-    stories. The 074 active dependency pin contains eleven imported paths over 99 v2 and all 38 exact
-    exported files with source-derived status fields; 99, 17d, and 55b manifests and failures remain
-    historical. Root reports 82 maintenance units and 3 PostgreSQL cases at 84cc plus 7 seed cases at 074,
-    not full release acceptance. These authored Study, Results,
-    and Library stories are typechecked and discovered by Playwright only; Root owns actual browser
-    and combined backend qualification. The active TC library import is exact source
+    Provider732 and TC-aea dependencies and the authored Study/Results/Library plus Dashboard consumer
+    changes. The active Provider pin contains all43 exact exported files, including13 changed paths
+    over074; full Provider release qualification remains pending despite Root-reported owner tests and
+    style checks. Focused Dashboard unit tests pass23/23 and its frontend type-check passes;
+    browser evidence remains Root-owned. The Study/Results/Library browser stories are authored but
+    unexecuted. The active TC library import is exact source
     aea0be57abd036dd308a18f9dd07b976767cb8a9 for api.ts/authSession.ts/dataPreparation.ts; its strict
     DTO requires symbol, covered_ranges/lineage, timestamps, and honest pending-work state. The
     Strategy Study component suite passes63/63 after the fail-closed Validate repair; browser stories
     remain authored/discovered only. Preserve the full 18-criterion roadmap and disabled holds.
-  updated_at: "2026-11-07T00:42:50Z"
+  updated_at: "2026-11-07T01:34:05Z"
   next_action: >-
-    Root owns the single combined qualification of the current Provider074 and TC-aea inputs plus
-    the Strategy Study/Results/Library changes. Keep the authored five-story Playwright inventory
-    pending until that exact combined run executes; repair only actual integrated Strategy findings.
-    Preserve all full-profile assertions, the complete 18-criterion roadmap, and disabled-operation
-    holds. Do not treat controlled-API Playwright discovery as browser acceptance or close the scope early.
+    Finish the bounded Dashboard repair against Provider732 and record its focused evidence, then hand
+    the coherent Strategy consumer source and action matrix to Root for the single combined
+    backend/browser/visual qualification. Keep all authored browser stories pending until the exact
+    combined run executes; preserve full-profile assertions, all18 original roadmap criteria, and
+    disabled-operation holds. Do not treat controlled-API tests as browser acceptance or close early.
 roadmap_goal: >-
   Implement the production-grade, local-first Strategy Lab v2 backend for
   reproducible portfolio backtesting, walk-forward and search experiments, and
@@ -1285,6 +1315,19 @@ owned_paths:
   - backend/app/strategy_lab_v2/tests/
   - backend/tests/integration/strategy_lab_v2/
   - backend/strategy_runtime/
+  - frontend/src/views/DashboardView.vue
+  - frontend/src/stores/dashboard.ts
+  - frontend/src/components/dashboard/DashboardQuoteWidget.vue
+  - frontend/src/components/dashboard/DashboardLineChartWidget.vue
+  - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
+  - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
+  - frontend/src/components/dashboard/DashboardInstrumentSearch.vue
+  - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts
+  - frontend/tests/unit/stores/test_dashboard_store.test.ts
+  - frontend/tests/unit/components/test_dashboard_instrument_search.test.ts
+  - frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts
+  - frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts
+  - frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts
   - docs/strategy-lab-v2.md
   - ops/workstreams/feat-strategy-lab-v2/
 shared_path_gates:
@@ -1338,7 +1381,7 @@ dependencies:
     feat/market-data-provider-platform owns canonical identity, market series,
     capability/entitlement, acquisition, coverage, and repair contracts. Consume
     after its reviewed work reaches staging, except for the exact Root-released
-    development dependency 55b956f40615f1623a0f7d084b9fc0a355727053 recorded in
+    development dependency 732da0f9f84ee495ee58ca3b9f8311839291ff59 recorded in
     provider-runtime-consumption.json; that release is not full qualification or
     product acceptance. Do not duplicate providers or provider runtime policy.
   - >-
