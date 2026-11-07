@@ -6803,7 +6803,7 @@ native_xhb_current_rows_proof_successor_2026_11_07:
   validation: Root-owned browser execution pending; local Playwright discovery and workstream/diff guards only.
   non_actions: No product changes, browser body, Source HTTP, database, runtime, policy, quota, production or sibling-worktree operation.
 
-provider_runtime_dependency_active_9b196304:
+provider_runtime_dependency_historical_9b196304:
   authority: Root released exact Provider source 9b196304b573e323fb349fe4d7badfe2d8208f95 for ETF development consumption only; combined acceptance and release remain Root-owned.
   previous_active_dependency: 13630db12d4f0f5810b9baa73725f75fb7e653cc
   manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider9b196304-runtime-development-consumption-contract.json
@@ -6830,3 +6830,19 @@ provider_runtime_dependency_active_9b196304:
   - backend/tests/unit/workers/test_arq_worker.py
   verification: All76 manifest status/Git-blob/SHA256 rows verified against exact source; all17 ETF paths passed their old-byte/executable-bit guards and match the released blobs. Focused ETF/shared-preparation unit checks passed179 cases; Playwright discovery lists the updated native successor, with no browser body run here.
   state: Root-released development dependency only; native, exact CI, combined browser, and product acceptance remain pending.
+
+provider_runtime_dependency_active_cc31077c:
+  source: cc31077c60545e8455d1f064411fbddae7d21fe1
+  authority: Root released exact Provider source cc31077c60545e8455d1f064411fbddae7d21fe1 for ETF development consumption only; native worker restart proof and full release acceptance remain Root-owned.
+  previous_active_dependency: 9b196304b573e323fb349fe4d7badfe2d8208f95
+  manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providercc31077c-runtime-development-consumption-contract.json
+  manifest_sha256: ef257b2871ebfe5fafb9b3bd2ee6994e9c9c3faea9ba9aaa7d295facae2a0574
+  local_manifest_copy: ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/cc31077c60545e8455d1f064411fbddae7d21fe1.json
+  current_manifest_records_verified: 76
+  consumer_import_paths:
+  - backend/app/tasks/data_tasks.py
+  - backend/tests/unit/tasks/test_data_tasks.py
+  verification: All76 manifest status/Git-blob/SHA256 records match the exact source; both ETF paths passed their old-byte guards and now match released blobs while preserving executable-bit semantics.
+  provider_evidence: Root reports exact two-path repair for native-prerequisite rollback; provider style is green and the image is building. No producer suite was rerun by ETF.
+  qualification: The XHB/IGV browser attempt used predecessor spec bd3a and failed at its duplicate-close date assertion; successor source 74fa binds tooltip date and OHLC. MSFT browser-closed receipt remains failed/unattended with no bars and deferred price jobs; Root owns the same durable job's worker-restart proof.
+  state: Root-released development dependency only; no native replay, HTTP, production mutation, acceptance, integration, or deployment is claimed.

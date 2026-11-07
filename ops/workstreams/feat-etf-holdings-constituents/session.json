@@ -1141,8 +1141,8 @@
     "status": "Root-delegated bounded software checkpoint accepted; exact final-source CI pending.",
     "validated_implementation_sha": "b6d67ce93104a0a2cf83b1c41f385513b3c230f8"
   },
-  "plan_hash": "c8ef50674b64c1e810cf14dbea0685f073017702f8e839404e8a9fb434605c12",
-  "plan_sha256": "c8ef50674b64c1e810cf14dbea0685f073017702f8e839404e8a9fb434605c12",
+  "plan_hash": "4ffd88d6fc2ad4d88ad86ca3911b43b7775d2dc5732e74b58483ad155dabd663",
+  "plan_sha256": "4ffd88d6fc2ad4d88ad86ca3911b43b7775d2dc5732e74b58483ad155dabd663",
   "planning_required": false,
   "planning_state": "ready",
   "previous_active_changeset": {
@@ -4571,7 +4571,7 @@
     "verification": "All74 manifest rows match the released source tree/status/Git blob/SHA256/executable-bit semantics; all22 ETF-declared paths passed old guards and match released bytes. backend/tests/unit/services/test_etf_holdings_preparation_hook.py is outside the ETF import list and remains byte-identical to 3969; it was preserved.",
     "state": "Root-authorized development dependency only. Four focused offline regressions pass; no native request/replay, quota/policy change, production mutation, integration, or deployment. Provider owns XHB admission diagnosis and Root owns combined qualification."
   },
-  "current_provider_runtime_dependency": {
+  "historical_provider_runtime_dependency_9b196304": {
     "authority": "Root released exact Provider source 9b196304b573e323fb349fe4d7badfe2d8208f95 for ETF development consumption only; combined acceptance and release remain Root-owned.",
     "source": "9b196304b573e323fb349fe4d7badfe2d8208f95",
     "previous_source": "13630db12d4f0f5810b9baa73725f75fb7e653cc",
@@ -4603,6 +4603,24 @@
     "focused_validation": "179 focused preparation-contract/service, ETF bootstrap/bridge, worker deeper-default, and refresh-queue unit cases passed; the corrected native successor lists one Playwright case, with browser execution Root-owned.",
     "state": "Root-released development dependency only. No native request, production mutation, integration, deployment, or combined acceptance is claimed; Root owns release qualification."
 },
+  "current_provider_runtime_dependency": {
+    "authority": "Root released exact Provider source cc31077c60545e8455d1f064411fbddae7d21fe1 for ETF development consumption only; native worker restart proof and full release acceptance remain Root-owned.",
+    "source": "cc31077c60545e8455d1f064411fbddae7d21fe1",
+    "previous_source": "9b196304b573e323fb349fe4d7badfe2d8208f95",
+    "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providercc31077c-runtime-development-consumption-contract.json",
+    "manifest_sha256": "ef257b2871ebfe5fafb9b3bd2ee6994e9c9c3faea9ba9aaa7d295facae2a0574",
+    "local_manifest_copy": "ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/cc31077c60545e8455d1f064411fbddae7d21fe1.json",
+    "changed_paths_imported": [
+      "backend/app/tasks/data_tasks.py",
+      "backend/tests/unit/tasks/test_data_tasks.py"
+    ],
+    "source_manifest_records_verified": 76,
+    "consumer_import_paths_verified": 2,
+    "verification": "All76 manifest status/Git-blob/SHA256 rows match the exact source; both ETF paths passed old-byte guards and match source bytes, with executable-bit semantics preserved.",
+    "provider_evidence": "Root reports the exact two-path native-prerequisite rollback repair; pinned style is green and the image is building. No Provider suite was rerun by ETF.",
+    "latest_native_attempts": "The XHB/IGV browser attempt used predecessor test source bd3a and failed only at duplicate-close tooltip date matching; frozen successor 74fa binds date and independently verifies OHLC. MSFT browser-closed attempt is failed/unattended with no bars and deferred price jobs; Root owns the same durable job restart proof.",
+    "state": "Root-released development dependency only; no native replay, HTTP, production mutation, acceptance, integration, or deployment is claimed."
+  },
   "current_checkpoint_2026_11_07_notes_lifecycle": {
     "source_parent": "369f0c8d051d8d7e17ea0dfe7478860f51218368",
     "owned_paths": [

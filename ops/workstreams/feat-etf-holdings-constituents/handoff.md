@@ -18727,3 +18727,26 @@ no browser body or Source HTTP was run. Original strict proof SHA256 remains
 `3df9ef6bdaf4dfb3261ba21ef30cf733654ca917a0efa5a40bc48825f30eaabe`; current
 successor SHA256 is `52d122de949d0f88228f86dc304d6a50d630439f3a47cd5d875bc1f0d0f94bb6`.
 Root owns the native browser execution and all release gates.
+
+## Provider cc31077 native-prerequisite rollback import — 2026-11-07
+
+Imported only the two ETF-declared paths from Provider source
+`cc31077c60545e8455d1f064411fbddae7d21fe1`: `backend/app/tasks/data_tasks.py`
+and `backend/tests/unit/tasks/test_data_tasks.py`. The Root manifest
+`providercc31077c-runtime-development-consumption-contract.json` has SHA256
+`ef257b2871ebfe5fafb9b3bd2ee6994e9c9c3faea9ba9aaa7d295facae2a0574` and its
+local copy is under `development-dependency-imports/`. All76 manifest rows
+match source blobs and SHA256; both imported paths matched their9b old guards
+before copying and now match the new source. Existing file modes were retained.
+
+Root reports the focused rollback repair preserves the native prerequisite
+queue graph across validated-lease row-lock/DB-failure rollback; the pinned
+style checks are green and the image build is underway. ETF did not rerun the
+Provider/backend suites. Root's prior XHB/IGV browser attempt used predecessor
+test source `bd3a2e477` and failed at the duplicate-close tooltip-date check;
+source `74fa44175` now matches by tooltip date and verifies OHLC. Root's
+browser-closed MSFT attempt remains a failed unattended acquisition: the
+receipt shows no bars and deferred price jobs. Root owns the durable-job worker
+restart proof. No native retry, Source HTTP, quota/ledger, production, database,
+or runtime mutation was performed by ETF. This is a development import only;
+all combined, native and release gates remain pending.
