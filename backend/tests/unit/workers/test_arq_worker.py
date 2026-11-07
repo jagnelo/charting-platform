@@ -172,7 +172,7 @@ async def test_refresh_queue_does_not_retry_after_lease_is_lost(monkeypatch):
     assert summary["bars_observed"] == 0
     assert summary["data_status"] == "empty"
     retry.assert_not_awaited()
-    assert session.commits == 1
+    assert session.commits == 2  # Initial lease commit and read-only completion attempt.
 
 
 @pytest.mark.asyncio

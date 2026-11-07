@@ -3476,8 +3476,16 @@ onMounted(async () => {
   resizeObserver = new ResizeObserver(handleResize)
   if (rootRef.value) {
     resizeObserver.observe(rootRef.value)
-    // Prevent browser back/forward navigation gestures when over the chart
-    rootRef.value.addEventListener('wheel', (e) => e.preventDefault(), { passive: false, capture: true })
+    // Prevent browser back/forward navigation gestures over the plot while
+    // allowing ordinary vertical scrolling to reach indicator panes when the
+    // chart is taller than its dock.
+    rootRef.value.addEventListener('wheel', (event) => {
+      const root = rootRef.value
+      const target = event.target instanceof Element ? event.target : null
+      const scrollingPanes = !!root && root.scrollHeight > root.clientHeight && event.deltaY !== 0
+      if (scrollingPanes && target && !target.closest('.uplot-wrapper')) return
+      event.preventDefault()
+    }, { passive: false, capture: true })
   }
   if (wrapperRef.value) resizeObserver.observe(wrapperRef.value)
 })
@@ -3646,7 +3654,8 @@ defineExpose({ jumpToTs })
   flex-direction: column;
   width: 100%; height: 100%;
   background: #080808;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   overscroll-behavior: none;
   user-select: none;
   -webkit-user-select: none;
@@ -3654,9 +3663,11 @@ defineExpose({ jumpToTs })
 
 .uplot-wrapper {
   position: relative;
-  flex: 1;
+  /* A newly added indicator must not squeeze the price plot to a line in a
+     short dock. Keep a usable price plane and let the chart panes scroll. */
+  flex: 1 0 120px;
   min-width: 0;
-  min-height: 0;
+  min-height: 120px;
   overflow: hidden;
   touch-action: none;
   overscroll-behavior: none;

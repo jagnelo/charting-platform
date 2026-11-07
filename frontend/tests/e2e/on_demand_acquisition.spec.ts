@@ -304,7 +304,7 @@ test('Workstation search resolves an unknown ticker and reports shared history p
   const search = page.getByRole('combobox', { name: 'Active symbol' })
   await expect(search).toBeVisible()
   await expect(search).toHaveValue('SPY')
-  const previousChart = page.locator('.tool-window--active .chart-tool [role="region"][aria-label="Chart workspace"]').first()
+  const previousChart = page.locator('.chart-tool:visible').getByRole('region', { name: 'Chart workspace' }).first()
   await expect(previousChart).toBeVisible()
   await expect(previousChart).toHaveAttribute('aria-busy', 'false')
   const previousChartProvenance = previousChart.locator('.sr-only').first()
@@ -385,11 +385,11 @@ test('Workstation search resolves an unknown ticker and reports shared history p
   })
   expect(selectedPreparation).not.toHaveProperty('start_at')
   expect(selectedPreparation).not.toHaveProperty('end_at')
-  const selectedChart = page.locator('.tool-window--active .chart-tool [role="region"][aria-label="Chart workspace"]').first()
+  const selectedChart = page.locator('.chart-tool:visible').getByRole('region', { name: 'Chart workspace' }).first()
   await expect(selectedChart).toBeVisible()
   await expect(selectedChart.locator('.sr-only')).toContainText('chart; no OHLCV bars loaded.')
   expect(await selectedChart.locator('.sr-only').innerText()).not.toBe(previousChartProvenanceText)
-  await expect(page.locator('.tool-window--active .tool-window__symbol')).toHaveText('TCNEW')
+  await expect(search).toHaveValue('TCNEW')
   await expect(page.locator('.workstation__selection-acquisition').filter({ hasText: 'No reviewed data source can provide this request.' })).toBeVisible()
   expect(legacyHistoryRequests).toEqual([])
   await browserDiagnostics.expectNoCriticalIssues()
@@ -1034,7 +1034,7 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
 
   const chartWorkspace = page.getByRole('region', { name: 'Chart workspace' })
   await chartWorkspace.click()
-  await expect(page.locator('.tool-window--active').getByRole('region', { name: 'Chart workspace' })).toBeVisible()
+  await expect(page.locator('.chart-tool:visible').getByRole('region', { name: 'Chart workspace' })).toBeVisible()
 
   await acquiredLocalBarReadback
   expect(acquiredLocalRows).toEqual([acquiredBar])
@@ -1045,7 +1045,7 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
     && readback.rows[0]?.ts === acquiredBar?.ts)).toBe(true)
   expect(localBarReadbacks.filter(readback => readback.afterAcquisition).every(readback => readback.symbol === 'TCNEW' && readback.timeframe === 'M1')).toBe(true)
   await expect(page.getByTestId('workstation-history-acquisition')).toHaveCount(0)
-  const visibleChart = page.locator('.tool-window--active .chart-root')
+  const visibleChart = page.locator('.chart-tool:visible .chart-root')
   await expect(visibleChart).toHaveAttribute('aria-busy', 'false', { timeout: 10_000 })
   await expect(visibleChart.locator('.sr-only')).toContainText('M1 chart; 1 bars')
   await expect.poll(() => calendarRequests.length).toBeGreaterThan(0)
@@ -1082,7 +1082,7 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
     && request.target.kind === 'instrument'
     && 'instrument_id' in request.target
     && request.target.instrument_id === fixtureInstrumentId)).toHaveLength(1)
-  await expect(page.locator('.tool-window--active .chart-root')).toHaveAttribute('aria-busy', 'false')
+  await expect(page.locator('.chart-tool:visible .chart-root')).toHaveAttribute('aria-busy', 'false')
   await browserDiagnostics.expectNoCriticalIssues()
 })
 
@@ -1847,7 +1847,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
   const historyRequests: Array<{ symbol: FixtureSymbol; body: DataEnsureRequest }> = []
   const holdingsPreparationRequests: Array<{ symbol: FixtureSymbol; body: DataEnsureRequest }> = []
   const preparationResponseIds: string[] = []
-  const issuerRequests: Array<{ symbol: FixtureSymbol; body: IssuerRequest }> = []
+  const holdingsEnsureRequests: Array<{ symbol: FixtureSymbol; body: DataEnsureRequest; requestId: string }> = []
   const discoveryRequests: DiscoveryRequest[] = []
   const holdingsReads: FixtureSymbol[] = []
   const industryReads: FixtureSymbol[] = []
@@ -1860,18 +1860,21 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     const promise = new Promise<void>(done => { resolve = done })
     return { promise, resolve }
   }
-  const xhbAcquireStarted = deferred()
-  const xhbAcquireGate = deferred()
-  const oihAcquireStarted = deferred()
-  const oihAcquireGate = deferred()
+  const xhbEnsureStarted = deferred()
+  const xhbEnsureGate = deferred()
+  const oihEnsureStarted = deferred()
+  const oihEnsureGate = deferred()
   const oihFailureStarted = deferred()
   const oihFailureGate = deferred()
-  const igvAcquireStarted = deferred()
-  const igvAcquireGate = deferred()
+  const igvEnsureStarted = deferred()
+  const igvEnsureGate = deferred()
   const unresolvedDiscoveryStarted = deferred()
   const unresolvedDiscoveryGate = deferred()
-  let oihAcquireCount = 0
+  let oihEnsureCount = 0
+  let xhbEnsureCount = 0
   let delayedOihFailureUrl: string | null = null
+  let delayedOihFailureRequestId: string | null = null
+  const pendingHoldings = new Map<string, { symbol: FixtureSymbol; terminal: 'ready' | 'unavailable' | 'failed'; response: DataEnsureResponse }>()
   let igvSnapshotAvailable = false
   const capabilityReads: FixtureETF[] = []
   let unxqDiscoveryCount = 0
@@ -1949,37 +1952,6 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     offset: 0,
     has_next: false,
   }
-
-  const profileFor = (symbol: FixtureETF): ETFProfile => ({
-    id: instruments[symbol].id + 100,
-    instrument_id: instruments[symbol].id,
-    symbol,
-    name: instruments[symbol].name,
-    issuer: 'test-fixture',
-    fund_family: 'controlled browser fixture',
-    adapter_status: 'ready',
-    latest_composition_date: '2026-11-02',
-    latest_snapshot_id: symbol === 'IGV' && !igvSnapshotAvailable ? null : symbol === 'IGV' ? igvSnapshotId : instruments[symbol].id + 200,
-    resolved_count: 0,
-    unresolved_count: symbol === 'IGV' && igvSnapshotAvailable ? 3 : 0,
-    holdings_capability: null,
-  })
-  const holdingsResponse = (symbol: FixtureETF, body: IssuerRequest, outcome: 'acquired' | 'unavailable'): ETFProfileAcquireResponse => ({
-    request_id: body.request_id,
-    instrument_id: instruments[symbol].id,
-    symbol,
-    outcome,
-    refresh: body.refresh,
-    refresh_attempted: true,
-    refresh_succeeded: outcome === 'acquired',
-    profile: outcome === 'acquired' ? profileFor(symbol) : null,
-    provider_request_log_ids: [],
-    source_provider: 'test-fixture',
-    source_operation: 'controlled_browser_fixture',
-    message: outcome === 'acquired'
-      ? 'Controlled fixture response only; not issuer evidence.'
-      : 'No holdings profile is available in this controlled fixture.',
-  })
 
   await page.route('**/api/v1/instruments/search**', async route => {
     const url = new URL(route.request().url())
@@ -2071,17 +2043,44 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     if (!datasets.includes('history')) {
       expect(datasets).toEqual(['holdings'])
       holdingsPreparationRequests.push({ symbol, body })
-      const response = historyPreparation(body, id, symbol, 'unavailable')
-      response.status = 'unavailable'
-      response.has_pending_work = false
-      response.completed = 0
-      response.total = response.dependencies.length
+      const requestId = crypto.randomUUID()
+      holdingsEnsureRequests.push({ symbol, body, requestId })
+      preparationResponseIds.push(requestId)
+      let outcome: 'ready' | 'unavailable' = 'unavailable'
+      let queuedTerminal: 'ready' | 'unavailable' | 'failed' | null = null
+      if (symbol === 'XHB') {
+        xhbEnsureCount += 1
+        if (xhbEnsureCount === 1) {
+          xhbEnsureStarted.resolve()
+          queuedTerminal = 'unavailable'
+        }
+      } else if (symbol === 'OIH') {
+        oihEnsureCount += 1
+        if (oihEnsureCount === 1) {
+          oihEnsureStarted.resolve()
+          queuedTerminal = 'ready'
+        } else {
+          delayedOihFailureRequestId = requestId
+          oihFailureStarted.resolve()
+          queuedTerminal = 'failed'
+        }
+      } else if (symbol === 'IGV') {
+        if (!igvSnapshotAvailable) {
+          igvEnsureStarted.resolve()
+          queuedTerminal = 'ready'
+        } else outcome = 'ready'
+      }
+      const response = historyPreparation(body, id, symbol, outcome === 'ready' ? 'partial' : 'unavailable')
+      response.request_id = requestId
+      response.status = queuedTerminal ? 'queued' : outcome
+      response.has_pending_work = queuedTerminal !== null
+      response.completed = queuedTerminal ? 0 : outcome === 'ready' ? response.total : 0
       response.dependencies = response.dependencies.map(dependency => ({
         ...dependency,
-        status: 'unavailable',
-        reason_code: 'test_fixture_hold',
+        status: queuedTerminal ? 'queued' : outcome,
+        reason_code: !queuedTerminal && outcome === 'unavailable' ? 'test_fixture_hold' : null,
       }))
-      preparationResponseIds.push(response.request_id)
+      if (queuedTerminal) pendingHoldings.set(requestId, { symbol, terminal: queuedTerminal, response })
       await route.fulfill({ status: 200, json: response })
       return
     }
@@ -2103,6 +2102,44 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     acquired.add(symbol)
     const response = historyPreparation(body, id, symbol, 'partial', bar)
     preparationResponseIds.push(response.request_id)
+    await route.fulfill({ status: 200, json: response })
+  })
+  await page.route('**/api/v1/data/requests/*', async route => {
+    const requestId = new URL(route.request().url()).pathname.split('/').at(-1) ?? ''
+    const pending = pendingHoldings.get(requestId)
+    if (route.request().method() !== 'GET' || !pending) return route.continue()
+    if (pending.terminal === 'failed') {
+      delayedOihFailureUrl = route.request().url()
+      await oihFailureGate.promise
+      await route.fulfill({
+        status: 503,
+        headers: { 'x-controlled-response-id': requestId },
+        json: { request_id: requestId, detail: 'Controlled fixture error; no source request was made.' },
+      })
+      return
+    }
+    if (pending.symbol === 'XHB') await xhbEnsureGate.promise
+    else if (pending.symbol === 'OIH') await oihEnsureGate.promise
+    else if (pending.symbol === 'IGV') {
+      await igvEnsureGate.promise
+      igvSnapshotAvailable = true
+    }
+    const response: DataEnsureResponse = {
+      ...pending.response,
+      version: pending.response.version + 1,
+      status: pending.terminal,
+      has_pending_work: false,
+      completed: pending.terminal === 'ready' ? pending.response.total : 0,
+      updated_at: '2026-11-07T12:00:01.000Z',
+      last_progress_at: '2026-11-07T12:00:01.000Z',
+      dependencies: pending.response.dependencies.map(dependency => ({
+        ...dependency,
+        status: pending.terminal,
+        reason_code: pending.terminal === 'unavailable' ? 'test_fixture_hold' : null,
+        updated_at: '2026-11-07T12:00:01.000Z',
+      })),
+    }
+    pending.response = response
     await route.fulfill({ status: 200, json: response })
   })
   await page.route('**/api/v1/ohlcv/local/*/*', async route => {
@@ -2173,51 +2210,13 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     industryReads.push(symbol)
     await route.fulfill({ status: 404, json: { detail: 'No point-in-time industry snapshot in this controlled fixture.' } })
   })
-  await page.route('**/api/v1/etf-holdings/*/acquire', async route => {
-    const symbol = new URL(route.request().url()).pathname.split('/')[4] as FixtureSymbol
-    if (!(symbol in instruments)) return route.continue()
-    if (symbol === 'UNXQ') return route.continue()
-    const body = route.request().postDataJSON() as IssuerRequest
-    expect(body.refresh).toBe(true)
-    expect(body.instrument_id).toBe(instruments[symbol].id)
-    issuerRequests.push({ symbol, body })
-    if (symbol === 'XHB') {
-      xhbAcquireStarted.resolve()
-      await xhbAcquireGate.promise
-      await route.fulfill({ status: 200, json: holdingsResponse(symbol, body, 'unavailable') })
-      return
-    }
-    if (symbol === 'OIH') {
-      oihAcquireCount += 1
-      if (oihAcquireCount === 1) {
-        oihAcquireStarted.resolve()
-        await oihAcquireGate.promise
-        await route.fulfill({ status: 200, json: holdingsResponse(symbol, body, 'acquired') })
-        return
-      }
-      delayedOihFailureUrl = route.request().url()
-      oihFailureStarted.resolve()
-      await oihFailureGate.promise
-      await route.fulfill({ status: 503, json: { detail: 'Controlled fixture error; no source request was made.' } })
-      return
-    }
-    if (symbol === 'IGV') {
-      igvAcquireStarted.resolve()
-      await igvAcquireGate.promise
-      igvSnapshotAvailable = true
-      await route.fulfill({ status: 200, json: holdingsResponse(symbol, body, 'acquired') })
-      return
-    }
-    await route.fulfill({ status: 200, json: holdingsResponse(symbol, body, 'unavailable') })
-  })
-
   try {
     await page.goto('/')
     const symbolSearch = page.getByRole('combobox', { name: 'Active symbol' })
     await expect(symbolSearch).toBeVisible()
     await expectGoldenLayoutTabsWithinAllocatedHeaders(page)
     expect(historyRequests).toHaveLength(0)
-    expect(issuerRequests).toHaveLength(0)
+    expect(holdingsEnsureRequests).toHaveLength(0)
     expect(discoveryRequests).toHaveLength(0)
 
     async function chooseETF(symbol: FixtureSymbol) {
@@ -2249,67 +2248,89 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
       await expect(symbolSearch).toHaveValue(symbol)
     }
 
-    const xhbHistoryResponseReady = page.waitForResponse(response => {
+    const waitForDatasetEnsure = (symbol: FixtureSymbol, dataset: 'history' | 'holdings') => page.waitForResponse(response => {
       const url = new URL(response.url())
-      return response.request().method() === 'POST'
-        && url.pathname === '/api/v1/data/ensure'
-        && ensureInstrumentId(response.request().postDataJSON() as DataEnsureRequest) === instruments.XHB.id
+      if (response.request().method() !== 'POST' || url.pathname !== '/api/v1/data/ensure') return false
+      const body = response.request().postDataJSON() as DataEnsureRequest
+      return ensureInstrumentId(body) === instruments[symbol].id && body.datasets?.includes(dataset) === true
     })
-    const xhbIssuerResponseReady = page.waitForResponse(response => {
+    const waitForPreparationStatus = (requestId: string) => page.waitForResponse(response => {
       const url = new URL(response.url())
-      return response.request().method() === 'POST' && url.pathname === '/api/v1/etf-holdings/XHB/acquire'
+      return response.request().method() === 'GET'
+        && url.pathname === `/api/v1/data/requests/${requestId}`
     })
+
+    const xhbHistoryResponseReady = waitForDatasetEnsure('XHB', 'history')
+    const xhbHoldingsResponseReady = waitForDatasetEnsure('XHB', 'holdings')
     await chooseETF('XHB')
     const xhbHistoryResponse = await xhbHistoryResponseReady
     expect(xhbHistoryResponse.status()).toBe(200)
-    await xhbAcquireStarted.promise
-    expect(issuerRequests.map(request => request.symbol)).toContain('XHB')
+    await xhbEnsureStarted.promise
+    expect(holdingsEnsureRequests.map(request => request.symbol)).toContain('XHB')
+    const xhbAccepted = await xhbHoldingsResponseReady
+    expect(xhbAccepted.status()).toBe(200)
+    expect(await xhbAccepted.json()).toMatchObject({ status: 'queued', has_pending_work: true })
     await expect.poll(() => localReadbacks.some(readback => readback.symbol === 'XHB' && readback.bars.length === 1)).toBe(true)
-    expect(issuerRequests.find(request => request.symbol === 'XHB')?.body).toMatchObject({ refresh: true, instrument_id: instruments.XHB.id })
+    expect(holdingsEnsureRequests.find(request => request.symbol === 'XHB')?.body).toMatchObject({ target: { kind: 'instrument', instrument_id: instruments.XHB.id }, datasets: ['holdings'] })
     expect(holdingsReads).toContain('XHB')
     expect(localReadbacks.find(readback => readback.symbol === 'XHB' && readback.bars.length === 1)?.timeframe).toBe('D1')
 
-    xhbAcquireGate.resolve()
-    expect((await xhbIssuerResponseReady).status()).toBe(200)
+    const xhbRequestId = holdingsEnsureRequests.find(request => request.symbol === 'XHB')!.requestId
+    const xhbStatusResponseReady = waitForPreparationStatus(xhbRequestId)
+    xhbEnsureGate.resolve()
+    expect((await xhbHoldingsResponseReady).status()).toBe(200)
+    const xhbTerminal = await xhbStatusResponseReady
+    expect(xhbTerminal.status()).toBe(200)
+    expect(await xhbTerminal.json()).toMatchObject({
+      request_id: xhbRequestId,
+      status: 'unavailable',
+      has_pending_work: false,
+      dependencies: [{ dataset: 'holdings', status: 'unavailable', reason_code: 'test_fixture_hold' }],
+    })
     await expect(page.locator('.workstation__selection-acquisition').filter({ hasText: 'Holdings for XHB are not available' })).toBeVisible()
 
     for (const symbol of ['SPY', 'RSP', 'QQQ'] as const) {
-      const historyResponseReady = page.waitForResponse(response => {
-        const url = new URL(response.url())
-        return response.request().method() === 'POST'
-          && url.pathname === '/api/v1/data/ensure'
-          && ensureInstrumentId(response.request().postDataJSON() as DataEnsureRequest) === instruments[symbol].id
-      })
-      const issuerResponseReady = page.waitForResponse(response => {
-        const url = new URL(response.url())
-        return response.request().method() === 'POST' && url.pathname === `/api/v1/etf-holdings/${symbol}/acquire`
-      })
+      const historyResponseReady = waitForDatasetEnsure(symbol, 'history')
+      const holdingsResponseReady = waitForDatasetEnsure(symbol, 'holdings')
       await chooseETF(symbol)
       expect((await historyResponseReady).status()).toBe(200)
-      expect((await issuerResponseReady).status()).toBe(200)
+      const holdingsResponse = await holdingsResponseReady
+      expect(holdingsResponse.status()).toBe(200)
+      expect(await holdingsResponse.json()).toMatchObject({
+        status: 'unavailable',
+        has_pending_work: false,
+        dependencies: [{ dataset: 'holdings', status: 'unavailable' }],
+      })
       await expect.poll(() => localReadbacks.some(readback => readback.symbol === symbol && readback.bars.length === 1)).toBe(true)
       await expect(page.locator('.workstation__selection-acquisition').filter({ hasText: `Holdings for ${symbol} are not available` })).toBeVisible()
     }
 
-    const oihIssuerResponseReady = page.waitForResponse(response => {
-      const url = new URL(response.url())
-      return response.request().method() === 'POST' && url.pathname === '/api/v1/etf-holdings/OIH/acquire'
-    })
+    const oihHoldingsResponseReady = waitForDatasetEnsure('OIH', 'holdings')
     await chooseETF('OIH')
-    await oihAcquireStarted.promise
+    await oihEnsureStarted.promise
+    const oihRequestId = holdingsEnsureRequests.find(request => request.symbol === 'OIH')!.requestId
+    const oihAccepted = await oihHoldingsResponseReady
+    expect(oihAccepted.status()).toBe(200)
+    expect(await oihAccepted.json()).toMatchObject({ request_id: oihRequestId, status: 'queued', has_pending_work: true })
+    const oihStatusResponseReady = waitForPreparationStatus(oihRequestId)
     const oihReadsBeforeSwitch = holdingsReads.filter(symbol => symbol === 'OIH').length
 
-    const igvIssuerResponseReady = page.waitForResponse(response => {
-      const url = new URL(response.url())
-      return response.request().method() === 'POST' && url.pathname === '/api/v1/etf-holdings/IGV/acquire'
-    })
+    const igvHoldingsResponseReady = waitForDatasetEnsure('IGV', 'holdings')
     await chooseETF('IGV')
-    await igvAcquireStarted.promise
+    await igvEnsureStarted.promise
+    const igvRequestId = holdingsEnsureRequests.find(request => request.symbol === 'IGV')!.requestId
+    const igvAccepted = await igvHoldingsResponseReady
+    expect(igvAccepted.status()).toBe(200)
+    expect(await igvAccepted.json()).toMatchObject({ request_id: igvRequestId, status: 'queued', has_pending_work: true })
+    const igvStatusResponseReady = waitForPreparationStatus(igvRequestId)
     await expect(page.locator('.workstation__selection-acquisition').filter({ hasText: 'Checking holdings for IGV' })).toBeVisible()
     await expect(page.locator('.workstation__selection-acquisition').filter({ hasText: 'Holdings for OIH' })).toHaveCount(0)
     expect(holdingsReads.at(-1)).toBe('IGV')
-    igvAcquireGate.resolve()
-    expect((await igvIssuerResponseReady).status()).toBe(200)
+    igvEnsureGate.resolve()
+    expect((await igvHoldingsResponseReady).status()).toBe(200)
+    const igvTerminal = await igvStatusResponseReady
+    expect(igvTerminal.status()).toBe(200)
+    expect(await igvTerminal.json()).toMatchObject({ request_id: igvRequestId, status: 'ready', has_pending_work: false })
     await expect(page.locator('.workstation__selection-acquisition').filter({ hasText: 'Holdings for IGV are available from the selected ticker' })).toBeVisible()
     expect(industryReads.at(-1)).toBe('IGV')
     expect(holdingsReads.filter(symbol => symbol === 'IGV').length).toBeGreaterThan(0)
@@ -2317,8 +2338,11 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
 
     // The prior direct OIH selection resolves only after IGV is current. A late
     // success may not restore OIH holdings or replace IGV's channel message.
-    oihAcquireGate.resolve()
-    expect((await oihIssuerResponseReady).status()).toBe(200)
+    oihEnsureGate.resolve()
+    expect((await oihHoldingsResponseReady).status()).toBe(200)
+    const oihTerminal = await oihStatusResponseReady
+    expect(oihTerminal.status()).toBe(200)
+    expect(await oihTerminal.json()).toMatchObject({ request_id: oihRequestId, status: 'ready', has_pending_work: false })
     await expect(symbolSearch).toHaveValue('IGV')
     await expect(page.locator('.workstation__selection-acquisition').filter({ hasText: 'Holdings for IGV are available from the selected ticker' })).toBeVisible()
     expect(holdingsReads.filter(symbol => symbol === 'OIH')).toHaveLength(oihReadsBeforeSwitch)
@@ -2336,16 +2360,8 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
       return response.request().method() === 'POST' && url.pathname === '/api/v1/instruments/acquire'
         && (response.request().postDataJSON() as InstrumentRequestBody).symbol === 'BWET'
     })
-    const bwetHistoryResponseReady = page.waitForResponse(response => {
-      const url = new URL(response.url())
-      return response.request().method() === 'POST'
-        && url.pathname === '/api/v1/data/ensure'
-        && ensureInstrumentId(response.request().postDataJSON() as DataEnsureRequest) === instruments.BWET.id
-    })
-    const bwetIssuerResponseReady = page.waitForResponse(response => {
-      const url = new URL(response.url())
-      return response.request().method() === 'POST' && url.pathname === '/api/v1/etf-holdings/BWET/acquire'
-    })
+    const bwetHistoryResponseReady = waitForDatasetEnsure('BWET', 'history')
+    const bwetHoldingsResponseReady = waitForDatasetEnsure('BWET', 'holdings')
     await chooseETF('BWET')
     expect(await (await bwetIdentityResponseReady).json()).toMatchObject({
       status: 'resolved',
@@ -2357,10 +2373,16 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
       },
     })
     expect((await bwetHistoryResponseReady).status()).toBe(200)
-    expect((await bwetIssuerResponseReady).status()).toBe(200)
+    const bwetHoldingsResponse = await bwetHoldingsResponseReady
+    expect(bwetHoldingsResponse.status()).toBe(200)
+    expect(await bwetHoldingsResponse.json()).toMatchObject({
+      status: 'unavailable',
+      has_pending_work: false,
+      dependencies: [{ dataset: 'holdings', status: 'unavailable' }],
+    })
     expect(identityRequests.filter(request => request.symbol === 'BWET')).toHaveLength(1)
-    expect(issuerRequests.filter(request => request.symbol === 'BWET').map(request => request.body)).toEqual([
-      expect.objectContaining({ refresh: true, instrument_id: instruments.BWET.id }),
+    expect(holdingsEnsureRequests.filter(request => request.symbol === 'BWET').map(request => request.body)).toEqual([
+      expect.objectContaining({ target: { kind: 'instrument', instrument_id: instruments.BWET.id }, datasets: ['holdings'] }),
     ])
     expect(historyRequests.filter(request => request.symbol === 'BWET').map(request => request.body.timeframe)).toEqual(['D1'])
     expect(capabilityReads).toContain('BWET')
@@ -2370,34 +2392,31 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     await expect(igvContextWidget).toBeVisible()
     await expect(priorIgvHolding).toHaveCount(0)
 
-    const delayedOihFailureResponseReady = page.waitForResponse(response => {
-      const url = new URL(response.url())
-      return response.request().method() === 'POST' && url.pathname === '/api/v1/etf-holdings/OIH/acquire'
-    })
     await chooseETF('OIH')
     await oihFailureStarted.promise
-    const controlledOihFailure = issuerRequests.filter(request => request.symbol === 'OIH').at(-1)?.body
-    expect(controlledOihFailure?.request_id).toMatch(/^[0-9a-f-]{36}$/i)
+    const delayedOihFailureResponseReady = waitForPreparationStatus(delayedOihFailureRequestId!)
+    const failedOihAccepted = await waitForDatasetEnsure('OIH', 'holdings')
+    expect(failedOihAccepted.status()).toBe(200)
+    expect(await failedOihAccepted.json()).toMatchObject({ request_id: delayedOihFailureRequestId, status: 'queued', has_pending_work: true })
+    expect(delayedOihFailureRequestId).toMatch(/^[0-9a-f-]{36}$/i)
     expect(delayedOihFailureUrl).toBeTruthy()
-    browserDiagnostics.allowExpectedControlledApiFault(
+    browserDiagnostics.allowExpectedControlledApiResponseFault(
       delayedOihFailureUrl!,
-      controlledOihFailure!.request_id,
+      'GET',
+      delayedOihFailureRequestId!,
       503,
     )
-    const xhbAfterFailureSelectionReady = page.waitForResponse(response => {
-      const url = new URL(response.url())
-      return response.request().method() === 'POST' && url.pathname === '/api/v1/etf-holdings/XHB/acquire'
-    })
+    const xhbAfterFailureSelectionReady = waitForDatasetEnsure('XHB', 'holdings')
     await chooseETF('XHB')
     expect((await xhbAfterFailureSelectionReady).status()).toBe(200)
     await expect(page.locator('.workstation__selection-acquisition').filter({ hasText: 'Holdings for XHB are not available' })).toBeVisible()
     oihFailureGate.resolve()
-    igvAcquireGate.resolve()
+    igvEnsureGate.resolve()
     expect((await delayedOihFailureResponseReady).status()).toBe(503)
     await expect(page.locator('.workstation__selection-acquisition').filter({ hasText: 'Holdings for XHB are not available' })).toBeVisible()
     await expect(page.locator('.workstation__selection-acquisition--error')).toHaveCount(0)
 
-    expect(issuerRequests.map(request => request.symbol)).toEqual(['XHB', 'SPY', 'RSP', 'QQQ', 'OIH', 'IGV', 'BWET', 'OIH', 'XHB'])
+    expect(holdingsEnsureRequests.map(request => request.symbol)).toEqual(['XHB', 'SPY', 'RSP', 'QQQ', 'OIH', 'IGV', 'BWET', 'OIH', 'XHB'])
     expect(historyRequests.map(request => request.symbol)).toEqual(['XHB', 'SPY', 'RSP', 'QQQ', 'OIH', 'IGV', 'BWET', 'OIH', 'XHB'])
     expect(discoveryRequests).toHaveLength(0)
     expect(historyRequests.every(request => request.body.timeframe === 'D1' && request.body.adjusted)).toBe(true)
@@ -2408,15 +2427,15 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     expect(preparationResponseIds).toHaveLength(historyRequests.length + holdingsPreparationRequests.length)
     expect(new Set(preparationResponseIds).size).toBe(preparationResponseIds.length)
     expect(directHistoryRequests).toEqual([])
-    const issuerRequestIds = issuerRequests.map(request => request.body.request_id)
-    expect(issuerRequestIds.every(requestId => /^[0-9a-f-]{36}$/i.test(requestId))).toBe(true)
-    expect(new Set(issuerRequestIds).size).toBe(issuerRequestIds.length)
+    const holdingsRequestIds = holdingsEnsureRequests.map(request => request.requestId)
+    expect(holdingsRequestIds.every(requestId => /^[0-9a-f-]{36}$/i.test(requestId))).toBe(true)
+    expect(new Set(holdingsRequestIds).size).toBe(holdingsRequestIds.length)
     expect(calendarReads.every(symbol => symbol === 'SPY' || symbol in instruments)).toBe(true)
 
     // The acquired IGV snapshot is a real-shape controlled fixture with zero
     // canonical equities. Reported values remain visible before identity work.
-    const igvIssuerCount = issuerRequests.filter(request => request.symbol === 'IGV').length
-    expect(igvIssuerCount).toBe(1)
+    const igvHoldingsEnsureCount = holdingsEnsureRequests.filter(request => request.symbol === 'IGV').length
+    expect(igvHoldingsEnsureCount).toBe(1)
     expect(capabilityReads).toContain('IGV')
     await chooseETF('IGV')
     const igvGroup = page.getByRole('group', { name: 'Constituents' })
@@ -2444,7 +2463,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     await expect(symbolSearch).toHaveValue('IGV')
     await expect(page.getByTestId('reported-holding-selection')).toContainText('Cash and equivalents')
     await expect(page.getByRole('status').filter({ hasText: 'Cash and equivalents is reported as cash and cannot be opened as an equity chart.' })).toBeVisible()
-    expect(issuerRequests.filter(request => request.symbol === 'IGV')).toHaveLength(igvIssuerCount)
+    expect(holdingsEnsureRequests.filter(request => request.symbol === 'IGV')).toHaveLength(igvHoldingsEnsureCount)
     expect(identityRequests).toHaveLength(identityRequestsBeforeNonEquities)
     expect(historyRequests).toHaveLength(historyRequestsBeforeNonEquities)
     expect(unxqHolding.constituent_instrument_id).toBeNull()
@@ -2554,10 +2573,10 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     await expect(holdingLineage).toBeVisible()
     await browserDiagnostics.expectNoCriticalIssues()
   } finally {
-    xhbAcquireGate.resolve()
-    oihAcquireGate.resolve()
+    xhbEnsureGate.resolve()
+    oihEnsureGate.resolve()
     oihFailureGate.resolve()
-    igvAcquireGate.resolve()
+    igvEnsureGate.resolve()
     unresolvedDiscoveryGate.resolve()
   }
 })

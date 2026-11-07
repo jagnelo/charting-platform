@@ -801,9 +801,9 @@ async def ensure_internal_identifier(
                 continue
             duplicate.is_active = False
             duplicate.is_primary = False
-            if duplicate.identifier_value == internal_value:
-                continue
-            duplicate.identifier_value = f"{duplicate.identifier_value}__superseded__{duplicate.id}"
+            # Keep the historical identifier value intact. Rewriting it with
+            # a suffix on every repair is not idempotent and can exceed the
+            # identifier_value column's fixed length after repeated refreshes.
 
     if instrument.primary_identifier_value is None:
         instrument.primary_identifier_type = InstrumentIdentifierType.INTERNAL.value

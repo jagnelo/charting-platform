@@ -10,7 +10,7 @@ from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -2066,6 +2066,7 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
 
     async with AsyncSessionLocal() as db:
         jobs = await claim_refresh_jobs(db, limit=_refresh_queue_batch_limit(limit))
+        claimed_leases = {id(job): (job.id, getattr(job, "lease_token", None)) for job in jobs}
         # Persist the lease and release its row locks before doing any
         # provider work. Request handlers may coalesce another owner onto a
         # leased child while the worker is waiting on a slow transport.
@@ -2075,8 +2076,14 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
         lease_lost = 0
         more_jobs = len(jobs) >= _refresh_queue_batch_limit(limit)
         next_wakeup_at: datetime | None = None
+        previous_job_rollback = False
         for job in jobs:
             try:
+                if previous_job_rollback:
+                    # A rollback expires every ORM object in this session, not
+                    # only the job whose work failed.
+                    await db.refresh(job)
+                    previous_job_rollback = False
                 if job.capability == ProviderCapability.ACCOUNT_USAGE.value:
                     request = (job.metadata_payload or {}).get(
                         "provider_account_usage_refresh"
@@ -2917,13 +2924,87 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                     bounded_redact_provider_message(exc),
                 )
                 lease_lost += 1
-            except Exception as exc:
+            except RefreshDependencyPending as exc:
+                # This is an expected wait, not a failed transaction. In
+                # particular, history planning may have just queued a native
+                # usage prerequisite and attached it to this job. Commit that
+                # graph before deferring the leased history child.
+                claimed_job_id, claimed_lease_token = claimed_leases[id(job)]
+                pending_payload = deepcopy(job.metadata_payload or {})
+                now = datetime.now(UTC)
+                with db.no_autoflush:
+                    lease_row = (
+                        await db.execute(
+                            select(MarketRefreshJob)
+                            .where(
+                                MarketRefreshJob.id == claimed_job_id,
+                                MarketRefreshJob.status == "leased",
+                                MarketRefreshJob.lease_token == claimed_lease_token,
+                                or_(
+                                    MarketRefreshJob.leased_until.is_(None),
+                                    MarketRefreshJob.leased_until >= now,
+                                ),
+                            )
+                            .with_for_update()
+                            .execution_options(populate_existing=True)
+                        )
+                    ).scalar_one_or_none()
+                if lease_row is None:
+                    await db.rollback()
+                    previous_job_rollback = True
+                    logger.info(
+                        "Refresh job %s lease lost before prerequisite defer",
+                        claimed_job_id,
+                    )
+                    lease_lost += 1
+                    continue
+                # Restore the in-memory dependency graph after the locked read,
+                # then flush it and the prerequisite insert under the validated
+                # lease row lock.
+                lease_row.metadata_payload = pending_payload
+                await db.flush()
+                await db.commit()
+                await db.refresh(lease_row)
+                job = lease_row
                 try:
                     await retry_refresh_job(
                         db,
                         job,
                         str(exc),
-                        retry_at=getattr(exc, "retry_at", None),
+                        retry_at=exc.retry_at,
+                        lease_token=claimed_lease_token,
+                    )
+                except RefreshLeaseLostError as lease_exc:
+                    logger.info(
+                        "Refresh job %s lease lost while deferring prerequisite: %s",
+                        claimed_job_id,
+                        bounded_redact_provider_message(lease_exc),
+                    )
+                    lease_lost += 1
+                else:
+                    retried += 1
+                    next_wakeup_at = min(
+                        next_wakeup_at or exc.retry_at,
+                        exc.retry_at,
+                    )
+            except Exception as exc:
+                original_error = exc
+                original_error_message = str(exc)
+                try:
+                    await db.rollback()
+                    previous_job_rollback = True
+                    await db.refresh(job)
+                    claimed_job_id, claimed_lease_token = claimed_leases[id(job)]
+                    if job.id != claimed_job_id or job.lease_token != claimed_lease_token:
+                        raise RefreshLeaseLostError(
+                            f"refresh job {claimed_job_id} lease is no longer valid"
+                        )
+                    await retry_refresh_job(
+                        db,
+                        job,
+                        original_error_message,
+                        retry_at=getattr(original_error, "retry_at", None),
+                        lease_token=claimed_lease_token,
                     )
                 except RefreshLeaseLostError as lease_exc:
                     logger.info(
@@ -2932,6 +3013,14 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                         bounded_redact_provider_message(lease_exc),
                     )
                     lease_lost += 1
+                except Exception as retry_exc:
+                    logger.error(
+                        "Could not persist retry for refresh job %s after %s: %s",
+                        getattr(job, "id", "unknown"),
+                        type(original_error).__name__,
+                        type(retry_exc).__name__,
+                    )
+                    raise retry_exc from original_error
                 else:
                     retried += 1
                     if job.next_attempt_at is not None:

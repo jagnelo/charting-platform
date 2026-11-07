@@ -326,6 +326,62 @@ describe('WorkspaceLayoutHost', () => {
     wrapper.unmount()
   })
 
+  it('removes a single-tab pane in place when other factory panes are mounted', async () => {
+    const chartState = { instance_key: 'chart-1', title: 'Chart', tool_type: 'chart' }
+    const notesState = { instance_key: 'notes-1', title: 'Notes', tool_type: 'notes' }
+    const layout = { root: { type: 'row', content: [
+      { type: 'stack', content: [{ type: 'component', componentState: chartState }] },
+      { type: 'stack', content: [{ type: 'component', componentState: notesState }] },
+    ] } } as any
+    const renderTool = vi.fn((tool: any, actions: any) => h('button', { 'data-tool': tool.instance_key, onClick: actions.close }, tool.title))
+    const wrapper = mount(WorkspaceLayoutHost, { props: { layout, activeWindowKey: 'notes-1', renderTool } })
+    const gl = goldenLayouts[0]
+    const host = wrapper.get('.workspace-layout-host').element
+    const row: any = { type: 'row', contentItems: [] as any[], removeChild: vi.fn() }
+    const cleanupHandlers = new Map<string, () => void>()
+    const addPane = (state: typeof chartState | typeof notesState) => {
+      const stack: any = {
+        type: 'stack', contentItems: [], header: { tabs: [] as any[] }, isMaximised: false, parentItem: row,
+        on: vi.fn(), off: vi.fn(),
+      }
+      const component: any = {
+        type: 'component', config: { componentState: state }, parentItem: stack,
+        destroy: vi.fn(), show: vi.fn(), hide: vi.fn(),
+      }
+      const container = {
+        parent: component,
+        on: vi.fn((event: string, callback: () => void) => cleanupHandlers.set(`${state.instance_key}:${event}`, callback)),
+      }
+      stack.contentItems.push(component)
+      stack.header.tabs.push({ contentItem: component })
+      row.contentItems.push(stack)
+      const { rootHtmlElement } = gl.factory!(container, state) as { rootHtmlElement: HTMLElement }
+      host.appendChild(rootHtmlElement)
+      return stack
+    }
+    const chartStack = addPane(chartState)
+    addPane(notesState)
+    row.removeChild.mockImplementation((stack: any) => {
+      row.contentItems = row.contentItems.filter((candidate: any) => candidate !== stack)
+      stack.contentItems[0]?.destroy?.()
+      cleanupHandlers.get(`${stack.contentItems[0]?.config.componentState.instance_key}:destroy`)?.()
+      gl.saved = { root: { type: 'row', content: [{ type: 'stack', content: [{ type: 'component', componentState: notesState }] }] } }
+    })
+    gl.root = { contentItems: [row] }
+    gl.saved = layout
+
+    renderTool.mock.calls[0]?.[1].close()
+    await nextTick()
+
+    expect(row.removeChild).toHaveBeenCalledWith(chartStack, false)
+    expect(gl.destroyed).toBe(false)
+    expect(goldenLayouts).toHaveLength(1)
+    expect(renderTool.mock.calls.map(([tool]) => tool.instance_key)).toEqual(['chart-1', 'notes-1'])
+    expect(host.querySelector('[data-tool-key="notes-1"]')).not.toBeNull()
+    expect(host.querySelector('[data-tool-key="chart-1"]')).toBeNull()
+    wrapper.unmount()
+  })
+
   it('reinstalls virtual roots when a complete workspace snapshot is replaced', async () => {
     const layout = { root: { type: 'row', content: [] } } as any
     const wrapper = mount(WorkspaceLayoutHost, {

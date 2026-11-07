@@ -1937,6 +1937,13 @@ async def record_identity_preparation_outcome(
 ) -> None:
     """Persist a terminal/waiting identity outcome without hiding other data."""
 
+    # Rollbacks expire ORM attributes. Use an explicit async refresh rather
+    # than letting a synchronous attribute read trigger MissingGreenlet, but
+    # leave a loaded in-memory update alone (for example a newly recorded hold).
+    identity_state = inspect(identity_job, raiseerr=False)
+    if identity_state is not None and "metadata_payload" in identity_state.expired_attributes:
+        await db.refresh(identity_job, attribute_names=["metadata_payload"])
+    identity_job_id = identity_job.id
     preparation = (identity_job.metadata_payload or {}).get("data_preparation_child") or {}
     refs = list(preparation.get("parent_refs") or [])
     if parent_job_id is not None:
@@ -1946,7 +1953,7 @@ async def record_identity_preparation_outcome(
     for ref in refs:
         await _record_parent_identity_outcome(
             db,
-            identity_job=identity_job,
+            identity_job_id=identity_job_id,
             parent_id=int(ref["parent_job_id"]),
             status=status,
             reason_code=reason_code,
@@ -1959,7 +1966,7 @@ async def record_identity_preparation_outcome(
 async def _record_parent_identity_outcome(
     db: AsyncSession,
     *,
-    identity_job: MarketRefreshJob,
+    identity_job_id: int,
     parent_id: int,
     status: str,
     reason_code: str | None,
@@ -1981,12 +1988,12 @@ async def _record_parent_identity_outcome(
         str(dependency["dependency_id"])
         for dependency in dependencies
         if dependency.get("dataset") == PreparationDataset.IDENTITY.value
-        and identity_job.id in [int(value) for value in dependency.get("job_ids", [])]
+        and identity_job_id in [int(value) for value in dependency.get("job_ids", [])]
     }
     for dependency in dependencies:
         if dataset_filter is not None and dependency.get("dataset") != dataset_filter.value:
             continue
-        references_job = identity_job.id in [int(value) for value in dependency.get("job_ids", [])]
+        references_job = identity_job_id in [int(value) for value in dependency.get("job_ids", [])]
         waiting_for_identity = dependency.get(
             "reason_code"
         ) == "identity_dependency_pending" and bool(

@@ -568,6 +568,24 @@ function closeComponent(windowKey: string) {
     void nextTick(() => activateWindow(props.activeWindowKey))
     return
   }
+  // Factory layouts often place each tool in its own single-tab stack. When
+  // that stack is one pane among several, remove the pane from its parent
+  // instead of rebuilding every virtual root; unrelated tools keep their
+  // mounted stores and shared preparation subscriptions.
+  const stackParent = stack?.parentItem
+  if (component && stack && stack.contentItems?.length === 1
+    && stackParent && Array.isArray(stackParent.contentItems) && stackParent.contentItems.length > 1
+    && typeof stackParent.removeChild === 'function') {
+    suppressChange = true
+    try {
+      stackParent.removeChild(stack, false)
+    } finally {
+      suppressChange = false
+    }
+    persistCurrentLayout()
+    void nextTick(() => activateWindow(props.activeWindowKey))
+    return
+  }
   const saved = goldenLayout.saveLayout() as unknown as Record<string, unknown>
   const filtered = withoutComponent(saved, windowKey)
   if (!filtered || typeof filtered !== 'object') return

@@ -93,4 +93,10 @@ describe('application route contract', () => {
     expect(sharedShellNavigation.find(item => item.key === 'etf')?.path).toBe('/legacy/etf-holdings')
     expect(sharedShellNavigation.find(item => item.key === 'strategy-v2')?.path).toBe('/legacy/strategy-lab-v2')
   })
+
+  it('preloads primary menu destinations so cold lazy chunks cannot stall ordinary navigation', () => {
+    for (const path of ['/legacy/watchlist', '/legacy/alerts', '/legacy/settings']) {
+      expect(route(path)?.component, `${path} is available with the authenticated shell`).not.toBeTypeOf('function')
+    }
+  })
 })

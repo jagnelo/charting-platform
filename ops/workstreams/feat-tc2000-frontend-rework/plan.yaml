@@ -5089,9 +5089,9 @@ development_dependency_import_history:
     superseded_by: 8ae5f9aca10803f300b6d5a41a3bced447f70ebc
 
 approved_development_dependency_imports:
-- source_sha: 13630db12d4f0f5810b9baa73725f75fb7e653cc
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/13630db12d4f0f5810b9baa73725f75fb7e653cc.json
-  manifest_sha256: 6bb50af6c3b904ae0262d01f997428c8238b0f5fc73a23a8fa2945ad456ef940
+- source_sha: cc31077c60545e8455d1f064411fbddae7d21fe1
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/cc31077c60545e8455d1f064411fbddae7d21fe1.json
+  manifest_sha256: ef257b2871ebfe5fafb9b3bd2ee6994e9c9c3faea9ba9aaa7d295facae2a0574
   paths:
   - backend/app/config.py
   - backend/app/main.py

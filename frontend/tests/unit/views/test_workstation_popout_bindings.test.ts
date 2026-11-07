@@ -112,6 +112,7 @@ const harness = vi.hoisted(() => {
   return { workspace, recent, drawings, chart, popoutWindow, chartWindow, ratioWindow }
 })
 const routeState = vi.hoisted(() => ({ path: '/popout/benchmark-list', params: { windowKey: 'benchmark-list' }, query: {} as Record<string, string> }))
+const routerPush = vi.hoisted(() => vi.fn())
 const apiGet = vi.hoisted(() => vi.fn().mockResolvedValue([]))
 const apiPost = vi.hoisted(() => vi.fn())
 const dataPreparationPost = vi.hoisted(() => vi.fn())
@@ -174,7 +175,7 @@ vi.mock('vue-router', async (importOriginal) => {
   return {
     ...actual,
     useRoute: () => routeState,
-    useRouter: () => ({ resolve: vi.fn(), push: vi.fn() }),
+    useRouter: () => ({ resolve: vi.fn(), push: routerPush }),
   }
 })
 
@@ -227,6 +228,7 @@ const NavigationLinkStub = defineComponent({
       href: props.to,
       onClick: (event: MouseEvent) => {
         event.preventDefault()
+        routerPush(props.to)
         const click = attrs.onClick
         if (Array.isArray(click)) click.forEach(handler => typeof handler === 'function' && handler(event))
         else if (typeof click === 'function') click(event)
@@ -372,7 +374,7 @@ describe('WorkstationView pop-out bindings', () => {
     }
   })
 
-  it('opens shared feature routes from the workstation and closes after selection', async () => {
+  it('opens shared feature routes through RouterLink navigation', async () => {
     routeState.path = '/chart'
     routeState.params = {}
     const wrapper = mount(WorkstationView, {
@@ -394,7 +396,7 @@ describe('WorkstationView pop-out bindings', () => {
       expect(menu.get('[data-navigation-key="strategy-v2"]').attributes('href')).toBe('/legacy/strategy-lab-v2')
 
       await menu.get('[data-navigation-key="etf"]').trigger('click')
-      expect(wrapper.find('[aria-label="Application navigation"]').exists()).toBe(false)
+      expect(routerPush).toHaveBeenCalledWith('/legacy/etf-holdings')
     } finally {
       wrapper.unmount()
       wrapper.element.remove()
