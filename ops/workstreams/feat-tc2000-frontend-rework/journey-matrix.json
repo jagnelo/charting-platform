@@ -3205,7 +3205,7 @@
     {
       "source": "frontend/src/views/ChartView.vue",
       "control_count": 12,
-      "signature_sha256": "70c5b6da306d20b05b78a8e11abdd7461350fc19421bcc3c3fe803697d8afce1",
+      "signature_sha256": "4cda87c00ccbb002877ad5416727cf0b834f02506aea6d685158c7d17931b5d7",
       "journeys": [
         "TC04",
         "TC06",
