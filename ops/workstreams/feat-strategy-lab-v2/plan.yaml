@@ -1199,15 +1199,14 @@ progress:
       75 focused units plus real-PostgreSQL proof and locked Ruff0.4.7 checks; these are not full release
       qualification. Exact-source branch CI and Root combined acceptance remain pending. Consume the authenticated durable ensure/status contract through the exact
       TC-owned shared preparation client without duplicating worker, acquisition, quota, or provider
-      behavior. The active TC client pin now replaces the historical three-module aea0be57 release
-      with exact49-path source d5e8d628eb42318656d8b578a24390db4be17cca from
-      tc-d5e8-common-runtime-development-consumption-contract.json. Its47 declared delta paths were
-      verified by SHA256, Git blob, source status and executable-bit semantics; the AEA pin remains
-      historical. The current TC successor pin is exact53-path source
-      5a783e745b211cfe8b3dd20cb77d275149f15de2 under
-      tc-5a783e74-common-runtime-development-consumption-contract.json; its10 delta paths over D5
-      were imported and all53 contract entries verified. D5 remains historical. This is development
-      consumption, not browser acceptance. Author the separately reserved Strategy workstation
+      behavior. The TC runtime history preserves the earlier AEA, D5, and5a pins. The current TC
+      common-runtime pin is exact source ce2262ab2d47fc1ccda96f0c2aa7c8839e4e03f9 from
+      tc-ce2262ab-common-runtime-development-consumption-contract.json: only its19 declared delta
+      paths over5a were imported, and all66 manifest entries were verified by SHA256, Git blob,
+      source status, and executable-bit semantics. The two ETF-owned SearchBar files already matched
+      their exact a0c5250 dependency and were left unchanged. Prior D5/5a test evidence is not fresh
+      ce qualification; exact-source CI and combined browser acceptance remain pending. This is
+      development consumption, not browser acceptance. Author the separately reserved Strategy workstation
       lifecycle journey; its public-UI browser body remains pending Root's combined slot. Repair the
       seven Root-reserved Dashboard product
       files and focused tests: prepare profile/history before reads, submit independent per-target
@@ -1252,22 +1251,20 @@ progress:
     status: in_progress
   current_blocker: >-
     No exact-source branch CI or Root combined backend/browser acceptance exists for the current
-    Providerdffcf2e2 and TC-d5e8 dependencies and the authored Study/Results/Library plus Dashboard
+    Providerdffcf2e2 and TC-ce2262ab dependencies and the authored Study/Results/Library plus Dashboard
     consumer changes. All47 active Provider entries match source by SHA256, Git blob, and status_from139;
     exactly eight declared paths changed over b1a94d98. Root reports75 focused units, real-PostgreSQL
     proof, and pinned Ruff0.4.7 checks for dffcf2e2; exact-source CI and combined acceptance remain pending.
     The separate b1a94d98 CI42332618010 was cancelled at the45-minute Playwright job limit and is not green.
-    Against exact TC-d5e8, the focused Strategy/Dashboard and shared auth/preparation
-    tests pass190/190 across11 files and frontend type-check exits0. The imported49-path manifest's47
-    deltas match by Git blob/SHA256/status and executable-bit semantics. Browser evidence remains
-    Root-owned; the Study/Results/Library browser stories are authored but unexecuted. The active TC
-    library import is exact source
-    d5e8d628eb42318656d8b578a24390db4be17cca across49 manifest files (27 runtime modules and22
-    matching tests), with47 imported delta paths; the prior AEA three-module pin remains historical.
-    Its strict
-    DTO requires symbol, covered_ranges/lineage, timestamps, and honest pending-work state. The
-    Strategy Study component suite passes63/63 after the fail-closed Validate repair; browser stories
-    remain authored/discovered only. Preserve the full 18-criterion roadmap and disabled holds.
+    Earlier focused Strategy/Dashboard and shared auth/preparation checks against TC-d5e8 passed190/190
+    across11 files with frontend type-check exit0; these are historical evidence and were not rerun for
+    ce2262ab. The current imported66-path TC manifest has19 declared delta paths over5a; all66 entries
+    match Git blob/SHA256/status/executable-bit evidence. Browser evidence remains Root-owned; the
+    Study/Results/Library browser stories are authored but unexecuted. The prior D5 and5a pins and
+    their qualification records remain historical. The current runtime retains the strict DTO and
+    preparation contracts; the Strategy Study component suite previously passed63/63 after the
+    fail-closed Validate repair, but no ce-specific suite or browser body ran here. Preserve the full
+    18-criterion roadmap and disabled holds.
   next_action: >-
     Hand the coherent Strategy consumer source and Study/Results/Library plus reserved Dashboard
     journey matrix to Root for the single combined backend/browser/visual qualification. Discovery
@@ -1424,13 +1421,14 @@ dependencies:
     `frontend/src/lib/dataPreparation.ts` from TC commit
     `877df044d2496c5f1be0e86b4dd49503cc6e55db` (SHA256
     `c1157a680c5a461647b82b18bd9923c53d36a401dd3397c2361e91b125d43a0d`), preserved as prior
-    shared-client history. The active import is now the exact49-path TC common-runtime release
-    `d5e8d628eb42318656d8b578a24390db4be17cca` under
-    `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-d5e8-common-runtime-development-consumption-contract.json`.
-    Its47 declared delta paths were imported over the historical AEA three-module pin and verified
-    by SHA256, Git blob, source status, and executable-bit semantics. The manifest includes 27 runtime
-    modules and22 matching tests but excludes Strategy domain files and Producer records. This does
-    not claim full application/browser qualification or auth isolation beyond the imported scope.
+    shared-client history. The active import is now the exact66-path TC common-runtime release
+    `ce2262ab2d47fc1ccda96f0c2aa7c8839e4e03f9` under
+    `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-ce2262ab-common-runtime-development-consumption-contract.json`.
+    Its19 declared delta paths over5a were imported and all66 manifest entries verified by SHA256,
+    Git blob, source status, and executable-bit semantics. The two ETF-owned SearchBar files already
+    matched a0c5250 and were left untouched. Prior AEA/D5/5a qualification remains historical; this
+    development import does not claim full application/browser qualification or auth isolation beyond
+    the imported scope.
     Provider DTOs are at `3d10`; the exact Provider backend preparation runtime is imported under the
     explicit development release in provider-runtime-consumption.json. Combined end-to-end proof
     remains Root-owned and pending.

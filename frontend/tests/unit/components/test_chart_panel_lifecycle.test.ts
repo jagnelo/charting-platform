@@ -290,6 +290,8 @@ describe('ChartPanel lifecycle fencing', () => {
     vi.spyOn(api, 'post')
       .mockImplementationOnce(() => new Promise(resolve => { resolveDiscovery = resolve }) as never)
       .mockResolvedValueOnce({ request_id: 'resolve-c', status: 'resolved', instrument: { instrument_id: 43, symbol: 'C', identity_status: 'verified' }, source_outcomes: [] } as never)
+      .mockResolvedValueOnce({ request_id: 'prepare-c', status: 'ready', created_at: '2026-11-06T12:00:00Z', updated_at: '2026-11-06T12:00:00Z',
+        version: 1, target: { kind: 'instrument', instrument_id: 43 }, dependencies: [], completed: 0, total: 0, last_progress_at: '2026-11-06T12:00:00Z' } as never)
 
     const wrapper = mount(ChartPanel, {
       props: { panelId: 'p0' },
@@ -312,11 +314,12 @@ describe('ChartPanel lifecycle fencing', () => {
     expect(wrapper.text()).toContain('Checking ticker availability')
     expect(acquireSelectedHistory).not.toHaveBeenCalled()
     resolveDiscovery({ request_id: 'discover-c', status: 'complete', candidates: [{ symbol: 'C', name: 'Example C', exchange: 'XNYS', type: 'Equity', provider: 'fixture', instrument_id: null, identity_status: 'provider_candidate' }], source_outcomes: [] })
-    await vi.waitFor(() => expect(wrapper.find('.search-source-candidate').exists()).toBe(true))
-    await wrapper.get('.search-source-candidate').trigger('click')
     await vi.waitFor(() => expect(api.post).toHaveBeenCalledWith('/instruments/acquire', {
       symbol: 'C', provider_candidate: { provider: 'fixture', symbol: 'C', exchange: 'XNYS' }, request_id: expect.any(String),
     }))
+    await vi.waitFor(() => expect(wrapper.find('.search-source-candidate').exists()).toBe(false))
+    await vi.waitFor(() => expect(wrapper.find('.result-item').exists()).toBe(true))
+    await wrapper.get('input[role="combobox"]').trigger('keydown', { key: 'Enter' })
     await vi.waitFor(() => expect(acquireSelectedHistory).toHaveBeenCalledWith(
       'C', 'D1', true,
       expect.objectContaining({ timeframe: 'D1', adjusted: true, start: expect.any(String), end: expect.any(String) }),

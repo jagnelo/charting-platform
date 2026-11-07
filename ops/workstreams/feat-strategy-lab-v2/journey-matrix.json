@@ -502,17 +502,19 @@
   "approved_plan": " /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/APPROVED-PLAN.md",
   "tc_common_runtime": {
     "owner": "TC",
-    "current_source": "5a783e745b211cfe8b3dd20cb77d275149f15de2",
-    "contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-5a783e74-common-runtime-development-consumption-contract.json",
-    "contract_sha256": "4e7919990af84e733c0e7ef9d5c2cd5593cc961d3f08a0af6ec2bbcf80bdb290",
-    "active_manifest_entries": 53,
-    "delta_paths_over_d5": 10,
-    "qualification": "Exact development consumption only; no final source/browser/full-profile acceptance."
+    "current_source": "ce2262ab2d47fc1ccda96f0c2aa7c8839e4e03f9",
+    "contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-ce2262ab-common-runtime-development-consumption-contract.json",
+    "contract_sha256": "b2a41e1bb3734b2a48d8bf828e55dacb1aac8b9d8d44bd7bd6484467b0e6be2c",
+    "active_manifest_entries": 66,
+    "qualification": "Exact development consumption only; TC/ETF prior focused results are historical and do not qualify ce2262ab browser, full-profile, source CI, or release acceptance.",
+    "delta_paths_over_previous": 19,
+    "previous_source": "5a783e745b211cfe8b3dd20cb77d275149f15de2",
+    "historical_delta_paths_over_d5": 10
   },
   "workstation_lifecycle": {
     "owner": "Strategy browser-spec author; TC owns shared workstation product and global matrix",
     "spec": "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts",
-    "source_pin": "TC 5a783e745b211cfe8b3dd20cb77d275149f15de2; Provider b1a94d9854e06f8235074141bf56d333f6350057 test-only dependency",
+    "source_pin": "TC ce2262ab2d47fc1ccda96f0c2aa7c8839e4e03f9; Provider dffcf2e2cda4a3046b5e224fb4c7607574156797 development dependencies; ETF SearchBar remains exact a0c5250 dependency",
     "status": "authored_discovery_only_browser_pending_root_combined_slot",
     "journeys": [
       {

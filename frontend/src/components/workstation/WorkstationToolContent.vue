@@ -23,6 +23,7 @@
         <span v-if="benchmarkFamilyReadiness" class="sr-only" aria-label="Benchmark family universe provenance">{{ benchmarkFamilyUniverseProvenanceLabel(benchmarkFamilyReadiness) }}</span>
         <span v-if="benchmarkFamilyLoading" role="status">Loading family legs…</span>
         <span v-else-if="benchmarkFamilyError" class="benchmark-surface__family-error" role="alert">{{ benchmarkFamilyError }}</span>
+        <span v-if="benchmarkFamilyPreparationStatus" role="status" aria-live="polite" aria-atomic="true">{{ benchmarkFamilyPreparationStatus }}</span>
       </div>
       <div v-if="benchmarkFamilyKey && benchmarkFamilyOverview" class="benchmark-surface__family-roles" aria-label="Selected benchmark family roles">
         <span v-for="mapping in benchmarkFamilyOverview.mappings" :key="mapping.role"><b>{{ familyRoleLabel(mapping.role) }}</b> {{ mapping.symbol ?? mapping.label }} · {{ familyMappingState(mapping) }}</span>
@@ -1064,7 +1065,7 @@ import { acquireSelectedHistory, defaultHistoryRange, type SelectedHistoryStage 
 import { dedupeOhlcvRequest } from '@/lib/workstation/ohlcvRequests'
 import { calculateCustomDateSortValue, customDateSortListColumn, parseCustomDateSortListColumn, type CustomDateSortListColumn, type CustomDateSortMode, type CustomDateSortPriceRange, type CustomDateSortRange, type CustomDateSortValue } from '@/lib/workstation/customDateSort'
 import { loadCustomDateSortLocalEvidence, loadCustomDateSortLocalListValues } from '@/lib/workstation/customDateSortData'
-import { dataPreparationCoordinator, PreparationProgressRefreshQueue, preparationStatusMessage, shouldRefreshAnalysisProgress, type DataEnsureResponse, type PreparationTimeframe } from '@/lib/dataPreparation'
+import { dataPreparationCoordinator, PreparationProgressRefreshQueue, preparationStatusMessage, shouldRefreshAnalysisProgress, type DataEnsureRequest, type DataEnsureResponse, type PreparationTimeframe } from '@/lib/dataPreparation'
 import UPlotChart from '@/components/chart/UPlotChart.vue'
 import DrawingToolbar from '@/components/chart/DrawingToolbar.vue'
 import HistoryAcquisitionControl from '@/components/chart/HistoryAcquisitionControl.vue'
@@ -1127,7 +1128,7 @@ import { buildComboWatchlistRows, type ComboListDefinition } from '@/lib/worksta
 import { autoRatioBenchmarks, autoRatioExpression } from '@/lib/workstation/ratioExpression'
 import { indicatorColumnFromPlot, indicatorOutputFromConfig, pythonColumnFromPlot, type ChartAnalysisDragPayload, type ChartPlotDragPayload, type TechnicalConditionDragPayload } from '@/lib/workstation/plotDrag'
 import { formatWorkstationFreshness } from '@/lib/workstation/freshness'
-import { benchmarkFamilyConstituentSourceId } from '@/lib/workstation/benchmarkFamilySources'
+import { benchmarkFamilyConstituentSourceId, benchmarkFamilyHistoryTargets, breadthSnapshotBenchmark } from '@/lib/workstation/benchmarkFamilySources'
 import { buildBreadthStudyAssetPayload, type BreadthDefinition } from '@/lib/workstation/breadthDefinitions'
 import { breadthReferenceTargetEvidence } from '@/lib/workstation/breadthReferenceEvidence'
 import { CHART_BAR_TYPES, type ChartBarType, type ChartComparisonSeries, type ChartPythonSeries, type IndicatorConfig, type IndicatorType, type OHLCVBar, type Timeframe } from '@/types'
@@ -2614,6 +2615,9 @@ onBeforeUnmount(() => {
   industryProfilePreparationGeneration += 1
   industryProfilePreparationAbort?.abort()
   industryProfilePreparationAbort = null
+  benchmarkFamilyPreparationGeneration += 1
+  benchmarkFamilyPreparationAbort?.abort()
+  benchmarkFamilyPreparationAbort = null
   unregisterWorkstationPanelRefresh?.()
   unregisterWorkstationPanelRefresh = null
   disposed = true
@@ -2752,6 +2756,10 @@ const activeBenchmarkMapRole = computed<BenchmarkFamilyMapRole>(() => {
   return selected?.role ?? 'cap_weight'
 })
 const benchmarkFamilyLoading = ref(false)
+const benchmarkFamilyPreparationStatus = ref('')
+let benchmarkFamilyPreparationGeneration = 0
+let benchmarkFamilyPreparationAbort: AbortController | null = null
+let benchmarkFamilyPreparationQueue = new PreparationProgressRefreshQueue()
 const benchmarkFamilyReadiness = computed(() => workspaceStore.benchmarkFamilyReadiness)
 const benchmarkFamilyReadinessError = computed(() => workspaceStore.benchmarkFamilyReadinessError)
 const benchmarkFamilyReadinessLoading = ref(false)
@@ -4639,10 +4647,10 @@ async function loadBreadthUniverse(groupKey: string, timeframe = breadthTimefram
     ? registry.find(item => item && typeof item === 'object' && (item as Record<string, unknown>).logical_key === groupKey) as Record<string, unknown> | undefined
     : undefined
   const capMapping = familyRecord?.cap_weight && typeof familyRecord.cap_weight === 'object' ? familyRecord.cap_weight as Record<string, unknown> : null
-  const familyBenchmark = typeof capMapping?.symbol === 'string' && capMapping.symbol.trim() ? capMapping.symbol.trim().toUpperCase() : undefined
   // Family roots must never borrow SPY when their own cap mapping is absent. The
   // generic sector/benchmark groups retain their established SPY comparison.
-  const snapshotBenchmark = familyRecord ? familyBenchmark : 'SPY'
+  const familyBenchmark = typeof capMapping?.symbol === 'string' && capMapping.symbol.trim() ? capMapping.symbol.trim().toUpperCase() : undefined
+  const snapshotBenchmark = breadthSnapshotBenchmark(familyRecord ?? null, familyBenchmark)
   const refreshAnalysis = async () => {
     if (!isCurrent()) return
     await Promise.all([
@@ -4657,10 +4665,15 @@ async function loadBreadthUniverse(groupKey: string, timeframe = breadthTimefram
   await refreshAnalysis()
   if (!isCurrent() || familyAsOf.value) return
   breadthPreparationStatus.value = `Preparing ${groupKey} history for ${timeframe} breadth…`
-  void dataPreparationCoordinator.ensure({
-    target: isBenchmarkFamily.value
-      ? { kind: 'family', family_key: groupKey }
-      : { kind: 'market_group', group_key: groupKey },
+  const targets: DataEnsureRequest['target'][] = [isBenchmarkFamily.value
+    ? { kind: 'family', family_key: groupKey }
+    : { kind: 'market_group', group_key: groupKey }]
+  // The snapshot request consumes its configured comparison leg independently
+  // of the universe. Family roots only use their own explicit cap mapping;
+  // they never inherit the generic sector group's SPY default.
+  if (snapshotBenchmark) targets.push({ kind: 'instrument', symbol: snapshotBenchmark })
+  void Promise.all(targets.map(target => dataPreparationCoordinator.ensure({
+    target,
     datasets: ['history'],
     timeframe: timeframe as PreparationTimeframe,
     adjusted,
@@ -4673,10 +4686,11 @@ async function loadBreadthUniverse(groupKey: string, timeframe = breadthTimefram
         void breadthAnalysisRefreshQueue.request(response, refreshAnalysis).catch(() => undefined)
       }
     },
-  }).then(async response => {
+  }))).then(async responses => {
     if (!isCurrent()) return
-    breadthPreparationStatus.value = response.status === 'ready' ? '' : preparationStatusMessage(response)
-    await breadthAnalysisRefreshQueue.request(response, refreshAnalysis)
+    const pending = responses.find(response => response.status !== 'ready')
+    breadthPreparationStatus.value = pending ? preparationStatusMessage(pending) : ''
+    await Promise.all(responses.filter(shouldRefreshAnalysisProgress).map(response => breadthAnalysisRefreshQueue.request(response, refreshAnalysis)))
   }).catch(cause => {
     if (!isCurrent() || (cause instanceof DOMException && cause.name === 'AbortError')) return
     breadthPreparationStatus.value = 'Market data preparation is unavailable; showing any saved breadth results.'
@@ -4684,8 +4698,59 @@ async function loadBreadthUniverse(groupKey: string, timeframe = breadthTimefram
 }
 let benchmarkFamilyLoadSequence = 0
 watch([benchmarkFamilyKey, benchmarkFamilyCapProxy, activeTimeframe], async ([familyKey, _capProxy, timeframe]) => {
-  if (disposed || !isBenchmarkUniverse.value || !familyKey) return
+  if (disposed || !isBenchmarkUniverse.value) return
   const sequence = ++benchmarkFamilyLoadSequence
+  benchmarkFamilyPreparationGeneration += 1
+  benchmarkFamilyPreparationAbort?.abort()
+  benchmarkFamilyPreparationAbort = null
+  benchmarkFamilyPreparationStatus.value = ''
+  if (!familyKey) return
+  if (!familyAsOf.value) {
+    const preparationGeneration = ++benchmarkFamilyPreparationGeneration
+    const controller = new AbortController()
+    benchmarkFamilyPreparationAbort = controller
+    benchmarkFamilyPreparationQueue = new PreparationProgressRefreshQueue()
+    const isCurrentPreparation = () => !disposed
+      && sequence === benchmarkFamilyLoadSequence
+      && preparationGeneration === benchmarkFamilyPreparationGeneration
+      && !controller.signal.aborted
+      && benchmarkFamilyKey.value === familyKey
+      && activeTimeframe.value === timeframe
+    const refreshFamily = async () => {
+      if (!isCurrentPreparation()) return
+      await Promise.all([
+        workspaceStore.loadMarketGroup(familyKey),
+        workspaceStore.loadGroupSnapshot(familyKey, benchmarkFamilyCapProxy.value, { ...(timeframe !== 'D1' ? { timeframe } : {}) }),
+        workspaceStore.loadBenchmarkFamilyOverview(familyKey, { ...(timeframe !== 'D1' ? { timeframe } : {}) }),
+      ])
+    }
+    const targets: DataEnsureRequest['target'][] = benchmarkFamilyHistoryTargets(familyKey, benchmarkFamilyCapProxy.value)
+    benchmarkFamilyPreparationStatus.value = benchmarkFamilyCapProxy.value
+      ? 'Preparing family history and its configured benchmark…'
+      : 'Preparing family history; no cap-weight comparison proxy is mapped for this family.'
+    void Promise.all(targets.map(target => dataPreparationCoordinator.ensure({
+      target, datasets: ['history'], timeframe: timeframe as PreparationTimeframe, adjusted: true,
+    }, {
+      signal: controller.signal,
+      onProgress: ({ response }) => {
+        if (!isCurrentPreparation()) return
+        benchmarkFamilyPreparationStatus.value = preparationStatusMessage(response)
+        if (shouldRefreshAnalysisProgress(response) && !(response.status === 'ready' && response.version <= 1)) {
+          void benchmarkFamilyPreparationQueue.request(response, refreshFamily).catch(() => undefined)
+        }
+      },
+    }))).then(async responses => {
+      if (!isCurrentPreparation()) return
+      const pending = responses.find(response => response.status !== 'ready')
+      benchmarkFamilyPreparationStatus.value = pending ? preparationStatusMessage(pending) : ''
+      await Promise.all(responses.filter(response => shouldRefreshAnalysisProgress(response) && !(response.status === 'ready' && response.version <= 1)).map(response => benchmarkFamilyPreparationQueue.request(response, refreshFamily)))
+    }).catch(cause => {
+      if (!isCurrentPreparation() || (cause instanceof DOMException && cause.name === 'AbortError')) return
+      benchmarkFamilyPreparationStatus.value = 'Family data preparation is unavailable; showing any saved results.'
+    })
+  } else {
+    benchmarkFamilyPreparationStatus.value = 'Historical family context is preserved; current data preparation is not applied to dated membership.'
+  }
   benchmarkFamilyLoading.value = true
   try {
     await Promise.all([

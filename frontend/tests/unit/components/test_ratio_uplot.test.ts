@@ -112,9 +112,9 @@ describe('RatioUPlot', () => {
     vi.mocked(api.post).mockResolvedValue({
       request_id: 'ratio-held', status: 'unavailable', created_at: '2026-11-06T12:00:00Z', updated_at: '2026-11-06T12:00:00Z',
       version: 1, target: {}, completed: 1, total: 2, last_progress_at: '2026-11-06T12:00:00Z', dependencies: [{
-        dependency_id: 'history:NVDA:W1', depends_on: [], instrument_id: 1, dataset: 'history', status: 'unavailable',
+        dependency_id: 'history:NVDA:W1', depends_on: [], instrument_id: 1, symbol: 'NVDA', dataset: 'history', status: 'unavailable',
         requested_start: null, requested_end: null, covered_start: null, covered_end: null,
-        reason_code: 'source_credentials_not_configured', retry_at: null, updated_at: '2026-11-06T12:00:00Z',
+        covered_ranges: [], reason_code: 'source_credentials_not_configured', retry_at: null, updated_at: '2026-11-06T12:00:00Z',
       }],
     })
     vi.mocked(api.get).mockResolvedValue({ coverage: 0.6, points: [{ timestamp: '2026-01-01T00:00:00Z', value: 1.2 }], warnings: [] })
@@ -143,9 +143,9 @@ describe('RatioUPlot', () => {
     releasePreparation({
       request_id: 'ratio-held', status: 'unavailable', created_at: '2026-11-06T12:00:00Z', updated_at: '2026-11-06T12:00:00Z',
       version: 1, target: {}, completed: 1, total: 2, last_progress_at: '2026-11-06T12:00:00Z', dependencies: [{
-        dependency_id: 'history:NVDA:W1', depends_on: [], instrument_id: 1, dataset: 'history', status: 'unavailable',
+        dependency_id: 'history:NVDA:W1', depends_on: [], instrument_id: 1, symbol: 'NVDA', dataset: 'history', status: 'unavailable',
         requested_start: null, requested_end: null, covered_start: null, covered_end: null,
-        reason_code: 'history_provider_unavailable', retry_at: null, updated_at: '2026-11-06T12:00:00Z',
+        covered_ranges: [], reason_code: 'history_provider_unavailable', retry_at: null, updated_at: '2026-11-06T12:00:00Z',
       }],
     })
     await vi.waitFor(() => expect(wrapper.text()).toContain('reviewed data source'))
@@ -176,9 +176,11 @@ describe('RatioUPlot', () => {
       request_id: 'ratio-progress', status, created_at: '2026-11-06T12:00:00Z', updated_at: '2026-11-06T12:00:00Z',
       version, target: { kind: 'instrument', symbol: 'NVDA' }, completed: status === 'ready' ? 2 : 0,
       total: 2, last_progress_at: '2026-11-06T12:00:00Z', dependencies: [{
-        dependency_id: 'history:NVDA:D1', depends_on: [], instrument_id: 1, dataset: 'history', status,
+        dependency_id: 'history:NVDA:D1', depends_on: [], instrument_id: 1, symbol: 'NVDA', dataset: 'history', status,
         requested_start: '2024-11-01T00:00:00Z', requested_end: '2026-11-06T00:00:00Z',
         covered_start: '2025-11-01T00:00:00Z', covered_end: coveredEnd,
+        covered_ranges: [{ start_at: '2025-11-01T00:00:00Z', end_at: coveredEnd, data_source_id: 1, market_series_id: 1,
+          adjustment_basis: 'split_and_dividend_adjusted', adjustment_version: '1', is_adjusted: true }],
         reason_code: null, retry_at: null, updated_at: `2026-11-06T12:00:0${version}Z`,
       }],
     })

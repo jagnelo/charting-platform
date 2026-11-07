@@ -161,12 +161,15 @@ describe('WorkstationToolContent missing chart history entrypoint', () => {
       if (path.startsWith('/analysis/groups/sp500-sectors/')) return Promise.resolve({ group_key: 'sp500-sectors', rows: [], members: [] })
       return Promise.resolve([])
     })
-    const pending = deferred<DataEnsureResponse>()
-    let progress: ((value: { response: DataEnsureResponse }) => void) | undefined
+    const pendingByTarget = new Map<string, ReturnType<typeof deferred<DataEnsureResponse>>>()
+    const progressByTarget = new Map<string, (value: { response: DataEnsureResponse }) => void>()
     const ensure = vi.spyOn(dataPreparationCoordinator, 'ensure').mockImplementation((request, options) => {
-      progress = options?.onProgress as typeof progress
+      const target = request.target.kind === 'instrument' ? `instrument:${request.target.symbol}` : `${request.target.kind}:${request.target.group_key ?? request.target.family_key}`
+      const pending = deferred<DataEnsureResponse>()
+      pendingByTarget.set(target, pending)
+      if (options?.onProgress) progressByTarget.set(target, options.onProgress as (value: { response: DataEnsureResponse }) => void)
       expect(request).toMatchObject({
-        target: { kind: 'market_group', group_key: 'sp500-sectors' },
+        target: target === 'instrument:SPY' ? { kind: 'instrument', symbol: 'SPY' } : { kind: 'market_group', group_key: 'sp500-sectors' },
         datasets: ['history'],
         timeframe: 'D1',
         adjusted: true,
@@ -183,10 +186,11 @@ describe('WorkstationToolContent missing chart history entrypoint', () => {
       props: { tool, activeWindowKey: tool.instance_key },
       global: {
         plugins: [pinia, [VueQueryPlugin, { queryClient }]],
-        stubs: { VirtualWatchlistTool: true, UPlotChart: EmptyChartStub, ChartPlotLibrary: true, ChartTemplateControl: true, DrawingToolbar: true, ToolWindow: ToolWindowShell, RouterLink: { template: '<a><slot /></a>' } },
+        stubs: { VirtualWatchlistTool: true, UPlotChart: EmptyChartStub, ChartPlotLibrary: true, ChartTemplateControl: true, DrawingToolbar: true, ToolWindow: ToolWindowShell, RouterLink: { template: '<a><slot /></a>' }, BreadthHistoryUPlot: true, GenericBreadthHistoryUPlot: true },
       },
     })
-    await vi.waitFor(() => expect(ensure).toHaveBeenCalledTimes(1))
+    await vi.waitFor(() => expect(ensure).toHaveBeenCalledTimes(2))
+    expect(new Set(ensure.mock.calls.map(([request]) => request.target.kind === 'instrument' ? `instrument:${request.target.symbol}` : `${request.target.kind}:${request.target.group_key ?? request.target.family_key}`))).toEqual(new Set(['market_group:sp500-sectors', 'instrument:SPY']))
 
     const breadthRead = () => apiGet.mock.calls.filter(([path]) => path === '/analysis/groups/sp500-sectors/breadth').length
     expect(breadthRead()).toBeGreaterThanOrEqual(1)
@@ -196,10 +200,12 @@ describe('WorkstationToolContent missing chart history entrypoint', () => {
       target: { kind: 'market_group', group_key: 'sp500-sectors' }, completed: 1, total: 2, last_progress_at: '2026-11-07T10:00:01Z',
       dependencies: [],
     }
-    progress?.({ response: partial })
+    progressByTarget.get('instrument:SPY')?.({ response: partial })
     await vi.waitFor(() => expect(breadthRead()).toBeGreaterThan(readsBeforeProgress))
 
-    pending.resolve({ ...partial, status: 'ready', version: 3, completed: 2, total: 2 })
+    for (const [target, pending] of pendingByTarget) {
+      pending.resolve({ ...partial, target: target === 'instrument:SPY' ? { kind: 'instrument', symbol: 'SPY' } : { kind: 'market_group', group_key: 'sp500-sectors' }, status: 'ready', version: 3, completed: 2, total: 2 })
+    }
     await flushPromises()
     wrapper.unmount()
     queryClient.clear()

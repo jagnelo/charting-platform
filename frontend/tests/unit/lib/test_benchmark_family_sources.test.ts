@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { benchmarkFamilyConstituentSourceId } from '@/lib/workstation/benchmarkFamilySources'
+import { benchmarkFamilyConstituentSourceId, benchmarkFamilyHistoryTargets, breadthSnapshotBenchmark } from '@/lib/workstation/benchmarkFamilySources'
 
 describe('benchmark family constituent source identities', () => {
   it('opens the selected family through its locked cap-weight constituent source by default', () => {
@@ -14,5 +14,21 @@ describe('benchmark family constituent source identities', () => {
 
   it('rejects an empty family rather than creating a malformed source', () => {
     expect(benchmarkFamilyConstituentSourceId('   ')).toBeNull()
+  })
+
+  it('uses SPY only for generic groups and never substitutes it for an unmapped family', () => {
+    expect(breadthSnapshotBenchmark(null, undefined)).toBe('SPY')
+    expect(breadthSnapshotBenchmark({ logical_key: 'small-cap-family' }, undefined)).toBeUndefined()
+    expect(breadthSnapshotBenchmark({ logical_key: 'large-cap-family' }, ' spy ')).toBe('SPY')
+  })
+
+  it('prepares the family itself and adds only its explicitly mapped cap proxy', () => {
+    expect(benchmarkFamilyHistoryTargets('small-cap-family', undefined)).toEqual([
+      { kind: 'family', family_key: 'small-cap-family' },
+    ])
+    expect(benchmarkFamilyHistoryTargets('large-cap-family', ' ivv ')).toEqual([
+      { kind: 'family', family_key: 'large-cap-family' },
+      { kind: 'instrument', symbol: 'IVV' },
+    ])
   })
 })
