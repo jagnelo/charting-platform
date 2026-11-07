@@ -26440,3 +26440,8 @@ The visible canonical Workstation route now loads local bars first and starts th
 ## 2026-11-07 — Legacy chart first-use preparation
 
 The backward-compatible `/legacy/chart/:symbol` route now follows cached-first shared history preparation on direct URL hydration as well as deliberate selection. Private basket symbols remain on their member-preparation route. Bare dated holding query data keeps its display lineage but cannot supply a trusted instrument ID; current canonical history is independently prepared from the chart's loaded identity. The updated ChartView suite passed 17/17 and `vue-tsc --noEmit` passed. The first run's single stale ensure-call-count expectation was corrected to account for the new mount request. This is focused proof only; all remaining user journeys and Root-owned combined/release gates remain pending.
+
+
+## 2026-11-07 — Revalidated dated holding context on dashboard reload
+
+A replayed dated holding URL now restores its compact historical caption only after the normal canonical identity lookup independently matches the context ID. The route value never supplies the ID for selection/acquisition, and the ETF is not re-established as current membership. Mismatched identity clears the lineage. The accessible detail retains instrument/snapshot/holding row/source row/reported symbol and name/type/composition/known-at/provider/provenance. Workstation and ChartView route tests passed 105/105 with type-check green; the first focused run caught and then corrected omitted source-row detail. No live account or source request was made.

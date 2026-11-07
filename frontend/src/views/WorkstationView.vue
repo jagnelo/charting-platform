@@ -448,19 +448,34 @@ const selectionHistoryMessage = ref('')
 const selectionHistoryError = ref('')
 const selectionHoldingsMessage = ref('')
 const selectionHoldingsError = ref('')
-const activeHoldingContext = ref<{ symbol: string; context: ETFHoldingDrilldownContext } | null>(null)
+const activeHoldingContext = ref<{ symbol: string; context: ETFHoldingDrilldownContext; restoredFromRoute?: boolean } | null>(null)
 const selectedHoldingDetails = computed(() => {
   const selection = activeHoldingContext.value
-  const fund = workspaceStore.constituentETF
+  const fund = selection?.restoredFromRoute ? selection.context.etfSymbol : workspaceStore.constituentETF
   if (!selection || !fund || selection.symbol !== workspaceStore.linkedSymbol.trim().toUpperCase()) return ''
   const context = selection.context
-  return `${selection.symbol} from ${fund} holdings · snapshot ${context.snapshotId} · row ${context.holdingRowId} · composition ${context.compositionDate} · known ${context.knownAt || 'not reported'} · ${context.sourceProvider} / ${context.provenance}`
+  const origin = selection.restoredFromRoute ? 'dated holdings' : 'holdings'
+  return [
+    `${selection.symbol} from ${fund} ${origin}`,
+    `instrument ${context.instrumentId}`,
+    `snapshot ${context.snapshotId}`,
+    `row ${context.holdingRowId}`,
+    context.sourceRowId ? `source row ${context.sourceRowId}` : '',
+    `reported ${context.reportedSymbol}`,
+    context.reportedName ? `reported name ${context.reportedName}` : '',
+    context.holdingType ? `type ${context.holdingType}` : '',
+    `composition ${context.compositionDate}`,
+    `known ${context.knownAt || 'not reported'}`,
+    `${context.sourceProvider} / ${context.provenance}`,
+  ].filter(Boolean).join(' · ')
 })
 const selectedHoldingCaption = computed(() => {
   const selection = activeHoldingContext.value
-  const fund = workspaceStore.constituentETF
+  const fund = selection?.restoredFromRoute ? selection.context.etfSymbol : workspaceStore.constituentETF
   if (!selection || !fund || selection.symbol !== workspaceStore.linkedSymbol.trim().toUpperCase()) return ''
-  return `${selection.symbol} from ${fund} holdings · ${selection.context.compositionDate}`
+  return selection.restoredFromRoute
+    ? `${selection.symbol} from ${fund} dated holdings · ${selection.context.compositionDate}`
+    : `${selection.symbol} from ${fund} holdings · ${selection.context.compositionDate}`
 })
 const selectedHoldingLineage = selectedHoldingDetails
 let searchTimer: ReturnType<typeof setTimeout> | null = null
@@ -1203,6 +1218,7 @@ async function selectSymbol(
   acquisitionIntent = false,
   confirmedIdentity?: InstrumentAcquireResponse,
   holdingContext?: ETFHoldingDrilldownContext,
+  restoredHoldingContext?: ETFHoldingDrilldownContext,
 ) {
   const requested = raw.trim()
   if (!requested) return
@@ -1297,9 +1313,6 @@ async function selectSymbol(
     }
   }
   if (generation !== symbolSelectionGeneration) return
-  activeHoldingContext.value = holdingContext
-    ? { symbol: symbol.trim().toUpperCase(), context: holdingContext }
-    : null
   selectionHistoryMessage.value = ''
   selectionHistoryError.value = ''
   selectionHoldingsMessage.value = ''
@@ -1312,6 +1325,14 @@ async function selectSymbol(
     ].find(member => member.instrument.symbol.trim().toUpperCase() === symbol)
     canonicalInstrumentId = knownMember?.instrument.id ?? null
   }
+  const displayContext = holdingContext ?? restoredHoldingContext
+  const contextMatchesResolvedIdentity = displayContext
+    && displayContext.canonicalSymbol.trim().toUpperCase() === symbol.trim().toUpperCase()
+    && Number.isSafeInteger(canonicalInstrumentId)
+    && canonicalInstrumentId === displayContext.instrumentId
+  activeHoldingContext.value = contextMatchesResolvedIdentity
+    ? { symbol: symbol.trim().toUpperCase(), context: displayContext, restoredFromRoute: !holdingContext }
+    : null
   // A direct selection begins a new holdings context immediately. A constituent
   // row is the explicit exception: its parent ETF remains the source for the
   // linked constituent/ratio panels while the selected equity chart changes.
@@ -3221,6 +3242,9 @@ onMounted(async () => {
           preserveParentETFContext,
           '',
           !isPrivateBasketToken(requested),
+          undefined,
+          undefined,
+          routeHoldingContext ?? undefined,
         )
       }
       if (!componentMounted) return

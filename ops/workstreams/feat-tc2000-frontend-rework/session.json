@@ -104,7 +104,7 @@
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
   "current_candidate_ci_status": "Focused local evidence is available for the current implementation slice. Provider732 is development-only. Exact-tip CI, remaining journeys and Root-owned combined browser/release qualification remain pending.",
-  "current_checkpoint_status": "Provider732 is imported through the exact v2 43-file development manifest; focused chart first-use and route/preparation checks passed 238/238 with type-check green. Whole platform-usability scope remains in progress; search/secondary routes, reversible lifecycle and complete journeys remain open.",
+  "current_checkpoint_status": "The committed d5e8d628 route/preparation/inventory slice is in place; the dated holding reload now revalidates canonical identity before restoring lineage, with 105/105 route tests and type-check green. Remaining SearchBar, secondary routes, reversible lifecycle and complete journeys stay open.",
   "current_exact_ci": {
     "head_sha": null,
     "run_id": null,
@@ -670,7 +670,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for TC2000 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-11-07T01:26:12Z",
+  "updated_at": "2026-11-07T01:39:55Z",
   "upstream_backmerge": {
     "canonical_green_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json",
     "local_merge_commit": "acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32",

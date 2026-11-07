@@ -2230,6 +2230,44 @@ describe('WorkstationView pop-out bindings', () => {
     }
   })
 
+  it('restores dated holding details only after canonical identity independently matches', async () => {
+    const context = {
+      etfSymbol: 'IWM',
+      instrumentId: 8802,
+      canonicalSymbol: 'UNXQ',
+      snapshotId: 8801,
+      compositionDate: '2026-10-27',
+      knownAt: '2026-10-28T12:00:00Z',
+      provenance: 'issuer_current_holdings',
+      sourceProvider: 'fixture-only',
+      holdingRowId: 8803,
+      sourceRowId: 'issuer-row-8803',
+      reportedSymbol: 'UNXQ',
+      reportedName: 'Uncached Example Equity',
+      holdingType: 'equity',
+    }
+    routeState.path = '/chart/UNXQ'
+    routeState.params = { symbol: 'UNXQ' }
+    routeState.query = { ...holdingDrilldownRouteQuery(context), holding_history_intent: 'selected' }
+    vi.mocked(resolveKnownInstrument).mockResolvedValueOnce({ symbol: 'UNXQ', id: 8802 })
+    harness.workspace.publishSymbol.mockImplementation((event: any) => { harness.workspace.linkedSymbol = event.symbol })
+
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    try {
+      await vi.waitFor(() => expect(dataPreparationPost).toHaveBeenCalledTimes(1))
+      expect(resolveKnownInstrument).toHaveBeenCalledWith('UNXQ', 'Workstation symbol', { canonicalOnly: true })
+      expect(dataPreparationPost.mock.calls[0]?.[0]).toMatchObject({ target: { kind: 'instrument', instrument_id: 8802 } })
+      expect(harness.workspace.setConstituentETF).not.toHaveBeenCalledWith('IWM')
+      expect(wrapper.get('[data-testid="active-holding-lineage"]').text()).toBe('UNXQ from IWM dated holdings · 2026-10-27')
+      expect(wrapper.get('[data-testid="active-holding-lineage"]').attributes('title')).toContain('snapshot 8801 · row 8803')
+      expect(wrapper.get('[data-testid="active-holding-lineage"]').attributes('title')).toContain('issuer-row-8803')
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
   it('hydrates local ETF data and starts shared preparation on a fresh plain-chart mount', async () => {
     routeState.path = '/chart'
     routeState.params = {}
