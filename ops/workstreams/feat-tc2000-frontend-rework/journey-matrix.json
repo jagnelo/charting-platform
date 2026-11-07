@@ -3184,9 +3184,10 @@
     "journey": "TC03/TC05",
     "evidence": [
       "frontend/tests/unit/lib/test_data_preparation.test.ts",
-      "frontend/tests/unit/components/test_relative_rotation_tool.test.ts"
+      "frontend/tests/unit/components/test_relative_rotation_tool.test.ts",
+      "frontend/tests/unit/components/test_market_map_tool.test.ts"
     ],
-    "pending_reason": "Unit coverage does not yet prove all eleven ratio members and fifty-bar monthly warmup against the assembled real backend."
+    "pending_reason": "Market Map unit coverage now proves that primary and relative-return reference market groups use their own canonical preparation keys. Unit coverage still does not prove all eleven ratio members and fifty-bar monthly warmup against the assembled real backend."
   },
   "control_surfaces": [
     {
