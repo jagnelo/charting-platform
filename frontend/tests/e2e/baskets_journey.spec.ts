@@ -289,7 +289,7 @@ test('opening a basket submits each member preparation independently while cache
     } finally {
       releaseFirstEnsure()
     }
-    expect(firstEnsureWasReleased).toBeTruthy()
+    await expect.poll(() => firstEnsureWasReleased).toBeTruthy()
   } finally {
     releaseFirstEnsure()
     await request.delete(`/api/v1/baskets/${basket.id}`, { headers }).catch(() => undefined)
