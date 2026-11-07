@@ -6606,7 +6606,7 @@ historical_provider_runtime_dependency_182173f3:
   imported_paths: exactly the9 ETF consumer import_paths under the manifest old_guards; Provider ownership and all prior dependency receipts remain preserved.
   verification: all62 status_from139/SHA256/Git blob/executable-bit rows match; the exact9 ETF paths match the released source.
   state: development dependency only; no Provider suite, new fixture, source HTTP, quota, production, integration, or deployment operation.
-provider_runtime_dependency_active_22c31cd3:
+historical_provider_runtime_dependency_22c31cd3:
   authority: Root released exact Provider source 22c31cd3e7f35e361e286ef40576d379aaf44449 for development consumption only; no native activation, external request, production mutation or release acceptance is implied.
   source: 22c31cd3e7f35e361e286ef40576d379aaf44449
   previous_active_dependency: dd05c5e8318ff59a90f879867cae9664dcc0de4f
@@ -6743,3 +6743,18 @@ tc_common_runtime_dependency_active_d9544368:
     was changed by this import.
   state: Root-released development dependency only; combined qualification remains
     pending Root.
+
+provider_runtime_dependency_active_e08bdf4a:
+  authority: Root released exact Provider source e08bdf4aac086845603091cd0638903a47136d3b for development consumption only; Provider owns durable same-hour held-child recovery and all final qualification.
+  previous_active_dependency: e8701591e23a0207d4292476d30a24c6f5d6ed7b
+  manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providere08bdf4a-runtime-development-consumption-contract.json
+  manifest_sha256: fc219d0fd8c46e82c6d660c966ca68b5374b78497c0b26b0996ab62d363969ec
+  local_manifest_copy: ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/e08bdf4aac086845603091cd0638903a47136d3b.json
+  current_manifest_records_verified: 73
+  consumer_import_paths:
+  - backend/app/services/data_preparation.py
+  - backend/app/tasks/data_tasks.py
+  - backend/tests/unit/services/test_data_preparation_history_planning.py
+  - backend/tests/unit/services/test_data_preparation_service.py
+  verification: All73 source manifest rows match the released Git tree/blob/SHA256; the exact four declared deltas match local bytes, blob, SHA256, and executable-bit semantics. Other manifest paths were preserved and not overwritten.
+  state: Root-authorized development dependency only; no native replay/source request/production mutation or release acceptance. Exact CI and combined browser gates remain Root-owned.

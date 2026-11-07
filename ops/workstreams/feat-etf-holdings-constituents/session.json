@@ -1141,7 +1141,7 @@
     "status": "Root-delegated bounded software checkpoint accepted; exact final-source CI pending.",
     "validated_implementation_sha": "b6d67ce93104a0a2cf83b1c41f385513b3c230f8"
   },
-  "plan_hash": "7d300f207058e4e5c2248540f688eac89ccf7b20f89c50f5fb574dddbd21cfb0",
+  "plan_hash": "a8b2222bdd5b72782684a14d0acd5a62eae979d98a4554bc94256006c4f8f7ba",
   "plan_sha256": "7d300f207058e4e5c2248540f688eac89ccf7b20f89c50f5fb574dddbd21cfb0",
   "planning_required": false,
   "planning_state": "ready",
@@ -4537,15 +4537,21 @@
     "state": "Root-released development dependency only; producer, joint browser, and release gates remain pending."
   },
   "current_provider_runtime_dependency": {
-    "source": "22c31cd3e7f35e361e286ef40576d379aaf44449",
-    "previous_source": "dd05c5e8318ff59a90f879867cae9664dcc0de4f",
-    "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider22c31cd3-runtime-development-consumption-contract.json",
-    "manifest_sha256": "a5079b0eb78a8fd67e48e94a7d749bc171ffa2b21165fc9c59c405501dc2db85",
-    "local_manifest_copy": "ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/22c31cd3e7f35e361e286ef40576d379aaf44449.json",
-    "current_manifest_records_verified": 67,
-    "consumer_import_paths_verified": 6,
-    "verification": "All67 status_from139/SHA256/Git blob/executable-bit rows match the exact source; six ETF paths passed the dd05 old guards and match source.",
-    "state": "Root-released development dependency only; no external native use. Account-specific permission, Root native review, combined CI/browser and release gates remain pending."
+    "authority": "Root released exact Provider source for development consumption only; no native replay, source request, production mutation, integration, or deployment acceptance is implied.",
+    "source": "e08bdf4aac086845603091cd0638903a47136d3b",
+    "previous_source": "e8701591e23a0207d4292476d30a24c6f5d6ed7b",
+    "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providere08bdf4a-runtime-development-consumption-contract.json",
+    "manifest_sha256": "fc219d0fd8c46e82c6d660c966ca68b5374b78497c0b26b0996ab62d363969ec",
+    "local_manifest_copy": "ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/e08bdf4aac086845603091cd0638903a47136d3b.json",
+    "changed_paths_imported": [
+      "backend/app/services/data_preparation.py",
+      "backend/app/tasks/data_tasks.py",
+      "backend/tests/unit/services/test_data_preparation_history_planning.py",
+      "backend/tests/unit/services/test_data_preparation_service.py"
+    ],
+    "source_manifest_records_verified": 73,
+    "verification": "All73 source manifest records match the released Git tree/blob/SHA256; the four declared delta paths match local bytes, blob, SHA256, and executable-bit semantics. No other manifest paths were overwritten.",
+    "state": "Root-authorized development dependency only; Provider owns same-hour held-child recovery. Exact CI, combined browser, native recovery, and release gates remain Root-owned and pending."
   },
   "current_checkpoint_2026_11_07_notes_lifecycle": {
     "source_parent": "369f0c8d051d8d7e17ea0dfe7478860f51218368",
@@ -4557,7 +4563,7 @@
     "component_sha256": "dfee1f12a212c4bfc138ef6d23eec5b83b84e4ca159c4e0c0fc5a5100899c33f",
     "unit_sha256": "43b95300e0d3443baac6238f507fe2fbbb8d1a6da726a440f236dee46737a7db",
     "supporting_journey_sha256": "60e4cf196dd9e21bd4ee31206df7678f1b185ab6ca700924b3cd7c942be19451",
-    "provider_dependency": "dd70319eb725dc6b5c1b4feb0ba5a5ba060efd04; exact4 declared deltas imported and all61 manifest records verified; manifest SHA256 9679b42e3e8dc4190d1b221b7b4ce7c0b86b3cd66d90e5a4f936eb8e61c6e95e.",
+    "provider_dependency": "e08bdf4aac086845603091cd0638903a47136d3b; imported exactly four declared deltas over e870 after old-byte guards; all73 source manifest records verified; manifest SHA256 fc219d0fd8c46e82c6d660c966ca68b5374b78497c0b26b0996ab62d363969ec. This is development consumption, not provider or combined release acceptance.",
     "sp500_spec_sha256_current": "c46f4e217c6fa4f7f9c71ad4b26ad2cbcd5874933a5743c156af6074e927dfae",
     "focused_validation": "InstrumentNoteTool lifecycle unit4/4 passed; frontend type-check exited0; Ruff check/format passed for basket service and integration test. The two leased basket PostgreSQL nodes passed2/2 against the unique empty DB and Redis DB15 with provider routing/live flags disabled and isolated quota path. S&P and basket Playwright discovery lists5 total cases, with no browser body run here. Alert POST assertion requires exact201.",
     "root_browser_evidence": "R30 first four supporting cases:0 passed/4 failed in77.27s. R28 remains unaccepted; R29 was0 passed/3 failed in138.2s. R32 was0/3. R33 was0/4; its S&P failure was stale pre-reload response-body capture, corrected in the current unrun spec. Shared ratio-status composition, basket shared-chart readiness, maximize, and Strategy Results issues remain open.",
@@ -4597,5 +4603,23 @@
     "scope": "ETF_RRG_D1_DIAGNOSTIC early-return is diagnostic-only; it does not qualify W1/MN or the layout lifecycle.",
     "strategy_read_only_finding": "Strategy helper workstation_lifecycle_journey.spec.ts:149-205 checks a single rounded-center pixel for exact color/alpha. R51 exact raster has11 visible markers with a minimum4 exact opaque state-color pixels in a3x3 neighborhood, while XLC center is not exact. Recommend a bounded interior-neighborhood assertion; no sibling edits.",
     "release_status": "Development checkpoint only; Root owns full normal RRG/Results profile, exact CI, and release gates."
+  },
+  "historical_provider_runtime_dependency_22c31cd3": {
+    "source": "22c31cd3e7f35e361e286ef40576d379aaf44449",
+    "previous_source": "dd05c5e8318ff59a90f879867cae9664dcc0de4f",
+    "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider22c31cd3-runtime-development-consumption-contract.json",
+    "manifest_sha256": "a5079b0eb78a8fd67e48e94a7d749bc171ffa2b21165fc9c59c405501dc2db85",
+    "local_manifest_copy": "ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/22c31cd3e7f35e361e286ef40576d379aaf44449.json",
+    "current_manifest_records_verified": 67,
+    "consumer_import_paths_verified": 6,
+    "verification": "All67 status_from139/SHA256/Git blob/executable-bit rows match the exact source; six ETF paths passed the dd05 old guards and match source.",
+    "state": "Root-released development dependency only; no external native use. Account-specific permission, Root native review, combined CI/browser and release gates remain pending."
+  },
+  "current_native_e08b_holdings_recovery_review": {
+    "evidence": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/root-native-e08b-holdings-negative-recovery-review.json",
+    "result": "BWET ordinary chart selection delivered495 real bars with paint and tooltip; holdings child739 completed waiting with reason issuer_request_held and retry_at null, then the same-hour request reused it after issuer policies were enabled.",
+    "ETF_bridge_review": "prepare_etf_holdings passes context.request_id to acquire_etf_holdings_profile. The refresh path binds the exact issuer acquisition and retains request-scoped rejection evidence; ETF acquisition/bridge code has no held-result memoization or result-cache lookup.",
+    "dedupe_location": "Provider-owned data_preparation._enqueue_etf_holdings_job uses request_key prep-holdings plus a digest of instrument_id and hourly freshness_scope, then enqueue_refresh_job reuses the durable child. This shared hourly idempotency key is the observed stale-negative reuse point.",
+    "owner_action": "Provider owns reevaluation/recovery of a completed negative child after eligibility changes, with original jobs and concurrency guards preserved. No ETF edit, queue reset, native request, source query, browser run, or runtime mutation occurred."
   }
 }

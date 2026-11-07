@@ -5,8 +5,11 @@ import pytest
 from sqlalchemy import select
 
 from app.config import settings
+from app.models.asset_class import AssetClass, InstrumentType
 from app.models.data_source import DataSource
 from app.models.exchange import Exchange
+from app.models.instrument import Instrument
+from app.models.instrument_identity import InstrumentProviderSymbol
 from app.models.listing import InstrumentListing
 from app.models.market_data_foundation import MarketSeries, MarketSeriesDefault
 from app.models.ohlcv import OHLCVBar, Timeframe
@@ -18,7 +21,13 @@ from app.models.provider_runtime import (
 )
 from app.providers.errors import ProviderRateLimitError
 from app.services.provider_quota_coordinator import ProviderQuotaAdmissionError
-from app.services.provider_runtime import seed_provider_runtime
+from app.services.provider_runtime import (
+    ProviderNoDataError,
+    bind_explicit_provider_acquisition,
+    provider_history_bound_start,
+    resolve_provider_chain,
+    seed_provider_runtime,
+)
 from app.tasks import data_tasks
 from tests.unit.conftest import AsyncSessionAdapter
 
@@ -63,7 +72,8 @@ async def test_history_planner_pins_deepest_admitted_provider_for_all_chunks(mon
 
     assert reason is None
     assert provider_name == "alpaca"
-    assert earliest == end.replace(year=2016)
+    current_floor = datetime.now(UTC).replace(year=datetime.now(UTC).year - 10) + timedelta(days=1)
+    assert abs((earliest - current_floor).total_seconds()) < 2
     assert calls["provider_symbol"] == "TEST"
     assert calls["read_only"] is True
     assert calls["operation"] == "fetch_ohlcv:D1"
@@ -93,6 +103,195 @@ async def test_history_planner_pins_deepest_admitted_provider_for_all_chunks(mon
     assert chunk_end == end
     assert chunk_start > full_start
     assert (chunk_end - chunk_start).days <= 2000
+
+
+@pytest.mark.asyncio
+async def test_cold_canonical_etv_history_plan_survives_moving_massive_floor(db, monkeypatch):
+    """A cold canonical ETV stays on its reviewed Massive route, inside its live floor."""
+    async_db = AsyncSessionAdapter(db)
+    await seed_provider_runtime(async_db)
+    now = datetime.now(UTC)
+    monkeypatch.setattr(settings, "PROVIDER_ROUTING_ENABLED", True)
+    monkeypatch.setattr(settings, "PROVIDER_REQUEST_DRIVEN_ONLY", True)
+    monkeypatch.setattr(settings, "PROVIDER_FREE_ONLY_CHECKPOINT", True)
+    monkeypatch.setattr(settings, "MASSIVE_API_KEY", "resolver-test-only")
+    monkeypatch.setattr(settings, "MASSIVE_MARKET_DATA_USE_AUTHORIZED", True)
+    monkeypatch.setattr(
+        settings, "MASSIVE_MARKET_DATA_USE_AUTHORITY_REFERENCE", "offline resolver fixture"
+    )
+    monkeypatch.setattr(
+        settings,
+        "MASSIVE_MARKET_DATA_USE_AUTHORITY_SCOPE",
+        "written_automated_persistent_archive_and_audience",
+    )
+    monkeypatch.setattr(settings, "MASSIVE_MARKET_DATA_USE_REVIEWED_AT", now)
+    monkeypatch.setattr(settings, "MASSIVE_MARKET_DATA_USE_EXPIRES_AT", now + timedelta(days=1))
+    monkeypatch.setattr(settings, "PROVIDER_CHECKPOINT_OPERATION_HOLDS", {})
+
+    source = db.execute(select(DataSource).where(DataSource.name == "massive")).scalar_one()
+    policy = db.execute(
+        select(ProviderPolicy).where(
+            ProviderPolicy.data_source_id == source.id,
+            ProviderPolicy.capability == ProviderCapability.PRICE_HISTORY,
+        )
+    ).scalar_one()
+    entitlement = db.execute(
+        select(ProviderEntitlement).where(
+            ProviderEntitlement.data_source_id == source.id,
+            ProviderEntitlement.capability == ProviderCapability.PRICE_HISTORY,
+        )
+    ).scalar_one()
+    policy.is_enabled = True
+    policy.quota_scope = "massive-cold-etv-fixture"
+    policy.quota_source = "offline resolver fixture"
+    policy.quota_verified_at = now
+    policy.quota_contract = {
+        "reset": "rolling",
+        "operation_costs": {"fetch_ohlcv": 1},
+        "dimensions": [
+            {
+                "name": "requests_per_day",
+                "limit": 20,
+                "window_seconds": 86_400,
+                "unit": "requests",
+                "scope": "massive-cold-etv-fixture",
+                "source": "offline resolver fixture",
+                "reset": "rolling",
+            }
+        ],
+    }
+    entitlement.is_free = True
+    entitlement.authentication_required = True
+    entitlement.configured_plan = "reviewed-free-fixture"
+    entitlement.live_probe_status = "passed"
+    entitlement.enabled_environments = [settings.APP_ENV]
+    entitlement.effective_at = now - timedelta(days=1)
+    entitlement.review_due_at = now + timedelta(days=1)
+    entitlement.quota_policy = {
+        **(entitlement.quota_policy or {}),
+        "history_constraints": {"max_lookback_years": 2},
+    }
+
+    asset_class = AssetClass(name="Exchange Traded Product")
+    db.add(asset_class)
+    db.flush()
+    instrument_type = InstrumentType(name="Exchange Traded Vehicle", asset_class_id=asset_class.id)
+    db.add(instrument_type)
+    db.flush()
+    instrument = Instrument(
+        symbol="COLD",
+        name="Cold canonical ETV fixture",
+        currency="USD",
+        instrument_type_id=instrument_type.id,
+        identity_status="resolved",
+        domain_key="composite-figi:BBG000COLD001",
+        primary_identifier_type="composite_figi",
+        primary_identifier_value="BBG000COLD001",
+        is_active=True,
+        is_synthetic=False,
+    )
+    db.add(instrument)
+    db.flush()
+    exchange = Exchange(
+        mic="ARCX",
+        name="NYSE Arca fixture",
+        country_code="US",
+        timezone="America/New_York",
+        currency="USD",
+    )
+    db.add(exchange)
+    db.flush()
+    db.add(
+        InstrumentListing(
+            instrument_id=instrument.id,
+            exchange_id=exchange.id,
+            ticker=instrument.symbol,
+            currency="USD",
+            is_primary=True,
+            is_active=True,
+            source="offline resolver fixture",
+        )
+    )
+    db.add(
+        InstrumentProviderSymbol(
+            instrument_id=instrument.id,
+            data_source_id=source.id,
+            provider_symbol=instrument.symbol,
+            provider_exchange_code="ARCX",
+            provider_instrument_type="ETF",
+            is_primary=True,
+            is_active=True,
+        )
+    )
+    db.flush()
+
+    stale_end = datetime.now(UTC) - timedelta(minutes=5)
+    old_floor, _ = provider_history_bound_start({"max_lookback_years": 2}, now=stale_end)
+    assert old_floor is not None
+    with bind_explicit_provider_acquisition(
+        request_id="cold-etv-stale-floor",
+        operations=frozenset({(ProviderCapability.PRICE_HISTORY, "fetch_ohlcv")}),
+        instrument_id=instrument.id,
+        symbol=instrument.symbol,
+        provider_names=frozenset({"massive"}),
+    ):
+        stale_chain = await resolve_provider_chain(
+            async_db,
+            ProviderCapability.PRICE_HISTORY,
+            instrument_id=instrument.id,
+            provider_symbol=instrument.symbol,
+            operation="fetch_ohlcv:D1",
+            adjusted=True,
+            history_start=old_floor,
+            operation_cost_overrides={"massive": 1},
+        )
+    assert stale_chain == []  # the captured request-time floor is now expired
+
+    planned_start, provider_name, reason = await data_tasks._deepest_admitted_history_start(
+        async_db,
+        instrument,
+        Timeframe.D1,
+        adjusted=True,
+        end=stale_end,
+        request_id="cold-canonical-moving-floor",
+    )
+    assert reason is None
+    assert provider_name == "massive"  # ETV routing remains deliberately source-scoped
+    assert planned_start is not None and planned_start < stale_end
+    current_floor, _ = provider_history_bound_start(
+        {"max_lookback_years": 2}, now=datetime.now(UTC)
+    )
+    assert current_floor is not None and planned_start >= current_floor
+    with bind_explicit_provider_acquisition(
+        request_id="cold-etv-safe-floor",
+        operations=frozenset({(ProviderCapability.PRICE_HISTORY, "fetch_ohlcv")}),
+        instrument_id=instrument.id,
+        symbol=instrument.symbol,
+        provider_names=frozenset({"massive"}),
+    ):
+        admitted_chain = await resolve_provider_chain(
+            async_db,
+            ProviderCapability.PRICE_HISTORY,
+            instrument_id=instrument.id,
+            provider_symbol=instrument.symbol,
+            operation="fetch_ohlcv:D1",
+            adjusted=True,
+            history_start=planned_start,
+            operation_cost_overrides={"massive": 1},
+        )
+    assert [candidate.provider_name for candidate in admitted_chain] == ["massive"]
+    provider_symbols = (
+        db.execute(
+            select(InstrumentProviderSymbol).where(
+                InstrumentProviderSymbol.instrument_id == instrument.id
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert len(provider_symbols) == 1
+    assert provider_symbols[0].data_source_id == source.id
+    assert db.execute(select(ProviderRequestLog)).scalars().all() == []
 
 
 @pytest.mark.asyncio
@@ -634,7 +833,11 @@ async def test_history_planner_uses_deeper_real_admission_chain_over_recent_mass
     )
     assert fallback_plan[5] is None
     assert fallback_plan[4] == "massive"
-    assert fallback_plan[2] == datetime(2024, 11, 6, tzinfo=UTC)
+    current_massive_floor, _ = provider_history_bound_start(
+        {"max_lookback_years": 2}, now=datetime.now(UTC)
+    )
+    assert current_massive_floor is not None
+    assert abs((fallback_plan[2] - current_massive_floor - timedelta(days=1)).total_seconds()) < 2
     assert fallback_preparation["source_provider"] == "massive"
     assert usage_job is None
     assert usage_hold is None
@@ -780,6 +983,60 @@ async def test_unpinned_chunk_falls_through_only_on_proven_pretransport_quota_de
     assert fetch_candidates == ["deep-free", "second-free"]
     assert transports == ["second-free"]
     assert planner_calls == [set(), {"deep-free"}]
+
+
+@pytest.mark.asyncio
+async def test_no_eligible_history_provider_is_not_recorded_as_partial_progress(monkeypatch):
+    end = datetime(2026, 11, 7, tzinfo=UTC)
+    candidate_preparation = {
+        "range_mode": "deepest_admitted",
+        "adjusted": True,
+        "source_provider": "massive",
+    }
+
+    async def candidate_plan(*_args, **_kwargs):
+        return (
+            (
+                end - timedelta(days=100),
+                end,
+                end - timedelta(days=365),
+                end,
+                "massive",
+                None,
+            ),
+            candidate_preparation,
+            None,
+            None,
+            None,
+        )
+
+    async def no_eligible_source(*_args, **_kwargs):
+        raise ProviderNoDataError(
+            "No currently-supported providers available for price_history/fetch_ohlcv:D1"
+        )
+
+    monkeypatch.setattr(data_tasks, "_history_chunk_plan_with_native_admission", candidate_plan)
+    monkeypatch.setattr(data_tasks, "fetch_ohlcv", no_eligible_source)
+    result = await data_tasks._plan_and_fetch_history_chunk(
+        object(),
+        job=SimpleNamespace(id=58, end_at=end),
+        instrument=SimpleNamespace(id=71, symbol="COLD"),
+        timeframe=Timeframe.D1,
+        preparation={"range_mode": "deepest_admitted", "adjusted": True},
+        priority=10,
+        redis=None,
+    )
+
+    assert result[5] == []
+    assert result[1]["provider_no_data_reason"] == "no_eligible_history_provider"
+    assert (
+        data_tasks._history_chunk_data_status(bars=result[5], range_coverage_status="missing")
+        == "empty"
+    )
+    assert (
+        data_tasks._history_chunk_data_status(bars=[object()], range_coverage_status="partial")
+        == "partial"
+    )
 
 
 @pytest.mark.asyncio
