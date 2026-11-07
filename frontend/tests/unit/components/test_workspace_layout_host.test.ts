@@ -147,14 +147,14 @@ describe('WorkspaceLayoutHost', () => {
     expect(listeners.size).toBe(0)
   })
 
-  it('publishes maximize state only after the workspace snapshot is saved', async () => {
-    let resolveSave!: (saved: boolean) => void
-    const pendingSave = new Promise<boolean>(resolve => { resolveSave = resolve })
+  it('reflects the live maximize state while the workspace snapshot is saving', async () => {
+    const resolveSaves: Array<(saved: boolean) => void> = []
+    const persistLayout = vi.fn(() => new Promise<boolean>(resolve => { resolveSaves.push(resolve) }))
     const renderTool = vi.fn((_tool: any, _actions: any) => h('div'))
     const wrapper = mount(WorkspaceLayoutHost, {
       props: {
         layout: { root: { type: 'row', content: [] } } as any,
-        persistLayout: () => pendingSave,
+        persistLayout,
         renderTool,
       },
     })
@@ -178,12 +178,26 @@ describe('WorkspaceLayoutHost', () => {
     const toggling = actions.toggleMaximize()
     expect(stack.isMaximised).toBe(true)
     expect(actions.maximizing.value).toBe(true)
+    expect(actions.maximized.value).toBe(true)
+
+    // A visible Restore action remains usable while the first snapshot save is
+    // pending. The workspace store coalesces this second save onto the newer
+    // generation, so the last user action is what survives a reload.
+    const restoring = actions.toggleMaximize()
+    expect(stack.isMaximised).toBe(false)
+    expect(actions.maximized.value).toBe(false)
+    expect(actions.maximizing.value).toBe(true)
+    expect(persistLayout).toHaveBeenCalledTimes(2)
+
+    resolveSaves[0](false)
+    await toggling
+    expect(actions.maximizing.value).toBe(true)
     expect(actions.maximized.value).toBe(false)
 
-    resolveSave(true)
-    await toggling
+    resolveSaves[1](true)
+    await restoring
     expect(actions.maximizing.value).toBe(false)
-    expect(actions.maximized.value).toBe(true)
+    expect(actions.maximized.value).toBe(false)
     wrapper.unmount()
   })
 

@@ -189,6 +189,13 @@ async def test_research_run_list_projects_persisted_artifact_count_for_current_o
 
     compiled = str(session.statement.compile(compile_kwargs={"literal_binds": True}))
     assert "research_run.user_id = 3" in compiled
+    # The list projects only a count; loading every JSON payload here would
+    # duplicate the explicit run-detail read for large series/table outputs.
+    assert any(
+        ("raiseload", True) in context.strategy
+        for option in session.statement._with_options
+        for context in option.context
+    )
     assert serialized.artifact_count == 8
     assert serialized.artifacts == []
 

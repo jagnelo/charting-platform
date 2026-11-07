@@ -1198,21 +1198,22 @@ progress:
       selected dataset first; never acquire data inside evaluation or mutate saved-run identity.
       Maintain the Strategy-owned J10/J11/J12 action matrix as an input to TC's global inventory,
       distinguishing component/API evidence from exact-source browser acceptance. The current Provider
-      development source is dcd3c823f9f76ed65b65d8b6c3628e1bc02a222e under
-      providerdcd3c823-runtime-development-consumption-contract.json (manifest SHA256
-      723300fa7f2119d3e1856710904f0abe743288cee7f1ab52a685bbb0d2f4d5b3). Strategy consumed its
-      declared ten paths after old-byte guards; the owned research router now has an additional
-      Strategy bounded-range fix. Earlier Provider pins remain historical. This is development
-      consumption, not release acceptance. Consume the authenticated durable ensure/status contract through the exact
+      development source is dd70319eb725dc6b5c1b4feb0ba5a5ba060efd04 under
+      providerdd70319e-runtime-development-consumption-contract.json (manifest SHA256
+      9679b42e3e8dc4190d1b221b7b4ce7c0b86b3cd66d90e5a4f936eb8e61c6e95e). Strategy imported only
+      its two declared analysis paths; all61 source manifest entries were checked against the exact
+      commit. The owned research router/test were source-equivalent before the current local Results
+      list optimization. Earlier Provider pins remain historical. This is development consumption,
+      not release acceptance. Consume the authenticated durable ensure/status contract through the exact
       TC-owned shared preparation client without duplicating worker, acquisition, quota, or provider
       behavior. The TC runtime history preserves the earlier AEA, D5, 5a, ce, 5a783e and771 pins. The
-      current common-runtime pin is exact source45ea51bfa78b6ae167462b518358164a5a3e29f4 under
-      tc-45ea51bf-common-runtime-development-consumption-contract.json (manifest SHA256
-      1126b87449853c3e9b52aff4a19d0efd786ad833d16d52b2b76f28914f8dde6c). Strategy consumed only its
-      ten declared paths after all ten old_guards passed and verified all77 manifest SHA/blob/executable
-      bits. This release adds sector catalogue hydration, basket-member preparation before cached reads,
-      query coalescing, and persisted maximize/restore. It remains development consumption only; Root's
-      frontend build is not browser or release acceptance. Prior imports and evidence remain historical.
+      current common-runtime pin is exact source1fdc92f1a1628d191ad1d5b2f0ba071a80df5052 under
+      tc-1fdc92f1-common-runtime-development-consumption-contract.json (manifest SHA256
+      fddaab9536bb885b9656e861ece0df60481466e365e2b04612c953404f57b70d). Strategy consumed only its
+      five declared paths after all five old_guards passed and verified all77 manifest SHA/blob/status/
+      executable-bit records. Root reported the exact frontend build and four affected ordinary browser
+      journeys running; no terminal result is recorded here. This remains development consumption,
+      not browser or release acceptance. Prior imports and evidence remain historical.
       Author the separately reserved Strategy workstation
       lifecycle journey; its public-UI browser body remains pending Root's combined slot. Repair the
       seven Root-reserved Dashboard product
@@ -1266,25 +1267,31 @@ progress:
     query on the pane's first positive visibility observation and now gives the request an abortable
     15-second deadline with a visible retry path, covered by focused stalled-read and successful
     shared-cache recovery regressions. A successful run-list cache update clears only the list-load
-    error, not unrelated mutation errors. The request's backend/relay latency remains unknown, and
-    exact-current-source browser verification is pending. Local Strategy work also
+    error, not unrelated mutation errors. The request's backend/relay latency remains unknown. The
+    Strategy list endpoint now avoids
+    loading saved artifact JSON payloads for ordinary count-only list responses while preserving full
+    payload reads on run detail; its focused research-router module passes15/15. This bounded I/O
+    reduction is not proof of the pending Results request's cause. Root reported four affected ordinary
+    browser journeys running against TC1fdc92f1 and Providerdd70319e; no terminal result is recorded
+    here. Local Strategy work also
     fixes the
     R25-proven lookback truncation: an explicit bounded date range now uses the existing5000-row
     per-series safety cap while unbounded/set-based members retain their existing500-row budget.
     Focused Strategy component tests, research-router tests, type-check and Playwright discovery have
-    passed on the current work in prior checks; the two backend Ruff checks/format checks and diff
-    check pass now. This local candidate has not run in a browser. Root owns the next fixture run and
-    common dock/RRG repair; preserve the18-criterion roadmap and disabled holds.
+    passed on the current work in prior checks; Ruff/format and diff checks pass now. Root has started
+    four affected ordinary browser journeys against the current TC1fdc92f1/Providerdd70319e context;
+    this record has no terminal outcome. The RRG Restore defect remains open with TC; preserve the
+    18-criterion roadmap and disabled holds.
   next_action: >-
     Hand Root the next coherent Strategy candidate, including the bounded lookback repair, truthful
     deferred-evaluation UI, the Results visibility-gated and deadline-bounded initial query with
-    explicit retry, exact TC45/Providerdcd development imports, and corrected Study/Results/workstation
-    locators. Root should run only the
-    assigned affected journeys on its existing fixture; retain the R26 failures until their causes are
-    fixed and verified. Do not start another fixture or treat the single R26 Study pass, focused tests,
-    or type-check as browser/full-profile acceptance. Preserve all18 roadmap criteria and disabled native, broker,
-    capital, paid/trial, and provider-live holds.
-  updated_at: "2026-11-07T09:38:36Z"
+    explicit retry, the count-only Results list I/O reduction, and exact TC1fdc92f1/Providerdd70319e
+    development imports. Root should report the four assigned ordinary journeys on its existing
+    fixture; retain prior R26 failures until their causes are fixed and verified. Do not start another
+    fixture or treat focused tests, imported producer checks, or prior partial browser results as
+    exact-current-source/full-profile acceptance. Preserve all18 roadmap criteria and disabled native,
+    broker, capital, paid/trial, and provider-live holds.
+  updated_at: "2026-11-07T09:59:05Z"
 roadmap_goal: >-
   Implement the production-grade, local-first Strategy Lab v2 backend for
   reproducible portfolio backtesting, walk-forward and search experiments, and

@@ -50,21 +50,29 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "current_blocker": "Root R26 on frontend77190340/backenddcd3c823 ended1pass/2fail in182.7s with unchanged relay nr_throttled. The ordinary high-low Study prepare/validate/run/results journey passed; RRG Restore after maximize/reload and the initial Results Loading assertion failed. R26 records a pending research-runs GET but does not establish its cause. Strategy gates the list query on first pane visibility and aborts a still-pending initial list request after15s with visible Retry loading runs. A later successful shared-cache run-list update clears that list-load error without clearing mutation errors; the focused Results module passes70/70 and frontend type-check exits0. These changes do not prove the backend/relay latency cause or browser recovery. Root owns exact-candidate browser verification; no current-source browser result is claimed.",
+  "current_blocker": "Root R26 remains historical1pass/2fail on frontend77190340/backenddcd3c823; its pending /research/runs GET did not identify a cause. Strategy retains the visibility-gated Results query, abortable15s timeout and explicit retry. The count-only list endpoint now loads artifact IDs without saved JSON payloads while run detail keeps full payload access; the focused research-router module passes15/15. This reduces avoidable list I/O but does not establish the prior pending request cause. Root reported four affected ordinary browser journeys running against TC1fdc92f1 and Providerdd70319e; no terminal outcome is recorded here. RRG Restore remains open with TC. Full browser/profile and release gates remain Root-owned.",
   "current_execution_checkpoint": {
     "authority": "Human-activated platform-usability plan; existing session-local goal aligned in place by Root, no objective/accounting reset.",
     "full_roadmap_preserved": true,
-    "heavy_profile": "Root R26 was partial1pass/2fail on frontend77190340/backenddcd3c823. Strategy gates the initial Results list query on pane visibility, adds an abortable15s request deadline with visible retry, and clears only list-load errors on successful cache updates; the focused Results module passes70/70 and frontend type-check exits0. TC45 is consumed for development only. No exact-current browser or release acceptance is established; Root owns the next fixture and combined gate.",
+    "heavy_profile": "Root R26 was1pass/2fail on predecessor pins; current exact candidate has no terminal browser result in this record. The Strategy Results list avoids unnecessary saved-artifact JSON payload loading and its focused Research router module passes15/15. Root reported four affected ordinary journeys running under TC1fdc92f1/Providerdd70319e; Root owns the browser outcome and full qualification.",
     "id": "strategy-study-usability-2026-11-06",
     "status": "in_progress",
-    "next_action": "Hand Root the next coherent Strategy source with the bounded lookback call-site repair, truthful deferred-evaluation UI, Results visibility gate plus abortable initial-load timeout/retry, exact TC45 and Provider dcd development inputs, and corrected Study/workstation journeys. Keep R26 red history and RRG Restore/browser verification open; the request latency cause remains unknown. Do not start a competing fixture or broaden the roadmap. Preserve all18 criteria and disabled native/broker/capital/paid/trial/provider-live holds."
+    "next_action": "Receive Root terminal evidence for the four current affected ordinary browser journeys, then address any concrete Strategy-owned failure. Preserve earlier R26 red outcomes, the full18-criterion roadmap and all native/broker/capital/paid/trial/provider-live holds; do not start a competing fixture."
   },
   "dirty_paths": [
-    "frontend/src/components/workstation/ResearchResultsTool.vue",
-    "frontend/tests/unit/components/test_research_results_tool.test.ts",
+    "backend/app/routers/analysis.py",
+    "backend/app/routers/research.py",
+    "backend/tests/unit/routers/test_analysis_router.py",
+    "backend/tests/unit/routers/test_research_router.py",
+    "frontend/src/components/workstation/ToolWindow.vue",
+    "frontend/src/components/workstation/WorkspaceLayoutHost.vue",
+    "frontend/src/stores/chart.ts",
+    "frontend/tests/unit/components/test_workspace_layout_host.test.ts",
+    "frontend/tests/unit/stores/test_stores.test.ts",
     "ops/workstreams/feat-strategy-lab-v2/handoff.md",
     "ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
     "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
+    "ops/workstreams/feat-strategy-lab-v2/provider-runtime-consumption.json",
     "ops/workstreams/feat-strategy-lab-v2/session.json",
     "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
   ],
@@ -101,14 +109,14 @@
     }
   ],
   "goal_unavailable_reason": null,
-  "head": "fa0c2563c5c7fa888cc2cccd5cf5bf6c3b206ecb",
-  "implementation_sha": "fa0c2563c5c7fa888cc2cccd5cf5bf6c3b206ecb",
-  "last_checkpoint": "2026-11-07T09:38:36Z",
+  "head": "b5899a47e67c1d15b9fa5f5f23b2ad4ceebbec04",
+  "implementation_sha": "b5899a47e67c1d15b9fa5f5f23b2ad4ceebbec04",
+  "last_checkpoint": "2026-11-07T09:59:05Z",
   "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Hand Root the next coherent Strategy source with the bounded lookback call-site repair, truthful deferred-evaluation UI, Results visibility gate plus abortable initial-load timeout/retry, exact TC45 and Provider dcd development inputs, and corrected Study/workstation journeys. Keep R26 red history and RRG Restore/browser verification open; the request latency cause remains unknown. Do not start a competing fixture or broaden the roadmap. Preserve all18 criteria and disabled native/broker/capital/paid/trial/provider-live holds.",
+  "next_action": "Receive Root terminal evidence for the four current affected ordinary browser journeys, then address any concrete Strategy-owned failure. Preserve earlier R26 red outcomes, the full18-criterion roadmap and all native/broker/capital/paid/trial/provider-live holds; do not start a competing fixture.",
   "parent_branch": "staging",
-  "plan_hash": "179d8a31728350c4fff904e45b5c8ad5a3c1a986c0f4996d988723de44e415f1",
+  "plan_hash": "53bd4a59e52f7743ecfc7ef4f95f63e39520c6e5db3a3e639e799d59b7ee0afc",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -137,11 +145,11 @@
       "SU3",
       "SU4"
     ],
-    "current_blocker": "Root owns the existing combined browser qualification. Current focused Study/Results/Code Library suites pass148/148 (63/66/19), frontend type-check passes, and Playwright discovers all7 Strategy Study cases without executing browser bodies. The late successful Library create regression preserves a newer editable draft while announcing the completed asset. Provider580571e4 is the current development pin with all51 manifest entries verified; 21be and earlier pins remain historical. Actual browser/deployed acceptance and combined release remain pending; preserve all18 criteria and disabled holds.",
+    "current_blocker": "Root R26 remains historical1pass/2fail on frontend77190340/backenddcd3c823; its pending /research/runs GET did not identify a cause. Strategy retains the visibility-gated Results query, abortable15s timeout and explicit retry. The count-only list endpoint now loads artifact IDs without saved JSON payloads while run detail keeps full payload access; the focused research-router module passes15/15. This reduces avoidable list I/O but does not establish the prior pending request cause. Root reported four affected ordinary browser journeys running against TC1fdc92f1 and Providerdd70319e; no terminal outcome is recorded here. RRG Restore remains open with TC. Full browser/profile and release gates remain Root-owned.",
     "current_phase": "strategy-study-usability-2026-11-06",
-    "next_action": "Hand current Strategy domain source f2c191a and exact Provider580571e4 dependency to Root for exact consumer pinning and the existing combined app qualification. Keep browser/release gates Root-owned; do not push or start a separate fixture.",
+    "next_action": "Receive Root terminal evidence for the four current affected ordinary browser journeys, then address any concrete Strategy-owned failure. Preserve earlier R26 red outcomes, the full18-criterion roadmap and all native/broker/capital/paid/trial/provider-live holds; do not start a competing fixture.",
     "total": 9,
-    "updated_at": "2026-11-07T06:00:11Z"
+    "updated_at": "2026-11-07T09:59:05Z"
   },
   "remote": "c7f0585fc6735bbfe5e768836092419b13ce8a25",
   "remote_sha": "b555268b8237d1c50e34b39320b4cb18a8bd9a03",

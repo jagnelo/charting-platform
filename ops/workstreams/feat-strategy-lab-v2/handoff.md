@@ -19919,3 +19919,31 @@ Follow-up: list-load failures now use a separate error state from rerun/cancel/p
 successful shared Research-runs cache update clears the stale list-load alert without clearing an
 unrelated mutation error. The focused module now passes70/70 and frontend type-check remains green;
 browser verification is still pending Root.
+
+### Results list I/O and current shared development pins (2026-11-07)
+
+The ordinary `GET /research/runs?include_artifacts=false` projection returned artifact counts but
+eager-loaded every saved JSON payload for as many as100 runs. The Strategy list query now loads
+artifact IDs only, with raiseload for other artifact columns, while preserving `artifact_count` and
+the full payload path on `/research/runs/{id}`. The existing focused research-router module passes
+15/15; Ruff check/format and `git diff --check` pass. This is an I/O reduction, not a proven cause or
+fix for R26's pending initial list request.
+
+Provider `dd70319eb725dc6b5c1b4feb0ba5a5ba060efd04` is the current development pin under
+`/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providerdd70319e-runtime-development-consumption-contract.json`
+(SHA256 `9679b42e3e8dc4190d1b221b7b4ce7c0b86b3cd66d90e5a4f936eb8e61c6e95e`). Only the two declared
+Strategy analysis paths were imported after both predecessor guards passed. All61 source manifest
+entries were checked against the exact commit's SHA256, Git blob, base-to-source status, and
+executable-bit semantics. The two Strategy-owned research paths matched at import time and are now
+local Strategy deltas due to the current Results-list work. Root reports Ruff0.4.7 passed on all
+four delta files; its backend/worker rebuild was reported running. No Provider tests were rerun here.
+
+TC `1fdc92f1a1628d191ad1d5b2f0ba071a80df5052` is the current common-runtime development pin under
+`/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-1fdc92f1-common-runtime-development-consumption-contract.json`
+(SHA256 `fddaab9536bb885b9656e861ece0df60481466e365e2b04612c953404f57b70d`). All five Strategy
+predecessor guards passed; only those five paths were imported, and all77 manifest files now match
+the consumer by SHA256, Git blob, source status, and executable bit. Root reports the exact frontend
+build and four affected ordinary browser journeys running; no terminal browser outcome is recorded
+here. These are development pins, not release acceptance. Earlier Provider/TC pins and all prior red
+receipts remain historical. The R26 Results-loading cause, TC-owned RRG Restore defect, full browser
+profile, and original18-criterion roadmap remain open with all safety holds unchanged.

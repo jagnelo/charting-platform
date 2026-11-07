@@ -611,6 +611,7 @@ function install(layout: LayoutConfig) {
     const stack = container.parent.parentItem as any
     const maximized = ref(Boolean(stack.isMaximised))
     const maximizing = ref(false)
+    let pendingMaximizeSaves = 0
     const syncMaximized = () => {
       if (!maximizing.value) maximized.value = Boolean(stack.isMaximised)
     }
@@ -641,19 +642,24 @@ function install(layout: LayoutConfig) {
     const vnode = props.renderTool(tool, {
       maximized,
       toggleMaximize: () => {
-        if (maximizing.value) return Promise.resolve()
         const previous = Boolean(stack.isMaximised)
-        maximizing.value = true
+        if (props.persistLayout) maximizing.value = true
         stack.toggleMaximise?.()
+        // The dock state has changed synchronously. Keep the control label and
+        // accessible action aligned with the visible layout while the durable
+        // workspace snapshot is still being acknowledged.
+        maximized.value = Boolean(stack.isMaximised)
         const persist = Boolean(stack.isMaximised) !== previous ? props.persistLayout : undefined
         if (!persist) {
-          maximizing.value = false
+          maximizing.value = pendingMaximizeSaves > 0
           syncMaximized()
           return Promise.resolve()
         }
+        pendingMaximizeSaves += 1
         return persist().then(() => undefined).finally(() => {
-          maximizing.value = false
-          syncMaximized()
+          pendingMaximizeSaves = Math.max(0, pendingMaximizeSaves - 1)
+          maximizing.value = pendingMaximizeSaves > 0
+          if (!maximizing.value) syncMaximized()
         })
       },
       close: () => closeComponent(tool.instance_key),
