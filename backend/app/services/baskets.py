@@ -210,6 +210,9 @@ async def materialize_etf_holdings_basket(
         source_snapshot_id=snapshot.id,
         is_system_managed=True,
         is_read_only=True,
+        # Initialize the collection before flush so clear()/append() below
+        # cannot trigger implicit async lazy loading on a new basket.
+        members=[],
     )
     basket.name = f"{etf_instrument.symbol} holdings {snapshot.composition_date.isoformat()}"
     basket.description = (

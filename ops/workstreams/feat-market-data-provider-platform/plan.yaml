@@ -14950,9 +14950,9 @@ progress:
   - PLATFORM-PREP-6
   - PLATFORM-PREP-7
   total: 8
-  current_phase: duplicate_ensure_worker_row_lock_repair_focused_green
+  current_phase: etf_issuer_basket_async_materialization_dependency_consumed
   current_blocker: PLATFORM-PREP-8 full backend/DDL, exact-source CI and Root's combined release gates remain pending and Root-owned.
-  next_action: Root verifies repeated ensure against the exact local repair, then publishes one compatible candidate for the remaining required CI and combined release gates.
+  next_action: Root rebuilds the exact candidate and verifies the issuer-basket create/read/update/delete path; then continue Provider activation and maintenance work while exact CI and combined release gates remain pending.
 local_validation_profile: "full_stack_browser"
 local_validation_reason: >-
   API, persistence, queue, worker and provider-history routing are in scope; cumulative profile remains full_stack_browser/full_integration.
@@ -14988,7 +14988,7 @@ current_gate_checkpoint: >-
   jobs. The isolated real-PostgreSQL regression held the mocked history boundary, confirmed a second authenticated ensure returned within
   five seconds and reused the child, and verified both parents remain attached to the persisted continuation. The imported ETF view fixture
   now includes its actual SPY context; its focused module passed 20/20. Ruff, format, compile and diff checks pass. These are focused local
-  results only; Root's ordinary repeated-HTTP verification, exact-source CI and combined gates remain pending.
+  results only; Root's ordinary repeated-HTTP verification, exact-source CI and combined gates remain pending. Root has released the exact ETF basket async-materialization dependency from 055641eaafab37a8160908e974a3ec1a4483e7c6: only baskets.py and test_baskets.py were imported, and all five declared source blobs, hashes and 100644 modes match the contract. Focused ETF adapter/checkpoint-consumer modules passed 702 tests; Ruff check/format and diff checks pass. The integration regression uses the standard db_engine fixture which creates and drops all registered tables, so it was not pointed at Root's shared browser database; Root's isolated HTTP/PG replay remains pending. No source calls or quota/policy/ledger/production changes.
 previously_accepted_provider_history_identity_human_closure_authorization: >-
   Root accepted the prior bounded derived-history and retained-issuer-identity checkpoint under standing human delegation. Its evidence
   remains in derived_refresh_issuer_identity_followup and the append-only journal; it does not accept this newly activated scope.

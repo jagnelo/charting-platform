@@ -1,5 +1,11 @@
 # feat/market-data-provider-platform
 
+## 2026-11-07 — consumed ETF issuer-basket materialization dependency
+
+Root released source `055641eaafab37a8160908e974a3ec1a4483e7c6` for exact development consumption under `etf055641ea-domain-backend-development-consumption-contract.json` (SHA-256 `e981824b12ac3812b16676b8643978a448aa03239cb9169a598585c4b3619c90`). Imported only `backend/app/services/baskets.py` and `backend/tests/integration/api/test_baskets.py`; verified all five manifest files against the exact Git blobs, SHA-256 values, and `100644` modes.
+
+Focused unit verification: `backend/.venv/bin/pytest backend/tests/unit/services/test_etf_holdings_adapters.py backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py -q` passed 702 tests. Ruff check/format over the five manifest paths and `git diff --check` passed. The real-AsyncSession CRUD regression was not run here: its standard `db_engine` fixture calls `Base.metadata.create_all/drop_all`, and the available Root database is the shared browser fixture, not an isolated lease. Root owns the isolated API/PG replay. This is development consumption only; no ETF acceptance, provider/native request, quota/ledger/policy change, or release gate is claimed.
+
 ## 2026-11-06 — platform-usability release: shared preparation contract (active)
 
 The human activated the complete platform-usability plan in the original
