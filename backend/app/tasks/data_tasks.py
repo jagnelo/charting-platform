@@ -15,10 +15,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.database import AsyncSessionLocal
+from app.models.data_source import DataSource
 from app.models.instrument import Instrument
 from app.models.market_data_foundation import MarketRefreshJob
 from app.models.ohlcv import TIMEFRAME_SECONDS, OHLCVBar, Timeframe
-from app.models.provider_runtime import ProviderCapability
+from app.models.provider_runtime import ProviderCapability, ProviderPolicy
 from app.models.watchlist import Watchlist, WatchlistItem
 from app.models.workstation import (
     MarketGroup,
@@ -43,6 +44,384 @@ from app.services.market_universe import reconcile_us_universe, record_core_dail
 from app.services.provider_runtime import ProviderNoDataError, bind_explicit_provider_acquisition
 
 logger = logging.getLogger(__name__)
+
+
+def _configured_native_usage_providers() -> tuple[str, ...]:
+    """Return only the explicit operator allowlist for native usage refresh."""
+
+    configured = getattr(settings, "PROVIDER_ACCOUNT_USAGE_REFRESH_PROVIDERS", [])
+    if not settings.PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED or not isinstance(configured, list):
+        return ()
+    return tuple(
+        dict.fromkeys(
+            str(provider).strip().lower() for provider in configured if str(provider).strip()
+        )
+    )
+
+
+async def _native_operation_baseline_states(
+    db,
+    provider_name: str,
+    *,
+    capability: ProviderCapability,
+    operation: str,
+    now: datetime,
+):
+    """Read exact operation quota baselines without changing coordinator state."""
+
+    from app.services.provider_quota_coordinator import (
+        ProviderQuotaCoordinatorError,
+        provider_quota_baseline_status,
+    )
+    from app.services.provider_runtime import _dimension_applies_to_operation, quota_dimensions
+
+    source = (
+        await db.execute(select(DataSource).where(DataSource.name == provider_name))
+    ).scalar_one_or_none()
+    if source is None:
+        return None, "provider_source_missing"
+    policy = (
+        await db.execute(
+            select(ProviderPolicy).where(
+                ProviderPolicy.data_source_id == source.id,
+                ProviderPolicy.capability == capability,
+            )
+        )
+    ).scalar_one_or_none()
+    if policy is None or not policy.is_enabled:
+        return None, "provider_operation_not_enabled"
+    states = []
+    for dimension in quota_dimensions(policy):
+        if not _dimension_applies_to_operation(dimension, operation):
+            continue
+        if str(dimension.get("unit") or "").strip().lower() in {
+            "concurrent_requests",
+            "concurrency",
+        }:
+            continue
+        try:
+            state = provider_quota_baseline_status(
+                provider_name=provider_name,
+                capability=capability.value,
+                policy=policy,
+                dimension_name=str(dimension["name"]),
+                now=now,
+            )
+        except ProviderQuotaCoordinatorError:
+            return None, "native_quota_baseline_status_unavailable"
+        states.append((dimension, state))
+    if not states:
+        return None, "operation_quota_dimensions_missing"
+    return (policy, states), None
+
+
+async def _native_usage_job_for_operation_baseline(
+    db,
+    *,
+    provider_name: str,
+    capability: ProviderCapability,
+    operation: str,
+    priority: int,
+    now: datetime,
+) -> tuple[MarketRefreshJob | None, str | None, bool]:
+    """Queue one guarded native usage prerequisite for exact unknown pools.
+
+    Returns (job, hold_reason, needed). Known capacity exhaustion and unknown
+    or unsupported contracts never enter this path; only exact missing/stale
+    baselines reported by the durable coordinator do.
+    """
+
+    plan, reason = await _native_operation_baseline_states(
+        db,
+        provider_name,
+        capability=capability,
+        operation=operation,
+        now=now,
+    )
+    if plan is None:
+        return None, reason, bool(reason)
+    _operation_policy, states = plan
+    unknown = [(dimension, state) for dimension, state in states if state["status"] == "unknown"]
+    if not unknown:
+        return None, None, False
+
+    allowlist = _configured_native_usage_providers()
+    normalized_provider = provider_name.strip().lower()
+    if normalized_provider not in allowlist:
+        return None, "native_usage_refresh_not_enabled_for_provider", True
+
+    from app.services.provider_quota_coordinator import (
+        ProviderQuotaCoordinatorError,
+        provider_quota_baseline_status,
+    )
+    from app.services.provider_routing import quota_group_for_dimension
+    from app.services.provider_runtime import (
+        account_usage_reconciled_dimensions,
+        policy_allows_account_usage_bootstrap,
+        quota_dimensions,
+        resolve_provider_chain,
+    )
+
+    with bind_explicit_provider_acquisition(
+        request_id=f"native-usage-prerequisite:{normalized_provider}:{capability.value}:{operation}",
+        operations=frozenset({(ProviderCapability.ACCOUNT_USAGE, "fetch_account_usage")}),
+        provider_names=frozenset({normalized_provider}),
+    ):
+        usage_chain = await resolve_provider_chain(
+            db,
+            ProviderCapability.ACCOUNT_USAGE,
+            operation="fetch_account_usage",
+        )
+    usage = next(
+        (item for item in usage_chain if item.provider_name == normalized_provider),
+        None,
+    )
+    if usage is None or not policy_allows_account_usage_bootstrap(
+        usage.policy, "fetch_account_usage"
+    ):
+        return None, "native_usage_bootstrap_not_admitted", True
+
+    usage_policy_dimensions = quota_dimensions(usage.policy)
+    reconciled = account_usage_reconciled_dimensions(usage.policy, "fetch_account_usage")
+    compatible_dimensions: list[dict] = []
+    for history_dimension, history_state in unknown:
+        name = str(history_dimension["name"])
+        if name not in reconciled:
+            return None, "native_usage_dimension_not_reconciled", True
+        usage_matches = [
+            dimension
+            for dimension in usage_policy_dimensions
+            if str(dimension.get("name") or "") == name
+            and str(dimension.get("unit") or "").strip().lower()
+            not in {"concurrent_requests", "concurrency"}
+        ]
+        if len(usage_matches) != 1:
+            return None, "native_usage_dimension_contract_mismatch", True
+        usage_dimension = usage_matches[0]
+        try:
+            usage_state = provider_quota_baseline_status(
+                provider_name=normalized_provider,
+                capability=ProviderCapability.ACCOUNT_USAGE.value,
+                policy=usage.policy,
+                dimension_name=name,
+                now=now,
+            )
+        except ProviderQuotaCoordinatorError:
+            return None, "native_usage_quota_contract_unavailable", True
+        # The usage observation is a prerequisite only when both contracts
+        # address the very same account pool/window. A similarly named counter
+        # with different scope, cap, or reset cannot authorize history.
+        if any(
+            history_state.get(key) != usage_state.get(key)
+            for key in (
+                "account_scope",
+                "quota_group",
+                "unit",
+                "limit_units",
+                "window_seconds",
+                "rolling",
+                "window_started_at",
+            )
+        ):
+            return None, "native_usage_dimension_contract_mismatch", True
+        if quota_group_for_dimension(
+            capability.value, history_dimension
+        ) != quota_group_for_dimension(ProviderCapability.ACCOUNT_USAGE.value, usage_dimension):
+            return None, "native_usage_dimension_contract_mismatch", True
+        compatible_dimensions.append(
+            {
+                "name": name,
+                "window_started_at": history_state["window_started_at"],
+                "window_seconds": history_state["window_seconds"],
+                "rolling": history_state["rolling"],
+            }
+        )
+
+    # Rolling windows use a stable duration bucket for deduplication; the
+    # coordinator still validates the actual observation timestamp at reserve.
+    key_parts = []
+    for item in compatible_dimensions:
+        if item["rolling"]:
+            epoch = int(now.timestamp())
+            window_key = epoch // max(1, int(item["window_seconds"]))
+        else:
+            window_key = item["window_started_at"]
+        key_parts.append((item["name"], window_key))
+    digest = hashlib.sha256(
+        json.dumps([normalized_provider, sorted(key_parts)], separators=(",", ":")).encode()
+    ).hexdigest()[:40]
+    request_key = f"native-usage:{normalized_provider}:{digest}"
+    job = await enqueue_refresh_job(
+        db,
+        request_key=request_key,
+        capability=ProviderCapability.ACCOUNT_USAGE.value,
+        priority=priority,
+        metadata_payload={
+            "provider_account_usage_refresh": {
+                "provider_name": normalized_provider,
+                "trigger_capability": capability.value,
+                "trigger_operation": operation,
+                "dimensions": compatible_dimensions,
+            }
+        },
+        now=now,
+        preserve_deferred_deadline=True,
+    )
+    if (
+        job.status == "completed"
+        and (job.result_summary or {}).get("preparation_status") != "ready"
+    ):
+        return job, "native_usage_refresh_not_qualified", True
+    return job, None, True
+
+
+async def _native_usage_prerequisite_for_operation(
+    db,
+    *,
+    capability: ProviderCapability,
+    operation: str,
+    instrument_id: int | None,
+    provider_symbol: str,
+    priority: int,
+    request_id: str,
+    now: datetime,
+) -> tuple[MarketRefreshJob | None, str | None, bool]:
+    """Find the first admitted provider operation needing native refresh."""
+
+    from app.services.provider_runtime import resolve_provider_chain
+
+    with bind_explicit_provider_acquisition(
+        request_id=request_id,
+        operations=frozenset({(capability, operation)}),
+        instrument_id=instrument_id,
+        symbol=provider_symbol,
+    ):
+        chain = await resolve_provider_chain(
+            db,
+            capability,
+            operation=operation,
+            instrument_id=instrument_id,
+            provider_symbol=provider_symbol,
+        )
+    for resolved in chain:
+        job, reason, needed = await _native_usage_job_for_operation_baseline(
+            db,
+            provider_name=resolved.provider_name,
+            capability=capability,
+            operation=operation,
+            priority=priority,
+            now=now,
+        )
+        if needed:
+            return job, reason, True
+    return None, None, False
+
+
+async def _defer_refresh_job_for_native_usage(
+    db,
+    *,
+    job: MarketRefreshJob,
+    usage_job: MarketRefreshJob,
+    capability: ProviderCapability,
+    operation: str,
+    now: datetime,
+) -> datetime:
+    """Persist the exact native prerequisite and wait without fetching source data."""
+
+    preparation = deepcopy((job.metadata_payload or {}).get("data_preparation_child") or {})
+    wait_for_job_ids = list(
+        dict.fromkeys(
+            [
+                *(int(value) for value in preparation.get("wait_for_job_ids", [])),
+                int(usage_job.id),
+            ]
+        )
+    )
+    preparation["wait_for_job_ids"] = wait_for_job_ids
+    payload = deepcopy(job.metadata_payload or {})
+    payload["data_preparation_child"] = preparation
+    job.metadata_payload = payload
+    retry_at = now + timedelta(seconds=20)
+    usage_retry_at = usage_job.next_attempt_at
+    if usage_job.status == "deferred" and usage_retry_at is not None:
+        usage_retry_at = (
+            usage_retry_at.replace(tzinfo=UTC)
+            if usage_retry_at.tzinfo is None
+            else usage_retry_at.astimezone(UTC)
+        )
+        retry_at = max(retry_at, usage_retry_at)
+    await retry_refresh_job(
+        db,
+        job,
+        f"waiting for native usage prerequisite {usage_job.id}",
+        retry_at=retry_at,
+        result_summary={
+            "preparation_status": "waiting",
+            "reason_code": "native_usage_baseline_refresh_pending",
+            "wait_for_job_id": usage_job.id,
+            "capability": capability.value,
+            "operation": operation,
+        },
+    )
+    return retry_at
+
+
+async def _run_native_usage_refresh_job(db, request: dict) -> dict:
+    """Run the existing native usage service and require current baselines."""
+
+    provider_name = str(request.get("provider_name") or "").strip().lower()
+    if not provider_name or provider_name not in _configured_native_usage_providers():
+        return {
+            "preparation_status": "held",
+            "reason_code": "native_usage_refresh_not_enabled_for_provider",
+        }
+    from app.services.provider_account_usage import refresh_provider_account_usage
+    from app.services.provider_runtime import bind_explicit_provider_acquisition
+
+    with bind_explicit_provider_acquisition(
+        request_id=f"native-usage-refresh-job:{provider_name}",
+        operations=frozenset({(ProviderCapability.ACCOUNT_USAGE, "fetch_account_usage")}),
+        provider_names=frozenset({provider_name}),
+    ):
+        usage_result = await refresh_provider_account_usage(db, provider_name=provider_name)
+    target_dimensions = {
+        str(item.get("name") or "")
+        for item in (request.get("dimensions") or [])
+        if isinstance(item, dict)
+    }
+    trigger_capability = ProviderCapability(
+        str(request.get("trigger_capability") or ProviderCapability.PRICE_HISTORY.value)
+    )
+    trigger_operation = str(request.get("trigger_operation") or "fetch_ohlcv")
+    states, state_reason = await _native_operation_baseline_states(
+        db,
+        provider_name,
+        capability=trigger_capability,
+        operation=trigger_operation,
+        now=datetime.now(UTC),
+    )
+    verified_dimensions: set[str] = set()
+    if states is not None:
+        _policy, dimension_states = states
+        verified_dimensions = {
+            str(dimension.get("name") or "")
+            for dimension, state in dimension_states
+            if str(dimension.get("name") or "") in target_dimensions
+            and state.get("status") == "verified"
+        }
+    baseline_verified = bool(target_dimensions) and verified_dimensions == target_dimensions
+    provider_observed = usage_result.get("status") == "refreshed" and usage_result.get(
+        "providers"
+    ) == [provider_name]
+    return {
+        "preparation_status": "ready" if provider_observed and baseline_verified else "held",
+        "reason_code": (
+            None
+            if provider_observed and baseline_verified
+            else state_reason or "native_usage_refresh_not_qualified"
+        ),
+        "dimensions_verified": sorted(verified_dimensions),
+    }
 
 
 def _maintenance_observation_bucket(observed_at: datetime) -> str:
@@ -833,6 +1212,15 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
         next_wakeup_at: datetime | None = None
         for job in jobs:
             try:
+                if job.capability == ProviderCapability.ACCOUNT_USAGE.value:
+                    request = (job.metadata_payload or {}).get(
+                        "provider_account_usage_refresh"
+                    ) or {}
+                    result_summary = await _run_native_usage_refresh_job(db, request)
+                    await db.refresh(job)
+                    await complete_refresh_job(db, job, result_summary=result_summary)
+                    completed += 1
+                    continue
                 if job.capability == "etf_holdings_preparation":
                     from app.services.data_preparation import _etf_holdings_preparer
 
@@ -904,12 +1292,15 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                     continue
                 if job.capability == "instrument_metadata":
                     preparation = (job.metadata_payload or {}).get("data_preparation_child") or {}
+                    from app.schemas.data_preparation import PreparationDataset
+
                     if preparation.get("kind") != "identity_profile":
                         raise ValueError("unsupported metadata preparation job")
                     from app.models.user import User
                     from app.routers.instruments import acquire_instrument
                     from app.schemas.instrument_acquisition import InstrumentAcquireRequest
                     from app.services.data_preparation import (
+                        _profile_payload_has_field,
                         expand_resolved_identity_dependency,
                         record_identity_preparation_outcome,
                     )
@@ -979,7 +1370,55 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                             and selected.primary_identifier_type not in {None, "internal", "cik"}
                             and selected.primary_identifier_value
                         )
+                        profile_preflight_held = False
                         if can_refresh_profile:
+                            (
+                                usage_job,
+                                usage_hold,
+                                usage_needed,
+                            ) = await _native_usage_prerequisite_for_operation(
+                                db,
+                                capability=ProviderCapability.INSTRUMENT_METADATA,
+                                operation="get_instrument_profile",
+                                instrument_id=selected.id,
+                                provider_symbol=selected.symbol,
+                                priority=job.priority,
+                                request_id=request_id,
+                                now=datetime.now(UTC),
+                            )
+                            if usage_needed and usage_hold is not None:
+                                profile_preflight_held = True
+                                result_summary = {
+                                    "preparation_status": "unavailable",
+                                    "reason_code": usage_hold,
+                                    "instrument_id": selected.id,
+                                }
+                                await record_identity_preparation_outcome(
+                                    db,
+                                    identity_job=job,
+                                    status="unavailable",
+                                    reason_code=usage_hold,
+                                    dataset_filter=PreparationDataset.PROFILE,
+                                )
+                            elif usage_needed and usage_job is not None:
+                                retry_at = await _defer_refresh_job_for_native_usage(
+                                    db,
+                                    job=job,
+                                    usage_job=usage_job,
+                                    capability=ProviderCapability.INSTRUMENT_METADATA,
+                                    operation="get_instrument_profile",
+                                    now=datetime.now(UTC),
+                                )
+                                retried += 1
+                                next_wakeup_at = min(next_wakeup_at or retry_at, retry_at)
+                                continue
+                        if profile_preflight_held:
+                            pass
+                        elif can_refresh_profile:
+                            required_profile_fields = tuple(
+                                str(value)
+                                for value in (preparation.get("required_profile_fields") or [])
+                            )
                             with bind_explicit_provider_acquisition(
                                 request_id=request_id,
                                 operations=frozenset(
@@ -999,6 +1438,7 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                                     instrument_id=selected.id,
                                     persist=True,
                                     raise_provider_errors=True,
+                                    required_profile_fields=required_profile_fields,
                                 )
                             if (
                                 profile is None
@@ -1015,6 +1455,36 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                                     identity_job=job,
                                     status="unavailable",
                                     reason_code="provider_profile_not_available",
+                                    dataset_filter=PreparationDataset.PROFILE,
+                                )
+                            elif any(
+                                not _profile_payload_has_field(
+                                    profile.provider,
+                                    {"extra": profile.extra or {}},
+                                    field,
+                                )
+                                for field in required_profile_fields
+                            ):
+                                result_summary = {
+                                    "preparation_status": "unavailable",
+                                    "reason_code": "required_profile_field_unavailable",
+                                    "missing_profile_fields": [
+                                        field
+                                        for field in required_profile_fields
+                                        if not _profile_payload_has_field(
+                                            profile.provider,
+                                            {"extra": profile.extra or {}},
+                                            field,
+                                        )
+                                    ],
+                                    "instrument_id": selected.id,
+                                }
+                                await record_identity_preparation_outcome(
+                                    db,
+                                    identity_job=job,
+                                    status="unavailable",
+                                    reason_code="required_profile_field_unavailable",
+                                    dataset_filter=PreparationDataset.PROFILE,
                                 )
                             else:
                                 result_summary = {
@@ -1022,64 +1492,107 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                                     "instrument_id": selected.id,
                                 }
                         else:
-                            response = await acquire_instrument(
-                                InstrumentAcquireRequest(
-                                    symbol=str(preparation["symbol"]), request_id=request_id
-                                ),
-                                db=db,
-                                current_user=owner,
+                            symbol = str(preparation["symbol"])
+                            (
+                                usage_job,
+                                usage_hold,
+                                usage_needed,
+                            ) = await _native_usage_prerequisite_for_operation(
+                                db,
+                                capability=ProviderCapability.INSTRUMENT_SEARCH,
+                                operation="search_instruments",
+                                instrument_id=None,
+                                provider_symbol=symbol,
+                                priority=job.priority,
+                                request_id=request_id,
+                                now=datetime.now(UTC),
                             )
-                            if response.status == "resolved" and response.instrument is not None:
-                                await db.refresh(job)
-                                await expand_resolved_identity_dependency(
-                                    db,
-                                    identity_job=job,
-                                    instrument_id=response.instrument.instrument_id,
-                                )
-                            retry_at = next(
-                                (
-                                    item.retry_at
-                                    for item in response.source_outcomes
-                                    if item.retry_at
-                                ),
-                                None,
-                            )
-                            more_jobs = True
-                            if response.status != "resolved":
+                            if usage_needed and usage_hold is not None:
                                 await record_identity_preparation_outcome(
                                     db,
                                     identity_job=job,
-                                    status=response.status,
-                                    reason_code=response.reason_code,
-                                    retry_at=retry_at,
+                                    status="unavailable",
+                                    reason_code=usage_hold,
                                 )
-                            if response.status == "held" and retry_at is not None:
-                                await db.refresh(job)
-                                await retry_refresh_job(
+                                result_summary = {
+                                    "preparation_status": "unavailable",
+                                    "reason_code": usage_hold,
+                                    "symbol": symbol,
+                                }
+                            elif usage_needed and usage_job is not None:
+                                retry_at = await _defer_refresh_job_for_native_usage(
                                     db,
-                                    job,
-                                    response.reason_code or "provider admission held",
-                                    retry_at=retry_at,
-                                    result_summary={
-                                        "preparation_status": "held",
-                                        "reason_code": response.reason_code,
-                                    },
+                                    job=job,
+                                    usage_job=usage_job,
+                                    capability=ProviderCapability.INSTRUMENT_SEARCH,
+                                    operation="search_instruments",
+                                    now=datetime.now(UTC),
                                 )
                                 retried += 1
                                 next_wakeup_at = min(next_wakeup_at or retry_at, retry_at)
                                 continue
-                            result_summary = {
-                                "preparation_status": (
-                                    "ready" if response.status == "resolved" else response.status
-                                ),
-                                "reason_code": response.reason_code,
-                                "retry_at": retry_at.isoformat() if retry_at else None,
-                                "instrument_id": (
-                                    response.instrument.instrument_id
-                                    if response.instrument is not None
-                                    else None
-                                ),
-                            }
+                            else:
+                                response = await acquire_instrument(
+                                    InstrumentAcquireRequest(symbol=symbol, request_id=request_id),
+                                    db=db,
+                                    current_user=owner,
+                                )
+                                if (
+                                    response.status == "resolved"
+                                    and response.instrument is not None
+                                ):
+                                    await db.refresh(job)
+                                    await expand_resolved_identity_dependency(
+                                        db,
+                                        identity_job=job,
+                                        instrument_id=response.instrument.instrument_id,
+                                    )
+                                retry_at = next(
+                                    (
+                                        item.retry_at
+                                        for item in response.source_outcomes
+                                        if item.retry_at
+                                    ),
+                                    None,
+                                )
+                                more_jobs = True
+                                if response.status != "resolved":
+                                    await record_identity_preparation_outcome(
+                                        db,
+                                        identity_job=job,
+                                        status=response.status,
+                                        reason_code=response.reason_code,
+                                        retry_at=retry_at,
+                                    )
+                                if response.status == "held" and retry_at is not None:
+                                    await db.refresh(job)
+                                    await retry_refresh_job(
+                                        db,
+                                        job,
+                                        response.reason_code or "provider admission held",
+                                        retry_at=retry_at,
+                                        result_summary={
+                                            "preparation_status": "held",
+                                            "reason_code": response.reason_code,
+                                        },
+                                    )
+                                    retried += 1
+                                    next_wakeup_at = min(next_wakeup_at or retry_at, retry_at)
+                                    continue
+                                result_summary = {
+                                    "preparation_status": (
+                                        "ready"
+                                        if response.status == "resolved"
+                                        else response.status
+                                    ),
+                                    "reason_code": response.reason_code,
+                                    "retry_at": retry_at.isoformat() if retry_at else None,
+                                    "instrument_id": (
+                                        response.instrument.instrument_id
+                                        if response.instrument is not None
+                                        else None
+                                    ),
+                                }
                     await db.refresh(job)
                     await complete_refresh_job(db, job, result_summary=result_summary)
                     completed += 1
@@ -1157,6 +1670,67 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                         )
                         completed += 1
                         continue
+                    if source_provider:
+                        (
+                            usage_job,
+                            usage_hold,
+                            usage_needed,
+                        ) = await _native_usage_job_for_operation_baseline(
+                            db,
+                            provider_name=source_provider,
+                            capability=ProviderCapability.PRICE_HISTORY,
+                            operation="fetch_ohlcv",
+                            priority=job.priority,
+                            now=datetime.now(UTC),
+                        )
+                        if usage_needed and usage_hold is not None:
+                            await complete_refresh_job(
+                                db,
+                                job,
+                                result_summary={
+                                    "preparation_status": "held",
+                                    "reason_code": usage_hold,
+                                    "retry_at": None,
+                                    "instrument_id": instrument.id,
+                                    "timeframe": timeframe.value,
+                                },
+                            )
+                            completed += 1
+                            continue
+                        if usage_needed and usage_job is not None:
+                            preparation = deepcopy(preparation)
+                            wait_ids = list(
+                                dict.fromkeys(
+                                    [
+                                        *(
+                                            int(value)
+                                            for value in preparation.get("wait_for_job_ids", [])
+                                        ),
+                                        int(usage_job.id),
+                                    ]
+                                )
+                            )
+                            preparation["wait_for_job_ids"] = wait_ids
+                            payload = deepcopy(job.metadata_payload or {})
+                            payload["data_preparation_child"] = preparation
+                            job.metadata_payload = payload
+                            if usage_job.status == "completed":
+                                await complete_refresh_job(
+                                    db,
+                                    job,
+                                    result_summary={
+                                        "preparation_status": "held",
+                                        "reason_code": "native_usage_refresh_not_qualified",
+                                        "retry_at": None,
+                                        "instrument_id": instrument.id,
+                                        "timeframe": timeframe.value,
+                                    },
+                                )
+                                completed += 1
+                                continue
+                            raise RefreshDependencyPending(
+                                retry_at=datetime.now(UTC) + timedelta(seconds=20)
+                            )
                     try:
                         with bind_explicit_provider_acquisition(
                             request_id=f"data-preparation:{job.id}",
@@ -1531,7 +2105,18 @@ async def refresh_provider_account_usage_snapshots(ctx: dict) -> dict:
         results = []
         for provider in providers:
             try:
-                results.append(await refresh_provider_account_usage(db, provider_name=provider))
+                with bind_explicit_provider_acquisition(
+                    request_id=f"scheduled-native-usage-refresh:{provider}",
+                    operations=frozenset(
+                        {(ProviderCapability.ACCOUNT_USAGE, "fetch_account_usage")}
+                    ),
+                    provider_names=frozenset({provider.strip().lower()}),
+                ):
+                    results.append(
+                        await refresh_provider_account_usage(
+                            db, provider_name=provider.strip().lower()
+                        )
+                    )
             except Exception as exc:  # noqa: BLE001 - keep one provider failure from suppressing others.
                 results.append(
                     {

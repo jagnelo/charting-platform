@@ -2876,7 +2876,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       return composition
     } catch (cause: any) {
       if (!isCurrentAnalysisRequest(requestKey, generation)) return null
-      if (cause?.status === 404) etfIndustries.value = { ...etfIndustries.value, [normalized]: null }
+      if (cause?.status === 404 && !etfIndustries.value[normalized]) {
+        etfIndustries.value = { ...etfIndustries.value, [normalized]: null }
+      }
       etfIndustryErrors.value = {
         ...etfIndustryErrors.value,
         [normalized]: cause?.status === 404

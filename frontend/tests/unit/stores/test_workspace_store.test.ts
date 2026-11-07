@@ -2138,6 +2138,23 @@ describe('workspace store layout tabs', () => {
     expect(store.etfIndustryErrors.XLB).toBeNull()
   })
 
+  it('retains cached dated industry composition when a refresh has no current result', async () => {
+    const store = useWorkspaceStore()
+    const cached = {
+      etf_symbol: 'XLB', composition_date: '2026-11-02', known_at: '2026-11-03T08:15:00Z',
+      provenance: 'dated_holdings_snapshot', source_provider: 'controlled-source', completeness_status: 'complete',
+      industries: [{ industry: 'Chemicals', constituent_count: 2, resolved_count: 2 }], exclusions: [],
+    }
+    store.etfIndustries = { XLB: cached as never }
+    const missing = Object.assign(new Error('not found'), { status: 404 })
+    apiGet.mockRejectedValueOnce(missing)
+
+    await store.loadETFIndustries('XLB')
+
+    expect(store.etfIndustries.XLB).toEqual(cached)
+    expect(store.etfIndustryErrors.XLB).toContain('No dated holdings classification')
+  })
+
   it('keeps an industry selection while ETF hydration completes after the click', async () => {
     const holdings = deferred<unknown>()
     apiGet.mockImplementation((path: string) => {

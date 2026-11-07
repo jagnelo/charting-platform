@@ -159,6 +159,7 @@ vi.mock('vue-router', async (importOriginal) => {
 
 import WorkstationView from '@/views/WorkstationView.vue'
 import { resolveKnownInstrument } from '@/lib/instruments'
+import { holdingDrilldownRouteQuery } from '@/lib/etfHoldingDrilldown'
 
 function readyPreparationResponse(request: any, call = 1) {
   const now = '2026-11-06T12:00:00Z'
@@ -261,6 +262,10 @@ const ToolStub = defineComponent({
 describe('WorkstationView pop-out bindings', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    const historyState = { ...(window.history.state ?? {}) }
+    delete historyState.tcHoldingSelectionHandoff
+    delete historyState.tcHoldingIdentityHandoff
+    window.history.replaceState(historyState, '', window.location.href)
     refreshMountedPanels.mockReset().mockResolvedValue(undefined)
     harness.popoutWindow.configuration = {}
     harness.chartWindow.configuration = {}
@@ -1107,7 +1112,7 @@ describe('WorkstationView pop-out bindings', () => {
     wrapper.unmount()
   })
 
-  it('uses shared admitted-history preparation only for deliberate Space traversal', async () => {
+  it('prepares the visible default chart and also prepares deliberate Space traversal', async () => {
     routeState.path = '/'
     routeState.params = {}
     apiGet.mockResolvedValue([])
@@ -1116,17 +1121,23 @@ describe('WorkstationView pop-out bindings', () => {
     })
     await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY' })))
 
-    expect(dataPreparationPost).not.toHaveBeenCalled()
+    await vi.waitFor(() => expect(dataPreparationPost).toHaveBeenCalledTimes(1))
+    expect(dataPreparationPost.mock.calls[0]?.[0]).toMatchObject({
+      target: { kind: 'instrument', symbol: 'SPY' }, datasets: ['identity', 'profile', 'history'], timeframe: 'D1', adjusted: true,
+    })
+    expect(dataPreparationPost.mock.calls[0]?.[0]).not.toHaveProperty('start_at')
+    expect(dataPreparationPost.mock.calls[0]?.[0]).not.toHaveProperty('end_at')
     const workstation = wrapper.find('.workstation').element
-    workstation.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true }))
-    await vi.waitFor(() => expect(dataPreparationPost).toHaveBeenCalled())
-    const firstRequest = dataPreparationPost.mock.calls[0][0]
-    expect(firstRequest).toMatchObject({ datasets: ['identity', 'profile', 'history'], timeframe: 'D1', adjusted: true })
-    expect(firstRequest).not.toHaveProperty('start_at')
-    expect(firstRequest).not.toHaveProperty('end_at')
     const firstRequestCount = dataPreparationPost.mock.calls.length
-    workstation.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', ctrlKey: true, bubbles: true, cancelable: true }))
+    workstation.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true }))
     await vi.waitFor(() => expect(dataPreparationPost.mock.calls.length).toBeGreaterThan(firstRequestCount))
+    const traversedRequest = dataPreparationPost.mock.calls[firstRequestCount]?.[0]
+    expect(traversedRequest).toMatchObject({ datasets: ['identity', 'profile', 'history'], timeframe: 'D1', adjusted: true })
+    expect(traversedRequest).not.toHaveProperty('start_at')
+    expect(traversedRequest).not.toHaveProperty('end_at')
+    const secondRequestCount = dataPreparationPost.mock.calls.length
+    workstation.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', ctrlKey: true, bubbles: true, cancelable: true }))
+    await vi.waitFor(() => expect(dataPreparationPost.mock.calls.length).toBeGreaterThan(secondRequestCount))
     expect(dataPreparationPost.mock.calls.at(-1)?.[0]).toMatchObject({ datasets: ['identity', 'profile', 'history'], timeframe: 'D1' })
     expect(dataPreparationPost.mock.calls.at(-1)?.[0]).not.toHaveProperty('start_at')
     expect(dataPreparationPost.mock.calls.at(-1)?.[0]).not.toHaveProperty('end_at')
@@ -2095,7 +2106,131 @@ describe('WorkstationView pop-out bindings', () => {
     wrapper.unmount()
   })
 
-  it('passively hydrates the fresh plain-chart ETF context without acquiring source data', async () => {
+  it('opens a private basket route through the shared chart store without ticker identity or profile requests', async () => {
+    routeState.path = '/chart/BASKET%3A8'
+    routeState.params = { symbol: 'BASKET:8' }
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    try {
+      await vi.waitFor(() => expect(harness.chart.loadBars).toHaveBeenCalledWith('BASKET:8', 'D1', 'candles', true))
+      expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'BASKET:8' }))
+      expect(resolveKnownInstrument).not.toHaveBeenCalledWith('BASKET:8', expect.anything(), expect.anything())
+      expect(apiGet).not.toHaveBeenCalledWith('/instruments/BASKET:8', expect.anything())
+      expect(harness.workspace.loadTechnical).not.toHaveBeenCalledWith('BASKET:8')
+      expect(harness.workspace.loadETFHoldings).not.toHaveBeenCalledWith('BASKET:8')
+      expect(harness.workspace.loadETFIndustries).not.toHaveBeenCalledWith('BASKET:8')
+      expect(dataPreparationPost).not.toHaveBeenCalled()
+      expect(harness.recent.add).not.toHaveBeenCalledWith('BASKET:8', expect.anything(), expect.anything())
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
+  it('consumes a verified selected-holding route on the dashboard and fences its late history response', async () => {
+    const context = {
+      etfSymbol: 'IWM',
+      instrumentId: 8802,
+      canonicalSymbol: 'UNXQ',
+      snapshotId: 8801,
+      compositionDate: '2026-10-27',
+      knownAt: '2026-10-28T12:00:00Z',
+      provenance: 'issuer_current_holdings',
+      sourceProvider: 'fixture-only',
+      holdingRowId: 8803,
+      sourceRowId: 'issuer-row-8803',
+      reportedSymbol: 'UNXQ',
+      reportedName: 'Uncached Example Equity',
+      holdingType: 'equity',
+    }
+    const confirmedIdentity = {
+      request_id: 'resolved-unxq',
+      status: 'resolved',
+      instrument: { instrument_id: 8802, symbol: 'UNXQ', identity_status: 'verified', instrument_type: 'Equity' },
+      source_outcomes: [],
+    }
+    const previousHistoryState = window.history.state
+    routeState.path = '/chart/UNXQ'
+    routeState.params = { symbol: 'UNXQ' }
+    routeState.query = { ...holdingDrilldownRouteQuery(context), holding_history_intent: 'selected' }
+    window.history.replaceState({
+      ...(previousHistoryState && typeof previousHistoryState === 'object' ? previousHistoryState : {}),
+      tcHoldingSelectionHandoff: JSON.stringify(context),
+      tcHoldingIdentityHandoff: JSON.stringify(confirmedIdentity),
+    }, '', window.location.href)
+    let resolveOriginalPreparation!: (value: any) => void
+    dataPreparationPost.mockImplementationOnce(() => new Promise(resolve => { resolveOriginalPreparation = resolve }))
+    dataPreparationPost.mockImplementation(async (request: any) => readyPreparationResponse(request, dataPreparationPost.mock.calls.length))
+    harness.workspace.publishSymbol.mockImplementation((event: any) => { harness.workspace.linkedSymbol = event.symbol })
+    harness.workspace.setConstituentETF.mockImplementation((symbol: string | null) => { harness.workspace.constituentETF = symbol })
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    try {
+      await vi.waitFor(() => expect(dataPreparationPost).toHaveBeenCalledTimes(1))
+      expect(harness.workspace.setConstituentETF).toHaveBeenCalledWith('IWM')
+      expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'UNXQ', instrumentId: 8802 }))
+      expect(dataPreparationPost.mock.calls[0]?.[0]).toMatchObject({ target: { kind: 'instrument', instrument_id: 8802 } })
+      expect(resolveKnownInstrument).not.toHaveBeenCalledWith('UNXQ', expect.anything(), expect.anything())
+      expect(window.history.state.tcHoldingSelectionHandoff).toBeUndefined()
+      expect(window.history.state.tcHoldingIdentityHandoff).toBeUndefined()
+
+      const input = wrapper.get('input[aria-label="Active symbol"]')
+      await input.setValue('QQQ')
+      await wrapper.findAll('button').find(button => button.text() === 'Go')!.trigger('click')
+      await vi.waitFor(() => expect(dataPreparationPost).toHaveBeenCalledTimes(2))
+      expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'QQQ' }))
+
+      resolveOriginalPreparation(readyPreparationResponse(dataPreparationPost.mock.calls[0]![0], 1))
+      await flushPromises()
+      expect(wrapper.find('[data-testid="active-holding-lineage"]').exists()).toBe(false)
+      expect(wrapper.text()).not.toContain('History for UNXQ')
+      expect(harness.workspace.constituentETF).toBeNull()
+    } finally {
+      wrapper.unmount()
+      const nextState = { ...(window.history.state ?? {}) }
+      delete nextState.tcHoldingSelectionHandoff
+      delete nextState.tcHoldingIdentityHandoff
+      window.history.replaceState(nextState, '', window.location.href)
+    }
+  })
+
+  it('does not trust a replayed dated holding URL as membership or instrument identity', async () => {
+    const context = {
+      etfSymbol: 'IWM',
+      instrumentId: 8802,
+      canonicalSymbol: 'UNXQ',
+      snapshotId: 8801,
+      compositionDate: '2026-10-27',
+      knownAt: '2026-10-28T12:00:00Z',
+      provenance: 'issuer_current_holdings',
+      sourceProvider: 'fixture-only',
+      holdingRowId: 8803,
+      sourceRowId: 'issuer-row-8803',
+      reportedSymbol: 'UNXQ',
+      reportedName: 'Uncached Example Equity',
+      holdingType: 'equity',
+    }
+    routeState.path = '/chart/UNXQ'
+    routeState.params = { symbol: 'UNXQ' }
+    routeState.query = { ...holdingDrilldownRouteQuery(context), holding_history_intent: 'selected' }
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    try {
+      await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'UNXQ' })))
+      await vi.waitFor(() => expect(dataPreparationPost).toHaveBeenCalledTimes(1))
+      expect(resolveKnownInstrument).toHaveBeenCalledWith('UNXQ', 'Workstation symbol', { canonicalOnly: true })
+      expect(dataPreparationPost.mock.calls[0]?.[0]).toMatchObject({ target: { kind: 'instrument', instrument_id: 77 } })
+      expect(dataPreparationPost.mock.calls[0]?.[0].target).not.toMatchObject({ instrument_id: 8802 })
+      expect(harness.workspace.setConstituentETF).not.toHaveBeenCalledWith('IWM')
+      expect(wrapper.find('[data-testid="active-holding-lineage"]').exists()).toBe(false)
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
+  it('hydrates local ETF data and starts shared preparation on a fresh plain-chart mount', async () => {
     routeState.path = '/chart'
     routeState.params = {}
     harness.workspace.constituentETF = null
@@ -2106,8 +2241,96 @@ describe('WorkstationView pop-out bindings', () => {
     try {
       await vi.waitFor(() => expect(harness.workspace.loadETFHoldings).toHaveBeenCalledWith('SPY'))
       expect(harness.workspace.loadETFIndustries).toHaveBeenCalledWith('SPY')
+      await vi.waitFor(() => expect(dataPreparationPost).toHaveBeenCalledTimes(1))
+      expect(dataPreparationPost.mock.calls[0]?.[0]).toMatchObject({ target: { kind: 'instrument', symbol: 'SPY' } })
       expect(apiPost).not.toHaveBeenCalled()
       expect(harness.workspace.setConstituentETF).toHaveBeenCalledWith(null)
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
+  it('shows newly prepared history on a cold canonical chart without another click or reload', async () => {
+    routeState.path = '/chart/NVDA'
+    routeState.params = { symbol: 'NVDA' }
+    vi.mocked(resolveKnownInstrument).mockResolvedValueOnce({ symbol: 'NVDA', id: 77001 })
+    harness.chart.bars = []
+    harness.chart.refreshLocalBars.mockImplementation(async () => {
+      harness.chart.bars = [{ time: '2026-11-06', open: 100, high: 102, low: 99, close: 101, volume: 10 }]
+    })
+    dataPreparationPost.mockImplementationOnce(async (request: any) => {
+      const partial = readyPreparationResponse(request, 1)
+      partial.status = 'partial'
+      partial.version = 1
+      partial.has_pending_work = true
+      partial.completed = 1
+      partial.total = 3
+      partial.dependencies.find((dependency: any) => dependency.dataset === 'profile')!.status = 'queued'
+      partial.dependencies.find((dependency: any) => dependency.dataset === 'history')!.status = 'partial'
+      return partial
+    })
+    apiGet.mockImplementation(async (path: string) => {
+      if (!path.startsWith('/data/requests/')) return []
+      const request = dataPreparationPost.mock.calls[0]?.[0]
+      const complete = readyPreparationResponse(request, 1)
+      complete.version = 2
+      return complete
+    })
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    try {
+      await vi.waitFor(() => expect(dataPreparationPost).toHaveBeenCalledTimes(1))
+      const request = dataPreparationPost.mock.calls[0]?.[0]
+      expect(request).toMatchObject({ target: { kind: 'instrument', instrument_id: 77001 } })
+      expect(request).not.toHaveProperty('start_at')
+      expect(request).not.toHaveProperty('end_at')
+      await vi.waitFor(() => expect(harness.chart.refreshLocalBars).toHaveBeenCalled())
+      expect(harness.chart.bars).toHaveLength(1)
+      expect(harness.chart.bars[0]).toMatchObject({ close: 101 })
+      expect((wrapper.get('input[aria-label="Active symbol"]').element as HTMLInputElement).value).toBe('NVDA')
+      expect(resolveKnownInstrument).toHaveBeenCalledWith('NVDA', 'Workstation symbol', { canonicalOnly: true })
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
+  it('renders an initially empty deep-linked chart from preparation progress without another interaction', async () => {
+    routeState.path = '/chart/NVDA'
+    routeState.params = { symbol: 'NVDA' }
+    vi.mocked(resolveKnownInstrument).mockResolvedValueOnce({ symbol: 'NVDA', id: 77001 })
+    harness.chart.bars = []
+    harness.chart.refreshLocalBars.mockImplementation(async () => {
+      harness.chart.bars = [{ time: '2026-11-06', open: 100, high: 102, low: 99, close: 101, volume: 10 }]
+    })
+    dataPreparationPost.mockImplementationOnce(async (request: any) => {
+      const partial = readyPreparationResponse(request, 1)
+      partial.status = 'partial'
+      partial.version = 1
+      partial.has_pending_work = true
+      partial.completed = 1
+      partial.total = 3
+      partial.dependencies.find((dependency: any) => dependency.dataset === 'profile')!.status = 'queued'
+      partial.dependencies.find((dependency: any) => dependency.dataset === 'history')!.status = 'partial'
+      return partial
+    })
+    apiGet.mockImplementation(async (path: string) => {
+      if (!path.startsWith('/data/requests/')) return []
+      const request = dataPreparationPost.mock.calls[0]?.[0]
+      return readyPreparationResponse(request, 2)
+    })
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    try {
+      await vi.waitFor(() => expect(dataPreparationPost).toHaveBeenCalledTimes(1))
+      expect(dataPreparationPost.mock.calls[0]?.[0]).toMatchObject({ target: { kind: 'instrument', instrument_id: 77001 } })
+      expect(dataPreparationPost.mock.calls[0]?.[0]).not.toHaveProperty('start_at')
+      expect(dataPreparationPost.mock.calls[0]?.[0]).not.toHaveProperty('end_at')
+      await vi.waitFor(() => expect(harness.chart.refreshLocalBars).toHaveBeenCalled())
+      expect(harness.chart.bars).toHaveLength(1)
+      expect(harness.chart.bars[0]).toMatchObject({ close: 101 })
+      expect((wrapper.get('input[aria-label="Active symbol"]').element as HTMLInputElement).value).toBe('NVDA')
     } finally {
       wrapper.unmount()
     }

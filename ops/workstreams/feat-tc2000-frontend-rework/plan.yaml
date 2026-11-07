@@ -1786,6 +1786,11 @@ shared_path_exceptions:
     ticker/history repair; preserve picker/type restrictions, expression semantics,
     event compatibility, and current-intent retry cancellation. No directory-wide
     ownership is granted.
+- path: frontend/src/lib/etfHoldingDrilldown.ts
+  reason: Exact shared holding-route parser/context helper for canonical /chart navigation;
+    preserve canonical instrument identity, snapshot/row/as-of/source provenance,
+    current-versus-historical eligibility, and old query compatibility. No directory-wide
+    ownership is granted.
 - path: backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py
   reason: Exact test-only shared dependency adopted from clean synchronized ETF source
     b25fc814ef301103337f343d57b859545fa5bb8f, blob
@@ -4658,9 +4663,9 @@ development_dependency_import_history:
     state: superseded_development_import
     superseded_by: 07490844c39d56e7023294f5e8798e4da2acdce0
 approved_development_dependency_imports:
-  - source_sha: 07490844c39d56e7023294f5e8798e4da2acdce0
-    manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/07490844c39d56e7023294f5e8798e4da2acdce0.json
-    manifest_sha256: 4ba7c34cc5926013668a9f28c7adc0cd74bc3ee0ce7c2378659f79b28d498c9b
+  - source_sha: 732da0f9f84ee495ee58ca3b9f8311839291ff59
+    manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/732da0f9f84ee495ee58ca3b9f8311839291ff59.json
+    manifest_sha256: d6508b43f603ef2d92d6dc00b63d53a4b9248b53ede7ad643eda8eab3ad00123
     paths:
     - backend/app/main.py
     - backend/app/providers/alpaca.py
@@ -4676,6 +4681,7 @@ approved_development_dependency_imports:
     - backend/app/services/e2e_seed.py
     - backend/app/services/etf_holdings_preparation.py
     - backend/app/services/etf_holdings_refresh.py
+    - backend/app/services/instrument_mastering.py
     - backend/app/services/market_data.py
     - backend/app/services/market_refresh_queue.py
     - backend/app/services/market_series.py
@@ -4695,8 +4701,12 @@ approved_development_dependency_imports:
     - backend/tests/unit/services/test_e2e_seed.py
     - backend/tests/unit/services/test_etf_holdings_preparation.py
     - backend/tests/unit/services/test_etf_holdings_preparation_hook.py
+    - backend/tests/unit/services/test_market_data.py
     - backend/tests/unit/services/test_market_refresh_queue.py
     - backend/tests/unit/services/test_market_series_defaults.py
+    - backend/tests/unit/services/test_provider_quota_coordinator.py
+    - backend/tests/unit/services/test_provider_runtime.py
     - backend/tests/unit/services/test_workstation_tool_catalogue.py
     - backend/tests/unit/tasks/test_data_tasks.py
+    - backend/tests/unit/tasks/test_native_usage_prerequisite.py
     - backend/tests/unit/workers/test_arq_worker.py

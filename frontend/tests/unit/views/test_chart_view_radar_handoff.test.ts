@@ -31,12 +31,28 @@ vi.mock('vue-router', () => ({
   }),
 }))
 
-vi.mock('@/lib/onDemandAcquisition', async importOriginal => {
-  const actual = await importOriginal<typeof import('@/lib/onDemandAcquisition')>()
-  return { ...actual, acquireSelectedHistory: vi.fn() }
+vi.mock('@/lib/dataPreparation', async importOriginal => {
+  const actual = await importOriginal<typeof import('@/lib/dataPreparation')>()
+  return { ...actual, dataPreparationCoordinator: { ensure: vi.fn() } }
 })
 
-import { acquireSelectedHistory } from '@/lib/onDemandAcquisition'
+import { dataPreparationCoordinator, type DataEnsureResponse } from '@/lib/dataPreparation'
+
+function readyPreparationResponse(overrides: Partial<DataEnsureResponse> = {}): DataEnsureResponse {
+  return {
+    request_id: 'chart-history-ready',
+    status: 'ready',
+    created_at: '2026-11-07T00:00:00Z',
+    updated_at: '2026-11-07T00:00:00Z',
+    version: 1,
+    target: { kind: 'instrument', symbol: 'QQQ' },
+    dependencies: [],
+    completed: 1,
+    total: 1,
+    last_progress_at: '2026-11-07T00:00:00Z',
+    ...overrides,
+  }
+}
 
 async function flushPromises() {
   await Promise.resolve()
@@ -48,25 +64,18 @@ describe('ChartView radar handoff', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.restoreAllMocks()
-    vi.mocked(acquireSelectedHistory).mockReset()
-    vi.mocked(acquireSelectedHistory).mockResolvedValue({
-      kind: 'already-covered',
-      coverage: { status: 'ready', bar_count: 1, missing_slices: [] },
-    })
+    vi.mocked(dataPreparationCoordinator.ensure).mockReset()
+    vi.mocked(dataPreparationCoordinator.ensure).mockResolvedValue(readyPreparationResponse())
     replace.mockReset()
     push.mockReset()
     route.params.symbol = ''
     route.query = {}
     route.path = '/chart'
-    vi.mocked(acquireSelectedHistory).mockResolvedValue({
-      kind: 'already-covered',
-      coverage: { status: 'ready', bar_count: 1, missing_slices: [] },
-    })
   })
 
   afterEach(() => vi.unstubAllGlobals())
 
-  function mountDeferredPresetsChart(delaySymbolLoad = false, initialSymbol = 'SPY') {
+  function mountDeferredPresetsChart(delaySymbolLoad = false, initialSymbol = 'SPY', pathPrefix = '/chart') {
     const pinia = createPinia()
     setActivePinia(pinia)
     const chartStore = useChartStore()
@@ -80,7 +89,7 @@ describe('ChartView radar handoff', () => {
     const radarStore = useRadarStore()
     layoutStore.layout = '1'
     route.params.symbol = initialSymbol
-    route.path = `/chart/${initialSymbol}`
+    route.path = `${pathPrefix}/${initialSymbol}`
 
     let presetsReady = false
     let resolvePresets!: () => void
@@ -94,8 +103,9 @@ describe('ChartView radar handoff', () => {
     ) as any)
     let resolveSymbolLoad!: () => void
     const symbolLoaded = delaySymbolLoad ? new Promise<void>(resolve => { resolveSymbolLoad = resolve }) : null
-    const globalLoad = vi.spyOn(chartStore, 'loadBars').mockImplementation(async (symbol: string) => {
+    const globalLoad = vi.spyOn(chartStore, 'loadBars').mockImplementation(async (symbol: string, timeframe = 'D1') => {
       chartStore.symbol = symbol
+      chartStore.timeframe = timeframe as typeof chartStore.timeframe
       if (symbolLoaded) await symbolLoaded
       chartStore.instrument = { id: 1, symbol, name: symbol, is_active: true, currency: 'USD' }
     })
@@ -116,8 +126,17 @@ describe('ChartView radar handoff', () => {
       global: {
         plugins: [pinia],
         stubs: {
-          SearchBar: { template: '<div />' },
-          TimeframeSelector: { template: '<div />' },
+          SearchBar: defineComponent({
+            name: 'SearchBarStub',
+            emits: ['select'],
+            template: '<button class="search-bar-stub" @click="$emit(\'select\', \'XLK\')">Select symbol</button>',
+          }),
+          TimeframeSelector: defineComponent({
+            props: { modelValue: { type: String, required: true } },
+            name: 'TimeframeSelectorStub',
+            emits: ['update:modelValue'],
+            template: '<button class="timeframe-w1-stub" @click="$emit(\'update:modelValue\', \'W1\')">W1</button>',
+          }),
           LayoutPicker: { template: '<div />' },
           DrawingToolbar: { template: '<div />' },
           IndicatorPanel: { template: '<div />' },
@@ -183,43 +202,91 @@ describe('ChartView radar handoff', () => {
     wrapper.unmount()
   })
 
-  it('checks local coverage and starts the shared bounded history flow after an ordinary chart selection only', async () => {
+  it('uses shared preparation for deliberate chart selection and timeframe changes without a viewport-limited range', async () => {
     const { chartStore, releasePresets, wrapper } = mountDeferredPresetsChart()
     await flushPromises()
     releasePresets()
     await flushPromises()
-    expect(acquireSelectedHistory).not.toHaveBeenCalled()
+    expect(dataPreparationCoordinator.ensure).toHaveBeenCalledWith(
+      expect.objectContaining({ target: { kind: 'instrument', instrument_id: 1 }, timeframe: 'D1' }),
+      expect.objectContaining({ signal: expect.any(Object), onProgress: expect.any(Function) }),
+    )
+    vi.mocked(dataPreparationCoordinator.ensure).mockClear()
 
     const cachedBars = [{ ts: '2026-11-02T14:30:00Z', open: 100, high: 102, low: 99, close: 101, is_adjusted: true }]
     chartStore.bars = cachedBars as typeof chartStore.bars
-    const refreshLocalBars = vi.spyOn(chartStore, 'refreshLocalBars').mockResolvedValue()
-    vi.mocked(acquireSelectedHistory).mockResolvedValueOnce({
-      kind: 'acquired',
-      coverage: { status: 'missing', bar_count: 0, missing_slices: [{ start: '2026-10-01T00:00:00Z', end: '2026-11-03T00:00:00Z' }] },
-      result: { status: 'complete', coverage: { status: 'ready', bar_count: 250, missing_slices: [] } } as never,
-    })
     const confirmedIdentity = {
       request_id: 'resolved-qqq',
       status: 'resolved' as const,
       instrument: { instrument_id: 22, symbol: 'QQQ', identity_status: 'verified' },
       source_outcomes: [],
     }
-    await (wrapper.vm as unknown as {
+    const vm = wrapper.vm as unknown as {
       onSymbolSelect: (symbol: string, result?: unknown, identity?: typeof confirmedIdentity) => Promise<void>
-    }).onSymbolSelect('QQQ', { symbol: 'QQQ', explicitlyResolved: true }, confirmedIdentity)
-    await vi.waitFor(() => expect(acquireSelectedHistory).toHaveBeenCalledWith(
-      'QQQ',
-      'D1',
-      true,
-      expect.objectContaining({ timeframe: 'D1', adjusted: true, start: expect.any(String), end: expect.any(String) }),
-      expect.any(Function),
-      expect.any(Function),
-      expect.any(Promise),
-      expect.objectContaining({ signal: expect.any(Object) }),
-    ))
-    await expect(vi.mocked(acquireSelectedHistory).mock.calls.at(-1)![6]).resolves.toEqual(confirmedIdentity)
-    await vi.waitFor(() => expect(refreshLocalBars).toHaveBeenCalledOnce())
+    }
+    await vm.onSymbolSelect('QQQ', { symbol: 'QQQ', explicitlyResolved: true }, confirmedIdentity)
+
+    const firstRequest = vi.mocked(dataPreparationCoordinator.ensure).mock.calls[0]?.[0]
+    expect(firstRequest).toMatchObject({
+      target: { kind: 'instrument', instrument_id: 22 },
+      datasets: ['identity', 'profile', 'history'],
+      timeframe: 'D1',
+      adjusted: true,
+    })
+    expect(firstRequest).not.toHaveProperty('start_at')
+    expect(firstRequest).not.toHaveProperty('end_at')
     expect(chartStore.bars).toEqual(cachedBars)
+
+    await wrapper.find('.timeframe-w1-stub').trigger('click')
+    await flushPromises()
+    const requests = vi.mocked(dataPreparationCoordinator.ensure).mock.calls.map(([request]) => request)
+    expect(requests.map(request => request.timeframe)).toEqual(['D1', 'W1'])
+    expect(requests.every(request => !Object.prototype.hasOwnProperty.call(request, 'start_at'))).toBe(true)
+    wrapper.unmount()
+  })
+
+  it('automatically refreshes a cold legacy chart as shared preparation produces usable history', async () => {
+    const { chartStore, releasePresets, wrapper } = mountDeferredPresetsChart(false, 'NVDA', '/legacy/chart')
+    const cachedBars: any[] = []
+    const newlyPreparedBars = [{ ts: '2026-11-06T14:30:00Z', open: 100, high: 104, low: 99, close: 103, is_adjusted: true }]
+    const refreshLocalBars = vi.spyOn(chartStore, 'refreshLocalBars').mockImplementation(async () => {
+      chartStore.bars = newlyPreparedBars as typeof chartStore.bars
+    })
+    let requestWasSubmittedAfterCache = false
+    vi.mocked(dataPreparationCoordinator.ensure).mockImplementationOnce(async (request, options) => {
+      requestWasSubmittedAfterCache = chartStore.symbol === 'NVDA' && chartStore.bars.length === cachedBars.length
+      expect(request).toMatchObject({
+        target: { kind: 'instrument', instrument_id: 1 },
+        datasets: ['identity', 'profile', 'history'],
+        timeframe: 'D1',
+      })
+      expect(request).not.toHaveProperty('start_at')
+      expect(request).not.toHaveProperty('end_at')
+      await options?.onProgress?.({
+        response: readyPreparationResponse({
+          status: 'partial',
+          dependencies: [{
+            dependency_id: 'nvda-history-progress', depends_on: [], instrument_id: 1, symbol: 'NVDA', dataset: 'history',
+            status: 'partial', requested_start: null, requested_end: null,
+            covered_start: '2026-11-06T14:30:00Z', covered_end: '2026-11-06T14:30:00Z', reason_code: null, retry_at: null,
+            updated_at: '2026-11-06T14:31:00Z',
+            covered_ranges: [{ start_at: '2026-11-06T14:30:00Z', end_at: '2026-11-06T14:30:00Z', data_source_id: null,
+              market_series_id: null, adjustment_basis: 'split', adjustment_version: '1', is_adjusted: true }],
+          }],
+        }),
+        completed: 1,
+        total: 2,
+      })
+      return readyPreparationResponse({ status: 'partial' })
+    })
+
+    await flushPromises()
+    releasePresets()
+    await vi.waitFor(() => expect(refreshLocalBars).toHaveBeenCalledOnce())
+
+    expect(requestWasSubmittedAfterCache).toBe(true)
+    expect(chartStore.bars).toEqual(newlyPreparedBars)
+    expect(wrapper.text()).toContain('Preparing admitted D1 history for NVDA')
     wrapper.unmount()
   })
 
@@ -228,20 +295,26 @@ describe('ChartView radar handoff', () => {
     await flushPromises()
     releasePresets()
     await flushPromises()
-    let finishFirst!: (value: unknown) => void
-    vi.mocked(acquireSelectedHistory)
-      .mockReturnValueOnce(new Promise(resolve => { finishFirst = resolve }) as never)
-      .mockResolvedValueOnce({ kind: 'already-covered', coverage: { status: 'ready', bar_count: 1, missing_slices: [] } })
+    vi.mocked(dataPreparationCoordinator.ensure).mockClear()
+    let finishFirst!: (value: DataEnsureResponse) => void
+    vi.mocked(dataPreparationCoordinator.ensure)
+      .mockReturnValueOnce(new Promise(resolve => { finishFirst = resolve }))
+      .mockResolvedValueOnce(readyPreparationResponse())
     const refreshLocalBars = vi.spyOn(chartStore, 'refreshLocalBars').mockResolvedValue()
     const vm = wrapper.vm as unknown as { onSymbolSelect: (symbol: string) => Promise<void> }
 
     await vm.onSymbolSelect('QQQ')
+    expect(dataPreparationCoordinator.ensure).toHaveBeenCalledTimes(1)
     await vm.onSymbolSelect('SPY')
-    finishFirst({
-      kind: 'acquired',
-      coverage: { status: 'missing', bar_count: 0, missing_slices: [] },
-      result: { status: 'complete', coverage: { status: 'ready', bar_count: 1, missing_slices: [] } },
-    })
+    finishFirst(readyPreparationResponse({
+      dependencies: [{
+        dependency_id: 'old-history', depends_on: [], instrument_id: 22, symbol: 'QQQ', dataset: 'history',
+        status: 'ready', requested_start: null, requested_end: null, covered_start: '2024-01-01T00:00:00Z',
+        covered_end: '2026-11-07T00:00:00Z', reason_code: null, retry_at: null, updated_at: '2026-11-07T00:00:00Z',
+        covered_ranges: [{ start_at: '2024-01-01T00:00:00Z', end_at: '2026-11-07T00:00:00Z', data_source_id: null,
+          market_series_id: null, adjustment_basis: 'split', adjustment_version: '1', is_adjusted: true }],
+      }],
+    }))
     await flushPromises()
 
     expect(chartStore.symbol).toBe('SPY')
@@ -285,11 +358,18 @@ describe('ChartView radar handoff', () => {
       query: holdingDrilldownRouteQuery(context),
     })
     expect(chartStore.loadBars).toHaveBeenCalledWith('UNXQ', expect.any(String), 'candles', true)
-    await expect(vi.mocked(acquireSelectedHistory).mock.calls.at(-1)![6]).resolves.toEqual(confirmedIdentity)
+    expect(dataPreparationCoordinator.ensure).toHaveBeenCalledWith(
+      expect.objectContaining({
+        target: { kind: 'instrument', instrument_id: 8802 },
+        datasets: ['identity', 'profile', 'history'],
+        timeframe: 'D1',
+      }),
+      expect.objectContaining({ signal: expect.any(Object), onProgress: expect.any(Function) }),
+    )
     wrapper.unmount()
   })
 
-  it('consumes an exact one-shot selection and identity handoff while direct holding URLs stay passive', async () => {
+  it('trusts only a one-shot holding selection handoff while bare dated routes prepare by loaded canonical identity', async () => {
     const confirmedIdentity = {
       request_id: 'resolved-unxq',
       status: 'resolved' as const,
@@ -335,22 +415,31 @@ describe('ChartView radar handoff', () => {
     chart.releasePresets()
     await flushPromises()
 
-    const selectedCall = vi.mocked(acquireSelectedHistory).mock.calls.at(-1)!
-    await expect(selectedCall[6]).resolves.toEqual(confirmedIdentity)
+    expect(dataPreparationCoordinator.ensure).toHaveBeenCalledWith(
+      expect.objectContaining({
+        target: { kind: 'instrument', instrument_id: 8802 },
+        datasets: ['identity', 'profile', 'history'],
+        timeframe: 'D1',
+      }),
+      expect.objectContaining({ signal: expect.any(Object), onProgress: expect.any(Function) }),
+    )
     expect(window.history.state.tcHoldingSelectionHandoff).toBeUndefined()
     expect(window.history.state.tcHoldingIdentityHandoff).toBeUndefined()
     chart.wrapper.unmount()
 
     route.params.symbol = 'UNXQ'
     window.history.replaceState({ key: 'tc-direct-url' }, '', '/legacy/chart/UNXQ')
-    vi.mocked(acquireSelectedHistory).mockClear().mockResolvedValue({
-      kind: 'already-covered', coverage: { status: 'ready', bar_count: 1, missing_slices: [] },
-    })
-    const directChart = mountDeferredPresetsChart(false, 'UNXQ')
+    vi.mocked(dataPreparationCoordinator.ensure).mockClear()
+    const directChart = mountDeferredPresetsChart(false, 'UNXQ', '/legacy/chart')
     await flushPromises()
     directChart.releasePresets()
     await flushPromises()
-    expect(vi.mocked(acquireSelectedHistory)).not.toHaveBeenCalled()
+    const directRequest = vi.mocked(dataPreparationCoordinator.ensure).mock.calls.at(-1)?.[0]
+    expect(directRequest).toMatchObject({
+      target: { kind: 'instrument', instrument_id: 1 },
+      datasets: ['identity', 'profile', 'history'],
+    })
+    expect(directRequest?.target).not.toEqual({ kind: 'instrument', instrument_id: 8802 })
     directChart.wrapper.unmount()
   })
 

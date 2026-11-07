@@ -1,20 +1,27 @@
 from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
+from unittest.mock import AsyncMock
 
 import pytest
 from fastapi import HTTPException
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 
+from app.models.data_source import DataSource
 from app.models.market_data_foundation import MarketRefreshJob
+from app.models.provider_observation import InstrumentProfileSnapshot
+from app.models.provider_runtime import ProviderCapability, ProviderPolicy
 from app.schemas.data_preparation import DataEnsureRequest
 from app.services.data_preparation import (
     _analysis_required_start,
+    _profile_is_fresh,
     _resolve_requested_instruments,
     create_data_preparation_request,
     create_maintenance_data_preparation_request,
     expand_resolved_identity_dependency,
     get_data_preparation_response,
 )
+from app.services.instrument_mastering import reconcile_instrument_profile
 from app.services.market_refresh_queue import claim_refresh_jobs
 from tests.unit.conftest import AsyncSessionAdapter
 
@@ -79,11 +86,237 @@ async def test_preparation_request_uses_tracking_parent_and_shared_history_child
     monthly = next(job for job in child_jobs if job.timeframe == "MN")
     assert monthly.metadata_payload["data_preparation_child"]["derived_only"] is True
     assert monthly.metadata_payload["data_preparation_child"]["wait_for_job_ids"]
-
     claimed = await claim_refresh_jobs(async_db, now=datetime.now(UTC))
     claimed_ids = {job.id for job in claimed}
     assert set(dependency["job_ids"]).issubset(claimed_ids)
     assert parent.id not in claimed_ids
+
+
+@pytest.mark.asyncio
+async def test_required_industry_is_field_sensitive_and_accepts_only_sourced_sic_fallback(
+    db, instrument
+):
+    async_db = AsyncSessionAdapter(db)
+    now = datetime.now(UTC)
+    generic = DataSource(name="alpaca")
+    massive = DataSource(name="massive")
+    db.add_all([generic, massive])
+    db.flush()
+    for source in (generic, massive):
+        db.add(
+            ProviderPolicy(
+                data_source_id=source.id,
+                capability=ProviderCapability.INSTRUMENT_METADATA,
+                is_enabled=True,
+                freshness_seconds=3600,
+            )
+        )
+    db.add_all(
+        [
+            InstrumentProfileSnapshot(
+                instrument_id=instrument.id,
+                data_source_id=generic.id,
+                provider_symbol=instrument.symbol,
+                observed_at=now,
+                fetched_at=now,
+                profile_hash="generic-profile",
+                payload={"provider": "alpaca", "extra": {"sector": "Technology"}},
+            ),
+            InstrumentProfileSnapshot(
+                instrument_id=instrument.id,
+                data_source_id=massive.id,
+                provider_symbol=instrument.symbol,
+                observed_at=now,
+                fetched_at=now,
+                profile_hash="massive-sic-profile",
+                payload={
+                    "provider": "massive",
+                    "extra": {"sic_code": 3571, "sic_description": "Electronic computers"},
+                },
+            ),
+        ]
+    )
+    await async_db.flush()
+
+    assert await _profile_is_fresh(async_db, instrument.id, now=now)
+    # A fresh generic snapshot with no industry is not sufficient.
+    db.delete(
+        db.execute(
+            select(InstrumentProfileSnapshot).where(
+                InstrumentProfileSnapshot.data_source_id == massive.id
+            )
+        ).scalar_one()
+    )
+    await async_db.flush()
+    assert not await _profile_is_fresh(
+        async_db, instrument.id, now=now, required_profile_fields=["industry"]
+    )
+    # The exact Massive SIC pair is a valid SEC_SIC industry source; a sector
+    # label alone and a SIC description without its code are not.
+    db.add(
+        InstrumentProfileSnapshot(
+            instrument_id=instrument.id,
+            data_source_id=massive.id,
+            provider_symbol=instrument.symbol,
+            observed_at=now,
+            fetched_at=now,
+            profile_hash="massive-valid-sic-profile",
+            payload={
+                "provider": "massive",
+                "extra": {"sic_code": 3571, "sic_description": "Electronic computers"},
+            },
+        )
+    )
+    await async_db.flush()
+    assert await _profile_is_fresh(
+        async_db, instrument.id, now=now, required_profile_fields=["industry"]
+    )
+
+
+def test_legacy_massive_sic_fallback_keeps_its_native_classification():
+    from app.services.instrument_mastering import _value_from_snapshot
+
+    payload = {
+        "provider": "massive",
+        "classification_system": "GICS",
+        "extra": {
+            "sic_code": "3571",
+            "sic_description": "Electronic computers",
+            # A stale generic classification label cannot relabel the native
+            # SIC source as GICS when no explicit industry value was stored.
+            "classification_system": "GICS",
+        },
+    }
+
+    assert _value_from_snapshot(payload, "industry") == "Electronic computers"
+    assert _value_from_snapshot(payload, "classification_system") == "SEC_SIC"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "massive_extra",
+    [
+        {"sic_code": "3571", "sic_description": "Electronic computers"},
+        {
+            "sic_code": "3571",
+            "sic_description": "Electronic computers",
+            "industry": "Electronic computers",
+            "classification_system": "SEC_SIC",
+            "industry_evidence": {
+                "provider": "massive",
+                "source_field": "sic_description",
+                "sic_code": "3571",
+                "classification_system": "SEC_SIC",
+            },
+        },
+    ],
+)
+async def test_reconciled_sic_industry_keeps_its_snapshot_provider_and_timing(
+    db, instrument, monkeypatch, massive_extra
+):
+    async_db = AsyncSessionAdapter(db)
+    massive = DataSource(name="massive")
+    alpaca = DataSource(name="alpaca")
+    db.add_all([massive, alpaca])
+    db.flush()
+    observed_at = datetime(2026, 11, 6, 14)
+    fetched_at = datetime(2026, 11, 6, 14, 1)
+    db.add_all(
+        [
+            InstrumentProfileSnapshot(
+                instrument_id=instrument.id,
+                data_source_id=massive.id,
+                provider_symbol=instrument.symbol,
+                observed_at=observed_at,
+                fetched_at=fetched_at,
+                profile_hash="massive-sic",
+                payload={
+                    "provider": "massive",
+                    "symbol": instrument.symbol,
+                    "extra": massive_extra,
+                },
+            ),
+            InstrumentProfileSnapshot(
+                instrument_id=instrument.id,
+                data_source_id=alpaca.id,
+                provider_symbol=instrument.symbol,
+                observed_at=datetime(2026, 11, 6, 15),
+                fetched_at=datetime(2026, 11, 6, 15, 1),
+                profile_hash="newer-alpaca",
+                payload={
+                    "provider": "alpaca",
+                    "symbol": instrument.symbol,
+                    "extra": {"sector": "Technology"},
+                },
+            ),
+        ]
+    )
+    await async_db.flush()
+    monkeypatch.setattr(
+        "app.services.instrument_mastering.resolve_provider_chain",
+        AsyncMock(
+            return_value=[
+                SimpleNamespace(
+                    provider_name="massive",
+                    policy=SimpleNamespace(effective_score=1.0),
+                ),
+                SimpleNamespace(
+                    provider_name="alpaca",
+                    policy=SimpleNamespace(effective_score=0.5),
+                ),
+            ]
+        ),
+    )
+
+    profile = await reconcile_instrument_profile(async_db, instrument)
+
+    assert profile is not None
+    assert profile.provider == "alpaca"
+    assert profile.extra["industry"] == "Electronic computers"
+    assert profile.extra["classification_system"] == "SEC_SIC"
+    assert profile.extra["industry_evidence"] == {
+        "provider": "massive",
+        "source_field": "sic_description",
+        "classification_system": "SEC_SIC",
+        "observed_at": observed_at.isoformat(),
+        "fetched_at": fetched_at.isoformat(),
+        "sic_code": "3571",
+    }
+
+
+@pytest.mark.asyncio
+async def test_required_profile_fields_are_durable_and_part_of_shared_job_dedupe(db, instrument):
+    async_db = AsyncSessionAdapter(db)
+    request = DataEnsureRequest.model_validate(
+        {
+            "target": {"kind": "instrument", "instrument_id": instrument.id},
+            "datasets": ["profile"],
+            "required_profile_fields": ["industry"],
+        }
+    )
+    first = await create_data_preparation_request(
+        async_db, owner_user_id=91, request=request, priority="visible"
+    )
+    second = await create_data_preparation_request(
+        async_db, owner_user_id=92, request=request, priority="default"
+    )
+    first_profile_dependency = next(
+        item
+        for item in first.metadata_payload["data_preparation"]["dependencies"]
+        if item["dataset"] == "profile"
+    )
+    second_profile_dependency = next(
+        item
+        for item in second.metadata_payload["data_preparation"]["dependencies"]
+        if item["dataset"] == "profile"
+    )
+    first_job = await async_db.get(MarketRefreshJob, first_profile_dependency["job_ids"][0])
+    second_job = await async_db.get(MarketRefreshJob, second_profile_dependency["job_ids"][0])
+    assert first_job.id == second_job.id
+    assert first_job.metadata_payload["data_preparation_child"]["required_profile_fields"] == [
+        "industry"
+    ]
+    assert first_job.metadata_payload["data_preparation_child"]["refresh_profile"] is True
 
 
 @pytest.mark.asyncio

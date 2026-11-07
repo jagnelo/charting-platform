@@ -110,6 +110,10 @@ class DataEnsureRequest(BaseModel):
 
     target: PreparationTarget
     datasets: list[PreparationDataset] | None = None
+    # Field requirements apply to the existing shared profile dependency. The
+    # first supported field is industry; omitting this list preserves the
+    # historical generic-profile behavior.
+    required_profile_fields: list[Literal["industry"]] = Field(default_factory=list)
     timeframe: Timeframe = Timeframe.D1
     adjusted: bool = True
     start_at: datetime | None = None
@@ -131,6 +135,13 @@ class DataEnsureRequest(BaseModel):
             raise ValueError("start_at must not be after end_at")
         if self.datasets is not None and len(self.datasets) != len(set(self.datasets)):
             raise ValueError("datasets must not contain duplicates")
+        self.required_profile_fields = list(dict.fromkeys(self.required_profile_fields))
+        if (
+            self.required_profile_fields
+            and self.datasets is not None
+            and PreparationDataset.PROFILE not in self.datasets
+        ):
+            raise ValueError("required_profile_fields requires the profile dataset")
         return self
 
 

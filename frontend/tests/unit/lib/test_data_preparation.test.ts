@@ -29,6 +29,26 @@ describe('DataPreparationCoordinator', () => {
     })
   })
 
+  it('submits industry as an explicit required profile field and rejects unsupported or misplaced fields', async () => {
+    const profileRequest: DataEnsureRequest = {
+      target: { kind: 'instrument', instrument_id: 42 },
+      datasets: ['profile'],
+      required_profile_fields: ['industry'],
+    }
+    const ready = response('ready', 1, {
+      completed: 1, total: 1,
+      dependencies: [{ dependency_id: 'profile:42', depends_on: [], instrument_id: 42, symbol: 'ABC', dataset: 'profile', status: 'ready', updated_at: baseTime }],
+    })
+    const client = { post: vi.fn().mockResolvedValue(ready), get: vi.fn() }
+    await expect(coordinator(client).ensure(profileRequest)).resolves.toEqual(ready)
+    expect(client.post).toHaveBeenCalledWith('/data/ensure', profileRequest, expect.anything())
+
+    const invalidClient = { post: vi.fn(), get: vi.fn() }
+    await expect(coordinator(invalidClient).ensure({ ...profileRequest, required_profile_fields: ['sector' as never] })).rejects.toThrow(/unsupported/i)
+    await expect(coordinator(invalidClient).ensure({ ...profileRequest, datasets: ['identity'] })).rejects.toThrow(/profile dataset/i)
+    expect(invalidClient.post).not.toHaveBeenCalled()
+  })
+
   it('coalesces duplicate progress and refreshes each newer partial range through completion', async () => {
     const dependency = (coveredEnd: string, updatedAt: string, status: DataEnsureResponse['status'] = 'partial') => ({
       dependency_id: 'history:1:MN', depends_on: [], instrument_id: 1, dataset: 'history' as const, status,

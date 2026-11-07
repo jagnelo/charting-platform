@@ -1,6 +1,7 @@
 <template>
 <ToolWindow :window-key="tool.instance_key" :title="tool.title || tool.tool_type" :symbol="toolHeaderSymbol" :link-group="localLinkGroup" :timeframe-link-group="timeframeLinkGroup" :timeframe="tool.tool_type === 'chart' ? activeTimeframe : ''" :active="isActiveToolWindow" :maximized="maximizedState?.value ?? false" :scrollable-body="tool.instance_key === 'relative-rotation' || tool.tool_type === 'relative_rotation'" :favorite-available="tool.tool_type === 'chart' && favoriteStore.loaded && chartStore.instrument?.id != null" :favorite-active="favoriteStore.isFavorite(chartStore.instrument?.id)" @toggle-favorite="toggleChartFavorite" @pointerdown.capture="emit('activate')" @float="emit('float', tool.instance_key)" @maximize="emit('maximize', tool.instance_key)" @close="emit('close', tool.instance_key)" @update:link-group="handleLinkGroupChange" @update:timeframe-link-group="setTimeframeLinkGroup" @update:timeframe="setTimeframe">
     <span v-if="personalWatchlistError" class="workstation-tool-content__mutation-error" role="alert" aria-live="assertive">{{ personalWatchlistError }}</span>
+    <small v-if="isIndustryTool && industryProfilePreparation?.message" class="industry-list__load-state" role="status" aria-live="polite">{{ industryProfilePreparation.message }}</small>
     <div v-if="isBenchmarkUniverse" class="benchmark-surface">
       <div class="benchmark-surface__family-controls" aria-label="Benchmark family selector">
         <label>Family
@@ -1062,6 +1063,7 @@ import { acquireSelectedHistory, defaultHistoryRange, type SelectedHistoryStage 
 import { dedupeOhlcvRequest } from '@/lib/workstation/ohlcvRequests'
 import { calculateCustomDateSortValue, customDateSortListColumn, parseCustomDateSortListColumn, type CustomDateSortListColumn, type CustomDateSortMode, type CustomDateSortPriceRange, type CustomDateSortRange, type CustomDateSortValue } from '@/lib/workstation/customDateSort'
 import { loadCustomDateSortLocalEvidence, loadCustomDateSortLocalListValues } from '@/lib/workstation/customDateSortData'
+import { dataPreparationCoordinator, PreparationProgressRefreshQueue, preparationStatusMessage, type DataEnsureResponse } from '@/lib/dataPreparation'
 import UPlotChart from '@/components/chart/UPlotChart.vue'
 import DrawingToolbar from '@/components/chart/DrawingToolbar.vue'
 import HistoryAcquisitionControl from '@/components/chart/HistoryAcquisitionControl.vue'
@@ -1998,10 +2000,13 @@ const chartTemplateConfiguration = computed(() => ({
   ...liveChartConfiguration.value,
   comparison_symbols: optimisticComparisonSymbols.value ?? comparisonTargets.value.map(target => target.symbol),
 }))
-const activeSymbol = computed(() => workspaceStore.symbolForLinkGroup(
-  localLinkGroup.value,
-  typeof props.tool.configuration.symbol === 'string' ? props.tool.configuration.symbol : null,
-))
+const activeSymbol = computed(() => {
+  const linked = workspaceStore.symbolForLinkGroup(
+    localLinkGroup.value,
+    typeof props.tool.configuration.symbol === 'string' ? props.tool.configuration.symbol : null,
+  )
+  return props.tool.tool_type !== 'chart' && /^BASKET:\d+$/i.test(linked) ? '' : linked
+})
 // Non-chart tools have their own panel-scoped chart store and therefore cannot
 // rely on a chart window having loaded the canonical instrument first. Resolve
 // identity directly for notes, alerts, and reports so active-symbol actions work
@@ -2602,6 +2607,9 @@ watch([configuredScanPlots, activeTimeframe], () => { void loadScanPlots() }, { 
 onBeforeUnmount(() => {
   timeframeHistoryAbortController?.abort()
   timeframeHistoryAbortController = null
+  industryProfilePreparationGeneration += 1
+  industryProfilePreparationAbort?.abort()
+  industryProfilePreparationAbort = null
   unregisterWorkstationPanelRefresh?.()
   unregisterWorkstationPanelRefresh = null
   disposed = true
@@ -3599,6 +3607,118 @@ const industries = computed(() => industryComposition.value?.industries ?? [])
 const industrySnapshot = computed(() => selectedETF.value ? workspaceStore.industrySnapshots[selectedETF.value] : null)
 const selectedIndustry = computed(() => workspaceStore.selectedIndustry)
 const selectedIndustryProxy = computed(() => workspaceStore.selectedIndustryProxy)
+const industryProfilePreparation = ref<{ pending: number; total: number; message: string | null } | null>(null)
+let industryProfilePreparationGeneration = 0
+let industryProfilePreparationAbort: AbortController | null = null
+let industryCompositionRefreshQueue = new PreparationProgressRefreshQueue()
+const industryHistoricalAsOf = computed(() => {
+  const configuration = props.tool.configuration as Record<string, unknown>
+  const value = configuration.as_of ?? configuration.as_of_date ?? configuration.historical_as_of
+  return typeof value === 'string' && value.trim() ? value.trim() : null
+})
+watch(
+  [isIndustryTool, isActiveToolWindow, selectedETF, () => holdings.value?.snapshot.id, () => holdings.value?.holdings.map(row => `${row.snapshot_id}:${row.id}:${row.constituent_instrument_id ?? ''}:${row.is_resolved}`).join(',') ?? '', industryHistoricalAsOf],
+  ([isIndustry, isActive, etf, snapshotId, _rowsRevision, historicalAsOf]) => {
+    const generation = ++industryProfilePreparationGeneration
+    industryProfilePreparationAbort?.abort()
+    industryProfilePreparationAbort = null
+    industryCompositionRefreshQueue = new PreparationProgressRefreshQueue()
+    industryProfilePreparation.value = null
+    if (!isIndustry || !isActive || !etf || !snapshotId || historicalAsOf) return
+
+    const page = holdings.value
+    if (!page || page.snapshot.id !== snapshotId) return
+    const instrumentIds: number[] = [...new Set(page.holdings
+      .filter(row => row.snapshot_id === snapshotId && isResolvedCanonicalEquityHolding(row))
+      .map(row => row.constituent_instrument_id)
+      .filter((id): id is number => Number.isSafeInteger(id) && Number(id) > 0))]
+    if (!instrumentIds.length) return
+
+    const controller = new AbortController()
+    industryProfilePreparationAbort = controller
+    industryProfilePreparation.value = {
+      pending: instrumentIds.length,
+      total: instrumentIds.length,
+      message: `Preparing source industry classifications for ${instrumentIds.length} resolved holdings…`,
+    }
+    const unavailableInstruments = new Set<number>()
+    const isCurrent = () => !disposed
+      && generation === industryProfilePreparationGeneration
+      && !controller.signal.aborted
+      && isIndustryTool.value
+      && isActiveToolWindow.value
+      && selectedETF.value === etf
+      && holdings.value?.snapshot.id === snapshotId
+      && !industryHistoricalAsOf.value
+    const refreshComposition = (response: DataEnsureResponse) => {
+      if (!isCurrent()) return
+      // Re-read the ordinary dated composition endpoint so source labels and
+      // row provenance remain authoritative. The shared progress queue
+      // coalesces overlapping profile completions without waiting on held IDs.
+      void industryCompositionRefreshQueue.request(response, async () => {
+        if (isCurrent()) await workspaceStore.loadETFIndustries(etf)
+      })
+    }
+    const profileFieldReady = (response: DataEnsureResponse) => response.dependencies.some(dependency =>
+      dependency.dataset === 'profile' && dependency.status === 'ready')
+    const hasUnavailableProfile = (response: DataEnsureResponse) => response.dependencies.some(dependency =>
+      dependency.dataset === 'profile' && ['waiting', 'unavailable', 'failed'].includes(dependency.status))
+    const requests = instrumentIds.map(instrumentId => dataPreparationCoordinator.ensure({
+      target: { kind: 'instrument', instrument_id: instrumentId },
+      datasets: ['profile'],
+      required_profile_fields: ['industry'],
+    }, {
+      signal: controller.signal,
+      onProgress: ({ response }) => {
+        if (!isCurrent()) return
+        if (profileFieldReady(response)) refreshComposition(response)
+        else if ((response.status === 'waiting' || hasUnavailableProfile(response)) && industryProfilePreparation.value) {
+          industryProfilePreparation.value = {
+            ...industryProfilePreparation.value,
+            message: preparationStatusMessage(response),
+          }
+        }
+      },
+    }).then(response => {
+      if (!isCurrent()) return
+      if (profileFieldReady(response) || response.status === 'ready') refreshComposition(response)
+      else if (['waiting', 'unavailable', 'failed'].includes(response.status) || hasUnavailableProfile(response)) {
+        unavailableInstruments.add(instrumentId)
+        if (industryProfilePreparation.value) {
+          industryProfilePreparation.value = {
+            ...industryProfilePreparation.value,
+            message: preparationStatusMessage(response),
+          }
+        }
+      } else if (industryProfilePreparation.value) {
+        industryProfilePreparation.value = {
+          ...industryProfilePreparation.value,
+          message: preparationStatusMessage(response),
+        }
+      }
+    }).catch(() => {
+      // Preserve cached composition and other members' progress when one
+      // profile cannot be prepared. The composition response owns exclusions.
+      if (isCurrent()) unavailableInstruments.add(instrumentId)
+    }).finally(() => {
+      if (!isCurrent() || !industryProfilePreparation.value) return
+      const pending = Math.max(0, industryProfilePreparation.value.pending - 1)
+      industryProfilePreparation.value = {
+        ...industryProfilePreparation.value,
+        pending,
+        message: pending
+          ? `Preparing source industry classifications · ${instrumentIds.length - pending}/${instrumentIds.length} holdings checked…`
+          : unavailableInstruments.size
+            ? `${unavailableInstruments.size} constituent profile${unavailableInstruments.size === 1 ? '' : 's'} remain unavailable; dated source classifications stay visible.`
+            : null,
+      }
+    }))
+    // ensure() is called for every member synchronously above before awaiting
+    // any response, so a slow or held member cannot serialize the other work.
+    void Promise.allSettled(requests)
+  },
+  { immediate: true, flush: 'post' },
+)
 watch([() => selectedETF.value, () => holdings.value?.snapshot.id, () => selectedIndustry.value], () => {
   selectedConstituentRowKey.value = null
 })

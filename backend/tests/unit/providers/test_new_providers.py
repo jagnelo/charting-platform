@@ -2270,6 +2270,14 @@ class TestMassiveReferenceProvider:
         assert profile.identifiers[1].is_primary is True
         assert profile.listings[0].known_at == datetime(2024, 1, 2, tzinfo=UTC)
         assert profile.extra["sic_code"] == 3571
+        assert profile.extra["industry"] == "Electronic computers"
+        assert profile.extra["classification_system"] == "SEC_SIC"
+        assert profile.extra["industry_evidence"] == {
+            "provider": "massive",
+            "source_field": "sic_description",
+            "sic_code": "3571",
+            "classification_system": "SEC_SIC",
+        }
         assert get.call_args.args[0] == "https://api.massive.com/v3/reference/tickers/AAPL"
         assert get.call_args.kwargs["params"] == {"apiKey": "key"}
 

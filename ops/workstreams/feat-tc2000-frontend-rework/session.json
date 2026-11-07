@@ -1,42 +1,42 @@
 {
   "acceptance_criteria": [
-  {
-    "id": "PU01",
-    "text": "Inventory every frontend route, factory panel, addable tool and exposed action; map every supported action to journey coverage and critical visual/user-review evidence, with no unmapped actions."
-  },
-  {
-    "id": "PU02",
-    "text": "Implement one shared authenticated data-preparation client/coordinator against the Provider-owned ensure/request contract; deduplicate, poll, invalidate and fence obsolete intent across all TC-owned entrypoints."
-  },
-  {
-    "id": "PU03",
-    "text": "Every exact resolved selection and downstream chart/analysis action prepares missing data automatically without suggestion fan-out, required fetch buttons, hidden evaluator HTTP, or prior-context data leakage; independent datasets remain useful when another is unavailable."
-  },
-  {
-    "id": "PU04",
-    "text": "Preserve semantic tool identity and useful defaults across factory creation, Add Tool, clone/import, popout, reload and restore; catalogue every implemented factory panel."
-  },
-  {
-    "id": "PU05",
-    "text": "Provide explicit reversible workspace/layout duplicate, rename, delete, reorder, close/recreate, cancel, resize, maximize, reset and recovery actions while preserving account data and other user state."
-  },
-  {
-    "id": "PU06",
-    "text": "Prepare both ratio legs and group members; verify inverse values, adjustment, date alignment and reload behavior with bounded missing-data dependencies."
-  },
-  {
-    "id": "PU07",
-    "text": "Render real finite RRG points, labels, quadrants and tails for D1/W1/MN with correct D1 dependencies and monthly warm-up beyond the former two-year boundary; prove ordinary pointer and keyboard interaction after dock, tab, resize, maximize, clone and restore."
-  },
-  {
-    "id": "PU08",
-    "text": "Apply the shared TC presentation system to every TC-owned exposed page, tool, menu and dialog; verify readable, discoverable, non-overlapping layouts at representative laptop/desktop sizes and scaling."
-  },
-  {
-    "id": "PU09",
-    "text": "Cover the twelve approved J01-J12 journeys across TC-owned scope with genuine successful data paths separate from unavailable-data cases; retain strict functional/oracle semantics and require useful results rather than DOM, tables, spinners or errors alone."
-  }
-],
+    {
+      "id": "PU01",
+      "text": "Inventory every frontend route, factory panel, addable tool and exposed action; map every supported action to journey coverage and critical visual/user-review evidence, with no unmapped actions."
+    },
+    {
+      "id": "PU02",
+      "text": "Implement one shared authenticated data-preparation client/coordinator against the Provider-owned ensure/request contract; deduplicate, poll, invalidate and fence obsolete intent across all TC-owned entrypoints."
+    },
+    {
+      "id": "PU03",
+      "text": "Every exact resolved selection and downstream chart/analysis action prepares missing data automatically without suggestion fan-out, required fetch buttons, hidden evaluator HTTP, or prior-context data leakage; independent datasets remain useful when another is unavailable."
+    },
+    {
+      "id": "PU04",
+      "text": "Preserve semantic tool identity and useful defaults across factory creation, Add Tool, clone/import, popout, reload and restore; catalogue every implemented factory panel."
+    },
+    {
+      "id": "PU05",
+      "text": "Provide explicit reversible workspace/layout duplicate, rename, delete, reorder, close/recreate, cancel, resize, maximize, reset and recovery actions while preserving account data and other user state."
+    },
+    {
+      "id": "PU06",
+      "text": "Prepare both ratio legs and group members; verify inverse values, adjustment, date alignment and reload behavior with bounded missing-data dependencies."
+    },
+    {
+      "id": "PU07",
+      "text": "Render real finite RRG points, labels, quadrants and tails for D1/W1/MN with correct D1 dependencies and monthly warm-up beyond the former two-year boundary; prove ordinary pointer and keyboard interaction after dock, tab, resize, maximize, clone and restore."
+    },
+    {
+      "id": "PU08",
+      "text": "Apply the shared TC presentation system to every TC-owned exposed page, tool, menu and dialog; verify readable, discoverable, non-overlapping layouts at representative laptop/desktop sizes and scaling."
+    },
+    {
+      "id": "PU09",
+      "text": "Cover the twelve approved J01-J12 journeys across TC-owned scope with genuine successful data paths separate from unavailable-data cases; retain strict functional/oracle semantics and require useful results rather than DOM, tables, spinners or errors alone."
+    }
+  ],
   "accepted_tco_checkpoint_archive": "ops/workstreams/feat-tc2000-frontend-rework/checkpoint-archives/tc-on-demand-workstation-consumer-session-20261027.json",
   "active_session_id": "c7beca8d-84a3-4382-97e4-4854dca50b8c",
   "adoption_source_base_sha": "dae1a1f03ad3fd0fc1e9f9defb8f39ab878045d2",
@@ -103,8 +103,8 @@
     "status": "pending Root observation after publication"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "The active platform-usability source has focused frontend, type, boundary, inventory and ownership checks for completed slices. Provider074 is imported for development but is not release-qualified. Exact-tip CI, all required journeys and the full combined browser profile remain pending Root.",
-  "current_checkpoint_status": "Current platform scope and PU01-PU09 are canonical at the top level; the displaced ordinary-ticker goal, ten criteria and progress are preserved verbatim as parsed values in platform_usability_checkpoint_20261106.preserved_prior_execution_state. Shared client/auth/catalogue/inventory work has focused checks; remaining entrypoints, lifecycle and journeys are incomplete. Provider074 is a development-only dependency; no full profile or release is claimed.",
+  "current_candidate_ci_status": "Focused local evidence is available for the current implementation slice. Provider732 is development-only. Exact-tip CI, remaining journeys and Root-owned combined browser/release qualification remain pending.",
+  "current_checkpoint_status": "Provider732 is imported through the exact v2 43-file development manifest; focused chart first-use and route/preparation checks passed 238/238 with type-check green. Whole platform-usability scope remains in progress; search/secondary routes, reversible lifecycle and complete journeys remain open.",
   "current_exact_ci": {
     "head_sha": null,
     "run_id": null,
@@ -415,7 +415,7 @@
   "local_candidate_capture": "exact current branch HEAD after staging16 remediation and one-case proof; Root push and exact full staging104 pending",
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
-  "next_action": "Continue shared SearchBar and secondary-page preparation wiring, then complete reversible workspace/layout actions and the route/tool/action journeys. Keep Root-owned exact-CI, combined browser and release gates pending.",
+  "next_action": "Continue shared SearchBar and secondary-page preparation wiring, then complete reversible workspace/layout actions and the full route/tool/action journeys. Keep Root-owned exact-CI, combined browser, integration and release gates pending.",
   "owned_runtime_cleanup": {
     "after_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-after.json (SHA256 3696bb48051e0e6cf11d45af99ac118d302f454337b6fbd48df8dbeae57d157b)",
     "before_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-before.json (SHA256 8f1eeb19f585da67cfea43f8c35a4aa11baa3aa6d3510a065afd0f95498505bf)",
@@ -446,7 +446,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "2364c0b9e291e5b34211e14b4ce3b6c412e84913b27a07f183e904c3c7a112f4",
+  "plan_hash": "31fa7a1d45d3b2203e8311dca990ca0d6f70ff6483326ab64faeba3fd35c9909",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -474,13 +474,13 @@
     "staging_sha": "f8323af179922193f4dcf3c9f0a5d9001282455f"
   },
   "progress": {
-  "completed": [],
-  "total": 9,
-  "current_phase": "Human-approved platform-usability implementation is active. The shared preparation/auth boundary, server-backed canonical tool catalogue, route/action inventory, and focused ratio/RRG and lifecycle slices have implementation and focused-check evidence; the whole platform scope remains incomplete.",
-  "current_blocker": "No external blocker to continued TC-owned implementation. Shared SearchBar/secondary-entrypoint wiring, reversible workspace lifecycle, complete semantic tool journeys and full route/action coverage remain incomplete. Provider runtime integration and exact combined browser/release qualification remain Root-owned.",
-  "next_action": "Continue shared SearchBar and secondary-page preparation wiring, then implement and verify reversible workspace/layout actions and complete the route/tool/action journeys. Keep all Root-owned browser, exact-CI, combined release and live-operation gates explicitly pending.",
-  "updated_at": "2026-11-07"
-},
+    "completed": [],
+    "total": 9,
+    "current_phase": "Human-approved platform-usability implementation is active. The shared preparation/auth boundary, server-backed canonical tool catalogue, route/action inventory, and focused ratio/RRG and lifecycle slices have implementation and focused-check evidence; the whole platform scope remains incomplete.",
+    "current_blocker": "No external blocker to continued TC-owned implementation. Shared SearchBar/secondary-entrypoint wiring, reversible workspace lifecycle, complete semantic tool journeys and full route/action coverage remain incomplete. Provider runtime integration and exact combined browser/release qualification remain Root-owned.",
+    "next_action": "Continue shared SearchBar and secondary-page preparation wiring, then implement and verify reversible workspace/layout actions and complete the route/tool/action journeys. Keep all Root-owned browser, exact-CI, combined release and live-operation gates explicitly pending.",
+    "updated_at": "2026-11-07"
+  },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "current_pending_range": "Non-fast-forward adoption of 139b350 plus current TC context-adoption records; Root push pending.",
@@ -670,7 +670,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for TC2000 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-11-07T00:18:22Z",
+  "updated_at": "2026-11-07T01:26:12Z",
   "upstream_backmerge": {
     "canonical_green_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json",
     "local_merge_commit": "acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32",

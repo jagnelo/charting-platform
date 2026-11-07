@@ -332,7 +332,12 @@ import { workstationFreshness } from '@/lib/workstation/freshness'
 import { isInteractiveTarget } from '@/lib/workstation/keyboard'
 import { capturePopoutGeometry, popoutWindowFeatures, readPopoutGeometry, recoverPopoutGeometry, type PopoutScreen } from '@/lib/workstation/popoutGeometry'
 import { resolveMarketMapAnalysisSource } from '@/lib/workstation/marketMapPublication'
-import { isConfirmedETFHoldingIdentity, type ETFHoldingDrilldownContext } from '@/lib/etfHoldingDrilldown'
+import {
+  isConfirmedETFHoldingIdentity,
+  isSameETFHoldingDrilldownContext,
+  parseETFHoldingDrilldownRouteQuery,
+  type ETFHoldingDrilldownContext,
+} from '@/lib/etfHoldingDrilldown'
 import { isSharedNavigationItemActive, sharedShellNavigation } from '@/router'
 import type { Timeframe } from '@/types'
 import { dataPreparationCoordinator, instrumentHistoryPreparationRequest, PreparationProgressRefreshQueue, preparationStatusMessage, type DataEnsureResponse } from '@/lib/dataPreparation'
@@ -1139,6 +1144,39 @@ function sp500TradableProxy(): string {
   return 'SPY'
 }
 
+function isPrivateBasketToken(value: string): boolean {
+  const match = value.trim().match(/^BASKET:(\d+)$/i)
+  return Boolean(match && Number(match[1]) > 0)
+}
+
+function consumeHoldingSelectionHandoff(context: ETFHoldingDrilldownContext | null): {
+  selected: boolean
+  confirmedIdentity?: InstrumentAcquireResponse
+} {
+  const state = window.history.state as Record<string, unknown> | null
+  if (!state || (!Object.prototype.hasOwnProperty.call(state, 'tcHoldingSelectionHandoff')
+    && !Object.prototype.hasOwnProperty.call(state, 'tcHoldingIdentityHandoff'))) return { selected: false }
+  const nextState = { ...state }
+  const rawSelection = nextState.tcHoldingSelectionHandoff
+  const rawIdentity = nextState.tcHoldingIdentityHandoff
+  delete nextState.tcHoldingSelectionHandoff
+  delete nextState.tcHoldingIdentityHandoff
+  window.history.replaceState(nextState, '', window.location.href)
+  if (!context || typeof rawSelection !== 'string') return { selected: false }
+  try {
+    const selectedContext = JSON.parse(rawSelection) as ETFHoldingDrilldownContext
+    if (!isSameETFHoldingDrilldownContext(selectedContext, context)) return { selected: false }
+    if (typeof rawIdentity !== 'string') return { selected: true }
+    const candidate = JSON.parse(rawIdentity) as InstrumentAcquireResponse
+    return {
+      selected: true,
+      confirmedIdentity: isConfirmedETFHoldingIdentity(candidate, context) ? candidate : undefined,
+    }
+  } catch {
+    return { selected: false }
+  }
+}
+
 function selectHoldingInDashboard(
   symbol: string,
   context: ETFHoldingDrilldownContext,
@@ -1168,6 +1206,7 @@ async function selectSymbol(
 ) {
   const requested = raw.trim()
   if (!requested) return
+  const privateBasketSelection = isPrivateBasketToken(requested)
   clearSupersededSymbolSelectionError()
   selectedAcquisitionAbortController?.abort()
   const acquisitionController = new AbortController()
@@ -1204,7 +1243,20 @@ async function selectSymbol(
     ...(workspaceStore.marketGroups['sp500-sectors']?.members ?? [])
       .map(member => member.instrument.symbol.trim().toUpperCase()),
   ])
-  if (knownWorkstationSymbols.has(requested.toUpperCase())) {
+  if (privateBasketSelection) {
+    // Basket IDs are authenticated, user-owned chart contexts, not instruments.
+    // The chart store validates the private basket endpoint and prepares its
+    // exact member IDs through the shared coordinator.
+    symbol = requested.toUpperCase()
+  } else if (holdingContext
+    && holdingContext.canonicalSymbol.trim().toUpperCase() === requested.toUpperCase()
+    && Number.isSafeInteger(instrumentId) && instrumentId === holdingContext.instrumentId) {
+    // A verified holding handoff already carries the canonical instrument ID.
+    // Do not resolve the reported ticker again and risk attaching the lineage to
+    // a different listing.
+    symbol = holdingContext.canonicalSymbol.trim().toUpperCase()
+    resolvedInstrumentId = holdingContext.instrumentId
+  } else if (knownWorkstationSymbols.has(requested.toUpperCase())) {
     // These symbols are already canonical members of a loaded workstation
     // universe. Publish them synchronously so an in-flight initial request
     // cannot leave the Industries pane bound to the previous ETF.
@@ -1276,7 +1328,7 @@ async function selectSymbol(
     preserveDrilldownSymbol.value = symbol
   }
   symbolDraft.value = symbol
-  recentStore.add(symbol, undefined, recordHistory)
+  if (!privateBasketSelection) recentStore.add(symbol, undefined, recordHistory)
   // Capture the drill-down ETF before loading the newly selected symbol. A stock
   // selection from a constituent list may itself have no holdings endpoint, but
   // its relevant ratio denominator is still the list's active ETF.
@@ -1290,7 +1342,7 @@ async function selectSymbol(
   })
   // Update linked ratio state at publish time. Data hydration can take much
   // longer than the user's next click and must not delay the visible target.
-  updateAutoRatioExpression(symbol, comparisonETF)
+  if (!privateBasketSelection) updateAutoRatioExpression(symbol, comparisonETF)
   try {
     const localDataReady = loadSymbolData(symbol, comparisonETF, false, preserveETFContext)
     const selectedAcquisition = acquisitionIntent
@@ -1548,12 +1600,13 @@ async function acquireSelectedTickerData(
 async function loadSymbolData(symbol: string, comparisonETF = workspaceStore.constituentETF, updateRatio = true, preserveETFContext = false) {
   if (!preserveActiveUserSymbolDraft(symbol)) symbolDraft.value = symbol
   if (!documentVisible.value) return
+  const privateBasketSelection = isPrivateBasketToken(symbol)
   await Promise.all([
     chartStore.loadBars(symbol, chartStore.timeframe, chartStore.barType, true),
-    ...(preserveETFContext ? [] : [workspaceStore.loadETFHoldings(symbol), workspaceStore.loadETFIndustries(symbol)]),
-    workspaceStore.loadTechnical(symbol),
+    ...(preserveETFContext || privateBasketSelection ? [] : [workspaceStore.loadETFHoldings(symbol), workspaceStore.loadETFIndustries(symbol)]),
+    ...(!privateBasketSelection ? [workspaceStore.loadTechnical(symbol)] : []),
   ])
-  if (updateRatio) updateAutoRatioExpression(symbol, comparisonETF)
+  if (updateRatio && !privateBasketSelection) updateAutoRatioExpression(symbol, comparisonETF)
 }
 
 function scheduleSymbolSearch(value: string) {
@@ -2958,13 +3011,14 @@ function cycleChartTimeframe(windowKey: string, direction: 1 | -1) {
 
 watch(activeSymbol, symbol => {
   if (!symbol) return
+  const privateBasketSelection = isPrivateBasketToken(symbol)
   const isHistoryNavigation = historyNavigationTarget === symbol
-  recentStore.add(symbol, undefined, !isHistoryNavigation)
+  if (!privateBasketSelection) recentStore.add(symbol, undefined, !isHistoryNavigation)
   if (isHistoryNavigation) historyNavigationTarget = null
   // Linked row selections can arrive through the workspace bus before the shell's
   // async symbol handler resumes. Keep the auto-ratio tool tied to the newest
   // published symbol at this boundary as well as in the explicit selection path.
-  updateAutoRatioExpression(symbol)
+  if (!privateBasketSelection) updateAutoRatioExpression(symbol)
   // Selections made by linked watchlists, pop-outs, or another browser window
   // publish through the workspace bus rather than through the shell input.
   // Keep the active-symbol entry authoritative for those paths too, while
@@ -2984,8 +3038,8 @@ watch(activeSymbol, symbol => {
   if (!documentVisible.value) return
   void Promise.all([
     chartStore.loadBars(symbol, chartStore.timeframe, chartStore.barType, true),
-    ...(preserveDrilldown ? [] : [workspaceStore.loadETFHoldings(symbol), workspaceStore.loadETFIndustries(symbol)]),
-    workspaceStore.loadTechnical(symbol),
+    ...(preserveDrilldown || privateBasketSelection ? [] : [workspaceStore.loadETFHoldings(symbol), workspaceStore.loadETFIndustries(symbol)]),
+    ...(!privateBasketSelection ? [workspaceStore.loadTechnical(symbol)] : []),
   ])
 })
 watch(symbolDraft, value => {
@@ -3126,10 +3180,49 @@ onMounted(async () => {
       // A plain /chart restore preserves a parent fund only when one is
       // actually bound. On a fresh workstation there is no parent context yet;
       // let the normal local holdings/industry reads hydrate the active ETF.
-      // These are cache reads only because route hydration does not set an
-      // acquisition intent.
+      // The shared chart store renders its local cache first; visible canonical
+      // chart hydration below also starts the shared preparation lifecycle.
       const preserveParentETFContext = explicitRouteSymbol == null && workspaceStore.constituentETF != null
-      await selectSymbol(requested, undefined, true, undefined, true, preserveParentETFContext)
+      const routeHoldingContext = explicitRouteSymbol == null || isPrivateBasketToken(requested)
+        ? null
+        : parseETFHoldingDrilldownRouteQuery(route.query as Record<string, unknown>, requested)
+      const holdingHandoff = consumeHoldingSelectionHandoff(routeHoldingContext)
+      const selectedHoldingRoute = route.query.holding_history_intent === 'selected'
+        && routeHoldingContext !== null && holdingHandoff.selected
+      if (selectedHoldingRoute && routeHoldingContext) {
+        // The one-use same-tab handoff is written only after the holdings view
+        // validates the exact current row/identity. A bare replayed query keeps
+        // no acquisition intent and cannot turn dated provenance into current
+        // membership.
+        if (routeHoldingContext.etfSymbol) workspaceStore.setConstituentETF(routeHoldingContext.etfSymbol)
+        await selectSymbol(
+          requested,
+          undefined,
+          true,
+          routeHoldingContext.instrumentId,
+          true,
+          true,
+          holdingHandoff.confirmedIdentity?.instrument?.instrument_type ?? routeHoldingContext.holdingType,
+          true,
+          holdingHandoff.confirmedIdentity,
+          routeHoldingContext,
+        )
+      } else {
+        // A visible canonical chart is a first-use intent: hydrate local bars
+        // immediately, then let the shared coordinator prepare admitted history
+        // in the background. Private baskets use their own authenticated member
+        // preparation path and are not ticker identities.
+        await selectSymbol(
+          requested,
+          undefined,
+          true,
+          undefined,
+          true,
+          preserveParentETFContext,
+          '',
+          !isPrivateBasketToken(requested),
+        )
+      }
       if (!componentMounted) return
     }
   }

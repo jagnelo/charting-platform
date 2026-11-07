@@ -7,6 +7,7 @@ import ast
 import hashlib
 import json
 import re
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -195,6 +196,9 @@ def _require(condition: bool, message: str) -> None:
 def validate(data: dict[str, Any]) -> list[str]:
     errors: list[str] = []
     journeys = data.get("journeys", [])
+    if not isinstance(journeys, list) or not journeys:
+        errors.append("journey inventory must be a non-empty list")
+        journeys = []
     journey_ids = [row.get("id") for row in journeys if isinstance(row, dict)]
     if len(journey_ids) != len(set(journey_ids)):
         errors.append("journey IDs must be unique")
@@ -332,13 +336,73 @@ def validate(data: dict[str, Any]) -> list[str]:
         elif not (owner.get("journey_ids") or owner.get("journey_refs")) or not owner.get("status"):
             errors.append(f"cross-owner matrix {owner.get('owner')} lacks journey mapping/status")
         else:
+            owner_sources = {
+                "feat-etf-holdings-constituents": ("etf_matrix", "etf_matrix_provenance"),
+                "feat-strategy-lab-v2": ("strategy_matrix", "strategy_matrix_provenance"),
+            }
+            source_keys = owner_sources.get(owner.get("owner"))
+            if source_keys is None:
+                errors.append(f"cross-owner matrix has an unknown owner: {owner.get('owner')}")
+                continue
+            frozen_key, provenance_key = source_keys
+            frozen_path = data.get("sources", {}).get(frozen_key)
+            provenance = data.get("sources", {}).get(provenance_key)
+            if not isinstance(provenance, dict) or not isinstance(frozen_path, str):
+                errors.append(f"cross-owner matrix {owner.get('owner')} lacks TC-owned frozen input provenance")
+                continue
+            if owner.get("matrix") != frozen_path or any(
+                owner.get(field) != provenance.get(field)
+                for field in ("canonical_matrix", "source_commit", "source_blob", "source_sha256")
+            ):
+                errors.append(f"cross-owner matrix {owner.get('owner')} disagrees with its frozen input provenance")
             allowed_refs = set(owner.get("journey_ids", [])) | set(owner.get("journey_refs", []))
             external_path = (ROOT / owner["matrix"]).resolve()
             try:
-                external = json.loads(external_path.read_text())
-            except (OSError, json.JSONDecodeError) as exc:
-                errors.append(f"cross-owner matrix {owner.get('owner')} cannot be read: {exc}")
+                external_path.relative_to(ROOT)
+            except ValueError:
+                errors.append(f"cross-owner journey input for {owner.get('owner')} must be a TC-owned frozen copy")
                 continue
+            source_hash = owner.get("source_sha256")
+            if not isinstance(source_hash, str) or not re.fullmatch(r"[0-9a-f]{64}", source_hash):
+                errors.append(f"cross-owner matrix {owner.get('owner')} lacks a pinned source SHA256")
+                continue
+            if not re.fullmatch(r"[0-9a-f]{40}", str(owner.get("source_commit", ""))) or not re.fullmatch(r"[0-9a-f]{40}", str(owner.get("source_blob", ""))):
+                errors.append(f"cross-owner matrix {owner.get('owner')} lacks canonical owner commit/blob provenance")
+                continue
+            try:
+                external_bytes = external_path.read_bytes()
+                external = json.loads(external_bytes)
+            except (OSError, json.JSONDecodeError) as exc:
+                errors.append(f"cross-owner frozen matrix {owner.get('owner')} cannot be read: {exc}")
+                continue
+            if hashlib.sha256(external_bytes).hexdigest() != source_hash:
+                errors.append(f"cross-owner frozen matrix {owner.get('owner')} differs from its pinned source SHA256")
+            canonical_relative = owner.get("canonical_matrix")
+            if not isinstance(canonical_relative, str) or not canonical_relative:
+                errors.append(f"cross-owner matrix {owner.get('owner')} omits its canonical owner record path")
+            else:
+                canonical_path = (ROOT / canonical_relative).resolve()
+                if canonical_path.is_file():
+                    canonical_root = next((parent for parent in canonical_path.parents if (parent / ".git").exists()), None)
+                    if canonical_root is None:
+                        errors.append(f"checked-out canonical journey matrix {owner.get('owner')} has no Git checkout provenance")
+                    else:
+                        canonical_file = canonical_path.relative_to(canonical_root).as_posix()
+                        pinned_blob = subprocess.run(
+                            ["git", "-C", str(canonical_root), "rev-parse", f"{owner['source_commit']}:{canonical_file}"],
+                            check=False,
+                            capture_output=True,
+                            text=True,
+                        )
+                        pinned_bytes = subprocess.run(
+                            ["git", "-C", str(canonical_root), "show", f"{owner['source_commit']}:{canonical_file}"],
+                            check=False,
+                            capture_output=True,
+                        )
+                        if pinned_blob.returncode != 0 or pinned_blob.stdout.strip() != owner["source_blob"]:
+                            errors.append(f"canonical journey source commit/blob for {owner.get('owner')} is unavailable or mismatched")
+                        elif pinned_bytes.returncode != 0 or hashlib.sha256(pinned_bytes.stdout).hexdigest() != source_hash:
+                            errors.append(f"canonical journey source bytes for {owner.get('owner')} differ from its reviewed frozen copy")
             if owner["owner"] == "feat-etf-holdings-constituents":
                 external_refs = set((external.get("approved_journey_ids") or {}).keys())
             else:
@@ -385,6 +449,9 @@ def self_test(data: dict[str, Any]) -> None:
     mutated["add_tool_definitions"][0].pop("journey")
     _require(any("missing its journey mapping" in error for error in validate(mutated)), "missing journey alone was accepted")
     mutated = json.loads(json.dumps(data))
+    mutated.pop("journeys")
+    _require(any("journey inventory must be a non-empty list" in error for error in validate(mutated)), "missing journey inventory was accepted")
+    mutated = json.loads(json.dumps(data))
     mutated["add_tool_definitions"][0].pop("evidence")
     _require(any("missing evidence mapping" in error for error in validate(mutated)), "missing Add-tool evidence was accepted")
     mutated = json.loads(json.dumps(data))
@@ -411,7 +478,24 @@ def self_test(data: dict[str, Any]) -> None:
     mutated = json.loads(json.dumps(data))
     mutated["actions"][0]["control_surface_refs"] = []
     _require(any("lacks a current control-surface mapping" in error for error in validate(mutated)), "unconnected action surface was accepted")
-    print("PASS: current route, shell, canonical Add-tool, factory panel, and action-control mapping fail closed")
+    mutated = json.loads(json.dumps(data))
+    mutated["cross_owner_journeys"][0]["journey_ids"] = ["missing-owner-journey"]
+    _require(any("references absent owner journeys" in error for error in validate(mutated)), "missing cross-owner journey was accepted")
+    mutated = json.loads(json.dumps(data))
+    mutated["cross_owner_journeys"][0]["source_sha256"] = "0" * 64
+    _require(any("differs from its pinned source SHA256" in error for error in validate(mutated)), "changed frozen owner matrix was accepted")
+    mutated = json.loads(json.dumps(data))
+    mutated["cross_owner_journeys"][0]["canonical_matrix"] = "../missing-owner-worktree/journey-matrix.json"
+    _require(any("disagrees with its frozen input provenance" in error for error in validate(mutated)), "unreviewed canonical owner path was accepted")
+    canonical_reference = data["cross_owner_journeys"][0].get("canonical_matrix")
+    if isinstance(canonical_reference, str) and (ROOT / canonical_reference).resolve().is_file():
+        mutated = json.loads(json.dumps(data))
+        mutated["cross_owner_journeys"][0]["source_commit"] = "0" * 40
+        _require(any("canonical journey source commit/blob" in error for error in validate(mutated)), "changed canonical owner provenance was accepted")
+    mutated = json.loads(json.dumps(data))
+    mutated["cross_owner_journeys"][0]["matrix"] = "../missing-owner-worktree/journey-matrix.json"
+    _require(any("TC-owned frozen copy" in error or "frozen matrix" in error for error in validate(mutated)), "missing standalone owner matrix copy was accepted")
+    print("PASS: route, shell, canonical Add-tool, factory panel, action-control and portable owner-journey mappings fail closed")
 
 
 def main() -> int:

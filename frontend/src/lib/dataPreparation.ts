@@ -2,6 +2,7 @@ import { api } from '@/lib/api'
 import { onAuthSessionBoundary } from '@/lib/authSession'
 
 export type PreparationDataset = 'identity' | 'profile' | 'history' | 'holdings' | 'fundamentals'
+export type RequiredProfileField = 'industry'
 export type PreparationTimeframe = 'M1' | 'M5' | 'M15' | 'M30' | 'H1' | 'H2' | 'H4' | 'H12' | 'D1' | 'W1' | 'MN' | 'Y1'
 const PREPARATION_TIMEFRAMES = new Set<PreparationTimeframe>(['M1', 'M5', 'M15', 'M30', 'H1', 'H2', 'H4', 'H12', 'D1', 'W1', 'MN', 'Y1'])
 
@@ -34,6 +35,8 @@ export type PreparationAnalysis =
 export interface DataEnsureRequest {
   target: PreparationTarget
   datasets?: PreparationDataset[]
+  /** Profile attributes required by the caller; omitted for ordinary profile preparation. */
+  required_profile_fields?: RequiredProfileField[]
   timeframe?: PreparationTimeframe
   adjusted?: boolean
   start_at?: string | null
@@ -242,6 +245,16 @@ function validateRequest(request: DataEnsureRequest): void {
   }
   if (request.datasets && new Set(request.datasets).size !== request.datasets.length) {
     throw new Error('Preparation datasets must not contain duplicates.')
+  }
+  if (request.required_profile_fields !== undefined) {
+    if (!Array.isArray(request.required_profile_fields)
+      || request.required_profile_fields.some(field => field !== 'industry')
+      || new Set(request.required_profile_fields).size !== request.required_profile_fields.length) {
+      throw new Error('Required profile fields contain an unsupported or duplicate field.')
+    }
+    if (request.required_profile_fields.length && !request.datasets?.includes('profile')) {
+      throw new Error('Required profile fields need the profile dataset.')
+    }
   }
   const timestamp = (value: string | null | undefined, label: string): number | null => {
     if (value == null) return null

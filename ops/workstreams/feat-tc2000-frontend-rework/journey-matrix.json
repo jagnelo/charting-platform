@@ -9,9 +9,21 @@
       "backend/app/routers/workspaces.py:_factory_tabs",
       "backend/app/services/workstation_tool_catalogue.py:factory_tool_configuration"
     ],
-    "etf_matrix": "../feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json",
-    "strategy_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
-    "add_tool_consumer": "frontend/src/stores/workspace.ts:/workspaces/tool-catalogue"
+    "etf_matrix": "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json",
+    "strategy_matrix": "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/strategy-journey-matrix.json",
+    "add_tool_consumer": "frontend/src/stores/workspace.ts:/workspaces/tool-catalogue",
+    "etf_matrix_provenance": {
+      "canonical_matrix": "../feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json",
+      "source_commit": "eea6d7862959120b92e1252352595deff4ef254b",
+      "source_blob": "ddaf5e859e1d6cfb7b7410956df2136a7279637e",
+      "source_sha256": "506d780655baf1450d22c56439ebbeb6360bff3ca371c713e32b84ad0a4a2f28"
+    },
+    "strategy_matrix_provenance": {
+      "canonical_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "source_commit": "bc45155d964c357802de14991f3aac02c5fab29c",
+      "source_blob": "c2c82d2e551f6f257a814d02b203a5402a2d3943",
+      "source_sha256": "b37cad11a09cba6ef40e4c3884f936f9fc54b8b7c2da0d9eae757d9ceac7e9d8"
+    }
   },
   "counts": {
     "routes_and_aliases": 28,
@@ -1465,7 +1477,7 @@
   "cross_owner_journeys": [
     {
       "owner": "feat-etf-holdings-constituents",
-      "matrix": "../feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json",
+      "matrix": "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json",
       "journey_ids": [
         "J01",
         "J02",
@@ -1475,11 +1487,15 @@
         "J12"
       ],
       "journey_count": 16,
-      "status": "owner_matrix_imported_browser_pending"
+      "status": "owner_matrix_imported_browser_pending",
+      "canonical_matrix": "../feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json",
+      "source_commit": "eea6d7862959120b92e1252352595deff4ef254b",
+      "source_blob": "ddaf5e859e1d6cfb7b7410956df2136a7279637e",
+      "source_sha256": "506d780655baf1450d22c56439ebbeb6360bff3ca371c713e32b84ad0a4a2f28"
     },
     {
       "owner": "feat-strategy-lab-v2",
-      "matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "matrix": "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/strategy-journey-matrix.json",
       "journey_refs": [
         "J01 first-use/return: persistent workspace and automatic preparation",
         "J10 Study: edit/validate/run/results/cancel/return supported workflow",
@@ -1495,7 +1511,11 @@
         "J12 recovery: reload and delayed result restoration"
       ],
       "journey_count": 13,
-      "status": "owner_matrix_imported_browser_pending"
+      "status": "owner_matrix_imported_browser_pending",
+      "canonical_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
+      "source_commit": "bc45155d964c357802de14991f3aac02c5fab29c",
+      "source_blob": "c2c82d2e551f6f257a814d02b203a5402a2d3943",
+      "source_sha256": "b37cad11a09cba6ef40e4c3884f936f9fc54b8b7c2da0d9eae757d9ceac7e9d8"
     }
   ],
   "journeys": [
