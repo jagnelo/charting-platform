@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import sys
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
@@ -11,6 +12,7 @@ from typing import Any
 import pytest
 
 from app.models.provider_runtime import ProviderCapability
+from app.services import etf_holdings_refresh as refresh_module
 from app.services.etf_holdings_adapters import (
     ISHARES_PRODUCT_IDS_BY_SYMBOL,
     get_holdings_adapter,
@@ -33,6 +35,25 @@ from app.services.etf_issuer_catalog import (
     catalog_response_bytes,
     parse_ishares_us_product_catalog,
 )
+
+
+def _freeze_native_fixture_clock(monkeypatch):
+    """Keep fixed Oct-30 source fixtures within the reviewed test-time window."""
+
+    frozen_now = datetime(2026, 11, 1, 12, tzinfo=UTC)
+    real_datetime = datetime
+
+    class FixtureDateTime(real_datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return frozen_now.replace(tzinfo=None) if tz is None else frozen_now.astimezone(tz)
+
+        @classmethod
+        def today(cls):
+            return frozen_now.date()
+
+    monkeypatch.setattr(sys.modules[__name__], "datetime", FixtureDateTime)
+    monkeypatch.setattr(refresh_module, "datetime", FixtureDateTime)
 
 
 def _catalog_html(
@@ -800,6 +821,9 @@ async def test_selected_acquire_from_null_issuer_igv_requires_official_catalog_i
     monkeypatch, canonical_name, expected_outcome, expected_urls
 ):
     """Exercise acquire route preparation and catalog identity with no static/profile seed."""
+
+    if expected_outcome == "acquired":
+        _freeze_native_fixture_clock(monkeypatch)
 
     instrument = SimpleNamespace(
         id=82,
