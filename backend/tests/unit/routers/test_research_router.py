@@ -17,6 +17,7 @@ from app.routers.research import (
     _instrument_metadata,
     _load_bars_for_ids,
     _load_instrument_bars,
+    _materialize_declared_dataset,
     _materialize_instrument_dataset,
     _parse_dataset_bound,
     _research_coverage_calendars,
@@ -268,6 +269,70 @@ def test_date_only_research_bounds_cover_the_full_utc_dates_inclusively():
         _parse_dataset_bound("2024-02-30", end=True)
     assert error.value.status_code == 422
     assert error.value.detail["code"] == "invalid_dataset_date"
+
+
+@pytest.mark.asyncio
+async def test_declared_materialization_keeps_bounded_lookback_rows_and_batch_budget(
+    db, instrument
+):
+    selected = _series(instrument.id, feed="bounded-lookback")
+    db.add(selected)
+    db.flush()
+    db.add(
+        MarketSeriesDefault(
+            instrument_id=instrument.id,
+            timeframe="D1",
+            is_adjusted=True,
+            market_series_id=selected.id,
+            selection_reason="research-bounded-lookback-regression",
+        )
+    )
+    start = datetime(2024, 1, 2, tzinfo=UTC)
+    timestamps = [start + timedelta(days=offset) for offset in range(520)]
+    db.add_all(
+        [
+            _bar(
+                instrument.id,
+                timestamp,
+                series_id=selected.id,
+                close=str(100 + offset),
+            )
+            for offset, timestamp in enumerate(timestamps)
+        ]
+    )
+    db.flush()
+    adapter = _AsyncSessionAdapter(db)
+
+    bounded = await _materialize_declared_dataset(
+        adapter,
+        {},
+        {
+            "symbol": instrument.symbol,
+            "timeframe": "D1",
+            "start_date": timestamps[0].isoformat(),
+            "end_date": timestamps[-1].isoformat(),
+        },
+        lookback=20,
+    )
+
+    assert len(bounded["timestamps"]) == 520
+    assert bounded["timestamps"][0] == _wire_timestamps([timestamps[0]])[0]
+    assert bounded["timestamps"][-1] == _wire_timestamps([timestamps[-1]])[0]
+    assert bounded["coverage_preflight"]["status"] == "full"
+    assert bounded["coverage_preflight"]["items"][0]["status"] == "ready"
+    assert bounded["coverage_preflight"]["items"][0]["bar_count"] == 520
+
+    unbounded_batch = await _materialize_declared_dataset(
+        adapter,
+        {},
+        {"symbols": [instrument.symbol], "timeframe": "D1"},
+        lookback=20,
+    )
+
+    assert unbounded_batch["batch_history_limit"] == 500
+    assert len(unbounded_batch["datasets"][0]["timestamps"]) == 500
+    assert unbounded_batch["coverage_preflight"]["status"] == "full"
+    assert unbounded_batch["coverage_preflight"]["items"][0]["bar_count"] == 500
 
 
 def test_explicit_research_timestamps_keep_their_instants_and_do_not_become_date_bounds():

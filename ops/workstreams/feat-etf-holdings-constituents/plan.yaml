@@ -1747,6 +1747,8 @@ owned_paths:
 - ops/workstreams/feat-etf-holdings-constituents/session.json
 - ops/workstreams/feat-etf-holdings-constituents/integration-checkpoint.md
 - frontend/tests/e2e/supporting_features_journey.spec.ts
+- frontend/src/components/workstation/InstrumentNoteTool.vue
+- frontend/tests/unit/components/test_instrument_note_tool.test.ts
 - ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json
 common_baseline_reconciliation:
   recorded_at: '2026-10-19T23:17:00Z'
@@ -6451,4 +6453,28 @@ root_allocated_supporting_feature_journey_2026_11_07:
   coverage: Authenticated normal-API notes, alerts, Settings preference, and saved-watchlist journeys with test-account-owned records; reachable Instrument Report coverage maps to the existing F8s-report browser case rather than duplicating it.
   safeguards: Preserve pre-existing user records; do not modify account-wide settings, enable browser notifications, trigger delivery, or call native providers. No standalone report route is implemented.
   validation: Type-check and Playwright discovery only; browser bodies remain pending Root's shared browser slot.
-  state: in_progress
+  root_r30_observation: Root's first four supporting-feature browser cases ended0/4 passed and4 failed in77.27s. Alert creation reached the API and returned exact201; the owner spec now asserts201. Notes exposed a pending-save timer lost on context change/unmount; the owned lifecycle fix has3 focused unit passes. Watchlist and Settings route-script readiness delays remain shared TC/Provider-owned and are not masked by longer waits.
+  state: in_progress; Root browser qualification remains pending.
+etf_note_draft_lifecycle_2026_11_07:
+  authority: Root assigned only InstrumentNoteTool.vue and its focused unit module; TC is excluded from those two paths until the exact ETF source is consumed.
+  owned_paths: [frontend/src/components/workstation/InstrumentNoteTool.vue, frontend/tests/unit/components/test_instrument_note_tool.test.ts]
+  behavior: Flush the latest debounced note on instrument change or panel unmount; serialize writes per instrument, retain failed/unacknowledged text in the existing query cache as pending, and allow only the latest revision acknowledgement to clear pending state or show Saved.
+  validation: Focused note lifecycle module passed3/3; frontend type-check passed. No browser, database, provider, native-source, production, or quota operation.
+  remaining: Root-owned browser qualification and shared TC/Provider route-load latency remain pending.
+rrg_raster_status_2026_11_07:
+  evidence: Root's retained R28 screenshot proves a visible XLK tail; the raw RGB oracle missed the alpha-composited stroke and was corrected without changing counts, tolerances, or baselines.
+  qualification: R28 is not accepted. Root R29 ended0 passed/3 failed in138.2s; the sector catalogue now exposed all11 entries, but XLB's price renderer did not mount, basket member hold was not observed within5s, and the shared maximize diagnostic lacked Restore. No full S&P/RRG journey closure is claimed.
+provider_runtime_dependency_active_dd70319e:
+  authority: Root released this exact Provider source for development consumption only; no staging, deployment, or final acceptance is implied.
+  source: dd70319eb725dc6b5c1b4feb0ba5a5ba060efd04
+  previous_active_dependency: dcd3c823f9f76ed65b65d8b6c3628e1bc02a222e
+  manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providerdd70319e-runtime-development-consumption-contract.json
+  manifest_sha256: e6894199dbc54abc0c4f25b6f6dd24e871091f5a9d2d6ccbcc3243bb324dc5e0
+  changed_paths_imported:
+  - backend/app/routers/analysis.py
+  - backend/app/routers/research.py
+  - backend/tests/unit/routers/test_analysis_router.py
+  - backend/tests/unit/routers/test_research_router.py
+  active_manifest_records_verified: 61
+  verification: All61 manifest entries match source Git blobs, SHA256 and executable-bit semantics; only the four declared ETF paths were imported under their old guards.
+  state: Development dependency only; Root's backend/browser and full release qualifications remain pending.

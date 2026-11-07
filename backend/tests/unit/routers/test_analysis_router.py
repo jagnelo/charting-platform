@@ -9,7 +9,7 @@ from app.config import settings
 from app.models.data_source import DataSource
 from app.models.etf_holdings import ETFHoldingsSnapshot
 from app.models.instrument_event import InstrumentEventFetchState
-from app.models.market_data_foundation import AdjustmentBasis, MarketSeries
+from app.models.market_data_foundation import AdjustmentBasis, MarketSeries, MarketSeriesDefault
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_runtime import ProviderCapability, ProviderEntitlement
 from app.models.workstation import MarketGroup, MarketGroupMember
@@ -770,6 +770,123 @@ async def test_rrg_analysis_reads_only_selected_coarse_series_after_repeated_der
         assert retained.adjustment_basis == AdjustmentBasis.RAW
         assert retained.close == Decimal("100")
     assert all(len(series_ids) == 1 for series_ids in selected_series_by_timeframe.values())
+
+
+@pytest.mark.asyncio
+async def test_group_bar_read_resolves_selected_series_before_fetching_bars(db, instrument):
+    """Series choice is bounded by instrument scopes, not repeated for every bar."""
+    from sqlalchemy import event
+
+    from tests.unit.conftest import AsyncSessionAdapter
+
+    def make_series(timeframe: Timeframe, feed_scope: str, *, canonical: bool) -> MarketSeries:
+        value = MarketSeries(
+            instrument_id=instrument.id,
+            data_source_id=None,
+            feed_scope=feed_scope,
+            session_code="regular",
+            timeframe=timeframe.value,
+            adjustment_basis=AdjustmentBasis.SPLIT_ADJUSTED,
+            adjustment_version="fixture-split-v1",
+            is_canonical=canonical,
+            is_active=True,
+        )
+        db.add(value)
+        db.flush()
+        return value
+
+    def add_bars(timeframe: Timeframe, close: str, series: MarketSeries | None) -> None:
+        for offset in range(3):
+            timestamp = datetime(2025, 1, 2 + offset, 21, tzinfo=UTC)
+            price = Decimal(close) + offset
+            db.add(
+                OHLCVBar(
+                    instrument_id=instrument.id,
+                    market_series_id=series.id if series is not None else None,
+                    timeframe=timeframe,
+                    ts=timestamp,
+                    open=price,
+                    high=price,
+                    low=price,
+                    close=price,
+                    is_adjusted=True,
+                    adjustment_basis=AdjustmentBasis.SPLIT_ADJUSTED,
+                    adjustment_version="fixture-split-v1",
+                    scope_key=(
+                        f"series:{series.id}:regular" if series is not None else "legacy:regular"
+                    ),
+                )
+            )
+
+    selected_d1 = make_series(Timeframe.D1, "selected-d1", canonical=False)
+    canonical_d1 = make_series(Timeframe.D1, "other-canonical-d1", canonical=True)
+    db.add(
+        MarketSeriesDefault(
+            instrument_id=instrument.id,
+            timeframe=Timeframe.D1.value,
+            is_adjusted=True,
+            market_series_id=selected_d1.id,
+            selection_reason="fixture-selected",
+        )
+    )
+    add_bars(Timeframe.D1, "100", selected_d1)
+    add_bars(Timeframe.D1, "200", canonical_d1)
+
+    canonical_w1 = make_series(Timeframe.W1, "canonical-w1", canonical=True)
+    add_bars(Timeframe.W1, "300", canonical_w1)
+
+    add_bars(Timeframe.MN, "400", None)
+
+    empty_default_h1 = make_series(Timeframe.H1, "empty-default-h1", canonical=False)
+    canonical_h1 = make_series(Timeframe.H1, "canonical-h1", canonical=True)
+    db.add(
+        MarketSeriesDefault(
+            instrument_id=instrument.id,
+            timeframe=Timeframe.H1.value,
+            is_adjusted=True,
+            market_series_id=empty_default_h1.id,
+            selection_reason="fixture-empty-default",
+        )
+    )
+    add_bars(Timeframe.H1, "500", canonical_h1)
+
+    incompatible_h2 = make_series(Timeframe.H2, "raw-h2", canonical=True)
+    incompatible_h2.adjustment_basis = AdjustmentBasis.RAW
+    add_bars(Timeframe.H2, "600", incompatible_h2)
+    db.flush()
+
+    statements: list[str] = []
+
+    def record_statement(_conn, _cursor, statement, _parameters, _context, _many):
+        statements.append(statement.lower())
+
+    bind = db.get_bind()
+    event.listen(bind, "before_cursor_execute", record_statement)
+    try:
+        session = AsyncSessionAdapter(db)
+        expectations = (
+            (Timeframe.D1, selected_d1.id, Decimal("100"), 2),
+            (Timeframe.W1, canonical_w1.id, Decimal("300"), 3),
+            (Timeframe.MN, None, Decimal("400"), 3),
+            (Timeframe.H1, canonical_h1.id, Decimal("500"), 3),
+            (Timeframe.H2, None, None, 3),
+        )
+        for timeframe, expected_series_id, expected_close, expected_queries in expectations:
+            statements.clear()
+            bars_by_id = await _bars_by_instrument(session, [instrument.id], timeframe, True)
+            rows = bars_by_id.get(instrument.id, [])
+            if expected_close is None:
+                assert rows == []
+            else:
+                assert len(rows) == 3
+                assert {row.market_series_id for row in rows} == {expected_series_id}
+                assert rows[0].close == expected_close
+            assert len(statements) == expected_queries
+            bar_query = statements[-1]
+            assert "exists (select" not in bar_query
+            assert "market_series_default" not in bar_query
+    finally:
+        event.remove(bind, "before_cursor_execute", record_statement)
 
 
 def test_relative_rotation_sampling_retains_latest_aligned_observation():

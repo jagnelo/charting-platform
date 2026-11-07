@@ -222,7 +222,7 @@ test('supporting alerts — create a non-triggering rule, edit, pause/resume, re
   )
   await add.click()
   const created = await createResponse
-  expect(created.status()).toBe(200)
+  expect(created.status()).toBe(201)
   const alert = await created.json() as { id: number; instrument_id: number; status: string; threshold_price: number }
   expect(alert.instrument_id).toBeGreaterThan(0)
   expect(alert.status).toBe('active')

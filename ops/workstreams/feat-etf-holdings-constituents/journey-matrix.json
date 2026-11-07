@@ -765,8 +765,8 @@
           "GET /api/v1/notes/instruments/{canonical_instrument_id}",
           "PUT /api/v1/notes/instruments/{canonical_instrument_id}"
         ],
-        "assertions": "Initial no-note state, autosave and edit, reload persistence, switch to a second symbol without leaking the first note, return to the original symbol.",
-        "evidence": "New supporting notes case; body not run by this owner."
+        "assertions": "Initial no-note state, autosave and edit, reload persistence, switch to a second symbol without leaking the first note, return to the original symbol. Pending drafts flush on switch/unmount; delayed older acknowledgements cannot mark a newer draft saved, and an unacknowledged draft remains in the existing query cache. Focused component tests cover switch, close, and ordered acknowledgement.",
+        "evidence": "Supporting browser body remains pending Root; focused InstrumentNoteTool lifecycle module passed3/3."
       },
       "alerts": {
         "entry": "Workstation /chart/{symbol} -> active-symbol Alerts tool; application navigation -> Alerts at /legacy/alerts (/alerts redirects).",
@@ -777,7 +777,8 @@
           "DELETE /api/v1/alerts/price/{id}"
         ],
         "assertions": "Incomplete form cannot submit; create a high non-triggering test-account rule; edit its note, pause/resume, reload to verify persistence, delete and verify it is absent. No notification permission or delivery is requested.",
-        "evidence": "New supporting alerts case plus existing flows.spec.ts F11a-F11c alert-creation cases; new body not run by this owner."
+        "creation_response": "The actual POST returns exact HTTP201; the browser assertion requires201, not a generic2xx.",
+        "evidence": "Root R30 observed actual201; the owner browser body remains pending Root."
       },
       "settings": {
         "entry": "Workstation application navigation -> Settings at /legacy/settings (/settings redirects).",
@@ -816,6 +817,6 @@
       "The only settings mutation is a user-owned preset in the unique E2E account; notification setup remains read-only.",
       "This is authored browser coverage and discovery only; no browser body/API environment was run by this owner."
     ],
-    "execution_status": "pending Root-owned combined browser slot; no body run or browser acceptance claimed."
+    "execution_status": "Root R30 first-four supporting cases:0 passed/4 failed in77.27s. Notes lifecycle and exact alert201 assertion are corrected with focused local tests; watchlist and Settings route-script readiness failures remain TC/Provider-owned. Full browser qualification remains pending; no acceptance claimed."
   }
 }

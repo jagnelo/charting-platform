@@ -11,7 +11,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, or_, select
+from sqlalchemy import and_, exists, func, or_, select, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -26,6 +26,7 @@ from app.models.etf_holdings import (
 )
 from app.models.instrument import Instrument
 from app.models.instrument_event import InstrumentEvent, InstrumentEventFetchState
+from app.models.market_data_foundation import MarketSeries, MarketSeriesDefault
 from app.models.market_map import MarketMapSnapshot
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_observation import (
@@ -166,6 +167,7 @@ from app.services.indicators import (
     required_bars_for_indicator,
 )
 from app.services.market_map import build_market_map, read_market_map_cache
+from app.services.market_series import adjustment_scope_predicate
 from app.services.ohlcv_coverage import (
     bar_visible_through as _bar_visible_through,
 )
@@ -1815,16 +1817,96 @@ async def _bars_by_instrument(
 ) -> dict[int, list[OHLCVBar]]:
     if not instrument_ids:
         return {}
-    from app.services.market_data import _default_series_bar_condition
+
+    # Resolve the user's selected series once per instrument, rather than
+    # running the full default/canonical/legacy EXISTS predicate for every
+    # returned bar. On broad D1 groups that predicate caused PostgreSQL to
+    # repeat an indexed existence lookup tens of thousands of times.
+    ordered_ids = list(dict.fromkeys(int(instrument_id) for instrument_id in instrument_ids))
+    adjustment_predicate = adjustment_scope_predicate(adjusted)
+    mapped_has_bars = exists(
+        select(OHLCVBar.id).where(
+            OHLCVBar.market_series_id == MarketSeries.id,
+            OHLCVBar.instrument_id == MarketSeriesDefault.instrument_id,
+            OHLCVBar.timeframe == timeframe,
+            OHLCVBar.is_adjusted.is_(adjusted),
+        )
+    )
+    mapped_rows = (
+        await db.execute(
+            select(MarketSeriesDefault.instrument_id, MarketSeriesDefault.market_series_id)
+            .join(MarketSeries, MarketSeries.id == MarketSeriesDefault.market_series_id)
+            .where(
+                MarketSeriesDefault.instrument_id.in_(ordered_ids),
+                MarketSeriesDefault.timeframe == timeframe.value,
+                MarketSeriesDefault.is_adjusted.is_(adjusted),
+                MarketSeries.is_active.is_(True),
+                adjustment_predicate,
+                mapped_has_bars,
+            )
+        )
+    ).all()
+    selected_series_by_id: dict[int, int] = {}
+    for instrument_id, series_id in mapped_rows:
+        selected_series_by_id.setdefault(int(instrument_id), int(series_id))
+
+    canonical_ids = [
+        instrument_id for instrument_id in ordered_ids if instrument_id not in selected_series_by_id
+    ]
+    if canonical_ids:
+        canonical_has_bars = exists(
+            select(OHLCVBar.id).where(
+                OHLCVBar.market_series_id == MarketSeries.id,
+                OHLCVBar.instrument_id == MarketSeries.instrument_id,
+                OHLCVBar.timeframe == timeframe,
+                OHLCVBar.is_adjusted.is_(adjusted),
+            )
+        )
+        canonical_rows = (
+            await db.execute(
+                select(MarketSeries.instrument_id, MarketSeries.id)
+                .where(
+                    MarketSeries.instrument_id.in_(canonical_ids),
+                    MarketSeries.timeframe == timeframe.value,
+                    MarketSeries.is_canonical.is_(True),
+                    MarketSeries.is_active.is_(True),
+                    adjustment_predicate,
+                    canonical_has_bars,
+                )
+                .order_by(MarketSeries.instrument_id, MarketSeries.id)
+            )
+        ).all()
+        for instrument_id, series_id in canonical_rows:
+            selected_series_by_id.setdefault(int(instrument_id), int(series_id))
+
+    legacy_ids = [
+        instrument_id for instrument_id in ordered_ids if instrument_id not in selected_series_by_id
+    ]
+    series_filters = []
+    if selected_series_by_id:
+        series_filters.append(
+            tuple_(OHLCVBar.instrument_id, OHLCVBar.market_series_id).in_(
+                list(selected_series_by_id.items())
+            )
+        )
+    if legacy_ids:
+        series_filters.append(
+            and_(
+                OHLCVBar.instrument_id.in_(legacy_ids),
+                OHLCVBar.market_series_id.is_(None),
+            )
+        )
+    if not series_filters:
+        return {}
 
     bars = (
         await db.execute(
             select(OHLCVBar)
             .where(
-                OHLCVBar.instrument_id.in_(instrument_ids),
+                OHLCVBar.instrument_id.in_(ordered_ids),
                 OHLCVBar.timeframe == timeframe,
                 OHLCVBar.is_adjusted.is_(adjusted),
-                _default_series_bar_condition(OHLCVBar.instrument_id, timeframe, adjusted),
+                or_(*series_filters),
             )
             .order_by(OHLCVBar.instrument_id, OHLCVBar.ts)
         )

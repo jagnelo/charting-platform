@@ -1141,8 +1141,8 @@
     "status": "Root-delegated bounded software checkpoint accepted; exact final-source CI pending.",
     "validated_implementation_sha": "b6d67ce93104a0a2cf83b1c41f385513b3c230f8"
   },
-  "plan_hash": "7762c9f11e46508d59077f200a4a84e57da2c755b3df78b8c660819df34d2b67",
-  "plan_sha256": "7762c9f11e46508d59077f200a4a84e57da2c755b3df78b8c660819df34d2b67",
+  "plan_hash": "0ced2ae7696beeefcc9972644ca653aef22718eab5e2711f8d19094d34e3cf4f",
+  "plan_sha256": "0ced2ae7696beeefcc9972644ca653aef22718eab5e2711f8d19094d34e3cf4f",
   "planning_required": false,
   "planning_state": "ready",
   "previous_active_changeset": {
@@ -4464,14 +4464,29 @@
     "consumer_import_paths": "Exactly the four ETF paths in the Root delta manifest; all66 current manifest files verified by Git blob and SHA256; no excluded owner paths imported."
   },
   "current_provider_runtime_dependency": {
-    "source": "dcd3c823f9f76ed65b65d8b6c3628e1bc02a222e",
-    "previous_source": "2ce29c3031ee4a5011f80927dacd984d4f3d166a",
-    "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providerdcd3c823-runtime-development-consumption-contract.json",
-    "manifest_sha256": "723300fa7f2119d3e1856710904f0abe743288cee7f1ab52a685bbb0d2f4d5b3",
+    "source": "dd70319eb725dc6b5c1b4feb0ba5a5ba060efd04",
+    "previous_source": "dcd3c823f9f76ed65b65d8b6c3628e1bc02a222e",
+    "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providerdd70319e-runtime-development-consumption-contract.json",
+    "manifest_sha256": "e6894199dbc54abc0c4f25b6f6dd24e871091f5a9d2d6ccbcc3243bb324dc5e0",
     "current_manifest_records_verified": 61,
     "consumer_import_paths_verified": 4,
-    "verification": "All61 source Git blob/SHA256 entries verified; exact four ETF paths imported under old/new guards and executable-bit semantics.",
-    "validation": "Root reports55 focused tests and pinned style checks; not replayed by ETF.",
+    "verification": "All61 current manifest entries match released Git blobs, SHA256 and executable-bit semantics; the four declared ETF paths passed old/new guards and were imported exactly.",
+    "validation": "Root reports pinned Ruff check/format on four delta files; no unchanged suite was replayed here. Full CI/browser/release gates remain pending.",
     "state": "Root-released development dependency only; no combined release or acceptance claimed."
+  },
+  "current_checkpoint_2026_11_07_notes_lifecycle": {
+    "source_parent": "6ff05d8224da622bf195c6d2829842d85d2d1acb",
+    "owned_paths": [
+      "frontend/src/components/workstation/InstrumentNoteTool.vue",
+      "frontend/tests/unit/components/test_instrument_note_tool.test.ts",
+      "frontend/tests/e2e/supporting_features_journey.spec.ts"
+    ],
+    "component_sha256": "5f967f195c433e2415fdf744d1f1e1aedb83f90085408f8d740e4be7fe5136de",
+    "unit_sha256": "d9a8431721f9b0d508c05421b3f8b9152048c56369b4b4c75ca3cc49c2a46bd4",
+    "supporting_journey_sha256": "60e4cf196dd9e21bd4ee31206df7678f1b185ab6ca700924b3cd7c942be19451",
+    "provider_dependency": "dd70319eb725dc6b5c1b4feb0ba5a5ba060efd04; exact4 declared deltas imported and all61 manifest records verified; manifest SHA256 e6894199dbc54abc0c4f25b6f6dd24e871091f5a9d2d6ccbcc3243bb324dc5e0.",
+    "focused_validation": "InstrumentNoteTool lifecycle unit3/3 passed; frontend type-check passed. Alert POST assertion now requires exact201.",
+    "root_browser_evidence": "R30 first four supporting cases:0 passed/4 failed in77.27s. R28 remains unaccepted; R29 was0 passed/3 failed in138.2s. Shared route-script latency and chart/maximize failures remain external-owner work.",
+    "release_status": "Local implementation checkpoint only; Root browser qualification and release gates remain pending."
   }
 }
