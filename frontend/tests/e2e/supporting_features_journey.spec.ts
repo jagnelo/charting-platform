@@ -297,6 +297,18 @@ test('supporting settings — discover preferences, manage an isolated preset, a
 
   await page.goto('/legacy/chart/SPY')
   await expect(page.locator('.chart-view')).toBeVisible({ timeout: 15_000 })
+  const indicatorPanelToggle = page.getByRole('button', { name: /indicator panel$/i })
+  await expect(indicatorPanelToggle).toBeVisible()
+  if (await indicatorPanelToggle.getAttribute('aria-expanded') === 'false') {
+    await indicatorPanelToggle.click()
+  }
+  await expect(indicatorPanelToggle).toHaveAttribute('aria-expanded', 'true')
+  const indicatorsSectionToggle = page.getByRole('button', { name: /^Indicators\b/ })
+  await expect(indicatorsSectionToggle).toBeVisible()
+  if (await indicatorsSectionToggle.getAttribute('aria-expanded') === 'false') {
+    await indicatorsSectionToggle.click()
+  }
+  await expect(indicatorsSectionToggle).toHaveAttribute('aria-expanded', 'true')
   const savePreset = page.getByRole('button', { name: 'Save indicator preset' })
   await expect(savePreset).toBeVisible({ timeout: 10_000 })
   await savePreset.click()
@@ -319,7 +331,7 @@ test('supporting settings — discover preferences, manage an isolated preset, a
   )
   await saveDialog.getByRole('button', { name: 'Save', exact: true }).click()
   const createdResponse = await createPresetResponse
-  expect(createdResponse.status()).toBe(200)
+  expect(createdResponse.status()).toBe(201)
   const preset = await createdResponse.json() as { id: number; name: string; is_default: boolean }
   expect(preset.name).toBe(presetName)
 
