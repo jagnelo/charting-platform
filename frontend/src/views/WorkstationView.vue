@@ -59,13 +59,22 @@
               <button type="button" role="menuitem" tabindex="-1" @click="workspaceFileInput?.click()">Import workspace</button>
               <input ref="workspaceFileInput" class="workstation__workspace-file" type="file" accept="application/json,.json" @change="importWorkspace" />
             </div>
+            <div
+              v-if="deletedLayoutRecovery && workspaceStore.workspace?.id === deletedLayoutRecovery.workspace_id"
+              class="workstation__layout-recovery"
+              role="status"
+              aria-live="polite"
+            >
+              <span>Deleted layout “{{ deletedLayoutRecovery.tab.name }}”.</span>
+              <button type="button" role="menuitem" tabindex="-1" @click="undoDeletedLayout">Undo</button>
+            </div>
             <small id="workspace-delete-help" class="workstation__workspace-delete-help">
               {{ workspaceStore.workspace?.is_default ? 'This factory workspace is protected; remove extra layouts from the list below.' : 'Deleting a workspace removes its saved layouts. Export it first if you need a backup.' }}
             </small>
             <div class="workstation__layout-list">
               <div v-for="tab in workspaceStore.workspace?.tabs ?? []" :key="tab.stable_key" class="workstation__layout-item" draggable="true" @dragstart="dragTabKey = tab.stable_key" @dragover.prevent @drop.prevent="dropTab(tab.stable_key)" @dragend="dragTabKey = null">
                 <button type="button" role="menuitem" tabindex="-1" class="workstation__layout-select" :class="{ active: tab.stable_key === workspaceStore.activeTabKey }" @click="selectWorkspaceTab(tab.stable_key); closeShellMenuToTrigger('workspace')">{{ tab.name }}</button>
-                <input :aria-label="`Rename ${tab.name}`" :value="tab.name" @change="renameTab(tab.stable_key, ($event.target as HTMLInputElement).value)" />
+                <input aria-label="Rename layout" :value="tab.name" @change="renameTab(tab.stable_key, ($event.target as HTMLInputElement).value)" />
                 <button type="button" class="workstation__layout-delete" :disabled="(workspaceStore.workspace?.tabs.length ?? 0) <= 1" :aria-label="`Delete layout ${tab.name}`" :title="`Delete layout ${tab.name}`" @click="deleteTab(tab.stable_key, tab.name)"><WorkstationGlyph kind="delete" /><span>Delete</span></button>
               </div>
             </div>
@@ -229,7 +238,7 @@
         @click="selectWorkspaceTab(tab.stable_key)"
         @keydown="handleWorkspaceTabKeydown(tab.stable_key, $event)"
       >{{ tab.name }}</button>
-      <button type="button" class="workstation__tab-add" title="Clone active layout" aria-label="Clone active layout" @click="workspaceStore.cloneActiveTab()">+</button>
+      <button type="button" class="workstation__tab-add" title="Duplicate layout" aria-label="Duplicate layout" @click="workspaceStore.cloneActiveTab()">+</button>
       <div class="workstation__tool-library">
           <button ref="toolLibraryTrigger" type="button" class="workstation__tab-add" title="Open a workstation tool" aria-haspopup="menu" :aria-expanded="toolLibraryOpen" :aria-controls="toolLibraryMenuId" @click="toggleToolLibrary()" @keydown="handleShellTriggerKeydown('tool-library', $event)">Add tool</button>
         <div v-if="toolLibraryOpen" :id="toolLibraryMenuId" ref="toolLibraryMenuRoot" class="workstation__tool-library-menu" role="menu" aria-label="Workstation tools" :style="toolLibraryMenuStyle" @keydown="handleShellMenuKeydown('tool-library', $event)">
@@ -316,7 +325,7 @@ import WorkstationToolContent from '@/components/workstation/WorkstationToolCont
 import WorkstationGlyph from '@/components/workstation/WorkstationGlyph.vue'
 import { refreshMountedWorkstationChartPanels, useChartStore } from '@/stores/chart'
 import { useAuthStore } from '@/stores/auth'
-import { useWorkspaceStore, type LinkGroup, type OpenableToolDefinition } from '@/stores/workspace'
+import { useWorkspaceStore, type LinkGroup, type OpenableToolDefinition, type WorkspaceTabRecovery } from '@/stores/workspace'
 import type { LayoutConfig } from 'golden-layout'
 import { resolveKnownInstrument } from '@/lib/instruments'
 import { createKnownTemporaryRetryLifecycle, isCurrentETFHoldingsCapability, isEligibleETFHoldingsInstrumentType, readETFHoldingsCapability, resolveExistingInstrument, type InstrumentDiscoveryResponse } from '@/lib/onDemandAcquisition'
@@ -416,6 +425,7 @@ const workspaceFileInput = ref<HTMLInputElement | null>(null)
 const workspaceReloadKey = ref(0)
 const workspaceReplacementPending = ref(false)
 const workspaceTabSwitchPending = ref(false)
+const deletedLayoutRecovery = ref<WorkspaceTabRecovery | null>(null)
 const workspaceDockPending = computed(() => workspaceReplacementPending.value || workspaceTabSwitchPending.value)
 // Shell controls render before the async workspace snapshot has necessarily
 // hydrated. Keep tool-opening commands queued behind that first load instead
@@ -448,19 +458,34 @@ const selectionHistoryMessage = ref('')
 const selectionHistoryError = ref('')
 const selectionHoldingsMessage = ref('')
 const selectionHoldingsError = ref('')
-const activeHoldingContext = ref<{ symbol: string; context: ETFHoldingDrilldownContext } | null>(null)
+const activeHoldingContext = ref<{ symbol: string; context: ETFHoldingDrilldownContext; restoredFromRoute?: boolean } | null>(null)
 const selectedHoldingDetails = computed(() => {
   const selection = activeHoldingContext.value
-  const fund = workspaceStore.constituentETF
+  const fund = selection?.restoredFromRoute ? selection.context.etfSymbol : workspaceStore.constituentETF
   if (!selection || !fund || selection.symbol !== workspaceStore.linkedSymbol.trim().toUpperCase()) return ''
   const context = selection.context
-  return `${selection.symbol} from ${fund} holdings · snapshot ${context.snapshotId} · row ${context.holdingRowId} · composition ${context.compositionDate} · known ${context.knownAt || 'not reported'} · ${context.sourceProvider} / ${context.provenance}`
+  const origin = selection.restoredFromRoute ? 'dated holdings' : 'holdings'
+  return [
+    `${selection.symbol} from ${fund} ${origin}`,
+    `instrument ${context.instrumentId}`,
+    `snapshot ${context.snapshotId}`,
+    `row ${context.holdingRowId}`,
+    context.sourceRowId ? `source row ${context.sourceRowId}` : '',
+    `reported ${context.reportedSymbol}`,
+    context.reportedName ? `reported name ${context.reportedName}` : '',
+    context.holdingType ? `type ${context.holdingType}` : '',
+    `composition ${context.compositionDate}`,
+    `known ${context.knownAt || 'not reported'}`,
+    `${context.sourceProvider} / ${context.provenance}`,
+  ].filter(Boolean).join(' · ')
 })
 const selectedHoldingCaption = computed(() => {
   const selection = activeHoldingContext.value
-  const fund = workspaceStore.constituentETF
+  const fund = selection?.restoredFromRoute ? selection.context.etfSymbol : workspaceStore.constituentETF
   if (!selection || !fund || selection.symbol !== workspaceStore.linkedSymbol.trim().toUpperCase()) return ''
-  return `${selection.symbol} from ${fund} holdings · ${selection.context.compositionDate}`
+  return selection.restoredFromRoute
+    ? `${selection.symbol} from ${fund} dated holdings · ${selection.context.compositionDate}`
+    : `${selection.symbol} from ${fund} holdings · ${selection.context.compositionDate}`
 })
 const selectedHoldingLineage = selectedHoldingDetails
 let searchTimer: ReturnType<typeof setTimeout> | null = null
@@ -1203,6 +1228,7 @@ async function selectSymbol(
   acquisitionIntent = false,
   confirmedIdentity?: InstrumentAcquireResponse,
   holdingContext?: ETFHoldingDrilldownContext,
+  restoredHoldingContext?: ETFHoldingDrilldownContext,
 ) {
   const requested = raw.trim()
   if (!requested) return
@@ -1297,9 +1323,6 @@ async function selectSymbol(
     }
   }
   if (generation !== symbolSelectionGeneration) return
-  activeHoldingContext.value = holdingContext
-    ? { symbol: symbol.trim().toUpperCase(), context: holdingContext }
-    : null
   selectionHistoryMessage.value = ''
   selectionHistoryError.value = ''
   selectionHoldingsMessage.value = ''
@@ -1312,6 +1335,14 @@ async function selectSymbol(
     ].find(member => member.instrument.symbol.trim().toUpperCase() === symbol)
     canonicalInstrumentId = knownMember?.instrument.id ?? null
   }
+  const displayContext = holdingContext ?? restoredHoldingContext
+  const contextMatchesResolvedIdentity = displayContext
+    && displayContext.canonicalSymbol.trim().toUpperCase() === symbol.trim().toUpperCase()
+    && Number.isSafeInteger(canonicalInstrumentId)
+    && canonicalInstrumentId === displayContext.instrumentId
+  activeHoldingContext.value = contextMatchesResolvedIdentity
+    ? { symbol: symbol.trim().toUpperCase(), context: displayContext, restoredFromRoute: !holdingContext }
+    : null
   // A direct selection begins a new holdings context immediately. A constituent
   // row is the explicit exception: its parent ETF remains the source for the
   // linked constituent/ratio panels while the selected equity chart changes.
@@ -2137,7 +2168,17 @@ function renameTab(stableKey: string, name: string) {
 
 function deleteTab(stableKey: string, name: string) {
   if (!window.confirm(`Delete layout “${name}”?`)) return
-  workspaceStore.deleteTab(stableKey)
+  const recovery = workspaceStore.captureTabRecovery(stableKey)
+  if (!recovery || !workspaceStore.deleteTab(stableKey)) return
+  deletedLayoutRecovery.value = recovery
+}
+
+async function undoDeletedLayout() {
+  const recovery = deletedLayoutRecovery.value
+  if (!recovery) return
+  if (!workspaceStore.restoreDeletedTab(recovery)) return
+  deletedLayoutRecovery.value = null
+  await replaceDockAfterWorkspaceChange()
 }
 
 function dropTab(targetStableKey: string, event?: DragEvent) {
@@ -3221,6 +3262,9 @@ onMounted(async () => {
           preserveParentETFContext,
           '',
           !isPrivateBasketToken(requested),
+          undefined,
+          undefined,
+          routeHoldingContext ?? undefined,
         )
       }
       if (!componentMounted) return
@@ -3290,6 +3334,8 @@ onBeforeUnmount(() => {
 .workstation__workspace-popover header { display: flex; justify-content: space-between; align-items: baseline; padding: 3px 4px 5px; border-bottom: 1px solid #29343b; font-size: 11px; }.workstation__workspace-popover header small { color: #81909a; font-size: 9px; }
 .workstation__workspace-list { display: grid; gap: 2px; max-height: 112px; overflow: auto; padding: 4px 0; border-bottom: 1px solid #29343b; }.workstation__workspace-list button { display: flex; justify-content: space-between; gap: 8px; border: 1px solid transparent; background: transparent; color: #aebbc4; padding: 3px 4px; text-align: left; font: 10px "Segoe UI",Arial,sans-serif; cursor: pointer; }.workstation__workspace-list button:hover,.workstation__workspace-list button[aria-selected="true"] { border-color: #3e505c; background: #202b32; color: #f1f7fa; }.workstation__workspace-list small { color: #81909a; font-size: 9px; }
 .workstation__workspace-actions { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 4px; padding: 5px 2px; border-bottom: 1px solid #29343b; }.workstation__workspace-actions button,.workstation__layout-reset { min-width: 0; min-height: 28px; border: 1px solid #42505a; background: #202b32; color: #cbd6dc; padding: 4px 5px; font: 10px/1.2 "Segoe UI",Arial,sans-serif; cursor: pointer; white-space: normal; }.workstation__workspace-actions button:hover,.workstation__layout-reset:hover { background: #31424d; color: #fff; }.workstation__workspace-actions button:disabled { color: #68767e; border-color: #354149; background: #182026; cursor: not-allowed; }.workstation__workspace-file { display: none; }
+.workstation__layout-recovery { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 5px; border: 1px solid var(--tc-accent); border-radius: var(--tc-radius); color: var(--tc-text); font-size: 10px; }
+.workstation__layout-recovery button { flex: none; border: 1px solid var(--tc-border-strong); border-radius: var(--tc-radius); background: var(--tc-control-bg); color: var(--tc-text); padding: 3px 8px; cursor: pointer; }
 .workstation__workspace-delete-help { display: block; padding: 4px 4px 2px; border-bottom: 1px solid #29343b; color: #91a0a9; font-size: 9px; line-height: 1.35; }
 .workstation__layout-list { display: grid; gap: 2px; max-height: 250px; overflow: auto; padding: 4px 0; }.workstation__layout-item { display: grid; grid-template-columns: minmax(72px, 1fr) 98px 58px; gap: 3px; align-items: center; padding: 2px; border: 1px solid transparent; }.workstation__layout-item:hover { border-color: #3e505c; }.workstation__layout-select { overflow: hidden; border: 0; background: transparent; color: #aebbc4; text-align: left; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; font: 10px "Segoe UI",Arial,sans-serif; }.workstation__layout-select.active { color: #eaf2f6; font-weight: 700; }.workstation__layout-item input { min-width: 0; border: 1px solid #3b4850; background: #11161a; color: #bfcbd3; padding: 2px 3px; font: 10px "Segoe UI",Arial,sans-serif; }.workstation__layout-delete { display: flex; align-items: center; justify-content: center; gap: 2px; min-height: 22px; padding: 2px 3px; border: 1px solid #4d4242; border-radius: var(--tc-radius); background: #2a2020; color: #e4a4a4; font: 9px/1.1 "Segoe UI",Arial,sans-serif; cursor: pointer; white-space: nowrap; }.workstation__layout-delete:hover:not(:disabled) { border-color: #d78989; background: #3b2626; color: #fff; }.workstation__layout-delete:disabled { color: #68767e; border-color: #354149; background: #182026; cursor: not-allowed; }.workstation__layout-reset { width: 100%; margin-top: 2px; }
 .workstation__menu nav button, .workstation__tab-add, .workstation__tab-reset { border: 0; background: transparent; color: #d4d9dd; padding: 0 8px; font: 11px "Segoe UI", Arial, sans-serif; cursor: pointer; }

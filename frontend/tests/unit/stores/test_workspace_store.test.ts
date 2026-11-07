@@ -1194,6 +1194,38 @@ describe('workspace store layout tabs', () => {
     expect(apiPut).toHaveBeenCalledWith('/workspaces/10/snapshot', expect.objectContaining({ tabs: expect.any(Array) }))
   })
 
+  it('offers a same-workspace layout restore without reusing deleted server row IDs', async () => {
+    const store = useWorkspaceStore()
+    store.workspace = {
+      id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [
+        { id: 20, stable_key: 'one', name: 'One', position: 0, active_window_key: 'chart-one', layout_config: {}, windows: [{ id: 30, instance_key: 'chart-one', tool_type: 'chart', title: 'Chart', link_group: 'blue', configuration: { timeframe: 'D1' }, style: {}, state_schema_version: 1, position: 0 }] },
+        { id: 21, stable_key: 'two', name: 'Two', position: 1, active_window_key: 'chart-two', layout_config: {}, windows: [{ id: 31, instance_key: 'chart-two', tool_type: 'chart', title: 'Chart', link_group: 'red', configuration: { timeframe: 'W1' }, style: {}, state_schema_version: 1, position: 0 }] },
+      ],
+    }
+    apiPut.mockResolvedValue(store.workspace)
+
+    const recovery = store.captureTabRecovery('two')!
+    expect(store.deleteTab('two')).toBe(true)
+    expect(store.workspace.tabs.map(tab => tab.stable_key)).toEqual(['one'])
+
+    store.workspace = { ...store.workspace, id: 11 }
+    expect(store.restoreDeletedTab(recovery)).toBe(false)
+    expect(store.workspace.tabs.map(tab => tab.stable_key)).toEqual(['one'])
+    store.workspace = { ...store.workspace, id: recovery.workspace_id }
+
+    expect(store.restoreDeletedTab(recovery)).toBe(true)
+    expect(store.workspace.tabs.map(tab => tab.stable_key)).toEqual(['one', 'two'])
+    expect(store.activeTabKey).toBe('two')
+    expect(store.workspace.tabs[1].id).toBeLessThan(0)
+    expect(store.workspace.tabs[1].windows[0].id).toBeLessThan(0)
+    expect(store.workspace.tabs[1].windows[0].configuration).toEqual({ timeframe: 'W1' })
+    await new Promise(resolve => setTimeout(resolve, 400))
+    expect(apiPut).toHaveBeenCalledWith('/workspaces/10/snapshot', expect.objectContaining({
+      tabs: expect.arrayContaining([expect.objectContaining({ stable_key: 'two', windows: [expect.objectContaining({ instance_key: 'chart-two', configuration: { timeframe: 'W1' } })] })]),
+    }))
+  })
+
   it('rejects malformed or duplicate imported layouts', () => {
     const store = useWorkspaceStore()
     store.workspace = {

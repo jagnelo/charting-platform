@@ -153,6 +153,59 @@ describe('WorkstationToolContent missing chart history entrypoint', () => {
     wrapper.unmount()
   })
 
+  it('prepares the configured breadth group after its local read and refreshes that analysis as worker progress arrives', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/market-groups/sp500-sectors') return Promise.resolve({ members: [], provenance: {} })
+      if (path.startsWith('/analysis/groups/sp500-sectors/')) return Promise.resolve({ group_key: 'sp500-sectors', rows: [], members: [] })
+      return Promise.resolve([])
+    })
+    const pending = deferred<DataEnsureResponse>()
+    let progress: ((value: { response: DataEnsureResponse }) => void) | undefined
+    const ensure = vi.spyOn(dataPreparationCoordinator, 'ensure').mockImplementation((request, options) => {
+      progress = options?.onProgress as typeof progress
+      expect(request).toMatchObject({
+        target: { kind: 'market_group', group_key: 'sp500-sectors' },
+        datasets: ['history'],
+        timeframe: 'D1',
+        adjusted: true,
+      })
+      expect(request).not.toHaveProperty('start_at')
+      return pending.promise
+    })
+    const tool: WorkspaceWindowState = {
+      id: 36, instance_key: 'breadth-preparation', tool_type: 'breadth', title: 'S&P 500 Sectors',
+      link_group: 'blue', configuration: { group_key: 'sp500-sectors' }, style: {}, state_schema_version: 1, position: 0,
+    }
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const wrapper = mount(WorkstationToolContent, {
+      props: { tool, activeWindowKey: tool.instance_key },
+      global: {
+        plugins: [pinia, [VueQueryPlugin, { queryClient }]],
+        stubs: { VirtualWatchlistTool: true, UPlotChart: EmptyChartStub, ChartPlotLibrary: true, ChartTemplateControl: true, DrawingToolbar: true, ToolWindow: ToolWindowShell, RouterLink: { template: '<a><slot /></a>' } },
+      },
+    })
+    await vi.waitFor(() => expect(ensure).toHaveBeenCalledTimes(1))
+
+    const breadthRead = () => apiGet.mock.calls.filter(([path]) => path === '/analysis/groups/sp500-sectors/breadth').length
+    expect(breadthRead()).toBeGreaterThanOrEqual(1)
+    const readsBeforeProgress = breadthRead()
+    const partial: DataEnsureResponse = {
+      request_id: 'breadth-progress', status: 'partial', created_at: '2026-11-07T10:00:00Z', updated_at: '2026-11-07T10:00:01Z', version: 2,
+      target: { kind: 'market_group', group_key: 'sp500-sectors' }, completed: 1, total: 2, last_progress_at: '2026-11-07T10:00:01Z',
+      dependencies: [],
+    }
+    progress?.({ response: partial })
+    await vi.waitFor(() => expect(breadthRead()).toBeGreaterThan(readsBeforeProgress))
+
+    pending.resolve({ ...partial, status: 'ready', version: 3, completed: 2, total: 2 })
+    await flushPromises()
+    wrapper.unmount()
+    queryClient.clear()
+    ensure.mockRestore()
+  })
+
   it('removes chart drawing controls from inactive docked tools and restores them only for the active chart', async () => {
     const pinia = createPinia()
     setActivePinia(pinia)

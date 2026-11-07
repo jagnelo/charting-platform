@@ -18391,3 +18391,10 @@ The S&P spec now targets the single chart-root for pointer mode, requires restor
 The authenticated basket browser journey creates custom AAPL/MSFT and two-member equal-weight NVDA/AMZN baskets from resolved search results, checks returned scheme/member IDs/null explicit weights, then exercises edit/reload/member chart and deletion. Basket story SHA256: `a7cc1efcb5030b4ee82247356a817b19e0b0eda24b63aa07645ca44f24341370`.
 
 The S&P spec preserves native zero-argument `CanvasRenderingContext2D.stroke` with `Reflect.apply`, uses the actual chart-root and latest complete marker draw, and restores the persisted maximized RRG before visible linked-chart checks. It selects the accessible `Duplicate layout` control. S&P spec SHA256: `ae24c47d76de378d8374d55247c903ecea8646853d2f810a3fb511d707b56bfb`. Type-check passed; Playwright discovery lists4 cases. Browser bodies remain unrun pending the next compatible TC runtime and Root combined profile.
+
+
+## TC5a exact common-runtime development import — 2026-11-07
+
+Imported only the ten `changed_paths_since_previous` from Root-released source `5a783e745b211cfe8b3dd20cb77d275149f15de2`. All53 current manifest records matched source status, Git blob, SHA256 and mode; the Radar preview and Settings test files were new relative to D5 and absent locally before import. Manifest SHA256 `4e7919990af84e733c0e7ef9d5c2cd5593cc961d3f08a0af6ec2bbcf80bdb290`. The exact source supplies the accessible `Duplicate layout` and `Rename layout` labels used by the owned S&P journey.
+
+The five affected TC unit modules passed207/207 and frontend type-check passed. Playwright discovery lists four ETF-owned basket/S&P tests; browser bodies remain unrun pending Root's combined profile. TC5a is development-only, not release/staging/deployment acceptance; previous D5 evidence remains archived.

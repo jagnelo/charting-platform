@@ -5722,7 +5722,7 @@ acceptance_criteria:
 progress:
   completed: []
   total: 5
-  current_phase: Provider46462f55 is consumed exactly (45/45 manifest records verified). ETF/Baskets view units pass44/44 and ETF preparation consumers pass46/46. The basket API journey creates custom and two-member equal baskets; the S&P spec preserves native canvas stroke overloads, uses the chart root/latest complete RRG draw, and restores maximized layout before linked-chart visibility checks. Type-check and four-case browser discovery pass; bodies await Root, and Duplicate layout awaits compatible TC source.
+  current_phase: Provider46462f55 is consumed exactly (45/45 manifest records). TC5a is now the active exact development dependency (53/53 manifest entries verified; ten delta paths imported), including Duplicate layout/Rename labels. Five affected TC unit modules pass207/207, type-check passes, and four owned basket/S&P browser cases are discovered. Browser bodies and final release qualification remain Root-owned.
   current_blocker: ETF and basket Playwright bodies remain pending Root's combined profile; TC must consume the retained ETF holding handoff on Workstation startup. Provider/TC shared release gates and Root's genuine-flow qualification remain open.
 integration_checkpoint:
   id: platform-usability-etf-holdings-2026-11-06
@@ -6252,3 +6252,15 @@ sp500_analysis_journey_review_corrections_2026_11_07:
   accepted_coverage: Real price-renderer paint and returned-bar OHLC/date tooltip; forward/inverse visible ratios for all eleven sectors plus raw-close arithmetic; active D1/W1/MN RRG payloads and latest-draw marker/tail raster; restores maximized RRG before linked-chart visibility; marker pointer and linked chart. Canvas wrapper preserves native zero-argument stroke overload. Copy-layout targets the upcoming accessible Duplicate layout control.
   validation: type-check passed; Playwright discovery found4 owned tests across S&P and baskets; ETF/Baskets view units44 passed and ETF preparation consumers46 passed. No browser body or fixture was run.
   pending: The next exact compatible TC runtime must provide accessible Duplicate layout; Root runs the combined seeded-backend browser profile and final release gates. No browser success is claimed.
+
+tc_common_runtime_dependency_active_5a783e74:
+  authority: Root released exact TC source 5a783e745b211cfe8b3dd20cb77d275149f15de2 for development consumption only; no staging/deployment acceptance or TC records were imported.
+  baseline: 139b350238b5e1c8a170dce5af09a805301d857e
+  previous_active_dependency: d5e8d628eb42318656d8b578a24390db4be17cca
+  manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-5a783e74-common-runtime-development-consumption-contract.json
+  manifest_sha256: 4e7919990af84e733c0e7ef9d5c2cd5593cc961d3f08a0af6ec2bbcf80bdb290
+  changed_paths_since_previous: [frontend/src/components/radar/RadarDetailPreviewChart.vue, frontend/src/components/workstation/WorkstationToolContent.vue, frontend/src/stores/workspace.ts, frontend/src/views/SettingsView.vue, frontend/src/views/WorkstationView.vue, frontend/tests/unit/components/test_radar_detail_preview_chart.test.ts, frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts, frontend/tests/unit/stores/test_workspace_store.test.ts, frontend/tests/unit/views/test_settings_view.test.ts, frontend/tests/unit/views/test_workstation_popout_bindings.test.ts]
+  active_manifest_records: 53
+  verification: all53 status_from139/Git-blob/SHA256/mode records match source5a; only the ten declared changed paths were imported. Two paths are newly added versus D5 and were absent locally before import.
+  consumer_validation: five changed TC test modules passed207/207; frontend type-check passed; four owned basket/S&P browser tests discovered; browser bodies not run.
+  state: Development dependency only; Root owns exact CI, combined browser qualification, staging/master and release.

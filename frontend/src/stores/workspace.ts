@@ -42,6 +42,12 @@ export interface WorkspaceState {
   tabs: WorkspaceTabState[]
 }
 
+export interface WorkspaceTabRecovery {
+  workspace_id: number
+  tab: WorkspaceTabState
+  position: number
+}
+
 export interface WorkspaceSummary {
   id: number
   name: string
@@ -3472,6 +3478,49 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     return true
   }
 
+  function captureTabRecovery(stableKey: string): WorkspaceTabRecovery | null {
+    const current = workspace.value
+    const position = current?.tabs.findIndex(tab => tab.stable_key === stableKey) ?? -1
+    const tab = position >= 0 ? current?.tabs[position] : null
+    if (!current || !tab) return null
+    return { workspace_id: current.id, tab: cloneSerializable(tab), position }
+  }
+
+  function restoreDeletedTab(recovery: WorkspaceTabRecovery) {
+    const current = workspace.value
+    if (!current || current.id !== recovery.workspace_id) {
+      error.value = 'This layout belongs to a different workspace and was not restored.'
+      return false
+    }
+    if (current.tabs.some(tab => tab.stable_key === recovery.tab.stable_key)) {
+      error.value = 'A layout with this saved identity already exists; the deleted layout was not restored.'
+      return false
+    }
+    const currentWindowKeys = new Set(current.tabs.flatMap(tab => tab.windows.map(window => window.instance_key)))
+    if (!recovery.tab.windows.length || recovery.tab.windows.some(window => currentWindowKeys.has(window.instance_key))) {
+      error.value = 'This layout can no longer be restored without replacing another tool.'
+      return false
+    }
+    const restoreId = Date.now()
+    const restored: WorkspaceTabState = {
+      ...cloneSerializable(recovery.tab),
+      id: -restoreId,
+      position: Math.max(0, Math.min(recovery.position, current.tabs.length)),
+      windows: recovery.tab.windows.map((window, index) => ({
+        ...cloneSerializable(window),
+        id: -(restoreId + index + 1),
+        position: index,
+      })),
+    }
+    const tabs = [...current.tabs]
+    tabs.splice(restored.position, 0, restored)
+    workspace.value = { ...current, tabs: tabs.map((tab, position) => ({ ...tab, position })) }
+    activeTabKey.value = restored.stable_key
+    error.value = null
+    scheduleSnapshot()
+    return true
+  }
+
   function exportWorkspaceSnapshot() {
     if (!workspace.value) return null
     return JSON.stringify({
@@ -3701,6 +3750,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     renameTab,
     reorderTabs,
     deleteTab,
+    captureTabRecovery,
+    restoreDeletedTab,
     exportWorkspaceSnapshot,
     importWorkspaceSnapshot,
     resetFactoryWorkspace,

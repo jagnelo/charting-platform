@@ -732,16 +732,17 @@
       ],
       "evidence": {
         "backend_contract": "Authenticated normal APIs; successful seeded paths are not route-fulfilled or mocked.",
-        "focused": "npm run type-check passed; Playwright discovery lists4 owned tests across basket and S&P specs; ETF/Baskets view units44 passed; ETF preparation consumers46 passed; S&P spec SHA256 ae24c47d76de378d8374d55247c903ecea8646853d2f810a3fb511d707b56bfb.",
+        "focused": "Five TC5a delta unit modules passed207/207; npm run type-check passed; Playwright discovery lists4 owned basket/S&P cases; S&P spec SHA256 ae24c47d76de378d8374d55247c903ecea8646853d2f810a3fb511d707b56bfb.",
         "browser": {
           "body_run": false,
-          "status": "pending compatible TC runtime with accessible Duplicate layout control, then Root combined seeded-backend browser profile; no browser acceptance claimed."
+          "status": "pending Root combined seeded-backend profile; the exact imported TC5a source includes the required Duplicate layout control."
         }
       },
       "boundaries": [
         "No source/seed/reference/tolerance/math changes.",
         "No provider HTTP, production/fixture mutation, browser body, or duplicate stack in this owner step."
-      ]
+      ],
+      "required_tc_runtime": "TC5a exact development import contains accessible Duplicate layout; browser body remains pending Root."
     }
   ],
   "full_roadmaps": "The complete platform-usability and ETF roadmaps, all prior acceptance criteria, histories, holds, and source datasets remain open and unchanged."
