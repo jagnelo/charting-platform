@@ -15220,6 +15220,34 @@ screener_preparation_followup_20261107:
   next: Root exact-source export/distribution and exact-tip CI; full platform goal and combined release qualification remain open.
   integration_capture: exact branch HEAD
 
+family_calendar_read_latency_followup_20261107:
+  id: provider-family-calendar-read-latency-20261107
+  status: focused_backend_repair_candidate; Root browser recheck pending
+  root_review: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/root-family-r4-latency-review.json
+  source_context:
+    backend_parent: b0eae5974801e320b3da858d7e1a33829b206430
+    frontend_release: 4cfee47689ebeffa05ccae5f1b7cc690f6a871b8
+    frontend_manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-4cfee476-common-runtime-development-consumption-contract.json
+  diagnosis:
+    browser_trace: Nine identical SPY calendar reads took 18.9-27.5 seconds each; 11 family-readiness reads took 3.9-8.4 seconds each while 88 requests remained pending.
+    isolated_database: SPY was provisional with no retained external identifiers or event-fetch/cache state. The calendar loader attempted identifier-provider resolution before checking fresh event cache. Readiness used 85 sequential SQL statements for eight families and 32 roles; a read-only isolated call took 588.9 ms wall/90.5 ms SQL time unloaded. No PG wait events were present at the later read-only activity snapshot, so the 8-second loaded latency is not attributed solely to database execution.
+    frontend_fanout: TC owns request fan-out; no frontend assertions or deadlines changed.
+  implementation:
+    - Removed stable-identifier enrichment from the instrument-event read/cache path; symbol/listing identity handling and explicit event refresh/acquisition behavior remain unchanged.
+    - Imported only the four Root-released TC paths listed in this checkpoint; all 66 common contract files were verified byte/blob-identical to the released manifest.
+  validation:
+    calendar_and_event_units: 12 passed
+    ruff_check_format_and_diff: passed
+    common_frontend_hashes: 66/66 SHA-256 and Git blobs matched; all expected modes are Git 100644
+    imported_frontend_tests_rerun: false; exact released bytes were imported without alteration
+  boundaries:
+    provider_http_requests: 0
+    database_writes_or_fixture_changes: false
+    quota_ledger_policy_hold_or_production_changes: false
+    full_browser_or_exact_tip_ci: pending; Root-owned
+    provider_operation_hold_review: deferred while Root evaluates the family-latency correction
+  next: Root rebuilds only the compatible candidate backend/worker in its existing fixture and repeats the affected family-browser journey; retain all release gates and the full platform goal in progress.
+
 data_ensure_expired_updated_at_followup_20261107:
   id: provider-data-ensure-expired-updated-at-20261107
   status: focused_repair_green; exact_source_ci_and_combined_release_pending

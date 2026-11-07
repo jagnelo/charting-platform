@@ -31,7 +31,6 @@ from app.services.adjustment_factors import (
     materialize_local_provider_adjusted_view,
     persist_adjustment_factor_observations,
 )
-from app.services.instrument_mastering import ensure_external_identifier
 from app.services.provider_runtime import (
     ProviderNoDataError,
     ProviderQuotaUnknownError,
@@ -450,7 +449,6 @@ async def ensure_instrument_events_loaded(
 ) -> None:
     if instrument.is_synthetic:
         return
-    await ensure_external_identifier(db, instrument)
 
     fresh_dataset = (
         await db.execute(

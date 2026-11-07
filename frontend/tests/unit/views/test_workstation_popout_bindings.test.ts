@@ -284,6 +284,7 @@ describe('WorkstationView pop-out bindings', () => {
     delete historyState.tcHoldingIdentityHandoff
     window.history.replaceState(historyState, '', window.location.href)
     refreshMountedPanels.mockReset().mockResolvedValue(undefined)
+    harness.workspace.refreshMarketAnalysis.mockReset().mockResolvedValue(undefined)
     harness.popoutWindow.configuration = {}
     harness.chartWindow.configuration = {}
     harness.ratioWindow.configuration = { expression: '=SPY/RSP', auto_ratio: true }
@@ -2902,11 +2903,21 @@ describe('WorkstationView pop-out bindings', () => {
   it('coordinates top-down refresh through Vue Query and resumes it after visibility returns', async () => {
     routeState.path = '/'
     routeState.params = {}
+    let finishInitialRefresh!: () => void
+    harness.workspace.refreshMarketAnalysis.mockImplementation(() => new Promise<void>(resolve => {
+      finishInitialRefresh = resolve
+    }))
+    const cachedBar = { time: '2026-11-06', open: 100, high: 102, low: 99, close: 101, volume: 10 }
+    harness.chart.bars = [cachedBar]
     const originalVisibility = document.visibilityState
     const wrapper = mount(WorkstationView, {
       global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
     })
     await vi.waitFor(() => expect(harness.workspace.refreshMarketAnalysis).toHaveBeenCalled())
+    await vi.waitFor(() => expect(harness.chart.loadBars).toHaveBeenCalledWith('SPY', 'D1', 'candles', true))
+    expect(harness.chart.bars).toEqual([cachedBar])
+    finishInitialRefresh()
+    await flushPromises()
     harness.workspace.refreshMarketAnalysis.mockClear()
 
     Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' })
@@ -2920,6 +2931,27 @@ describe('WorkstationView pop-out bindings', () => {
 
     wrapper.unmount()
     Object.defineProperty(document, 'visibilityState', { configurable: true, value: originalVisibility })
+  })
+
+  it('keeps a deep-linked cached chart usable when optional market analysis fails', async () => {
+    routeState.path = '/chart/NVDA'
+    routeState.params = { symbol: 'NVDA' }
+    vi.mocked(resolveKnownInstrument).mockResolvedValueOnce({ symbol: 'NVDA', id: 77001 })
+    const cachedBar = { time: '2026-11-06', open: 100, high: 102, low: 99, close: 101, volume: 10 }
+    harness.chart.bars = [cachedBar]
+    harness.workspace.refreshMarketAnalysis.mockRejectedValue(new Error('Optional market analysis failed'))
+
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    try {
+      await vi.waitFor(() => expect(harness.chart.loadBars).toHaveBeenCalledWith('NVDA', 'D1', 'candles', true))
+      await vi.waitFor(() => expect(dataPreparationPost).toHaveBeenCalled())
+      expect(harness.chart.bars).toEqual([cachedBar])
+      expect((wrapper.get('input[aria-label="Active symbol"]').element as HTMLInputElement).value).toBe('NVDA')
+    } finally {
+      wrapper.unmount()
+    }
   })
 
   it.each([

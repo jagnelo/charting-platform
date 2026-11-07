@@ -33340,3 +33340,12 @@ The exact TC ce2262ab companion remains imported as all 66 contract-listed paths
 - The imported ETF holdings view fixture now includes the actual `etfSymbol: SPY` in its selection context. Its focused module passed 20/20 with route query/state assertions and no-snapshot-mutation checks intact.
 - Ruff check/format, Python compileall, and `git diff --check` passed. CI `42339572365` on predecessor `5cdc5ee06e26b191d889212b8cd1554d28abbc8f` was still live at last read: Frontend Unit was red only on this fixture-context mismatch, Backend and Playwright remained in progress. That run does not qualify the new local repair; Root owns repeated HTTP verification and the compatible final candidate's exact CI/release gates.
 - No source HTTP, credentials, native quota/ledger, public schema/data, production, or sibling worktree changes. The full Provider goal and all roadmaps remain open.
+
+
+## 2026-11-07 — family-calendar read-path latency candidate
+
+Root's retained family-browser trace showed repeated SPY calendar requests taking 18.9–27.5 seconds, family-readiness calls taking 3.9–8.4 seconds, and 88 requests still pending. Read-only inspection of the existing isolated database found SPY provisional with no retained external identifiers or event-cache state. The calendar loader attempted stable-identifier provider resolution before checking its fresh event cache. The focused backend change removes that enrichment from ordinary calendar reads; explicit event acquisition and cache freshness behavior remain.
+
+The same read-only profile measured 85 sequential SQL statements for eight families/32 roles and 588.9 ms wall time unloaded (90.5 ms SQL time). It did not reproduce the loaded browser latency and no PostgreSQL waits were observed, so database query pressure is recorded as evidence, not a proven sole cause. TC owns frontend fan-out.
+
+Calendar/event unit tests passed 12/12; Ruff check/format and diff check passed. Imported only the four paths listed in Root's 4cfee companion manifest; all 66 contract files matched their expected SHA-256/Git blobs and modes. The exact browser recheck and full release gates remain Root-owned and pending. No source HTTP, database writes, provider policy/quota/ledger changes, or production changes. The held provider-operation review remains deferred behind this latency work.

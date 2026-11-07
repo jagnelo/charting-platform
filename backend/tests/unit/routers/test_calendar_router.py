@@ -1,6 +1,8 @@
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 
+from app.models.instrument_event import EventTimeHint, InstrumentEvent, InstrumentEventType
 from app.models.market_data_foundation import MarketEvent
+from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
 
 
 def test_market_events_calendar_read_is_authenticated_and_database_only(
@@ -83,3 +85,50 @@ def test_market_events_calendar_keeps_timestamp_only_events_and_rejects_reversed
     )
     assert response.status_code == 200
     assert response.json()[0]["title"] == "Exchange holiday"
+
+
+def test_cached_instrument_calendar_does_not_enrich_identity_on_read(
+    client, auth_headers, db, instrument, monkeypatch
+):
+    now = datetime.now(UTC)
+    db.add_all(
+        [
+            InstrumentEvent(
+                instrument_id=instrument.id,
+                event_type=InstrumentEventType.EARNINGS,
+                event_time=now,
+                time_hint=EventTimeHint.UNKNOWN,
+                title="Retained earnings event",
+                source="alpha_vantage",
+                source_event_key="calendar:earnings:cached",
+                fetched_at=now,
+            ),
+            InstrumentDatasetState(
+                instrument_id=instrument.id,
+                data_source_id=None,
+                dataset_type="events",
+                dataset_key="calendar",
+                status=DatasetStatus.FRESH,
+                observed_at=now,
+                fetched_at=now,
+                stale_after=now + timedelta(hours=1),
+            ),
+        ]
+    )
+    db.flush()
+
+    async def _unexpected_identity_enrichment(*_args, **_kwargs):
+        raise AssertionError("a calendar cache read must not request stable identifiers")
+
+    monkeypatch.setattr(
+        "app.services.instrument_events.ensure_external_identifier",
+        _unexpected_identity_enrichment,
+    )
+
+    response = client.get(
+        f"/api/v1/calendar/instruments/{instrument.symbol}/calendar",
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200
+    assert [event["title"] for event in response.json()] == ["Retained earnings event"]

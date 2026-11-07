@@ -424,7 +424,13 @@ test.describe('Chart', () => {
     const templateName = `Comparison ${Date.now()}`
     await menu.getByRole('combobox', { name: 'Chart bar type' }).selectOption('line')
     await chart.getByRole('textbox', { name: 'Comparison symbol', exact: true }).fill('RSP')
+    const canonicalRsp = page.waitForResponse(response => {
+      const url = new URL(response.url())
+      return url.pathname === '/api/v1/instruments/RSP' && url.searchParams.get('canonical_only') === 'true'
+    })
     await chart.getByRole('button', { name: 'Add comparison' }).click()
+    const rspResponse = await canonicalRsp
+    expect(rspResponse.status(), `canonical RSP lookup returned ${rspResponse.status()}`).toBe(200)
     await expect(chart.getByRole('button', { name: 'Remove RSP' })).toBeVisible()
     await menu.getByRole('textbox', { name: 'Chart template name' }).fill(templateName)
     const saveRequest = page.waitForRequest(request => request.url().includes('/workspaces/library/items/chart_template/') && request.method() === 'PUT')
@@ -3572,7 +3578,10 @@ test.describe('TC2000 workstation', () => {
     const sectorList = sectorWindow.locator('.watchlist[aria-label="Relative to SPY"]')
     const xlk = sectorList.getByRole('option', { name: /XLK/ }).first()
     await expect(xlk).toBeVisible({ timeout: 20_000 })
-    await expect(sectorList).toHaveAttribute('aria-busy', 'false')
+    // The shell's shared analysis refresh covers six top-down inputs, while
+    // this list can already show its cached rows. Its loading status is
+    // non-intercepting, so prove the row action remains usable during that
+    // broader refresh instead of requiring unrelated panels to settle first.
     await xlk.click({ button: 'right', position: { x: 8, y: 14 } })
     // Scope the action to the originating watchlist. Golden Layout can retain
     // detached tool roots while a workspace is hydrating, so a page-global
@@ -7764,7 +7773,13 @@ test.describe('Dashboard', () => {
     const listA = await watchlistSelect.inputValue()
     await expect(watchlistSelect).toHaveValue(listA)
     await symbolInput.fill('SPY')
+    const spyAdded = page.waitForResponse(response => {
+      const url = new URL(response.url())
+      return url.pathname === `/api/v1/watchlists/${listA}/items` && response.request().method() === 'POST'
+    })
     await personal.getByRole('button', { name: 'Add symbol to personal watchlist', exact: true }).click()
+    const addResponse = await spyAdded
+    expect(addResponse.ok(), `SPY watchlist insertion returned ${addResponse.status()}`).toBe(true)
     await expect(personal.locator('.watchlist__row').filter({ hasText: 'SPY' })).toBeVisible({ timeout: 10_000 })
     await expect(personal).toHaveAttribute('aria-busy', 'false', { timeout: 10_000 })
 

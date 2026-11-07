@@ -22,7 +22,14 @@ test('TC2000 function key loads its assigned chart template on the active chart'
   const templates = page.getByRole('dialog', { name: 'Chart templates panel' })
   await templates.getByLabel('Chart bar type').selectOption('line')
   await templates.getByLabel('Chart template name').fill('F5 line template')
+  const templateSaved = page.waitForResponse(response => {
+    const url = new URL(response.url())
+    return url.pathname.includes('/workspaces/library/items/chart_template/')
+      && response.request().method() === 'PUT'
+  })
   await templates.getByRole('button', { name: 'Save', exact: true }).click()
+  const saveResponse = await templateSaved
+  expect(saveResponse.ok(), `chart template save returned ${saveResponse.status()}`).toBe(true)
   const template = templates.getByRole('button', { name: 'F5 line template v1', exact: true })
   await expect(template).toBeVisible()
 
