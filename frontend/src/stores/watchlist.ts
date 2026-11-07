@@ -64,6 +64,10 @@ export const useWatchlistStore = defineStore('watchlist', () => {
     ? new BroadcastChannel('charting-platform-watchlists')
     : null
   const WATCHLIST_STORAGE_KEY = 'charting-platform-watchlists-event'
+  const handleStorageInvalidation = (event: StorageEvent) => {
+    if (event.key !== WATCHLIST_STORAGE_KEY || !event.newValue) return
+    try { handleInvalidation({ data: JSON.parse(event.newValue) }) } catch { /* ignore malformed fallback events */ }
+  }
 
   function announceChanged(watchlistId?: number) {
     const message = { type: 'watchlists-changed', watchlistId: watchlistId ?? null }
@@ -80,10 +84,7 @@ export const useWatchlistStore = defineStore('watchlist', () => {
   if (watchlistChannel) {
     watchlistChannel.onmessage = handleInvalidation
   } else if (typeof window !== 'undefined') {
-    window.addEventListener('storage', event => {
-      if (event.key !== WATCHLIST_STORAGE_KEY || !event.newValue) return
-      try { handleInvalidation({ data: JSON.parse(event.newValue) }) } catch { /* ignore malformed fallback events */ }
-    })
+    window.addEventListener('storage', handleStorageInvalidation)
   }
 
   function isTransientLoadError(error: unknown): boolean {
@@ -560,6 +561,17 @@ export const useWatchlistStore = defineStore('watchlist', () => {
     focusRequest.value = null
   }
 
+  function resetForAuthSessionBoundary() {
+    mutationGeneration += 1
+    pendingWatchlistCreates.clear()
+    pendingWatchlistItems.clear()
+    locallyCreatedWatchlistIds.clear()
+    locallyAddedItems.clear()
+    locallyRemovedItemIds.clear()
+    watchlistChannel?.close()
+    if (!watchlistChannel && typeof window !== 'undefined') window.removeEventListener('storage', handleStorageInvalidation)
+  }
+
   return {
     watchlists,
     watchlistSources,
@@ -572,6 +584,7 @@ export const useWatchlistStore = defineStore('watchlist', () => {
     focusRequest,
     requestFocusWatchlist,
     clearFocusRequest,
+    resetForAuthSessionBoundary,
     loadWatchlists,
     loadWatchlistSources,
     resolveWatchlistSource,

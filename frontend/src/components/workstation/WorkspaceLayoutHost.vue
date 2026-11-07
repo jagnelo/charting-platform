@@ -3,7 +3,7 @@
 </template>
 
 <script setup lang="ts">
-import { getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref, render, watch, type VNode } from 'vue'
+import { getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref, render, watch, type Ref, type VNode } from 'vue'
 import { GoldenLayout, type LayoutConfig } from 'golden-layout'
 import '../../../node_modules/golden-layout/dist/css/goldenlayout-base.css'
 import { normaliseGoldenLayoutConfig } from '@/lib/workstation/layout'
@@ -17,6 +17,7 @@ interface DockToolState {
 
 export interface DockToolActions {
   toggleMaximize: () => void
+  maximized: Readonly<Ref<boolean>>
   close: () => void
 }
 
@@ -52,6 +53,7 @@ let lastLayoutFingerprint: string | null = null
 let installedTabKey: string | null | undefined = null
 let layoutGeneration = 0
 const mountedToolRoots: HTMLElement[] = []
+const maximizeStateCleanups: Array<() => void> = []
 // Golden Layout's virtual component root is intentionally detached from the
 // visible stack DOM. Retain the actual ComponentItem supplied to the factory so
 // activation remains reliable even when tabs overflow into the dropdown.
@@ -360,6 +362,7 @@ function activateWindow(windowKey: string | null | undefined) {
 }
 
 function clearMountedTools() {
+  for (const cleanup of maximizeStateCleanups.splice(0)) cleanup()
   for (const root of mountedToolRoots.splice(0)) {
     render(null, root)
     // Virtual roots are appended directly to the host by Golden Layout rather
@@ -476,15 +479,25 @@ function install(layout: LayoutConfig) {
     : null
   goldenLayout.registerComponentFactoryFunction('workstation-tool', (container, state) => {
     const tool = (state ?? {}) as DockToolState
+    const stack = container.parent.parentItem as any
+    const maximized = ref(Boolean(stack.isMaximised))
+    const syncMaximized = () => { maximized.value = Boolean(stack.isMaximised) }
+    stack.on?.('maximised', syncMaximized)
+    stack.on?.('minimised', syncMaximized)
+    maximizeStateCleanups.push(() => {
+      stack.off?.('maximised', syncMaximized)
+      stack.off?.('minimised', syncMaximized)
+    })
     if (tool.instance_key && (container as any).parent) componentItems.set(tool.instance_key, (container as any).parent)
     const rootHtmlElement = document.createElement('section')
     rootHtmlElement.className = 'workspace-layout-host__virtual-tool'
     rootHtmlElement.dataset.toolKey = tool.instance_key ?? ''
     mountedToolRoots.push(rootHtmlElement)
     const vnode = props.renderTool(tool, {
+      maximized,
       toggleMaximize: () => {
-        const stack = container.parent.parentItem as unknown as { toggleMaximise?: () => void }
         stack.toggleMaximise?.()
+        syncMaximized()
       },
       close: () => closeComponent(tool.instance_key),
     })

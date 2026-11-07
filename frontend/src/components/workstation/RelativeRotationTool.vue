@@ -1,11 +1,12 @@
 <template>
   <section class="rotation-tool" role="region" :aria-label="`Relative rotation vs ${rotationBenchmark}`" :aria-busy="loading">
     <header><strong>Relative Rotation · {{ rotationBenchmark }}</strong><div class="rotation-tool__controls"><label>Universe <select v-model="groupKey" aria-label="Rotation universe"><option value="sp500-sectors">S&amp;P 500 sectors</option><option value="us-benchmarks">US benchmarks</option><option v-for="family in familyKeys" :key="family.key" :value="family.key">{{ family.label }}</option></select></label><label>Benchmark <input v-model.trim="benchmark" aria-label="Rotation benchmark" :disabled="isFamily" /></label><label>Timeframe <select v-model="timeframe" aria-label="Rotation timeframe"><option value="D1">Daily</option><option value="W1">Weekly</option><option value="MN">Monthly</option></select></label><label>Sampling <input v-model.number="sampling" aria-label="Rotation sampling" type="number" min="1" max="30" /></label><label>Lookback <input v-model.number="lookback" aria-label="Rotation lookback" type="number" min="2" max="252" /></label><label>Tail <input v-model.number="tailLength" aria-label="Rotation tail length" type="number" min="1" max="100" /></label><label>History <input v-model.number="historyLength" aria-label="Rotation history length" type="number" min="0" max="5000" /></label><label>As of <input v-model="asOf" aria-label="Rotation as of" type="date" /></label><label class="rotation-tool__adjusted"><input v-model="adjusted" aria-label="Rotation split adjusted" type="checkbox" /> Adjusted</label></div><small>Trend: ratio return over {{ lookback }} sampled observations · Momentum: change in that trend{{ historyLength ? ` · ${historyLength} history points` : '' }}{{ asOf ? ` · As of ${asOf}` : '' }}{{ freshness ? ` · ${formatWorkstationFreshness(freshness)}` : '' }}</small></header>
-    <p v-if="loading" class="rotation-tool__state" role="status" aria-live="polite" aria-atomic="true">Calculating aligned local ratios…</p>
+    <p v-if="loading && !rows.length" class="rotation-tool__state" role="status" aria-live="polite" aria-atomic="true">{{ preparationMessage || 'Calculating aligned local ratios…' }}</p>
     <p v-else-if="error" class="rotation-tool__state rotation-tool__state--error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</p>
-    <p v-else-if="!rows.length" class="rotation-tool__state" role="status" aria-live="polite" aria-atomic="true">No {{ isFamily ? 'family-leg' : 'sector' }} rotation rows are available.</p>
+    <p v-else-if="!rows.length" class="rotation-tool__state" role="status" aria-live="polite" aria-atomic="true">{{ preparationMessage || `No ${isFamily ? 'family-leg' : 'sector'} rotation rows are available.` }}</p>
     <template v-else>
       <div class="rotation-tool__plot-shell" @mousemove="onPlotMove" @mouseleave="hovered = null" @click="selectHovered">
+        <p v-if="preparationMessage || loading" class="rotation-tool__updating" role="status" aria-live="polite" aria-atomic="true">{{ preparationMessage || 'Updating ratios…' }}</p>
         <div
           ref="plotHost"
           class="rotation-tool__plot"
@@ -23,16 +24,19 @@
           <strong>{{ hovered.symbol }}</strong><span>{{ hovered.point.timestamp }}</span><span>Trend {{ percent(hovered.point.trend) }} · Momentum {{ percent(hovered.point.momentum) }}</span>
         </div>
       </div>
-      <div class="rotation-tool__table" role="region" aria-label="Relative rotation rows"><div class="rotation-tool__head" role="group" aria-label="Sort relative rotation rows"><button type="button" :aria-label="sortLabel('symbol')" @click="setSort('symbol')">{{ isFamily ? 'Leg' : 'Sector' }}{{ sortMark('symbol') }}</button><button type="button" :aria-label="sortLabel('state')" @click="setSort('state')">State{{ sortMark('state') }}</button><button type="button" :aria-label="sortLabel('trend')" @click="setSort('trend')">Trend{{ sortMark('trend') }}</button><button type="button" :aria-label="sortLabel('momentum')" @click="setSort('momentum')">Momentum{{ sortMark('momentum') }}</button><button type="button" :aria-label="sortLabel('heading')" @click="setSort('heading')">Heading{{ sortMark('heading') }}</button><button type="button" :aria-label="sortLabel('distance')" @click="setSort('distance')">Distance{{ sortMark('distance') }}</button><button type="button" :aria-label="sortLabel('velocity')" @click="setSort('velocity')">Velocity{{ sortMark('velocity') }}</button><button type="button" :aria-label="sortLabel('transition')" @click="setSort('transition')">Transition{{ sortMark('transition') }}</button><button type="button" :aria-label="sortLabel('time_in_state')" @click="setSort('time_in_state')">Time{{ sortMark('time_in_state') }}</button><button type="button" :aria-label="sortLabel('coverage')" @click="setSort('coverage')">Coverage{{ sortMark('coverage') }}</button><button type="button" :aria-label="sortLabel('tail')" @click="setSort('tail')">Tail{{ sortMark('tail') }}</button></div><button v-for="row in sortedRows" :key="row.role ?? row.instrument_id ?? row.symbol" type="button" class="rotation-tool__row" :aria-label="rotationRowLabel(row)" @click="emit('select', row.symbol, row.instrument_id)"><strong>{{ row.symbol }}</strong><span :class="`rotation-tool__state-${row.state}`">{{ row.state ?? 'Unavailable' }}</span><span v-if="row.warnings?.length" class="rotation-tool__warning" :title="row.warnings.map(warning => warning.message).join('\n')"><WorkstationGlyph kind="warning" /> {{ row.warnings.length }}</span><span v-else class="rotation-tool__warning-placeholder" aria-hidden="true" /><span>{{ percent(row.trend) }}</span><span>{{ percent(row.momentum) }}</span><span>{{ row.heading == null ? '—' : `${row.heading.toFixed(0)}°` }}</span><span>{{ percent(row.distance) }}</span><span>{{ percent(row.velocity) }}</span><span>{{ row.transition ?? '—' }}</span><span>{{ row.time_in_state ?? '—' }}</span><span>{{ percent(row.coverage) }}</span><span>{{ row.tail.length }}</span></button></div>
+      <div class="rotation-tool__table" role="region" aria-label="Relative rotation rows"><div class="rotation-tool__head" role="group" aria-label="Sort relative rotation rows"><button type="button" :aria-label="sortLabel('symbol')" @click="setSort('symbol')">{{ isFamily ? 'Leg' : 'Sector' }}{{ sortMark('symbol') }}</button><button type="button" :aria-label="sortLabel('state')" @click="setSort('state')">State{{ sortMark('state') }}</button><span class="rotation-tool__warning-heading">Warnings</span><button type="button" :aria-label="sortLabel('trend')" @click="setSort('trend')">Trend{{ sortMark('trend') }}</button><button type="button" :aria-label="sortLabel('momentum')" @click="setSort('momentum')">Momentum{{ sortMark('momentum') }}</button><button type="button" :aria-label="sortLabel('heading')" @click="setSort('heading')">Heading{{ sortMark('heading') }}</button><button type="button" :aria-label="sortLabel('distance')" @click="setSort('distance')">Distance{{ sortMark('distance') }}</button><button type="button" :aria-label="sortLabel('velocity')" @click="setSort('velocity')">Velocity{{ sortMark('velocity') }}</button><button type="button" :aria-label="sortLabel('transition')" @click="setSort('transition')">Transition{{ sortMark('transition') }}</button><button type="button" :aria-label="sortLabel('time_in_state')" @click="setSort('time_in_state')">Time{{ sortMark('time_in_state') }}</button><button type="button" :aria-label="sortLabel('coverage')" @click="setSort('coverage')">Coverage{{ sortMark('coverage') }}</button><button type="button" :aria-label="sortLabel('tail')" @click="setSort('tail')">Tail{{ sortMark('tail') }}</button></div><button v-for="row in sortedRows" :key="row.role ?? row.instrument_id ?? row.symbol" type="button" class="rotation-tool__row" :aria-label="rotationRowLabel(row)" @click="emit('select', row.symbol, row.instrument_id)"><strong>{{ row.symbol }}</strong><span :class="`rotation-tool__state-${row.state}`">{{ row.state ?? 'Unavailable' }}</span><span v-if="row.warnings?.length" class="rotation-tool__warning" :title="row.warnings.map(warning => warning.message).join('\n')"><WorkstationGlyph kind="warning" /> {{ row.warnings.length }}</span><span v-else class="rotation-tool__warning-placeholder" aria-hidden="true" /><span>{{ percent(row.trend) }}</span><span>{{ percent(row.momentum) }}</span><span>{{ row.heading == null ? '—' : `${row.heading.toFixed(0)}°` }}</span><span>{{ percent(row.distance) }}</span><span>{{ percent(row.velocity) }}</span><span>{{ row.transition ?? '—' }}</span><span>{{ row.time_in_state ?? '—' }}</span><span>{{ percent(row.coverage) }}</span><span>{{ row.tail.length }}</span></button></div>
     </template>
   </section>
 </template>
 
 <style scoped>
 .rotation-tool__head,
-.rotation-tool__row { grid-template-columns: 54px 78px 34px repeat(7, minmax(58px, 1fr)) 64px 38px; }
-.rotation-tool__head::before { content: 'Warnings'; grid-column: 3; color: #9baab5; font-weight: 600; text-transform: uppercase; }
+.rotation-tool__row { grid-template-columns: 54px 78px 58px 68px 76px 66px 76px 76px 104px 58px 72px 42px; }
+.rotation-tool__head button,
+.rotation-tool__row > * { white-space: nowrap; }
+.rotation-tool__warning-heading { box-sizing: border-box; min-width: 0; padding: 0 8px 0 3px; color: #9baab5; font-weight: 600; text-align: left; text-transform: uppercase; }
 .rotation-tool__warning { color: #e7bc68; }
+@media(max-height:700px){.rotation-tool{min-height:520px;grid-template-rows:auto minmax(240px,1.4fr) minmax(150px,.6fr)}}
 </style>
 
 <script setup lang="ts">
@@ -41,6 +45,7 @@ import { useQueryClient } from '@tanstack/vue-query'
 import uPlot from 'uplot'
 import 'uplot/dist/uPlot.min.css'
 import { api } from '@/lib/api'
+import { dataPreparationCoordinator, PreparationProgressRefreshQueue, preparationStatusMessage, shouldRefreshAnalysisProgress } from '@/lib/dataPreparation'
 import { formatWorkstationFreshness } from '@/lib/workstation/freshness'
 import WorkstationGlyph from './WorkstationGlyph.vue'
 
@@ -51,7 +56,7 @@ type SortKey = 'symbol' | 'state' | 'trend' | 'momentum' | 'heading' | 'distance
 const props = defineProps<{ configuration?: Record<string, unknown> }>()
 const queryClient = useQueryClient()
 const emit = defineEmits<{ select: [symbol: string, instrumentId?: number | null]; configuration: [configuration: Record<string, unknown>] }>()
-const rows = ref<Row[]>([]), loading = ref(true), error = ref(''), freshness = ref('')
+const rows = ref<Row[]>([]), loading = ref(true), error = ref(''), freshness = ref(''), preparationMessage = ref('')
 const configString = (key: string, fallback: string) => typeof props.configuration?.[key] === 'string' ? String(props.configuration[key]) : fallback
 const groupKey = ref(configString('group_key', 'sp500-sectors'))
 const benchmark = ref(configString('benchmark', 'SPY').toUpperCase())
@@ -90,7 +95,10 @@ let observer: ResizeObserver | null = null
 let observedPlotHost: HTMLElement | null = null
 let points: PlotPoint[] = []
 let loadGeneration = 0
+let renderedAnalysisContext = ''
+let renderedAnalysisLabel = ''
 let mounted = false
+let activeLoadController: AbortController | null = null
 function percent(value: number | null | undefined) { return value == null ? '—' : `${(value * 100).toFixed(2)}%` }
 function sortValue(row: Row, key: SortKey): string | number | null {
   if (key === 'symbol' || key === 'state' || key === 'transition') return row[key] ?? null
@@ -125,9 +133,11 @@ function rotationRowLabel(row: Row) {
 }
 function onPlotMove(event: MouseEvent) {
   if (!plot || !plotHost.value || !points.length) return
-  const bounds = plotHost.value.getBoundingClientRect()
-  const x = event.clientX - bounds.left
-  const y = event.clientY - bounds.top
+  plot.syncRect()
+  const hostBounds = plotHost.value.getBoundingClientRect()
+  const plotBounds = plot.rect
+  const x = event.clientX - plotBounds.left
+  const y = event.clientY - plotBounds.top
   let nearest: { point: PlotPoint; distance: number } | null = null
   for (const point of points) {
     const pointX = plot.valToPos(point.trend, 'x')
@@ -142,8 +152,8 @@ function onPlotMove(event: MouseEvent) {
   hovered.value = {
     symbol: nearest.point.symbol,
     point: nearest.point,
-    left: Math.min(Math.max(8, x + 10), Math.max(8, bounds.width - 210)),
-    top: Math.min(Math.max(8, y + 10), Math.max(8, bounds.height - 58)),
+    left: Math.min(Math.max(8, plotBounds.left - hostBounds.left + x + 10), Math.max(8, hostBounds.width - 210)),
+    top: Math.min(Math.max(8, plotBounds.top - hostBounds.top + y + 10), Math.max(8, hostBounds.height - 58)),
   }
 }
 function selectHovered() {
@@ -154,20 +164,25 @@ function showKeyboardPoint(index: number) {
   const available = latestPlotPoints()
   const host = plotHost.value
   if (!plot || !host || available.length === 0) return
+  plot.syncRect()
   const nextIndex = Math.min(available.length - 1, Math.max(0, index))
   const point = available[nextIndex]
   const bounds = host.getBoundingClientRect()
+  const plotBounds = plot.rect
   const x = plot.valToPos(point.trend, 'x'), y = plot.valToPos(point.momentum, 'y')
   keyboardPointIndex.value = nextIndex
   hovered.value = {
     symbol: point.symbol,
     point,
-    left: Math.min(Math.max(8, x + 10), Math.max(8, bounds.width - 210)),
-    top: Math.min(Math.max(8, y + 10), Math.max(8, bounds.height - 58)),
+    left: Math.min(Math.max(8, plotBounds.left - bounds.left + x + 10), Math.max(8, bounds.width - 210)),
+    top: Math.min(Math.max(8, plotBounds.top - bounds.top + y + 10), Math.max(8, bounds.height - 58)),
   }
 }
 function handlePlotFocus() {
-  if (keyboardPointIndex.value < 0) showKeyboardPoint(0)
+  // Clicking a hovered point focuses the keyboard surface before the click
+  // handler runs; keep that deliberate pointer target instead of replacing it
+  // with the first keyboard point.
+  if (keyboardPointIndex.value < 0 && !hovered.value) showKeyboardPoint(0)
 }
 function handlePlotBlur() {
   keyboardPointIndex.value = -1
@@ -212,41 +227,66 @@ function syncPlotObserver() {
   if (host) observer?.observe(host)
 }
 const colors: Record<string, string> = { leading: '#61c58c', weakening: '#e7bc68', improving: '#6dbbe6', lagging: '#df8181' }
+function numericRange(values: number[]): [number, number] {
+  let min = 0, max = 0
+  for (const value of values) {
+    if (!Number.isFinite(value)) continue
+    min = Math.min(min, value)
+    max = Math.max(max, value)
+  }
+  const padding = Math.max((max - min) * 0.08, 0.005)
+  return [min - padding, max + padding]
+}
 function drawPlot() {
   syncPlotObserver()
   if (!plotHost.value) return
   points = rows.value.flatMap(row => {
     const curve = row.history.length ? row.history : row.tail
     return curve.map((tail, index) => ({ ...tail, symbol: row.symbol, color: colors[row.state ?? ''] ?? '#8796a1', last: index === curve.length - 1 }))
-  })
+  }).filter(point => Number.isFinite(point.trend) && Number.isFinite(point.momentum))
   hovered.value = null
   const width = Math.max(200, plotHost.value.clientWidth), height = Math.max(130, plotHost.value.clientHeight)
-  const data: uPlot.AlignedData = [points.map(point => point.trend), points.map(point => point.momentum)]
+  // uPlot's aligned-data x array must be ascending even though this tool draws
+  // the ratio points itself as an XY scatter plot. Keep the hidden y-series
+  // paired with its x value, and use the same full finite domain for the
+  // custom-drawn points below.
+  const sortedCoordinates = [...points].sort((left, right) => left.trend - right.trend)
+  const data: uPlot.AlignedData = [sortedCoordinates.map(point => point.trend), sortedCoordinates.map(point => point.momentum)]
   if (plot) {
-    plot.setData(data)
+    // Keep the current scales while replacing aligned data, then explicitly
+    // set both numeric domains. The y series is hidden because this is an XY
+    // scatter plot drawn by the plugin, so uPlot cannot infer its new bounds.
+    plot.setData(data, false)
+    const trendRange = numericRange(points.map(point => point.trend))
+    const momentumRange = numericRange(points.map(point => point.momentum))
+    plot.setScale('x', { min: trendRange[0], max: trendRange[1] })
+    plot.setScale('y', { min: momentumRange[0], max: momentumRange[1] })
     plot.setSize({ width, height })
+    plot.syncRect()
     return
   }
   const markerPlugin: uPlot.Plugin = { hooks: { draw: [(chart) => {
     const ctx = chart.ctx
-    const zeroX = chart.valToPos(0, 'x')
-    const zeroY = chart.valToPos(0, 'y')
+    const { left, top, width: plotWidth, height: plotHeight } = chart.bbox
+    const pixelRatio = chart.ctx.canvas.width / chart.width || 1
+    const zeroX = chart.valToPos(0, 'x', true)
+    const zeroY = chart.valToPos(0, 'y', true)
     ctx.save()
     ctx.strokeStyle = '#53636e'
-    ctx.lineWidth = 1
-    ctx.setLineDash([3, 3])
-    if (Number.isFinite(zeroX)) { ctx.beginPath(); ctx.moveTo(zeroX, 0); ctx.lineTo(zeroX, chart.height); ctx.stroke() }
-    if (Number.isFinite(zeroY)) { ctx.beginPath(); ctx.moveTo(0, zeroY); ctx.lineTo(chart.width, zeroY); ctx.stroke() }
-    ctx.font = '10px Segoe UI'
+    ctx.lineWidth = pixelRatio
+    ctx.setLineDash([3 * pixelRatio, 3 * pixelRatio])
+    if (Number.isFinite(zeroX)) { ctx.beginPath(); ctx.moveTo(zeroX, top); ctx.lineTo(zeroX, top + plotHeight); ctx.stroke() }
+    if (Number.isFinite(zeroY)) { ctx.beginPath(); ctx.moveTo(left, zeroY); ctx.lineTo(left + plotWidth, zeroY); ctx.stroke() }
+    ctx.font = `${10 * pixelRatio}px Segoe UI`
     ctx.fillStyle = '#7fca9e'
     if (Number.isFinite(zeroX) && Number.isFinite(zeroY)) {
-      ctx.fillText('Leading', Math.min(chart.width - 54, zeroX + 6), Math.max(12, zeroY - 8))
+      ctx.fillText('Leading', Math.min(left + plotWidth - 54 * pixelRatio, zeroX + 6 * pixelRatio), Math.max(top + 12 * pixelRatio, zeroY - 8 * pixelRatio))
       ctx.fillStyle = '#d2b675'
-      ctx.fillText('Weakening', Math.min(chart.width - 66, zeroX + 6), Math.min(chart.height - 6, zeroY + 18))
+      ctx.fillText('Weakening', Math.min(left + plotWidth - 66 * pixelRatio, zeroX + 6 * pixelRatio), Math.min(top + plotHeight - 6 * pixelRatio, zeroY + 18 * pixelRatio))
       ctx.fillStyle = '#83bce0'
-      ctx.fillText('Improving', Math.max(4, zeroX - 64), Math.max(12, zeroY - 8))
+      ctx.fillText('Improving', Math.max(left + 4 * pixelRatio, zeroX - 64 * pixelRatio), Math.max(top + 12 * pixelRatio, zeroY - 8 * pixelRatio))
       ctx.fillStyle = '#d88b8b'
-      ctx.fillText('Lagging', Math.max(4, zeroX - 52), Math.min(chart.height - 6, zeroY + 18))
+      ctx.fillText('Lagging', Math.max(left + 4 * pixelRatio, zeroX - 52 * pixelRatio), Math.min(top + plotHeight - 6 * pixelRatio, zeroY + 18 * pixelRatio))
     }
     ctx.restore()
     for (const row of rows.value) {
@@ -258,8 +298,8 @@ function drawPlot() {
       ctx.lineWidth = 1
       ctx.beginPath()
       curve.forEach((tail, index) => {
-        const x = chart.valToPos(tail.trend, 'x')
-        const y = chart.valToPos(tail.momentum, 'y')
+        const x = chart.valToPos(tail.trend, 'x', true)
+        const y = chart.valToPos(tail.momentum, 'y', true)
         if (!Number.isFinite(x) || !Number.isFinite(y)) return
         if (index === 0) ctx.moveTo(x, y)
         else ctx.lineTo(x, y)
@@ -269,11 +309,32 @@ function drawPlot() {
     }
     for (let index = 0; index < points.length; index += 1) {
       const point = points[index]
-      const x = chart.valToPos(point.trend, 'x'), y = chart.valToPos(point.momentum, 'y')
-      ctx.fillStyle = point.color; ctx.beginPath(); ctx.arc(x, y, point.last ? 3.5 : 2, 0, Math.PI * 2); ctx.fill()
+      const x = chart.valToPos(point.trend, 'x', true), y = chart.valToPos(point.momentum, 'y', true)
+      ctx.fillStyle = point.color; ctx.beginPath(); ctx.arc(x, y, (point.last ? 3.5 : 2) * pixelRatio, 0, Math.PI * 2); ctx.fill()
+    }
+    const latestLabels = points.filter(point => point.last)
+      .map(point => ({ point, x: chart.valToPos(point.trend, 'x', true), y: chart.valToPos(point.momentum, 'y', true) }))
+      .filter(entry => Number.isFinite(entry.x) && Number.isFinite(entry.y))
+      .sort((left, right) => left.y - right.y)
+    const labelRows: number[] = []
+    ctx.font = `${9 * pixelRatio}px Segoe UI`
+    for (const { point, x, y } of latestLabels) {
+      let labelY = y
+      while (labelRows.some(previous => Math.abs(previous - labelY) < 12 * pixelRatio)) labelY += 12 * pixelRatio
+      labelRows.push(labelY)
+      const labelWidth = Math.max(24, point.symbol.length * 6) * pixelRatio
+      const labelX = Math.min(left + plotWidth - labelWidth, x + 6 * pixelRatio)
+      labelY = Math.min(top + plotHeight - 3 * pixelRatio, Math.max(top + 10 * pixelRatio, labelY))
+      ctx.fillStyle = '#0d1318'
+      ctx.fillRect(labelX - 2 * pixelRatio, labelY - 9 * pixelRatio, labelWidth + 4 * pixelRatio, 12 * pixelRatio)
+      ctx.fillStyle = point.color
+      ctx.fillText(point.symbol, labelX, labelY)
     }
   }] } }
-  plot = new uPlot({ width, height, cursor: { drag: { x: true, y: true } }, scales: { x: { auto: true }, y: { auto: true } }, axes: [
+  plot = new uPlot({ width, height, cursor: { drag: { x: true, y: true } }, scales: {
+    x: { time: false, auto: true, range: () => numericRange(points.map(point => point.trend)) },
+    y: { auto: true, range: () => numericRange(points.map(point => point.momentum)) },
+  }, axes: [
     { label: 'Relative trend', stroke: '#9aabb6', grid: { stroke: '#26313a', width: 1 }, values: (_u, values) => values.map(value => `${(value * 100).toFixed(1)}%`), font: '10px Segoe UI' },
     { label: 'Relative momentum', stroke: '#9aabb6', grid: { stroke: '#26313a', width: 1 }, values: (_u, values) => values.map(value => `${(value * 100).toFixed(1)}%`), font: '10px Segoe UI' },
   ], series: [{}, { show: false }], plugins: [markerPlugin] }, data, plotHost.value)
@@ -283,26 +344,120 @@ function publishConfiguration() {
 }
 function asOfTimestamp() { return asOf.value ? `${asOf.value}T23:59:59Z` : undefined }
 async function load() {
+  activeLoadController?.abort()
   const generation = ++loadGeneration
+  const controller = new AbortController()
+  activeLoadController = controller
   loading.value = true
   error.value = ''
-  try {
-    const params = { ...(isFamily.value ? {} : { benchmark: benchmark.value.toUpperCase() }), timeframe: timeframe.value, adjusted: adjusted.value, sampling: sampling.value, lookback: lookback.value, tail_length: tailLength.value, history_length: historyLength.value, as_of: asOfTimestamp() }
-    const path = isFamily.value
-      ? `/analysis/benchmark-families/${encodeURIComponent(groupKey.value)}/relative-rotation`
-      : `/analysis/groups/${encodeURIComponent(groupKey.value)}/relative-rotation`
-    const payload = await queryClient.fetchQuery<{ rows?: Row[]; roles?: Row[]; benchmark?: string; freshness?: string }>({
-      queryKey: ['workstation', 'relative-rotation', groupKey.value, params],
-      queryFn: () => api.get<{ rows?: Row[]; roles?: Row[]; benchmark?: string; freshness?: string }>(path, params),
-      staleTime: 30_000,
+  preparationMessage.value = ''
+  const params = { ...(isFamily.value ? {} : { benchmark: benchmark.value.toUpperCase() }), timeframe: timeframe.value, adjusted: adjusted.value, sampling: sampling.value, lookback: lookback.value, tail_length: tailLength.value, history_length: historyLength.value, as_of: asOfTimestamp() }
+  const selectedGroup = groupKey.value
+  const family = isFamily.value
+  const path = family
+    ? `/analysis/benchmark-families/${encodeURIComponent(selectedGroup)}/relative-rotation`
+    : `/analysis/groups/${encodeURIComponent(selectedGroup)}/relative-rotation`
+  const target = family
+    ? { kind: 'family' as const, family_key: selectedGroup }
+    : { kind: 'market_group' as const, group_key: selectedGroup }
+  const queryKey = ['workstation', 'relative-rotation', selectedGroup, params]
+  const contextKey = JSON.stringify(queryKey)
+  const contextLabel = `${selectedGroup} · ${params.timeframe}${params.benchmark ? ` vs ${params.benchmark}` : ''} · lookback ${params.lookback} · sample ${params.sampling}${params.as_of ? ` · as of ${params.as_of.slice(0, 10)}` : ''}`
+  const showingPriorContext = () => Boolean(rows.value.length && renderedAnalysisContext && renderedAnalysisContext !== contextKey)
+  const contextualize = (message: string) => showingPriorContext()
+    ? `${message} Showing ${renderedAnalysisLabel} results while ${contextLabel} loads.`
+    : message
+  let currentPreparationText = showingPriorContext() ? `Updating ${contextLabel}.` : ''
+  preparationMessage.value = contextualize(currentPreparationText)
+  const isCurrent = () => mounted && generation === loadGeneration && !controller.signal.aborted
+  const readAnalysis = async (fresh = false) => {
+    if (fresh) await queryClient.invalidateQueries({ queryKey, exact: true, refetchType: 'none' })
+    return queryClient.fetchQuery<{ rows?: Row[]; roles?: Row[]; benchmark?: string; freshness?: string }>({
+      queryKey,
+      queryFn: () => api.get<{ rows?: Row[]; roles?: Row[]; benchmark?: string; freshness?: string }>(path, params, { signal: controller.signal }),
+      staleTime: fresh ? 0 : 30_000,
     })
-    if (!mounted || generation !== loadGeneration) return
+  }
+  const applyAnalysis = async (payload: { rows?: Row[]; roles?: Row[]; benchmark?: string; freshness?: string }) => {
+    if (!isCurrent()) return
     rows.value = (payload.roles ?? payload.rows ?? []).map(row => ({ ...row, tail: row.tail ?? [], history: row.history ?? [], symbol: row.symbol ?? row.label ?? row.role ?? 'Unavailable' }))
-    rotationBenchmark.value = payload.benchmark ?? benchmark.value.toUpperCase()
-    freshness.value = payload.freshness ?? ''; await nextTick(); drawPlot()
-  } catch (cause: any) {
-    if (mounted && generation === loadGeneration) { rows.value = []; error.value = cause?.message ?? 'Relative rotation is unavailable.' }
-  } finally { if (mounted && generation === loadGeneration) loading.value = false }
+    rotationBenchmark.value = payload.benchmark ?? (family ? rotationBenchmark.value : benchmark.value.toUpperCase())
+    freshness.value = payload.freshness ?? ''
+    renderedAnalysisContext = contextKey
+    renderedAnalysisLabel = contextLabel
+    if (currentPreparationText.startsWith('Updating ')) currentPreparationText = ''
+    preparationMessage.value = contextualize(currentPreparationText)
+    error.value = ''
+    await nextTick()
+    if (isCurrent()) drawPlot()
+  }
+  const reportAnalysisFailure = () => {
+    if (!isCurrent()) return
+    if (!rows.value.length) error.value = 'Relative rotation data could not be loaded.'
+    else {
+      currentPreparationText = 'The latest local refresh failed; showing the available results.'
+      preparationMessage.value = contextualize(currentPreparationText)
+    }
+  }
+
+  // Read the local analysis immediately. An admitted backfill can take much
+  // longer, but it must not hide a useful cached plot or erase it on a hold.
+  const initialAnalysis = readAnalysis().then(applyAnalysis).catch(cause => {
+    if (cause?.name !== 'AbortError') reportAnalysisFailure()
+  })
+  const progressRefreshQueue = new PreparationProgressRefreshQueue()
+  const refreshForProgress = (response: import('@/lib/dataPreparation').DataEnsureResponse) => progressRefreshQueue.request(response, async () => {
+      await initialAnalysis
+      if (!isCurrent() || !progressRefreshQueue.isLatest(response)) return
+      try { await applyAnalysis(await readAnalysis(true)) } catch (cause: any) {
+        if (cause?.name !== 'AbortError') reportAnalysisFailure()
+      }
+    })
+  const preparation = dataPreparationCoordinator.ensure({
+    target,
+    datasets: ['identity', 'history'],
+    timeframe: params.timeframe as import('@/lib/dataPreparation').PreparationTimeframe,
+    adjusted: params.adjusted,
+    end_at: params.as_of ?? null,
+    analysis: {
+      kind: 'rrg', lookback: params.lookback, sampling: params.sampling,
+      tail_length: params.tail_length, history_length: params.history_length,
+      ...(family ? {} : { benchmark_symbol: params.benchmark }),
+    },
+  }, {
+    signal: controller.signal,
+    onProgress: progress => {
+      if (!isCurrent()) return
+      const status = progress.response.status
+      currentPreparationText = ['queued', 'running', 'partial'].includes(status)
+        ? `Preparing ratio inputs (${progress.completed}/${progress.total} dependencies)…`
+        : preparationStatusMessage(progress.response)
+      preparationMessage.value = contextualize(currentPreparationText)
+      if (shouldRefreshAnalysisProgress(progress.response)) {
+        void refreshForProgress(progress.response).catch(reportAnalysisFailure)
+      }
+    },
+  }).then(async result => {
+    if (!isCurrent()) return
+    currentPreparationText = result.status === 'ready' ? '' : preparationStatusMessage(result)
+    preparationMessage.value = contextualize(currentPreparationText)
+    // A terminal held/partial outcome can still have produced independently
+    // useful inputs, so reread this exact analysis context without discarding
+    // the last successful result.
+    await refreshForProgress(result).catch(reportAnalysisFailure)
+  }).catch(cause => {
+    if (isCurrent() && cause?.name !== 'AbortError') {
+      currentPreparationText = 'Data preparation could not be completed; showing available local results.'
+      preparationMessage.value = contextualize(currentPreparationText)
+    }
+  })
+
+  try {
+    await Promise.all([initialAnalysis, preparation])
+  } finally {
+    if (isCurrent()) loading.value = false
+    if (generation === loadGeneration && activeLoadController === controller) activeLoadController = null
+  }
 }
 onMounted(async () => {
   mounted = true
@@ -327,11 +482,12 @@ watch(() => props.configuration, configuration => {
 onBeforeUnmount(() => {
   mounted = false
   loadGeneration += 1
+  activeLoadController?.abort(); activeLoadController = null
   observer?.disconnect(); observedPlotHost = null; plot?.destroy(); plot = null
 })
 </script>
 
 <style scoped>
-.rotation-tool__plot:focus-visible{outline:2px solid #eef3fb;outline-offset:-2px}
+.rotation-tool__plot:focus-visible{outline:2px solid #eef3fb;outline-offset:-2px}.rotation-tool__updating{position:absolute;z-index:1;top:6px;right:8px;margin:0;padding:3px 6px;border:1px solid #394750;border-radius:3px;background:#171f25e8;color:#c0ccd3;pointer-events:none}
 .rotation-tool__sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-.rotation-tool{display:grid;height:100%;min-height:0;grid-template-rows:auto 150px minmax(0,1fr);background:#11161b;color:#cad4db;font:10px "Segoe UI",Arial,sans-serif}.rotation-tool header{display:grid;gap:4px;padding:7px;border-bottom:1px solid #2d3841}.rotation-tool header small{color:#82929d}.rotation-tool__controls{display:flex;flex-wrap:wrap;gap:4px;align-items:center}.rotation-tool__controls label{display:flex;align-items:center;gap:2px;color:#9aabb6}.rotation-tool__controls input,.rotation-tool__controls select{min-width:0;width:58px;border:1px solid #3a4954;background:#172027;color:#dce6ed;font:inherit;padding:1px 3px}.rotation-tool__controls label:first-child select{width:112px}.rotation-tool__controls label:nth-child(7) input{width:100px}.rotation-tool__adjusted input{width:auto}.rotation-tool__state{display:grid;place-items:center;color:#8596a1}.rotation-tool__state--error{color:#e28c8c}.rotation-tool__plot-shell{position:relative;min-height:0;background:#101419;overflow:hidden}.rotation-tool__plot{width:100%;height:100%}.rotation-tool__tooltip{position:absolute;z-index:2;display:grid;gap:2px;min-width:190px;padding:5px 7px;border:1px solid #526674;background:#172027;color:#dce6ed;box-shadow:0 3px 12px #0008;pointer-events:none}.rotation-tool__tooltip span{color:#9aabb6}.rotation-tool__table{overflow:auto}.rotation-tool__head,.rotation-tool__row{display:grid;grid-template-columns:54px 78px repeat(7, minmax(58px, 1fr)) 64px 38px;align-items:center;gap:5px;padding:5px 7px;min-width:720px}.rotation-tool__head{position:sticky;top:0;background:#20282f;color:#9baab5;font-weight:600;text-transform:uppercase}.rotation-tool__head button{border:0;background:transparent;color:inherit;font:inherit;text-align:left;padding:0;cursor:pointer}.rotation-tool__head button:hover{color:#e4eef3}.rotation-tool__row{width:100%;border:0;border-bottom:1px solid #20282f;background:transparent;color:inherit;text-align:left;cursor:pointer}.rotation-tool__row:hover{background:#1d4057}.rotation-tool__state-leading{color:#61c58c}.rotation-tool__state-weakening{color:#e7bc68}.rotation-tool__state-improving{color:#6dbbe6}.rotation-tool__state-lagging{color:#df8181}</style>
+.rotation-tool{display:grid;height:100%;min-height:560px;grid-template-rows:auto minmax(260px,1.4fr) minmax(160px,.6fr);background:#11161b;color:#cad4db;font:10px "Segoe UI",Arial,sans-serif}.rotation-tool header{display:grid;gap:4px;padding:7px;border-bottom:1px solid #2d3841}.rotation-tool header small{color:#82929d}.rotation-tool__controls{display:flex;flex-wrap:wrap;gap:4px;align-items:center}.rotation-tool__controls label{display:flex;align-items:center;gap:2px;color:#9aabb6}.rotation-tool__controls input,.rotation-tool__controls select{min-width:0;width:58px;border:1px solid #3a4954;background:#172027;color:#dce6ed;font:inherit;padding:1px 3px}.rotation-tool__controls label:first-child select{width:112px}.rotation-tool__controls label:nth-child(7) input{width:100px}.rotation-tool__adjusted input{width:auto}.rotation-tool__state{display:grid;place-items:center;color:#8596a1}.rotation-tool__state--error{color:#e28c8c}.rotation-tool__plot-shell{position:relative;min-height:0;background:#101419;overflow:hidden}.rotation-tool__plot{width:100%;height:100%}.rotation-tool__tooltip{position:absolute;z-index:2;display:grid;gap:2px;min-width:190px;padding:5px 7px;border:1px solid #526674;background:#172027;color:#dce6ed;box-shadow:0 3px 12px #0008;pointer-events:none}.rotation-tool__tooltip span{color:#9aabb6}.rotation-tool__table{min-height:160px;overflow:auto;overscroll-behavior:contain}.rotation-tool__head,.rotation-tool__row{display:grid;grid-template-columns:54px 78px 58px 68px 76px 66px 76px 76px 104px 58px 72px 42px;align-items:center;gap:5px;padding:5px 7px;min-width:720px}.rotation-tool__head{position:sticky;top:0;background:#20282f;color:#9baab5;font-weight:600;text-transform:uppercase}.rotation-tool__head button{border:0;background:transparent;color:inherit;font:inherit;text-align:left;padding:0;cursor:pointer}.rotation-tool__head button:hover{color:#e4eef3}.rotation-tool__row{width:100%;border:0;border-bottom:1px solid #20282f;background:transparent;color:inherit;text-align:left;cursor:pointer}.rotation-tool__row:hover{background:#1d4057}.rotation-tool__state-leading{color:#61c58c}.rotation-tool__state-weakening{color:#e7bc68}.rotation-tool__state-improving{color:#6dbbe6}.rotation-tool__state-lagging{color:#df8181}</style>

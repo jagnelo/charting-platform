@@ -5722,7 +5722,7 @@ acceptance_criteria:
 progress:
   completed: []
   total: 5
-  current_phase: Provider732 is imported as the exact development delta; the focused ETF preparation/hook and basket-consumer service tests pass 46/46, with the ETF canonical dashboard route and provenance unit/type checks already green. Root combined qualification remains pending.
+  current_phase: Provider46462f55 is consumed as an exact development delta (45/45 manifest records verified; four changed paths since 732). The reserved S&P analysis spec includes Root-reviewed renderer, ratio, RRG marker/tail raster, active-timeframe, and pointer-selection assertions; type-check and two-case Playwright discovery pass. Browser bodies and Provider full CI remain pending Root.
   current_blocker: ETF and basket Playwright bodies remain pending Root's combined profile; TC must consume the retained ETF holding handoff on Workstation startup. Provider/TC shared release gates and Root's genuine-flow qualification remain open.
 integration_checkpoint:
   id: platform-usability-etf-holdings-2026-11-06
@@ -6211,3 +6211,44 @@ provider_runtime_dependency_active_732da0f9:
   producer_evidence: Provider reported 32 focused cases; this is not independently rerun here or final release qualification.
   consumer_validation: ETF preparation/hook and checkpoint-consumer focused modules passed 46/46 against imported Provider732; TC shared frontend companion and Root combined profile remain pending.
   full_release_gates: pending; Root owns exact CI, combined qualification, staging/master and release.
+
+tc_common_runtime_dependency_active_d5e8:
+  authority: Root released exact TC common runtime source d5e8d628eb42318656d8b578a24390db4be17cca for development consumption in this same ETF worktree; this is not final release qualification, integration, or deployment.
+  base: 139b350238b5e1c8a170dce5af09a805301d857e
+  previous_active_dependency: aea0be57abd036dd308a18f9dd07b976767cb8a9
+  previous_three_library_pin: preserved as historical evidence; this current manifest supersedes that active import boundary.
+  manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-d5e8-common-runtime-development-consumption-contract.json
+  manifest_sha256: 8e407fd646dd011ae07ed74c33ff8bb1edf236fdb372f4e2856f1d237873ce24
+  imported_delta_paths: exactly the manifest's 47 changed_paths_since_previous; no other TC or Producer source was imported.
+  active_manifest_records: 49
+  verification: all49 current paths match SHA256, Git blob, executable mode, and status_from139; only the declared47 delta paths were written.
+  scope: TC common chart/workspace/shell/dock/auth/plot/runtime and matching tests needed by ETF's existing consumer integration; ETF, Study, Results, Library, Baskets, secondary Dashboard, new S&P500 spec, and Producer records remain excluded.
+  validation: frontend type-check passed; the assigned S&P500 journey spec lists2 Playwright tests; browser bodies were not run.
+  state: development dependency only; Root owns combined functional/visual qualification and final release gates.
+
+sp500_analysis_journey_spec_2026_11_07:
+  authority: Root reserved frontend/tests/e2e/sp500_analysis_journey.spec.ts to the ETF owner under etf-sp500-analysis-acceptance-ownership-20261107.json.
+  coverage: authenticated seeded-backend SPY+11 sector charts; both directions of all11 sector/SPY ratios independently compared to raw close intersections; D1/W1/MN finite RRG rows, tails, states, rendered canvas palette/labels, pointer and keyboard linked-chart selection, resize, maximize/restore, copied layout, and tab restoration.
+  validation: npm run type-check passed; Playwright --list found2 tests; no browser body or fixture was started.
+  pending: Root combined browser profile must execute and accept the actual seeded API journeys; this spec is not runtime or full-platform acceptance.
+
+
+provider_runtime_dependency_active_46462f55:
+  authority: Root released exact Provider source 46462f5531d689acf4c8004517dc4fb345d822ba for development consumption only; no Producer workstream records or unrelated paths were imported.
+  base: 139b350238b5e1c8a170dce5af09a805301d857e
+  previous_active_dependency: 732da0f9f84ee495ee58ca3b9f8311839291ff59
+  manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider46462f55-runtime-development-consumption-contract.json
+  manifest_sha256: 3600f958dd684d72bf0ed95425c4e52792566d6136c57d676c67f4f107e5301d
+  changed_paths_since_previous: [backend/app/tasks/data_tasks.py, backend/tests/unit/services/test_data_preparation_history_planning.py, backend/tests/unit/services/test_etf_holdings_native_qualification.py, backend/tests/unit/services/test_etf_issuer_catalog.py]
+  active_manifest_records: 45
+  verification: all45 path/status_from139/Git-blob/SHA256/mode records match source464; all four declared delta paths match exact source blobs.
+  producer_status: exact Provider CI42328517364 remains in progress; this development import is not Producer acceptance, integration, deployment, or combined qualification.
+  history: prior 732 active pin and all earlier Provider import receipts remain preserved in session history.
+  no_live_operations: no source HTTP, policy/quota/ledger or production mutation, fixture, Docker, or broad Provider test run.
+
+sp500_analysis_journey_review_corrections_2026_11_07:
+  spec: frontend/tests/e2e/sp500_analysis_journey.spec.ts
+  sha256: 25ccf27f34b56aac0f29507b5cc631d1495230c102f450d5621f1d51d2726f1b
+  accepted_coverage: Real price-renderer paint plus OHLC/date tooltip matching returned bars; actual visible forward and inverse ratio traces for all eleven sectors; independent raw-close arithmetic; D1/W1/MN payload and marker/tail paint checks while each timeframe is active; actual RRG pointer hit with returned-tail tooltip and linked chart selection.
+  validation: npm run type-check passed; Playwright discovery found2 tests; no browser body or fixture was run.
+  pending: Root combined seeded-backend browser profile and final release gates; no visual or actual-browser success claimed.

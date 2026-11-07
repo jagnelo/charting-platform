@@ -169,6 +169,11 @@ export const useLayoutStore = defineStore('layout', () => {
     persistProfiles()
   }
 
+  function resetForAuthSessionBoundary() {
+    profiles.value = []
+    localStorage.removeItem(PROFILE_STORAGE_KEY)
+  }
+
   return {
     layout, panels, activePanelId, panelCount, profiles, panelWidths,
     syncedTs, syncSourcePanel, isSyncEnabled,
@@ -176,5 +181,6 @@ export const useLayoutStore = defineStore('layout', () => {
     setSyncedTs, toggleSync,
     saveProfile, loadProfile, deleteProfile,
     setPanelWidth,
+    resetForAuthSessionBoundary,
   }
 })

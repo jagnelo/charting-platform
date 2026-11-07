@@ -85,6 +85,11 @@ export const useUserSettingsStore = defineStore('userSettings', () => {
     toggleSourceId(pinnedSourceIds, sourceId)
   }
 
+  function resetForAuthSessionBoundary() {
+    if (saveTimer) clearTimeout(saveTimer)
+    saveTimer = null
+  }
+
   watch([showCurrentPriceProjection, showHighLowProjection, showApproxVolumeProfile, chartType, followedSourceIds, pinnedSourceIds], () => {
     if (!loaded.value) return
     if (saveTimer) clearTimeout(saveTimer)
@@ -102,5 +107,6 @@ export const useUserSettingsStore = defineStore('userSettings', () => {
     togglePinnedSource,
     loadSettings,
     saveSettings,
+    resetForAuthSessionBoundary,
   }
 })

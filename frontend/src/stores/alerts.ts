@@ -24,6 +24,9 @@ export const useAlertsStore = defineStore('alerts', () => {
   const selectedAlertId = ref<number | null>(null)
   const editRequestAlertId = ref<number | null>(null)
   let ws: WebSocket | null = null
+  let socketGeneration = 0
+  let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+  let pingTimer: ReturnType<typeof setInterval> | null = null
   let _loadedInstrumentId: number | undefined = undefined
 
   async function loadAlerts(instrumentId?: number) {
@@ -151,17 +154,28 @@ export const useAlertsStore = defineStore('alerts', () => {
   // ── WebSocket ───────────────────────────────────────────────────────────────
 
   function connectWebSocket() {
+    if (!localStorage.getItem('access_token')) return
     if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return
+    if (reconnectTimer) clearTimeout(reconnectTimer)
+    reconnectTimer = null
+    const generation = ++socketGeneration
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
     const accessToken = localStorage.getItem('access_token')
     const tokenQuery = accessToken ? `?token=${encodeURIComponent(accessToken)}` : ''
     const wsUrl = `${protocol}://${window.location.host}/api/v1/alerts/ws${tokenQuery}`
-    ws = new WebSocket(wsUrl)
+    const socket = new WebSocket(wsUrl)
+    ws = socket
 
-    ws.onopen = () => {
+    socket.onopen = () => {
+      if (generation !== socketGeneration || ws !== socket) return
       wsConnected.value = true
       // Ping every 30s to keep connection alive
-      setInterval(() => ws?.send(JSON.stringify({ type: 'ping' })), 30000)
+      if (pingTimer) clearInterval(pingTimer)
+      pingTimer = setInterval(() => {
+        if (generation === socketGeneration && ws === socket && socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({ type: 'ping' }))
+        }
+      }, 30000)
       // Fetch unviewed count on reconnect
       loadHistory().catch((e: unknown) => {
         const msg = e instanceof Error ? e.message : String(e ?? '')
@@ -170,7 +184,8 @@ export const useAlertsStore = defineStore('alerts', () => {
       })
     }
 
-    ws.onmessage = (event) => {
+    socket.onmessage = (event) => {
+      if (generation !== socketGeneration || ws !== socket) return
       const msg = JSON.parse(event.data)
       if (msg.type === 'screener_alert_triggered') {
         showAlertToast({
@@ -226,14 +241,23 @@ export const useAlertsStore = defineStore('alerts', () => {
       }
     }
 
-    ws.onclose = () => {
+    socket.onclose = () => {
+      if (generation !== socketGeneration || ws !== socket) return
       wsConnected.value = false
-      // Reconnect after 5 seconds
-      setTimeout(connectWebSocket, 5000)
+      ws = null
+      if (pingTimer) clearInterval(pingTimer)
+      pingTimer = null
+      // Reconnect only while this authenticated session is still active.
+      if (localStorage.getItem('access_token')) {
+        reconnectTimer = setTimeout(() => {
+          reconnectTimer = null
+          if (generation === socketGeneration) connectWebSocket()
+        }, 5000)
+      }
     }
 
-    ws.onerror = () => {
-      ws?.close()
+    socket.onerror = () => {
+      if (generation === socketGeneration && ws === socket) socket.close()
     }
   }
 
@@ -243,8 +267,25 @@ export const useAlertsStore = defineStore('alerts', () => {
   }
 
   function disconnectWebSocket() {
-    ws?.close()
+    socketGeneration += 1
+    if (reconnectTimer) clearTimeout(reconnectTimer)
+    reconnectTimer = null
+    if (pingTimer) clearInterval(pingTimer)
+    pingTimer = null
+    const socket = ws
     ws = null
+    wsConnected.value = false
+    socket?.close()
+  }
+
+  function resetForAuthSessionBoundary() {
+    disconnectWebSocket()
+    alerts.value = []
+    indicatorAlerts.value = []
+    firingHistory.value = []
+    selectedAlertId.value = null
+    editRequestAlertId.value = null
+    _loadedInstrumentId = undefined
   }
 
   function getAlertProjection(id: number): boolean {
@@ -271,6 +312,6 @@ export const useAlertsStore = defineStore('alerts', () => {
     markViewed, markAllViewed, deleteFiringEvent,
     selectAlert, requestEditAlert,
     getAlertProjection, toggleAlertProjection,
-    connectWebSocket, disconnectWebSocket,
+    connectWebSocket, disconnectWebSocket, resetForAuthSessionBoundary,
   }
 })

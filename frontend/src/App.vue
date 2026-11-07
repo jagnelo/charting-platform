@@ -35,12 +35,12 @@
       </header>
       <main class="tc-app-main">
         <div class="tc-app-route-frame">
-          <router-view />
+          <router-view :key="sessionEpoch" />
         </div>
         <StatusBar />
       </main>
     </template>
-    <router-view v-else />
+    <router-view v-else :key="sessionEpoch" />
     <Notification />
   </div>
 </template>
@@ -51,17 +51,24 @@ import { useRoute } from 'vue-router'
 import { isSharedNavigationItemActive, sharedShellNavigation, usesSharedAppShell } from '@/router'
 import { useAuthStore } from '@/stores/auth'
 import { useAlertsStore } from '@/stores/alerts'
+import { authSessionEpochView } from '@/lib/authSession'
 import Notification from '@/components/common/Notification.vue'
 import StatusBar from '@/components/common/StatusBar.vue'
 
 const route = useRoute()
 const authStore = useAuthStore()
-const alertsStore = useAlertsStore()
+const sessionEpoch = authSessionEpochView()
+const alertsStore = computed(() => {
+  sessionEpoch.value
+  return useAlertsStore()
+})
 
 watch(() => authStore.isAuthenticated, (authenticated) => {
-  if (authenticated) alertsStore.connectWebSocket()
-  else alertsStore.disconnectWebSocket()
+  if (authenticated) alertsStore.value.connectWebSocket()
+  else alertsStore.value.disconnectWebSocket()
 }, { immediate: true })
+
+watch(sessionEpoch, () => authStore.syncTokensFromSessionBoundary())
 
 const usesSharedShell = computed(() => usesSharedAppShell(route.path))
 const navigationItems = sharedShellNavigation

@@ -18361,3 +18361,19 @@ Root released `732da0f9f84ee495ee58ca3b9f8311839291ff59` under the corrected cur
 ### Provider732 ETF consumer check — 2026-11-07
 
 After the exact import, `tests/unit/services/test_etf_holdings_preparation.py`, `test_etf_holdings_preparation_hook.py`, and `test_etf_holdings_checkpoint_consumers.py` passed 46/46 (five upstream deprecation warnings). This is the ETF-owned consumer slice only; no Provider suite, Docker/PostgreSQL fixture, browser, source HTTP, or production/ledger operation was run. The separate TC frontend companion and Root combined profile remain pending.
+
+
+## TC D5 common-runtime development import and S&P 500 acceptance spec — 2026-11-07
+
+Root released TC source `d5e8d628eb42318656d8b578a24390db4be17cca` for exact development consumption under `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-d5e8-common-runtime-development-consumption-contract.json` (SHA256 `8e407fd646dd011ae07ed74c33ff8bb1edf236fdb372f4e2856f1d237873ce24`). Imported only the manifest's 47 declared delta paths over the prior AEA three-library pin; the current 49-file manifest now binds the matching runtime and tests. All 49 entries were checked against the source Git blob, SHA256, executable mode, and `status_from139`. The previous AEA pin remains historical; no ETF/Study/Results/Library/Baskets/secondary-Dashboard/new-spec or Producer workstream paths were imported. This is development source, not final release qualification.
+
+Added the reserved `frontend/tests/e2e/sp500_analysis_journey.spec.ts` acceptance spec. Its authenticated seeded-backend cases cover SPY plus all eleven sector charts, both orientations of every sector/SPY ratio against independently aligned raw close data, and actual D1/W1/MN RRG responses with finite rows/tails, rendered chart palette/quadrant label evidence, pointer/keyboard linked-chart selection, resize, maximize/restore, layout copy and tab restoration. `npm run type-check` passed; Playwright discovery lists 2 tests. Browser bodies were not run and remain pending Root's combined profile. No successful route mocks, data/seed/math/tolerance changes, provider/source requests, production mutations, or new fixture were made.
+
+The complete ETF/platform roadmaps, all prior checkpoints and failures, and the existing unbudgeted goal/accounting remain unchanged. Root owns combined browser execution and final release gates.
+
+
+## Provider464 development import and reviewed S&P journey corrections — 2026-11-07
+
+Consumed only the four declared Provider delta paths over 732 and verified all45 current manifest records against source46462f5531d689acf4c8004517dc4fb345d822ba (manifest SHA256 `3600f958dd684d72bf0ed95425c4e52792566d6136c57d676c67f4f107e5301d`). The two ETF clock-test paths already matched the released source; the other two declared paths were imported into this worktree. Provider CI42328517364 is still in progress; this is development consumption only.
+
+Updated `frontend/tests/e2e/sp500_analysis_journey.spec.ts` to address Root's four review findings: price-renderer paint and bar-matched pointer OHLC, both visible ratio directions, point/tail-specific RRG paint evidence, and assertions made with each timeframe active; actual RRG pointer selection is covered. Current spec SHA256 is `25ccf27f34b56aac0f29507b5cc631d1495230c102f450d5621f1d51d2726f1b`. `npm run type-check` passed and Playwright discovery lists2 cases. Browser bodies remain unrun and Root-owned. No fixture, Docker, source request or data/policy/ledger operation occurred.
