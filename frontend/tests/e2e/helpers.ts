@@ -85,10 +85,13 @@ export class BrowserDiagnostics {
   private controlledApiFault: {
     url: string
     requestId: string
+    method: string
+    responseId: string | null
     status: number
     responseObserved: boolean
     consoleStartIndex: number
     consoleErrorIndex: number | null
+    missingResponseReported: boolean
   } | null = null
 
   allowExpectedControlledApiFault(url: string, requestId: string, status: number) {
@@ -97,10 +100,31 @@ export class BrowserDiagnostics {
     this.controlledApiFault = {
       url,
       requestId,
+      method: 'POST',
+      responseId: null,
       status,
       responseObserved: false,
       consoleStartIndex: this.consoleErrors.length,
       consoleErrorIndex: null,
+      missingResponseReported: false,
+    }
+  }
+
+  allowExpectedControlledApiResponseFault(url: string, method: 'GET' | 'POST', responseId: string, status = 503) {
+    if (this.controlledApiFault) throw new Error('Only one controlled API fault may be armed per test')
+    if (!url || !['GET', 'POST'].includes(method) || !responseId || status !== 503) {
+      throw new Error('Controlled response fault requires an exact URL, GET/POST method, response ID, and 503 status')
+    }
+    this.controlledApiFault = {
+      url,
+      requestId: '',
+      method,
+      responseId,
+      status,
+      responseObserved: false,
+      consoleStartIndex: this.consoleErrors.length,
+      consoleErrorIndex: null,
+      missingResponseReported: false,
     }
   }
 
@@ -148,13 +172,20 @@ export class BrowserDiagnostics {
       const fault = this.controlledApiFault
       if (response.status() === 503) {
         let requestId: string | undefined
+        let responseId: string | undefined
         try {
-          requestId = (response.request().postDataJSON() as { request_id?: string } | null)?.request_id
+          if (fault?.responseId !== null && fault?.responseId !== undefined) {
+            responseId = response.headers()['x-controlled-response-id']
+          } else {
+            requestId = (response.request().postDataJSON() as { request_id?: string } | null)?.request_id
+          }
         } catch {
           requestId = undefined
+          responseId = undefined
         }
         if (fault && !fault.responseObserved && response.url() === fault.url
-          && response.request().method() === 'POST' && requestId === fault.requestId) {
+          && response.request().method() === fault.method
+          && (fault.responseId === null ? requestId === fault.requestId : responseId === fault.responseId)) {
           fault.responseObserved = true
           const matchingConsoleIndex = this.consoleErrors.findIndex((error, index) =>
             index >= fault.consoleStartIndex
@@ -162,7 +193,13 @@ export class BrowserDiagnostics {
             && this.consoleErrorLocations[index] === fault.url)
           if (matchingConsoleIndex >= 0) fault.consoleErrorIndex = matchingConsoleIndex
         } else {
-          this.unexpectedApi503s.push(`${response.request().method()} ${response.url()} request_id=${requestId ?? 'unavailable'}`)
+          const request = response.request()
+          const location = `${request.method()} ${response.url()}`
+          if (fault?.responseId !== null && fault?.responseId !== undefined) {
+            this.unexpectedApi503s.push(`${location} response_id=${responseId ?? 'unavailable'}`)
+          } else {
+            this.unexpectedApi503s.push(`${location} request_id=${requestId ?? 'unavailable'}`)
+          }
         }
       }
       if (response.status() === 409) {
@@ -224,6 +261,12 @@ export class BrowserDiagnostics {
     // workstation canvas becomes visible. Let the response classifier observe
     // those responses before asserting that no unhandled browser errors exist.
     await this.page?.waitForTimeout(250)
+    const controlledFault = this.controlledApiFault
+    if (controlledFault?.responseId !== null && controlledFault?.responseId !== undefined
+      && !controlledFault.responseObserved && !controlledFault.missingResponseReported) {
+      this.unexpectedApi503s.push(`Expected controlled 503 was not observed: ${controlledFault.method} ${controlledFault.url} response_id=${controlledFault.responseId}`)
+      controlledFault.missingResponseReported = true
+    }
     const unexpectedConsoleErrors = this.filterExpectedConsoleErrors()
     const unexpectedPageErrors = this.filterExpectedPageErrors()
     expect(

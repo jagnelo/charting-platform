@@ -36,7 +36,7 @@
     "status": "pending",
     "spec": "frontend/tests/e2e/strategy_study_journey.spec.ts",
     "dashboard_spec": "frontend/tests/e2e/dashboard_usability_journey.spec.ts",
-    "qualification": "Root ran all7 Strategy Study journeys once on frontend9273ea06/backend580571e4 using exact test source06897e9640432466f7dd5b15baac92e8916f07da; result7failed/118.09s, zero retries, not qualified. Root observed that ordinary clicks leave the Study Lab dock tab inactive and the common ToolContent remains at Loading tool… despite its lazy JS/CSS and Library API returning200; this is a shared TC dock/async-mount defect, not an empty/success result. Root owns that repair; Strategy must not force-click or bypass visibility. The current owned spec preserves ordinary tab clicks and corrects the Results root-region locator and the controlled mock contract, but this revision has not run in a browser. Results detail/cancel/rerun failure handling remains covered by the existing ResearchResultsTool component tests; its browser story uses successful API responses to retain strict BrowserDiagnostics. Root owns the next seven-body replay after a coherent TC successor and the combined qualification. No Strategy browser acceptance or full-release acceptance is claimed.",
+    "qualification": "Root ran all7 Strategy Study journeys once on frontend9273ea06/backend580571e4 using exact test source06897e9640432466f7dd5b15baac92e8916f07da; result7failed/118.09s, zero retries, not qualified. Root observed that ordinary clicks leave the Study Lab dock tab inactive and the common ToolContent remains at Loading tool\u2026 despite its lazy JS/CSS and Library API returning200; this is a shared TC dock/async-mount defect, not an empty/success result. Root owns that repair; Strategy must not force-click or bypass visibility. The current owned spec preserves ordinary tab clicks and corrects the Results root-region locator and the controlled mock contract, but this revision has not run in a browser. Results detail/cancel/rerun failure handling remains covered by the existing ResearchResultsTool component tests; its browser story uses successful API responses to retain strict BrowserDiagnostics. Root owns the next seven-body replay after a coherent TC successor and the combined qualification. No Strategy browser acceptance or full-release acceptance is claimed.",
     "workstation_spec": "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts"
   },
   "journeys": [
@@ -58,7 +58,7 @@
         "POST /code/validate is validation-only: backend/tests/integration/api/test_code.py :: test_code_validation_never_executes_source",
         "POST /research/runs preserves typed run parameters: backend/tests/integration/api/test_code.py :: test_research_run_merges_defaults_and_rejects_schema_invalid_parameters"
       ],
-      "browser_evidence": "The authored Study flow checks the fresh-user empty Results state before a real Study validate/run, then verifies automatic persisted-row/artifact arrival, an XLB draft snapshot while the saved SPY run stays immutable, reload, and return from Library. Root R13 executed the then-current source but failed all7 cases when common TC dock activation left Study Lab inactive; current locator/mock corrections are not browser-executed. Browser acceptance remains pending.",
+      "browser_evidence": "The authored Study flow checks the fresh-user empty Results state before a real Study validate/run, then verifies automatic persisted-row/artifact arrival, an XLB draft snapshot while the saved SPY run stays immutable, reload, and return from Library. Root R13 executed the then-current source but failed all7 cases when common TC dock activation left Study Lab inactive; current locator/mock corrections are not browser-executed. Browser acceptance remains pending. The normal seeded Study path now uses public date inputs for the retained 2024-01-02 through 2025-12-29 range, asserts exact preparation/run bounds and saved SPY identity/date summary across XLB draft edit and reload; authored only, not browser-executed.",
       "approved_journey": [
         "J10 Study: edit/validate/run/results/cancel/return supported workflow"
       ]
@@ -87,7 +87,7 @@
         "Current Provider runtime b0eae5974801e320b3da858d7e1a33829b206430 is active in provider-runtime-consumption.json; the two declared queue-claim/continuation-reference paths over5cdc were imported and all47 active entries verified. Root reports real-PostgreSQL second-owner ensure and continuation-parent-reference regressions plus the20-case ETF fixture module passed; exact-source CI and combined qualification remain pending.",
         "Actual PostgreSQL queue/worker execution and Study browser proof against the assembled application remain pending Root's single combined qualification"
       ],
-      "browser_evidence": "Authored in frontend/tests/e2e/strategy_study_journey.spec.ts against a controlled preparation API: holds SPY while XLK and QQQ benchmark requests become ready, proves all three ensure requests were submitted before the hold resolves, and verifies unavailable SPY blocks validation and Run. This is authored-only UI interaction evidence; real backend/browser qualification remains pending Root's combined gate. A separate authored controlled-API journey changes the selected symbol while the previous SPY poll is held, verifies that the old request is aborted and its late result cannot replace the new XLB/QQQ outcomes, and confirms unavailable data never reaches source validation or run dispatch. This remains discovery-only until Root runs the combined browser gate. Both controlled preparation API fixtures now include symbol identity, covered_ranges, and has_pending_work matching the released Provider074 response contract; the shared validator remains unchanged.",
+      "browser_evidence": "Authored in frontend/tests/e2e/strategy_study_journey.spec.ts against a controlled preparation API: holds SPY while XLK and QQQ benchmark requests become ready, proves all three ensure requests were submitted before the hold resolves, and verifies unavailable SPY blocks validation and Run. This is authored-only UI interaction evidence; real backend/browser qualification remains pending Root's combined gate. A separate authored controlled-API journey changes the selected symbol while the previous SPY poll is held, verifies that the old request is aborted and its late result cannot replace the new XLB/QQQ outcomes, and confirms unavailable data never reaches source validation or run dispatch. This remains discovery-only until Root runs the combined browser gate. Both controlled preparation API fixtures now include symbol identity, covered_ranges, and has_pending_work matching the released Provider074 response contract; the shared validator remains unchanged. The controlled ensure interceptor now matches only the exact Study instrument/history/D1/adjusted/open-ended requests for its declared symbols and continues unrelated workstation data requests. Context-change abort remains asserted. R16 browser execution is pending.",
       "approved_journey": [
         "J10 Study: edit/validate/run/results/cancel/return supported workflow"
       ]
@@ -112,7 +112,7 @@
         "POST /code/assets and POST /research/runs are covered by backend/tests/integration/api/test_code.py :: test_research_run_is_queued_for_isolated_runner and test_research_run_job_preserves_json_parameters_for_isolated_runner",
         "Run materialization/control validation: backend/tests/integration/api/test_code.py :: test_research_run_honors_study_dataset_controls_and_records_them and test_research_run_rejects_unsupported_study_dataset_controls"
       ],
-      "browser_evidence": "The authored F8p high_low_breakouts flow asserts the SPY D1 split-adjusted ensure request, waits for the same request_id to become ready before validation, checks typed lookback10 run config, completion and both metrics, and retains the90-second status bound. R13 failed before these assertions because the common TC Study Lab tab did not activate; no successful browser execution is claimed.",
+      "browser_evidence": "The authored F8p high_low_breakouts flow asserts the SPY D1 split-adjusted ensure request, waits for the same request_id to become ready before validation, checks typed lookback10 run config, completion and both metrics, and retains the90-second status bound. R13 failed before these assertions because the common TC Study Lab tab did not activate; no successful browser execution is claimed. Both ordinary SPY journeys now select the retained 2024-01-02 through 2025-12-29 range using the Study date controls, assert ensure and immutable run-config/manifest bounds, and require useful finite high-breakout output; browser bodies remain pending Root.",
       "approved_journey": [
         "J10 Study: edit/validate/run/results/cancel/return supported workflow"
       ]
@@ -140,7 +140,7 @@
         "GET /research/runs/{id} and list artifact-count projections: backend/tests/unit/routers/test_research_router.py :: test_research_run_detail_projects_artifact_count_from_persisted_artifacts, test_research_run_detail_hides_runs_owned_by_another_user, and test_research_run_list_projects_persisted_artifact_count_for_current_owner",
         "Structured result persistence: backend/tests/integration/api/test_code.py :: test_research_result_is_collected_as_structured_artifact"
       ],
-      "browser_evidence": "Pending exact-source browser run. The Study journey asserts automatic Results arrival, eight artifacts in the run list, and eight persisted artifact panes after selecting the completed run detail before and after workspace reload; saved SPY identity remains unchanged after XLB draft edit and reload.",
+      "browser_evidence": "Pending exact-source browser run. The Study journey asserts automatic Results arrival, eight artifacts in the run list, and eight persisted artifact panes after selecting the completed run detail before and after workspace reload; saved SPY identity remains unchanged after XLB draft edit and reload. A separate controlled one-shot exact-GET 503 case is authored: saved-run detail exposes Retry and returns the persisted artifact; not browser-executed.",
       "approved_journey": [
         "J10 Study: edit/validate/run/results/cancel/return supported workflow",
         "J12 recovery: reload and delayed result restoration"
@@ -168,7 +168,7 @@
         "Stable newest-first server pagination: backend/tests/integration/api/test_code.py :: test_research_runs_list_is_user_scoped_and_newest_first",
         "Cursor ordering: backend/tests/integration/api/test_strategy_lab.py :: test_research_run_listing_uses_stable_created_at_id_cursor"
       ],
-      "browser_evidence": "The current controlled API browser story authors successful detail hydration, newest-first and older-page ordering, comparison, event filtering, scalar export and promotion. Detail-retry failure behavior remains covered by the existing ResearchResultsTool component test. R13 could not reach the mocked run row because the shared ToolContent remained in Loading tool…; this story has not passed in a browser.",
+      "browser_evidence": "The current controlled API browser story authors successful detail hydration, newest-first and older-page ordering, comparison, event filtering, scalar export and promotion. Detail-retry failure behavior remains covered by the existing ResearchResultsTool component test. R13 could not reach the mocked run row because the shared ToolContent remained in Loading tool\u2026; this story has not passed in a browser.",
       "approved_journey": [
         "J10 Study: results/cancel/return supported workflow",
         "J12 recovery: pagination, filters, delayed failures and retry"
@@ -200,7 +200,7 @@
       "api_evidence": [
         "POST /research/runs/{id}/cancel and POST /research/runs/{id}/rerun?snapshot={true|false}; API list/run invariants are exercised by backend/tests/integration/api/test_code.py :: test_research_rerun_snapshot_retains_manifest and test_research_runs_list_is_user_scoped_and_newest_first"
       ],
-      "browser_evidence": "The current browser story authors successful queued cancellation, snapshot rerun and latest rerun of the queued successor. Cancel/rerun failure and retryable UI states remain covered by existing ResearchResultsTool component tests. The earlier browser mock emitted three unsupported controlled503s (a GET plus two POSTs) against the strict shared diagnostic, so the current mock now uses successful responses; no diagnostic allowlist is weakened. R13 failed earlier at common ToolContent loading, and the current story remains browser-pending.",
+      "browser_evidence": "Three separate controlled one-shot exact-response 503 browser cases are authored: detail GET Retry restores the saved artifact; queued cancel remains available and explicit retry reaches canceled; failed snapshot rerun creates no run until explicit retry queues exactly one successor. Each fault is matched by exact URL/method/response-ID and strict global diagnostics remain enabled. These browser bodies are pending Root; no failures are relabeled green.",
       "approved_journey": [
         "J10 Study: results/cancel/return supported workflow",
         "J12 recovery: pagination, filters, delayed failures and retry"
@@ -260,7 +260,7 @@
       "api_evidence": [
         "GET /code/assets, POST /code/assets, POST /code/assets/import, POST /code/assets/{id}/archive; backend/tests/integration/api/test_code.py :: test_code_assets_support_archive_clone_and_round_trip_import and test_code_asset_kind_and_declared_output_contract_must_match"
       ],
-      "browser_evidence": "The controlled Library browser story authors visible create/validate, export, import, clone, archive and filter outcomes. R13 returned the seeded API row and all five lazy JS/CSS assets successfully, but the shared ToolContent stayed at Loading tool… and the row was not rendered. TC owns the mount defect; current body is unqualified.",
+      "browser_evidence": "The controlled Library browser story authors visible create/validate, export, import, clone, archive and filter outcomes. R13 returned the seeded API row and all five lazy JS/CSS assets successfully, but the shared ToolContent stayed at Loading tool\u2026 and the row was not rendered. TC owns the mount defect; current body is unqualified.",
       "approved_journey": [
         "J10 Study: immutable saved version and return into Study workflow",
         "J12 recovery: delayed validation/refresh failure"
@@ -627,6 +627,49 @@
         "contract_sha256": "88bb2743de90c5b80f0863c3ca7d9e8a1be7c61cb3a1001d9c0bdac4da4e075c"
       },
       "prior_import_claim_superseded": "The initial Strategy receipt incorrectly said the two paths were already byte-identical. Root review found the pre-import worktree hashes were SearchBar.vue=e860fcaf6a868cf7a183a08886758fd23b491ddecc75d479b834aea5eff322e5 and test_search_bar.test.ts=2ea86d91f80f77d9cd68cd5ffc4be35db2d2b86c42f6467865366cf411ec2db5. The earlier validation row is preserved; the corrected receipt records the actual import below."
+    },
+    {
+      "owner": "TC Study parent configuration mirror; Strategy consumes exact released component and matching regression",
+      "source_commit": "f3aa8c14d5bfce5cedac08baa7a27c1e62202686",
+      "contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-f3aa8c14-study-recursion-development-consumption-contract.json",
+      "contract_sha256": "9dc14cb015f03e701054c8c7e3e4067cc4809b392b714110469fa9a7f6f5a469",
+      "paths": [
+        {
+          "path": "frontend/src/components/workstation/StudyLabTool.vue",
+          "git_blob": "e416c6f498982206c2491850a40e962592b96dda",
+          "sha256": "0dae4ef98f440896334cb435bafc65f5c5f0d767c7f44898ed5b96130f2c5264"
+        },
+        {
+          "path": "frontend/tests/unit/components/test_study_lab_tool.test.ts",
+          "git_blob": "bce13f806092f0c6e4cda4dc1a987bd4a878acd7",
+          "sha256": "e2df24d48b0cdf7bd3c8a7dac2e08a545292328b2c5141e1a6d38ad7e8d117ea"
+        }
+      ],
+      "import_check": "Both worktree paths matched the declared old SHA256 values at source5703f214; exact f3 blobs/SHA/mode100644 verified and only those two paths were materialized. `git restore` could not create the shared index.lock on the read-only metadata mount; the exact guarded Git blobs were written to the owned worktree and reverified. No other path changed by import.",
+      "source_contract": "Batched parent configuration updates no longer synchronously emit intermediate delete/assign states through the Study configuration mirror.",
+      "qualification": "TC reports complete focused Study module64/64 pass on exact f3 source. Strategy type-check and Playwright discovery passed after import and retained-range spec edits; no Study unit replay or browser body."
+    },
+    {
+      "owner": "Provider controlled E2E seed source; Strategy consumes only the released fixture identity/history correction",
+      "source_commit": "f84c7020932558ecfc52a355c24ef360ff71386c",
+      "contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providerf84c7020-runtime-development-consumption-contract.json",
+      "contract_sha256": "d0476cba8b9973081ffcfac3cf090c271aafd0b0567e2fc3819a6e79fe3b90b7",
+      "paths": [
+        {
+          "path": "backend/app/services/e2e_seed.py",
+          "git_blob": "f202f9ca3f51d215291be788332221b4b176b571",
+          "sha256": "50bffcce84010c43a2712829237d3eb69ac7c403100e9b5fac14a9657d8e0975"
+        },
+        {
+          "path": "backend/tests/unit/services/test_e2e_seed.py",
+          "git_blob": "f5eac537d00a6accdaf9aa6123d53c2357a7680c",
+          "sha256": "0258607e702a6528be3780a3451a21f707784440f563842991d27c317545342d"
+        }
+      ],
+      "import_check": "All58 released f84 manifest paths now match actual Strategy consumer Git blob/SHA256/executable mode. The two seed deltas matched abed before import. Root later identified that baskets.py and test_baskets.py had remained at older Provider33 bytes; the exact two-path gap-closure authority was applied after old/new guards. No other file was restored.",
+      "source_contract": "Controlled fixture supplies truthful resolved SPY identity and canonical adjusted D1 history through the fixed 2025-12-29 end; no provider entitlement, live history, or native admission is fabricated.",
+      "qualification": "Root reports seven focused seed tests and pinned Ruff check/format for the exact two paths. Strategy did not rerun Provider tests; Root owns fixture rebuild and browser execution.",
+      "prior_import_claim_superseded": "The first f84 import receipt described the two basket paths as newer branch-owned bytes. Root compared them to Provider33 and established they were exactly old Provider33 bytes; the current consumer now imports the authorized f84 basket fixes. The old validation row remains historical; ETF7ea files were not accessed."
     }
   ]
 }

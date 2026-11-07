@@ -797,7 +797,7 @@ watch(() => props.configuration, configuration => {
   else if (typeof configuration?.symbols === 'string') universeSymbols.value = configuration.symbols
   if (configuration && !('parameter_schema' in configuration)) parameterSchemaText.value = ''
   else if (typeof configuration?.parameter_schema === 'string') parameterSchemaText.value = configuration.parameter_schema
-}, { deep: true, flush: 'sync' })
+}, { deep: true })
 interface StudyDatasetIntent {
   symbol: string
   benchmark: string

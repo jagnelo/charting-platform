@@ -3,7 +3,7 @@ import math
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 
-from sqlalchemy import delete, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.asset_class import AssetClass, InstrumentType
@@ -15,6 +15,11 @@ from app.models.listing import InstrumentListing
 from app.models.market_data_foundation import AdjustmentBasis
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
+from app.services.market_series import (
+    SeriesScope,
+    get_or_create_series,
+    select_default_series_for_complete_range,
+)
 from app.services.top_down_taxonomy import benchmark_family_proxy_symbols
 
 # The browser fixture intentionally mirrors the complete configured benchmark
@@ -110,9 +115,25 @@ async def seed_e2e_instruments(db: AsyncSession) -> None:
                 currency="USD",
                 is_primary=True,
                 is_active=True,
+                source="e2e_reference",
+                provenance={"seed": "e2e", "controlled_fixture": True},
             )
         )
         await db.flush()
+    elif (
+        spy_listing.source in (None, "e2e_reference")
+        and existing["SPY"].field_provenance
+        and existing["SPY"].field_provenance.get("seed") == "e2e"
+    ):
+        spy_listing.currency = "USD"
+        spy_listing.is_active = True
+        spy_listing.is_primary = True
+        spy_listing.source = "e2e_reference"
+        spy_listing.provenance = {
+            **(spy_listing.provenance or {}),
+            "seed": "e2e",
+            "controlled_fixture": True,
+        }
 
     for symbol in symbols[1:]:
         profile = await db.scalar(
@@ -354,6 +375,29 @@ async def seed_e2e_market_data(db: AsyncSession) -> None:
         ).scalars()
     }
 
+    # The controlled SPY bars are canonical fixture evidence for deterministic
+    # Study preparation.  Give that fixture identity an explicit E2E namespace;
+    # this is not a FIGI/issuer assertion and cannot qualify a production row.
+    spy = instruments["SPY"]
+    spy_provenance = dict(spy.field_provenance or {})
+    if spy_provenance.get("seed") == "e2e" and spy.domain_key in (None, "e2e:instrument:SPY"):
+        spy.domain_key = "e2e:instrument:SPY"
+        spy.identity_status = "resolved"
+        spy.field_provenance = {
+            **spy_provenance,
+            "controlled_fixture": True,
+            "identity": {
+                "source": "e2e_reference",
+                "basis": "explicit_fixture_identity",
+            },
+        }
+    elif (
+        spy.domain_key == "e2e:instrument:SPY" and spy_provenance.get("controlled_fixture") is True
+    ):
+        # Repeated startup should retain, rather than recreate, the same fixture
+        # identity once it has been established.
+        spy.identity_status = "resolved"
+
     # Enough deterministic daily history for RSI, moving averages, 52-week position,
     # ratios, breadth, and the positive-close Study Lab factory study.
     start = _E2E_RECENT_HISTORY_START
@@ -401,19 +445,70 @@ async def seed_e2e_market_data(db: AsyncSession) -> None:
     # relative-return views remain useful in the controlled workstation.
     for position, symbol in enumerate(benchmark_family_proxy_symbols(), start=1):
         base_prices.setdefault(symbol, 100.0 + position * 7.5)
-    # E2E market mode is an explicit controlled-fixture environment.  The
-    # database may be a reused developer volume containing canonical/provider
-    # bars at the same unique timestamps; remove only the adjusted daily bars
-    # for the fixture universe so the deterministic rows below can own the
-    # acceptance path.  This branch is unreachable in normal production mode.
-    await db.execute(
-        delete(OHLCVBar).where(
-            OHLCVBar.instrument_id.in_([instrument.id for instrument in instruments.values()]),
-            OHLCVBar.timeframe == Timeframe.D1,
-            OHLCVBar.is_adjusted.is_(True),
-        )
-    )
+    # These explicit E2E source series make the same controlled daily fixture
+    # visible to ordinary canonical reads. Existing rows are retained and
+    # compatible rows from earlier fixture versions are attached in place.
+    daily_series = {}
     for symbol, instrument in instruments.items():
+        daily_series[symbol] = await get_or_create_series(
+            db,
+            SeriesScope(
+                instrument_id=instrument.id,
+                timeframe=Timeframe.D1.value,
+                data_source_id=source.id,
+                feed_scope="e2e-reference",
+                session_code="regular",
+                adjustment_basis=AdjustmentBasis.SPLIT_ADJUSTED,
+                adjustment_version="e2e-split-adjusted-v1",
+            ),
+            canonical=True,
+            source_series_key=f"e2e_reference:{symbol}:D1:split-adjusted",
+            provenance={"seed": "e2e", "controlled_fixture": True},
+        )
+
+    for symbol, instrument in instruments.items():
+        series = daily_series[symbol]
+        scope_key = f"series:{series.id}:regular"
+        # Adopt only rows whose source and adjustment lineage exactly match this
+        # fixture. Incompatible legacy/provider rows remain untouched.
+        compatible_rows = (
+            await db.execute(
+                select(OHLCVBar).where(
+                    OHLCVBar.instrument_id == instrument.id,
+                    OHLCVBar.data_source_id == source.id,
+                    OHLCVBar.timeframe == Timeframe.D1,
+                    OHLCVBar.is_adjusted.is_(True),
+                    OHLCVBar.adjustment_basis == AdjustmentBasis.SPLIT_ADJUSTED,
+                    OHLCVBar.adjustment_version == "e2e-split-adjusted-v1",
+                    OHLCVBar.is_derived.is_(False),
+                    (
+                        OHLCVBar.market_series_id.is_(None)
+                        | (OHLCVBar.market_series_id == series.id)
+                    ),
+                )
+            )
+        ).scalars()
+        for existing_bar in compatible_rows:
+            existing_bar.market_series_id = series.id
+            existing_bar.scope_key = scope_key
+
+        await db.flush()
+    for symbol, instrument in instruments.items():
+        series = daily_series[symbol]
+        scope_key = f"series:{series.id}:regular"
+        existing_timestamps = {
+            timestamp.replace(tzinfo=UTC) if timestamp.tzinfo is None else timestamp.astimezone(UTC)
+            for timestamp in (
+                await db.execute(
+                    select(OHLCVBar.ts).where(
+                        OHLCVBar.market_series_id == series.id,
+                        OHLCVBar.timeframe == Timeframe.D1,
+                        OHLCVBar.is_adjusted.is_(True),
+                        OHLCVBar.is_derived.is_(False),
+                    )
+                )
+            ).scalars()
+        }
         base = base_prices.get(symbol, 100.0)
         slope = 0.00035 + (sum(ord(char) for char in symbol) % 7) * 0.00003
         bars: list[OHLCVBar] = []
@@ -431,6 +526,8 @@ async def seed_e2e_market_data(db: AsyncSession) -> None:
                 OHLCVBar(
                     instrument_id=instrument.id,
                     data_source_id=source.id,
+                    market_series_id=series.id,
+                    scope_key=scope_key,
                     timeframe=Timeframe.D1,
                     ts=datetime.combine(day, time(21, 0), tzinfo=UTC),
                     session="regular",
@@ -464,6 +561,8 @@ async def seed_e2e_market_data(db: AsyncSession) -> None:
                     OHLCVBar(
                         instrument_id=instrument.id,
                         data_source_id=source.id,
+                        market_series_id=series.id,
+                        scope_key=scope_key,
                         timeframe=Timeframe.D1,
                         ts=datetime.combine(day, time(21, 0), tzinfo=UTC),
                         session="regular",
@@ -478,7 +577,25 @@ async def seed_e2e_market_data(db: AsyncSession) -> None:
                     )
                 )
                 historical_previous = close
-        db.add_all(bars)
+        db.add_all(bar for bar in bars if bar.ts.astimezone(UTC) not in existing_timestamps)
+    await db.flush()
+
+    # The adjusted default is selected only after this controlled source has
+    # complete fixture-range coverage; an older incompatible mapping is not
+    # silently treated as a canonical adjusted series.
+    recent_start = datetime.combine(trading_days[0], time(21, 0), tzinfo=UTC)
+    long_start = datetime.combine(long_rrg_days[0], time(21, 0), tzinfo=UTC)
+    daily_end = datetime.combine(trading_days[-1], time(21, 0), tzinfo=UTC)
+    for symbol, instrument in instruments.items():
+        await select_default_series_for_complete_range(
+            db,
+            instrument_id=instrument.id,
+            timeframe=Timeframe.D1.value,
+            adjusted=True,
+            market_series_id=daily_series[symbol].id,
+            start=long_start if symbol in _E2E_MONTHLY_RRG_SYMBOLS else recent_start,
+            end=daily_end,
+        )
     await db.flush()
 
     # Keep the fixture's dataset-state contract in sync with the bars it writes.

@@ -80,6 +80,48 @@ def test_user_can_create_update_and_delete_manual_basket(
     assert missing.status_code == 404
 
 
+def test_historical_etf_basket_materializes_and_reuses_loaded_members(
+    client, admin_headers, auth_headers
+):
+    composition_date = (datetime.now(UTC).date() - timedelta(days=1)).isoformat()
+    ingest = client.post(
+        "/api/v1/etf-holdings/DIA/ingest",
+        headers=admin_headers,
+        json={
+            "composition_date": composition_date,
+            "source_provider": "basket-async-regression",
+            "rows": [
+                {"symbol": "AAPL", "name": "Apple Inc.", "weight": "0.60"},
+                {"symbol": "MSFT", "name": "Microsoft Corporation", "weight": "0.40"},
+            ],
+        },
+    )
+    assert ingest.status_code == 200, ingest.text
+    snapshot_id = ingest.json()["id"]
+
+    materialized = client.get(
+        f"/api/v1/etf-holdings/DIA/basket?snapshot_id={snapshot_id}",
+        headers=auth_headers,
+    )
+    assert materialized.status_code == 200, materialized.text
+    first = materialized.json()
+    assert first["is_system_managed"] is True
+    assert first["is_read_only"] is True
+    assert first["source_snapshot_id"] == snapshot_id
+    assert first["metadata"]["source_provider"] == "basket-async-regression"
+    assert [member["symbol"] for member in first["members"]] == ["AAPL", "MSFT"]
+
+    repeated = client.get(
+        f"/api/v1/etf-holdings/DIA/basket?snapshot_id={snapshot_id}",
+        headers=auth_headers,
+    )
+    assert repeated.status_code == 200, repeated.text
+    second = repeated.json()
+    assert second["id"] == first["id"]
+    assert second["source_snapshot_id"] == snapshot_id
+    assert [member["symbol"] for member in second["members"]] == ["AAPL", "MSFT"]
+
+
 @pytest.mark.asyncio
 async def test_manual_basket_crud_uses_real_async_session(db_engine):
     """Exercise the normal basket endpoints with PostgreSQL-backed AsyncSessions."""
