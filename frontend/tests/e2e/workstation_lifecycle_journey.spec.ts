@@ -536,12 +536,11 @@ test.describe('Workstation lifecycle journeys', () => {
     await page.goto('/chart/SPY')
     await expect(page.locator('.workspace-layout-host')).toBeVisible()
     await page.getByRole('button', { name: 'Duplicate layout', exact: true }).click()
-    await openWorkspaceMenu(page)
+    const layoutMenu = await openWorkspaceMenu(page)
     const renamed = `Review ${Date.now()}`
-    const copiedLayoutItem = page.locator('.workstation__layout-item').filter({
-      has: page.getByRole('menuitem', { name: 'US Top Down Copy', exact: true }),
-    })
-    const renameField = copiedLayoutItem.getByRole('textbox', { name: 'Rename layout' })
+    // The layout item's accessible name changes as soon as the text field is
+    // filled, so keep the active rename control anchored by its stable role.
+    const renameField = layoutMenu.getByRole('textbox', { name: 'Rename layout', exact: true })
     await renameField.fill(renamed)
     await renameField.press('Tab')
     const renamedTab = page.getByRole('tab', { name: renamed, exact: true })
@@ -562,8 +561,8 @@ test.describe('Workstation lifecycle journeys', () => {
     await expect.poll(() => page.locator('.workstation__tabs > [role="tab"]').allTextContents()).not.toEqual(beforeOrder)
 
     page.once('dialog', dialog => dialog.dismiss())
-    const layoutMenu = await openWorkspaceMenu(page)
-    await layoutMenu.getByRole('button', { name: `Delete layout ${renamed}`, exact: true }).click()
+    const deleteMenu = await openWorkspaceMenu(page)
+    await deleteMenu.getByRole('button', { name: `Delete layout ${renamed}`, exact: true }).click()
     await expect(renamedTab).toBeVisible()
 
     page.once('dialog', dialog => dialog.accept())

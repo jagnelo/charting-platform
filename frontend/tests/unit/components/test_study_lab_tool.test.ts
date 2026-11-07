@@ -183,6 +183,96 @@ describe('StudyLabTool', () => {
     remounted.unmount()
   })
 
+  it('keeps a restored XLB draft through async saved-run loading, linked context updates, and complete parent echoes', async () => {
+    const savedRunResponse = deferred<any>()
+    apiGet.mockImplementation((path: string) => path === '/research/runs/88' ? savedRunResponse.promise : Promise.resolve([]))
+    const configuration = reactive<Record<string, unknown>>({
+      timeframe: 'D1',
+      adjustment: 'split_adjusted',
+      session: 'regular',
+      study_run_id: 88,
+      study_run_source: "output.scalar('saved_close', 501)",
+      study_run_contract: 'scalar',
+      study_run_name: 'Saved SPY run',
+      study_run_parameter_schema: { properties: {} },
+    })
+    const parent = reactive({ activeSymbol: 'SPY' })
+    const Parent = defineComponent({
+      setup: () => () => h(StudyLabTool, {
+        activeSymbol: parent.activeSymbol,
+        configuration,
+        onConfiguration: (next: Record<string, unknown>) => {
+          // WorkstationView applies complete snapshots with a synchronous
+          // delete/assign batch; the draft symbol and saved-run lineage must
+          // both survive that real parent behavior.
+          for (const key of Object.keys(configuration)) delete configuration[key]
+          Object.assign(configuration, next)
+        },
+      }),
+    })
+    const wrapper = mount(Parent, {
+      global: { plugins: [[VueQueryPlugin, { queryClient: new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } }) }]] },
+    })
+    expect(wrapper.get('[aria-label="Study symbol"]').element).toHaveProperty('value', 'SPY')
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/research/runs/88'))
+
+    // The host can deliver the persisted workspace draft after the virtual
+    // tool mounts and starts loading its saved run. Apply that full snapshot
+    // through the same delete/assign semantics used for later echoes.
+    for (const key of Object.keys(configuration)) delete configuration[key]
+    Object.assign(configuration, {
+      symbol: 'XLB',
+      timeframe: 'D1',
+      adjustment: 'split_adjusted',
+      session: 'regular',
+      study_run_id: 88,
+      study_run_source: "output.scalar('saved_close', 501)",
+      study_run_contract: 'scalar',
+      study_run_name: 'Saved SPY run',
+      study_run_parameter_schema: { properties: {} },
+    })
+    await nextTick()
+    expect(wrapper.get('[aria-label="Study symbol"]').element).toHaveProperty('value', 'XLB')
+
+    savedRunResponse.resolve({
+      id: 88,
+      status: 'completed',
+      run_config: { symbol: 'SPY', timeframe: 'D1', adjustment: 'split_adjusted', session: 'regular' },
+      dataset_manifest: { symbol: 'SPY', timeframe: 'D1', adjustment: 'split_adjusted', session: 'regular' },
+      artifacts: [{ id: 1, name: 'saved_close', artifact_type: 'scalar', payload: { value: 501 } }],
+    })
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #88'))
+
+    // A parent-linked symbol change must not replace an independently saved
+    // draft, even after asynchronous run details have populated the view.
+    parent.activeSymbol = 'XLK'
+    await nextTick()
+    parent.activeSymbol = 'SPY'
+    await nextTick()
+    await wrapper.get('[aria-label="Study timeframe"]').setValue('W1')
+    await flushPromises()
+
+    expect(configuration).toMatchObject({ symbol: 'XLB', timeframe: 'W1', study_run_id: 88 })
+    expect(wrapper.get('[aria-label="Study symbol"]').element).toHaveProperty('value', 'XLB')
+    expect(wrapper.text()).toContain('Current draft dataset: XLB')
+    expect(wrapper.text()).toContain('Saved run #88 dataset: symbol SPY')
+    wrapper.unmount()
+
+    apiGet.mockImplementation((path: string) => path === '/research/runs/88' ? Promise.resolve({
+      id: 88,
+      status: 'completed',
+      run_config: { symbol: 'SPY', timeframe: 'D1' },
+      dataset_manifest: { symbol: 'SPY', timeframe: 'D1' },
+      artifacts: [{ id: 1, name: 'saved_close', artifact_type: 'scalar', payload: { value: 501 } }],
+    }) : Promise.resolve([]))
+    const remounted = mountTool({ activeSymbol: 'SPY', configuration })
+    await vi.waitFor(() => expect(remounted.text()).toContain('Run #88'))
+    expect(remounted.get('[aria-label="Study symbol"]').element).toHaveProperty('value', 'XLB')
+    expect(remounted.text()).toContain('Current draft dataset: XLB')
+    expect(remounted.text()).toContain('Saved run #88 dataset: symbol SPY')
+    remounted.unmount()
+  })
+
   it('associates parameter schema errors with the invalid schema field', async () => {
     const wrapper = mountTool({ activeSymbol: 'SPY', configuration: {} })
     const schema = wrapper.get('[aria-label="Study parameter schema"]')
