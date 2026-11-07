@@ -1272,6 +1272,42 @@ describe('workspace store layout tabs', () => {
     }))
   })
 
+  it('flushes an explicit Undo after an older snapshot settles, preserving the restored name and position', async () => {
+    const earlierWrite = deferred<any>()
+    const store = useWorkspaceStore()
+    const original = {
+      id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [
+        { id: 20, stable_key: 'one', name: 'One', position: 0, active_window_key: 'chart-one', layout_config: {}, windows: [{ id: 30, instance_key: 'chart-one', tool_type: 'chart', title: 'Chart', link_group: 'blue', configuration: {}, style: {}, state_schema_version: 1, position: 0 }] },
+        { id: 21, stable_key: 'review', name: 'Review layout', position: 1, active_window_key: 'chart-review', layout_config: {}, windows: [{ id: 31, instance_key: 'chart-review', tool_type: 'chart', title: 'Chart', link_group: 'red', configuration: {}, style: {}, state_schema_version: 1, position: 0 }] },
+      ],
+    }
+    store.workspace = structuredClone(original)
+    const recovery = store.captureTabRecovery('review')!
+    apiPut.mockImplementationOnce(() => earlierWrite.promise)
+      .mockImplementation(async (_path, payload) => ({ ...payload, revision: 6 }))
+
+    store.scheduleSnapshot()
+    await vi.waitFor(() => expect(apiPut).toHaveBeenCalledTimes(1), { timeout: 1_000 })
+    expect(store.deleteTab('review')).toBe(true)
+    expect(store.restoreDeletedTab(recovery)).toBe(true)
+    const undoSave = store.saveSnapshot()
+
+    // Undo's explicit flush must wait for the earlier revision, then send the
+    // current restored layout instead of treating the old clone/delete state
+    // as the durable checkpoint.
+    expect(apiPut).toHaveBeenCalledTimes(1)
+    earlierWrite.resolve({ ...original, revision: 5 })
+    await undoSave
+
+    expect(apiPut).toHaveBeenCalledTimes(2)
+    expect(apiPut.mock.calls[1][1]).toEqual(expect.objectContaining({
+      base_revision: 5,
+      tabs: expect.arrayContaining([expect.objectContaining({ stable_key: 'review', name: 'Review layout', position: 1 })]),
+    }))
+    expect(store.workspace?.tabs.map(tab => tab.stable_key)).toEqual(['one', 'review'])
+  })
+
   it('rejects malformed or duplicate imported layouts', () => {
     const store = useWorkspaceStore()
     store.workspace = {

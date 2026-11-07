@@ -2207,6 +2207,10 @@ async function undoDeletedLayout() {
   if (!recovery) return
   if (!workspaceStore.restoreDeletedTab(recovery)) return
   deletedLayoutRecovery.value = null
+  // Undo is an explicit recovery action. Flush the restored layout now instead
+  // of leaving it behind the ordinary trailing debounce; saveSnapshot also
+  // drains any earlier in-flight generation and persists this latest state.
+  await workspaceStore.saveSnapshot()
   await replaceDockAfterWorkspaceChange()
 }
 

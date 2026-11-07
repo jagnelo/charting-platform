@@ -66,6 +66,7 @@ const harness = vi.hoisted(() => {
     loadETFIndustries: vi.fn().mockResolvedValue(undefined),
     loadTechnical: vi.fn().mockResolvedValue(undefined),
     scheduleSnapshot: vi.fn(),
+    saveSnapshot: vi.fn().mockResolvedValue(true),
     setActiveWindow: vi.fn(),
     updateToolLinkGroup: vi.fn(),
     updateToolTimeframe: vi.fn(),
@@ -639,6 +640,7 @@ describe('WorkstationView pop-out bindings', () => {
 
       await recoveryNotice.get('button[role="menuitem"]').trigger('click')
       expect(harness.workspace.restoreDeletedTab).toHaveBeenCalledWith(recovery)
+      expect(harness.workspace.saveSnapshot).toHaveBeenCalledTimes(1)
       expect(wrapper.find('.workstation__layout-recovery').exists()).toBe(false)
     } finally {
       confirm.mockRestore()
