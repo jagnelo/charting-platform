@@ -25,10 +25,10 @@
       "source_sha256": "b37cad11a09cba6ef40e4c3884f936f9fc54b8b7c2da0d9eae757d9ceac7e9d8"
     },
     "provider_runtime_import": {
-      "source_commit": "182173f346d4a27694a46beba057102a5b7449e6",
-      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/182173f346d4a27694a46beba057102a5b7449e6.json",
-      "manifest_sha256": "8d48966b85588d46222de04b1ade9401379db284688253280ef8630d40a73a56",
-      "qualification": "Provider 182 adds the controlled M15 fixture and consistent workspace reads for development; exact-source CI and combined browser acceptance remain pending."
+      "source_commit": "dd05c5e8318ff59a90f879867cae9664dcc0de4f",
+      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/dd05c5e8318ff59a90f879867cae9664dcc0de4f.json",
+      "manifest_sha256": "0be00f63f7c9c77b2f4c41696657e122bd54265ff68b614f6e9d958b074493e9",
+      "qualification": "Exact Provider dd05 runtime is imported for development, including the reviewed cash-equity session/calendar and evolving sector fixture changes; exact source CI, combined browser and release acceptance remain pending."
     },
     "etf_domain_runtime_import": {
       "source_commit": "cfd23fa17244b2eaa645682f4f63d6ac24a88f5a",
@@ -72,6 +72,12 @@
         "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/dd31aeac88ba926877b48474e2fc0d262ee1e99d.json",
         "manifest_sha256": "761c17735ace42baf4eb959e1ccb88b314ebcf13a748b0a26826e460b3baa074",
         "qualification": "Exact current Strategy-owned 25-path domain and Dashboard source is imported; browser execution and release acceptance remain Root-owned and pending."
+      },
+      "provider_182173f3": {
+        "source_commit": "182173f346d4a27694a46beba057102a5b7449e6",
+        "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/182173f346d4a27694a46beba057102a5b7449e6.json",
+        "manifest_sha256": "8d48966b85588d46222de04b1ade9401379db284688253280ef8630d40a73a56",
+        "qualification": "Provider 182 adds the controlled M15 fixture and consistent workspace reads for development; exact-source CI and combined browser acceptance remain pending."
       }
     }
   },
@@ -84,7 +90,7 @@
     "owned_actions": 12,
     "etf_actions": 16,
     "strategy_actions": 48,
-    "journey_cases": 56,
+    "journey_cases": 57,
     "critical_review_slots": 9,
     "control_surfaces": 57
   },
@@ -6053,13 +6059,10 @@
       ],
       "pending_reason": "Disclosure controls are mapped; ordinary visible open/close behavior and compact-layout review remain pending Root browser evidence.",
       "journey_ids": [
-        "TC03",
-        "TC06",
-        "TC08"
+        "TC03"
       ],
       "case_refs": [
-        "TC03-timeframe",
-        "TC08-study-run"
+        "TC03-status-disclosure"
       ],
       "critical_review_slot": "TC03-critical-review"
     }
@@ -6643,6 +6646,16 @@
       "test_name": "an unresolved ETF holding row explicitly resolves its reported equity and carries lineage into D1 history",
       "execution_status": "authored_pending_root_run",
       "critical_review_slot": "TC04-critical-review"
+    },
+    {
+      "id": "TC03-status-disclosure",
+      "journey_ids": [
+        "TC03"
+      ],
+      "test_path": "frontend/tests/unit/components/test_compact_status_notice.test.ts",
+      "test_name": "opens and closes the full status disclosure with its native summary control",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC03-critical-review"
     }
   ],
   "critical_review_slots": [

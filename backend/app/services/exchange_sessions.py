@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
@@ -15,6 +15,8 @@ from app.models.market_data_foundation import (
     ExchangeCalendarException,
     ExchangeSessionRule,
 )
+
+_XNYS_CALENDAR_CASH_EQUITY_MICS = frozenset({"XNYS", "ARCX", "XNAS", "BATS"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -51,6 +53,19 @@ async def resolve_session_window(
         CalendarExceptionKind.CLOSED,
     }:
         return None
+    uses_us_regular_calendar = (
+        (exchange.country_code or "").upper() == "US"
+        and (exchange.mic or "").upper() in _XNYS_CALENDAR_CASH_EQUITY_MICS
+        and session_code == "regular"
+    )
+    if uses_us_regular_calendar and exception is None:
+        from app.services.ohlcv_coverage import _xnys_early_closes, _xnys_holidays
+
+        if trade_date in _xnys_holidays(trade_date.year):
+            return None
+        has_xnys_early_close = trade_date in _xnys_early_closes(trade_date.year)
+    else:
+        has_xnys_early_close = False
     rule = (
         await db.execute(
             select(ExchangeSessionRule)
@@ -71,7 +86,13 @@ async def resolve_session_window(
     if rule is None:
         return None
     open_time = exception.opens_at if exception and exception.opens_at else rule.opens_at
-    close_time = exception.closes_at if exception and exception.closes_at else rule.closes_at
+    close_time = (
+        exception.closes_at
+        if exception and exception.closes_at
+        else time(13)
+        if has_xnys_early_close
+        else rule.closes_at
+    )
     if open_time is None or close_time is None:
         return None
     zone = ZoneInfo(exchange.timezone)

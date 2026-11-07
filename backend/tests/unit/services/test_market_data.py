@@ -464,6 +464,27 @@ def test_xnys_daily_gap_coalesces_across_weekend_holiday_and_dst():
     assert _is_positive_repair_slice(*slices[0]) is True
 
 
+def test_xnys_thanksgiving_closure_and_saturday_new_year_observation():
+    from app.services.ohlcv_coverage import _xnys_holidays
+
+    # Thanksgiving is not a missing trading session, while the Friday after it
+    # remains a session (with its close handled by exchange_sessions).
+    start = datetime(2026, 11, 25, tzinfo=_NEW_YORK).astimezone(UTC)
+    end = datetime(2026, 11, 27, 16, tzinfo=_NEW_YORK).astimezone(UTC)
+    gap = missing_range_slices(
+        [_xnys_bar_open(date(2026, 11, 25)), _xnys_bar_open(date(2026, 11, 27))],
+        Timeframe.D1,
+        start,
+        end,
+        calendar="XNYS",
+    )
+    assert gap == []
+
+    # A Saturday New Year's Day is not observed on the preceding Friday.
+    assert date(2021, 12, 31) not in _xnys_holidays(2022)
+    assert date(2027, 12, 31) not in _xnys_holidays(2028)
+
+
 def test_xnys_daily_present_session_splits_true_interior_holes():
     start = datetime(2026, 3, 9, tzinfo=_NEW_YORK).astimezone(UTC)
     end = datetime(2026, 3, 13, 16, tzinfo=_NEW_YORK).astimezone(UTC)

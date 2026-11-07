@@ -330,7 +330,7 @@ on_demand_consumer_implementation: 'Current TC-owned mocked implementation at th
   tree and passed its full required CI40656688915. This feature-branch adoption records ancestry only; its exact branch CI
   is pending Root. Controlled tests are not genuine Provider/issuer proof; target/deployment and the complete roadmap remain
   open.'
-current_blocker: "No external blocker to TC-owned implementation. Analysis preparation is still incomplete for Market Map, gauges and scan entrypoints; full factory recreation, supporting routes, reversible lifecycle and shared presentation journeys remain open. Exact CI and combined qualification are Root-owned."
+current_blocker: "No external blocker to TC-owned implementation. Shared preparation entrypoints and R48 presentation have focused source checks; remaining route/action journeys, factory recreation and complete rendered review are still open. Root owns exact CI and combined qualification."
 current_checkpoint_status: "Current TC platform scope remains active. Provider runtime 580571e41b9797589bf205b61d337f8c92ec04c6, Strategy domain 5703f21497e628576e9d381dede28dbaa0ca719d and ETF domain eedc1a9369a702ddfb588786fc77b5657c978e42 are imported from exact Root releases for development; all active manifests and blobs match. Shared calendar/readiness request deduplication and narrow Constituent pane flow have focused checks, but actual current-source browser review is pending. Market-map/gauge/scan preparation, complete tool recreation, supporting-route lifecycle/presentation journeys, exact-source CI and combined profile remain open."
 
 ordinary_ticker_latest_update: 'Root accepted the exact combined served profile at backend source 6eae00eb8380438da771fed0c42d19587e9520ce
@@ -4276,7 +4276,7 @@ correction_summary:
     recorded.
 
 ordinary_ticker_snapshot_followup_20261105: {"kind": "corrective followup within existing ordinary ticker checkpoint; no roadmap replan", "baseline": "45cc8206602d7823ca29e132d991d88b0bcbbc25", "previous_goal": "Repair exact discovered ticker Enter/Go in Workstation and shared chart SearchBar, and isolate superseded selection errors while preserving exact-local precedence, explicit choices, expressions, identity verification, ambiguity safeguards, picker scopes, stale-query fencing, current ETF context, and genuine workspace conflict recovery.", "Root_acceptance": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/TC-same-snapshot-implementation-root-acceptance.json", "accepted_file_hashes": {"frontend/src/components/workstation/WorkstationToolContent.vue": "3ff06c38e10066f15e4bca78b49833ec109d6e4443a4302106c6acdc1a813db2", "frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts": "b28994b75748976ef4658f74a79379909bb76fad5c7e8077b4e9b45a5e331c7e"}, "local_evidence": "4/4 mounted component tests, type-check and diff checks; prior failing CI retained", "release_state": "Root correct-bundle browser, exact closing-tip CI and combined full profile remain pending", "boundaries": "No self-integration/deployment; no source requests or quota/policy/dataset changes; all old roadmap criteria and accepted archives preserved"}
-next_action: "Continue shared preparation wiring for Market Map, saved-scan/gauge and breadth analysis with exact dependencies and current-context fences; then complete remaining factory recreation, route/lifecycle/presentation journeys. Keep Root-owned exact CI and combined profile pending."
+next_action: "Continue the remaining TC-owned route/action behavior and full journey coverage, preserving Root-owned rendered qualification and exact-tip CI as pending."
 current_exact_ci:
   head_sha: null
   run_id: null
@@ -4287,10 +4287,7 @@ closing_tip_ci:
   run_id: null
   scope: "Exact closing TC source after the active platform-usability implementation checkpoint."
   status: "pending Root observation after publication"
-current_candidate_ci_status: Current source is a development candidate only. 190 focused
-  frontend tests, frontend type-check, nested-template journey-inventory self-test
-  and current scope/workstream guards are the required local evidence; Root actual
-  dock/async/chart/family browser proof and exact-tip CI remain pending.
+current_candidate_ci_status: The TC route/action inventory checkpoint e217a38 maps 28 routes/aliases, 21 Add tools, 38 factory panels and 76 owner actions to named cases; the validator, scope/workstream guards and frontend type-check passed. Provider dd05 is imported only as an exact development dependency, not release-qualified. Root rendered journeys, exact-tip CI and combined qualification remain pending.
 history_dashboard_scope_archive:
   path: ops/workstreams/feat-tc2000-frontend-rework/checkpoint-archives/history-dashboard-repair-scope-archive-20261106.json
   sha256: 2880cdb5ef6a0074b6204267b51ba9f676160bad2ef1ecff1385db1d5819d6cd
@@ -4922,10 +4919,78 @@ development_dependency_import_history:
       - frontend/tests/unit/views/test_etf_holdings_view.test.ts
     state: superseded_development_import
     superseded_by: 055641eaafab37a8160908e974a3ec1a4483e7c6
+  - source_sha: 182173f346d4a27694a46beba057102a5b7449e6
+    manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/182173f346d4a27694a46beba057102a5b7449e6.json
+    manifest_sha256: 8d48966b85588d46222de04b1ade9401379db284688253280ef8630d40a73a56
+    paths:
+      - backend/app/main.py
+      - backend/app/providers/alpaca.py
+      - backend/app/providers/massive.py
+      - backend/app/routers/analysis.py
+      - backend/app/routers/data_preparation.py
+      - backend/app/routers/ohlcv.py
+      - backend/app/routers/research.py
+      - backend/app/routers/workspaces.py
+      - backend/app/schemas/data_preparation.py
+      - backend/app/services/baskets.py
+      - backend/app/services/bulk_fetch.py
+      - backend/app/services/data_preparation.py
+      - backend/app/services/data_preparation_contracts.py
+      - backend/app/services/derived_timeframes.py
+      - backend/app/services/e2e_seed.py
+      - backend/app/services/etf_holdings_adapters.py
+      - backend/app/services/etf_holdings_preparation.py
+      - backend/app/services/etf_holdings_refresh.py
+      - backend/app/services/evaluator_preflight.py
+      - backend/app/services/instrument_events.py
+      - backend/app/services/instrument_mastering.py
+      - backend/app/services/market_data.py
+      - backend/app/services/market_refresh_queue.py
+      - backend/app/services/market_series.py
+      - backend/app/services/ohlcv_coverage.py
+      - backend/app/services/provider_runtime.py
+      - backend/app/services/screener_engine.py
+      - backend/app/services/workstation_tool_catalogue.py
+      - backend/app/tasks/data_tasks.py
+      - backend/app/workers/arq_worker.py
+      - backend/tests/integration/api/test_baskets.py
+      - backend/tests/integration/api/test_workspace_read_consistency_postgres.py
+      - backend/tests/integration/test_data_preparation_queue_postgres.py
+      - backend/tests/unit/conftest.py
+      - backend/tests/unit/providers/test_new_providers.py
+      - backend/tests/unit/routers/test_analysis_router.py
+      - backend/tests/unit/routers/test_calendar_router.py
+      - backend/tests/unit/routers/test_data_preparation_router.py
+      - backend/tests/unit/routers/test_ohlcv_router.py
+      - backend/tests/unit/routers/test_research_router.py
+      - backend/tests/unit/routers/test_workspace_tool_catalogue.py
+      - backend/tests/unit/services/test_data_preparation_contracts.py
+      - backend/tests/unit/services/test_data_preparation_history_planning.py
+      - backend/tests/unit/services/test_data_preparation_service.py
+      - backend/tests/unit/services/test_derived_timeframes.py
+      - backend/tests/unit/services/test_e2e_seed.py
+      - backend/tests/unit/services/test_etf_holdings_adapters.py
+      - backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py
+      - backend/tests/unit/services/test_etf_holdings_native_qualification.py
+      - backend/tests/unit/services/test_etf_holdings_preparation.py
+      - backend/tests/unit/services/test_etf_holdings_preparation_hook.py
+      - backend/tests/unit/services/test_etf_issuer_catalog.py
+      - backend/tests/unit/services/test_evaluator_preflight.py
+      - backend/tests/unit/services/test_market_data.py
+      - backend/tests/unit/services/test_market_refresh_queue.py
+      - backend/tests/unit/services/test_market_series_defaults.py
+      - backend/tests/unit/services/test_provider_quota_coordinator.py
+      - backend/tests/unit/services/test_provider_runtime.py
+      - backend/tests/unit/services/test_workstation_tool_catalogue.py
+      - backend/tests/unit/tasks/test_data_tasks.py
+      - backend/tests/unit/tasks/test_native_usage_prerequisite.py
+      - backend/tests/unit/workers/test_arq_worker.py
+    state: superseded_development_import
+    superseded_by: dd05c5e8318ff59a90f879867cae9664dcc0de4f
 approved_development_dependency_imports:
-- source_sha: 182173f346d4a27694a46beba057102a5b7449e6
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/182173f346d4a27694a46beba057102a5b7449e6.json
-  manifest_sha256: 8d48966b85588d46222de04b1ade9401379db284688253280ef8630d40a73a56
+- source_sha: dd05c5e8318ff59a90f879867cae9664dcc0de4f
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/dd05c5e8318ff59a90f879867cae9664dcc0de4f.json
+  manifest_sha256: 0be00f63f7c9c77b2f4c41696657e122bd54265ff68b614f6e9d958b074493e9
   paths:
   - backend/app/main.py
   - backend/app/providers/alpaca.py
@@ -4946,6 +5011,7 @@ approved_development_dependency_imports:
   - backend/app/services/etf_holdings_preparation.py
   - backend/app/services/etf_holdings_refresh.py
   - backend/app/services/evaluator_preflight.py
+  - backend/app/services/exchange_sessions.py
   - backend/app/services/instrument_events.py
   - backend/app/services/instrument_mastering.py
   - backend/app/services/market_data.py
@@ -4980,6 +5046,7 @@ approved_development_dependency_imports:
   - backend/tests/unit/services/test_etf_holdings_preparation_hook.py
   - backend/tests/unit/services/test_etf_issuer_catalog.py
   - backend/tests/unit/services/test_evaluator_preflight.py
+  - backend/tests/unit/services/test_exchange_catalog.py
   - backend/tests/unit/services/test_market_data.py
   - backend/tests/unit/services/test_market_refresh_queue.py
   - backend/tests/unit/services/test_market_series_defaults.py
@@ -4989,7 +5056,6 @@ approved_development_dependency_imports:
   - backend/tests/unit/tasks/test_data_tasks.py
   - backend/tests/unit/tasks/test_native_usage_prerequisite.py
   - backend/tests/unit/workers/test_arq_worker.py
-
 - source_sha: 55851d2b953ce38de5afe59ba90b613ffde08f87
   manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/55851d2b953ce38de5afe59ba90b613ffde08f87.json
   manifest_sha256: 068d5e3bbc2f57878e33c8b0c355f216831d90e2b09ec978483bff0f0cdbd2de

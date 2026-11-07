@@ -33,4 +33,25 @@ describe('CompactStatusNotice', () => {
     expect(wrapper.get('.compact-status__detail').text()).toBe(detail)
     wrapper.unmount()
   })
+
+  it('opens and closes the full status disclosure with its native summary control', async () => {
+    const wrapper = mount(CompactStatusNotice, {
+      props: { summary: 'History waiting', detail: 'The admitted history request resumes at 14:37.' },
+    })
+    const details = wrapper.get('details')
+    const summary = wrapper.get('summary')
+
+    expect((details.element as HTMLDetailsElement).open).toBe(false)
+    await summary.trigger('click')
+    expect((details.element as HTMLDetailsElement).open).toBe(true)
+    await details.trigger('toggle')
+    expect(wrapper.get('.compact-status').classes()).toContain('compact-status--open')
+    expect(wrapper.get('.compact-status__detail').text()).toBe('The admitted history request resumes at 14:37.')
+
+    await summary.trigger('click')
+    expect((details.element as HTMLDetailsElement).open).toBe(false)
+    await details.trigger('toggle')
+    expect(wrapper.get('.compact-status').classes()).not.toContain('compact-status--open')
+    wrapper.unmount()
+  })
 })
