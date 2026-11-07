@@ -482,7 +482,8 @@
             "case": "ordinary basket lifecycle persists edits and opens the shared dashboard chart before background preparation settles",
             "mode": "authenticated actual API",
             "body_run": false,
-            "status": "pending Root combined browser profile"
+            "status": "pending Root combined browser profile",
+            "coverage": "Authenticated actual-API story creates a custom AAPL/MSFT basket and a separate two-member NVDA/AMZN equal basket from canonical picker results; checks weighting_scheme, ordered instrument IDs and null explicit equal weights. Browser body pending Root combined execution. Browser spec SHA256 a7cc1efcb5030b4ee82247356a817b19e0b0eda24b63aa07645ca44f24341370."
           }
         },
         {
@@ -731,10 +732,10 @@
       ],
       "evidence": {
         "backend_contract": "Authenticated normal APIs; successful seeded paths are not route-fulfilled or mocked.",
-        "focused": "npm run type-check passed; Playwright discovery lists2 tests; ETF/Baskets view units44 passed; ETF preparation consumer units46 passed; current spec SHA256 183e0500755849cf943f879f4e390fc92e7f2549eedb2d599dbbf608bf0369ca.",
+        "focused": "npm run type-check passed; Playwright discovery lists4 owned tests across basket and S&P specs; ETF/Baskets view units44 passed; ETF preparation consumers46 passed; S&P spec SHA256 ae24c47d76de378d8374d55247c903ecea8646853d2f810a3fb511d707b56bfb.",
         "browser": {
           "body_run": false,
-          "status": "pending next compatible TC runtime with accessible Duplicate layout control, then Root combined seeded-backend browser profile; no browser acceptance claimed."
+          "status": "pending compatible TC runtime with accessible Duplicate layout control, then Root combined seeded-backend browser profile; no browser acceptance claimed."
         }
       },
       "boundaries": [

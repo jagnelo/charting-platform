@@ -18384,3 +18384,10 @@ Updated `frontend/tests/e2e/sp500_analysis_journey.spec.ts` to address Root's fo
 The focused ETFHoldingsView+BasketsView suites pass44/44; the ETF preparation/hook/checkpoint consumer modules pass46/46 against the Provider464 import. The first view-suite observation found a stale test expectation: the released TC route contract includes parent `etfSymbol`; the fixture now asserts that exact parent context, and the corrected full view modules pass.
 
 The S&P spec now targets the single chart-root for pointer mode, requires restoration of the persisted maximized RRG before linked-chart visibility, and chooses a marker from the most recent complete draw. It uses the required accessible `Duplicate layout` control name. Type-check passes and discovery lists2 tests. No browser body was run; the compatible TC runtime containing that label and Root's combined profile remain pending.
+
+
+## Basket equal-weight API journey and S&P canvas audit correction — 2026-11-07
+
+The authenticated basket browser journey creates custom AAPL/MSFT and two-member equal-weight NVDA/AMZN baskets from resolved search results, checks returned scheme/member IDs/null explicit weights, then exercises edit/reload/member chart and deletion. Basket story SHA256: `a7cc1efcb5030b4ee82247356a817b19e0b0eda24b63aa07645ca44f24341370`.
+
+The S&P spec preserves native zero-argument `CanvasRenderingContext2D.stroke` with `Reflect.apply`, uses the actual chart-root and latest complete marker draw, and restores the persisted maximized RRG before visible linked-chart checks. It selects the accessible `Duplicate layout` control. S&P spec SHA256: `ae24c47d76de378d8374d55247c903ecea8646853d2f810a3fb511d707b56bfb`. Type-check passed; Playwright discovery lists4 cases. Browser bodies remain unrun pending the next compatible TC runtime and Root combined profile.

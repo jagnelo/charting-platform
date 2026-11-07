@@ -350,7 +350,7 @@ async function installRotationCanvasAudit(page: Page): Promise<void> {
       if (isRotationCanvas(this) && colors.has(color) && this.globalAlpha < 1 && points.length >= 10) {
         audit.tails.push({ color, alpha: this.globalAlpha, points: [...points] })
       }
-      return originalStroke.call(this, path)
+      return Reflect.apply(originalStroke, this, arguments)
     }
   })
 }

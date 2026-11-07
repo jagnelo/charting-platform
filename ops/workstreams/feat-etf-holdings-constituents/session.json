@@ -1140,8 +1140,8 @@
     "status": "Root-delegated bounded software checkpoint accepted; exact final-source CI pending.",
     "validated_implementation_sha": "b6d67ce93104a0a2cf83b1c41f385513b3c230f8"
   },
-  "plan_hash": "26be4e2ea23db6559f3a63dc5e6f06acd3d8f3902bd56b4b31052b9d6ea1d9e8",
-  "plan_sha256": "26be4e2ea23db6559f3a63dc5e6f06acd3d8f3902bd56b4b31052b9d6ea1d9e8",
+  "plan_hash": "f596702a853e61d49f0a7d5ac92d4c60029e71f69550e4947caca76613b4ab55",
+  "plan_sha256": "f596702a853e61d49f0a7d5ac92d4c60029e71f69550e4947caca76613b4ab55",
   "planning_required": false,
   "planning_state": "ready",
   "previous_active_changeset": {
@@ -3552,8 +3552,8 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "The browser body requires the next compatible TC runtime with the accessible Duplicate layout control; Provider464 exact CI42328517364 and Root combined seeded-backend qualification remain pending. The full 15 Tier-0/156 Tier-1 and broader ETF/platform roadmaps remain open.",
-    "current_phase": "Provider464 is imported exactly (45/45 manifest records). ETF and basket focused frontend units pass44/44; ETF preparation consumer units pass46/46. The reserved S&P spec now fixes chart-root, latest RRG draw and maximized-window handling; type-check and two-case Playwright discovery pass. Its accessible Duplicate layout label awaits the next compatible Root-released TC runtime; browser bodies remain pending Root.",
+    "current_blocker": "The S&P browser body must use the next compatible TC runtime with accessible Duplicate layout; exact Provider464 CI42328517364 and Root combined seeded-backend qualification remain pending. Full 15 Tier-0/156 Tier-1 and broader ETF/platform roadmaps remain open.",
+    "current_phase": "Provider464 imported exactly (45/45 manifest records). ETF+Baskets view units pass44/44 and ETF preparation consumers pass46/46. Owned browser specs type-check and Playwright discovery finds four cases across basket and S&P journeys. The basket API story now creates both custom and two-member equal baskets; S&P paint audit preserves native stroke overloads and requires visible data witnesses. No browser bodies run; Duplicate layout and Root combined execution await the next compatible TC runtime.",
     "total": 5
   },
   "provider_release": {
@@ -4296,12 +4296,12 @@
   "current_sp500_analysis_spec": {
     "authority": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/etf-sp500-analysis-acceptance-ownership-20261107.json",
     "path": "frontend/tests/e2e/sp500_analysis_journey.spec.ts",
-    "sha256": "183e0500755849cf943f879f4e390fc92e7f2549eedb2d599dbbf608bf0369ca",
-    "frontend_typecheck": "passed after three deterministic Root review corrections",
+    "sha256": "ae24c47d76de378d8374d55247c903ecea8646853d2f810a3fb511d707b56bfb",
+    "frontend_typecheck": "passed after all Root review corrections including canvas overload preservation",
     "playwright_cases_discovered": 2,
     "browser_body_run": false,
     "next_owner": "Root combined seeded-backend browser profile",
-    "assertion_scope": "Price chart pointer-mode uses the actual chart-root and validates painted renderer plus bar-matched OHLC/date; both visible ratio directions; D1/W1/MN checks while active with latest-draw RRG marker/tail raster; restore maximized window before visible linked-chart assertions; marker pointer and accessible Duplicate layout control.",
+    "assertion_scope": "Actual price renderer paint and returned-bar OHLC/date tooltip using the single chart-root; both visible ratio directions; independently aligned raw-close arithmetic; active D1/W1/MN payloads and latest-draw marker/tail raster; restores maximized RRG before linked-chart visibility; plot pointer and accessible Duplicate layout control; canvas audit preserves zero-argument native stroke overload.",
     "required_tc_layout_control": "Duplicate layout (awaiting next exact Root-released compatible TC runtime; no legacy selector fallback)"
   },
   "current_tc_common_runtime_dependency": {

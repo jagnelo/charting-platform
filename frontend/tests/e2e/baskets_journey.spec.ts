@@ -58,14 +58,21 @@ test('ordinary basket lifecycle persists edits and opens the shared dashboard ch
     const basketBName = `Lifecycle B ${Date.now()}`
     await page.getByPlaceholder('Basket name').fill(basketBName)
     const nvda = await chooseResolvedInstrument(page, 'NVDA')
+    const amzn = await chooseResolvedInstrument(page, 'AMZN')
     const createB = page.waitForResponse(response =>
       response.request().method() === 'POST' && new URL(response.url()).pathname === '/api/v1/baskets')
     await page.getByRole('button', { name: 'Create' }).click()
     const createBResponse = await createB
     expect(createBResponse.status()).toBe(200)
-    const basketB = await createBResponse.json() as { id: number; members: Array<{ instrument_id: number }> }
+    const basketB = await createBResponse.json() as {
+      id: number
+      weighting_scheme: string
+      members: Array<{ instrument_id: number; weight: number | null }>
+    }
     createdIds.push(basketB.id)
-    expect(basketB.members.map(member => member.instrument_id)).toEqual([nvda.instrument_id])
+    expect(basketB.weighting_scheme).toBe('equal')
+    expect(basketB.members.map(member => member.instrument_id)).toEqual([nvda.instrument_id, amzn.instrument_id])
+    expect(basketB.members.every(member => member.weight === null)).toBeTruthy()
 
     const basketACard = page.locator('.basket-card').filter({ hasText: /Lifecycle A/ })
     await page.getByPlaceholder('Basket name').fill('Unsaved lifecycle edit')
@@ -85,15 +92,17 @@ test('ordinary basket lifecycle persists edits and opens the shared dashboard ch
     await page.getByRole('button', { name: 'Save', exact: true }).click()
     const updateBResponse = await updateB
     expect(updateBResponse.status()).toBe(200)
-    const updatedB = await updateBResponse.json() as { members: Array<{ instrument_id: number }> }
-    expect(updatedB.members.map(member => member.instrument_id)).toEqual([added.instrument_id])
+    const updatedB = await updateBResponse.json() as { weighting_scheme: string; members: Array<{ instrument_id: number; weight: number | null }> }
+    expect(updatedB.weighting_scheme).toBe('equal')
+    expect(updatedB.members.map(member => member.instrument_id)).toEqual([amzn.instrument_id, added.instrument_id])
+    expect(updatedB.members.every(member => member.weight === null)).toBeTruthy()
 
     await page.reload()
     await page.locator('.basket-card').filter({ hasText: basketBName }).click()
     await expect(page.locator('.member-row').filter({ hasText: 'MSFT' })).toBeVisible()
     await expect(page.locator('.member-row').filter({ hasText: 'NVDA' })).toHaveCount(0)
 
-    await page.locator('.member-symbol').click()
+    await page.locator('.member-row').filter({ hasText: 'MSFT' }).locator('.member-symbol').click()
     await expect(page).toHaveURL(/\/chart\/MSFT$/)
     await expect(page.locator('.workspace-layout-host')).toBeVisible()
     const basketAfterMemberChart = await request.get(`/api/v1/baskets/${basketB.id}`, { headers })

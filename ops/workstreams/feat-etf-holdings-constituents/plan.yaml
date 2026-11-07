@@ -5722,7 +5722,7 @@ acceptance_criteria:
 progress:
   completed: []
   total: 5
-  current_phase: Provider46462f55 is consumed as an exact development delta (45/45 manifest records verified; four changed paths since 732). ETF/Baskets focused frontend units pass44/44 and ETF preparation consumers pass46/46. The reserved S&P spec now uses the chart root, restores the maximized RRG before linked-chart visibility checks, and selects markers from the latest complete draw. Type-check and two-case Playwright discovery pass; browser bodies await Root, and the accessible Duplicate layout label awaits the next compatible TC runtime.
+  current_phase: Provider46462f55 is consumed exactly (45/45 manifest records verified). ETF/Baskets view units pass44/44 and ETF preparation consumers pass46/46. The basket API journey creates custom and two-member equal baskets; the S&P spec preserves native canvas stroke overloads, uses the chart root/latest complete RRG draw, and restores maximized layout before linked-chart visibility checks. Type-check and four-case browser discovery pass; bodies await Root, and Duplicate layout awaits compatible TC source.
   current_blocker: ETF and basket Playwright bodies remain pending Root's combined profile; TC must consume the retained ETF holding handoff on Workstation startup. Provider/TC shared release gates and Root's genuine-flow qualification remain open.
 integration_checkpoint:
   id: platform-usability-etf-holdings-2026-11-06
@@ -6248,7 +6248,7 @@ provider_runtime_dependency_active_46462f55:
 
 sp500_analysis_journey_review_corrections_2026_11_07:
   spec: frontend/tests/e2e/sp500_analysis_journey.spec.ts
-  sha256: 183e0500755849cf943f879f4e390fc92e7f2549eedb2d599dbbf608bf0369ca
-  accepted_coverage: Real price-renderer paint and OHLC/date tooltip matching returned bars; forward/inverse visible ratios for all eleven sectors plus independent raw-close arithmetic; active D1/W1/MN RRG payloads and latest-draw marker/tail raster; restored maximized layout before visible linked-chart witnesses; marker pointer tooltip and linked chart. The copy-layout action targets the upcoming accessible Duplicate layout control.
-  validation: npm run type-check passed; Playwright discovery found2 tests; ETF/Baskets view units44 passed and ETF preparation consumer units46 passed. No browser body or fixture was run.
-  pending: The next exact compatible TC runtime must provide the accessible Duplicate layout control; then Root runs the combined seeded-backend browser profile and final release gates. No visual/browser success is claimed.
+  sha256: ae24c47d76de378d8374d55247c903ecea8646853d2f810a3fb511d707b56bfb
+  accepted_coverage: Real price-renderer paint and returned-bar OHLC/date tooltip; forward/inverse visible ratios for all eleven sectors plus raw-close arithmetic; active D1/W1/MN RRG payloads and latest-draw marker/tail raster; restores maximized RRG before linked-chart visibility; marker pointer and linked chart. Canvas wrapper preserves native zero-argument stroke overload. Copy-layout targets the upcoming accessible Duplicate layout control.
+  validation: type-check passed; Playwright discovery found4 owned tests across S&P and baskets; ETF/Baskets view units44 passed and ETF preparation consumers46 passed. No browser body or fixture was run.
+  pending: The next exact compatible TC runtime must provide accessible Duplicate layout; Root runs the combined seeded-backend browser profile and final release gates. No browser success is claimed.
