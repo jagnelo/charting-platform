@@ -233,7 +233,7 @@ async function validateVersionSource(asset: CodeAsset) {
   error.value = ''
   try {
     const result = await validateSource(source)
-    const currentSource = (drafts.value[asset.id] ?? latestVersion(asset)?.source ?? '').trim()
+    const currentSource = drafts.value[asset.id] ?? latestVersion(asset)?.source ?? ''
     const currentBase = asset.versions.find(item => item.version_number === selectedVersions.value[asset.id]) ?? latestVersion(asset)
     if (currentSource !== source || currentBase?.version_number !== base.version_number) {
       invalidateVersionValidation(asset.id)

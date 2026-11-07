@@ -383,6 +383,22 @@ describe('CodeLibraryTool', () => {
     expect(validation.attributes('aria-atomic')).toBe('true')
   })
 
+  it('accepts unchanged existing-version source with its normal trailing newline', async () => {
+    const source = "output.scalar('n', 1)\n"
+    apiGet.mockResolvedValueOnce([{ ...asset, versions: [{ ...asset.versions[0], source }] }])
+    const wrapper = mount(CodeLibraryTool)
+    await flushPromises()
+    await wrapper.get('summary').trigger('click')
+
+    await wrapper.findAll('button').find(button => button.text() === 'Validate')!.trigger('click')
+    await flushPromises()
+
+    expect(apiPost).toHaveBeenCalledWith('/code/validate', { source })
+    expect(wrapper.get('.code-library-tool__validation').text()).toContain('Validated')
+    expect(wrapper.text()).not.toContain('source or base version changed while validation was running')
+    wrapper.unmount()
+  })
+
   it('announces library request failures as assertive alerts', async () => {
     apiGet.mockRejectedValueOnce(new Error('Library unavailable'))
     const wrapper = mount(CodeLibraryTool)

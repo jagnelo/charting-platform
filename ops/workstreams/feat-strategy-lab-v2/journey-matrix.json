@@ -275,7 +275,7 @@
         "recover delayed/context-changed validation",
         "preserve a newer draft/base when the immutable save response is delayed"
       ],
-      "visible_outcome": "Validation is tied to the exact source/output/base-version snapshot; stale results cannot enable save. A delayed save still records the immutable version but cannot replace a newer draft or selected base, and announces which version was saved.",
+      "visible_outcome": "Validation is tied to the exact source/output/base-version snapshot, preserving ordinary editor text including its trailing newline; stale results cannot enable save. A delayed save still records the immutable version but cannot replace a newer draft or selected base, and announces which version was saved.",
       "unit_evidence": [
         "frontend/tests/unit/components/test_code_library_tool.test.ts :: opens the latest immutable study version in Study Lab",
         "frontend/tests/unit/components/test_code_library_tool.test.ts :: opens the selected historical immutable study version in Study Lab",
@@ -284,7 +284,8 @@
         "frontend/tests/unit/components/test_code_library_tool.test.ts :: keeps a newer draft and selected base when an immutable version save resolves late",
         "frontend/tests/unit/components/test_code_library_tool.test.ts :: keeps a validated Library draft retryable after immutable version persistence fails",
         "frontend/tests/unit/components/test_code_library_tool.test.ts :: announces successful source validation as a polite status",
-        "frontend/tests/unit/components/test_code_library_tool.test.ts :: blocks a syntactically valid source whose output contract disagrees with the asset kind"
+        "frontend/tests/unit/components/test_code_library_tool.test.ts :: blocks a syntactically valid source whose output contract disagrees with the asset kind",
+        "frontend/tests/unit/components/test_code_library_tool.test.ts :: accepts unchanged existing-version source with its normal trailing newline"
       ],
       "api_evidence": [
         "POST /code/validate; POST /code/assets/{id}/versions; backend/tests/integration/api/test_code.py :: test_code_assets_are_immutable_versions and test_code_asset_rejects_defaults_that_violate_its_parameter_schema"

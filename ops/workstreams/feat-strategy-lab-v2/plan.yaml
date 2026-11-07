@@ -1186,7 +1186,7 @@ progress:
     id: strategy-study-usability-2026-11-06
     scope: >-
       Repair Study saved-versus-draft identity, run-list arrival/artifact-count consistency, Code
-      Library async validation/save-response fencing, durable run recovery and immutable promotion binding;
+      Library async validation/save-response fencing with exact source preservation including the Python editor's normal trailing newline, durable run recovery and immutable promotion binding;
       keep Results cancel/rerun failures visible and retryable. Accepted late run-create, rerun, and cancel
       responses publish durable run state to shared caches even when the initiating view closes; only
       component-local updates stay generation-fenced. Focused regressions cover this behavior, while the
@@ -1253,8 +1253,8 @@ progress:
       - ops/workstreams/feat-strategy-lab-v2/validation.jsonl
     status: in_progress
   current_blocker: >-
-    Root owns the affected Study normal-user browser reruns against Provider b0eae597 and the combined
-    backend/browser acceptance. Study/Results focused component suites now pass129/129 across2 files;
+    Root owns the affected Study normal-user browser reruns against the latest Strategy source and the combined
+    backend/browser acceptance. The current Library follow-up preserves byte-exact source identity, including a trailing newline, during asynchronous validation; its focused regression and type-check pass. Study/Results focused component suites now pass129/129 across2 files;
     frontend type-check passes. The accepted late rerun/cancel shared-cache behavior has unit coverage but
     no separate browser body; all authored Study browser bodies remain pending Root's fixture run. Provider b0eae597 is the active development dependency: exactly the two declared durable-queue/continuation-reference paths were imported over5cdc after old/new byte guards; all47 active entries match SHA/Git-blob/status/mode in the dependency manifest. Root reports the second-owner ensure and continuation-parent-reference PostgreSQL regressions and20-case ETF fixture module passed; no Provider test or browser rerun was launched in this worktree.
     The separate b1a94d98 CI42332618010 was cancelled at the45-minute Playwright job limit and is not green.
@@ -1274,7 +1274,7 @@ progress:
     and focused unit evidence do not count as browser execution. Preserve full-profile assertions,
     all18 original roadmap criteria, and disabled-operation holds; do not treat controlled transitions
     as genuine acquisition or close the full checkpoint early.
-  updated_at: "2026-11-07T05:24:58Z"
+  updated_at: "2026-11-07T05:36:55Z"
 roadmap_goal: >-
   Implement the production-grade, local-first Strategy Lab v2 backend for
   reproducible portfolio backtesting, walk-forward and search experiments, and

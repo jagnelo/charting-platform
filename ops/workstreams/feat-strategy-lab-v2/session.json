@@ -50,7 +50,7 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "current_blocker": "Root owns the affected Strategy normal-user browser reruns and combined backend/browser qualification. Provider b0eae597 is the active exact development dependency; only its two declared paths over5cdc were imported, and all47 active hashes/blobs/status/modes verify. Root reports second-owner ensure, continuation-parent-reference, and ETF20-case evidence; these are development evidence, not full CI or combined acceptance. TC common-runtime4cfee476 is the active66-file dependency; its four declared paths overce2262 were imported and all66 hashes/blobs/status/modes verify. Study/Results focused component suites pass129/129 and frontend type-check passes; authored Study browser bodies remain unexecuted here. Preserve all18 criteria and disabled native/broker/capital/paid/trial/live-provider holds.",
+  "current_blocker": "Root owns the affected Strategy normal-user browser reruns and combined backend/browser qualification. Provider b0eae597 and TC common-runtime4cfee476 remain the active exact development dependencies with all47 and66 manifest entries verified. Study/Results focused suites pass129/129; the Code Library follow-up now compares version-validation source exactly, preserving the editor trailing newline, and its focused suite passes18/18 with frontend type-check exit0. All seven Strategy browser bodies remain authored/discovery-only; Root owns same-fixture execution and combined acceptance. Preserve all18 criteria and disabled native/broker/capital/paid/trial/live-provider holds.",
   "current_execution_checkpoint": {
     "authority": "Human-activated platform-usability plan; existing session-local goal aligned in place by Root, no objective/accounting reset.",
     "full_roadmap_preserved": true,
@@ -98,9 +98,9 @@
   "last_checkpoint": "2026-11-07T05:10:24Z",
   "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Root to run the assigned Study normal-user browser cases in the existing fixture against the current frozen source, including F8p prepare-to-run and late create/rerun/cancel Results arrival; include Provider b0eae597 durable queue/continuation behavior in Root-owned same-fixture checks. Preserve the90-second completion bound, all18 roadmap criteria, and disabled holds.",
+  "next_action": "Root to run the assigned Study/Results/Library normal-user browser cases in the existing fixture against the latest Strategy source, including F8p preparation/run status, Library return and late create/rerun/cancel Results arrival; preserve the90-second completion bound, all18 roadmap criteria, and disabled holds.",
   "parent_branch": "staging",
-  "plan_hash": "0fe1c3d27ccb0efcb071e9a347d3665d33532834faf61a861fd11966dc717e49",
+  "plan_hash": "99274dfe240a8e5c9d63764f010027b62038ce52f2d662b395ccdff7229de731",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -129,11 +129,11 @@
       "SU3",
       "SU4"
     ],
-    "current_blocker": "Root owns the affected Strategy normal-user browser reruns and combined backend/browser qualification. Provider b0eae597 is the active exact development dependency; only its two declared paths over5cdc were imported, and all47 active hashes/blobs/status/modes verify. Root reports second-owner ensure, continuation-parent-reference, and ETF20-case evidence; these are development evidence, not full CI or combined acceptance. TC common-runtime4cfee476 is the active66-file dependency; its four declared paths overce2262 were imported and all66 hashes/blobs/status/modes verify. Study/Results focused component suites pass129/129 and frontend type-check passes; authored Study browser bodies remain unexecuted here. Preserve all18 criteria and disabled native/broker/capital/paid/trial/live-provider holds.",
+    "current_blocker": "Root owns the affected Strategy normal-user browser reruns and combined backend/browser qualification. Provider b0eae597 and TC common-runtime4cfee476 remain the active exact development dependencies with all47 and66 manifest entries verified. Study/Results focused suites pass129/129; the Code Library follow-up now compares version-validation source exactly, preserving the editor trailing newline, and its focused suite passes18/18 with frontend type-check exit0. All seven Strategy browser bodies remain authored/discovery-only; Root owns same-fixture execution and combined acceptance. Preserve all18 criteria and disabled native/broker/capital/paid/trial/live-provider holds.",
     "current_phase": "strategy-study-usability-2026-11-06",
-    "next_action": "Root to run the assigned Study normal-user browser cases in the existing fixture against the current frozen source, including F8p prepare-to-run and late create/rerun/cancel Results arrival; include Provider b0eae597 durable queue/continuation behavior in Root-owned same-fixture checks. Preserve the90-second completion bound, all18 roadmap criteria, and disabled holds.",
+    "next_action": "Root to run the assigned Study/Results/Library normal-user browser cases in the existing fixture against the latest Strategy source, including F8p preparation/run status, Library return and late create/rerun/cancel Results arrival; preserve the90-second completion bound, all18 roadmap criteria, and disabled holds.",
     "total": 9,
-    "updated_at": "2026-11-07T05:31:50Z"
+    "updated_at": "2026-11-07T05:36:55Z"
   },
   "remote": "c7f0585fc6735bbfe5e768836092419b13ce8a25",
   "remote_sha": "c7f0585fc6735bbfe5e768836092419b13ce8a25",
@@ -250,5 +250,5 @@
   ],
   "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
   "worktree_id": "feat-strategy-lab-v2-7794d9e53d",
-  "updated_at": "2026-11-07T05:31:50Z"
+  "updated_at": "2026-11-07T05:36:55Z"
 }
