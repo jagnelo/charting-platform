@@ -18633,3 +18633,10 @@ Consumed only the two ETF-declared EasyScan paths from TC `e902e83597661de1e5a63
 ## TC d954 narrow-header context — 2026-11-07
 
 Consumed the sole ETF-declared path `frontend/src/views/WorkstationView.vue` from TC `d954436898a254ba9bb461ebc86a55f248172d5d` after its e902 byte guard passed. All86 source manifest Git blob/SHA256 rows verify; local manifest copy SHA256 is `40d280acde2d67ee082998c63f5ee8c3941219080de67dfb9a6a3a190f6e2ddc`. The change is responsive header layout only. Root owns the 1024px visual inspection, combined browser qualification, and release gates.
+
+
+## Native cold-symbol discovery correction — 2026-11-07
+
+The unseeded BWET journey no longer assumes its first canonical `/instruments/search` returns a listing. It follows Workstation's empty-local-result path, waits for the visible unique exact provider-discovery choice, selects it through the UI, and takes the canonical instrument ID and identity status from the normal `/instruments/acquire` response before checking the automatically submitted `/data/ensure` request. Ensure must target that exact canonical ID; ambiguous local or discovered exact listings fail closed. Known IGV reselect remains on local search. Discovery/acquisition retry timestamps and statuses are retained in sanitized test attachments; discovery/acquisition waits are bounded at120s within the480s journey timeout. Existing BWET futures/cash provenance, chart bars/tooltip, IGV resolved-equity drilldown, context clearing and reload assertions remain unchanged.
+
+Playwright discovery listed the single native selection journey and `git diff --check` passed. No browser body, native request, database or production operation was run. Root owns genuine-source execution and acceptance.

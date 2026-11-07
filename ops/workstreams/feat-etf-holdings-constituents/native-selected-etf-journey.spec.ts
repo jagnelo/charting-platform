@@ -1,5 +1,5 @@
 import { expect, test } from '../../../frontend/tests/e2e/helpers'
-import type { APIRequestContext, Page, Request, TestInfo } from '@playwright/test'
+import type { APIRequestContext, Page, Request, Response, TestInfo } from '@playwright/test'
 
 type Listing = { instrument_id: number; symbol: string; name: string }
 type Bar = { ts: string; open: number; high: number; low: number; close: number }
@@ -37,7 +37,8 @@ function selectedEnsure(request: Request, symbol: string, instrumentId: number):
   try {
     const body = request.postDataJSON() as { target?: { kind?: string; symbol?: string; instrument_id?: number }; datasets?: string[] }
     return body.target?.kind === 'instrument'
-      && (body.target.symbol?.toUpperCase() === symbol || body.target.instrument_id === instrumentId)
+      && body.target.instrument_id === instrumentId
+      && (!body.target.symbol || body.target.symbol.trim().toUpperCase() === symbol)
       && (body.datasets ?? []).some(dataset => ['history', 'holdings'].includes(dataset))
   } catch { return false }
 }
@@ -48,19 +49,161 @@ async function chooseETF(page: Page, symbol: string): Promise<{ listing: Listing
     const url = new URL(response.url())
     return url.pathname === '/api/v1/instruments/search' && url.searchParams.get('q')?.toUpperCase() === symbol
   })
+  const discoveryResponses: Response[] = []
+  const captureDiscovery = (response: Response) => {
+    const request = response.request()
+    if (request.method() !== 'POST' || new URL(response.url()).pathname !== '/api/v1/instruments/discover') return
+    try {
+      if ((request.postDataJSON() as { query?: string }).query?.toUpperCase() === symbol) discoveryResponses.push(response)
+    } catch { /* unrelated or malformed discovery request */ }
+  }
+  page.on('response', captureDiscovery)
   await input.fill(symbol)
   const search = await searchPromise
   expect(search.status(), `Canonical search for ${symbol}`).toBe(200)
   const exact = (await search.json() as Listing[]).filter(row => row.symbol.toUpperCase() === symbol)
-  expect(exact, `One exact ${symbol} listing should be selectable`).toHaveLength(1)
-  const listing = exact[0]!
-  const ensureRequest = page.waitForRequest(request => selectedEnsure(request, symbol, listing.instrument_id))
-  await page.getByRole('option', { name: new RegExp(`^${symbol}\\b`) }).click()
-  await expect(input).toHaveValue(symbol)
-  const request = await ensureRequest
-  const response = await page.waitForResponse(item => item.request() === request)
-  const preparation = await preparationFromResponse(response, symbol, request, test.info())
-  return { listing, preparation }
+  if (exact.length) page.off('response', captureDiscovery)
+  expect(exact.length, `Local ${symbol} search must not present ambiguous exact listings`).toBeLessThanOrEqual(1)
+
+  if (exact.length === 1) {
+    const listing = exact[0]!
+    const ensureRequest = page.waitForRequest(request => selectedEnsure(request, symbol, listing.instrument_id))
+    await page.getByRole('option', { name: new RegExp(`^${symbol}\\b`) }).click()
+    await expect(input).toHaveValue(symbol)
+    const request = await ensureRequest
+    const response = await page.waitForResponse(item => item.request() === request)
+    const preparation = await preparationFromResponse(response, symbol, request, test.info())
+    return { listing, preparation }
+  }
+
+  // A first-use ticker is absent from the canonical local catalogue. Follow
+  // Workstation's visible discovery choice and its normal acquisition request;
+  // never prewarm an API or treat a provider candidate as verified identity.
+  const discoveryChoices = page.getByRole('group', { name: 'Matching ticker listings' })
+  await expect(discoveryChoices, `Workstation should discover uncached ${symbol} after its empty exact local search`)
+    .toBeVisible({ timeout: 120_000 })
+  expect(discoveryResponses.length, `${symbol} visible discovery choice must have a public discovery response`).toBeGreaterThan(0)
+  const discovered = discoveryResponses.at(-1)!
+  expect(discovered.status(), `${symbol} public discovery response`).toBe(200)
+  const discoveryBody = await discovered.json() as {
+    request_id?: string; status: string; retry_at?: string | null
+    source_outcomes?: Array<{ provider?: string; status?: string; reason_code?: string | null; retry_at?: string | null }>
+    candidates: Array<{ symbol: string; name: string; exchange: string; type: string; provider: string; instrument_id: number | null; identity_status: string }>
+  }
+  expect(['complete', 'partial']).toContain(discoveryBody.status)
+  const exactCandidates = discoveryBody.candidates.filter(candidate => candidate.symbol.trim().toUpperCase() === symbol)
+  expect(exactCandidates, `Discovery must expose one exact ${symbol} listing, or fail closed as ambiguous/unavailable`)
+    .toHaveLength(1)
+  const candidate = exactCandidates[0]!
+  const discoveryAttempts = await Promise.all(discoveryResponses.map(async response => {
+    const body = await response.json() as {
+      request_id?: string; status?: string; reason_code?: string | null; retry_at?: string | null
+      source_outcomes?: Array<{ provider?: string; status?: string; reason_code?: string | null; retry_at?: string | null }>
+      candidates?: Array<{ symbol?: string; provider?: string; exchange?: string }>
+    }
+    return {
+      httpStatus: response.status(), requestId: body.request_id ?? null,
+      status: body.status ?? null, reasonCode: body.reason_code ?? null,
+      retryAt: body.retry_at ?? body.source_outcomes?.find(outcome => outcome.status === 'held' && outcome.retry_at)?.retry_at ?? null,
+      sourceOutcomes: (body.source_outcomes ?? []).map(outcome => ({
+        provider: outcome.provider ?? null, status: outcome.status ?? null,
+        reasonCode: outcome.reason_code ?? null, retryAt: outcome.retry_at ?? null,
+      })),
+      exactCandidateCount: (body.candidates ?? []).filter(item => item.symbol?.trim().toUpperCase() === symbol).length,
+    }
+  }))
+  const acquisitionAttempts: Array<{
+    httpStatus: number; requestId: string | null; status: string | null; reasonCode: string | null
+    retryAt: string | null; instrumentId: number | null; symbol: string | null
+  }> = []
+  const ensureRequests: Request[] = []
+  const ensureResponses = new Map<Request, Response>()
+  const captureEnsureRequest = (request: Request) => {
+    if (request.method() === 'POST' && new URL(request.url()).pathname === '/api/v1/data/ensure') ensureRequests.push(request)
+  }
+  const captureEnsureResponse = (response: Response) => {
+    const request = response.request()
+    if (request.method() === 'POST' && new URL(response.url()).pathname === '/api/v1/data/ensure') {
+      ensureResponses.set(request, response)
+    }
+  }
+  page.on('request', captureEnsureRequest)
+  page.on('response', captureEnsureResponse)
+  try {
+    const listingButton = page.getByRole('button', { name: new RegExp(`^Use ${symbol} ·`) })
+    await expect(listingButton, `The exact ${symbol} discovery choice should be visible`).toHaveCount(1)
+    const acquisitionPromise = page.waitForResponse(async response => {
+      const request = response.request()
+      if (request.method() !== 'POST' || new URL(response.url()).pathname !== '/api/v1/instruments/acquire') return false
+      try {
+        const body = request.postDataJSON() as { symbol?: string; provider_candidate?: { provider?: string; symbol?: string; exchange?: string | null } }
+        const matchesCandidate = body.symbol?.toUpperCase() === symbol
+          && body.provider_candidate?.symbol?.toUpperCase() === symbol
+          && body.provider_candidate.provider === candidate.provider
+          && (body.provider_candidate.exchange ?? '') === candidate.exchange
+        if (!matchesCandidate) return false
+        const result = await response.json() as {
+          request_id?: string; status?: string; reason_code?: string | null; retry_at?: string | null
+          source_outcomes?: Array<{ status?: string; retry_at?: string | null }>
+          instrument?: { instrument_id?: number; symbol?: string }
+        }
+        const retryAt = result.retry_at
+          ?? result.source_outcomes?.find(outcome => outcome.status === 'held' && outcome.retry_at)?.retry_at
+          ?? null
+        acquisitionAttempts.push({
+          httpStatus: response.status(), requestId: result.request_id ?? null,
+          status: result.status ?? null, reasonCode: result.reason_code ?? null, retryAt,
+          instrumentId: result.instrument?.instrument_id ?? null, symbol: result.instrument?.symbol ?? null,
+        })
+        // Workstation retries a held acquisition only when the API supplies a
+        // known retry time. Keep observing until that public flow resolves or
+        // reaches a terminal result, under the bounded Playwright wait below.
+        return !(result.status === 'held' && retryAt)
+      } catch {
+        acquisitionAttempts.push({ httpStatus: response.status(), requestId: null,
+          status: null, reasonCode: null, retryAt: null, instrumentId: null, symbol: null })
+        return true
+      }
+    }, { timeout: 120_000 })
+    await listingButton.click()
+    const acquiredResponse = await acquisitionPromise
+    expect(acquiredResponse.status(), `${symbol} normal canonical acquisition`).toBe(200)
+    const acquired = await acquiredResponse.json() as {
+      request_id?: string; status?: string; instrument?: { instrument_id?: number; symbol?: string; identity_status?: string; instrument_type?: string | null }
+    }
+    expect(acquired.status, `${symbol} canonical acquisition result`).toBe('resolved')
+    expect(acquired.instrument?.symbol?.toUpperCase()).toBe(symbol)
+    expect(Number.isSafeInteger(acquired.instrument?.instrument_id) && acquired.instrument!.instrument_id! > 0).toBeTruthy()
+    expect(['resolved', 'verified']).toContain(acquired.instrument?.identity_status?.trim().toLowerCase())
+    const listing: Listing = {
+      instrument_id: acquired.instrument!.instrument_id!, symbol: acquired.instrument!.symbol!,
+      name: candidate.name,
+    }
+    await expect(input).toHaveValue(symbol)
+    await expect.poll(() => {
+      const request = ensureRequests.find(item => selectedEnsure(item, symbol, listing.instrument_id))
+      return Boolean(request && ensureResponses.has(request))
+    }, { message: `${symbol} selection should automatically prepare the acquired canonical instrument`, timeout: 30_000 }).toBeTruthy()
+    const ensureRequest = ensureRequests.find(item => selectedEnsure(item, symbol, listing.instrument_id))!
+    const ensureResponse = ensureResponses.get(ensureRequest)!
+    const preparation = await preparationFromResponse(ensureResponse, symbol, ensureRequest, test.info())
+    await test.info().attach(`native-acquisition-${symbol.toLowerCase()}.json`, {
+      body: Buffer.from(JSON.stringify({
+        discoveryAttempts,
+        candidate: { symbol: candidate.symbol, exchange: candidate.exchange, provider: candidate.provider },
+        acquisition: { requestId: acquired.request_id ?? null, status: acquired.status,
+          instrumentId: listing.instrument_id, symbol: listing.symbol,
+          identityStatus: acquired.instrument?.identity_status ?? null, attempts: acquisitionAttempts },
+        ensureRequestId: preparation.requestId,
+      }, null, 2)),
+      contentType: 'application/json',
+    })
+    return { listing, preparation }
+  } finally {
+    page.off('request', captureEnsureRequest)
+    page.off('response', captureEnsureResponse)
+    page.off('response', captureDiscovery)
+  }
 }
 
 async function preparationFromResponse(response: import('@playwright/test').Response, symbol: string, request: Request, testInfo: TestInfo): Promise<Preparation> {
