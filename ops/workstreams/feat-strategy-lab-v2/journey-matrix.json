@@ -523,9 +523,10 @@
           "reload",
           "return to original"
         ],
-        "visible_outcome": "Copied tab and tool instance identities differ at runtime; Benchmarks, chart and Relative Rotation show data-bearing content in the copy, while the original retains its semantic content after reload.",
+        "visible_outcome": "The copy is derived from the authenticated canonical US Top Down layout returned by assertCanonicalCoverage. For every copied window, the spec resolves its TOOL_OUTCOMES mapping and runs the corresponding useful-content assertion; missing mappings fail. The copy retains distinct tab/window identities and every default panel's mapped behavior, while original content remains useful after reload.",
         "evidence": [
-          "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts :: duplicates a factory layout with remapped panels, preserves the original, and reloads both",
+          "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts :: duplicates a factory layout with remapped panels, checks every canonical US Top Down window's mapped useful outcome, preserves the original, and reloads both",
+          "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts :: assertCanonicalCoverage and TOOL_OUTCOMES",
           "frontend/src/views/WorkstationView.vue :: button aria-label=\"Duplicate layout\"",
           "frontend/src/stores/workspace.ts :: cloneActiveTab"
         ]
@@ -587,24 +588,30 @@
   "shared_source_consumptions": [
     {
       "owner": "ETF SearchBar producer; Strategy consumes released bytes without editing the shared component or its tests",
-      "source_commit": "bfc39453bbc986f736e1187434df48d716351e6e",
-      "contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/etfbfc39453-shared-search-development-consumption-contract.json",
-      "contract_sha256": "88bb2743de90c5b80f0863c3ca7d9e8a1be7c61cb3a1001d9c0bdac4da4e075c",
+      "source_commit": "a0c5250ee962452f55ad6410f4af6404f2bcc045",
+      "contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/etfa0c5250e-shared-search-development-consumption-contract.json",
+      "contract_sha256": "75be0b287ef0f83d9d193df64fb59e25e84ef1d4dedec9d1ab75affb815d8a94",
       "paths": [
         {
           "path": "frontend/src/components/common/SearchBar.vue",
-          "git_blob": "dcafe47a9c3c7e538a5d8f0145d39cab88c441ce",
-          "sha256": "5a5a3e119c403276f0859eeb71b634869f8bbb8fdc6bd8c12b63be7fa6006aaf"
+          "git_blob": "38b7fd3bbdf998553ca0c407a6c7a6050c3f04b6",
+          "sha256": "3bfcd2461db4855d4363e5e089daa74dd57d75ed2a9e5b6dc3ee9aa426542af2"
         },
         {
           "path": "frontend/tests/unit/components/test_search_bar.test.ts",
-          "git_blob": "aeb57390a005c47c356f0ff4c8089367dce1c2ff",
-          "sha256": "b090aac0a9d7e321718d297ad30fa0bc730c9c848d3f97d5e192500fe352a942"
+          "git_blob": "5f3b2f70fc0837a4e71737589a3a7a85929546d5",
+          "sha256": "b422836247802690bbc7bd2d47ddfc7e5e3627bf4185534bb59590742b5f95a2"
         }
       ],
-      "import_check": "Both authorized paths were clean and already matched the exact released source Git blobs and SHA256 values in this Strategy checkout; no file rewrite or ETF test rerun was needed.",
+      "import_check": "The earlier bfc39453 import is preserved as superseded history. Root verified both worktree paths still matched those old bfc blobs before this import. Restored only the two declared paths from a0c5250ee962452f55ad6410f4af6404f2bcc045; current absolute worktree files match both new contract Git blobs and SHA256 values. No unrelated path was restored; the producer's43/43 tests and type-check were not rerun in this consumer.",
       "source_contract": "Shared automatic exact/provisional ticker preparation, default discovery, history plus ETF holdings datasets, ambiguity handling, and stale/strict-identity fencing; no duplicate producer logic.",
-      "qualification": "Development dependency consumption only. Root reports42/42 ETF tests and type-check; no Strategy browser, combined profile, release, deployment, or live-source acceptance is implied."
+      "qualification": "Development dependency consumption only. Root reports43/43 ETF tests and type-check for a0c5250; no Strategy browser, combined profile, release, deployment, or live-source acceptance is implied.",
+      "supersedes": {
+        "source_commit": "bfc39453bbc986f736e1187434df48d716351e6e",
+        "contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/etfbfc39453-shared-search-development-consumption-contract.json",
+        "contract_sha256": "88bb2743de90c5b80f0863c3ca7d9e8a1be7c61cb3a1001d9c0bdac4da4e075c"
+      },
+      "prior_import_claim_superseded": "The initial Strategy receipt incorrectly said the two paths were already byte-identical. Root review found the pre-import worktree hashes were SearchBar.vue=e860fcaf6a868cf7a183a08886758fd23b491ddecc75d479b834aea5eff322e5 and test_search_bar.test.ts=2ea86d91f80f77d9cd68cd5ffc4be35db2d2b86c42f6467865366cf411ec2db5. The earlier validation row is preserved; the corrected receipt records the actual import below."
     }
   ]
 }
