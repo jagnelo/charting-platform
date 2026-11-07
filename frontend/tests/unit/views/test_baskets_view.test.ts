@@ -518,6 +518,33 @@ describe('BasketsView', () => {
     expect(wrapper.text()).toContain('New basket')
   })
 
+  it('keeps the selected basket available after delete failure and allows a retry', async () => {
+    vi.mocked(api.get).mockResolvedValue([basket()])
+    vi.mocked(api.delete)
+      .mockRejectedValueOnce(new Error('Basket service unavailable'))
+      .mockResolvedValueOnce(undefined)
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper.get('.btn-danger').trigger('click')
+    ;(document.body.querySelector('[aria-labelledby="basket-delete-title"] .btn-danger') as HTMLButtonElement).click()
+    await flushPromises()
+
+    expect(api.delete).toHaveBeenCalledTimes(1)
+    expect(wrapper.text()).toContain('Basket service unavailable')
+    expect(wrapper.get('.basket-card--active').text()).toContain('Manual basket')
+    expect(wrapper.get('.member-symbol').text()).toBe('AAPL')
+    expect(document.body.querySelector('[aria-labelledby="basket-delete-title"]')).toBeNull()
+
+    await wrapper.get('.btn-danger').trigger('click')
+    ;(document.body.querySelector('[aria-labelledby="basket-delete-title"] .btn-danger') as HTMLButtonElement).click()
+    await flushPromises()
+
+    expect(api.delete).toHaveBeenCalledTimes(2)
+    expect(wrapper.text()).toContain('Basket deleted.')
+    expect(wrapper.get('h2').text()).toBe('New basket')
+  })
+
   it('does not publish a late basket reload after the view unmounts', async () => {
     let resolveBaskets: ((loaded: ReturnType<typeof basket>[]) => void) | undefined
     vi.mocked(api.get).mockReturnValueOnce(new Promise(resolve => {

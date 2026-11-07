@@ -156,7 +156,7 @@
           "controls": ["Delete", "Cancel", "confirmation dialog Delete"],
           "journeys": ["J07", "J12"],
           "outcome": "Cancel makes no DELETE request; confirmation removes only the selected manual basket and leaves a valid selected basket or new draft.",
-          "focused_evidence": [{"path": "frontend/tests/unit/views/test_baskets_view.test.ts", "cases": ["cancels delete without mutation, then deletes only after confirmation"]}, {"path": "backend/tests/integration/api/test_baskets.py", "cases": ["test_manual_basket_crud_uses_real_async_session"]}],
+          "focused_evidence": [{"path": "frontend/tests/unit/views/test_baskets_view.test.ts", "cases": ["cancels delete without mutation, then deletes only after confirmation", "keeps the selected basket available after delete failure and allows a retry"]}, {"path": "backend/tests/integration/api/test_baskets.py", "cases": ["test_manual_basket_crud_uses_real_async_session"]}],
           "api_contract": ["DELETE /api/v1/baskets/{id}; system-managed baskets are not deletable"],
           "browser_evidence": {"path": "frontend/tests/e2e/baskets_journey.spec.ts", "case": "ordinary basket lifecycle persists edits and opens the shared dashboard chart before background preparation settles", "mode": "authenticated actual API", "body_run": false, "status": "pending Root combined browser profile"}
         },
