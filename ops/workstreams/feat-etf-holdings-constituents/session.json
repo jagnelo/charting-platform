@@ -23,9 +23,9 @@
   ],
   "active_changeset": {
     "baseline": "139b350238b5e1c8a170dce5af09a805301d857e",
-    "focused_validation": "Current: frontend type-check passed; SearchBar and Workstation history-acquisition unit modules56/56 passed; the assigned on_demand_acquisition Playwright spec lists7 tests. Provider dffcf and TC ce2262ab manifests verify47/47 and66/66. Browser bodies and final combined qualification remain pending Root.",
+    "focused_validation": "Current test-synchronization candidate: frontend npm run type-check exited0; Playwright discovery lists7 on_demand_acquisition tests; git diff --check is clean. Provider b0 manifest verifies47/47 and TC4cfee verifies66/66. No browser body was run; Root owns the single-case existing-fixture rerun and combined qualification.",
     "name": "ETF automatic issuer-holdings preparation and context independence",
-    "provider_contract": "The ETF preparation hook consumes the published Provider contracts; the current exact development runtime dependency is Root-released dffcf2e2, imported only through its eight declared paths. Earlier 732/464/b1 dependency records remain preserved; no Provider workstream records were imported.",
+    "provider_contract": "The ETF preparation hook consumes the published Provider contracts; current exact development runtime dependency is Root-released b0eae597, imported only through its two declared delta paths over5cdc. Earlier dffcf/732/464/b1 records remain preserved; no Provider workstream records were imported.",
     "scope": "Automatic holdings dataset preparation for exact resolved ETF intent; holdings remain independent from price/history; preserve route/cache/freshness/quota and selected-fund provenance.",
     "source_paths": [
       "backend/app/schemas/data_preparation.py",
@@ -133,7 +133,7 @@
     "token_budget": null,
     "updated_at_epoch": 1793716359
   },
-  "current_blocker_latest": "Exact dffcf Provider and ce2262ab TC development imports are verified. The assigned Workstation unknown-ticker fixture now follows POST /data/ensure; type-check and focused SearchBar/Workstation tests pass, with seven acquisition tests discovered. Browser bodies and combined acceptance remain Root-owned and pending; all roadmap criteria remain open.",
+  "current_blocker_latest": "The Workstation unknown-ticker test now awaits the exact successful TCNEW/M1 local response matching the covered timestamp/close, after excluding the initial empty read. Type-check and seven-case discovery pass. Root owns the immediate single-case browser rerun in its existing b0/4cfee fixture; no browser result is claimed here.",
   "current_checkpoint_acceptance": {
     "checkpoint_id": "platform-usability-etf-holdings-2026-11-06",
     "human_activation": "Complete platform-usability plan explicitly activated; implementation only, no checkpoint accepted yet.",
@@ -1140,8 +1140,8 @@
     "status": "Root-delegated bounded software checkpoint accepted; exact final-source CI pending.",
     "validated_implementation_sha": "b6d67ce93104a0a2cf83b1c41f385513b3c230f8"
   },
-  "plan_hash": "1695f8c5e5aee091f2863ed5023b5b3879624fd266e8a8005568a2541e9eed3c",
-  "plan_sha256": "1695f8c5e5aee091f2863ed5023b5b3879624fd266e8a8005568a2541e9eed3c",
+  "plan_hash": "96a76c22ea3166558d2a32b2bc66fe853dea7a862620a20e18af1140af14225b",
+  "plan_sha256": "96a76c22ea3166558d2a32b2bc66fe853dea7a862620a20e18af1140af14225b",
   "planning_required": false,
   "planning_state": "ready",
   "previous_active_changeset": {
@@ -4321,15 +4321,15 @@
   },
   "current_tc_common_runtime_dependency": {
     "baseline": "139b350238b5e1c8a170dce5af09a805301d857e",
-    "changed_paths_imported": 19,
+    "changed_paths_imported": 4,
     "current_manifest_records_verified": 66,
-    "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-ce2262ab-common-runtime-development-consumption-contract.json",
-    "manifest_sha256": "b2a41e1bb3734b2a48d8bf828e55dacb1aac8b9d8d44bd7bd6484467b0e6be2c",
-    "previous_active_source": "5a783e745b211cfe8b3dd20cb77d275149f15de2",
-    "source": "ce2262ab2d47fc1ccda96f0c2aa7c8839e4e03f9",
+    "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-4cfee476-common-runtime-development-consumption-contract.json",
+    "manifest_sha256": "dfe2e5cec52458f76fccfb71a0af9d5627e46f810c84fd8c8b2bfc232e2c754f",
+    "previous_active_source": "ce2262ab2d47fc1ccda96f0c2aa7c8839e4e03f9",
+    "source": "4cfee47689ebeffa05ccae5f1b7cc690f6a871b8",
     "state": "Exact Root-released development dependency; combined browser profile and final release qualification remain pending.",
     "all_status_from139_git_blob_sha256_executable_bit_exact": true,
-    "consumer_import_paths": "Exactly the19 ETF paths in the Root manifest; all66 manifest files verified; no excluded owner paths imported."
+    "consumer_import_paths": "Exactly the four ETF paths in the Root delta manifest; all66 current manifest files verified by Git blob and SHA256; no excluded owner paths imported."
   },
   "historical_provider_runtime_consumption_732": {
     "source": "732da0f9f84ee495ee58ca3b9f8311839291ff59",
@@ -4383,20 +4383,29 @@
     "state": "Exact Root-released development dependency; full TC/Provider release acceptance and Root combined browser profile remain pending.",
     "all_status_from139_git_blob_sha256_mode_exact": true
   },
-  "current_provider_runtime_dependency_dffcf2e2": {
+  "historical_provider_runtime_dependency_dffcf2e2": {
     "source": "dffcf2e2cda4a3046b5e224fb4c7607574156797",
     "previous_source": "b1a94d9854e06f8235074141bf56d333f6350057",
     "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providerdffcf2e2-runtime-development-consumption-contract.json",
     "manifest_sha256": "e6894199dbc54abc0c4f25b6f6dd24e871091f5a9d2d6ccbcc3243bb324dc5e0",
     "changed_paths_imported": 8,
     "manifest_records_verified": 47,
-    "state": "Root-authorized development dependency only; exact-source and combined release gates remain pending."
+    "state": "Superseded by the Root-released b0 development dependency; evidence retained."
+  },
+  "current_provider_runtime_dependency_b0eae597": {
+    "source": "b0eae5974801e320b3da858d7e1a33829b206430",
+    "previous_source": "5cdc5ee06e26b191d889212b8cd1554d28abbc8f",
+    "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providerb0eae597-runtime-development-consumption-contract.json",
+    "manifest_sha256": "66c023b0fb3cf5cd8afd1d12b86162e4cbde6e86de6bc40505b22853ef6551b8",
+    "changed_paths_imported": 2,
+    "manifest_records_verified": 47,
+    "state": "Root-authorized development dependency only; producer exact-source and combined release gates remain pending."
   },
   "current_workstation_acquisition_fixture_repair": {
     "test": "frontend/tests/e2e/on_demand_acquisition.spec.ts",
-    "test_sha256": "f79638da13af85234df3d327679b2e050fa8a080a35cbe158f50e3c3f228b6b5",
-    "failure_source": "Provider b1 CI42332618010; no after-acquisition M1 one-bar local readback.",
-    "cause": "The test stubbed the obsolete per-instrument history-acquisitions API; current Workstation submits POST /data/ensure and refreshes the local read API from covered-range progress.",
-    "state": "Fixture aligned to current shared contract; Playwright body remains pending Root combined execution."
+    "test_sha256": "76d31dc7c7c59284ae5d5db4c2eb46db926bfa85f2557baba56cdbccd9c42f46",
+    "failure_source": "Root r3 existing-fixture run: local M1 readback arrived5.28s after ensure reported accepted one-bar coverage, beyond the old5s poll boundary.",
+    "cause": "The test now waits for the exact successful TCNEW/M1 local-only response whose timestamp and close match the ensured covered bar; the initial empty response is excluded. Runtime behavior is unchanged.",
+    "state": "Type-check and seven-test discovery pass; Root approved one existing-fixture browser rerun. Result remains pending."
   }
 }

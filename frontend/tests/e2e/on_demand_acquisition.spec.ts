@@ -1036,6 +1036,25 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
           && 'instrument_id' in body.target && body.target.instrument_id === fixtureInstrumentId
       })()
   }, { timeout: 15_000 })
+  let acquiredLocalRows: OHLCVBar[] | null = null
+  // The initial chart request may still be in flight when ensure reports
+  // covered history. The chart store waits for that exact load to settle
+  // before issuing a fresh local read, so wait for the matching response
+  // rather than the generic five-second expect.poll interval.
+  const acquiredLocalBarReadback = page.waitForResponse(async response => {
+    const url = new URL(response.url())
+    if (response.request().method() !== 'GET'
+      || url.pathname !== '/api/v1/ohlcv/local/TCNEW/M1'
+      || response.status() !== 200
+      || !historyAcquired
+      || !acquiredBar) return false
+    const rows = await response.json() as OHLCVBar[]
+    const matchesCoveredBar = rows.length === 1
+      && rows[0]?.ts === acquiredBar.ts
+      && rows[0]?.close === acquiredBar.close
+    if (matchesCoveredBar) acquiredLocalRows = rows
+    return matchesCoveredBar
+  }, { timeout: 15_000 })
   await page.getByRole('button', { name: /Use TCNEW · TEST/ }).click()
   const candidateResolve = await candidateResolveReady
   expect(candidateResolve.status()).toBe(200)
@@ -1080,9 +1099,14 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
   await chartWorkspace.click()
   await expect(page.locator('.tool-window--active').getByRole('region', { name: 'Chart workspace' })).toBeVisible()
 
-  await expect.poll(() => localBarReadbacks.some(readback => readback.afterAcquisition && readback.rows.length === 1)).toBe(true)
+  await acquiredLocalBarReadback
+  expect(acquiredLocalRows).toEqual([acquiredBar])
+  expect(localBarReadbacks.some(readback => readback.afterAcquisition
+    && readback.symbol === 'TCNEW'
+    && readback.timeframe === 'M1'
+    && readback.rows.length === 1
+    && readback.rows[0]?.ts === acquiredBar?.ts)).toBe(true)
   expect(localBarReadbacks.filter(readback => readback.afterAcquisition).every(readback => readback.symbol === 'TCNEW' && readback.timeframe === 'M1')).toBe(true)
-  expect(localBarReadbacks.some(readback => readback.afterAcquisition && readback.rows[0]?.ts === acquiredBar?.ts)).toBe(true)
   await expect(page.getByTestId('workstation-history-acquisition')).toHaveCount(0)
   const visibleChart = page.locator('.tool-window--active .chart-root')
   await expect(visibleChart).toHaveAttribute('aria-busy', 'false', { timeout: 10_000 })

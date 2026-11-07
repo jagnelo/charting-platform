@@ -5722,8 +5722,24 @@ acceptance_criteria:
 progress:
   completed: []
   total: 5
-  current_phase: Provider dffcf2e2 and TC ce2262ab are consumed from their exact Root manifests (47/47 and66/66 current-file records). The owned Workstation unknown-ticker fixture now follows POST /data/ensure and covered-range-triggered local readback. Frontend type-check, 56 focused SearchBar/Workstation tests and seven-case Playwright discovery pass; browser bodies remain unrun.
-  current_blocker: The assigned Workstation browser case has not yet run against the corrected fixture; Root owns the combined browser execution and final source qualification. Preserve all selected identity, M1 coverage/readback, no-direct-write, listing ambiguity, cached data and the complete roadmap.
+  current_phase: Provider b0eae597 and TC 4cfee476 are consumed from their exact Root manifests (47/47 and66/66 current-file records). The owned Workstation fixture waits for the exact successful TCNEW/M1 local response matching the accepted covered bar, excluding the earlier empty read. Frontend type-check passed and Playwright discovery lists seven acquisition cases.
+  current_blocker: Root owns the approved single-case browser rerun in its existing b0/4cfee fixture; no browser body was executed locally. Preserve canonical identity, M1 coverage, actual bar/date, calendar, no-direct-write/no-legacy-acquisition, unresolved listing, context-fence and all full-roadmap requirements.
+current_provider_b0eae597_development_import:
+  source: b0eae5974801e320b3da858d7e1a33829b206430
+  previous_source: 5cdc5ee06e26b191d889212b8cd1554d28abbc8f
+  manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providerb0eae597-runtime-development-consumption-contract.json
+  manifest_sha256: 66c023b0fb3cf5cd8afd1d12b86162e4cbde6e86de6bc40505b22853ef6551b8
+  changed_paths_imported: 2
+  manifest_records_verified: 47
+  purpose: Root-released retry/continuation contract dependency; development import only, no Provider workstream edits.
+current_tc_4cfee476_development_import:
+  source: 4cfee47689ebeffa05ccae5f1b7cc690f6a871b8
+  previous_source: ce2262ab2d47fc1ccda96f0c2aa7c8839e4e03f9
+  manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-4cfee476-common-runtime-development-consumption-contract.json
+  manifest_sha256: dfe2e5cec52458f76fccfb71a0af9d5627e46f810c84fd8c8b2bfc232e2c754f
+  changed_paths_imported: 4
+  manifest_records_verified: 66
+  purpose: Root-released cached-first startup/common-runtime dependency; development import only, no TC workstream edits.
 integration_checkpoint:
   id: platform-usability-etf-holdings-2026-11-06
   scope: Implement the ETF-owned holdings preparation callable and ETFHoldingsView automatic request/provenance behavior under the complete human-activated platform-usability plan.
