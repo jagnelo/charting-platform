@@ -33401,3 +33401,25 @@ The focused regression covers mapped-series precedence over another canonical se
 This checkpoint also consumes only the ten Provider-declared paths from TC `45ea51bfa78b6ae167462b518358164a5a3e29f4` (all 77 contract files matched their SHA-256, Git blobs and mode semantics) and the two exact Strategy paths from `f2f6d37a3384ff7e6f3d8d425bad3b39cc5a23ba` (both SHA/blob guards match). No ETF/Strategy private-domain file was copied. These imports are development dependencies, not consumer browser or release acceptance. No provider source calls, production/public market-data writes, DDL, native quota, policy, real ledger or hold changes occurred; the permitted fake login only updated that isolated account's `last_login_at`.
 
 Root owns the backend/worker rebuild and post-fix endpoint/browser recheck, exact-source CI and combined release qualification. The held Alpha Vantage/Nasdaq/CTA/Marketstack/EODHD operation review, genuine deeper-history acquisition, provider activation and the full Provider roadmap remain open. No release acceptance, deployment or full-roadmap completion is claimed.
+
+## 2026-11-07 — controlled default M15 fixture
+
+Root's read-only fixture review found no M15 bars for the factory's ordinary
+SPY 15 Minute chart. The opt-in market-data seeder now returns without SQL
+unless E2E_SEED_MARKET_DATA is enabled, ensures the controlled SPY listing,
+and writes 520 independent deterministic M15 bars across 20 regular-session
+windows into a source-, listing-, and split-adjustment-scoped canonical series.
+It records M15 freshness/coverage separately and leaves existing D1/W1/MN bars
+and production routing unchanged.
+
+The focused seeder module passed 8/8. It verifies disabled-mode zero SQL,
+finite/increasing session timestamps and valid OHLCV, selected-series identity,
+controlled source/adjustment/listing provenance, separate M15 dataset state,
+and idempotent rows/default mapping. Ruff check, Ruff format check and
+git diff --check passed. No provider HTTP, production/public data, quota,
+ledger, policy, or hold mutation occurred.
+
+Root will verify the authenticated ordinary M15 local response and default
+factory panel in its existing fixture. This controlled fixture is not native
+intraday evidence; genuine native intraday/deep-history acquisition, exact-tip
+CI, combined release qualification and the full Provider roadmap remain open.

@@ -14950,9 +14950,9 @@ progress:
   - PLATFORM-PREP-6
   - PLATFORM-PREP-7
   total: 8
-  current_phase: retained_analysis_group_series_read_latency_repair_and_shared_consumer_imports
-  current_blocker: Root must rebuild and remeasure the exact compatible source; exact-source CI and combined release gates remain pending and Root-owned.
-  next_action: Root rebuilds backend/worker with the batched analysis-series read, verifies the four retained analysis endpoints and affected dashboard flows, then the Provider continues remaining activation/maintenance work without changing existing holds.
+  current_phase: controlled_default_m15_fixture
+  current_blocker: Root's normal selected-series API and default 15 Minute panel recheck remains pending in the existing fixture; genuine native intraday acquisition is separate and Root-owned.
+  next_action: Root uses the existing validation fixture with this exact source to verify the authenticated local SPY M15 response and default 15 Minute panel; preserve all D1/W1/MN data and native holds.
 local_validation_profile: "full_stack_browser"
 local_validation_reason: >-
   API, persistence, queue, worker and provider-history routing are in scope; cumulative profile remains full_stack_browser/full_integration.
@@ -15315,3 +15315,25 @@ family_readiness_request_scoped_metadata_reuse_20261107:
     provider_http_or_data_writes: false
     full_browser_latency_resolution: pending Root-owned recheck
     full_platform_goal_and_roadmaps: open
+provider_controlled_intraday_fixture_20261107:
+  id: provider-default-m15-controlled-e2e-fixture-20261107
+  status: focused_fixture_green_root_api_recheck_pending
+  root_finding: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/root-default-intraday-fixture-readiness-review.json
+  scope:
+    - Gate market-data seed writes on E2E_SEED_MARKET_DATA, including direct helper calls.
+    - Add 520 independent deterministic SPY M15 bars across 20 regular-session windows; do not derive intraday OHLC from daily bars.
+    - Bind the controlled source/adjustment lineage to the active primary SPY listing and select the M15 series for ordinary local reads.
+    - Record M15 freshness/coverage separately; preserve the existing D1/W1/MN fixture and production routes.
+  changed_paths:
+    - backend/app/services/e2e_seed.py
+    - backend/tests/unit/services/test_e2e_seed.py
+  focused_validation:
+    command: backend/.venv/bin/pytest backend/tests/unit/services/test_e2e_seed.py -q
+    result: 8 passed in 26.93s after formatting; Ruff check, Ruff format --check, and git diff --check passed.
+    cases: Disabled flag performs zero SQL; enabled seed proves 520 finite, increasing, NY-session M15 rows, selected source/adjustment/listing series, independent M15 dataset state, and idempotent row/default identity.
+    prior_attempts: Initial test collection caught escaped quote syntax in the new assertions; corrected before the final run. Ruff format initially identified both edited files, then formatting and final checks passed.
+  provider_http_or_quota_mutations: false
+  production_or_public_dataset_mutations: false
+  d1_w1_mn_fixture_values_changed: false
+  pending: Root normal authenticated /ohlcv/local and default 15 Minute UI check in its existing fixture; genuine native intraday acquisition remains separate.
+  broader_provider_roadmap: open
