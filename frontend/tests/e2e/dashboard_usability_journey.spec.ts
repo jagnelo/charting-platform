@@ -186,7 +186,7 @@ async function expectUsefulInstrumentDetails(widget: Locator, response: Response
   ]
   const availableFields = descriptiveFields.filter(([, value]) => Boolean(value?.trim()))
   for (const [label, value] of availableFields) {
-    const row = widget.locator('.detail-row').filter({ has: widget.getByText(label, { exact: true }) })
+    const row = widget.locator('.detail-row').filter({ has: page.getByText(label, { exact: true }) })
     await expect(row.locator('b')).toHaveText(value!)
   }
 
