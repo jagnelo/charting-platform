@@ -270,6 +270,9 @@ describe('StudyLabTool', () => {
     expect(remounted.get('[aria-label="Study symbol"]').element).toHaveProperty('value', 'XLB')
     expect(remounted.text()).toContain('Current draft dataset: XLB')
     expect(remounted.text()).toContain('Saved run #88 dataset: symbol SPY')
+    await remounted.get('[aria-label="Study symbol"]').setValue('')
+    await remounted.setProps({ activeSymbol: 'QQQ' })
+    expect(remounted.get('[aria-label="Study symbol"]').element).toHaveProperty('value', 'QQQ')
     remounted.unmount()
   })
 

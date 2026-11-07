@@ -3,7 +3,7 @@
     <header class="study-lab-tool__header">
       <div class="study-lab-tool__header-main">
         <input v-model.trim="name" aria-label="Study name" placeholder="Study name" />
-        <input v-model.trim="symbol" aria-label="Study symbol" placeholder="Symbol" />
+        <input v-model.trim="symbol" aria-label="Study symbol" placeholder="Symbol" @input="noteDraftSymbolEdit" />
         <select v-model="factoryStudyKey" aria-label="Factory study" @change="applyFactoryStudy"><option value="custom">Custom Python</option><option v-for="template in factoryStudyTemplates" :key="template.key" :value="template.key">{{ template.name }}</option></select>
         <button type="button" aria-label="Validate study" :disabled="busy" @click="validate">Validate</button>
         <button type="button" aria-label="Run study" :disabled="busy || !validationMatchesSource || !validation?.valid" @click="saveAndRun">Run</button>
@@ -203,7 +203,7 @@ watch(() => ({ ...(props.configuration ?? {}) }), configuration => {
   // rather than composing the next Study event from an intermediate empty
   // configuration.
   configurationSnapshot.value = configuration
-  hasConfiguredDraftSymbol.value = typeof configuration.symbol === 'string' && Boolean(configuration.symbol.trim())
+  if (typeof configuration.symbol === 'string' && configuration.symbol.trim()) hasConfiguredDraftSymbol.value = true
 })
 function emitConfiguration(configuration: Record<string, unknown>) {
   const completeConfiguration = { ...configuration }
@@ -212,6 +212,12 @@ function emitConfiguration(configuration: Record<string, unknown>) {
 }
 const name = ref('Consecutive Positive Closes')
 const symbol = ref(configuredSymbol || props.activeSymbol)
+function noteDraftSymbolEdit() {
+  // An explicit edit (including clearing the field) opts this draft back into
+  // normal linked-context defaults. Parent echoes alone never discard a
+  // previously restored independent draft symbol.
+  hasConfiguredDraftSymbol.value = Boolean(symbol.value.trim())
+}
 const positiveStreakSource = "streaks = stats.positive_close_streaks(dataset)\nindices = [record['end_index'] for record in streaks['records']]\noutput.scalar('current_streak', streaks['current'])\noutput.scalar('longest_streak', streaks['longest'])\noutput.scalar('average_streak', streaks['average'])\noutput.scalar('shortest_streak', streaks['shortest'])\noutput.table('completed_streaks', streaks['records'])\noutput.table('forward_returns', research.forward_returns(dataset, indices, [1, 5, 20]))\noutput.events('streak_events', research.occurrences(dataset, indices, 'positive_close_streak'))\noutput.histogram('streak_distribution', streaks['lengths'], 8, streaks['current'])"
 const negativeStreakSource = "closes = market.close()\nstreaks = stats.streaks(closes, 'negative')\nindices = [record['end_index'] for record in streaks['records']]\noutput.scalar('current_negative_streak', streaks['current'])\noutput.scalar('longest_negative_streak', streaks['longest'])\noutput.scalar('average_negative_streak', streaks['average'])\noutput.scalar('shortest_negative_streak', streaks['shortest'])\noutput.table('completed_negative_streaks', streaks['records'])\noutput.table('forward_returns', research.forward_returns(dataset, indices, [1, 5, 20]))\noutput.events('negative_streak_events', research.occurrences(dataset, indices, 'negative_close_streak'))\noutput.histogram('negative_streak_distribution', streaks['lengths'], 8, streaks['current'])"
 const movingAverageParticipationSource = "lookback = int(parameters.get('lookback', 20))\ncloses = market.close()\naverage = ta.sma(closes, lookback)\nparticipation = [100 if value is not None and closes[index] > value else 0 for index, value in enumerate(average)]\noutput.series('above_moving_average', participation)\noutput.boolean('currently_above_moving_average', participation[-1] == 100 if participation else False)\noutput.scalar('percent_above_moving_average', sum(participation) / len(participation) if participation else 0)"
@@ -809,10 +815,6 @@ watch(() => props.configuration, configuration => {
   if (typeof configuration?.symbol === 'string' && configuration.symbol.trim()) {
     hasConfiguredDraftSymbol.value = true
     symbol.value = configuration.symbol.trim().toUpperCase()
-  } else if (configuration && !('symbol' in configuration)) {
-    // A complete replacement without a symbol is an intentional new/default
-    // draft; subsequent linked-context changes may seed that empty draft.
-    hasConfiguredDraftSymbol.value = false
   }
   if (typeof configuration?.study_asset_version_id === 'number' && Number.isInteger(configuration.study_asset_version_id) && configuration.study_asset_version_id > 0) openedStudyVersionId.value = configuration.study_asset_version_id
   if (typeof configuration?.study_source === 'string' && configuration.study_source.trim()) {
