@@ -14932,9 +14932,9 @@ acceptance_criteria:
   text: >-
     Focused offline tests plus Root-allocated database/browser proof cover contracts, dependency planning, durable dedupe/restart/priority, exact range/provider boundaries, worker registration/wakeup and failure semantics; full backend/DDL, exact-source CI and Root's combined release gates pass before acceptance.
 next_action: >-
-  Root rebuilds backend/worker from the exact /data/ensure timestamp repair descendant and reruns the affected pinned browser journey
-  against the existing leased fixture. Exact-source CI and combined qualification remain pending; continue the remaining Provider
-  activation/maintenance scope after this focused repair, preserving all full roadmap history.
+  Root verifies duplicate authenticated ensures against the exact worker repair in the existing fixture, then publishes the next compatible
+  candidate. Continue the remaining Provider activation/maintenance scope after Root's focused runtime check; exact-source CI and combined
+  qualification remain pending, and all full roadmap history stays open.
 human_intent_authorization: >-
   Human explicitly activated the complete “Make the existing platform complete and usable” plan in the original Provider thread. The
   execution copy and shared contract are platform-usability-20261106/APPROVED-PLAN.md and SHARED-CONTRACT.md. This is active work, not
@@ -14950,9 +14950,9 @@ progress:
   - PLATFORM-PREP-6
   - PLATFORM-PREP-7
   total: 8
-  current_phase: ensure_response_expired_updated_at_repair_focused_green
+  current_phase: duplicate_ensure_worker_row_lock_repair_focused_green
   current_blocker: PLATFORM-PREP-8 full backend/DDL, exact-source CI and Root's combined release gates remain pending and Root-owned.
-  next_action: Root rebuilds backend/worker from the exact repair descendant and rechecks the pinned ensure journey; then continue the remaining Provider scope.
+  next_action: Root verifies repeated ensure against the exact local repair, then publishes one compatible candidate for the remaining required CI and combined release gates.
 local_validation_profile: "full_stack_browser"
 local_validation_reason: >-
   API, persistence, queue, worker and provider-history routing are in scope; cumulative profile remains full_stack_browser/full_integration.
@@ -14982,7 +14982,13 @@ current_gate_checkpoint: >-
   roadmaps remain preserved. The /api/v1/data/ensure MissingGreenlet defect was corrected by avoiding eager ORM timestamp fallback
   access; the same-session expired-updated_at PostgreSQL regression passed 1/1 in 8.22s with ordinary isolated-schema teardown. The
   sandbox-denied setup attempt remains a pre-test environment failure. Root must rerun the pinned browser journey and exact-source CI;
-  no release gate is claimed green.
+  no release gate is claimed green. A subsequent read-only Root trace of repeated SPY ensure found the request blocked updating a shared
+  leased child while the worker transaction remained open during slow work. The worker now commits claims before dispatch, commits each job
+  outcome before advancing the batch, and refreshes late parent references under the child's enqueue lock before attaching continuation
+  jobs. The isolated real-PostgreSQL regression held the mocked history boundary, confirmed a second authenticated ensure returned within
+  five seconds and reused the child, and verified both parents remain attached to the persisted continuation. The imported ETF view fixture
+  now includes its actual SPY context; its focused module passed 20/20. Ruff, format, compile and diff checks pass. These are focused local
+  results only; Root's ordinary repeated-HTTP verification, exact-source CI and combined gates remain pending.
 previously_accepted_provider_history_identity_human_closure_authorization: >-
   Root accepted the prior bounded derived-history and retained-issuer-identity checkpoint under standing human delegation. Its evidence
   remains in derived_refresh_issuer_identity_followup and the append-only journal; it does not accept this newly activated scope.
@@ -15244,3 +15250,20 @@ data_ensure_expired_updated_at_followup_20261107:
     migration: none
   next_gate: Root rebuilds backend/worker from the exact source and repeats the pinned ensure browser journey and exact-source CI.
   broader_provider_scope_and_all_roadmaps: open
+
+duplicate_ensure_worker_row_lock_followup_20261107:
+  id: provider-data-ensure-leased-child-row-lock-20261107
+  status: focused_local_repair_green; root_runtime_and_exact_candidate_ci_pending
+  root_diagnosis: The worker's claim UPDATE remained uncommitted across provider work; duplicate ensure updated the same shared child metadata and waited on that transaction's row lock.
+  implementation:
+    - Commit durable leases before worker dispatch and commit each job's terminal/retry update before processing another job.
+    - Before creating an older-history continuation, refresh the shared child's parent_refs under its enqueue advisory lock and attach every current parent.
+    - Correct the imported ETF holdings view test context to include etfSymbol: SPY; keep the route query/state and no-snapshot-mutation assertions unchanged.
+  focused_evidence:
+    postgres: 1 passed; second authenticated ensure returned within 5s during a held mocked fetch, reused the same job, and both parents were persisted on the continuation.
+    frontend: 20 passed in tests/unit/views/test_etf_holdings_view.test.ts.
+    ruff_compile_diff: Ruff check/format, Python compileall, and git diff --check passed.
+  exact_5cdc_ci: run 42339572365 remained in_progress at last read; Frontend Unit was red 1/1723 on the shared fixture-context expectation; Backend and Playwright were still running. This is predecessor evidence, not qualification of this repair.
+  scope: No source HTTP, credentials, native quota/ledger, public schema/data, production or sibling-worktree mutation. Existing Root PG lease and preparation_sessions unique-schema teardown reused.
+  next: Root repeats ordinary duplicate HTTP ensure against the compatible backend/worker candidate; final exact-source CI and combined qualification remain mandatory.
+  integration_capture: exact branch HEAD

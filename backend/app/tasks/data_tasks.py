@@ -1181,6 +1181,16 @@ async def _enqueue_older_history_chunk(
             max(1, int(settings.PROVIDER_ON_DEMAND_MAX_REQUESTED_BARS)),
         ),
     )
+    # Serialize continuation creation with late coalescing requests. The
+    # worker released its claim transaction before transport, so another
+    # owner may have appended a parent while the provider call was in flight.
+    # Refresh under the same child enqueue lock before copying those refs.
+    from app.services.data_preparation import _history_request_key, _lock_parent_for_update
+
+    await _acquire_enqueue_lock(db, job.request_key)
+    await db.refresh(job, attribute_names=["metadata_payload"])
+    current_payload = deepcopy(job.metadata_payload or {})
+    current_child = deepcopy(current_payload.get("data_preparation_child") or {})
     continuation = dict(preparation)
     continuation.update(
         {
@@ -1192,8 +1202,8 @@ async def _enqueue_older_history_chunk(
             "derived_only": False,
         }
     )
-    refs = list(continuation.get("parent_refs") or [])
-    from app.services.data_preparation import _history_request_key, _lock_parent_for_update
+    refs = list(current_child.get("parent_refs") or [])
+    continuation["parent_refs"] = refs
 
     request_key = _history_request_key(
         instrument.id,
@@ -1273,6 +1283,10 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
 
     async with AsyncSessionLocal() as db:
         jobs = await claim_refresh_jobs(db, limit=_refresh_queue_batch_limit(limit))
+        # Persist the lease and release its row locks before doing any
+        # provider work. Request handlers may coalesce another owner onto a
+        # leased child while the worker is waiting on a slow transport.
+        await db.commit()
         completed = 0
         retried = 0
         lease_lost = 0
@@ -1288,6 +1302,7 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                     await db.refresh(job)
                     await complete_refresh_job(db, job, result_summary=result_summary)
                     completed += 1
+                    await db.commit()
                     continue
                 if job.capability == "data_preparation_screener_expansion":
                     from app.services.data_preparation import process_screener_expansion_batch
@@ -1296,6 +1311,7 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                     await db.refresh(job)
                     await complete_refresh_job(db, job, result_summary=result_summary)
                     completed += 1
+                    await db.commit()
                     continue
                 if job.capability == "etf_holdings_preparation":
                     from app.services.data_preparation import _etf_holdings_preparer
@@ -1349,6 +1365,7 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                             )
                             retried += 1
                             next_wakeup_at = min(next_wakeup_at or result.retry_at, result.retry_at)
+                            await db.commit()
                             continue
                         result_summary = {
                             "preparation_status": result.status,
@@ -1365,6 +1382,7 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                     await db.refresh(job)
                     await complete_refresh_job(db, job, result_summary=result_summary)
                     completed += 1
+                    await db.commit()
                     continue
                 if job.capability == "instrument_metadata":
                     preparation = (job.metadata_payload or {}).get("data_preparation_child") or {}
@@ -1487,6 +1505,7 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                                 )
                                 retried += 1
                                 next_wakeup_at = min(next_wakeup_at or retry_at, retry_at)
+                                await db.commit()
                                 continue
                         if profile_preflight_held:
                             pass
@@ -1606,6 +1625,7 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                                 )
                                 retried += 1
                                 next_wakeup_at = min(next_wakeup_at or retry_at, retry_at)
+                                await db.commit()
                                 continue
                             else:
                                 response = await acquire_instrument(
@@ -1654,6 +1674,7 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                                     )
                                     retried += 1
                                     next_wakeup_at = min(next_wakeup_at or retry_at, retry_at)
+                                    await db.commit()
                                     continue
                                 result_summary = {
                                     "preparation_status": (
@@ -1672,6 +1693,7 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                     await db.refresh(job)
                     await complete_refresh_job(db, job, result_summary=result_summary)
                     completed += 1
+                    await db.commit()
                     continue
                 if job.capability != "price_history":
                     raise ValueError("unsupported refresh queue capability")
@@ -1760,6 +1782,7 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                             },
                         )
                         completed += 1
+                        await db.commit()
                         continue
                     if plan_reason:
                         await complete_refresh_job(
@@ -1773,6 +1796,7 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                             },
                         )
                         completed += 1
+                        await db.commit()
                         continue
                     if usage_hold is not None:
                         await complete_refresh_job(
@@ -1787,6 +1811,7 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                             },
                         )
                         completed += 1
+                        await db.commit()
                         continue
                     if usage_job is not None:
                         preparation = deepcopy(preparation)
@@ -1818,6 +1843,7 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                                 },
                             )
                             completed += 1
+                            await db.commit()
                             continue
                         raise RefreshDependencyPending(
                             retry_at=datetime.now(UTC) + timedelta(seconds=20)
@@ -2081,7 +2107,7 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                             next_wakeup_at or job.next_attempt_at,
                             job.next_attempt_at,
                         )
-        await db.commit()
+            await db.commit()
         wakeup_scheduled = False
         redis = ctx.get("redis")
         if redis is not None and (more_jobs or next_wakeup_at is not None):
