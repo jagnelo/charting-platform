@@ -61,6 +61,26 @@ async function chooseETF(page: Page, symbol: string): Promise<{ listing: Listing
   return { listing, preparation: { symbol, requestId: body.request_id!, httpStatus: response.status(), status: body.status!, datasets } }
 }
 
+async function reselectKnownETF(page: Page, listing: Listing): Promise<Preparation> {
+  const input = page.getByRole('combobox', { name: 'Active symbol' })
+  const ensureRequest = page.waitForRequest(request => selectedEnsure(request, listing.symbol, listing.instrument_id))
+  await input.fill(listing.symbol)
+  const option = page.getByRole('option', { name: new RegExp(`^${listing.symbol}\\b`) })
+  await expect(option).toBeVisible()
+  await option.click()
+  await expect(input).toHaveValue(listing.symbol)
+  const request = await ensureRequest
+  const response = await page.waitForResponse(item => item.request() === request)
+  expect(response.status(), `${listing.symbol} re-selection preparation should be accepted`).toBe(200)
+  const body = await response.json() as { request_id?: string; status?: string; dependencies?: Array<{ dataset?: string }> }
+  expect(body.request_id).toBeTruthy()
+  expect(body.status).toBeTruthy()
+  expect(['held', 'failed', 'unavailable', 'blocked']).not.toContain(body.status)
+  const datasets = (body.dependencies ?? []).map(item => item.dataset ?? '').filter(Boolean)
+  expect(datasets.some(dataset => ['history', 'holdings'].includes(dataset))).toBeTruthy()
+  return { symbol: listing.symbol, requestId: body.request_id!, httpStatus: response.status(), status: body.status!, datasets }
+}
+
 async function assertSelectedBars(page: Page, request: APIRequestContext, symbol: string, token: string): Promise<Bar[]> {
   await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue(symbol)
   await expect.poll(async () => {
@@ -182,6 +202,7 @@ test('genuine BWET to XHB to IGV selection retains current holdings provenance o
   const evidence: Preparation[] = []
   const fundEvidence: FundEvidence[] = []
   let igv: Awaited<ReturnType<typeof currentHoldings>> | null = null
+  let igvListing: Listing | null = null
 
   for (const symbol of ['BWET', 'XHB', 'IGV']) {
     const { listing, preparation } = await chooseETF(page, symbol)
@@ -211,7 +232,10 @@ test('genuine BWET to XHB to IGV selection retains current holdings provenance o
       await expect(page).not.toHaveURL(/\/legacy\/chart/)
       await assertSelectedBars(page, request, row.constituent_symbol!, token!)
     }
-    if (symbol === 'IGV') igv = fund
+    if (symbol === 'IGV') {
+      igv = fund
+      igvListing = listing
+    }
   }
 
   expect(igv).toBeTruthy()
@@ -230,10 +254,11 @@ test('genuine BWET to XHB to IGV selection retains current holdings provenance o
   await assertSelectedBars(page, request, row.constituent_symbol!, token!)
   await page.screenshot({ path: testInfo.outputPath('native-selected-igv-holding.png') })
 
-  const reopenedIGV = await chooseETF(page, 'IGV')
-  expect(reopenedIGV.listing.instrument_id).toBe(igv!.snapshot.etf_instrument_id)
+  expect(igvListing).toBeTruthy()
+  const reopenPreparation = await reselectKnownETF(page, igvListing!)
+  expect(reopenPreparation.httpStatus).toBe(200)
   await assertSelectedBars(page, request, 'IGV', token!)
-  const reopenedFund = await currentHoldings(request, 'IGV', reopenedIGV.listing.instrument_id, token!)
+  const reopenedFund = await currentHoldings(request, 'IGV', igvListing!.instrument_id, token!)
   expect(reopenedFund.snapshot.id).toBe(igv!.snapshot.id)
   await expect(page.getByTestId('active-holding-lineage')).toHaveCount(0)
 
@@ -242,7 +267,7 @@ test('genuine BWET to XHB to IGV selection retains current holdings provenance o
   await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue('IGV')
   await expect(page.getByTestId('active-holding-lineage')).toHaveCount(0)
   await assertSelectedBars(page, request, 'IGV', token!)
-  const reloadedFund = await currentHoldings(request, 'IGV', reopenedIGV.listing.instrument_id, token!)
+  const reloadedFund = await currentHoldings(request, 'IGV', igvListing!.instrument_id, token!)
   expect(reloadedFund.snapshot.id).toBe(igv!.snapshot.id)
 
   expect(evidence.map(item => item.symbol)).toEqual(['BWET', 'XHB', 'IGV'])
