@@ -1067,11 +1067,14 @@ test('S&P 500 RRG renders deep D1/W1/MN data and survives selection, resize, max
 
   // Keyboard selection uses the plot's public arrow/Home/End/Enter controls and also links the chart.
   const plot = page.getByRole('group', { name: 'Relative rotation trend and momentum plane' })
+  const keyboardRowsDisclosure = activeRotation.locator('details.rotation-tool__rows-disclosure')
+  await setDisclosureOpen(keyboardRowsDisclosure, true)
   await plot.focus()
   await plot.press('End')
   await expect(page.locator('.rotation-tool__tooltip')).toContainText(lastSector)
   const lastChartResponse = page.waitForResponse(response => response.ok() && barResponseFor(response, lastSector, 'D1'))
   await plot.press('Enter')
+  await setDisclosureOpen(keyboardRowsDisclosure, false)
   await assertChartRendered(page, lastSector, await lastChartResponse.then(response => response.json() as Promise<Bar[]>))
   await expect(chartSymbol).toHaveText(lastSector)
 
