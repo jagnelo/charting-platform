@@ -4,6 +4,7 @@ import json
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
+from zoneinfo import ZoneInfo
 
 import httpx
 import pytest
@@ -228,6 +229,50 @@ def test_twelve_data_parses_daily_exchange_local_timestamp_as_utc():
 
     assert len(bars) == 1
     assert bars[0].ts == datetime(2024, 1, 2, 21, tzinfo=UTC)
+
+
+def test_twelve_data_earliest_timestamp_is_scoped_to_symbol_interval_and_mic():
+    provider = TwelveDataProvider()
+    local_midnight = datetime(2024, 1, 2, tzinfo=ZoneInfo("America/New_York"))
+    payload = {"datetime": "2024-01-02", "unix_time": str(int(local_midnight.timestamp()))}
+    with patch.object(provider, "_get", return_value=payload) as get:
+        earliest = provider.get_earliest_timestamp(
+            "AAPL",
+            Timeframe.D1,
+            mic_code="XNAS",
+            exchange_timezone="America/New_York",
+        )
+    assert earliest == local_midnight.astimezone(UTC)
+    assert get.call_args.args == (
+        "earliest_timestamp",
+        {"symbol": "AAPL", "interval": "1day", "mic_code": "XNAS"},
+    )
+
+
+def test_twelve_data_earliest_timestamp_fails_closed_on_mic_or_calendar_mismatch():
+    provider = TwelveDataProvider()
+    with patch.object(provider, "_get") as get:
+        with pytest.raises(ProviderResponseError, match="requires a supported timeframe"):
+            provider.get_earliest_timestamp(
+                "AAPL",
+                Timeframe.D1,
+                mic_code="",
+                exchange_timezone="America/New_York",
+            )
+        get.assert_not_called()
+
+    with patch.object(
+        provider,
+        "_get",
+        return_value={"datetime": "2024-01-03", "unix_time": "1704196800"},
+    ):
+        with pytest.raises(ProviderResponseError, match="exchange-local unix_time"):
+            provider.get_earliest_timestamp(
+                "AAPL",
+                Timeframe.D1,
+                mic_code="XNAS",
+                exchange_timezone="America/New_York",
+            )
 
 
 def test_twelve_data_discovery_requests_explicit_bounded_pages():

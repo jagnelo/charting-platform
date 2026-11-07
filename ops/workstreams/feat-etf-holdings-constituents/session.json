@@ -4525,7 +4525,7 @@
     "verification": "All62 status_from139/SHA256/Git blob/executable-bit records match the exact source; the exact9 ETF paths passed old/new guards and were imported.",
     "state": "Root-released development dependency only; producer release and combined browser/CI/release gates remain pending."
   },
-  "current_provider_runtime_dependency": {
+  "historical_provider_runtime_dependency_dd05c5e8": {
     "source": "dd05c5e8318ff59a90f879867cae9664dcc0de4f",
     "previous_source": "182173f346d4a27694a46beba057102a5b7449e6",
     "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providerdd05c5e8-runtime-development-consumption-contract.json",
@@ -4535,6 +4535,17 @@
     "consumer_import_paths_verified": 6,
     "verification": "All64 status_from139/SHA256/Git blob/executable-bit rows match the source; exact6 ETF paths passed released old guards and match source.",
     "state": "Root-released development dependency only; producer, joint browser, and release gates remain pending."
+  },
+  "current_provider_runtime_dependency": {
+    "source": "22c31cd3e7f35e361e286ef40576d379aaf44449",
+    "previous_source": "dd05c5e8318ff59a90f879867cae9664dcc0de4f",
+    "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider22c31cd3-runtime-development-consumption-contract.json",
+    "manifest_sha256": "a5079b0eb78a8fd67e48e94a7d749bc171ffa2b21165fc9c59c405501dc2db85",
+    "local_manifest_copy": "ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/22c31cd3e7f35e361e286ef40576d379aaf44449.json",
+    "current_manifest_records_verified": 67,
+    "consumer_import_paths_verified": 6,
+    "verification": "All67 status_from139/SHA256/Git blob/executable-bit rows match the exact source; six ETF paths passed the dd05 old guards and match source.",
+    "state": "Root-released development dependency only; no external native use. Account-specific permission, Root native review, combined CI/browser and release gates remain pending."
   },
   "current_checkpoint_2026_11_07_notes_lifecycle": {
     "source_parent": "369f0c8d051d8d7e17ea0dfe7478860f51218368",

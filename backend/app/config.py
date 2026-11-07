@@ -1790,6 +1790,8 @@ class Settings(BaseSettings):
             "mode": "credit_count",
             "unit_label": "credits",
             "operation_costs": {
+                # Twelve Data documents earliest_timestamp as one API credit.
+                "get_earliest_timestamp": 1,
                 "fetch_ohlcv": 1,
                 "fetch_latest_ohlcv": 1,
                 "get_current_price": 1,

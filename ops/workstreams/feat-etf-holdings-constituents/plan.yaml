@@ -5726,7 +5726,7 @@ acceptance_criteria:
 progress:
   completed: []
   total: 5
-  current_phase: Root-released Provider dd05c5e8 (64/64 manifest rows) and TC 2666aa55 (86/86 rows) are consumed under exact ETF path guards. The strict latest-marker and alpha-aware tail oracles remain unchanged. Root reports the TC source-layering fix has21 focused regressions green; this worktree did not replay them. R52 passed only its leased D1 diagnostic on predecessor TC c9/Provider dd05; Root owns the normal full RRG D1/W1/MN and layout lifecycle on the new common runtime, plus Results and final release gates. No new browser body ran in this checkpoint.
+  current_phase: Root-released Provider 22c31cd3 (67/67 manifest rows) and TC 2666aa55 (86/86 rows) are consumed under exact ETF path guards. Provider adds source-specific unknown-depth history planning and a scoped earliest-history witness; outbound HTTP remains disabled and account-specific use is unresolved. TC’s latest-marker layering fix is imported with the strict ETF oracle unchanged. Root reports21 focused TC regressions green. Root owns the full RRG D1/W1/MN and lifecycle, Results, exact CI, native-use review and final release gates.
   current_blocker: R53 on predecessor TC c9 exposed latest markers being painted before later historical circles; TC 2666aa55 fixes that product layering, and the strict ETF 3x3 latest-center oracle is unchanged. Root owns the normal full RRG D1/W1/MN and lifecycle run on a compiled combined candidate, plus Strategy Results, exact CI, and release gates. Preserve prior failed receipts, all roadmaps, genuine-source holds, and the R52 D1-only scope.
 previous_provider_b0eae597_development_import:
   source: b0eae5974801e320b3da858d7e1a33829b206430
@@ -6607,6 +6607,26 @@ historical_provider_runtime_dependency_182173f3:
   imported_paths: exactly the9 ETF consumer import_paths under the manifest old_guards; Provider ownership and all prior dependency receipts remain preserved.
   verification: all62 status_from139/SHA256/Git blob/executable-bit rows match; the exact9 ETF paths match the released source.
   state: development dependency only; no Provider suite, new fixture, source HTTP, quota, production, integration, or deployment operation.
+provider_runtime_dependency_active_22c31cd3:
+  authority: Root released exact Provider source 22c31cd3e7f35e361e286ef40576d379aaf44449 for development consumption only; no native activation, external request, production mutation or release acceptance is implied.
+  source: 22c31cd3e7f35e361e286ef40576d379aaf44449
+  previous_active_dependency: dd05c5e8318ff59a90f879867cae9664dcc0de4f
+  manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider22c31cd3-runtime-development-consumption-contract.json
+  manifest_sha256: a5079b0eb78a8fd67e48e94a7d749bc171ffa2b21165fc9c59c405501dc2db85
+  local_manifest_copy: ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/22c31cd3e7f35e361e286ef40576d379aaf44449.json
+  current_manifest_records_verified: 67
+  consumer_import_paths:
+  - backend/app/config.py
+  - backend/app/providers/optional_market_data.py
+  - backend/app/services/provider_runtime.py
+  - backend/app/tasks/data_tasks.py
+  - backend/tests/unit/providers/test_optional_market_data.py
+  - backend/tests/unit/services/test_data_preparation_history_planning.py
+  verification: All67 status_from139/SHA256/Git blob/executable-bit rows match; the exact6 ETF paths passed old dd05 guards and match source.
+  scope: Source-specific unknown-depth planning and scoped native earliest-history witness; explicit bounded requests preserve eligible alternatives without inheriting shallower ceilings.
+  validation: Imported unit modules yielded177 passed and1 failure only with routing forced off; the failed mocked admission case passed alone with logical routing enabled and outbound HTTP pinned to a dead proxy. Provider reports its focused54-case source proof; no external request or quota operation occurred here.
+  state: Root-released development dependency only; account-specific permitted use, native proof, exact CI and combined release gates remain Root-owned/pending.
+
 rrg_r47_alpha_aware_tail_oracle_2026_11_07:
   receipt: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/validation-fixture/etf-r47-rrg-tail-terminal-receipt.json
   diagnosis: Root-adopted before/after RGBA samples show partial-alpha unblended canvas pixels and legitimate same-color source-over accumulation above0.75; R47's old RGB-only opaque-backing oracle is physically incorrect.
@@ -6656,7 +6676,7 @@ tc_common_runtime_dependency_active_2666aa55:
   behavior: Latest RRG markers render above historical circles; common compact History acquisition UI and its focused tests are included.
   state: Root-released development dependency only; normal full RRG D1/W1/MN and layout lifecycle, Results, exact CI, and release gates remain pending.
 
-provider_runtime_dependency_active_dd05c5e8:
+historical_provider_runtime_dependency_dd05c5e8:
   authority: Root-released exact Provider source for development consumption only; producer and joint release qualification remain Root-owned.
   source: dd05c5e8318ff59a90f879867cae9664dcc0de4f
   previous_active_dependency: 182173f346d4a27694a46beba057102a5b7449e6
