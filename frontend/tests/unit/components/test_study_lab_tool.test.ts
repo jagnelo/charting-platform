@@ -124,6 +124,65 @@ describe('StudyLabTool', () => {
     wrapper.unmount()
   })
 
+  it('preserves saved-run identity when a draft update is applied as a complete parent replacement and remounted', async () => {
+    const savedRun = {
+      id: 77,
+      status: 'completed',
+      run_config: { symbol: 'SPY', timeframe: 'D1', adjustment: 'split_adjusted', session: 'regular' },
+      dataset_manifest: { symbol: 'SPY', timeframe: 'D1', adjustment: 'split_adjusted', session: 'regular' },
+      artifacts: [{ id: 1, name: 'saved_close', artifact_type: 'scalar', payload: { value: 501 } }],
+    }
+    apiGet.mockImplementation((path: string) => path === '/research/runs/77' ? Promise.resolve(savedRun) : Promise.resolve([]))
+    const configuration = reactive<Record<string, unknown>>({
+      symbol: 'SPY',
+      timeframe: 'D1',
+      adjustment: 'split_adjusted',
+      session: 'regular',
+      study_run_id: 77,
+      study_run_source: "output.scalar('saved_close', 501)",
+      study_run_contract: 'scalar',
+      study_run_name: 'Saved SPY run',
+      study_run_parameter_schema: { properties: {} },
+    })
+    const Parent = defineComponent({
+      setup: () => () => h(StudyLabTool, {
+        activeSymbol: 'SPY',
+        configuration,
+        onConfiguration: (next: Record<string, unknown>) => {
+          // Match WorkstationView's complete replacement semantics exactly.
+          for (const key of Object.keys(configuration)) delete configuration[key]
+          Object.assign(configuration, next)
+        },
+      }),
+    })
+    const wrapper = mount(Parent, {
+      global: { plugins: [[VueQueryPlugin, { queryClient: new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } }) }]] },
+    })
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #77'))
+
+    await wrapper.get('[aria-label="Study symbol"]').setValue('XLB')
+    await nextTick()
+    await flushPromises()
+
+    expect(configuration).toMatchObject({
+      symbol: 'XLB',
+      study_run_id: 77,
+      study_run_source: "output.scalar('saved_close', 501)",
+      study_run_contract: 'scalar',
+      study_run_name: 'Saved SPY run',
+    })
+    expect(wrapper.text()).toContain('Current draft dataset: XLB')
+    expect(wrapper.text()).toContain('Saved run #77 dataset: symbol SPY')
+    wrapper.unmount()
+
+    const remounted = mountTool({ activeSymbol: 'SPY', configuration })
+    await vi.waitFor(() => expect(remounted.text()).toContain('Run #77'))
+    expect(remounted.text()).toContain('Current draft dataset: XLB')
+    expect(remounted.text()).toContain('Saved run #77 dataset: symbol SPY')
+    expect(remounted.text()).toContain('saved_close scalar result: 501.')
+    remounted.unmount()
+  })
+
   it('associates parameter schema errors with the invalid schema field', async () => {
     const wrapper = mountTool({ activeSymbol: 'SPY', configuration: {} })
     const schema = wrapper.get('[aria-label="Study parameter schema"]')

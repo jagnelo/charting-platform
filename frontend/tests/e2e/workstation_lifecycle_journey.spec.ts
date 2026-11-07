@@ -15,6 +15,7 @@ const TOOL_OUTCOMES: Record<string, 'watchlist' | 'chart' | 'ratio' | 'technical
   'Study Results': 'results',
   'Relative Rotation': 'rotation',
   'Market Breadth': 'breadth',
+  Breadth: 'breadth',
   'Market Map': 'map',
   Technicals: 'technicals',
   Coverage: 'coverage',
@@ -43,6 +44,10 @@ const FACTORY_LAYOUT_NAMES = [
   'US Top Down', 'TC Classic', 'Drill Down', 'Sector by Year',
   '1 Chart', '4 Timeframe', 'Fundamentals', 'Study Lab',
 ]
+const FACTORY_INSTANCE_KEYS_BY_CATALOGUE_KEY: Record<string, string[]> = {
+  chart: ['primary-chart'],
+  breadth: ['breadth-summary'],
+}
 let retainedGaugeScanName = ''
 
 async function openWorkspaceMenu(page: Page) {
@@ -88,8 +93,8 @@ async function assertCanonicalCoverage(page: Page) {
   ])
   expect(catalogueResponse.status).toBe(200)
   expect(workspaceResponse.status).toBe(200)
-  const catalogue = catalogueResponse.body as { tools: Array<{ title: string }> }
-  const workspace = workspaceResponse.body as { tabs: Array<{ name: string; windows: Array<{ title: string }> }> }
+  const catalogue = catalogueResponse.body as { tools: Array<{ key: string; tool_type: string; title: string }> }
+  const workspace = workspaceResponse.body as { tabs: Array<{ name: string; windows: Array<{ instance_key: string; tool_type: string; title: string }> }> }
   const catalogueTitles = catalogue.tools.map(tool => tool.title).sort()
   expect(catalogueTitles.filter(title => !(title in TOOL_OUTCOMES)), 'every canonical catalogue entry needs a useful outcome assertion').toEqual([])
   expect(workspace.tabs.map(tab => tab.name).sort()).toEqual([...FACTORY_LAYOUT_NAMES].sort())
@@ -451,6 +456,7 @@ test.describe('Workstation lifecycle journeys', () => {
     const { catalogue, workspace } = await assertCanonicalCoverage(page)
     await assertFactoryLayouts(page, workspace.tabs)
     await activateLayout(page, 'US Top Down')
+    const usTopDown = workspace.tabs.find(layout => layout.name === 'US Top Down')!
     const chartTool = await activatePanel(page, 'Chart')
     const favoriteStar = chartTool.getByRole('button', { name: 'Add SPY to My Favorites', exact: true })
     await expect(favoriteStar, 'create the empty Favorites prerequisite through the public Chart star action').toBeVisible()
@@ -459,11 +465,15 @@ test.describe('Workstation lifecycle journeys', () => {
     for (const item of catalogue.tools) {
       const kind = TOOL_OUTCOMES[item.title]
       expect(kind, `missing useful-result mapping for ${item.title}`).toBeTruthy()
-      const existingTab = page.locator('.lm_tab').filter({ hasText: new RegExp(`^${escapeRegExp(item.title)}$`) })
-      if (await existingTab.count()) {
-        const existingTool = await activatePanel(page, item.title)
-        await existingTool.getByRole('button', { name: 'Close tool' }).click()
-        await expect(page.getByRole('group', { name: item.title, exact: true })).toHaveCount(0)
+      const factoryKeys = new Set([item.key, ...(FACTORY_INSTANCE_KEYS_BY_CATALOGUE_KEY[item.key] ?? [])])
+      const existingFactoryWindow = usTopDown.windows.find(window => window.tool_type === item.tool_type && factoryKeys.has(window.instance_key))
+      if (existingFactoryWindow) {
+        const existingFactoryTool = page.locator(`.tool-window[data-window-key="${escapeRegExp(existingFactoryWindow.instance_key)}"]`)
+        if (await existingFactoryTool.count()) {
+          await activatePanel(page, existingFactoryWindow.title)
+          await existingFactoryTool.getByRole('button', { name: 'Close tool', exact: true }).click()
+          await expect(existingFactoryTool).toHaveCount(0)
+        }
       }
 
       await page.getByRole('button', { name: 'Add tool', exact: true }).click()
@@ -537,6 +547,8 @@ test.describe('Workstation lifecycle journeys', () => {
   test('duplicates and safely deletes a workspace while preserving its source and tool content through resize and maximize', async ({ page, loggedIn, browserDiagnostics }) => {
     await page.goto('/chart/SPY')
     await expect(page.locator('.workspace-layout-host')).toBeVisible()
+    const originalViewport = page.viewportSize()
+    expect(originalViewport).not.toBeNull()
     const sourceName = await page.locator('.workstation__workspace-name').textContent()
     expect(sourceName?.trim()).toBe('US Top Down')
     const sourceBenchmarks = await assertUsefulTool(page, 'Benchmarks', 'watchlist')
@@ -591,6 +603,7 @@ test.describe('Workstation lifecycle journeys', () => {
     await expect(canvas).toBeVisible()
     await page.setViewportSize({ width: 1100, height: 760 })
     await assertUsefulTool(page, 'Chart', 'chart')
+    await page.setViewportSize(originalViewport!)
 
     page.once('dialog', dialog => dialog.accept())
     const deleteMenu = await openWorkspaceMenu(page)

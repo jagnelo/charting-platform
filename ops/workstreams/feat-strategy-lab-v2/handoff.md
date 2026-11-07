@@ -20004,3 +20004,20 @@ reload and checks that the same renamed layout and useful Benchmarks content
 survive. This excludes an older in-flight snapshot by matching the request
 initiated after the Undo action. TC owns the shared save-feedback implementation;
 the browser body remains pending Root execution.
+## 2026-11-07 - R38 Study configuration and workstation acceptance corrections
+
+Root's R38 wire showed that Study's draft-only and saved-run-only emissions
+replaced one another under the host's existing complete-replacement contract.
+Study now composes its outgoing events from a local snapshot updated only when
+the parent's delete/assign batch has completed. The focused regression applies
+that exact parent behavior, edits the XLB draft, then remounts and verifies the
+draft remains XLB while the immutable saved SPY Run 6 reference and artifact
+remain present. The changed Study unit module passed 67/67.
+
+The workstation recreation journey now maps the factory title `Breadth` to the
+canonical breadth result and closes existing factory panels by catalogue key
+and tool type, including `breadth-summary`/`breadth` and
+`primary-chart`/`chart`. The workspace journey keeps its narrow viewport Chart
+content check, then restores the original viewport before comparing responsive
+watchlist columns. Type-check and Playwright discovery pass; all browser bodies
+remain pending Root's combined run. No TC-owned product path changed.
