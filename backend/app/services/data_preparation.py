@@ -2178,8 +2178,18 @@ async def get_data_preparation_response(
                 # Persisted selected-series rows are authoritative for both the
                 # fully cached path and any partial output while children run.
                 coverage_ranges = retained_ranges
-                if retained_coverage.status is CoverageStatus.READY and not child_jobs:
+                history_jobs_pending = any(
+                    job.status in _PENDING_PREPARATION_JOB_STATUSES
+                    for job in [*child_jobs, *background_jobs]
+                )
+                if retained_coverage.status is CoverageStatus.READY and not history_jobs_pending:
                     item_status, reason, retry_at = "ready", None, None
+                elif (
+                    retained_coverage.status is CoverageStatus.PARTIAL and not history_jobs_pending
+                ):
+                    # Keep an old provider hold visible while exposing useful
+                    # cached portions and the exact remaining gaps.
+                    item_status = "partial"
             elif child_jobs or background_jobs:
                 if timeframe_enum in {Timeframe.W1, Timeframe.MN}:
                     coverage_ranges = await _persisted_derived_coverage_ranges(
