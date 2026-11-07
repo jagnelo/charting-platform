@@ -1428,6 +1428,7 @@ scope:
   gates.'
 owned_paths:
 - frontend/src/views/WorkstationView.vue
+- frontend/src/views/WatchlistView.vue
 - frontend/src/components/chart/HistoryAcquisitionControl.vue
 - frontend/src/lib/onDemandAcquisition.ts
 - frontend/src/lib/workstationSymbolSearch.ts

@@ -180,6 +180,30 @@ describe('workspace store layout tabs', () => {
     vi.useRealTimers()
   })
 
+  it('reports snapshot save progress, failure, and a confirmed retry', async () => {
+    const store = useWorkspaceStore()
+    store.workspace = {
+      id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [{
+        id: 20, stable_key: 'us-top-down', name: 'US Top Down', position: 0,
+        active_window_key: 'relative-rotation', layout_config: { root: { type: 'stack', maximised: true, content: [] } },
+        windows: [{ id: 30, instance_key: 'relative-rotation', tool_type: 'relative_rotation', title: 'Relative Rotation', link_group: 'blue', configuration: {}, style: {}, state_schema_version: 1, position: 0 }],
+      }],
+    }
+    store.scheduleSnapshot()
+    expect(store.snapshotSaveStatus).toBe('saving')
+
+    apiPut.mockRejectedValueOnce(new Error('API PUT /workspaces/10/snapshot → 503: unavailable'))
+    expect(await store.saveSnapshot()).toBe(false)
+    expect(store.snapshotSaveStatus).toBe('error')
+    expect(store.snapshotSaveError).toContain('503')
+
+    apiPut.mockResolvedValueOnce({ ...store.workspace, revision: 5 })
+    expect(await store.saveSnapshot()).toBe(true)
+    expect(store.snapshotSaveStatus).toBe('saved')
+    expect(store.snapshotSaveError).toBeNull()
+  })
+
   it('refreshes a follower from a leader refresh event without starting its own announcement', async () => {
     const messages: unknown[] = []
     let listener: ((event: MessageEvent) => void) | undefined

@@ -3192,7 +3192,7 @@
     {
       "source": "frontend/src/views/AlertsView.vue",
       "control_count": 27,
-      "signature_sha256": "5a82bfa77b6686e66a6a820b075387ca33b0b02c8a906a16043d81bbd13b3be7",
+      "signature_sha256": "6edf91e496a9ecd87b18cb957918b40420a32c5bd1dff040adc0e3f66a5eb0b1",
       "journeys": [
         "TC09"
       ],
@@ -3294,7 +3294,7 @@
     {
       "source": "frontend/src/views/WatchlistView.vue",
       "control_count": 22,
-      "signature_sha256": "ac5422421d8ea9d27a96dee541603e1977c41a433ea078d3bbe01f3ff5296f35",
+      "signature_sha256": "544c2e86a2029ec088563271724c7bfa07c077d79fb6afb61eb6cd34be43e43e",
       "journeys": [
         "TC09"
       ],
@@ -3306,8 +3306,8 @@
     },
     {
       "source": "frontend/src/views/WorkstationView.vue",
-      "control_count": 47,
-      "signature_sha256": "b59541d5821c645cdb83327a75988ba6a739b0d1f32eaf6c3dadf1157cafdce0",
+      "control_count": 48,
+      "signature_sha256": "7e607d5a355617bb5e6ebb90c98cc19fd2efc5fc1bf7871d9566ad3fd9b4496e",
       "journeys": [
         "TC01",
         "TC02",
