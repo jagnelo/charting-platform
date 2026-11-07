@@ -3,7 +3,7 @@ import { expect, test } from './helpers'
 
 // This table is keyed to the authenticated server catalogue.  The test fails
 // closed if a canonical tool is added without a user-visible outcome assertion.
-const TOOL_OUTCOMES: Record<string, 'watchlist' | 'chart' | 'ratio' | 'technicals' | 'breadth' | 'coverage' | 'notes' | 'alerts' | 'scan' | 'gauge' | 'rotation' | 'map' | 'study' | 'results' | 'library' | 'report'> = {
+const TOOL_OUTCOMES: Record<string, 'watchlist' | 'industry' | 'chart' | 'ratio' | 'technicals' | 'breadth' | 'coverage' | 'notes' | 'alerts' | 'scan' | 'gauge' | 'rotation' | 'map' | 'study' | 'results' | 'library' | 'report'> = {
   Chart: 'chart',
   WatchList: 'watchlist',
   'My Favorites': 'watchlist',
@@ -23,11 +23,11 @@ const TOOL_OUTCOMES: Record<string, 'watchlist' | 'chart' | 'ratio' | 'technical
   'Python Library': 'library',
   Benchmarks: 'watchlist',
   'S&P 500 Sectors': 'watchlist',
-  Industries: 'watchlist',
+  Industries: 'industry',
   Constituents: 'watchlist',
   'Relative Strength': 'ratio',
   'Sector Indexes': 'watchlist',
-  'Industry Indexes': 'watchlist',
+  'Industry Indexes': 'industry',
   Components: 'watchlist',
   'Selected Symbol': 'chart',
   'Sector Comparison': 'chart',
@@ -230,7 +230,7 @@ async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUT
         const listName = `Factory journey ${Date.now()}`
         await tool.getByLabel('Personal watchlist name').fill(listName)
         await tool.getByRole('button', { name: 'Create personal watchlist', exact: true }).click()
-        const personalList = tool.getByLabel('Personal watchlist')
+        const personalList = tool.getByLabel('Personal watchlist', { exact: true })
         await expect(personalList.locator('option').filter({ hasText: listName })).toBeAttached()
       }
       await tool.getByLabel('Add symbol to personal watchlist').fill('SPY')
@@ -245,10 +245,26 @@ async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUT
     if (title === 'WatchList' || title === 'Fundamentals WatchList') {
       await expect(firstRow).toHaveAttribute('aria-label', /SPY .+Last:.*\d/)
     } else {
-      if (title === 'S&P 500 Sectors' || title === 'Sector Indexes') await firstRow.click()
-      if (title === 'Industries' || title === 'Industry Indexes') await firstRow.click()
       await assertUsefulWatchlistNumbers(tool)
     }
+  } else if (kind === 'industry') {
+    const industryList = tool.locator('.industry-list')
+    await expect(industryList, `${title} should render its dated industry ranking, not watchlist placeholders`).toBeVisible({ timeout: 30_000 })
+    const provenance = industryList.locator('.industry-list__provenance')
+    await expect(provenance).toBeVisible()
+    await expect(provenance).toContainText(/holdings ·/)
+    const industryRows = industryList.getByRole('button')
+    const usefulIndustryIndex = async () => industryRows.evaluateAll(rows => rows.findIndex(row => {
+      const label = row.getAttribute('aria-label') ?? ''
+      const match = label.match(/, (\d+) of (\d+) constituents resolved,.*Classification source: ([^.]*)\./)
+      return Boolean(match && Number(match[1]) > 0 && Number(match[2]) >= Number(match[1]) && match[3].trim())
+    }))
+    await expect.poll(async () => {
+      return (await industryRows.count()) > 0 ? usefulIndustryIndex() : -1
+    }, { timeout: 30_000 }).toBeGreaterThanOrEqual(0)
+    const classifiedIndustry = industryRows.nth(await usefulIndustryIndex())
+    await expect(classifiedIndustry).toBeVisible()
+    await expect(classifiedIndustry.locator('.industry-list__classification')).not.toContainText(/unknown|unclassified/i)
   } else if (kind === 'chart' || kind === 'ratio') {
     const expectedTimeframe = typeof configuration.timeframe === 'string' ? configuration.timeframe : null
     if (expectedTimeframe) await expect(tool.getByLabel(`${title} timeframe`, { exact: true })).toHaveValue(expectedTimeframe)

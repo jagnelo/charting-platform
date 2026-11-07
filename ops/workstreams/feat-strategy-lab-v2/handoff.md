@@ -20060,6 +20060,25 @@ record validation, and diff checks pass. This locator correction has not run
 in a browser; Root owns the next browser execution and the other R40 failures
 remain open.
 
+### R44 factory lifecycle oracle corrections (2026-11-07)
+
+R44 passed one journey and failed five. Root assigned two actionable
+Strategy-spec corrections: the Industries panels render source-classified
+industry buttons, not `.watchlist__row` elements; and substring matching the
+`Personal watchlist` label selected multiple controls. The factory outcome map
+now gives Industries and Industry Indexes a dedicated semantic outcome that
+checks visible industry rows, positive resolved-member counts, classification
+labels, and dated holdings provenance. It does not click sector/industry rows
+while inventorying layouts, avoiding incidental changes to the shared symbol
+context. The personal-list select now uses an exact label. The prior rename
+locator and Undo-only persistence assertions remain unchanged. Type-check,
+Playwright discovery, workstream validation, and diff checks pass; browser
+execution remains Root-owned. R44 did not execute the Undo body because the
+logged-in setup failed to bind a response GUID; that is not a product verdict.
+The separate Study restored-draft overwrite is assigned to TC's shared
+workspace publisher, and the RRG raster issue remains outside this Strategy
+spec correction.
+
 
 ### Study preparation waiter contract audit (2026-11-07)
 
