@@ -1,7 +1,8 @@
 <template>
   <div class="details-widget">
-    <div v-if="loading" class="widget-state">Loading {{ symbol }}...</div>
+    <div v-if="loading" class="widget-state">{{ preparationMessage || `Preparing ${symbol}...` }}</div>
     <div v-else-if="!symbol" class="widget-state">Choose an instrument</div>
+    <div v-else-if="preparationMessage" class="widget-state error">{{ preparationMessage }}</div>
     <div v-else-if="error" class="widget-state error">{{ error }}</div>
     <template v-else-if="instrument">
       <div class="details-main">
@@ -23,6 +24,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { api } from '@/lib/api'
 import { ensureKnownInstrumentSymbol } from '@/lib/instruments'
+import { dataPreparationCoordinator, instrumentHistoryPreparationRequest, preparationStatusMessage } from '@/lib/dataPreparation'
 import type { Instrument } from '@/types'
 
 const props = defineProps<{ config: Record<string, any>; overrideSymbol?: string }>()
@@ -30,11 +32,13 @@ const props = defineProps<{ config: Record<string, any>; overrideSymbol?: string
 const loading = ref(false)
 const error = ref<string | null>(null)
 const instrument = ref<Instrument | null>(null)
+const preparationMessage = ref('')
 const symbol = computed(() =>
   (props.overrideSymbol?.trim() || String(props.config.symbol ?? '').trim()).toUpperCase()
 )
 let refreshSeq = 0
 let mounted = false
+let refreshController: AbortController | null = null
 
 const rows = computed(() => {
   const detail = instrument.value?.equity_detail
@@ -71,17 +75,35 @@ function formatLarge(value?: number | string | null) {
 
 async function refresh() {
   const seq = ++refreshSeq
+  refreshController?.abort()
+  const controller = new AbortController()
+  refreshController = controller
+  preparationMessage.value = ''
   if (!symbol.value) {
     instrument.value = null
     error.value = null
     loading.value = false
+    if (refreshController === controller) refreshController = null
     return
   }
   loading.value = true
   error.value = null
   try {
-    const target = await resolveTarget(symbol.value)
+    const requestedSymbol = symbol.value
+    const target = await resolveTarget(requestedSymbol)
     if (!mounted || seq !== refreshSeq) return
+    const prepared = await dataPreparationCoordinator.ensure(
+      instrumentHistoryPreparationRequest({ kind: 'instrument', symbol: target }, 'D1'),
+      {
+        signal: controller.signal,
+        onProgress: progress => {
+          if (mounted && seq === refreshSeq) preparationMessage.value = preparationStatusMessage(progress.response)
+        },
+      },
+    )
+    if (!mounted || seq !== refreshSeq) return
+    preparationMessage.value = prepared.status === 'ready' ? '' : preparationStatusMessage(prepared)
+    if (prepared.status !== 'ready') return
     const loadedInstrument = await api.get<Instrument>(`/instruments/${encodeURIComponent(target)}`)
     if (!mounted || seq !== refreshSeq) return
     instrument.value = loadedInstrument
@@ -96,9 +118,10 @@ async function refresh() {
       instrument.value = refreshedInstrument
     }
   } catch (e: any) {
-    if (mounted && seq === refreshSeq) error.value = e?.message ?? 'Instrument unavailable'
+    if (mounted && seq === refreshSeq && !controller.signal.aborted) error.value = e?.message ?? 'Instrument unavailable'
   } finally {
     if (mounted && seq === refreshSeq) loading.value = false
+    if (refreshController === controller) refreshController = null
   }
 }
 
@@ -114,6 +137,8 @@ onMounted(() => {
 onBeforeUnmount(() => {
   mounted = false
   refreshSeq += 1
+  refreshController?.abort()
+  refreshController = null
 })
 </script>
 

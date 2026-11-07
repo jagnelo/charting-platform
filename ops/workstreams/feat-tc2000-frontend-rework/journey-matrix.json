@@ -23,6 +23,12 @@
       "source_commit": "bc45155d964c357802de14991f3aac02c5fab29c",
       "source_blob": "c2c82d2e551f6f257a814d02b203a5402a2d3943",
       "source_sha256": "b37cad11a09cba6ef40e4c3884f936f9fc54b8b7c2da0d9eae757d9ceac7e9d8"
+    },
+    "strategy_runtime_import": {
+      "source_commit": "134c63f535bb78c84da7c90063f81aca91843ba0",
+      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/134c63f535bb78c84da7c90063f81aca91843ba0.json",
+      "manifest_sha256": "a0d8d58f3dc8d8bfd361e62337c5f7b4b13cd6a5c8f49e124cfe7169ad0012bd",
+      "qualification": "Exact released Strategy-owned focused tests are imported; rendered browser acceptance remains pending."
     }
   },
   "counts": {
@@ -1670,7 +1676,15 @@
         "frontend/src/views/WorkstationView.vue",
         "frontend/src/components/common/SearchBar.vue",
         "frontend/src/components/dashboard/DashboardInstrumentSearch.vue"
-      ]
+      ],
+      "owner_evidence": {
+        "owner": "feat-strategy-lab-v2",
+        "source_commit": "134c63f535bb78c84da7c90063f81aca91843ba0",
+        "focused_tests": [
+          "frontend/tests/unit/components/test_dashboard_instrument_search.test.ts"
+        ],
+        "status": "unit evidence only; browser journey pending"
+      }
     },
     {
       "id": "TC-A-history-timeframe",
@@ -1831,7 +1845,16 @@
         "frontend/src/views/WorkstationView.vue",
         "frontend/src/components/chart/LayoutPicker.vue",
         "frontend/src/components/workstation/ToolWindow.vue"
-      ]
+      ],
+      "owner_evidence": {
+        "owner": "feat-strategy-lab-v2",
+        "source_commit": "134c63f535bb78c84da7c90063f81aca91843ba0",
+        "focused_tests": [
+          "frontend/tests/unit/stores/test_dashboard_store.test.ts",
+          "frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts"
+        ],
+        "status": "unit evidence only; browser journey pending"
+      }
     },
     {
       "id": "TC-A-chart-preparation",
@@ -1861,7 +1884,17 @@
         "frontend/src/components/workstation/UnknownToolRecovery.vue",
         "frontend/src/components/workstation/VirtualWatchlistTool.vue",
         "frontend/src/components/workstation/WorkstationToolContent.vue"
-      ]
+      ],
+      "owner_evidence": {
+        "owner": "feat-strategy-lab-v2",
+        "source_commit": "134c63f535bb78c84da7c90063f81aca91843ba0",
+        "focused_tests": [
+          "frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts",
+          "frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts",
+          "frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts"
+        ],
+        "status": "unit evidence only; browser journey pending"
+      }
     },
     {
       "id": "TC-A-route-navigation",
@@ -3087,8 +3120,8 @@
     },
     {
       "source": "frontend/src/views/DashboardView.vue",
-      "control_count": 24,
-      "signature_sha256": "3f8772dfa13d5fbf69e9fc245990d9a55956c0e207f3b7bcff9157d1662bf202",
+      "control_count": 27,
+      "signature_sha256": "34b69790aa595cc54952bc708bea6d6299b784d52004cd06cc2386c63f0b8e2d",
       "journeys": [
         "TC09"
       ],
@@ -3140,7 +3173,7 @@
     {
       "source": "frontend/src/views/SettingsView.vue",
       "control_count": 6,
-      "signature_sha256": "e91e9ff1bc1cba32756824bd9124ee889660903600489529ad85b26418a43e67",
+      "signature_sha256": "c58aa2937aaf0321163a53e875f833a02d1d1c20d75313e75fc73e189a278a0e",
       "journeys": [
         "TC09"
       ],
@@ -3422,7 +3455,7 @@
     {
       "source": "frontend/src/components/dashboard/DashboardInstrumentSearch.vue",
       "control_count": 3,
-      "signature_sha256": "96acb8d745a67b2b83a49af6008c6cd4a9827c613510e319f43425adc5594e96",
+      "signature_sha256": "137d7a115560d6867fd3c4c375c65dad65c58c68103f8b502fa0b1f1cf78276a",
       "journeys": [
         "TC02"
       ],

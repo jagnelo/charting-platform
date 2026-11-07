@@ -4710,3 +4710,21 @@ approved_development_dependency_imports:
     - backend/tests/unit/tasks/test_data_tasks.py
     - backend/tests/unit/tasks/test_native_usage_prerequisite.py
     - backend/tests/unit/workers/test_arq_worker.py
+
+  - source_sha: 134c63f535bb78c84da7c90063f81aca91843ba0
+    manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/134c63f535bb78c84da7c90063f81aca91843ba0.json
+    manifest_sha256: a0d8d58f3dc8d8bfd361e62337c5f7b4b13cd6a5c8f49e124cfe7169ad0012bd
+    paths:
+    - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
+    - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
+    - frontend/src/components/dashboard/DashboardInstrumentSearch.vue
+    - frontend/src/components/dashboard/DashboardLineChartWidget.vue
+    - frontend/src/components/dashboard/DashboardQuoteWidget.vue
+    - frontend/src/stores/dashboard.ts
+    - frontend/src/views/DashboardView.vue
+    - frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts
+    - frontend/tests/unit/components/test_dashboard_instrument_search.test.ts
+    - frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts
+    - frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts
+    - frontend/tests/unit/stores/test_dashboard_store.test.ts
+    - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts

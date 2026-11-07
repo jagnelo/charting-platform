@@ -1,6 +1,8 @@
 <template>
   <div class="advanced-chart-widget">
     <div v-if="!symbol" class="widget-state">Choose an instrument</div>
+    <div v-else-if="preparing" class="widget-state" role="status">{{ preparationMessage || `Preparing ${symbol}...` }}</div>
+    <div v-else-if="preparationMessage" class="widget-state" :class="{ error: preparationFailed }" role="status">{{ preparationMessage }}</div>
     <div v-else-if="store.isLoading" class="widget-state">Loading {{ symbol }}...</div>
     <div v-else-if="store.error" class="widget-state error">{{ store.error }}</div>
     <UPlotChart
@@ -26,6 +28,7 @@ import UPlotChart from '@/components/chart/UPlotChart.vue'
 import { usePanelStore } from '@/stores/chart'
 import { api } from '@/lib/api'
 import { ensureKnownInstrumentSymbol } from '@/lib/instruments'
+import { dataPreparationCoordinator, instrumentHistoryPreparationRequest, preparationStatusMessage } from '@/lib/dataPreparation'
 import type { ChartBarType, ChartDrawing, PriceAlert, Timeframe } from '@/types'
 
 const props = defineProps<{
@@ -49,26 +52,64 @@ const showDrawings = computed(() => props.config.showDrawings !== false)
 const showAlerts = computed(() => props.config.showAlerts !== false)
 const drawings = ref<ChartDrawing[]>([])
 const priceAlerts = ref<PriceAlert[]>([])
+const preparationMessage = ref('')
+const preparationFailed = ref(false)
+const preparing = ref(false)
 let refreshSeq = 0
 let mounted = false
+let refreshController: AbortController | null = null
 
 async function refresh() {
   const seq = ++refreshSeq
+  refreshController?.abort()
+  const controller = new AbortController()
+  refreshController = controller
+  preparationMessage.value = ''
+  preparationFailed.value = false
+  preparing.value = !!symbol.value
   if (!symbol.value) {
     store.symbol = ''
     store.bars = []
     drawings.value = []
     priceAlerts.value = []
+    preparing.value = false
+    if (refreshController === controller) refreshController = null
     return
   }
   try {
-    const target = await resolveTarget(symbol.value)
+    const requestedSymbol = symbol.value
+    const selectedTimeframe = timeframe.value
+    const target = await resolveTarget(requestedSymbol)
     if (!mounted || seq !== refreshSeq) return
-    await store.loadBars(target, timeframe.value, chartType.value)
+    const prepared = await dataPreparationCoordinator.ensure(
+      instrumentHistoryPreparationRequest({ kind: 'instrument', symbol: target }, selectedTimeframe),
+      {
+        signal: controller.signal,
+        onProgress: progress => {
+          if (mounted && seq === refreshSeq) {
+            preparationMessage.value = preparationStatusMessage(progress.response)
+          }
+        },
+      },
+    )
+    if (!mounted || seq !== refreshSeq) return
+    if (prepared.status !== 'ready') {
+      preparationMessage.value = preparationStatusMessage(prepared)
+      preparationFailed.value = ['failed', 'unavailable'].includes(prepared.status)
+      preparing.value = false
+      return
+    }
+    preparationMessage.value = ''
+    preparing.value = false
+    store.error = null
+    await store.loadBars(target, selectedTimeframe, chartType.value)
     if (!mounted || seq !== refreshSeq) return
     await loadReadOnlyOverlays(seq)
   } catch (e: any) {
-    if (mounted && seq === refreshSeq) store.error = e?.message ?? 'Chart unavailable'
+    if (mounted && seq === refreshSeq && !controller.signal.aborted) store.error = e?.message ?? 'Chart unavailable'
+  } finally {
+    if (mounted && seq === refreshSeq) preparing.value = false
+    if (refreshController === controller) refreshController = null
   }
 }
 
@@ -106,6 +147,8 @@ onMounted(() => {
 onBeforeUnmount(() => {
   mounted = false
   refreshSeq += 1
+  refreshController?.abort()
+  refreshController = null
 })
 </script>
 

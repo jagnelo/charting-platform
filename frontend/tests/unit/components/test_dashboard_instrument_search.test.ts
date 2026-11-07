@@ -4,24 +4,52 @@ import { nextTick } from 'vue'
 
 import DashboardInstrumentSearch from '@/components/dashboard/DashboardInstrumentSearch.vue'
 
-vi.mock('@/lib/api', () => ({
-  api: {
-    get: vi.fn(),
-    post: vi.fn(),
-  },
+const { discover, resolveDiscovered, resolveExisting } = vi.hoisted(() => ({
+  discover: vi.fn(),
+  resolveDiscovered: vi.fn(),
+  resolveExisting: vi.fn(),
+}))
+const { resolveExpression } = vi.hoisted(() => ({ resolveExpression: vi.fn() }))
+
+vi.mock('@/lib/onDemandAcquisition', () => ({
+  discoverInstruments: discover,
+  resolveDiscoveredInstrument: resolveDiscovered,
+  resolveExistingInstrument: resolveExisting,
+}))
+vi.mock('@/lib/instruments', () => ({
+  ensureKnownInstrumentSymbol: resolveExpression,
+  formatInstrumentLookupError: (_symbol: string, error: Error) => error.message,
+  getInstrumentInputHint: () => '',
+  isExpressionInput: (value: string) => value.trim().startsWith('='),
+  isResolvableExpressionInput: (value: string) => value.trim().startsWith('=') && value.trim().length > 1,
 }))
 
-import { api } from '@/lib/api'
+function candidate(symbol: string, instrumentId: number | null = null, exchange = 'NASDAQ') {
+  return {
+    symbol,
+    name: `${symbol} Corp`,
+    exchange,
+    type: 'Equity',
+    provider: 'controlled-source',
+    instrument_id: instrumentId,
+    identity_status: instrumentId === null ? 'candidate' : 'verified',
+  }
+}
+
+function discovery(candidates: ReturnType<typeof candidate>[], status = 'complete') {
+  return { request_id: 'request-test', status, candidates, source_outcomes: [] }
+}
 
 async function flushPromises() {
   await Promise.resolve()
   await Promise.resolve()
+  await nextTick()
 }
 
 const mountedDashboardSearches: Array<{ unmount: () => void }> = []
 
 function mountDashboardSearch(options: any = {}) {
-  const wrapper = mount(DashboardInstrumentSearch, options)
+  const wrapper = mount(DashboardInstrumentSearch, { attachTo: document.body, ...options })
   mountedDashboardSearches.push(wrapper)
   return wrapper
 }
@@ -30,6 +58,7 @@ describe('DashboardInstrumentSearch', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     vi.useFakeTimers()
+    resolveExpression.mockRejectedValue(new Error('Expression could not be resolved'))
   })
 
   afterEach(() => {
@@ -38,119 +67,119 @@ describe('DashboardInstrumentSearch', () => {
     vi.useRealTimers()
   })
 
-  it('searches instruments after debounce and emits selected result', async () => {
-    ;(api.get as ReturnType<typeof vi.fn>)
-      .mockResolvedValueOnce([
-        { symbol: 'NVDA', name: 'NVIDIA Corp', exchange: 'NASDAQ', type: 'Equity' },
-      ])
-      .mockResolvedValueOnce({ symbol: 'NVDA' })
-
-    const wrapper = mountDashboardSearch({
-      props: { modelValue: '' },
-      attachTo: document.body,
+  it('keeps prefix discovery results as candidates until the user explicitly selects one', async () => {
+    discover.mockResolvedValueOnce(discovery([candidate('NVDA', null)]))
+    resolveDiscovered.mockResolvedValueOnce({
+      status: 'resolved',
+      instrument: { instrument_id: 9, symbol: 'NVDA', identity_status: 'verified' },
+      source_outcomes: [],
     })
+    const wrapper = mountDashboardSearch({ props: { modelValue: '' } })
 
-    await wrapper.find('input').setValue('NVDA')
+    await wrapper.find('input').setValue('NV')
     vi.advanceTimersByTime(230)
     await flushPromises()
-    await nextTick()
-
-    expect(api.get).toHaveBeenCalledWith('/instruments/search', { q: 'NVDA', canonical_only: true })
-    expect(document.body.textContent).toContain('NVIDIA Corp')
-
     const button = document.body.querySelector('.dash-search-item') as HTMLButtonElement
+
+    expect(discover).toHaveBeenCalledWith('NV', [], 10)
+    expect(button.textContent).toContain('NVDA Corp')
+    expect(resolveDiscovered).not.toHaveBeenCalled()
+    expect(wrapper.emitted('select')).toBeUndefined()
+
     button.click()
     await flushPromises()
-    await nextTick()
-
-    expect(api.get).toHaveBeenCalledWith('/instruments/NVDA', { canonical_only: true })
+    expect(resolveDiscovered).toHaveBeenCalledWith(candidate('NVDA', null))
     expect(wrapper.emitted('select')?.[0]).toEqual(['NVDA'])
   })
 
-  it('does not emit a symbol when provider search returns no results', async () => {
-    ;(api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce([])
-
-    const wrapper = mountDashboardSearch({
-      props: { modelValue: '' },
-      attachTo: document.body,
+  it('resolves one unique exact ticker without exposing provider choices', async () => {
+    discover.mockResolvedValueOnce(discovery([candidate('AAPL', 17)]))
+    resolveDiscovered.mockResolvedValueOnce({
+      status: 'resolved',
+      instrument: { instrument_id: 17, symbol: 'AAPL', identity_status: 'verified' },
+      source_outcomes: [],
     })
+    const wrapper = mountDashboardSearch({ props: { modelValue: '' } })
 
-    await wrapper.find('input').setValue('mcd')
+    await wrapper.find('input').setValue('AAPL')
     vi.advanceTimersByTime(230)
     await flushPromises()
-    await nextTick()
-
-    await wrapper.find('input').trigger('keydown.enter')
     await flushPromises()
-    await nextTick()
 
-    expect(document.body.querySelectorAll('.dash-search-item').length).toBe(0)
-    expect(api.get).toHaveBeenCalledWith('/instruments/search', { q: 'mcd', canonical_only: true })
-    expect(wrapper.emitted('select')).toBeUndefined()
-    expect(api.post).not.toHaveBeenCalled()
+    expect(resolveDiscovered).toHaveBeenCalledWith(candidate('AAPL', 17))
+    expect(resolveExisting).not.toHaveBeenCalled()
+    expect(wrapper.emitted('select')?.[0]).toEqual(['AAPL'])
+    expect(document.body.textContent).not.toContain('controlled-source')
   })
 
-  it('does not publish a late search response after the widget unmounts', async () => {
-    let resolveResults!: (results: any[]) => void
-    const resultsLoaded = new Promise<any[]>(resolve => { resolveResults = resolve })
-    ;(api.get as ReturnType<typeof vi.fn>).mockReturnValueOnce(resultsLoaded)
-    const wrapper = mountDashboardSearch({
-      props: { modelValue: '' },
-      attachTo: document.body,
-    })
+  it('does not auto-resolve an exact-looking candidate from incomplete discovery', async () => {
+    discover.mockResolvedValueOnce(discovery([candidate('AAPL', null)], 'partial'))
+    const wrapper = mountDashboardSearch({ props: { modelValue: '' } })
 
-    await wrapper.find('input').setValue('NVDA')
+    await wrapper.find('input').setValue('AAPL')
     vi.advanceTimersByTime(230)
-    await Promise.resolve()
-    const vm = wrapper.vm as unknown as { results: any[]; loading: boolean }
-    wrapper.unmount()
-    mountedDashboardSearches.splice(mountedDashboardSearches.indexOf(wrapper), 1)
-    resolveResults([{ symbol: 'NVDA', name: 'NVIDIA Corp', exchange: 'NASDAQ', type: 'Equity' }])
     await flushPromises()
 
-    expect(vm.results).toEqual([])
-    expect(vm.loading).toBe(true)
+    expect(resolveDiscovered).not.toHaveBeenCalled()
+    expect(resolveExisting).not.toHaveBeenCalled()
+    expect(document.body.querySelectorAll('.dash-search-item')).toHaveLength(1)
+    expect(document.body.textContent).toContain('NASDAQ')
+    expect(document.body.textContent).toContain('Some instrument candidates may be missing')
   })
 
-  it('does not resolve incomplete expressions or emit draft updates while typing', async () => {
-    const wrapper = mountDashboardSearch({
-      props: { modelValue: '' },
-      attachTo: document.body,
-    })
+  it('does not guess when an exact ticker has multiple listing candidates', async () => {
+    discover.mockResolvedValueOnce(discovery([
+      candidate('ABC', null, 'NYSE'),
+      candidate('ABC', null, 'NASDAQ'),
+    ]))
+    const wrapper = mountDashboardSearch({ props: { modelValue: '' } })
+
+    await wrapper.find('input').setValue('ABC')
+    vi.advanceTimersByTime(230)
+    await flushPromises()
+
+    expect(resolveExisting).not.toHaveBeenCalled()
+    expect(resolveDiscovered).not.toHaveBeenCalled()
+    expect(document.body.querySelectorAll('.dash-search-item')).toHaveLength(2)
+  })
+
+  it('ignores a superseded discovery response after the query changes', async () => {
+    let resolveOld!: (value: unknown) => void
+    discover
+      .mockReturnValueOnce(new Promise(resolve => { resolveOld = resolve }))
+      .mockResolvedValueOnce(discovery([candidate('MSFT', null)]))
+    const wrapper = mountDashboardSearch({ props: { modelValue: '' } })
 
     const input = wrapper.find('input')
-    await input.setValue('=')
-    await nextTick()
-
-    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
-    expect(api.post).not.toHaveBeenCalled()
-    expect(document.body.textContent).toContain('Finish the expression to continue.')
-
-    await input.trigger('keydown.enter')
+    await input.setValue('A')
+    vi.advanceTimersByTime(230)
+    await flushPromises()
+    await input.setValue('M')
+    expect(document.body.textContent).not.toContain('AAPL Corp')
+    vi.advanceTimersByTime(230)
     await flushPromises()
 
-    expect(api.post).not.toHaveBeenCalled()
+    resolveOld(discovery([candidate('AAPL', null)]))
+    await flushPromises()
+
+    expect(discover).toHaveBeenNthCalledWith(1, 'A', [], 10)
+    expect(discover).toHaveBeenNthCalledWith(2, 'M', [], 10)
+    expect(document.body.textContent).toContain('MSFT Corp')
+    expect(document.body.textContent).not.toContain('AAPL Corp')
+    expect(resolveDiscovered).not.toHaveBeenCalled()
   })
 
-  it('resolves expressions and surfaces lookup errors', async () => {
-    ;(api.post as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
-      new Error('API POST /instruments/resolve-expression → 404: {"detail":"Constituent instrument \'QQQX\' not found"}')
-    )
-
-    const wrapper = mountDashboardSearch({
-      props: { modelValue: '' },
-      attachTo: document.body,
-    })
-
+  it('keeps expression resolution and surfaces identity failures without committing', async () => {
+    const wrapper = mountDashboardSearch({ props: { modelValue: '' } })
     const input = wrapper.find('input')
     await input.setValue('=SPY-QQQ')
+    expect(document.body.textContent).toContain('Expression')
     await input.trigger('keydown.enter')
     await flushPromises()
-    await nextTick()
 
-    expect(api.post).toHaveBeenCalledWith('/instruments/resolve-expression?canonical_only=true', {
-      expression: '=SPY-QQQ',
-    })
-    expect(document.body.textContent).toContain('Could not resolve =SPY-QQQ')
+    expect(resolveExpression).toHaveBeenCalledWith('=SPY-QQQ', 'Instrument', { canonicalOnly: true })
+    expect(document.body.textContent).toContain('Expression could not be resolved')
+    expect(wrapper.emitted('select')).toBeUndefined()
+    expect(discover).not.toHaveBeenCalled()
   })
 })

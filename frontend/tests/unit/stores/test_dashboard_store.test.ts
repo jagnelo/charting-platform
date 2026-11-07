@@ -116,7 +116,7 @@ describe('useDashboardStore', () => {
     expect(store.activeTab?.widgets.some(w => w.id === 99)).toBe(false)
   })
 
-  it('reverts optimistic widget updates on failure', async () => {
+  it('keeps widget updates unchanged on failure', async () => {
     const store = useDashboardStore()
     store.dashboards = [dashboard()] as any
     store.activeDashboardId = 1
@@ -127,6 +127,21 @@ describe('useDashboardStore', () => {
 
     await expect(store.updateWidget(10, { title: 'Broken' } as any)).rejects.toThrow('boom')
     expect(store.activeTab!.widgets[0].title).toBe(originalTitle)
+  })
+
+  it('keeps saved widget config unchanged until its update is accepted', async () => {
+    const store = useDashboardStore()
+    store.dashboards = [dashboard()] as any
+    store.activeDashboardId = 1
+    store.activeTabId = 1
+    let resolvePatch!: (value: any) => void
+    ;(api.patch as ReturnType<typeof vi.fn>).mockReturnValueOnce(new Promise(resolve => { resolvePatch = resolve }))
+
+    const saving = store.updateWidget(10, { config: { symbol: 'MSFT' } } as any)
+    expect(store.activeTab!.widgets[0].config).toEqual({})
+    resolvePatch({ config: { symbol: 'MSFT' } })
+    await saving
+    expect(store.activeTab!.widgets[0].config).toEqual({ symbol: 'MSFT' })
   })
 
   it('reverts widget layout changes when persistence fails', async () => {
