@@ -51,6 +51,11 @@ describe('RelativeRotationTool', () => {
     expect(wrapper.get('.rotation-tool__plot').attributes('aria-describedby')).toBe(wrapper.get('.rotation-tool__sr-only').attributes('id'))
     expect(wrapper.get('.rotation-tool__plot').attributes('aria-keyshortcuts')).toContain('ArrowRight')
     expect(wrapper.get('.rotation-tool').attributes('tabindex')).toBe('0')
+    expect(wrapper.get('.rotation-tool__settings > summary').text()).toBe('Settings')
+    expect(wrapper.get('.rotation-tool__settings').attributes('open')).toBeUndefined()
+    expect(wrapper.get('.rotation-tool__rows-disclosure > summary').text()).toBe('Rows · 1')
+    expect(wrapper.get('.rotation-tool__rows-disclosure').attributes('open')).toBeUndefined()
+    expect(wrapper.find('.rotation-tool__plot-shell .compact-status').exists()).toBe(false)
     expect(wrapper.get('.rotation-tool__table').exists()).toBe(true)
     expect(wrapper.get('.rotation-tool__warning-heading').text()).toBe('Warnings')
     expect(observedHost).toBe(wrapper.get('.rotation-tool__plot').element)
@@ -110,6 +115,25 @@ describe('RelativeRotationTool', () => {
     Object.defineProperty(chart, 'bbox', { value: { left: 20, top: 30, width: 850, height: 440 } })
     draw(chart)
     expect(chart.ctx.arc.mock.calls.at(-1)?.[2]).toBe(4.375)
+    wrapper.unmount()
+  })
+
+  it('sizes the RRG canvas to a short dock host instead of imposing a taller minimum', async () => {
+    vi.mocked(api.get).mockResolvedValue({ freshness: 'current', rows: [{
+      instrument_id: 1, symbol: 'XLK', state: 'leading', trend: 0.1, momentum: 0.2, coverage: 1,
+      tail: [], history: [{ timestamp: '2026-01-01', trend: 0.1, momentum: 0.2 }],
+    }] })
+    const wrapper = mountTool()
+    await vi.waitFor(() => expect(wrapper.find('.rotation-tool__plot').exists()).toBe(true))
+    const host = wrapper.get('.rotation-tool__plot').element
+    Object.defineProperty(host, 'clientHeight', { configurable: true, value: 96 })
+
+    resize?.()
+
+    const chart = vi.mocked(uPlot).mock.results.at(-1)?.value
+    expect(chart?.setSize).toHaveBeenLastCalledWith(expect.objectContaining({ height: 96 }))
+    expect(wrapper.get('.rotation-tool__settings > summary').text()).toBe('Settings')
+    expect(wrapper.get('.rotation-tool__rows-disclosure > summary').text()).toBe('Rows · 1')
     wrapper.unmount()
   })
 
@@ -199,8 +223,8 @@ describe('RelativeRotationTool', () => {
     await wrapper.get('select[aria-label="Rotation timeframe"]').setValue('W1')
     await vi.waitFor(() => expect(api.get).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ timeframe: 'W1' }), expect.any(Object)))
     expect(wrapper.get('.rotation-tool__plot').element).toBe(initialPlotHost)
-    expect(wrapper.get('.rotation-tool__plot-shell').text()).toContain('Updating sp500-sectors · W1')
-    expect(wrapper.get('.rotation-tool__plot-shell').text()).toContain('Showing sp500-sectors · D1')
+    expect(wrapper.get('.rotation-tool__status .compact-status__detail').text()).toContain('Updating sp500-sectors · W1')
+    expect(wrapper.get('.rotation-tool__status .compact-status__detail').text()).toContain('Showing sp500-sectors · D1')
     releaseWeeklyResponse?.(newPayload)
     await vi.waitFor(() => expect(wrapper.text()).toContain('NEW'))
     await vi.waitFor(() => expect(api.get).toHaveBeenCalledTimes(2))
@@ -250,7 +274,7 @@ describe('RelativeRotationTool', () => {
     await vi.waitFor(() => expect(wrapper.text()).toContain('XLK'))
     await vi.waitFor(() => expect(uPlot).toHaveBeenCalledTimes(1))
     expect(wrapper.get('.rotation-tool__plot').exists()).toBe(true)
-    expect(wrapper.text()).toContain('Updating ratios…')
+    expect(wrapper.get('.rotation-tool__status .compact-status__detail').text()).toBe('Updating ratios…')
     releasePreparation({
       request_id: 'rrg-unavailable', status: 'unavailable', created_at: '2026-11-06T12:00:00Z', updated_at: '2026-11-06T12:00:00Z',
       version: 1, target: {}, completed: 1, total: 2, last_progress_at: '2026-11-06T12:00:00Z', dependencies: [{
@@ -259,7 +283,7 @@ describe('RelativeRotationTool', () => {
         covered_ranges: [], reason_code: 'source_history_unavailable', retry_at: null, updated_at: '2026-11-06T12:00:00Z',
       }],
     })
-    await vi.waitFor(() => expect(wrapper.text()).toContain('reviewed data source'))
+    await vi.waitFor(() => expect(wrapper.get('.rotation-tool__status .compact-status__detail').text()).toContain('reviewed data source'))
     expect(wrapper.text()).toContain('XLK')
     expect(uPlot).toHaveBeenCalledTimes(1)
     wrapper.unmount()
@@ -274,7 +298,7 @@ describe('RelativeRotationTool', () => {
     const wrapper = mountTool()
 
     await vi.waitFor(() => expect(wrapper.text()).toContain('XLK'))
-    await vi.waitFor(() => expect(wrapper.text()).toContain('showing available local results'))
+    await vi.waitFor(() => expect(wrapper.get('.rotation-tool__status .compact-status__detail').text()).toContain('showing available local results'))
     expect(wrapper.text()).not.toContain('provider_quota_admission_denied')
     expect(uPlot).toHaveBeenCalledTimes(1)
     wrapper.unmount()
@@ -443,10 +467,10 @@ describe('RelativeRotationTool', () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
     const first = mountTool({}, queryClient)
     const second = mountTool({}, queryClient)
-    await vi.waitFor(() => expect(first.text()).toContain('No sector rotation rows are available.'))
-    await vi.waitFor(() => expect(second.text()).toContain('No sector rotation rows are available.'))
-    expect(first.find('.rotation-tool__state[role="status"]').attributes('aria-live')).toBe('polite')
-    expect(first.find('.rotation-tool__state[role="status"]').attributes('aria-atomic')).toBe('true')
+    await vi.waitFor(() => expect(first.get('.rotation-tool__status .compact-status__detail').text()).toContain('No sector rotation rows are available.'))
+    await vi.waitFor(() => expect(second.get('.rotation-tool__status .compact-status__detail').text()).toContain('No sector rotation rows are available.'))
+    expect(first.get('.rotation-tool__status [role="status"]').attributes('aria-live')).toBe('polite')
+    expect(first.get('.rotation-tool__status [role="status"]').attributes('aria-atomic')).toBe('true')
     expect(api.get).toHaveBeenCalledTimes(2)
   })
 

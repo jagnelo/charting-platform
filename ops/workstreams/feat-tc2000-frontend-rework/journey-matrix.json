@@ -24,18 +24,6 @@
       "source_blob": "c2c82d2e551f6f257a814d02b203a5402a2d3943",
       "source_sha256": "b37cad11a09cba6ef40e4c3884f936f9fc54b8b7c2da0d9eae757d9ceac7e9d8"
     },
-    "strategy_runtime_import": {
-      "source_commit": "8dfeed8d9092bbf90e54f283afe1d96e71c23511",
-      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/8dfeed8d9092bbf90e54f283afe1d96e71c23511.json",
-      "manifest_sha256": "0a71d697a2fb03b15bce0ce42c38948d523240a91d5d4a83dd4fb0844172e9c0",
-      "qualification": "Exact Strategy-owned dashboard recovery paths and tests are imported; current-source browser acceptance remains pending."
-    },
-    "strategy_domain_runtime_import": {
-      "source_commit": "ab46db86965dcc59f1121416ca52950f2ccc8514",
-      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/ab46db86965dcc59f1121416ca52950f2ccc8514.json",
-      "manifest_sha256": "9e8e55fe9804c2f12f835b53d2fd42c72f20e95929689a78e75e5f969a51d263",
-      "qualification": "Exact Strategy-owned Study and lifecycle successor ab46db8 and declared TC imports are present; current-source browser and release acceptance remain Root-owned and pending."
-    },
     "provider_runtime_import": {
       "source_commit": "182173f346d4a27694a46beba057102a5b7449e6",
       "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/182173f346d4a27694a46beba057102a5b7449e6.json",
@@ -43,10 +31,48 @@
       "qualification": "Provider 182 adds the controlled M15 fixture and consistent workspace reads for development; exact-source CI and combined browser acceptance remain pending."
     },
     "etf_domain_runtime_import": {
-      "source_commit": "96ca7e5be2a949babb098bd5c413c468d878a5e1",
-      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/96ca7e5be2a949babb098bd5c413c468d878a5e1.json",
-      "manifest_sha256": "db50862391a3964ee0bbd4dbd53c021ec7ea9e82460227a11ac12e4bb8028e17",
-      "qualification": "Exact ETF-owned domain successor 96ca7e5 and all declared TC imports are present; current-source browser bodies and final combined acceptance remain Root-owned and pending."
+      "source_commit": "cfd23fa17244b2eaa645682f4f63d6ac24a88f5a",
+      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/cfd23fa17244b2eaa645682f4f63d6ac24a88f5a.json",
+      "manifest_sha256": "1479618fe4a8c043b01882e5f226d44daea3732c6e9ffdd83e5a55d33568823b",
+      "qualification": "Exact current ETF-owned 11-path source and updated Settings/Rows public-disclosure journey are imported; browser execution and release acceptance remain Root-owned and pending."
+    },
+    "strategy_runtime_import": {
+      "source_commit": "55851d2b953ce38de5afe59ba90b613ffde08f87",
+      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/55851d2b953ce38de5afe59ba90b613ffde08f87.json",
+      "manifest_sha256": "068d5e3bbc2f57878e33c8b0c355f216831d90e2b09ec978483bff0f0cdbd2de",
+      "qualification": "Exact current Strategy-owned 25-path source and updated Settings/Rows public-disclosure journey are imported; browser execution and release acceptance remain Root-owned and pending."
+    },
+    "superseded_runtime_imports": {
+      "strategy_8dfeed": {
+        "source_commit": "8dfeed8d9092bbf90e54f283afe1d96e71c23511",
+        "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/8dfeed8d9092bbf90e54f283afe1d96e71c23511.json",
+        "manifest_sha256": "0a71d697a2fb03b15bce0ce42c38948d523240a91d5d4a83dd4fb0844172e9c0",
+        "qualification": "Exact Strategy-owned dashboard recovery paths and tests are imported; current-source browser acceptance remains pending."
+      },
+      "strategy_ab46": {
+        "source_commit": "ab46db86965dcc59f1121416ca52950f2ccc8514",
+        "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/ab46db86965dcc59f1121416ca52950f2ccc8514.json",
+        "manifest_sha256": "9e8e55fe9804c2f12f835b53d2fd42c72f20e95929689a78e75e5f969a51d263",
+        "qualification": "Exact Strategy-owned Study and lifecycle successor ab46db8 and declared TC imports are present; current-source browser and release acceptance remain Root-owned and pending."
+      },
+      "etf_96ca": {
+        "source_commit": "96ca7e5be2a949babb098bd5c413c468d878a5e1",
+        "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/96ca7e5be2a949babb098bd5c413c468d878a5e1.json",
+        "manifest_sha256": "db50862391a3964ee0bbd4dbd53c021ec7ea9e82460227a11ac12e4bb8028e17",
+        "qualification": "Exact ETF-owned domain successor 96ca7e5 and all declared TC imports are present; current-source browser bodies and final combined acceptance remain Root-owned and pending."
+      },
+      "etf_6dac": {
+        "source_commit": "6dac9525298e111d2ac9b7fde4389492b7d9ae17",
+        "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/6dac9525298e111d2ac9b7fde4389492b7d9ae17.json",
+        "manifest_sha256": "5dcd1c5e9da25eff1a1dc892893d75bf179e3bd8d9068ca935aa24c4df00d3b2",
+        "qualification": "Exact current ETF-owned 11-path domain source is imported; browser execution and release acceptance remain Root-owned and pending."
+      },
+      "strategy_dd31": {
+        "source_commit": "dd31aeac88ba926877b48474e2fc0d262ee1e99d",
+        "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/dd31aeac88ba926877b48474e2fc0d262ee1e99d.json",
+        "manifest_sha256": "761c17735ace42baf4eb959e1ccb88b314ebcf13a748b0a26826e460b3baa074",
+        "qualification": "Exact current Strategy-owned 25-path domain and Dashboard source is imported; browser execution and release acceptance remain Root-owned and pending."
+      }
     }
   },
   "counts": {
@@ -179,7 +205,7 @@
         "frontend/tests/e2e/baskets_journey.spec.ts",
         "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json"
       ],
-      "pending_reason": "ETF-owned basket CRUD, provenance, immediate shared-dashboard navigation, and member-chart journeys are authored and mapped; browser bodies remain pending Root’s combined profile.",
+      "pending_reason": "ETF-owned basket CRUD, provenance, immediate shared-dashboard navigation, and member-chart journeys are authored and mapped; browser bodies remain pending Root\u2019s combined profile.",
       "source_owner": "feat-etf-holdings-constituents",
       "source_pin": {
         "source_commit": "35fe1722848a5538d285b7c82d481acfb8e20b88",
@@ -199,7 +225,7 @@
         "frontend/tests/e2e/on_demand_acquisition.spec.ts",
         "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json"
       ],
-      "pending_reason": "ETF-owned holdings discovery, dated snapshot, context-switch and history preparation journeys are authored and mapped; browser bodies remain pending Root’s combined profile.",
+      "pending_reason": "ETF-owned holdings discovery, dated snapshot, context-switch and history preparation journeys are authored and mapped; browser bodies remain pending Root\u2019s combined profile.",
       "source_owner": "feat-etf-holdings-constituents",
       "source_pin": {
         "source_commit": "35fe1722848a5538d285b7c82d481acfb8e20b88",
@@ -3881,7 +3907,7 @@
     {
       "source": "frontend/src/components/workstation/RelativeRotationTool.vue",
       "control_count": 23,
-      "signature_sha256": "f61b7e40926d97d31c5e192cfb372af5344dc130ba79ea5b16be8a9d68aa8500",
+      "signature_sha256": "899fdb94914ab81911293d0137be76b4d478a69bfe96ec75af0212b64d87ff9b",
       "journeys": [
         "TC05"
       ],

@@ -209,10 +209,32 @@
         <span :class="{ 'workstation__leader': workspaceStore.isPersistenceLeader }">●</span>
         {{ workspaceStore.isPersistenceLeader ? 'Leader' : 'Shared' }}
         <span class="workstation__data-state" role="status" aria-live="polite" aria-atomic="true" :aria-label="`Market data freshness: ${dataState.label}`" :class="`workstation__data-state--${dataState.kind}`">{{ dataState.label }}</span>
-        <span v-if="selectionHistoryMessage" class="workstation__selection-acquisition" role="status" aria-live="polite">{{ selectionHistoryMessage }}</span>
-        <span v-if="selectionHistoryError" class="workstation__selection-acquisition workstation__selection-acquisition--error" role="alert">{{ selectionHistoryError }}</span>
-        <span v-if="selectionHoldingsMessage" class="workstation__selection-acquisition" role="status" aria-live="polite">{{ selectionHoldingsMessage }}</span>
-        <span v-if="selectionHoldingsError" class="workstation__selection-acquisition workstation__selection-acquisition--error" role="alert">{{ selectionHoldingsError }}</span>
+        <CompactStatusNotice
+          v-if="selectionHistoryMessage"
+          class="workstation__selection-acquisition"
+          :summary="preparationMessageSummary(selectionHistoryMessage, 'History')"
+          :detail="selectionHistoryMessage"
+        />
+        <CompactStatusNotice
+          v-if="selectionHistoryError"
+          class="workstation__selection-acquisition workstation__selection-acquisition--error"
+          kind="alert"
+          summary="History update failed"
+          :detail="selectionHistoryError"
+        />
+        <CompactStatusNotice
+          v-if="selectionHoldingsMessage"
+          class="workstation__selection-acquisition"
+          :summary="preparationMessageSummary(selectionHoldingsMessage, 'Holdings')"
+          :detail="selectionHoldingsMessage"
+        />
+        <CompactStatusNotice
+          v-if="selectionHoldingsError"
+          class="workstation__selection-acquisition workstation__selection-acquisition--error"
+          kind="alert"
+          summary="Holdings update failed"
+          :detail="selectionHoldingsError"
+        />
         <span
           v-if="selectedHoldingLineage"
           class="workstation__selection-acquisition"
@@ -363,8 +385,9 @@ import {
   type ETFHoldingDrilldownContext,
 } from '@/lib/etfHoldingDrilldown'
 import { isSharedNavigationItemActive, sharedShellNavigation } from '@/router'
+import CompactStatusNotice from '@/components/common/CompactStatusNotice.vue'
 import type { Timeframe } from '@/types'
-import { dataPreparationCoordinator, instrumentHistoryPreparationRequest, PreparationProgressRefreshQueue, preparationStatusMessage, type DataEnsureResponse } from '@/lib/dataPreparation'
+import { dataPreparationCoordinator, instrumentHistoryPreparationRequest, PreparationProgressRefreshQueue, preparationMessageSummary, preparationStatusMessage, type DataEnsureResponse } from '@/lib/dataPreparation'
 
 const BLOCKED_POPOUT_ERROR = 'Browser blocked the pop-out. The tool remains docked.'
 const CHART_TIMEFRAME_ORDER: readonly Timeframe[] = ['M1', 'M5', 'M15', 'M30', 'H1', 'H2', 'H4', 'H12', 'D1', 'W1', 'MN']
@@ -3440,7 +3463,9 @@ onBeforeUnmount(() => {
 .workstation__symbol-search-message { min-width: 270px; padding: 7px 8px; border-top: 1px solid #29343b; color: #93a5af; font: 10px "Segoe UI", Arial, sans-serif; }
 .workstation__symbol-search-message--error { color: #e4a0a0; }
 .workstation__symbol-search-state { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
-.workstation__status { margin-left: auto; display: flex; align-items: center; gap: 8px; color: #81909a; font-size: 10px; }
+.workstation__status { margin-left: auto; display: flex; align-items: center; gap: 6px; min-width: 0; max-width: 62%; overflow: visible; color: #81909a; font-size: 10px; }
+.workstation__selection-acquisition { flex: 0 1 clamp(92px, 11vw, 150px); }
+.workstation__selection-acquisition--error { color: var(--tc-danger, #ed9696); }
 .workstation__refresh,.workstation__sign-out { border: 1px solid #47545d; background: #20282e; color: #bdc9d1; padding: 2px 6px; font: inherit; cursor: pointer; }
 .workstation__refresh:disabled { cursor: wait; opacity: .65; }
 .workstation__refresh:hover:not(:disabled),

@@ -1,4 +1,4 @@
-import type { APIRequestContext, Page, Request, Response } from '@playwright/test'
+import type { APIRequestContext, Locator, Page, Request, Response } from '@playwright/test'
 import { expect, test } from './helpers'
 
 const SECTOR_SYMBOLS = [
@@ -314,7 +314,19 @@ function assertRotationPayload(payload: RotationResponse, timeframe: AnalysisTim
   }
 }
 
+async function setDisclosureOpen(disclosure: Locator, open: boolean): Promise<void> {
+  const currentlyOpen = await disclosure.evaluate(element => (element as HTMLDetailsElement).open)
+  if (currentlyOpen !== open) await disclosure.locator(':scope > summary').click()
+  if (open) await expect(disclosure).toHaveAttribute('open', '')
+  else await expect(disclosure).not.toHaveAttribute('open')
+}
+
 async function assertRotationPainted(page: Page, payload: RotationResponse): Promise<{ width: number; height: number }> {
+  const rotation = page.getByRole('region', { name: 'Relative rotation vs SPY' })
+  const settingsDisclosure = rotation.locator('details.rotation-tool__settings')
+  const rowsDisclosure = rotation.locator('details.rotation-tool__rows-disclosure')
+  await setDisclosureOpen(settingsDisclosure, false)
+  await setDisclosureOpen(rowsDisclosure, false)
   const plot = page.getByRole('group', { name: 'Relative rotation trend and momentum plane' })
   await expect(plot).toBeVisible()
   const canvas = plot.locator('canvas').first()
@@ -336,7 +348,18 @@ async function assertRotationPainted(page: Page, payload: RotationResponse): Pro
     }
     const audit = (window as any).__rrgCanvasAudit as {
       markers: Array<{ x: number; y: number; radius: number; color: string }>
-      tails: Array<{ color: string; alpha: number; points: Array<{ x: number; y: number }> }>
+      tails: Array<{
+        color: string
+        alpha: number
+        points: Array<{ x: number; y: number }>
+        preMarkerSamples: Array<{
+          segmentIndex: number
+          x: number
+          y: number
+          before: number[][]
+          after: number[][]
+        }>
+      }>
     }
     const bounds = element.getBoundingClientRect()
     const pixelRatio = element.width / bounds.width
@@ -385,46 +408,111 @@ async function assertRotationPainted(page: Page, payload: RotationResponse): Pro
       }
       return { hit: exactOpaquePixels > 0, exactOpaquePixels, samples, neighborhood }
     }
-    const tailRasterHits = (path: Array<{ x: number; y: number }>, color: [number, number, number]) => {
-      let hits = 0
+    const compositeOverPlot = (rgba: number[]) => rgba.slice(0, 3).map((channel, index) =>
+      channel * rgba[3] / 255 + plotBackground[index] * (1 - rgba[3] / 255),
+    )
+    const sourceOverStrokeChangedPixel = (before: number[], after: number[], color: [number, number, number]) => {
+      const beforeAlpha = before[3] / 255
+      const afterAlpha = after[3] / 255
+      if (beforeAlpha >= 0.999) return false
+      const strokeOpacity = (afterAlpha - beforeAlpha) / (1 - beforeAlpha)
+      // The individual renderer stroke is alpha 0.72; antialias coverage can
+      // lower it. This bound applies to the new stroke's contribution, not the
+      // cumulative opacity of overlapping strokes already on the canvas.
+      if (strokeOpacity < 0.2 || strokeOpacity > 0.75 || afterAlpha <= beforeAlpha) return false
+      const predictedAlpha = strokeOpacity + beforeAlpha * (1 - strokeOpacity)
+      if (Math.abs(predictedAlpha - afterAlpha) > 2 / 255) return false
+      const predicted = color.map((channel, index) =>
+        (channel * strokeOpacity + before[index] * beforeAlpha * (1 - strokeOpacity)) / predictedAlpha,
+      )
+      const sourceOverResidual = Math.hypot(...predicted.map((channel, index) => channel - after[index]))
+      if (sourceOverResidual > 8) return false
+
+      // Canvas pixels may be partially transparent. Compare the actual and
+      // predicted CSS-composited results over the plot backing so a raw draw
+      // event or invisible alpha change cannot count as visible tail paint.
+      const beforeComposite = compositeOverPlot(before)
+      const afterComposite = compositeOverPlot(after)
+      const predictedComposite = predicted.map((channel, index) =>
+        channel * predictedAlpha + plotBackground[index] * (1 - predictedAlpha),
+      )
+      const compositeResidual = Math.hypot(...predictedComposite.map((channel, index) => channel - afterComposite[index]))
+      const visibleDelta = afterComposite.map((channel, index) => channel - beforeComposite[index])
       const strokeVector = color.map((channel, index) => channel - plotBackground[index])
       const strokeLengthSquared = strokeVector.reduce((sum, channel) => sum + channel * channel, 0)
+      const visibleAlongStroke = visibleDelta.reduce((sum, channel, index) => sum + channel * strokeVector[index], 0) / strokeLengthSquared
+      return compositeResidual <= 8 && visibleAlongStroke > 0
+    }
+    const finalCanvasStrokePixel = (rgba: number[], color: [number, number, number]) => {
+      const alpha = rgba[3]
+      if (alpha >= 30 && alpha < 250) {
+        const sourceColorDistance = Math.hypot(...color.map((channel, index) => channel - rgba[index]))
+        const composite = compositeOverPlot(rgba)
+        const visibleContrast = Math.hypot(...composite.map((channel, index) => channel - plotBackground[index]))
+        return sourceColorDistance <= 2 && visibleContrast > 0
+      }
+      if (alpha >= 250) {
+        const strokeVector = color.map((channel, index) => channel - plotBackground[index])
+        const strokeLengthSquared = strokeVector.reduce((sum, channel) => sum + channel * channel, 0)
+        const fromBackground = rgba.slice(0, 3).map((channel, index) => channel - plotBackground[index])
+        const opacity = fromBackground.reduce((sum, channel, index) => sum + channel * strokeVector[index], 0) / strokeLengthSquared
+        const residual = Math.hypot(...fromBackground.map((channel, index) => channel - opacity * strokeVector[index]))
+        const composite = compositeOverPlot(rgba)
+        const visibleContrast = Math.hypot(...composite.map((channel, index) => channel - plotBackground[index]))
+        // Multiple same-color strokes can compose above 0.75 opacity. Keep the
+        // original 0.2 floor and RGB residual while bounding the physical result
+        // at full opacity instead of rejecting valid source-over composition.
+        return opacity >= 0.2 && opacity <= 1 && residual <= 8 && visibleContrast > 0
+      }
+      return false
+    }
+    const tailRasterEvidence = (
+      path: Array<{ x: number; y: number }>,
+      samples: Array<{ segmentIndex: number; x: number; y: number; before: number[][]; after: number[][] }>,
+      color: [number, number, number],
+    ) => {
+      let hits = 0
+      let sourceOverSegments = 0
+      let finalVisibleSegments = 0
+      const segmentResults: Array<{ segmentIndex: number; sourceOver: boolean; finalVisible: boolean }> = []
       for (let index = 1; index < path.length; index += 1) {
+        const sample = samples.find(candidate => candidate.segmentIndex === index - 1)
+        const sourceOver = Boolean(sample && sample.before.some((before, pixelIndex) => {
+          const after = sample.after[pixelIndex]
+          return Boolean(after && sourceOverStrokeChangedPixel(before, after, color))
+        }))
+        if (sourceOver) sourceOverSegments += 1
+
         const x = Math.round((path[index - 1].x + path[index].x) / 2)
         const y = Math.round((path[index - 1].y + path[index].y) / 2)
-        let found = false
-        for (let dy = -1; dy <= 1 && !found; dy += 1) for (let dx = -1; dx <= 1; dx += 1) {
+        let finalVisible = false
+        for (let dy = -1; dy <= 1 && !finalVisible; dy += 1) for (let dx = -1; dx <= 1; dx += 1) {
           const px = x + dx, py = y + dy
           if (px < 0 || py < 0 || px >= element.width || py >= element.height) continue
+          // Do not let the latest-point marker itself masquerade as a visible
+          // tail pixel. The actual final canvas must retain tail-colored raster
+          // outside every audited marker interior.
+          if (latestMarkers.some(marker => Math.hypot(px - marker.x, py - marker.y) < marker.radius)) continue
           const offset = (py * element.width + px) * 4
-          const alpha = image[offset + 3]
-          const pixel = [image[offset], image[offset + 1], image[offset + 2]]
-          if (alpha > 0 && alpha < 250) {
-            // Transparent canvas pixels retain the unblended stroke RGB; alpha
-            // records stroke coverage. Opaque marker and label pixels are not tails.
-            const distance = Math.hypot(...pixel.map((channel, channelIndex) => channel - color[channelIndex]))
-            if (alpha >= 30 && distance <= 2) { found = true; break }
-          } else if (alpha >= 250) {
-            // On the opaque plot backing, recover effective stroke opacity along
-            // the source-color/background vector. The renderer's 0.72 alpha plus
-            // antialias coverage lies below opaque markers and label text.
-            const fromBackground = pixel.map((channel, channelIndex) => channel - plotBackground[channelIndex])
-            const opacity = fromBackground.reduce((sum, channel, channelIndex) => sum + channel * strokeVector[channelIndex], 0) / strokeLengthSquared
-            const residual = Math.hypot(...fromBackground.map((channel, channelIndex) => channel - opacity * strokeVector[channelIndex]))
-            if (opacity >= 0.2 && opacity <= 0.75 && residual <= 8) { found = true; break }
+          if (finalCanvasStrokePixel([image[offset], image[offset + 1], image[offset + 2], image[offset + 3]], color)) {
+            finalVisible = true
+            break
           }
         }
-        if (found) hits += 1
+        if (finalVisible) finalVisibleSegments += 1
+        if (sourceOver && finalVisible) hits += 1
+        segmentResults.push({ segmentIndex: index - 1, sourceOver, finalVisible })
       }
-      return hits
+      return { hits, sourceOverSegments, finalVisibleSegments, segmentResults }
     }
     const markerRasterHits = latestMarkers.map((marker, index) => {
       const row = expectedRows[index]
       return exactMarkerPixel(marker.x, marker.y, stateColors[row?.state ?? '']).hit
     })
-    const tailHitCounts = tailPaths.map((path, index) =>
-      tailRasterHits(path.points, stateColors[expectedRows[index]?.state ?? '']),
+    const tailEvidence = tailPaths.map((path, index) =>
+      tailRasterEvidence(path.points, path.preMarkerSamples, stateColors[expectedRows[index]?.state ?? '']),
     )
+    const tailHitCounts = tailEvidence.map(evidence => evidence.hits)
     const markerDiagnostics = latestMarkers.map((marker, index) => {
       const row = expectedRows[index]
       const stateColor = stateColors[row?.state ?? '']
@@ -473,6 +561,10 @@ async function assertRotationPainted(page: Page, payload: RotationResponse): Pro
         alpha: path.alpha,
         expectedColor: stateColors[expectedRows[index]?.state ?? ''],
         points: path.points,
+        preMarkerSamples: path.preMarkerSamples,
+        sourceOverSegments: tailEvidence[index]?.sourceOverSegments ?? 0,
+        finalVisibleSegments: tailEvidence[index]?.finalVisibleSegments ?? 0,
+        segmentResults: tailEvidence[index]?.segmentResults ?? [],
       })),
     }
     return {
@@ -521,6 +613,7 @@ async function assertRotationPainted(page: Page, payload: RotationResponse): Pro
     expect(tail.rasterHits, `${row.symbol} state-colored tail has raster pixels along its audited path`).toBeGreaterThanOrEqual(5)
   }
 
+  await setDisclosureOpen(rowsDisclosure, true)
   const rowsRegion = page.getByRole('region', { name: 'Relative rotation rows' })
   for (const row of payload.rows) {
     const rowButton = rowsRegion.getByRole('button', { name: new RegExp(`^${row.symbol},`) })
@@ -530,6 +623,7 @@ async function assertRotationPainted(page: Page, payload: RotationResponse): Pro
     await expect(rowButton).toHaveAttribute('aria-label', expect.stringContaining('momentum'))
     await expect(rowButton).toHaveAttribute('aria-label', expect.stringContaining('coverage'))
   }
+  await setDisclosureOpen(rowsDisclosure, false)
   return { width: paint.width, height: paint.height }
 }
 
@@ -537,7 +631,21 @@ async function installRotationCanvasAudit(page: Page): Promise<void> {
   const installAudit = () => {
     const selector = '[role="group"][aria-label="Relative rotation trend and momentum plane"]'
     const colors = new Set(['#61c58c', '#e7bc68', '#6dbbe6', '#df8181'])
-    const audit = { markers: [] as Array<{ x: number; y: number; radius: number; color: string }>, tails: [] as Array<{ color: string; alpha: number; points: Array<{ x: number; y: number }> }> }
+    const audit = {
+      markers: [] as Array<{ x: number; y: number; radius: number; color: string }>,
+      tails: [] as Array<{
+        color: string
+        alpha: number
+        points: Array<{ x: number; y: number }>
+        preMarkerSamples: Array<{
+          segmentIndex: number
+          x: number
+          y: number
+          before: number[][]
+          after: number[][]
+        }>
+      }>,
+    }
     ;(window as any).__rrgCanvasAudit = audit
     const paths = new WeakMap<CanvasRenderingContext2D, Array<{ x: number; y: number }>>()
     const isRotationCanvas = (context: CanvasRenderingContext2D) => Boolean(context.canvas.closest(selector))
@@ -567,10 +675,54 @@ async function installRotationCanvasAudit(page: Page): Promise<void> {
     prototype.stroke = function (path?: Path2D) {
       const color = String(this.strokeStyle).toLowerCase()
       const points = paths.get(this) ?? []
-      if (isRotationCanvas(this) && colors.has(color) && this.globalAlpha < 1 && points.length >= 10) {
-        audit.tails.push({ color, alpha: this.globalAlpha, points: [...points] })
+      const isTailStroke = isRotationCanvas(this) && colors.has(color) && this.globalAlpha < 1 && points.length >= 10
+      let preMarkerSamples: Array<{ segmentIndex: number; x: number; y: number; before: number[][]; after: number[][] }> = []
+      let sampleBounds: { left: number; top: number; width: number; height: number } | undefined
+      let beforePixels: Uint8ClampedArray | undefined
+      if (isTailStroke) {
+        const rect = this.canvas.getBoundingClientRect()
+        const ratioX = rect.width > 0 ? this.canvas.width / rect.width : 1
+        const ratioY = rect.height > 0 ? this.canvas.height / rect.height : 1
+        const centers = points.slice(1).map((point, index) => ({
+          segmentIndex: index,
+          x: Math.round(((points[index].x + point.x) / 2) * ratioX),
+          y: Math.round(((points[index].y + point.y) / 2) * ratioY),
+        }))
+        const left = Math.max(0, Math.min(...centers.map(center => center.x - 1)))
+        const top = Math.max(0, Math.min(...centers.map(center => center.y - 1)))
+        const right = Math.min(this.canvas.width, Math.max(...centers.map(center => center.x + 2)))
+        const bottom = Math.min(this.canvas.height, Math.max(...centers.map(center => center.y + 2)))
+        if (right > left && bottom > top) {
+          sampleBounds = { left, top, width: right - left, height: bottom - top }
+          beforePixels = this.getImageData(left, top, sampleBounds.width, sampleBounds.height).data
+          preMarkerSamples = centers.map(center => {
+            const before: number[][] = []
+            for (let dy = -1; dy <= 1; dy += 1) for (let dx = -1; dx <= 1; dx += 1) {
+              const x = center.x + dx, y = center.y + dy
+              if (x < left || y < top || x >= right || y >= bottom) continue
+              const offset = ((y - top) * sampleBounds!.width + (x - left)) * 4
+              before.push(Array.from(beforePixels!.slice(offset, offset + 4)))
+            }
+            return { ...center, before, after: [] }
+          })
+        }
       }
-      return Reflect.apply(originalStroke, this, arguments)
+      const result = Reflect.apply(originalStroke, this, arguments)
+      if (isTailStroke) {
+        if (sampleBounds && beforePixels) {
+          const afterPixels = this.getImageData(sampleBounds.left, sampleBounds.top, sampleBounds.width, sampleBounds.height).data
+          for (const sample of preMarkerSamples) {
+            for (let dy = -1; dy <= 1; dy += 1) for (let dx = -1; dx <= 1; dx += 1) {
+              const x = sample.x + dx, y = sample.y + dy
+              if (x < sampleBounds.left || y < sampleBounds.top || x >= sampleBounds.left + sampleBounds.width || y >= sampleBounds.top + sampleBounds.height) continue
+              const offset = ((y - sampleBounds.top) * sampleBounds.width + (x - sampleBounds.left)) * 4
+              sample.after.push(Array.from(afterPixels.slice(offset, offset + 4)))
+            }
+          }
+        }
+        audit.tails.push({ color, alpha: this.globalAlpha, points: [...points], preMarkerSamples })
+      }
+      return result
     }
   }
   // Keep the audit available both in the current document and after the
@@ -784,6 +936,7 @@ test('S&P 500 RRG renders deep D1/W1/MN data and survives selection, resize, max
   await expect(rrgWindow.getByRole('button', { name: 'Restore tool' })).toHaveAttribute('aria-busy', 'false')
 
   const timeframeControl = rotation.getByLabel('Rotation timeframe')
+  const settingsDisclosure = rotation.locator('details.rotation-tool__settings')
   const pageResponses = new Map<AnalysisTimeframe, RotationResponse>()
   const directResponses = new Map<AnalysisTimeframe, RotationResponse>()
 
@@ -843,6 +996,7 @@ test('S&P 500 RRG renders deep D1/W1/MN data and survives selection, resize, max
   // Validate D1 while it is still the active UI selection, before changing the
   // visible control to W1 and MN.
   assertRotationPayload(d1Payload, 'D1')
+  await setDisclosureOpen(settingsDisclosure, true)
   await expect(timeframeControl).toHaveValue('D1')
   expect(d1Payload.rows.map(row => row.symbol).sort())
     .toEqual(directResponses.get('D1')!.rows.map(row => row.symbol).sort())
@@ -852,11 +1006,13 @@ test('S&P 500 RRG renders deep D1/W1/MN data and survives selection, resize, max
     expect(uiRow.momentum).toBeCloseTo(row.momentum!, 10)
     expect(uiRow.tail.length).toBe(row.tail.length)
   }
+  await setDisclosureOpen(settingsDisclosure, false)
   await assertRotationPainted(page, d1Payload)
 
   for (const timeframe of ['W1', 'MN'] as const) {
     await clearRotationCanvasAudit(page)
     const pageResponse = page.waitForResponse(response => response.ok() && rotationResponseFor(response, timeframe))
+    await setDisclosureOpen(settingsDisclosure, true)
     await page.getByRole('region', { name: 'Relative rotation vs SPY' })
       .getByLabel('Rotation timeframe').selectOption(timeframe)
     const actualPagePayload = await pageResponse.then(response => response.json() as Promise<RotationResponse>)
@@ -871,6 +1027,7 @@ test('S&P 500 RRG renders deep D1/W1/MN data and survives selection, resize, max
       expect(uiRow.momentum).toBeCloseTo(row.momentum!, 10)
       expect(uiRow.tail.length).toBe(row.tail.length)
     }
+    await setDisclosureOpen(settingsDisclosure, false)
     await assertRotationPainted(page, actualPagePayload)
   }
 
@@ -899,18 +1056,25 @@ test('S&P 500 RRG renders deep D1/W1/MN data and survives selection, resize, max
   // Table selection remains a separate ordinary path and also links the chart.
   const tableSector = finalPayload.rows[1].symbol
   const tableChartResponse = page.waitForResponse(response => response.ok() && barResponseFor(response, tableSector, 'D1'))
+  const activeRotation = page.getByRole('region', { name: 'Relative rotation vs SPY' })
+  const activeRowsDisclosure = activeRotation.locator('details.rotation-tool__rows-disclosure')
+  await setDisclosureOpen(activeRowsDisclosure, true)
   await page.getByRole('region', { name: 'Relative rotation rows' })
     .getByRole('button', { name: new RegExp(`^${tableSector},`) }).click()
+  await setDisclosureOpen(activeRowsDisclosure, false)
   await assertChartRendered(page, tableSector, await tableChartResponse.then(response => response.json() as Promise<Bar[]>))
   await expect(chartSymbol).toHaveText(tableSector)
 
   // Keyboard selection uses the plot's public arrow/Home/End/Enter controls and also links the chart.
   const plot = page.getByRole('group', { name: 'Relative rotation trend and momentum plane' })
+  const keyboardRowsDisclosure = activeRotation.locator('details.rotation-tool__rows-disclosure')
+  await setDisclosureOpen(keyboardRowsDisclosure, true)
   await plot.focus()
   await plot.press('End')
   await expect(page.locator('.rotation-tool__tooltip')).toContainText(lastSector)
   const lastChartResponse = page.waitForResponse(response => response.ok() && barResponseFor(response, lastSector, 'D1'))
   await plot.press('Enter')
+  await setDisclosureOpen(keyboardRowsDisclosure, false)
   await assertChartRendered(page, lastSector, await lastChartResponse.then(response => response.json() as Promise<Bar[]>))
   await expect(chartSymbol).toHaveText(lastSector)
 
@@ -954,7 +1118,9 @@ test('S&P 500 RRG renders deep D1/W1/MN data and survives selection, resize, max
   await expect(copiedTab).toHaveAttribute('aria-selected', 'true')
   let copiedRotation = page.getByRole('region', { name: 'Relative rotation vs SPY' })
   await expect(copiedRotation).toBeVisible()
+  await setDisclosureOpen(copiedRotation.locator('details.rotation-tool__settings'), true)
   await expect(copiedRotation.getByLabel('Rotation timeframe')).toHaveValue('MN')
+  await setDisclosureOpen(copiedRotation.locator('details.rotation-tool__settings'), false)
   await assertRotationPainted(page, finalPayload)
 
   await originalTab.click()
@@ -965,6 +1131,8 @@ test('S&P 500 RRG renders deep D1/W1/MN data and survives selection, resize, max
   await copiedTab.click()
   copiedRotation = page.getByRole('region', { name: 'Relative rotation vs SPY' })
   await expect(copiedTab).toHaveAttribute('aria-selected', 'true')
+  await setDisclosureOpen(copiedRotation.locator('details.rotation-tool__settings'), true)
   await expect(copiedRotation.getByLabel('Rotation timeframe')).toHaveValue('MN')
+  await setDisclosureOpen(copiedRotation.locator('details.rotation-tool__settings'), false)
   await assertRotationPainted(page, finalPayload)
 })

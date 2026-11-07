@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { api } from '@/lib/api'
-import { DataEnsureRequest, DataEnsureResponse, DataPreparationCoordinator, instrumentHistoryPreparationRequest, isPreparationTimeframe, PreparationDependency, PreparationProgressRefreshQueue, preparationStatusMessage, savedScreenerPreparationContextKey, shouldRefreshAnalysisProgress } from '@/lib/dataPreparation'
+import { DataEnsureRequest, DataEnsureResponse, DataPreparationCoordinator, instrumentHistoryPreparationRequest, isPreparationTimeframe, PreparationDependency, PreparationProgressRefreshQueue, preparationMessageSummary, preparationStatusMessage, savedScreenerPreparationContextKey, shouldRefreshAnalysisProgress } from '@/lib/dataPreparation'
 
 const baseTime = '2026-11-06T12:00:00.000Z'
 const request: DataEnsureRequest = { target: { kind: 'instrument', symbol: 'SPY' }, timeframe: 'D1', datasets: ['identity', 'history'] }
@@ -428,6 +428,10 @@ describe('DataPreparationCoordinator', () => {
     expect(heldMessage).toContain('entitlement')
     expect(heldMessage).not.toContain('timeframes_not_entitled')
     expect(preparationStatusMessage(unresolved, Date.parse(baseTime))).toContain('identity and listing details')
+    expect(preparationMessageSummary(waitingMessage, 'History')).toMatch(/^History waiting · /)
+    expect(preparationMessageSummary(heldMessage, 'History')).toBe('History source unavailable')
+    expect(preparationMessageSummary(preparationStatusMessage(unresolved, Date.parse(baseTime)), 'Holdings')).toBe('Holdings identity check')
+    expect(preparationMessageSummary('Preparing requested data…', 'RRG')).toBe('RRG preparing')
     expect(preparationStatusMessage(response('unavailable', 1, { dependencies: [{
       dependency_id: 'history:1:D1', depends_on: [], instrument_id: 1, dataset: 'history', status: 'unavailable',
       requested_start: null, requested_end: null, covered_start: null, covered_end: null,

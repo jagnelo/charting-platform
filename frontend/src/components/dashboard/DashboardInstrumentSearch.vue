@@ -1,5 +1,5 @@
 <template>
-  <div class="dash-search" ref="rootRef">
+  <div class="dash-search" ref="rootRef" @focusout="handleFocusOut">
     <input
       ref="inputRef"
       v-model="query"
@@ -14,7 +14,7 @@
     />
     <span v-if="loading" class="dash-search-spin">...</span>
     <Teleport to="body">
-      <div v-if="showDropdown" class="dash-search-results" :style="dropdownStyle">
+      <div v-if="showDropdown" ref="dropdownRef" class="dash-search-results" :style="dropdownStyle" @focusout="handleFocusOut">
         <button
           v-if="canResolveExpression"
           type="button"
@@ -88,6 +88,7 @@ const error = ref('')
 const dismissed = ref(true)
 const highlightIdx = ref(0)
 const rootRef = ref<HTMLDivElement | null>(null)
+const dropdownRef = ref<HTMLDivElement | null>(null)
 const inputRef = ref<HTMLInputElement | null>(null)
 let timer: ReturnType<typeof setTimeout> | null = null
 let searchSeq = 0
@@ -288,7 +289,16 @@ function moveUp() {
 }
 
 function handleClickOutside(event: MouseEvent) {
-  if (rootRef.value && !rootRef.value.contains(event.target as Node)) dismiss()
+  if (!isInsideSearch(event.target)) dismiss()
+}
+
+function isInsideSearch(target: EventTarget | null) {
+  if (!(target instanceof Node)) return false
+  return Boolean(rootRef.value?.contains(target) || dropdownRef.value?.contains(target))
+}
+
+function handleFocusOut(event: FocusEvent) {
+  if (!isInsideSearch(event.relatedTarget)) dismiss()
 }
 
 onMounted(() => {

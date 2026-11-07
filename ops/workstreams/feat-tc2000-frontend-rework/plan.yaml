@@ -1440,6 +1440,7 @@ owned_paths:
 - frontend/src/components/chart/UPlotChart.vue
 - frontend/src/lib/uplot/rendererLifecycle.ts
 - frontend/src/components/chart/ChartPanel.vue
+- frontend/src/components/common/CompactStatusNotice.vue
 - frontend/src/components/chart/LayoutPicker.vue
 - frontend/src/components/chart/InstrumentInfoPanel.vue
 - frontend/src/components/chart/IndicatorPanel.vue
@@ -4986,42 +4987,40 @@ approved_development_dependency_imports:
   - backend/tests/unit/tasks/test_data_tasks.py
   - backend/tests/unit/tasks/test_native_usage_prerequisite.py
   - backend/tests/unit/workers/test_arq_worker.py
-- source_sha: 8dfeed8d9092bbf90e54f283afe1d96e71c23511
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/8dfeed8d9092bbf90e54f283afe1d96e71c23511.json
-  manifest_sha256: 0a71d697a2fb03b15bce0ce42c38948d523240a91d5d4a83dd4fb0844172e9c0
+
+- source_sha: 55851d2b953ce38de5afe59ba90b613ffde08f87
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/55851d2b953ce38de5afe59ba90b613ffde08f87.json
+  manifest_sha256: 068d5e3bbc2f57878e33c8b0c355f216831d90e2b09ec978483bff0f0cdbd2de
   paths:
   - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
   - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
   - frontend/src/components/dashboard/DashboardInstrumentSearch.vue
   - frontend/src/components/dashboard/DashboardLineChartWidget.vue
   - frontend/src/components/dashboard/DashboardQuoteWidget.vue
-  - frontend/src/stores/dashboard.ts
-  - frontend/src/views/DashboardView.vue
-  - frontend/tests/e2e/dashboard_usability_journey.spec.ts
-  - frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts
-  - frontend/tests/unit/components/test_dashboard_instrument_search.test.ts
-  - frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts
-  - frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts
-  - frontend/tests/unit/stores/test_dashboard_store.test.ts
-  - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts
-- source_sha: ab46db86965dcc59f1121416ca52950f2ccc8514
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/ab46db86965dcc59f1121416ca52950f2ccc8514.json
-  manifest_sha256: 9e8e55fe9804c2f12f835b53d2fd42c72f20e95929689a78e75e5f969a51d263
-  paths:
   - frontend/src/components/workstation/CodeLibraryTool.vue
   - frontend/src/components/workstation/ResearchResultsTool.vue
   - frontend/src/components/workstation/StudyLabTool.vue
   - frontend/src/lib/workstation/researchQueryKeys.ts
+  - frontend/src/stores/dashboard.ts
+  - frontend/src/views/DashboardView.vue
+  - frontend/tests/e2e/dashboard_usability_journey.spec.ts
   - frontend/tests/e2e/helpers.ts
   - frontend/tests/e2e/strategy_study_journey.spec.ts
   - frontend/tests/e2e/workstation_lifecycle_journey.spec.ts
   - frontend/tests/unit/components/test_code_library_tool.test.ts
+  - frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts
+  - frontend/tests/unit/components/test_dashboard_instrument_search.test.ts
+  - frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts
+  - frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts
   - frontend/tests/unit/components/test_research_results_tool.test.ts
   - frontend/tests/unit/components/test_study_lab_tool.test.ts
   - frontend/tests/unit/e2e/test_browser_diagnostics.test.ts
-- source_sha: 96ca7e5be2a949babb098bd5c413c468d878a5e1
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/96ca7e5be2a949babb098bd5c413c468d878a5e1.json
-  manifest_sha256: db50862391a3964ee0bbd4dbd53c021ec7ea9e82460227a11ac12e4bb8028e17
+  - frontend/tests/unit/stores/test_dashboard_store.test.ts
+  - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts
+
+- source_sha: cfd23fa17244b2eaa645682f4f63d6ac24a88f5a
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/cfd23fa17244b2eaa645682f4f63d6ac24a88f5a.json
+  manifest_sha256: 1479618fe4a8c043b01882e5f226d44daea3732c6e9ffdd83e5a55d33568823b
   paths:
   - frontend/src/components/workstation/InstrumentNoteTool.vue
   - frontend/src/views/BasketsView.vue

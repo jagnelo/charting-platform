@@ -3,7 +3,7 @@ import { expect, test } from './helpers'
 
 // This table is keyed to the authenticated server catalogue.  The test fails
 // closed if a canonical tool is added without a user-visible outcome assertion.
-const TOOL_OUTCOMES: Record<string, 'watchlist' | 'chart' | 'ratio' | 'technicals' | 'breadth' | 'coverage' | 'notes' | 'alerts' | 'scan' | 'gauge' | 'rotation' | 'map' | 'study' | 'results' | 'library' | 'report'> = {
+const TOOL_OUTCOMES: Record<string, 'watchlist' | 'industry' | 'chart' | 'ratio' | 'technicals' | 'breadth' | 'coverage' | 'notes' | 'alerts' | 'scan' | 'gauge' | 'rotation' | 'map' | 'study' | 'results' | 'library' | 'report'> = {
   Chart: 'chart',
   WatchList: 'watchlist',
   'My Favorites': 'watchlist',
@@ -23,11 +23,11 @@ const TOOL_OUTCOMES: Record<string, 'watchlist' | 'chart' | 'ratio' | 'technical
   'Python Library': 'library',
   Benchmarks: 'watchlist',
   'S&P 500 Sectors': 'watchlist',
-  Industries: 'watchlist',
+  Industries: 'industry',
   Constituents: 'watchlist',
   'Relative Strength': 'ratio',
   'Sector Indexes': 'watchlist',
-  'Industry Indexes': 'watchlist',
+  'Industry Indexes': 'industry',
   Components: 'watchlist',
   'Selected Symbol': 'chart',
   'Sector Comparison': 'chart',
@@ -146,35 +146,47 @@ async function plottedSeriesPixels(canvas: ReturnType<Page['locator']>, colors: 
   }, { expectedColors: colors, colorTolerance: tolerance })
 }
 
-async function hasRrgMarkerCenters(canvas: ReturnType<Page['locator']>) {
+async function readRrgMarkerAudit(canvas: ReturnType<Page['locator']>) {
   return canvas.evaluate((element) => {
-    type MarkerArc = { x: number; y: number; radius: number; fillStyle: string }
-    type AuditedCanvas = HTMLCanvasElement & { __rrgLatestMarkerDraw?: MarkerArc[] }
+    type MarkerArc = { x: number; y: number; radius: number; fillStyle: string; frame: number }
+    type AuditedCanvas = HTMLCanvasElement & { __rrgLatestMarkerDraw?: MarkerArc[]; __rrgAuditFrame?: number }
     const target = element as AuditedCanvas
     const markers = target.__rrgLatestMarkerDraw ?? []
     const dpr = window.devicePixelRatio || 1
     const visibleMarkers = markers.filter(marker => marker.radius >= 3.4 * dpr)
-    if (!visibleMarkers.length) return false
     const context = target.getContext('2d', { willReadFrequently: true })
-    if (!context) return false
     const colors = new Set(['#61c58c', '#e7bc68', '#6dbbe6', '#df8181'])
-    return visibleMarkers.every((marker) => {
-      if (!Number.isFinite(marker.x) || !Number.isFinite(marker.y) || !colors.has(marker.fillStyle.toLowerCase())) return false
+    const samples = visibleMarkers.map((marker) => {
       const x = Math.round(marker.x)
       const y = Math.round(marker.y)
-      if (x < 0 || y < 0 || x >= target.width || y >= target.height) return false
-      const pixel = context.getImageData(x, y, 1, 1).data
-      if (pixel[3] !== 255) return false
+      const inBounds = Number.isFinite(x) && Number.isFinite(y) && x >= 0 && y >= 0 && x < target.width && y < target.height
+      const pixel = context && inBounds ? Array.from(context.getImageData(x, y, 1, 1).data) : null
       const expected = marker.fillStyle.slice(1).match(/../g)?.map(value => Number.parseInt(value, 16))
-      return Boolean(expected && pixel[0] === expected[0] && pixel[1] === expected[1] && pixel[2] === expected[2])
+      const opaqueStateColor = Boolean(
+        pixel && pixel[3] === 255 && expected && colors.has(marker.fillStyle.toLowerCase())
+        && pixel[0] === expected[0] && pixel[1] === expected[1] && pixel[2] === expected[2],
+      )
+      return { x, y, radius: marker.radius, fillStyle: marker.fillStyle, frame: marker.frame, pixel, opaqueStateColor }
     })
+    const passed = Boolean(target.isConnected && visibleMarkers.length && samples.every(sample => sample.opaqueStateColor))
+    return {
+      passed,
+      currentDocument: location.href,
+      connected: target.isConnected,
+      canvas: { width: target.width, height: target.height, rect: target.getBoundingClientRect().toJSON() },
+      dpr,
+      frame: target.__rrgAuditFrame ?? 0,
+      markerCount: markers.length,
+      visibleMarkerCount: visibleMarkers.length,
+      samples,
+    }
   })
 }
 
 async function installRrgArcAudit(page: Page) {
   await page.addInitScript(() => {
-    type MarkerArc = { x: number; y: number; radius: number; fillStyle: string }
-    type AuditedCanvas = HTMLCanvasElement & { __rrgLatestMarkerDraw?: MarkerArc[] }
+    type MarkerArc = { x: number; y: number; radius: number; fillStyle: string; frame: number }
+    type AuditedCanvas = HTMLCanvasElement & { __rrgLatestMarkerDraw?: MarkerArc[]; __rrgAuditFrame?: number }
     type AuditedContext = CanvasRenderingContext2D & { __rrgPendingMarkerArcs?: Array<{ x: number; y: number; radius: number }> }
     const prototype = CanvasRenderingContext2D.prototype
     const originalArc = prototype.arc
@@ -184,7 +196,11 @@ async function installRrgArcAudit(page: Page) {
     const isRrgCanvas = (context: CanvasRenderingContext2D) => Boolean(context.canvas.closest('.rotation-tool__plot-shell'))
 
     prototype.clearRect = function (..._args: Parameters<typeof originalClearRect>) {
-      if (isRrgCanvas(this)) (this.canvas as AuditedCanvas).__rrgLatestMarkerDraw = []
+      if (isRrgCanvas(this)) {
+        const canvas = this.canvas as AuditedCanvas
+        canvas.__rrgAuditFrame = (canvas.__rrgAuditFrame ?? 0) + 1
+        canvas.__rrgLatestMarkerDraw = []
+      }
       return Reflect.apply(originalClearRect, this, arguments)
     }
     prototype.beginPath = function (..._args: Parameters<typeof originalBeginPath>) {
@@ -206,7 +222,7 @@ async function installRrgArcAudit(page: Page) {
         const pending = context.__rrgPendingMarkerArcs ?? []
         for (const marker of pending) {
           canvas.__rrgLatestMarkerDraw ??= []
-          canvas.__rrgLatestMarkerDraw.push({ ...marker, fillStyle: String(this.fillStyle) })
+          canvas.__rrgLatestMarkerDraw.push({ ...marker, fillStyle: String(this.fillStyle), frame: canvas.__rrgAuditFrame ?? 0 })
         }
         context.__rrgPendingMarkerArcs = []
       }
@@ -230,10 +246,10 @@ async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUT
         const listName = `Factory journey ${Date.now()}`
         await tool.getByLabel('Personal watchlist name').fill(listName)
         await tool.getByRole('button', { name: 'Create personal watchlist', exact: true }).click()
-        const personalList = tool.getByLabel('Personal watchlist')
+        const personalList = tool.getByLabel('Personal watchlist', { exact: true })
         await expect(personalList.locator('option').filter({ hasText: listName })).toBeAttached()
       }
-      await tool.getByLabel('Add symbol to personal watchlist').fill('SPY')
+      await tool.getByRole('textbox', { name: 'Add symbol to personal watchlist', exact: true }).fill('SPY')
       await tool.getByRole('button', { name: 'Add symbol to personal watchlist', exact: true }).click()
       await expect(rows.locator('[aria-label^="SPY "]')).toBeVisible({ timeout: 20_000 })
     }
@@ -245,10 +261,26 @@ async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUT
     if (title === 'WatchList' || title === 'Fundamentals WatchList') {
       await expect(firstRow).toHaveAttribute('aria-label', /SPY .+Last:.*\d/)
     } else {
-      if (title === 'S&P 500 Sectors' || title === 'Sector Indexes') await firstRow.click()
-      if (title === 'Industries' || title === 'Industry Indexes') await firstRow.click()
       await assertUsefulWatchlistNumbers(tool)
     }
+  } else if (kind === 'industry') {
+    const industryList = tool.locator('.industry-list')
+    await expect(industryList, `${title} should render its dated industry ranking, not watchlist placeholders`).toBeVisible({ timeout: 30_000 })
+    const provenance = industryList.locator('.industry-list__provenance')
+    await expect(provenance).toBeVisible()
+    await expect(provenance).toContainText(/holdings ·/)
+    const industryRows = industryList.getByRole('button')
+    const usefulIndustryIndex = async () => industryRows.evaluateAll(rows => rows.findIndex(row => {
+      const label = row.getAttribute('aria-label') ?? ''
+      const match = label.match(/, (\d+) of (\d+) constituents resolved,.*Classification source: ([^.]*)\./)
+      return Boolean(match && Number(match[1]) > 0 && Number(match[2]) >= Number(match[1]) && match[3].trim())
+    }))
+    await expect.poll(async () => {
+      return (await industryRows.count()) > 0 ? usefulIndustryIndex() : -1
+    }, { timeout: 30_000 }).toBeGreaterThanOrEqual(0)
+    const classifiedIndustry = industryRows.nth(await usefulIndustryIndex())
+    await expect(classifiedIndustry).toBeVisible()
+    await expect(classifiedIndustry.locator('.industry-list__classification')).not.toContainText(/unknown|unclassified/i)
   } else if (kind === 'chart' || kind === 'ratio') {
     const expectedTimeframe = typeof configuration.timeframe === 'string' ? configuration.timeframe : null
     if (expectedTimeframe) await expect(tool.getByLabel(`${title} timeframe`, { exact: true })).toHaveValue(expectedTimeframe)
@@ -347,7 +379,25 @@ async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUT
     await expect(plot).toBeVisible({ timeout: 30_000 })
     const canvas = plot.locator('canvas')
     await expect(canvas).toBeVisible()
-    await expect.poll(() => hasRrgMarkerCenters(canvas), { timeout: 30_000 }).toBe(true)
+
+    const settings = tool.locator('.rotation-tool__settings')
+    const settingsSummary = settings.locator('summary')
+    await expect(settingsSummary).toHaveText('Settings')
+    if (await settings.getAttribute('open') === null) await settingsSummary.click()
+    await expect(settings).toHaveAttribute('open', '')
+    const timeframe = tool.getByRole('combobox', { name: 'Rotation timeframe', exact: true })
+    if (typeof configuration.timeframe === 'string') {
+      await expect(timeframe).toHaveValue(configuration.timeframe)
+    }
+
+    const rowsDisclosure = tool.locator('.rotation-tool__rows-disclosure')
+    const rowsSummary = rowsDisclosure.locator('summary')
+    await expect(rowsSummary).toContainText('Rows')
+    if (await rowsDisclosure.getAttribute('open') === null) await rowsSummary.click()
+    await expect(rowsDisclosure).toHaveAttribute('open', '')
+    const rows = tool.getByRole('region', { name: 'Relative rotation rows' }).locator('.rotation-tool__row')
+    await expect(rows.first()).toBeVisible({ timeout: 30_000 })
+    await expect(rows).not.toHaveCount(0)
     await plot.focus()
     await page.keyboard.press('Home')
     const tooltip = tool.locator('.rotation-tool__tooltip')
@@ -356,9 +406,13 @@ async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUT
     await expect(tooltip).toContainText(/Trend .*Momentum/)
     await page.keyboard.press('ArrowRight')
     await expect(tooltip).toBeVisible()
-    const rows = tool.getByRole('region', { name: 'Relative rotation rows' }).locator('.rotation-tool__row')
-    await expect(rows.first()).toBeVisible({ timeout: 30_000 })
-    await expect(rows).not.toHaveCount(0)
+
+    await rowsSummary.click()
+    await expect(rowsDisclosure).not.toHaveAttribute('open', '')
+    await settingsSummary.click()
+    await expect(settings).not.toHaveAttribute('open', '')
+    await expect(plot).toBeVisible()
+    await expect.poll(() => readRrgMarkerAudit(canvas), { timeout: 30_000 }).toMatchObject({ passed: true })
   } else if (kind === 'map') {
     const tiles = tool.locator('.market-map-tool__tiles')
     await expect(tiles).toBeVisible({ timeout: 30_000 })
@@ -538,10 +592,20 @@ test.describe('Workstation lifecycle journeys', () => {
     await page.getByRole('button', { name: 'Duplicate layout', exact: true }).click()
     const layoutMenu = await openWorkspaceMenu(page)
     const renamed = `Review ${Date.now()}`
-    // The layout item's accessible name changes as soon as the text field is
-    // filled, so keep the active rename control anchored by its stable role.
-    const renameField = layoutMenu.getByRole('textbox', { name: 'Rename layout', exact: true })
+    // The row's menu-item name changes as soon as its input is filled. Map the
+    // copied tab's stable key to the parallel menu-row position before editing.
+    const copiedTab = page.getByRole('tab', { name: 'US Top Down Copy', exact: true })
+    const copiedTabKey = await copiedTab.getAttribute('data-tab-key')
+    expect(copiedTabKey).toBeTruthy()
+    const copiedLayoutIndex = await page.locator('.workstation__tabs > [role="tab"]').evaluateAll((tabs, stableKey) => tabs.findIndex(tab => tab.getAttribute('data-tab-key') === stableKey), copiedTabKey!)
+    expect(copiedLayoutIndex, 'the copied stable tab key should map to its layout-menu row').toBeGreaterThanOrEqual(0)
+    // Resolve the textbox by its stable position before changing the name.
+    // Do not scope through the layout's menuitem/accessibility name: filling
+    // this textbox immediately changes that name while the locator is live.
+    const renameField = layoutMenu.getByRole('textbox', { name: 'Rename layout', exact: true }).nth(copiedLayoutIndex)
+    await expect(renameField).toHaveValue('US Top Down Copy')
     await renameField.fill(renamed)
+    await expect(renameField).toHaveValue(renamed)
     await renameField.press('Tab')
     const renamedTab = page.getByRole('tab', { name: renamed, exact: true })
     await expect(renamedTab).toBeVisible()

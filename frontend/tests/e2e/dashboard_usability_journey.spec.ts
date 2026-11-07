@@ -246,7 +246,7 @@ test('Dashboard creates useful seeded quote and chart widgets and restores saved
   await page.goto('/dashboard')
   await expect(page.locator('.dashboard-view')).toBeVisible()
 
-  const chartBars = dailyBarsResponse(page, 'SPY', 300)
+  const chartBars = dailyBarsResponse(page, 'SPY', 500)
   const chartWidget = await addWidget(page, 'Simple Chart')
   const chartModal = page.locator('.config-modal')
   const title = chartModal.getByPlaceholder('Widget title')
@@ -288,7 +288,7 @@ test('Dashboard creates useful seeded quote and chart widgets and restores saved
   await expect.poll(async () => (await persistedDashboard(page)).tabs.flatMap(tab => tab.widgets)
     .find(widget => widget.id === comparisonWidget.id)?.config.targets?.length).toBe(2)
 
-  const comparisonXlbBars = dailyBarsResponse(page, 'XLB', 300)
+  const comparisonXlbBars = dailyBarsResponse(page, 'XLB', 500)
   const comparisonXlbPreparation = preparationResponse(page, 'XLB')
   const changeSecondTarget = page.waitForResponse(response =>
     response.request().method() === 'PATCH'
@@ -324,10 +324,10 @@ test('Dashboard creates useful seeded quote and chart widgets and restores saved
   expect(widgetsBeforeReload.find(widget => widget.id === comparisonWidget.id)?.config.targets)
     .toMatchObject([{ symbol: 'SPY' }, { symbol: 'XLB', label: 'XLB' }])
 
-  const restoredChartBars = dailyBarsResponse(page, 'SPY', 300)
+  const restoredChartBars = dailyBarsResponse(page, 'SPY', 500)
   const restoredQuoteBars = dailyBarsResponse(page, 'SPY', 2)
   const restoredQuoteInstrument = instrumentProfileResponse(page, 'SPY')
-  const restoredComparisonXlbBars = dailyBarsResponse(page, 'XLB', 300)
+  const restoredComparisonXlbBars = dailyBarsResponse(page, 'XLB', 500)
   await page.reload()
   await expect(page.locator('.dashboard-view')).toBeVisible()
   await assertUsefulBars(await restoredChartBars, 50)
@@ -468,7 +468,7 @@ test('Dashboard symbol and comparison edits roll back with visible cancel and re
 })
 
 test('Dashboard drag and resize failures restore saved layout and recover by retry', async ({ page, loggedIn }) => {
-  let failuresRemaining = 2
+  let failuresRemaining = 1
   await page.route('**/api/v1/dashboards/tabs/*/widgets/layout', async route => {
     if (route.request().method() === 'PATCH' && failuresRemaining > 0) {
       failuresRemaining -= 1
@@ -514,6 +514,7 @@ test('Dashboard drag and resize failures restore saved layout and recover by ret
   expect(draggedLayout).not.toEqual(initialLayout)
   await expect(page.getByRole('alert')).toHaveCount(0)
 
+  failuresRemaining = 1
   const resizeResponse = page.waitForResponse(response =>
     response.request().method() === 'PATCH'
       && /\/api\/v1\/dashboards\/tabs\/\d+\/widgets\/layout$/.test(responsePath(response)),

@@ -80,8 +80,19 @@
       </div>
 
       <span v-if="store.instrument?.name" class="psym-name">{{ store.instrument.name }}</span>
-      <span v-if="historyProgress" class="panel-history-status" role="status" aria-live="polite">{{ historyProgress }}</span>
-      <span v-if="historyError" class="panel-history-status panel-history-status--error" role="alert">{{ historyError }}</span>
+      <CompactStatusNotice
+        v-if="historyProgress"
+        class="panel-history-status"
+        :summary="preparationMessageSummary(historyProgress, 'History')"
+        :detail="historyProgress"
+      />
+      <CompactStatusNotice
+        v-if="historyError"
+        class="panel-history-status panel-history-status--error"
+        kind="alert"
+        summary="History update failed"
+        :detail="historyError"
+      />
 
       <TimeframeSelector v-if="store.symbol" v-model="localTf" class="panel-tf" />
     </div>
@@ -105,12 +116,13 @@ import { usePanelStore }   from '@/stores/chart'
 import { useLayoutStore }  from '@/stores/layout'
 import { usePanelLinksStore, PANEL_LINK_GROUPS } from '@/stores/panelLinks'
 import { useDrawingsStore } from '@/stores/drawings'
+import CompactStatusNotice from '@/components/common/CompactStatusNotice.vue'
 import { useAlertsStore } from '@/stores/alerts'
 import TimeframeSelector from '@/components/chart/TimeframeSelector.vue'
 import SearchBar from '@/components/common/SearchBar.vue'
 import UPlotChart        from '@/components/chart/UPlotChart.vue'
 import { type InstrumentAcquireResponse } from '@/lib/onDemandAcquisition'
-import { dataPreparationCoordinator, instrumentHistoryPreparationRequest, isPreparationTimeframe, PreparationProgressRefreshQueue, preparationStatusMessage, type DataEnsureResponse } from '@/lib/dataPreparation'
+import { dataPreparationCoordinator, instrumentHistoryPreparationRequest, isPreparationTimeframe, PreparationProgressRefreshQueue, preparationMessageSummary, preparationStatusMessage, type DataEnsureResponse } from '@/lib/dataPreparation'
 import type { Timeframe } from '@/types'
 
 const props = defineProps<{ panelId: string }>()

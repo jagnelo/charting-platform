@@ -92,6 +92,64 @@ describe('DashboardInstrumentSearch', () => {
     expect(wrapper.emitted('select')?.[0]).toEqual(['NVDA'])
   })
 
+  it('keeps a teleported candidate alive through ordinary mousedown and click', async () => {
+    discover.mockResolvedValueOnce(discovery([candidate('NVDA', null)]))
+    resolveDiscovered.mockResolvedValueOnce({
+      status: 'resolved',
+      instrument: { instrument_id: 9, symbol: 'NVDA', identity_status: 'verified' },
+      source_outcomes: [],
+    })
+    const wrapper = mountDashboardSearch({ props: { modelValue: '' } })
+    const input = wrapper.find('input')
+    await input.setValue('NV')
+    vi.advanceTimersByTime(230)
+    await flushPromises()
+    const button = document.body.querySelector('.dash-search-item') as HTMLButtonElement
+    expect(button).toBeTruthy()
+
+    button.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
+    await nextTick()
+    expect(document.body.contains(button)).toBe(true)
+    button.click()
+    await flushPromises()
+
+    expect(resolveDiscovered).toHaveBeenCalledWith(candidate('NVDA', null))
+    expect(wrapper.emitted('select')?.[0]).toEqual(['NVDA'])
+    expect(document.body.querySelector('.dash-search-results')).toBeNull()
+  })
+
+  it('selects a visible candidate by keyboard and ignores a late superseded resolution', async () => {
+    let resolveOld!: (value: unknown) => void
+    discover
+      .mockResolvedValueOnce(discovery([candidate('NVDA', null)]))
+      .mockResolvedValueOnce(discovery([candidate('NEWT', null)]))
+    resolveDiscovered.mockImplementationOnce(() => new Promise(resolve => { resolveOld = resolve }))
+    const wrapper = mountDashboardSearch({ props: { modelValue: '' } })
+    const input = wrapper.find('input')
+
+    await input.setValue('NV')
+    vi.advanceTimersByTime(230)
+    await flushPromises()
+    await input.trigger('keydown.enter')
+    expect(resolveDiscovered).toHaveBeenCalledWith(candidate('NVDA', null))
+
+    await input.setValue('NE')
+    vi.advanceTimersByTime(230)
+    await flushPromises()
+    expect(document.body.textContent).toContain('NEWT Corp')
+    resolveOld({
+      status: 'resolved',
+      instrument: { instrument_id: 9, symbol: 'NVDA', identity_status: 'verified' },
+      source_outcomes: [],
+    })
+    await flushPromises()
+
+    expect(wrapper.emitted('select')).toBeUndefined()
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    expect(document.body.textContent).toContain('NEWT Corp')
+    expect(document.body.textContent).not.toContain('NVDA Corp')
+  })
+
   it('resolves one unique exact ticker without exposing provider choices', async () => {
     discover.mockResolvedValueOnce(discovery([candidate('AAPL', 17)]))
     resolveDiscovered.mockResolvedValueOnce({
