@@ -1392,6 +1392,107 @@ describe('ETFHoldingsView', () => {
     wrapper.unmount()
   })
 
+  it('uses a loaded stored profile for an ordinary symbol selection without trusting its local ID', async () => {
+    const diaProfile = {
+      ...profile,
+      id: 16,
+      instrument_id: 160,
+      symbol: 'DIA',
+      name: 'SPDR Dow Jones Industrial Average ETF Trust',
+      latest_snapshot_id: 54,
+    }
+    const xlbCapability = {
+      ...profile.holdings_capability,
+      availability: 'stale',
+      usable_for_current_analysis: false,
+      reason: 'The retained XLB snapshot is not current for analysis.',
+    }
+    const xlbProfile = {
+      ...profile,
+      id: 17,
+      instrument_id: 701,
+      symbol: 'XLB',
+      name: 'State Street Materials Select Sector SPDR ETF',
+      latest_snapshot_id: 16,
+      latest_composition_date: '2026-01-02',
+      holdings_capability: xlbCapability,
+    }
+    const datedSnapshot = (source: { id: number; instrument_id: number; name: string }, snapshotId: number, symbol: string) => ({
+      ...holdingsPage().snapshot,
+      id: snapshotId,
+      etf_profile_id: source.id,
+      etf_instrument_id: source.instrument_id,
+      etf_symbol: symbol,
+      etf_name: source.name,
+      composition_date: '2026-01-02',
+      known_at: '2026-01-03T00:00:00Z',
+      provenance: 'controlled_fixture',
+      source_provider: 'e2e_reference',
+      source_quality: 'controlled_fixture',
+      source_identifier: `e2e:${symbol}:2026-01-02`,
+      source_url: `https://issuer.example.test/holdings/${symbol.toLowerCase()}`,
+    })
+    const pageFor = (source: { id: number; instrument_id: number; name: string }, snapshotId: number, symbol: string) => holdingsPage({
+      snapshot: datedSnapshot(source, snapshotId, symbol),
+      holdings: [{
+        ...holdingsPage().holdings[0],
+        id: snapshotId * 100,
+        snapshot_id: snapshotId,
+        constituent_symbol: symbol === 'XLB' ? 'LIN' : 'GS',
+        constituent_name: symbol === 'XLB' ? 'Linde plc' : 'Goldman Sachs Group',
+        reported_symbol: symbol === 'XLB' ? 'LIN' : 'GS',
+        reported_name: symbol === 'XLB' ? 'Linde plc' : 'Goldman Sachs Group',
+      }],
+      total: 1,
+      has_next: false,
+    })
+    const diaDate = { ...dates[0], snapshot_id: 54, composition_date: '2026-01-02' }
+    const xlbDate = { ...dates[0], snapshot_id: 16, composition_date: '2026-01-02' }
+
+    vi.mocked(api.get).mockImplementation(async (path, params) => {
+      if (path === '/etf-holdings' && (params as { q?: string } | undefined)?.q === undefined) {
+        return [diaProfile, xlbProfile] as never
+      }
+      if (path === '/etf-holdings/DIA/dates') return [diaDate] as never
+      if (path === '/etf-holdings/DIA/holdings') return pageFor(diaProfile, 54, 'DIA') as never
+      if (path === '/etf-holdings/DIA/diff') return diffPayload() as never
+      if (path === '/etf-holdings/DIA/weight-evolution') return weightEvolutionPayload() as never
+      if (path === '/etf-holdings/DIA/transitions') return transitionTimelinePayload() as never
+      if (path === '/etf-holdings/XLB/capability') return xlbCapability as never
+      if (path === '/etf-holdings/XLB/dates') return [xlbDate] as never
+      if (path === '/etf-holdings/XLB/holdings') return pageFor(xlbProfile, 16, 'XLB') as never
+      if (path === '/etf-holdings/XLB/diff') return diffPayload() as never
+      if (path === '/etf-holdings/XLB/weight-evolution') return weightEvolutionPayload() as never
+      if (path === '/etf-holdings/XLB/transitions') return transitionTimelinePayload() as never
+      return [] as never
+    })
+    let finishPreparation!: (response: unknown) => void
+    vi.mocked(api.post).mockImplementation(() => new Promise(resolve => { finishPreparation = resolve }) as never)
+
+    const wrapper = mount(ETFHoldingsView)
+    await vi.waitFor(() => expect(wrapper.get('.panel-title-row h2').text()).toBe('DIA'))
+    await vi.waitFor(() => expect(wrapper.findAll('button.profile-card')).toHaveLength(2))
+    await wrapper.findComponent({ name: 'SearchBar' }).vm.$emit('select', 'XLB', {
+      symbol: 'XLB', name: xlbProfile.name, exchange: 'NYSE Arca', type: 'ETF',
+    })
+
+    await vi.waitFor(() => expect(api.post).toHaveBeenCalledWith('/data/ensure', {
+      target: { kind: 'instrument', symbol: 'XLB' }, datasets: ['holdings'],
+    }, expect.objectContaining({ signal: expect.any(AbortSignal) })))
+    expect(wrapper.get('.panel-title-row h2').text()).toBe('XLB')
+    expect(wrapper.get('.holdings-table').text()).toContain('LIN')
+    expect(wrapper.get('[data-testid="etf-snapshot-source-identifier"]').text()).toBe('e2e:XLB:2026-01-02')
+    expect(api.get).not.toHaveBeenCalledWith('/etf-holdings', { q: 'XLB' })
+    expect(api.post).toHaveBeenCalledTimes(1)
+
+    finishPreparation(preparationResponse('XLB', 'unavailable'))
+    await vi.waitFor(() => expect(wrapper.get('[data-testid="etf-preparation-status"]').text())
+      .toContain('No reviewed data source can provide this request.'))
+    expect(wrapper.get('.panel-title-row h2').text()).toBe('XLB')
+    expect(wrapper.get('.holdings-table').text()).toContain('LIN')
+    wrapper.unmount()
+  })
+
   it('discovers and deliberately selects a confirmed Exchange Traded Vehicle without admitting ETNs', async () => {
     vi.mocked(api.get).mockImplementation(async (path: string) => {
       if (path === '/etf-holdings') return []
