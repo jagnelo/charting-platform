@@ -53,7 +53,12 @@ function controlled503(responseId: string) {
   }
 }
 
-function isStudyHistoryEnsure(request: import('@playwright/test').Request, symbols: ReadonlySet<string>) {
+function isStudyHistoryEnsure(
+  request: import('@playwright/test').Request,
+  symbols: ReadonlySet<string>,
+  startAt: string | null = null,
+  endAt: string | null = null,
+) {
   if (request.method() !== 'POST' || new URL(request.url()).pathname !== '/api/v1/data/ensure') return false
   let body: {
     target?: { kind?: string; symbol?: string }
@@ -77,8 +82,8 @@ function isStudyHistoryEnsure(request: import('@playwright/test').Request, symbo
     && body.adjusted === true
     && Object.prototype.hasOwnProperty.call(body, 'start_at')
     && Object.prototype.hasOwnProperty.call(body, 'end_at')
-    && body.start_at === null
-    && body.end_at === null
+    && body.start_at === startAt
+    && body.end_at === endAt
 }
 
 test('Study journey keeps saved identity, refreshes Results, and returns from Python Library on the immutable version', async ({ page, loggedIn, browserDiagnostics }) => {
@@ -118,7 +123,13 @@ test('Study journey keeps saved identity, refreshes Results, and returns from Py
   await study.getByLabel('Study start date').fill(retainedStudyStartDate)
   await study.getByLabel('Study end date').fill(retainedStudyEndDate)
   const immutableSource = await study.getByRole('textbox', { name: 'Study Python source' }).inputValue()
-  const preparationResponse = page.waitForResponse(response => response.request().method() === 'POST' && new URL(response.url()).pathname.endsWith('/data/ensure'))
+  const preparationSymbols = new Set(['SPY'])
+  const preparationResponse = page.waitForResponse(response => isStudyHistoryEnsure(
+    response.request(),
+    preparationSymbols,
+    `${retainedStudyStartDate}T00:00:00.000Z`,
+    `${retainedStudyEndDate}T23:59:59.999Z`,
+  ))
   await study.getByRole('button', { name: 'Validate study' }).click()
   const prepared = await preparationResponse
   expect(prepared.ok()).toBe(true)

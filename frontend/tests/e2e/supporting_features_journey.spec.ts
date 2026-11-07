@@ -297,6 +297,18 @@ test('supporting settings — discover preferences, manage an isolated preset, a
 
   await page.goto('/legacy/chart/SPY')
   await expect(page.locator('.chart-view')).toBeVisible({ timeout: 15_000 })
+  const indicatorPanelToggle = page.getByRole('button', { name: /indicator panel$/i })
+  await expect(indicatorPanelToggle).toBeVisible()
+  if (await indicatorPanelToggle.getAttribute('aria-expanded') === 'false') {
+    await indicatorPanelToggle.click()
+  }
+  await expect(indicatorPanelToggle).toHaveAttribute('aria-expanded', 'true')
+  const indicatorsSectionToggle = page.getByRole('button', { name: /^Indicators\b/ })
+  await expect(indicatorsSectionToggle).toBeVisible()
+  if (await indicatorsSectionToggle.getAttribute('aria-expanded') === 'false') {
+    await indicatorsSectionToggle.click()
+  }
+  await expect(indicatorsSectionToggle).toHaveAttribute('aria-expanded', 'true')
   const savePreset = page.getByRole('button', { name: 'Save indicator preset' })
   await expect(savePreset).toBeVisible({ timeout: 10_000 })
   await savePreset.click()
@@ -319,7 +331,7 @@ test('supporting settings — discover preferences, manage an isolated preset, a
   )
   await saveDialog.getByRole('button', { name: 'Save', exact: true }).click()
   const createdResponse = await createPresetResponse
-  expect(createdResponse.status()).toBe(200)
+  expect(createdResponse.status()).toBe(201)
   const preset = await createdResponse.json() as { id: number; name: string; is_default: boolean }
   expect(preset.name).toBe(presetName)
 
@@ -338,7 +350,13 @@ test('supporting settings — discover preferences, manage an isolated preset, a
   await page.reload()
   const reloadedRow = page.locator('.preset-row').filter({ hasText: presetName })
   await expect(reloadedRow).toContainText('default')
+  const deletePresetResponse = page.waitForResponse(response =>
+    new URL(response.url()).pathname === `/api/v1/presets/${preset.id}`
+    && response.request().method() === 'DELETE',
+  )
   await reloadedRow.getByRole('button', { name: 'Delete' }).click()
+  expect((await deletePresetResponse).status()).toBe(204)
+  await expect(reloadedRow).toHaveCount(0)
   const afterDelete = await page.request.get('/api/v1/presets', { headers })
   const afterDeletePresets = await afterDelete.json() as Array<{ id: number; name: string; description: string | null; indicators: unknown[]; is_default: boolean }>
   expect(afterDeletePresets.some(item => item.id === preset.id)).toBe(false)

@@ -5003,9 +5003,9 @@ approved_development_dependency_imports:
   - frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts
   - frontend/tests/unit/stores/test_dashboard_store.test.ts
   - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts
-- source_sha: 3191a94397ffe12c9c79113aee45af85eaa9f534
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/3191a94397ffe12c9c79113aee45af85eaa9f534.json
-  manifest_sha256: 535269ba56b491bb9acd6e8e776fd1bb591405b06f52782eeccbe436918b0113
+- source_sha: 1ca97c377849fd06d413fb96b4c0a0621fea3bc1
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/1ca97c377849fd06d413fb96b4c0a0621fea3bc1.json
+  manifest_sha256: 177ec944f0f9c6121b202e67e520c4cb471450f304948797586df86b7e7826e2
   paths:
   - frontend/src/components/workstation/CodeLibraryTool.vue
   - frontend/src/components/workstation/ResearchResultsTool.vue
@@ -5018,9 +5018,9 @@ approved_development_dependency_imports:
   - frontend/tests/unit/components/test_research_results_tool.test.ts
   - frontend/tests/unit/components/test_study_lab_tool.test.ts
   - frontend/tests/unit/e2e/test_browser_diagnostics.test.ts
-- source_sha: b0db1656ad8505e2aaa39546d60487015aca00d4
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/b0db1656ad8505e2aaa39546d60487015aca00d4.json
-  manifest_sha256: 89ad31b41b8c90f0e6df3a0714be96221beaa9dacf7cd680c6b209e8b09dddf7
+- source_sha: 9f3ffcd9bf85d8458c14630ab244694a4dfca127
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/9f3ffcd9bf85d8458c14630ab244694a4dfca127.json
+  manifest_sha256: ac05b473a34025e912da02c57ee40187d30ab6daf68ba136539a21575e3320a0
   paths:
   - frontend/src/components/workstation/InstrumentNoteTool.vue
   - frontend/src/views/BasketsView.vue

@@ -191,6 +191,19 @@ const studyRunCache = new Map<string, { run: Run; source: string; contract: stri
 const props = defineProps<{ toolKey?: string; activeSymbol: string; configuration?: Record<string, unknown> }>()
 const queryClient = useQueryClient()
 const emit = defineEmits<{ occurrence: [event: { symbol: string; timestamp: string; kind?: string }]; configuration: [configuration: Record<string, unknown>] }>()
+const configurationSnapshot = ref({ ...(props.configuration ?? {}) })
+watch(() => ({ ...(props.configuration ?? {}) }), configuration => {
+  // The host applies configuration events as a synchronous delete/assign
+  // replacement. Observe the completed parent value in Vue's queued watcher,
+  // rather than composing the next Study event from an intermediate empty
+  // configuration.
+  configurationSnapshot.value = configuration
+})
+function emitConfiguration(configuration: Record<string, unknown>) {
+  const completeConfiguration = { ...configuration }
+  configurationSnapshot.value = completeConfiguration
+  emit('configuration', completeConfiguration)
+}
 const name = ref('Consecutive Positive Closes')
 const configuredSymbol = typeof props.configuration?.symbol === 'string' && props.configuration.symbol.trim()
   ? props.configuration.symbol.trim().toUpperCase()
@@ -969,7 +982,7 @@ async function prepareStudyDataset(intent: StudyDatasetIntent): Promise<boolean>
 }
 watch([symbol, timeframe, benchmark, universeSourceId, universeSymbols, adjustment, session, startDate, endDate, asOf], () => {
   invalidateStudyPreparation()
-  const configuration: Record<string, unknown> = { ...(props.configuration ?? {}), timeframe: timeframe.value, adjustment: adjustment.value, session: session.value }
+  const configuration: Record<string, unknown> = { ...configurationSnapshot.value, timeframe: timeframe.value, adjustment: adjustment.value, session: session.value }
   if (symbol.value.trim()) configuration.symbol = symbol.value.trim().toUpperCase()
   else delete configuration.symbol
   if (benchmark.value) configuration.benchmark = benchmark.value.toUpperCase()
@@ -984,13 +997,13 @@ watch([symbol, timeframe, benchmark, universeSourceId, universeSymbols, adjustme
   else delete configuration.as_of
   if (universeSymbols.value) configuration.symbols = universeSymbols.value.toUpperCase()
   else delete configuration.symbols
-  emit('configuration', configuration)
+  emitConfiguration(configuration)
 }, { flush: 'sync' })
 watch(() => `${props.configuration?.analysis_scope ?? ''}|${props.configuration?.analysis_source_id ?? ''}|${JSON.stringify(props.configuration?.selected_member_ids ?? [])}`, () => {
   invalidateStudyPreparation()
 }, { flush: 'sync' })
 watch(parameterSchemaText, value => {
-  emit('configuration', { ...(props.configuration ?? {}), parameter_schema: value })
+  emitConfiguration({ ...configurationSnapshot.value, parameter_schema: value })
 })
 watch(parameterDefinitions, definitions => {
   const next: Record<string, string | boolean> = {}
@@ -1010,13 +1023,13 @@ function clearOpenedStudyDefinition(persist = true) {
   openedStudyOutputContract.value = ''
   openedStudyDefaultParameters.value = {}
   if (persist) {
-    const configuration = { ...(props.configuration ?? {}) }
+    const configuration = { ...configurationSnapshot.value }
     delete configuration.study_asset_version_id
     delete configuration.study_name
     delete configuration.study_source
     delete configuration.study_output_contract
     delete configuration.study_default_parameters
-    emit('configuration', configuration)
+    emitConfiguration(configuration)
   }
 }
 function applyFactoryStudy() {
@@ -1291,7 +1304,7 @@ async function saveAndRun() {
     runCodeVersionId.value = createdRun.code_version_id ?? codeVersionId
     scheduleRunPolling(createdRun.id, generation)
     const persistedConfiguration: Record<string, unknown> = {
-      ...(props.configuration ?? {}),
+      ...configurationSnapshot.value,
       study_run_id: run.value.id,
       study_run_source: runSource.value,
       study_run_contract: runContract.value,
@@ -1306,7 +1319,7 @@ async function saveAndRun() {
       delete persistedConfiguration.study_output_contract
       delete persistedConfiguration.study_default_parameters
     }
-    emit('configuration', persistedConfiguration)
+    emitConfiguration(persistedConfiguration)
   } catch (cause: any) { error.value = cause?.message ?? 'Unable to start isolated study run' }
   finally { busy.value = false }
 }
@@ -1563,7 +1576,7 @@ async function promote(target: PromotionTarget, selectedOutputName?: string) {
         })
         scanId = scan.id
         promotedScanId.value = scanId
-        emit('configuration', { ...(props.configuration ?? {}), study_run_id: selectedRunSnapshot?.id, study_run_source: selectedRunSource, study_run_contract: selectedRunContract, promoted_scan_id: scanId })
+        emitConfiguration({ ...configurationSnapshot.value, study_run_id: selectedRunSnapshot?.id, study_run_source: selectedRunSource, study_run_contract: selectedRunContract, promoted_scan_id: scanId })
       }
       if (target === 'alert') {
         await api.post('/alerts/screener', { screener_id: scanId, trigger_type: 'entered', repeat: true })
@@ -1919,8 +1932,8 @@ async function rerun(snapshot: boolean) {
     if (!disposed && generation === runGeneration) {
       run.value = rerunResult
       persistedRunId.value = rerunResult.id
-      emit('configuration', {
-        ...(props.configuration ?? {}),
+      emitConfiguration({
+        ...configurationSnapshot.value,
         study_run_id: rerunResult.id,
         study_run_source: runSource.value,
         study_run_contract: runContract.value,

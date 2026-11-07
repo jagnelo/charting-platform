@@ -31,10 +31,10 @@
       "qualification": "Exact Strategy-owned dashboard recovery paths and tests are imported; current-source browser acceptance remains pending."
     },
     "strategy_domain_runtime_import": {
-      "source_commit": "5703f21497e628576e9d381dede28dbaa0ca719d",
-      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/5703f21497e628576e9d381dede28dbaa0ca719d.json",
-      "manifest_sha256": "0b526ef2cfdc6198b48130469053cc33312f3b79a6df2a2538cc2d691c344a3e",
-      "qualification": "Exact Strategy-owned Study/Results/Library domain files and tests are imported; normal browser-body and release acceptance remain Root-owned and pending."
+      "source_commit": "1ca97c377849fd06d413fb96b4c0a0621fea3bc1",
+      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/1ca97c377849fd06d413fb96b4c0a0621fea3bc1.json",
+      "manifest_sha256": "177ec944f0f9c6121b202e67e520c4cb471450f304948797586df86b7e7826e2",
+      "qualification": "Exact Strategy-owned Study domain successor 1ca97c3 and declared TC imports are present; current-source browser and release acceptance remain Root-owned and pending."
     },
     "provider_runtime_import": {
       "source_commit": "580571e41b9797589bf205b61d337f8c92ec04c6",
@@ -43,10 +43,10 @@
       "qualification": "Provider 580571 adds same-request provider-metadata reuse and a query-count regression over 21be for development; exact-source CI and combined browser acceptance remain pending."
     },
     "etf_domain_runtime_import": {
-      "source_commit": "eedc1a9369a702ddfb588786fc77b5657c978e42",
-      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/eedc1a9369a702ddfb588786fc77b5657c978e42.json",
-      "manifest_sha256": "16d9954c47d5debcd19b0d49e74462a974f6af7ddcd07ffac53c8d834c903ef7",
-      "qualification": "Exact ETF-owned basket and holdings paths plus the updated uncached Workstation acquisition test are imported; the focused uncached case passed on front4cfee/backb0, while remaining browser bodies and final combined acceptance remain pending Root."
+      "source_commit": "9f3ffcd9bf85d8458c14630ab244694a4dfca127",
+      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/9f3ffcd9bf85d8458c14630ab244694a4dfca127.json",
+      "manifest_sha256": "ac05b473a34025e912da02c57ee40187d30ab6daf68ba136539a21575e3320a0",
+      "qualification": "Exact ETF-owned domain successor 9f3ffcd and declared TC imports are present; current-source browser bodies and final combined acceptance remain Root-owned and pending."
     }
   },
   "counts": {

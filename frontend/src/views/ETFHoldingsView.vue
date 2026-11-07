@@ -907,6 +907,7 @@ const canCompareOverlapFamily = computed(() =>
 
 async function loadProfiles(search = profileSearch.value.trim(), autoSelectFirst = !selectedProfile.value) {
   const seq = ++profileLoadSeq
+  const selectionGeneration = fundSelectionGeneration
   loadingProfiles.value = true
   loadError.value = ''
   try {
@@ -915,8 +916,17 @@ async function loadProfiles(search = profileSearch.value.trim(), autoSelectFirst
     })
     const normalized = Array.isArray(loaded) ? loaded : []
     if (seq !== profileLoadSeq) return
-    profiles.value = normalized
-    if (autoSelectFirst && !selectedProfile.value && normalized.length) {
+    const currentSelection = selectedProfile.value
+    profiles.value = selectionGeneration !== fundSelectionGeneration
+      && currentSelection
+      && !normalized.some(profile => profile.id === currentSelection.id)
+      ? [...normalized, currentSelection]
+      : normalized
+    if (autoSelectFirst
+      && selectionGeneration === fundSelectionGeneration
+      && !selectedProfile.value
+      && !pendingFund.value
+      && normalized.length) {
       await selectProfile(normalized[0])
     }
     return normalized
@@ -965,12 +975,16 @@ async function selectProfileFromSearch(symbol: string, result?: ETFSearchResult)
   holdingsActionBusy.value = false
   holdingsActionRefresh.value = false
   identityResolutionBusy.value = false
-  const matchedProfile = profiles.value.find(profile => profile.symbol.toUpperCase() === normalized)
   const resolvedId = result?.explicitlyResolved
     && Number.isSafeInteger(result.instrument_id)
     && Number(result.instrument_id) > 0
     ? Number(result.instrument_id)
     : null
+  const matchesSelectedIdentity = (profile: ETFProfile) =>
+    profile.symbol.trim().toUpperCase() === normalized
+    && (resolvedId == null || profile.instrument_id === resolvedId)
+  const localMatches = profiles.value.filter(matchesSelectedIdentity)
+  const matchedProfile = localMatches.length === 1 ? localMatches[0] : undefined
   const pending = {
     symbol: normalized,
     name: result?.name || matchedProfile?.name || normalized,
@@ -982,12 +996,42 @@ async function selectProfileFromSearch(symbol: string, result?: ETFSearchResult)
     await selectProfile(matchedProfile, resolvedId, true)
     return
   }
-  fundSelectionGeneration += 1
+  const generation = ++fundSelectionGeneration
   pendingFund.value = pending
   resetWorkspaceSelection()
   overlapIssuer.value = ''
   overlapFundFamily.value = ''
   preparationMessage.value = `Preparing ${normalized} holdings. Any saved snapshot remains separate from current eligibility.`
+
+  // Resolve a stored profile directly from the exact selected symbol instead
+  // of waiting for the unrelated startup catalogue. This lookup is read-only;
+  // a local profile's instrument ID is not native identity authority. Only an
+  // explicitly resolved SearchBar result may bind preparation to that ID.
+  let storedProfile = localMatches.length === 1 ? localMatches[0] : undefined
+  if (!storedProfile) {
+    let matchingProfiles: ETFProfile[] = []
+    try {
+      const loaded = await api.get<ETFProfile[]>('/etf-holdings', { q: normalized })
+      if (Array.isArray(loaded)) matchingProfiles = loaded
+    } catch {
+      // If the profile lookup is unavailable, retain the selected symbol and
+      // let the normal preparation request report its own truthful outcome.
+    }
+    if (generation !== fundSelectionGeneration || pendingFund.value?.symbol !== normalized) return
+    const exactMatches = matchingProfiles.filter(matchesSelectedIdentity)
+    if (exactMatches.length > 1) {
+      preparationMessage.value = `More than one saved ETF profile matches ${normalized}. Resolve an exact listing before selecting its holdings.`
+      return
+    }
+    storedProfile = exactMatches[0]
+    if (storedProfile && !profiles.value.some(profile => profile.id === storedProfile!.id)) {
+      profiles.value = [...profiles.value, storedProfile]
+    }
+  }
+  if (storedProfile) {
+    await selectProfile(storedProfile, resolvedId, true)
+    return
+  }
   void prepareSelectedHoldings(normalized, resolvedId)
 }
 

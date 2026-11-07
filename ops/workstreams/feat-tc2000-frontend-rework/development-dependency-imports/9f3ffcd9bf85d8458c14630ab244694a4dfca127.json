@@ -1,0 +1,129 @@
+{
+  "at": "2026-11-07T11:31:52.862532+00:00",
+  "authority": "Root coordinates the human-approved common-interface implementation; no staging or deployment acceptance",
+  "state": "released_for_exact_development_consumption_not_product_acceptance",
+  "source": "9f3ffcd9bf85d8458c14630ab244694a4dfca127",
+  "base": "139b350238b5e1c8a170dce5af09a805301d857e",
+  "previous_source": "b0db1656ad8505e2aaa39546d60487015aca00d4",
+  "files": [
+    {
+      "path": "frontend/src/components/workstation/InstrumentNoteTool.vue",
+      "status_from139": "M",
+      "git_blob": "95a10b7d3021818cb5e54d8f8643b88dacb10cd5",
+      "sha256": "dfee1f12a212c4bfc138ef6d23eec5b83b84e4ca159c4e0c0fc5a5100899c33f"
+    },
+    {
+      "path": "frontend/src/views/BasketsView.vue",
+      "status_from139": "M",
+      "git_blob": "71b27cafc4019d5004e54e7f2536606c0484756e",
+      "sha256": "eb237b4610cae5c7565bfcacc6bf2718586b89d032885d642f98cc55dcb5b141"
+    },
+    {
+      "path": "frontend/src/views/ETFHoldingsView.vue",
+      "status_from139": "M",
+      "git_blob": "d0a9221863716e61f5192d0252fb8fa149164be0",
+      "sha256": "419a71989aa43caff0fd7b6a47c0af402d970e88e7b1b39088347db5004ed0d5"
+    },
+    {
+      "path": "frontend/tests/e2e/baskets_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "e8816b44638c3bd52a3e1e1c6c0baa9fd3659b00",
+      "sha256": "2a4799fe9a0b7893aa9660d5d79d2ba5ffb5b0bfe1073457e3947ded3fdcb5f4"
+    },
+    {
+      "path": "frontend/tests/e2e/etf_holdings_preparation.spec.ts",
+      "status_from139": "A",
+      "git_blob": "d3db0535661b15a4461582fc1b53a84d15ce1c37",
+      "sha256": "0c8585967b15edad772d3fe272d75813ac533d5e018047a79bf76cc9b4483615"
+    },
+    {
+      "path": "frontend/tests/e2e/on_demand_acquisition.spec.ts",
+      "status_from139": "M",
+      "git_blob": "8aa8d3acf20b3eeaf89455ee0dd2b53059651253",
+      "sha256": "76d31dc7c7c59284ae5d5db4c2eb46db926bfa85f2557baba56cdbccd9c42f46"
+    },
+    {
+      "path": "frontend/tests/e2e/sp500_analysis_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "5a0a8e79229b604208f8ca59ab82aedb4f26d8cc",
+      "sha256": "4e27d44f97c88ce202aa7568983587be55d79ba82c91425f098f0544e017cde8"
+    },
+    {
+      "path": "frontend/tests/e2e/supporting_features_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "de3602418dfd14cc305a022530a54ee3ac6e4948",
+      "sha256": "6ce60655a55a925b5adac2f7583317c5bbef6b0a107e28d346f9b1325fa302ec"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_instrument_note_tool.test.ts",
+      "status_from139": "A",
+      "git_blob": "ac808ec30dac2cfd8268f2fe0b45a9f77e6a4a29",
+      "sha256": "43b95300e0d3443baac6238f507fe2fbbb8d1a6da726a440f236dee46737a7db"
+    },
+    {
+      "path": "frontend/tests/unit/views/test_baskets_view.test.ts",
+      "status_from139": "M",
+      "git_blob": "0ebf9ba0bce23fcd5dfc5ed5daf8d98e69be9ec7",
+      "sha256": "8439f811cbaf26257f71591786d9b097ac2e92c49438a7f0f99b062d7d16c7cd"
+    },
+    {
+      "path": "frontend/tests/unit/views/test_etf_holdings_view.test.ts",
+      "status_from139": "M",
+      "git_blob": "70d0c0d4d9e628e467b101391c361c58bba29903",
+      "sha256": "bf6ce864519b28c796b94489f5fa106c979d38d0e4243b426a2b51d0d6dfe33f"
+    }
+  ],
+  "consumers": [
+    {
+      "consumer": "TC",
+      "import_paths": [
+        "frontend/src/views/ETFHoldingsView.vue",
+        "frontend/tests/e2e/baskets_journey.spec.ts",
+        "frontend/tests/e2e/etf_holdings_preparation.spec.ts",
+        "frontend/tests/e2e/sp500_analysis_journey.spec.ts",
+        "frontend/tests/e2e/supporting_features_journey.spec.ts",
+        "frontend/tests/unit/views/test_etf_holdings_view.test.ts"
+      ],
+      "old_guards": {
+        "frontend/src/views/ETFHoldingsView.vue": {
+          "sha256": "069f39fcd8cb2eade1c1fb486e64ef52cd8f6c18e2cb0f458b147c5e1289491b",
+          "known_source": "b0db1656ad8505e2aaa39546d60487015aca00d4",
+          "absent": false
+        },
+        "frontend/tests/e2e/baskets_journey.spec.ts": {
+          "sha256": "b6b0d4e138ee31c573fc39d80463c933e35712e62d5dc0b90c5698c06a059ef7",
+          "known_source": "b0db1656ad8505e2aaa39546d60487015aca00d4",
+          "absent": false
+        },
+        "frontend/tests/e2e/etf_holdings_preparation.spec.ts": {
+          "sha256": "27a01d30994c6e0246c5156e8db4eb27b7d7e49e2e412561e19d0cefa8e2e091",
+          "known_source": "b0db1656ad8505e2aaa39546d60487015aca00d4",
+          "absent": false
+        },
+        "frontend/tests/e2e/sp500_analysis_journey.spec.ts": {
+          "sha256": "a49970e4a4ad5a07f51257f43570dee248046fe2848b61a30ace8f2b4e813ec8",
+          "known_source": "b0db1656ad8505e2aaa39546d60487015aca00d4",
+          "absent": false
+        },
+        "frontend/tests/e2e/supporting_features_journey.spec.ts": {
+          "sha256": "60e4cf196dd9e21bd4ee31206df7678f1b185ab6ca700924b3cd7c942be19451",
+          "known_source": "b0db1656ad8505e2aaa39546d60487015aca00d4",
+          "absent": false
+        },
+        "frontend/tests/unit/views/test_etf_holdings_view.test.ts": {
+          "sha256": "f9261ffa840c5fc7a68bfef2c9394472d10418090b04b1657416f256dd471e8e",
+          "known_source": "b0db1656ad8505e2aaa39546d60487015aca00d4",
+          "absent": false
+        }
+      },
+      "owned_overlap": []
+    }
+  ],
+  "scope": "ETF cached-profile selection independent of delayed startup catalogue/preparation; generation fences preserve new fund, exact read-only lookup and identity provenance. Includes reviewed test-only ratio timestamp, basket tooltip/math, normal API-backed fund and preset lifecycle corrections plus RRG actual save acknowledgment. Backend basket unchanged in Provider23b6.",
+  "evidence": {
+    "owner": "Read frozen owner handoff and validation entries for exact substantive source; not broad release acceptance.",
+    "root": "Committed files equal owner working bytes; consumer old/new guards and Git100644 verified. Native/combined/full release pending.",
+    "postgres": "root-etf-selected-series-pg-cleanup-review.json"
+  },
+  "preserve": "Keep complete roadmaps and historical receipts, native holds and datasets. Only declared imports; no overlap with other owner writes, no amend source or metadata-only commit."
+}
