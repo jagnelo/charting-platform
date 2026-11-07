@@ -14932,9 +14932,9 @@ acceptance_criteria:
   text: >-
     Focused offline tests plus Root-allocated database/browser proof cover contracts, dependency planning, durable dedupe/restart/priority, exact range/provider boundaries, worker registration/wakeup and failure semantics; full backend/DDL, exact-source CI and Root's combined release gates pass before acceptance.
 next_action: >-
-  No additional implementation gap is identified in PLATFORM-PREP-1 through PLATFORM-PREP-7 from the current source and scoped evidence.
-  Root owns the remaining PLATFORM-PREP-8 full backend/DDL, exact-source CI, and combined release qualification; continue only on a
-  concrete source finding or a new Root-directed implementation task. Keep this full goal in_progress and preserve all roadmap history.
+  Root rebuilds backend/worker from the exact /data/ensure timestamp repair descendant and reruns the affected pinned browser journey
+  against the existing leased fixture. Exact-source CI and combined qualification remain pending; continue the remaining Provider
+  activation/maintenance scope after this focused repair, preserving all full roadmap history.
 human_intent_authorization: >-
   Human explicitly activated the complete “Make the existing platform complete and usable” plan in the original Provider thread. The
   execution copy and shared contract are platform-usability-20261106/APPROVED-PLAN.md and SHARED-CONTRACT.md. This is active work, not
@@ -14950,9 +14950,9 @@ progress:
   - PLATFORM-PREP-6
   - PLATFORM-PREP-7
   total: 8
-  current_phase: implementation_criteria_1_through_7_scoped_evidence_recorded
-  current_blocker: PLATFORM-PREP-8 still requires full backend/DDL qualification, exact-source CI, and Root's combined release gates; all are pending and Root-owned.
-  next_action: Root performs the remaining qualification and release review. Do not repeat the already released monthly fixture or readiness work absent a concrete finding.
+  current_phase: ensure_response_expired_updated_at_repair_focused_green
+  current_blocker: PLATFORM-PREP-8 full backend/DDL, exact-source CI and Root's combined release gates remain pending and Root-owned.
+  next_action: Root rebuilds backend/worker from the exact repair descendant and rechecks the pinned ensure journey; then continue the remaining Provider scope.
 local_validation_profile: "full_stack_browser"
 local_validation_reason: >-
   API, persistence, queue, worker and provider-history routing are in scope; cumulative profile remains full_stack_browser/full_integration.
@@ -14979,7 +14979,10 @@ current_gate_checkpoint: >-
   activation, genuine deeper-history acquisition, final rendered monthly browser proof, exact-source CI, and Root combined release gates
   remain pending. The v2 controls review confirms existing operation-specific Marketstack and FINRA bounds; this change adds no redundant
   restriction. Root owns the allocated fixture lifecycle and production operations. All previous acceptance/failure records and complete
-  roadmaps remain preserved.
+  roadmaps remain preserved. The /api/v1/data/ensure MissingGreenlet defect was corrected by avoiding eager ORM timestamp fallback
+  access; the same-session expired-updated_at PostgreSQL regression passed 1/1 in 8.22s with ordinary isolated-schema teardown. The
+  sandbox-denied setup attempt remains a pre-test environment failure. Root must rerun the pinned browser journey and exact-source CI;
+  no release gate is claimed green.
 previously_accepted_provider_history_identity_human_closure_authorization: >-
   Root accepted the prior bounded derived-history and retained-issuer-identity checkpoint under standing human delegation. Its evidence
   remains in derived_refresh_issuer_identity_followup and the append-only journal; it does not accept this newly activated scope.
@@ -15210,3 +15213,34 @@ screener_preparation_followup_20261107:
     exact_screener_tip_ci: pending; Root-owned
   next: Root exact-source export/distribution and exact-tip CI; full platform goal and combined release qualification remain open.
   integration_capture: exact branch HEAD
+
+data_ensure_expired_updated_at_followup_20261107:
+  id: provider-data-ensure-expired-updated-at-20261107
+  status: focused_repair_green; exact_source_ci_and_combined_release_pending
+  source_parent: dffcf2e2cda4a3046b5e224fb4c7607574156797
+  scope: >-
+    Correct the authenticated POST /api/v1/data/ensure response path that eagerly evaluated parent.updated_at from an ORM instance
+    after its SQL onupdate expression expired that field. Keep dependency timestamp aggregation unchanged; use explicit async refresh
+    only when the no-dependency fallback actually needs an expired field. No timestamp/error suppression or DTO relaxation.
+  provider_paths:
+    - backend/app/services/data_preparation.py
+    - backend/tests/integration/test_data_preparation_queue_postgres.py
+  tc_dependency:
+    source: ce2262ab2d47fc1ccda96f0c2aa7c8839e4e03f9
+    manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-ce2262ab-common-runtime-development-consumption-contract.json
+    imported_provider_paths: 66
+    preserved_exact_bytes: true
+  validation:
+    real_async_postgres: 1 passed in 8.22s; same session create/commit/response with updated_at expired
+    ruff_check: passed on both changed Python files
+    ruff_format: passed on both changed Python files
+    git_diff_check: passed
+    first_attempt: sandbox connection denied during setup before test body; retained as environment failure, not assertion failure
+    final_fixture_state: no provider_prep_* test schema remained; 10 unrelated Root service sessions were observed and left untouched
+  impact:
+    provider_http_requests: 0
+    public_schema_or_data_mutation: false
+    real_ledger_policy_quota_hold_or_production_mutation: false
+    migration: none
+  next_gate: Root rebuilds backend/worker from the exact source and repeats the pinned ensure browser journey and exact-source CI.
+  broader_provider_scope_and_all_roadmaps: open

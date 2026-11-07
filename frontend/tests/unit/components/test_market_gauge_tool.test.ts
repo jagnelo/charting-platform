@@ -2,8 +2,25 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { VueQueryPlugin, QueryClient } from '@tanstack/vue-query'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { apiGet } = vi.hoisted(() => ({ apiGet: vi.fn() }))
-vi.mock('@/lib/api', () => ({ api: { get: apiGet } }))
+const { apiGet, apiPost } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn() }))
+vi.mock('@/lib/api', () => ({ api: { get: apiGet, post: apiPost } }))
+
+function savedScan(id = 7, timeframe = 'W1') {
+  return {
+    id, name: 'Saved weekly scan', universe_type: 'watchlist', universe_watchlist_id: 12,
+    universe_asset_class_id: null, universe_basket_id: null, universe_instrument_ids: null,
+    timeframe, conditions: { field: 'close' }, schedule: null, updated_at: '2026-11-07T10:00:00Z',
+  }
+}
+
+function readyPreparation(screenerId = 7) {
+  const now = '2026-11-07T10:00:00Z'
+  return {
+    request_id: `saved-screener-${screenerId}`, status: 'ready', created_at: now, updated_at: now,
+    version: 1, target: { kind: 'screener', screener_id: screenerId }, dependencies: [],
+    completed: 1, total: 1, last_progress_at: now, has_pending_work: false,
+  }
+}
 
 import MarketGaugeTool from '@/components/workstation/MarketGaugeTool.vue'
 
@@ -13,12 +30,13 @@ function mountTool() {
 }
 
 describe('MarketGaugeTool', () => {
-  beforeEach(() => apiGet.mockReset())
+  beforeEach(() => { apiGet.mockReset(); apiPost.mockReset(); apiPost.mockResolvedValue(readyPreparation()) })
   afterEach(() => Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' }))
 
   it('loads retained scans, refreshes a selected gauge, and shows freshness lineage', async () => {
     apiGet.mockImplementation((path: string) => {
       if (path === '/screeners') return Promise.resolve([{ id: 7, name: 'Above 50 day average' }])
+      if (path === '/screeners/7') return Promise.resolve(savedScan(7, 'D1'))
       return Promise.resolve({
         screener_id: 7,
         screener_name: 'Above 50 day average',
@@ -43,6 +61,9 @@ describe('MarketGaugeTool', () => {
     await wrapper.find('select').setValue('7')
     await flushPromises()
     expect(apiGet).toHaveBeenCalledWith('/analysis/gauges/7')
+    expect(apiPost).toHaveBeenCalledWith('/data/ensure', {
+      target: { kind: 'screener', screener_id: 7 }, datasets: ['history'], timeframe: 'D1',
+    }, expect.any(Object))
     expect(wrapper.find('[role="region"][aria-label="Market Gauge"]').exists()).toBe(true)
     expect(wrapper.find('.market-gauge__freshness[role="status"]').exists()).toBe(true)
     expect(wrapper.text()).toContain('50.0%')
@@ -80,11 +101,99 @@ describe('MarketGaugeTool', () => {
     await wrapper.find('select').setValue('7')
     await flushPromises()
     expect(apiGet).not.toHaveBeenCalledWith('/analysis/gauges/7')
+    expect(apiPost).not.toHaveBeenCalledWith('/data/ensure', expect.anything(), expect.anything())
+  })
+
+  it('keeps a useful cached gauge visible while the saved universe prepares and uses its saved timeframe', async () => {
+    let resolvePreparation!: (value: unknown) => void
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/screeners') return Promise.resolve([{ id: 7, name: 'Saved weekly scan' }])
+      if (path === '/screeners/7') return Promise.resolve(savedScan())
+      return Promise.resolve({
+        matched_count: 3, evaluated_count: 6, universe_count: 8, percentage: 0.5,
+        run_at: '2026-08-03T10:00:00Z', freshness: 'current', data_provenance: 'canonical_local_database',
+        calculation_version: 'analysis-v1', refreshed_at: '2026-08-03T10:01:00Z',
+        freshness_detail: { requested: 8, current: 6, stale: 0, other: 2 }, exclusions: [],
+      })
+    })
+    apiPost.mockImplementation(() => new Promise(resolve => { resolvePreparation = resolve }))
+    const wrapper = mountTool()
+    await flushPromises()
+    await wrapper.find('select').setValue('7')
+    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/data/ensure', {
+      target: { kind: 'screener', screener_id: 7 }, datasets: ['history'], timeframe: 'W1',
+    }, expect.any(Object)))
+    await vi.waitFor(() => expect(wrapper.text()).toContain('50.0%'))
+    expect(wrapper.text()).toContain('3 matches')
+    resolvePreparation(readyPreparation())
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Requested data is ready.'))
+    wrapper.unmount()
+  })
+
+  it('fences an edited saved definition under the same ID and starts preparation for the new context', async () => {
+    let definitionReads = 0
+    const signals: AbortSignal[] = []
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/screeners') return Promise.resolve([{ id: 7, name: 'Saved weekly scan' }])
+      if (path === '/screeners/7') {
+        definitionReads += 1
+        return Promise.resolve(savedScan(7, definitionReads === 1 ? 'D1' : 'W1'))
+      }
+      if (path === '/analysis/gauges/7') return Promise.resolve({
+        matched_count: 1, evaluated_count: 2, universe_count: 2, percentage: 0.5,
+        run_at: '2026-08-03T10:00:00Z', freshness: 'current', data_provenance: 'canonical_local_database',
+        calculation_version: 'analysis-v1', refreshed_at: '2026-08-03T10:01:00Z',
+        freshness_detail: { requested: 2, current: 2, stale: 0, other: 0 }, exclusions: [],
+      })
+      return Promise.resolve([])
+    })
+    apiPost.mockImplementation((path: string, _body?: unknown, options?: { signal?: AbortSignal }) => {
+      if (path === '/data/ensure') {
+        if (options?.signal) signals.push(options.signal)
+        return new Promise(() => {})
+      }
+      return Promise.resolve(readyPreparation())
+    })
+    const wrapper = mountTool()
+    await flushPromises()
+    await wrapper.find('select').setValue('7')
+    await vi.waitFor(() => expect(apiPost.mock.calls.filter(([path]) => path === '/data/ensure')).toHaveLength(1))
+    await wrapper.find('button').trigger('click')
+    await vi.waitFor(() => expect(apiPost.mock.calls.filter(([path]) => path === '/data/ensure')).toHaveLength(2))
+    expect(signals[0]?.aborted).toBe(true)
+    expect(wrapper.text()).toContain('50.0%')
+    wrapper.unmount()
+  })
+
+  it('refreshes the current gauge on later durable preparation progress', async () => {
+    const gaugeResult = {
+      matched_count: 2, evaluated_count: 4, universe_count: 5, percentage: 0.5,
+      run_at: '2026-08-03T10:00:00Z', freshness: 'current', data_provenance: 'canonical_local_database',
+      calculation_version: 'analysis-v1', refreshed_at: '2026-08-03T10:01:00Z',
+      freshness_detail: { requested: 5, current: 4, stale: 0, other: 1 }, exclusions: [],
+    }
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/screeners') return Promise.resolve([{ id: 7, name: 'Saved weekly scan' }])
+      if (path === '/screeners/7') return Promise.resolve(savedScan())
+      if (path.startsWith('/data/requests/')) return Promise.resolve({ ...readyPreparation(), version: 2 })
+      return Promise.resolve(gaugeResult)
+    })
+    apiPost.mockImplementation((path: string) => path === '/data/ensure'
+      ? Promise.resolve({ ...readyPreparation(), status: 'queued', completed: 0, total: 1, has_pending_work: true })
+      : Promise.resolve({}))
+    const wrapper = mountTool()
+    await flushPromises()
+    await wrapper.find('select').setValue('7')
+    await vi.waitFor(() => expect(apiGet.mock.calls.filter(([path]) => path === '/analysis/gauges/7').length).toBeGreaterThanOrEqual(2), { timeout: 2_500 })
+    expect(wrapper.text()).toContain('2 matches')
+    expect(wrapper.text()).toContain('50.0%')
+    wrapper.unmount()
   })
 
   it('surfaces an empty gauge refresh without caching undefined', async () => {
     apiGet.mockImplementation((path: string) => {
       if (path === '/screeners') return Promise.resolve([{ id: 7, name: 'Empty gauge' }])
+      if (path === '/screeners/7') return Promise.resolve(savedScan(7))
       return Promise.resolve(undefined)
     })
 

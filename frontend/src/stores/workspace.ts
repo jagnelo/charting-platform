@@ -42,6 +42,12 @@ export interface WorkspaceState {
   tabs: WorkspaceTabState[]
 }
 
+export interface WorkspaceTabRecovery {
+  workspace_id: number
+  tab: WorkspaceTabState
+  position: number
+}
+
 export interface WorkspaceSummary {
   id: number
   name: string
@@ -55,30 +61,68 @@ export interface WorkspaceSummary {
  * primary-workstation tools. It is not a substitute for a runtime component registry.
  */
 export interface OpenableToolDefinition {
+  key: string
   tool_type: 'chart' | 'watchlist' | 'notes' | 'alerts' | 'scan' | 'gauge' | 'study_lab' | 'research_results' | 'relative_rotation' | 'breadth' | 'market_map' | 'technical_summary' | 'coverage' | 'report' | 'code_library'
   title: string
   instance_prefix: string
-  configuration?: Record<string, unknown>
+  configuration: Record<string, unknown>
 }
 
-export const OPENABLE_WORKSTATION_TOOLS: readonly OpenableToolDefinition[] = [
-  { tool_type: 'chart', title: 'Chart', instance_prefix: 'chart', configuration: { symbol: 'SPY', timeframe: 'D1' } },
-  { tool_type: 'watchlist', title: 'WatchList', instance_prefix: 'watchlist', configuration: { personal: true, watchlist_id: null } },
-  { tool_type: 'watchlist', title: 'My Favorites', instance_prefix: 'favorites', configuration: { personal: true, favorites: true } },
-  { tool_type: 'notes', title: 'Notes', instance_prefix: 'notes', configuration: { scope: 'active-instrument' } },
-  { tool_type: 'alerts', title: 'Alerts', instance_prefix: 'alerts', configuration: { scope: 'active-instrument' } },
-  { tool_type: 'scan', title: 'EasyScan', instance_prefix: 'easy-scan', configuration: { scope: 'saved-conditions' } },
-  { tool_type: 'gauge', title: 'Market Gauge', instance_prefix: 'market-gauge', configuration: { scope: 'saved-scans' } },
-  { tool_type: 'study_lab', title: 'Study Lab', instance_prefix: 'study-lab', configuration: { symbol: 'SPY' } },
-  { tool_type: 'research_results', title: 'Study Results', instance_prefix: 'research-results', configuration: {} },
-  { tool_type: 'relative_rotation', title: 'Relative Rotation', instance_prefix: 'relative-rotation', configuration: { group_key: 'sp500-sectors', benchmark: 'SPY', timeframe: 'D1', sampling: 1, lookback: 20, tail_length: 10, adjusted: true } },
-  { tool_type: 'breadth', title: 'Market Breadth', instance_prefix: 'breadth', configuration: { group_key: 'sp500-sectors' } },
-  { tool_type: 'market_map', title: 'Market Map', instance_prefix: 'market-map', configuration: { group_by: 'sector_industry', period: '1D', area_metric: 'market_cap', color_metric: 'return' } },
-  { tool_type: 'technical_summary', title: 'Technical Summary', instance_prefix: 'technical-summary', configuration: {} },
-  { tool_type: 'coverage', title: 'Coverage', instance_prefix: 'coverage', configuration: {} },
-  { tool_type: 'report', title: 'Instrument Report', instance_prefix: 'report', configuration: {} },
-  { tool_type: 'code_library', title: 'Python Library', instance_prefix: 'code-library', configuration: {} },
-]
+interface WorkstationToolCatalogueResponse {
+  version: 1
+  tools: OpenableToolDefinition[]
+}
+
+const TOOL_CATALOGUE_CACHE_KEY = 'charting-platform:workstation-tool-catalogue:v1'
+const IMPLEMENTED_WORKSTATION_TOOL_TYPES = new Set<OpenableToolDefinition['tool_type']>([
+  'chart', 'watchlist', 'notes', 'alerts', 'scan', 'gauge', 'study_lab', 'research_results',
+  'relative_rotation', 'breadth', 'market_map', 'technical_summary', 'coverage', 'report', 'code_library',
+])
+
+function parseWorkstationToolCatalogue(value: unknown): WorkstationToolCatalogueResponse | null {
+  if (!value || typeof value !== 'object') return null
+  const candidate = value as { version?: unknown; tools?: unknown }
+  if (candidate.version !== 1 || !Array.isArray(candidate.tools) || candidate.tools.length === 0) return null
+  const keys = new Set<string>()
+  const tools: OpenableToolDefinition[] = []
+  for (const raw of candidate.tools) {
+    if (!raw || typeof raw !== 'object') return null
+    const item = raw as Record<string, unknown>
+    if (typeof item.key !== 'string' || !item.key.trim() || keys.has(item.key)
+      || typeof item.tool_type !== 'string' || !IMPLEMENTED_WORKSTATION_TOOL_TYPES.has(item.tool_type as OpenableToolDefinition['tool_type'])
+      || typeof item.title !== 'string' || !item.title.trim()
+      || typeof item.instance_prefix !== 'string' || !item.instance_prefix.trim()
+      || !item.configuration || typeof item.configuration !== 'object' || Array.isArray(item.configuration)) return null
+    keys.add(item.key)
+    tools.push({
+      key: item.key,
+      tool_type: item.tool_type as OpenableToolDefinition['tool_type'],
+      title: item.title,
+      instance_prefix: item.instance_prefix,
+      configuration: item.configuration as Record<string, unknown>,
+    })
+  }
+  return { version: 1, tools }
+}
+
+const WORKSPACE_TOOL_ROLES = new Set(['benchmark-universe', 'sector-universe', 'industry-universe', 'constituent-universe', 'relative-strength'])
+
+/** Stable semantic identity for specialized watchlist surfaces. Legacy saved
+ * workspaces are recognized once by their historical key; new and cloned
+ * windows carry the role in serializable configuration instead. */
+export function workspaceToolRole(tool: Pick<WorkspaceWindowState, 'instance_key' | 'tool_type' | 'configuration'>): string | null {
+  const configured = typeof tool.configuration.workspace_role === 'string' ? tool.configuration.workspace_role : ''
+  if (WORKSPACE_TOOL_ROLES.has(configured)) return configured
+  if (tool.tool_type === 'chart' && (tool.instance_key === 'ratio-chart' || tool.instance_key.startsWith('ratio-chart-')
+    || tool.configuration.auto_ratio === true)) return 'relative-strength'
+  if (tool.tool_type !== 'watchlist') return null
+  const group = typeof tool.configuration.market_group === 'string' ? tool.configuration.market_group.toLowerCase() : ''
+  if (group === 'us-benchmarks' || tool.instance_key === 'benchmark-list') return 'benchmark-universe'
+  if (group === 'sp500-sectors' || tool.instance_key === 'sector-list' || tool.instance_key === 'sectors') return 'sector-universe'
+  if (group === 'selected-sector-industries' || tool.instance_key === 'industry-list' || tool.instance_key === 'industries') return 'industry-universe'
+  if (group === 'selected-industry-constituents' || tool.instance_key === 'constituent-list' || tool.instance_key === 'components') return 'constituent-universe'
+  return null
+}
 
 export interface LinkEvent {
   instrumentId?: number
@@ -1011,6 +1055,17 @@ function normalizeWorkstationTimeframe(value: string) {
 }
 
 export const useWorkspaceStore = defineStore('workspace', () => {
+  const cachedCatalogue = parseWorkstationToolCatalogue(
+    (() => {
+      const raw = safeStorageGet(TOOL_CATALOGUE_CACHE_KEY)
+      if (!raw) return null
+      try { return JSON.parse(raw) as unknown } catch { return null }
+    })(),
+  )
+  const toolCatalogue = ref<OpenableToolDefinition[]>(cachedCatalogue?.tools ?? [])
+  const toolCatalogueLoading = ref(false)
+  const toolCatalogueError = ref<string | null>(null)
+  let toolCatalogueRequest: Promise<OpenableToolDefinition[]> | null = null
   const workspace = ref<WorkspaceState | null>(null)
   const workspaces = ref<WorkspaceSummary[]>([])
   const activeTabKey = ref<string>('us-top-down')
@@ -1099,6 +1154,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const etfConstituentSnapshots = ref<Record<string, ETFConstituentSnapshotState | null>>({})
   const etfConstituentSnapshotErrors = ref<Record<string, string | null>>({})
   const etfIndustries = ref<Record<string, ETFIndustryCompositionState | null>>({})
+  const etfIndustryLoading = ref<Record<string, boolean>>({})
+  const etfIndustryErrors = ref<Record<string, string | null>>({})
   const industryConstituents = ref<Record<string, ETFIndustryConstituentsState | null>>({})
   const industryProxies = ref<Record<string, ETFIndustryProxyState | null>>({})
   const industryProxySnapshots = ref<Record<string, IndustryProxySnapshotState | null>>({})
@@ -1459,6 +1516,20 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     isPersistenceLeader.value = false
   }
 
+  function resetForAuthSessionBoundary() {
+    // A trailing layout save must never run with the next user's credentials
+    // against the previous user's workspace ID. In-flight API calls are also
+    // canceled by the shared authenticated-session signal.
+    snapshotGeneration += 1
+    if (snapshotTimer) clearTimeout(snapshotTimer)
+    snapshotTimer = null
+    recentLinkGroupOverrides.clear()
+    recentActiveWindowOverrides.clear()
+    recentClosedWindowOverrides.clear()
+    analysisGenerations.clear()
+    disconnect()
+  }
+
   function publishSymbol(event: LinkEvent): number | undefined {
     if (event.group === 'grey') return undefined
     const explicitTimestamps = { ...explicitLinkedTimestamps.value }
@@ -1611,6 +1682,44 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const event: LinkEvent & { type: 'timeframe' } = { symbol: linkedSymbol.value, timeframe, group, sourceWindowKey, type: 'timeframe' }
     channel?.postMessage(event)
     safeStorageSet(CHANNEL_NAME + ':timeframe', JSON.stringify(event))
+  }
+
+  function toolDefinition(key: string) {
+    return toolCatalogue.value.find(tool => tool.key === key) ?? null
+  }
+
+  async function loadToolCatalogue(options: { force?: boolean } = {}) {
+    if (toolCatalogueRequest && !options.force) return toolCatalogueRequest
+    toolCatalogueLoading.value = true
+    toolCatalogueError.value = null
+    const request = (async () => {
+      try {
+        const parsed = parseWorkstationToolCatalogue(await api.get<unknown>('/workspaces/tool-catalogue'))
+        if (!parsed) throw new Error('The tool catalogue response is invalid.')
+        toolCatalogue.value = parsed.tools
+        safeStorageSet(TOOL_CATALOGUE_CACHE_KEY, JSON.stringify(parsed))
+        return toolCatalogue.value
+      } catch {
+        if (!toolCatalogue.value.length) {
+          const raw = safeStorageGet(TOOL_CATALOGUE_CACHE_KEY)
+          if (raw) {
+            try {
+              const cached = parseWorkstationToolCatalogue(JSON.parse(raw) as unknown)
+              if (cached) toolCatalogue.value = cached.tools
+            } catch {
+              safeStorageRemove(TOOL_CATALOGUE_CACHE_KEY)
+            }
+          }
+        }
+        toolCatalogueError.value = 'The tool list is temporarily unavailable; saved workspace tools remain open.'
+        return toolCatalogue.value
+      } finally {
+        toolCatalogueLoading.value = false
+        toolCatalogueRequest = null
+      }
+    })()
+    toolCatalogueRequest = request
+    return request
   }
 
   async function loadDefault() {
@@ -2763,6 +2872,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const requestKey = 'top-down:industries'
     const generation = beginAnalysisRequest(requestKey)
     if (!documentIsVisible()) return null
+    etfIndustryLoading.value = { ...etfIndustryLoading.value, [normalized]: true }
+    etfIndustryErrors.value = { ...etfIndustryErrors.value, [normalized]: null }
     try {
       const composition = await api.get<ETFIndustryCompositionState>(`/market-groups/etf/${encodeURIComponent(normalized)}/industries`)
       if (!isCurrentAnalysisRequest(requestKey, generation)) return null
@@ -2771,12 +2882,22 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       return composition
     } catch (cause: any) {
       if (!isCurrentAnalysisRequest(requestKey, generation)) return null
-      if (cause?.status === 404) {
+      if (cause?.status === 404 && !etfIndustries.value[normalized]) {
         etfIndustries.value = { ...etfIndustries.value, [normalized]: null }
-        return null
       }
-      error.value = cause?.message ?? `Unable to load ETF industries for ${normalized}`
+      etfIndustryErrors.value = {
+        ...etfIndustryErrors.value,
+        [normalized]: cause?.status === 404
+          ? `No dated holdings classification is available for ${normalized}.`
+          : cause?.status === 409
+            ? `Current holdings for ${normalized} are not eligible for classification yet.`
+            : `Unable to load industry classifications for ${normalized}.`,
+      }
       return null
+    } finally {
+      if (isCurrentAnalysisRequest(requestKey, generation)) {
+        etfIndustryLoading.value = { ...etfIndustryLoading.value, [normalized]: false }
+      }
     }
   }
 
@@ -3301,13 +3422,18 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       position: workspace.value.tabs.length,
       layout_config: cloneLayout(source.layout_config) as Record<string, unknown>,
       active_window_key: source.active_window_key ? (remappedKeys.get(source.active_window_key) ?? source.active_window_key) : null,
-      windows: source.windows.map(window => ({
-        ...window,
-        id: -(Date.now() + window.position + 1),
-        instance_key: remappedKeys.get(window.instance_key) ?? window.instance_key,
-        configuration: cloneLayout(window.configuration) as Record<string, unknown>,
-        style: cloneLayout(window.style) as Record<string, unknown>,
-      })),
+      windows: source.windows.map(window => {
+        const configuration = cloneLayout(window.configuration) as Record<string, unknown>
+        const role = workspaceToolRole(window)
+        if (role) configuration.workspace_role = role
+        return {
+          ...window,
+          id: -(Date.now() + window.position + 1),
+          instance_key: remappedKeys.get(window.instance_key) ?? window.instance_key,
+          configuration,
+          style: cloneLayout(window.style) as Record<string, unknown>,
+        }
+      }),
     }
     workspace.value = { ...workspace.value, tabs: [...workspace.value.tabs, copiedTab] }
     activeTabKey.value = copiedTab.stable_key
@@ -3348,6 +3474,49 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       .map((tab, position) => ({ ...tab, position }))
     workspace.value.tabs = remaining
     if (activeTabKey.value === stableKey) activeTabKey.value = remaining[Math.max(0, index - 1)]?.stable_key ?? remaining[0].stable_key
+    scheduleSnapshot()
+    return true
+  }
+
+  function captureTabRecovery(stableKey: string): WorkspaceTabRecovery | null {
+    const current = workspace.value
+    const position = current?.tabs.findIndex(tab => tab.stable_key === stableKey) ?? -1
+    const tab = position >= 0 ? current?.tabs[position] : null
+    if (!current || !tab) return null
+    return { workspace_id: current.id, tab: cloneSerializable(tab), position }
+  }
+
+  function restoreDeletedTab(recovery: WorkspaceTabRecovery) {
+    const current = workspace.value
+    if (!current || current.id !== recovery.workspace_id) {
+      error.value = 'This layout belongs to a different workspace and was not restored.'
+      return false
+    }
+    if (current.tabs.some(tab => tab.stable_key === recovery.tab.stable_key)) {
+      error.value = 'A layout with this saved identity already exists; the deleted layout was not restored.'
+      return false
+    }
+    const currentWindowKeys = new Set(current.tabs.flatMap(tab => tab.windows.map(window => window.instance_key)))
+    if (!recovery.tab.windows.length || recovery.tab.windows.some(window => currentWindowKeys.has(window.instance_key))) {
+      error.value = 'This layout can no longer be restored without replacing another tool.'
+      return false
+    }
+    const restoreId = Date.now()
+    const restored: WorkspaceTabState = {
+      ...cloneSerializable(recovery.tab),
+      id: -restoreId,
+      position: Math.max(0, Math.min(recovery.position, current.tabs.length)),
+      windows: recovery.tab.windows.map((window, index) => ({
+        ...cloneSerializable(window),
+        id: -(restoreId + index + 1),
+        position: index,
+      })),
+    }
+    const tabs = [...current.tabs]
+    tabs.splice(restored.position, 0, restored)
+    workspace.value = { ...current, tabs: tabs.map((tab, position) => ({ ...tab, position })) }
+    activeTabKey.value = restored.stable_key
+    error.value = null
     scheduleSnapshot()
     return true
   }
@@ -3432,6 +3601,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   return {
+    toolCatalogue,
+    toolCatalogueLoading,
+    toolCatalogueError,
+    loadToolCatalogue,
+    toolDefinition,
     workspace,
     workspaces,
     activeTab,
@@ -3497,6 +3671,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     etfConstituentSnapshots,
     etfConstituentSnapshotErrors,
     etfIndustries,
+    etfIndustryLoading,
+    etfIndustryErrors,
     industryConstituents,
     industryProxies,
     industryProxySnapshots,
@@ -3574,8 +3750,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     renameTab,
     reorderTabs,
     deleteTab,
+    captureTabRecovery,
+    restoreDeletedTab,
     exportWorkspaceSnapshot,
     importWorkspaceSnapshot,
     resetFactoryWorkspace,
+    resetForAuthSessionBoundary,
   }
 })

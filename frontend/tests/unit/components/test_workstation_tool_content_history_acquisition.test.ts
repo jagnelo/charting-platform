@@ -25,6 +25,7 @@ vi.mock('@/lib/api', () => ({
 import WorkstationToolContent from '@/components/workstation/WorkstationToolContent.vue'
 import { refreshMountedWorkstationChartPanels, usePanelStore } from '@/stores/chart'
 import { clearOhlcvRequestCache } from '@/lib/workstation/ohlcvRequests'
+import { dataPreparationCoordinator, type DataEnsureResponse } from '@/lib/dataPreparation'
 import { useWorkspaceStore } from '@/stores/workspace'
 import type { WorkspaceWindowState } from '@/stores/workspace'
 
@@ -65,9 +66,9 @@ function mountedChartTool(instanceKey: string, linkGroup: 'blue' | 'red' = 'blue
   return { ...chartFixture(), instance_key: instanceKey, link_group: linkGroup, configuration: {} }
 }
 
-function mountChartTool(tool: WorkspaceWindowState, pinia: ReturnType<typeof createPinia>, queryClient: QueryClient) {
+function mountChartTool(tool: WorkspaceWindowState, pinia: ReturnType<typeof createPinia>, queryClient: QueryClient, activeWindowKey = 'another-chart') {
   return mount(WorkstationToolContent, {
-    props: { tool, activeWindowKey: 'another-chart' },
+    props: { tool, activeWindowKey },
     global: {
       plugins: [pinia, [VueQueryPlugin, { queryClient }]],
       stubs: {
@@ -102,6 +103,142 @@ describe('WorkstationToolContent missing chart history entrypoint', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
     vi.clearAllMocks()
+  })
+
+  it('renders and loads a cloned benchmark-universe tool from semantic role, not its remapped window key', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const workspaceStore = useWorkspaceStore(pinia)
+    workspaceStore.marketGroups['us-benchmarks'] = {
+      members: [],
+      provenance: { benchmark_families: [{ logical_key: 'sp500', name: 'S&P 500' }] },
+    } as never
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/market-groups/sp500') return Promise.resolve({ members: [], provenance: {} })
+      if (path === '/analysis/benchmark-families/sp500/overview') return Promise.resolve({ mappings: [{ role: 'cap_weight', symbol: 'SPY', label: 'Cap-weight proxy', verification_state: 'verified', holdings_available: true }] })
+      if (path === '/analysis/benchmark-families/readiness') return Promise.resolve({ status: 'ready', families: [], provider_probe_evidence: [] })
+      return Promise.resolve([])
+    })
+    const tool: WorkspaceWindowState = {
+      id: -32,
+      instance_key: 'benchmark-list-clone-abc123',
+      tool_type: 'watchlist',
+      title: 'Benchmarks',
+      link_group: 'blue',
+      configuration: { workspace_role: 'benchmark-universe', benchmark_family_key: 'sp500' },
+      style: {},
+      state_schema_version: 1,
+      position: 0,
+    }
+    const wrapper = mount(WorkstationToolContent, {
+      props: { tool, activeWindowKey: tool.instance_key },
+      global: {
+        plugins: [pinia, [VueQueryPlugin, { queryClient: new QueryClient({ defaultOptions: { queries: { retry: false } } }) }]],
+        stubs: {
+          VirtualWatchlistTool: true,
+          ToolWindow: ToolWindowShell,
+          UPlotChart: EmptyChartStub,
+          ChartPlotLibrary: true,
+          ChartTemplateControl: true,
+          DrawingToolbar: true,
+        },
+      },
+    })
+
+    await flushPromises()
+
+    expect(wrapper.get('select[aria-label="Benchmark family"]').element).toHaveProperty('value', 'sp500')
+    expect(wrapper.get('[aria-label="Selected benchmark family roles"]').text()).toContain('SPY')
+    expect(apiGet).toHaveBeenCalledWith('/market-groups/sp500')
+    wrapper.unmount()
+  })
+
+  it('prepares the configured breadth group after its local read and refreshes that analysis as worker progress arrives', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/market-groups/sp500-sectors') return Promise.resolve({ members: [], provenance: {} })
+      if (path.startsWith('/analysis/groups/sp500-sectors/')) return Promise.resolve({ group_key: 'sp500-sectors', rows: [], members: [] })
+      return Promise.resolve([])
+    })
+    const pendingByTarget = new Map<string, ReturnType<typeof deferred<DataEnsureResponse>>>()
+    const progressByTarget = new Map<string, (value: { response: DataEnsureResponse }) => void>()
+    const ensure = vi.spyOn(dataPreparationCoordinator, 'ensure').mockImplementation((request, options) => {
+      const target = request.target.kind === 'instrument' ? `instrument:${request.target.symbol}` : `${request.target.kind}:${request.target.group_key ?? request.target.family_key}`
+      const pending = deferred<DataEnsureResponse>()
+      pendingByTarget.set(target, pending)
+      if (options?.onProgress) progressByTarget.set(target, options.onProgress as (value: { response: DataEnsureResponse }) => void)
+      expect(request).toMatchObject({
+        target: target === 'instrument:SPY' ? { kind: 'instrument', symbol: 'SPY' } : { kind: 'market_group', group_key: 'sp500-sectors' },
+        datasets: ['history'],
+        timeframe: 'D1',
+        adjusted: true,
+      })
+      expect(request).not.toHaveProperty('start_at')
+      return pending.promise
+    })
+    const tool: WorkspaceWindowState = {
+      id: 36, instance_key: 'breadth-preparation', tool_type: 'breadth', title: 'S&P 500 Sectors',
+      link_group: 'blue', configuration: { group_key: 'sp500-sectors' }, style: {}, state_schema_version: 1, position: 0,
+    }
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const wrapper = mount(WorkstationToolContent, {
+      props: { tool, activeWindowKey: tool.instance_key },
+      global: {
+        plugins: [pinia, [VueQueryPlugin, { queryClient }]],
+        stubs: { VirtualWatchlistTool: true, UPlotChart: EmptyChartStub, ChartPlotLibrary: true, ChartTemplateControl: true, DrawingToolbar: true, ToolWindow: ToolWindowShell, RouterLink: { template: '<a><slot /></a>' }, BreadthHistoryUPlot: true, GenericBreadthHistoryUPlot: true },
+      },
+    })
+    await vi.waitFor(() => expect(ensure).toHaveBeenCalledTimes(2))
+    expect(new Set(ensure.mock.calls.map(([request]) => request.target.kind === 'instrument' ? `instrument:${request.target.symbol}` : `${request.target.kind}:${request.target.group_key ?? request.target.family_key}`))).toEqual(new Set(['market_group:sp500-sectors', 'instrument:SPY']))
+
+    const breadthRead = () => apiGet.mock.calls.filter(([path]) => path === '/analysis/groups/sp500-sectors/breadth').length
+    expect(breadthRead()).toBeGreaterThanOrEqual(1)
+    const readsBeforeProgress = breadthRead()
+    const partial: DataEnsureResponse = {
+      request_id: 'breadth-progress', status: 'partial', created_at: '2026-11-07T10:00:00Z', updated_at: '2026-11-07T10:00:01Z', version: 2,
+      target: { kind: 'market_group', group_key: 'sp500-sectors' }, completed: 1, total: 2, last_progress_at: '2026-11-07T10:00:01Z',
+      dependencies: [],
+    }
+    progressByTarget.get('instrument:SPY')?.({ response: partial })
+    await vi.waitFor(() => expect(breadthRead()).toBeGreaterThan(readsBeforeProgress))
+
+    for (const [target, pending] of pendingByTarget) {
+      pending.resolve({ ...partial, target: target === 'instrument:SPY' ? { kind: 'instrument', symbol: 'SPY' } : { kind: 'market_group', group_key: 'sp500-sectors' }, status: 'ready', version: 3, completed: 2, total: 2 })
+    }
+    await flushPromises()
+    wrapper.unmount()
+    queryClient.clear()
+    ensure.mockRestore()
+  })
+
+  it('removes chart drawing controls from inactive docked tools and restores them only for the active chart', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const tool = chartFixture()
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    const wrapper = mount(WorkstationToolContent, {
+      props: { tool, activeWindowKey: 'another-chart' },
+      global: {
+        plugins: [pinia, [VueQueryPlugin, { queryClient }]],
+        stubs: {
+          UPlotChart: EmptyChartStub,
+          ChartPlotLibrary: { template: '<div />' },
+          ChartTemplateControl: { template: '<div />' },
+          DrawingToolbar: { template: '<div data-test="chart-drawing-toolbar" />' },
+          ToolWindow: ToolWindowShell,
+        },
+      },
+    })
+
+    expect(wrapper.find('[data-test="chart-drawing-toolbar"]').exists()).toBe(false)
+    await wrapper.setProps({ activeWindowKey: tool.instance_key })
+    expect(wrapper.find('[data-test="chart-drawing-toolbar"]').exists()).toBe(true)
+    await wrapper.setProps({ activeWindowKey: 'another-chart' })
+    expect(wrapper.find('[data-test="chart-drawing-toolbar"]').exists()).toBe(false)
+
+    wrapper.unmount()
+    queryClient.clear()
   })
 
   it('offers one explicit action only on the focused empty chart and refreshes that panel from local bars', async () => {
@@ -567,6 +704,14 @@ describe('WorkstationToolContent missing chart history entrypoint', () => {
     setActivePinia(pinia)
     const workspaceStore = useWorkspaceStore(pinia)
     workspaceStore.setConstituentETF('IGV')
+    workspaceStore.etfIndustries = {
+      IGV: {
+        etf_symbol: 'IGV', composition_date: '2026-11-02', known_at: '2026-11-03T08:15:00Z',
+        provenance: 'dated_holdings_snapshot', source_provider: 'controlled-source', completeness_status: 'complete',
+        industries: [], exclusions: ['unresolved_holding', 'unclassified_constituent'],
+        classification_systems: ['GICS'], classification_coverage: 0,
+      },
+    }
     workspaceStore.linkedSymbol = 'UNXQ'
     const tool: WorkspaceWindowState = {
       id: 32, instance_key: 'industry-list', tool_type: 'watchlist', title: 'Industries',
@@ -587,14 +732,209 @@ describe('WorkstationToolContent missing chart history entrypoint', () => {
     await flushPromises()
 
     expect(wrapper.get('.tool-window__symbol').text()).toBe('IGV')
-    expect(wrapper.text()).toContain('No mapped ETF proxy for IGV')
+    expect(wrapper.text()).toContain('No source-classified industries are available for IGV')
+    expect(wrapper.text()).toContain('Classification exclusions: holdings without a canonical identity; constituents without source classification')
+    expect(wrapper.text()).toContain('controlled-source · dated_holdings_snapshot · 0% classified')
     workspaceStore.setConstituentETF('XHB')
+    workspaceStore.etfIndustries = {
+      ...workspaceStore.etfIndustries,
+      XHB: {
+        etf_symbol: 'XHB', composition_date: '2026-11-01', known_at: null,
+        provenance: 'dated_holdings_snapshot', source_provider: 'controlled-source', completeness_status: 'partial',
+        industries: [], exclusions: ['unclassified_constituent'], classification_systems: ['GICS'], classification_coverage: 0,
+      },
+    }
     await flushPromises()
     expect(wrapper.get('.tool-window__symbol').text()).toBe('XHB')
-    expect(wrapper.text()).toContain('No mapped ETF proxy for XHB')
+    expect(wrapper.text()).toContain('No source-classified industries are available for XHB')
     expect(workspaceStore.linkedSymbol).toBe('UNXQ')
 
     wrapper.unmount()
     queryClient.clear()
+  })
+
+  it('starts profile classification for every resolved equity in the selected snapshot without waiting on a held member', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const workspaceStore = useWorkspaceStore(pinia)
+    workspaceStore.setConstituentETF('XLB')
+    const rows = Array.from({ length: 26 }, (_, index) => ({
+      id: index + 1, snapshot_id: 19, constituent_instrument_id: 1000 + index,
+      constituent_symbol: `EQ${index + 1}`, reported_symbol: `EQ${index + 1}`,
+      holding_type: 'equity', row_type: 'security', is_resolved: true,
+    }))
+    rows.push({
+      id: 27, snapshot_id: 19, constituent_instrument_id: null,
+      constituent_symbol: null, reported_symbol: 'UNRESOLVED',
+      holding_type: 'equity', row_type: 'security', is_resolved: false,
+    } as never)
+    rows.push({
+      id: 28, snapshot_id: 19, constituent_instrument_id: null,
+      constituent_symbol: null, reported_symbol: null,
+      holding_type: 'cash', row_type: 'security', is_resolved: false,
+    } as never)
+    workspaceStore.etfHoldings = {
+      XLB: { snapshot: { id: 19, composition_date: '2026-11-06' }, holdings: rows, total: rows.length, limit: 500, offset: 0, has_next: false } as never,
+    }
+    workspaceStore.etfIndustries = {
+      XLB: {
+        etf_symbol: 'XLB', composition_date: '2026-11-02', known_at: '2026-11-03T08:15:00Z',
+        provenance: 'dated_holdings_snapshot', source_provider: 'controlled-source', completeness_status: 'partial',
+        industries: [{ industry: 'Chemicals', constituent_count: 2, resolved_count: 1 }], exclusions: ['unclassified_constituent'],
+      },
+    }
+    const refreshComposition = vi.spyOn(workspaceStore, 'loadETFIndustries').mockResolvedValue(null)
+    const deferredById = new Map<number, ReturnType<typeof deferred<DataEnsureResponse>>>()
+    const ensure = vi.spyOn(dataPreparationCoordinator, 'ensure').mockImplementation((request, _options) => {
+      const id = (request.target as { instrument_id: number }).instrument_id
+      const pending = deferred<DataEnsureResponse>()
+      deferredById.set(id, pending)
+      return pending.promise
+    })
+    const tool: WorkspaceWindowState = {
+      id: 33, instance_key: 'industry-list', tool_type: 'watchlist', title: 'Industries',
+      link_group: 'blue', configuration: {}, style: {}, state_schema_version: 1, position: 1,
+    }
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const wrapper = mount(WorkstationToolContent, {
+      props: { tool },
+      global: {
+        plugins: [pinia, [VueQueryPlugin, { queryClient }]],
+        stubs: { UPlotChart: EmptyChartStub, ChartPlotLibrary: { template: '<div />' }, ChartTemplateControl: { template: '<div />' }, DrawingToolbar: { template: '<div />' }, ToolWindow: ToolWindowShell, RouterLink: { template: '<a><slot /></a>' } },
+      },
+    })
+    await flushPromises()
+
+    expect(ensure).toHaveBeenCalledTimes(26)
+    expect(wrapper.text()).toContain('Chemicals')
+    for (const [request] of ensure.mock.calls) {
+      expect(request).toMatchObject({ datasets: ['profile'], required_profile_fields: ['industry'] })
+      expect(request.target.kind).toBe('instrument')
+    }
+    expect(new Set(ensure.mock.calls.map(([request]) => (request.target as { instrument_id: number }).instrument_id))).toHaveProperty('size', 26)
+
+    const ready: DataEnsureResponse = {
+      request_id: 'profile-1000', status: 'ready', created_at: '2026-11-07T10:00:00Z', updated_at: '2026-11-07T10:00:00Z', version: 1,
+      target: { kind: 'instrument', instrument_id: 1000 }, completed: 1, total: 1, last_progress_at: '2026-11-07T10:00:00Z',
+      dependencies: [{ dependency_id: 'profile:1000', depends_on: [], instrument_id: 1000, symbol: 'EQ1', dataset: 'profile', status: 'ready', requested_start: null, requested_end: null, covered_start: null, covered_end: null, reason_code: null, retry_at: null, updated_at: '2026-11-07T10:00:00Z', covered_ranges: [] }],
+    }
+    deferredById.get(1000)!.resolve({
+      ...ready,
+      request_id: 'profile-1000-held', status: 'waiting', completed: 0,
+      dependencies: [{ ...ready.dependencies[0]!, status: 'waiting', reason_code: 'provider_quota_admission_denied', retry_at: null }],
+    })
+    await flushPromises()
+    expect(refreshComposition).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain('Preparing source industry classifications')
+    deferredById.get(1001)!.resolve({
+      ...ready,
+      request_id: 'profile-1001', target: { kind: 'instrument', instrument_id: 1001 },
+      dependencies: [{ ...ready.dependencies[0]!, dependency_id: 'profile:1001', instrument_id: 1001, symbol: 'EQ2' }],
+    })
+    await flushPromises()
+    expect(refreshComposition).toHaveBeenCalledWith('XLB')
+
+    for (const [id, pending] of deferredById) {
+      if (id === 1000 || id === 1001) continue
+      pending.resolve({ ...ready, request_id: `profile-${id}`, target: { kind: 'instrument', instrument_id: id }, dependencies: [{ ...ready.dependencies[0]!, dependency_id: `profile:${id}`, instrument_id: id, symbol: `EQ${id - 999}` }] })
+    }
+    await flushPromises()
+    wrapper.unmount()
+    queryClient.clear()
+    ensure.mockRestore()
+    refreshComposition.mockRestore()
+  })
+
+  it('does not prepare present-day profiles for an explicitly historical Industries view', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const workspaceStore = useWorkspaceStore(pinia)
+    workspaceStore.setConstituentETF('XLB')
+    workspaceStore.etfHoldings = {
+      XLB: { snapshot: { id: 19, composition_date: '2025-11-06' }, holdings: [{
+        id: 1, snapshot_id: 19, constituent_instrument_id: 1000, constituent_symbol: 'EQ1', reported_symbol: 'EQ1',
+        holding_type: 'equity', row_type: 'security', is_resolved: true,
+      }], total: 1, limit: 500, offset: 0, has_next: false } as never,
+    }
+    const ensure = vi.spyOn(dataPreparationCoordinator, 'ensure').mockResolvedValue({} as DataEnsureResponse)
+    const tool: WorkspaceWindowState = {
+      id: 34, instance_key: 'industry-list-history', tool_type: 'watchlist', title: 'Industries',
+      link_group: 'blue', configuration: { as_of: '2025-11-07T00:00:00Z' }, style: {}, state_schema_version: 1, position: 1,
+    }
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const wrapper = mount(WorkstationToolContent, {
+      props: { tool },
+      global: {
+        plugins: [pinia, [VueQueryPlugin, { queryClient }]],
+        stubs: { UPlotChart: EmptyChartStub, ChartPlotLibrary: { template: '<div />' }, ChartTemplateControl: { template: '<div />' }, DrawingToolbar: { template: '<div />' }, ToolWindow: ToolWindowShell, RouterLink: { template: '<a><slot /></a>' } },
+      },
+    })
+    await flushPromises()
+    expect(ensure).not.toHaveBeenCalled()
+    wrapper.unmount()
+    queryClient.clear()
+    ensure.mockRestore()
+  })
+
+  it('cancels stale snapshot preparation and only refreshes composition for the replacement context', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const workspaceStore = useWorkspaceStore(pinia)
+    workspaceStore.setConstituentETF('XLB')
+    const page = (snapshotId: number, instrumentId: number) => ({
+      snapshot: { id: snapshotId, composition_date: '2026-11-06' },
+      holdings: [{
+        id: snapshotId, snapshot_id: snapshotId, constituent_instrument_id: instrumentId,
+        constituent_symbol: `EQ${instrumentId}`, reported_symbol: `EQ${instrumentId}`,
+        holding_type: 'equity', row_type: 'security', is_resolved: true,
+      }], total: 1, limit: 500, offset: 0, has_next: false,
+    })
+    workspaceStore.etfHoldings = { XLB: page(19, 1000) as never }
+    const refreshComposition = vi.spyOn(workspaceStore, 'loadETFIndustries').mockResolvedValue(null)
+    const pendingById = new Map<number, ReturnType<typeof deferred<DataEnsureResponse>>>()
+    const ensure = vi.spyOn(dataPreparationCoordinator, 'ensure').mockImplementation(request => {
+      const id = (request.target as { instrument_id: number }).instrument_id
+      const pending = deferred<DataEnsureResponse>()
+      pendingById.set(id, pending)
+      return pending.promise
+    })
+    const tool: WorkspaceWindowState = {
+      id: 35, instance_key: 'industry-list-snapshot-race', tool_type: 'watchlist', title: 'Industries',
+      link_group: 'blue', configuration: {}, style: {}, state_schema_version: 1, position: 1,
+    }
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const wrapper = mount(WorkstationToolContent, {
+      props: { tool },
+      global: {
+        plugins: [pinia, [VueQueryPlugin, { queryClient }]],
+        stubs: { UPlotChart: EmptyChartStub, ChartPlotLibrary: { template: '<div />' }, ChartTemplateControl: { template: '<div />' }, DrawingToolbar: { template: '<div />' }, ToolWindow: ToolWindowShell, RouterLink: { template: '<a><slot /></a>' } },
+      },
+    })
+    await flushPromises()
+    expect(ensure).toHaveBeenCalledTimes(1)
+    const oldSignal = ensure.mock.calls[0]![1]?.signal
+
+    workspaceStore.etfHoldings = { ...workspaceStore.etfHoldings, XLB: page(20, 2000) as never }
+    await flushPromises()
+    expect(ensure).toHaveBeenCalledTimes(2)
+    expect(oldSignal?.aborted).toBe(true)
+
+    const readyResponse = (id: number): DataEnsureResponse => ({
+      request_id: `profile-${id}`, status: 'ready', created_at: '2026-11-07T10:00:00Z', updated_at: '2026-11-07T10:00:00Z', version: 1,
+      target: { kind: 'instrument', instrument_id: id }, completed: 1, total: 1, last_progress_at: '2026-11-07T10:00:00Z',
+      dependencies: [{ dependency_id: `profile:${id}`, depends_on: [], instrument_id: id, symbol: `EQ${id}`, dataset: 'profile', status: 'ready', requested_start: null, requested_end: null, covered_start: null, covered_end: null, reason_code: null, retry_at: null, updated_at: '2026-11-07T10:00:00Z', covered_ranges: [] }],
+    })
+    pendingById.get(1000)!.resolve(readyResponse(1000))
+    await flushPromises()
+    expect(refreshComposition).not.toHaveBeenCalled()
+    pendingById.get(2000)!.resolve(readyResponse(2000))
+    await flushPromises()
+    expect(refreshComposition).toHaveBeenCalledTimes(1)
+    expect(refreshComposition).toHaveBeenCalledWith('XLB')
+
+    wrapper.unmount()
+    queryClient.clear()
+    ensure.mockRestore()
+    refreshComposition.mockRestore()
   })
 })

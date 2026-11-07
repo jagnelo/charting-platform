@@ -252,7 +252,7 @@ describe('application shell', () => {
     expect(wrapper.classes()).toContain('tc-legacy-app')
     expect(wrapper.get('nav[aria-label="Main navigation"]').text()).toContain('ETF Holdings')
     expect(wrapper.get('nav[aria-label="Main navigation"]').text()).toContain('Strategy Lab v2')
-    expect(wrapper.get('a[href="/legacy/chart"]').attributes('aria-current')).toBe('page')
+    expect(wrapper.get('a[href="/chart"]').attributes('aria-current')).toBe('page')
     expect(wrapper.text()).toContain('99+')
     expect(wrapper.get('.tc-app-account-name').text()).toBe('analyst')
     expect(wrapper.get('.tc-app-signout').attributes('aria-label')).toBe('Sign out analyst')
