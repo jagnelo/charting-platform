@@ -98,7 +98,7 @@ async def test_history_planner_uses_deeper_real_admission_chain_over_recent_mass
     db, instrument, monkeypatch
 ):
     """Recent Massive bars do not hide a deeper currently admitted provider."""
-    monkeypatch.setattr(settings, "PROVIDER_FREE_ONLY_CHECKPOINT", False)
+    monkeypatch.setattr(settings, "PROVIDER_FREE_ONLY_CHECKPOINT", True)
     monkeypatch.setattr(settings, "PROVIDER_REQUEST_DRIVEN_ONLY", True)
     monkeypatch.setattr(settings, "MASSIVE_API_KEY", "test-massive-key")
     monkeypatch.setattr(settings, "ALPACA_API_KEY", "test-alpaca-key")
