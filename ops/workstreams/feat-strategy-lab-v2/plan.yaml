@@ -1193,11 +1193,11 @@ progress:
       selected dataset first; never acquire data inside evaluation or mutate saved-run identity.
       Maintain the Strategy-owned J10/J11/J12 action matrix as an input to TC's global inventory,
       distinguishing component/API evidence from exact-source browser acceptance. Consume corrected
-      Root-released Provider source 46462f5531d689acf4c8004517dc4fb345d822ba at all45 active backend
-      paths in provider-runtime-consumption.json; its four changed paths were imported over732, now
-      preserved as historical source with earlier074,99v2,17d, and55b pins. Root-reported107 focused
-      owner cases and locked style checks are not full release qualification; exact Provider
-      CI42328517364 remains in progress. Consume the authenticated durable ensure/status contract through the exact
+      Root-released Provider source dffcf2e2cda4a3046b5e224fb4c7607574156797 at all47 active backend
+      paths in provider-runtime-consumption.json; its eight changed paths were imported over b1a94d98,
+      now preserved as historical source with earlier464,732,074,99v2,17d, and55b pins. Root reports
+      75 focused units plus real-PostgreSQL proof and locked Ruff0.4.7 checks; these are not full release
+      qualification. Exact-source branch CI and Root combined acceptance remain pending. Consume the authenticated durable ensure/status contract through the exact
       TC-owned shared preparation client without duplicating worker, acquisition, quota, or provider
       behavior. The active TC client pin now replaces the historical three-module aea0be57 release
       with exact49-path source d5e8d628eb42318656d8b578a24390db4be17cca from
@@ -1252,10 +1252,11 @@ progress:
     status: in_progress
   current_blocker: >-
     No exact-source branch CI or Root combined backend/browser acceptance exists for the current
-    Provider46462f55 and TC-d5e8 dependencies and the authored Study/Results/Library plus Dashboard
-    consumer changes. All45 active Provider entries match source by SHA256, Git blob, and status_from139;
-    exactly four declared paths changed over732. Exact Provider CI42328517364 is in progress; do not
-    claim full Provider release qualification from the Root-reported107 owner cases and locked style checks.
+    Providerdffcf2e2 and TC-d5e8 dependencies and the authored Study/Results/Library plus Dashboard
+    consumer changes. All47 active Provider entries match source by SHA256, Git blob, and status_from139;
+    exactly eight declared paths changed over b1a94d98. Root reports75 focused units, real-PostgreSQL
+    proof, and pinned Ruff0.4.7 checks for dffcf2e2; exact-source CI and combined acceptance remain pending.
+    The separate b1a94d98 CI42332618010 was cancelled at the45-minute Playwright job limit and is not green.
     Against exact TC-d5e8, the focused Strategy/Dashboard and shared auth/preparation
     tests pass190/190 across11 files and frontend type-check exits0. The imported49-path manifest's47
     deltas match by Git blob/SHA256/status and executable-bit semantics. Browser evidence remains
@@ -1408,7 +1409,7 @@ dependencies:
     feat/market-data-provider-platform owns canonical identity, market series,
     capability/entitlement, acquisition, coverage, and repair contracts. Consume
     after its reviewed work reaches staging, except for the exact Root-released
-    development dependency 46462f5531d689acf4c8004517dc4fb345d822ba recorded in
+    development dependency dffcf2e2cda4a3046b5e224fb4c7607574156797 recorded in
     provider-runtime-consumption.json; that release is not full qualification or
     product acceptance. Do not duplicate providers or provider runtime policy.
   - >-
@@ -2184,9 +2185,13 @@ roadmap_progress_history:
     completed EasyScan and finite Gauge coverage. Relative Rotation requires opaque state-colored
     pixels at finite centers captured from the latest RRG canvas draw's marker arcs and retains its
     keyboard tooltip interaction. Static type-check/discovery/workstream checks do not establish
-    browser execution or release acceptance. Provider b1a94d98 is a test-only development
-    dependency; its exact-source CI is still pending. Preserve the full 18-criterion roadmap and
-    disabled native, broker, capital, paid/trial and live-provider holds.
+    browser execution or release acceptance. Provider dffcf2e2 is the current saved-screener development
+    dependency; its exact-source CI and combined release qualification remain pending. The b1a94d98
+    F8p predecessor timed out without a captured run ID, terminal status, preparation response, or backend
+    exception, so its runtime cause is unresolved. Current StudyLabTool prepares selected data before
+    Validate and Run and fences stale context; TC-owned browser evidence should record the ensure response
+    and created run status without weakening the90-second completion assertion. Preserve the full
+    18-criterion roadmap and disabled native, broker, capital, paid/trial and live-provider holds.
   next_action: >-
     Hand the four corrected Strategy workstation lifecycle stories and the current development
     dependency pin to Root for the single combined backend/browser qualification. The eight-layout,

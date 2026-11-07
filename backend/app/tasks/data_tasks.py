@@ -1289,6 +1289,14 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                     await complete_refresh_job(db, job, result_summary=result_summary)
                     completed += 1
                     continue
+                if job.capability == "data_preparation_screener_expansion":
+                    from app.services.data_preparation import process_screener_expansion_batch
+
+                    result_summary = await process_screener_expansion_batch(db, job=job)
+                    await db.refresh(job)
+                    await complete_refresh_job(db, job, result_summary=result_summary)
+                    completed += 1
+                    continue
                 if job.capability == "etf_holdings_preparation":
                     from app.services.data_preparation import _etf_holdings_preparer
 

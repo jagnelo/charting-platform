@@ -50,11 +50,11 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "current_blocker": "Root owns the single combined backend/browser/strict-visual qualification. Current Strategy Study/Results/Library component suites pass145/145; Research router unit module passes14/14; reserved Dashboard files pass207/207. The workstation copy story now exercises mapped useful outcomes for every canonical US Top Down panel with a300-second bound. ETF SearchBar bfc39453 import was corrected after Root identified the two pre-import SHA256 mismatches, then superseded by authorized a0c5250ee962452f55ad6410f4af6404f2bcc045; only the two declared paths were restored and now match the current manifest. Provider b1a94d98 remains test-only; its exact CI42332618010 is not fully green. Preserve all18 criteria and disabled-operation holds.",
+  "current_blocker": "Root owns the single combined backend/browser/strict-visual qualification. Strategy Study/Results/Library suites remain145/145, Research router14/14, and reserved Dashboard207/207; no browser body/full profile ran. Provider dffcf2e2 is the current saved-screener development dependency: all47 active manifest entries match source by Git blob, SHA256, and status_from139, with exactly8 authorized consumer deltas over b1a94d98. Root reports75 focused units, real-PostgreSQL proof, and Ruff0.4.7 check/format; exact-source CI and combined acceptance remain pending. The older b1 F8p run42332618010 was cancelled at45m without run ID, terminal status, preparation response, or backend error; current StudyLabTool prepares selected data before Validate/Run, so that historical runtime cause remains unknown. Preserve all18 criteria and disabled native/broker/capital/paid/trial/live-provider holds.",
   "current_execution_checkpoint": {
     "authority": "Human-activated platform-usability plan; existing session-local goal aligned in place by Root, no objective/accounting reset.",
     "full_roadmap_preserved": true,
-    "heavy_profile": "Root owns the single combined backend/browser/strict-visual qualification. Strategy Study/Results/Library suites pass145/145; Research router units pass14/14; reserved Dashboard files pass207/207. The workstation copy story now checks each canonical US Top Down window with its mapped useful outcome under a300-second timeout. ETF SearchBar exact two-path import is pinned to a0c5250ee962452f55ad6410f4af6404f2bcc045 and verified after the earlier false byte-identity claim; Root-reported43/43 producer tests are provenance only and were not rerun. Provider b1a94d98 remains test-only and exact CI is pending. No browser body/full profile ran.",
+    "heavy_profile": "Root owns the single combined backend/browser/strict-visual qualification. Strategy Study/Results/Library suites remain145/145, Research router14/14, and reserved Dashboard207/207. The four workstation lifecycle bodies and Study journey remain authored/discovery-only; no browser body/full profile ran. Provider dffcf2e2 is pinned across47 manifest entries; Root-reported75 focused units, real-PostgreSQL proof, and Ruff checks are provenance only, while exact-source CI and combined acceptance remain pending.",
     "id": "strategy-study-usability-2026-11-06",
     "status": "in_progress"
   },
@@ -97,9 +97,9 @@
   "last_checkpoint": "2026-11-07T03:48:12Z",
   "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Hand the coherent corrected SearchBar import and all-panel copied-layout story to Root for review. Root owns the combined browser/backend/strict-visual qualification; the four workstation lifecycle bodies remain discovery-only and no browser body or full profile ran. Preserve SU5, all18-roadmap work, and disabled holds.",
+  "next_action": "Hand the coherent Study/Results/Library and Dashboard authored journeys plus exact dffcf2e2 dependency pin to Root for the single combined qualification. For F8p, have the flows.spec.ts owner capture the selected-data ensure response and created ResearchRun status on failure, keeping the existing90-second completion assertion. No browser body or Provider test rerun was performed here; preserve all18 criteria and disabled holds.",
   "parent_branch": "staging",
-  "plan_hash": "f0e7e297b51b3196fe0085daac0a0f40047d42fc81bd0941c9dd201113769dc6",
+  "plan_hash": "3e2282e15c1962568c4cc947b383862edd68258e9a3a54996a852278e69dd181",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -128,11 +128,11 @@
       "SU3",
       "SU4"
     ],
-    "current_blocker": "Root owns the single combined backend/browser/strict-visual qualification. Current Strategy Study/Results/Library component suites pass145/145; Research router unit module passes14/14; reserved Dashboard files pass207/207. The workstation copy story now exercises mapped useful outcomes for every canonical US Top Down panel with a300-second bound. ETF SearchBar bfc39453 import was corrected after Root identified the two pre-import SHA256 mismatches, then superseded by authorized a0c5250ee962452f55ad6410f4af6404f2bcc045; only the two declared paths were restored and now match the current manifest. Provider b1a94d98 remains test-only; its exact CI42332618010 is not fully green. Preserve all18 criteria and disabled-operation holds.",
+    "current_blocker": "Root owns the single combined backend/browser/strict-visual qualification. Strategy Study/Results/Library suites remain145/145, Research router14/14, and reserved Dashboard207/207; no browser body/full profile ran. Provider dffcf2e2 is the current saved-screener development dependency: all47 active manifest entries match source by Git blob, SHA256, and status_from139, with exactly8 authorized consumer deltas over b1a94d98. Root reports75 focused units, real-PostgreSQL proof, and Ruff0.4.7 check/format; exact-source CI and combined acceptance remain pending. The older b1 F8p run42332618010 was cancelled at45m without run ID, terminal status, preparation response, or backend error; current StudyLabTool prepares selected data before Validate/Run, so that historical runtime cause remains unknown. Preserve all18 criteria and disabled native/broker/capital/paid/trial/live-provider holds.",
     "current_phase": "strategy-study-usability-2026-11-06",
-    "next_action": "Hand the coherent corrected SearchBar import and all-panel copied-layout story to Root for review. Root owns the combined browser/backend/strict-visual qualification; the four workstation lifecycle bodies remain discovery-only and no browser body or full profile ran. Preserve SU5, all18-roadmap work, and disabled holds.",
+    "next_action": "Hand the coherent Study/Results/Library and Dashboard authored journeys plus exact dffcf2e2 dependency pin to Root for the single combined qualification. For F8p, have the flows.spec.ts owner capture the selected-data ensure response and created ResearchRun status on failure, keeping the existing90-second completion assertion. No browser body or Provider test rerun was performed here; preserve all18 criteria and disabled holds.",
     "total": 9,
-    "updated_at": "2026-11-07T03:48:12Z"
+    "updated_at": "2026-11-07T04:10:32Z"
   },
   "remote": "c7f0585fc6735bbfe5e768836092419b13ce8a25",
   "remote_sha": "c7f0585fc6735bbfe5e768836092419b13ce8a25",
@@ -249,5 +249,5 @@
   ],
   "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
   "worktree_id": "feat-strategy-lab-v2-7794d9e53d",
-  "updated_at": "2026-11-07T03:42:00Z"
+  "updated_at": "2026-11-07T04:10:32Z"
 }
