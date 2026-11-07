@@ -15709,3 +15709,28 @@ provider_redirect_and_retained_deeper_history_20261107:
   provider_http_runtime_fixture_ledger_policy_or_hold_mutation: false
   exact_source_ci_and_root_native_replay: pending Root-owned
   full_platform_goal_and_roadmaps: remain open
+
+provider_preserve_etf_future_source_hook_regression_20261107:
+  id: provider-preserve-etf-future-source-hook-regression-20261107
+  status: focused_test_green_root_build_and_replay_pending
+  base_source: 92e064338aded6de615f0abe2aa6b554acd83a79
+  imported_dependency:
+    source: d5a303a63f76b406478e0036e0ef5f72a6b7c149
+    contract: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/etfd5a303a6-domain-backend-development-consumption-contract.json
+    path: backend/tests/unit/services/test_etf_holdings_preparation_hook.py
+    git_blob: 4b48c647a0a13891f9f55bd3aafb16232792164e
+    sha256: d50b231ee6aa2b5f7f471f114cf5620622890ebaae8df4e57c90671a1cc44f47
+    git_mode: 100644
+    old_guard_source: 92e064338aded6de615f0abe2aa6b554acd83a79
+    old_guard_sha256: 2d4ff55d6dbf495c42ad3f6cc1728aa98d6269fdb577afbbe9700c1a08f213f0
+  implementation:
+    - Consume only ETF's published 43-line future-source hook regression; preserve all Provider product and test files from 92e06433 unchanged.
+    - Keep the future_dated_source failure and stale snapshot behavior asserted without weakening the current-date guard.
+  focused_validation:
+    command: backend/.venv/bin/pytest -q backend/tests/unit/services/test_etf_holdings_preparation_hook.py; pinned Ruff 0.4.7 check and format --check on that path
+    result: 15 passed in 1.89s; Ruff check and format passed. Previous checkpoint's 68 focused tests remain recorded and were not rerun.
+  changed_paths:
+    - backend/tests/unit/services/test_etf_holdings_preparation_hook.py
+  provider_http_or_runtime_or_quota_ledger_policy_mutation: false
+  exact_source_build_replay_and_ci: pending Root-owned
+  full_platform_goal_and_roadmaps: remain open

@@ -33789,3 +33789,20 @@ validation, and diff checks passed. No provider HTTP, runtime/database
 mutation, quota/ledger/policy change, or fixture was used. Root owns exact-tip
 CI and retained native replay; actual native deeper-history upgrade remains
 unproven, and the full Provider roadmap remains open.
+
+## 2026-11-07 — preserve ETF future-source hook regression
+
+Root's export review found one newer ETF-owned regression absent from the
+previous backend coalescing. I imported only
+`test_etf_holdings_preparation_hook.py` from released source `d5a303a6` after
+verifying the declared old guard. Its Git blob is
+`4b48c647a0a13891f9f55bd3aafb16232792164e`, SHA-256
+`d50b231ee6aa2b5f7f471f114cf5620622890ebaae8df4e57c90671a1cc44f47`, mode
+`100644`. No other source or test path changed.
+
+The focused hook module passed 15/15, including the future-dated source
+failure preserving stale snapshot semantics. Pinned Ruff check/format passed.
+The previous checkpoint's 68 focused results remain intact and were not
+rerun. Root owns the build and native replay; exact-source CI and combined
+release qualification remain pending, and the full Provider roadmap remains
+open.

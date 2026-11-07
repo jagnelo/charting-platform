@@ -417,6 +417,49 @@ async def test_prepare_preserves_acquisition_hold_reason_and_only_known_retry(
 
 
 @pytest.mark.asyncio
+async def test_prepare_surfaces_future_source_date_as_failed_without_reusing_snapshot(monkeypatch):
+    instrument = _instrument()
+    profile = SimpleNamespace(
+        id=52,
+        instrument_id=instrument.id,
+        instrument=instrument,
+        adapter_key="spdr",
+    )
+    snapshot = _snapshot()
+    stale = {
+        "availability": "stale",
+        "identity_verified": True,
+        "usable_for_current_analysis": False,
+    }
+    _install_readers(
+        monkeypatch,
+        profiles=[profile, profile],
+        snapshots=[snapshot, snapshot],
+        capabilities=[stale, stale],
+    )
+    _install_existing_spdr_route(monkeypatch, profile)
+    db = SimpleNamespace(flush=AsyncMock())
+    failure = ValueError(
+        "Issuer holdings route returned a future composition date (2026-11-09 > 2026-11-07)."
+    )
+    refresh_route = AsyncMock(side_effect=failure)
+    record_failure = AsyncMock()
+    monkeypatch.setattr(etf_holdings_refresh, "_refresh_adapter_route", refresh_route)
+    monkeypatch.setattr(etf_holdings_refresh, "_record_failure", record_failure)
+
+    result = await prepare_etf_holdings(db, instrument, context=_context())
+
+    assert result.status == "failed"
+    assert result.reason_code == "future_dated_source"
+    assert result.retry_at is None
+    assert result.acquired_version == snapshot.id
+    assert result.covered_end == datetime(2026, 11, 6, tzinfo=UTC)
+    refresh_route.assert_awaited_once()
+    record_failure.assert_awaited_once_with(db, profile, failure)
+    db.flush.assert_awaited_once()
+
+
+@pytest.mark.asyncio
 async def test_acquire_result_preserves_typed_quota_retry_deadline(monkeypatch):
     instrument = _instrument()
     profile = SimpleNamespace(id=52, instrument_id=41, instrument=instrument, adapter_key="spdr")
