@@ -1043,10 +1043,9 @@ previous_checkpoint_progress:
       - ops/workstreams/feat-strategy-lab-v2/validation.jsonl
     status: ready_for_integration
   current_blocker: >-
-    Root authorized this records-only adoption of exact staging/master source 139b350238b5e1c8a170dce5af09a805301d857e. Local merge f91fe873131c7c2644a8bcfe0377492c8e4ddb5e has first parent 460521e60209316ab7eee64fa2a9f7e0244ba56b and second parent 139b; merge base is a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7. It completed without conflicts. Canonical receipt /home/m920q/charting-platform/.ai/validation/139b350238b5e1c8a170dce5af09a805301d857e.json (SHA256 3696ca6b1e85d492e08275ceac7b88ade3fe36bc554dbb9c0647721b8f7c51cd) records staging CI 42211787590 and master provenance CI 42222793213 as successful for the same SHA. Backend and frontend trees match 139 exactly; only four Strategy-owned records differ. Root reports that the private deployment passed row/schema/quota-preservation checks and verifies NVDA 498D1/104W1/25MN, XLE own 24 holdings, and IYF ACGL acquisition from provisional zero to 498 candles with dated IYF provenance. Root still owns the native-wait proof and final handoff. This source/context adoption does not complete or reactivate the original 18-criterion Strategy roadmap, alter the active full-goal status, or enable held operations.
-  updated_at: "2026-11-06T13:19:10Z"
+    Root R62 is terminal0pass/5fail on its frozen frontend d13958f46bd00170864f0c9e670a86a186b3e7e2 / Provider22c predecessor. Strategy has repaired its three assigned issues in the current candidate: exact local cached selection uses the canonical-only instrument GET and avoids /instruments/acquire for known symbols; the cold Study-to-Library journey compares the returning draft to the exact saved CodeVersion source after the documented saveVersion trim; and the positive offline factory Study submits and checks retained 2024-01-01 through 2025-12-29 bounds. Focused Dashboard search is10/10, type-check and Playwright discovery pass (14 cases). Root must rerun the affected browser journeys; Strategy did not run a browser/native/full suite. TC's Industry Indexes semantic fallback remains TC-owned. Preserve R62 red history, all18 roadmap criteria, and every disabled native, broker, capital, paid/trial, and provider-live hold.
   next_action: >-
-    Stop at this context-adoption checkpoint. Root owns push, final native-wait proof and completion audit. No broader roadmap work is activated here. After a later scoped release, continue the original AC-UPSTREAM consumer roadmap while preserving the full 18 criteria, accepted checkpoint history, goal/accounting and every data, quota, provider, native, forward, broker, capital, paid/trial and unsafe hold.
+    Freeze and hand Root this coherent Strategy repair candidate with the exact focused-check receipts. Root owns the next affected browser run and combined qualification; do not run a competing browser, native action, or full suite. Keep the TC-owned Industry fallback distinct and all original roadmap work open.
 
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
@@ -1205,6 +1204,8 @@ progress:
       with canonical local SPY D1 bars. The factory EasyScan journey accepts only its own completed
       result with nonzero coverage and matching useful visible counts; TC owns the async polling
       product repair.
+
+      Root R62 (frontend d13958f46bd00170864f0c9e670a86a186b3e7e2 / Provider22c) is terminal0pass/5fail. Strategy repaired its three assigned issues in this candidate: exact cached symbols now use the existing canonical-only local instrument GET rather than the acquisition helper; the Study-to-Library return checks the exact persisted CodeVersion source and explicitly records the saveVersion trim normalization; and the positive offline factory Study sets and asserts the retained 2024-01-01 through 2025-12-29 range before validating/running. Focused Dashboard search passes10/10, frontend type-check passes, and Playwright discovery lists14 Study/workstation cases. These fixes remain unexecuted in a browser; Root owns rerun. TC's unrelated factory Industry Indexes fallback remains TC-owned.
 
       Exact current development dependencies are Provider `22c31cd3e7f35e361e286ef40576d379aaf44449`
       (six guarded Strategy imports; all67 manifest rows verified) and TC common runtime

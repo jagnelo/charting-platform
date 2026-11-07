@@ -469,9 +469,26 @@ async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUT
     await expect(tile).toHaveAttribute('aria-pressed', 'true')
   } else if (kind === 'study') {
     await tool.getByLabel('Factory study').selectOption('positive_streak')
+    // The offline positive factory witness uses the retained controlled D1
+    // range. An unbounded request can legitimately remain held when external
+    // providers are disabled; this journey must exercise real supported data.
+    const studyStartDate = '2024-01-01'
+    const studyEndDate = '2025-12-29'
+    await tool.getByLabel('Study start date').fill(studyStartDate)
+    await tool.getByLabel('Study end date').fill(studyEndDate)
     await tool.getByRole('button', { name: 'Validate study' }).click()
     await expect(tool).toContainText('Validated for isolated execution', { timeout: 20_000 })
+    const studyRunRequest = page.waitForRequest(request => request.method() === 'POST'
+      && new URL(request.url()).pathname.endsWith('/research/runs'))
     await tool.getByRole('button', { name: 'Run study' }).click()
+    const studyRunBody = (await studyRunRequest).postDataJSON() as {
+      run_config?: { start_date?: string; end_date?: string }
+      dataset_manifest?: { start_date?: string; end_date?: string }
+    }
+    expect(studyRunBody).toMatchObject({
+      run_config: { start_date: studyStartDate, end_date: studyEndDate },
+      dataset_manifest: { start_date: studyStartDate, end_date: studyEndDate },
+    })
     await expect(tool.locator('[aria-label^="Study run status:"]')).toHaveAttribute('data-status', 'completed', { timeout: 45_000 })
     const currentStreak = tool.getByRole('status', { name: 'current_streak metric', exact: true })
     await expect(currentStreak).toBeVisible()

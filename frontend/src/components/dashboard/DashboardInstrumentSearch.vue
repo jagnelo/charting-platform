@@ -57,7 +57,6 @@ import { computed, onBeforeUnmount, onMounted, onUnmounted, ref, watch } from 'v
 import {
   discoverInstruments,
   resolveDiscoveredInstrument,
-  resolveExistingInstrument,
   type InstrumentDiscoveryCandidate,
 } from '@/lib/onDemandAcquisition'
 import {
@@ -162,24 +161,20 @@ async function onInput() {
     if (!mounted || seq !== searchSeq) return
     const requestedQuery = trimmedQuery.value
     loading.value = true
+    let localExactLookup: Promise<string | null> = Promise.resolve(null)
     if (/^[A-Za-z0-9][A-Za-z0-9.-]{0,19}$/.test(requestedQuery)) {
-      // Resolve an already-known exact ticker independently from external
-      // discovery. A held discovery source must not block a canonical local
-      // listing that the existing resolver can prove. Prefixes and ambiguous
-      // identities still fall through to the candidate flow below.
+      // Query the canonical local instrument record independently from
+      // external discovery. This GET does not acquire or guess an identity;
+      // a held discovery source must not block a known exact local ticker.
       const localResolveSeq = ++resolveSeq
-      void resolveExistingInstrument(requestedQuery).then(response => {
-        const instrument = response.instrument
-        const exactSymbol = instrument?.symbol.trim().toUpperCase()
-        if (!mounted || seq !== searchSeq || localResolveSeq !== resolveSeq
-          || exactSymbol !== requestedQuery.toUpperCase()) return
-        if (response.status !== 'resolved' || !Number.isSafeInteger(instrument?.instrument_id)
-          || (instrument?.instrument_id ?? 0) <= 0) return
-        commit(instrument!.symbol)
-      }).catch(() => {
-        // External discovery remains the ordinary fallback for unknown or
-        // temporarily unavailable local identity lookups.
-      })
+      localExactLookup = ensureKnownInstrumentSymbol(requestedQuery, 'Instrument', { canonicalOnly: true })
+        .then(symbol => {
+          if (!mounted || seq !== searchSeq || localResolveSeq !== resolveSeq
+            || symbol.trim().toUpperCase() !== requestedQuery.toUpperCase()) return null
+          commit(symbol)
+          return symbol
+        })
+        .catch(() => null)
     }
     try {
       const loaded = await discoverInstruments(requestedQuery, [], 10)
@@ -194,7 +189,12 @@ async function onInput() {
         const exact = loaded.status === 'complete'
           ? loaded.candidates.filter(candidate => candidate.symbol.trim().toUpperCase() === requestedQuery.toUpperCase())
           : []
-        if (exact.length === 1) await resolveCandidate(exact[0]!, seq)
+        if (exact.length === 1) {
+          // Let the canonical local lookup finish first so an existing exact
+          // listing is selected without an unnecessary /instruments/acquire.
+          const localSymbol = await localExactLookup
+          if (mounted && seq === searchSeq && !localSymbol) await resolveCandidate(exact[0]!, seq)
+        }
       }
     } catch (e: any) {
       if (mounted && seq === searchSeq) {
@@ -301,12 +301,15 @@ async function resolveTypedExisting() {
   loading.value = true
   error.value = ''
   try {
-    const response = await resolveExistingInstrument(requested)
+    const symbol = await ensureKnownInstrumentSymbol(requested, 'Instrument', { canonicalOnly: true })
     if (!mounted || seq !== resolveSeq || requested !== trimmedQuery.value) return
-    if (response.status === 'resolved' && response.instrument?.symbol) commit(response.instrument.symbol)
-    else error.value = resolutionStatusMessage(response.status)
-  } catch {
-    if (mounted && seq === resolveSeq) error.value = 'Instrument identity could not be confirmed. Your current selection is unchanged.'
+    if (symbol.trim().toUpperCase() === requested.toUpperCase()) commit(symbol)
+    else error.value = 'No exact canonical instrument matched. Your current selection is unchanged.'
+  } catch (cause) {
+    if (mounted && seq === resolveSeq) {
+      error.value = formatInstrumentLookupError(requested, cause, 'Instrument')
+      dismissed.value = false
+    }
   } finally {
     if (mounted && seq === resolveSeq) loading.value = false
   }

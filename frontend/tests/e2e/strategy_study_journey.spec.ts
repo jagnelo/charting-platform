@@ -247,8 +247,13 @@ test('Study journey keeps saved identity, refreshes Results, and returns from Py
   await libraryAsset.getByRole('button', { name: 'Save as new version', exact: true }).click()
   const savedVersion = await savedVersionResponse
   expect(savedVersion.ok()).toBe(true)
-  const savedVersionBody = await savedVersion.json() as { id?: number }
+  const savedVersionBody = await savedVersion.json() as { id?: number; source?: string; version_number?: number }
   expect(Number.isInteger(savedVersionBody.id)).toBe(true)
+  // CodeLibraryTool.saveVersion canonicalizes editor whitespace with trim()
+  // before POSTing. Use the returned immutable CodeVersion source as the
+  // authoritative value for the later Study return, while asserting that
+  // documented normalization exactly.
+  expect(savedVersionBody.source).toBe(libraryEditedSource.trim())
   await expect(libraryAsset).toContainText('2 versions', { timeout: 15_000 })
 
   const historicalVersionId = firstRunBody.code_version_id!
@@ -278,7 +283,7 @@ test('Study journey keeps saved identity, refreshes Results, and returns from Py
   const returnedStudy = page.locator('.study-lab-tool:visible').last()
   await expect(returnedStudy).toBeVisible({ timeout: 15_000 })
   await expect(returnedStudy.getByRole('textbox', { name: 'Study name' })).toHaveValue(studyName)
-  await expect(returnedStudy.getByRole('textbox', { name: 'Study Python source' })).toHaveValue(libraryEditedSource)
+  await expect(returnedStudy.getByRole('textbox', { name: 'Study Python source' })).toHaveValue(savedVersionBody.source!)
   expect(runRequests).toHaveLength(1)
 
   const returnedPreparation = page.waitForResponse(response => isStudyHistoryEnsure(
