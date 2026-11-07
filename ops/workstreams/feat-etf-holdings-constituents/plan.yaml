@@ -6498,9 +6498,9 @@ provider_runtime_dependency_active_dd70319e:
   state: Development dependency only; Root's backend/browser and full release qualifications remain pending.
 
 approved_development_dependency_imports:
-- source_sha: 2666aa559afbff7cff8dff6b50ead357ae1f654f
-  manifest_path: ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/2666aa559afbff7cff8dff6b50ead357ae1f654f.json
-  manifest_sha256: f0784a8337d3d53add381b0f06f9fd37e7e27fa861bca70d97e78ba341f3a10a
+- source_sha: e902e83597661de1e5a636a2d94902b0fe01b747
+  manifest_path: ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/e902e83597661de1e5a636a2d94902b0fe01b747.json
+  manifest_sha256: a87a59f7c1e76e1c8273e2949b67d676d72a43ee2b691463f82482567c71683f
   paths:
   - frontend/package-lock.json
   - frontend/package.json
@@ -6588,7 +6588,6 @@ approved_development_dependency_imports:
   - frontend/tests/unit/views/test_settings_view.test.ts
   - frontend/tests/unit/views/test_workstation_capabilities.test.ts
   - frontend/tests/unit/views/test_workstation_popout_bindings.test.ts
-
 historical_tc_common_runtime_dependency_a2e22225:
   authority: Root released exact TC source a2e222251d4ea796d0d4bfb6b0e8705f503c1e4d for development consumption only; final combined browser/CI/release acceptance remains Root-owned.
   previous_active_dependency: 1fdc92f1a1628d191ad1d5b2f0ba071a80df5052
@@ -6657,7 +6656,7 @@ historical_tc_common_runtime_dependency_c9fc3bbb:
   - frontend/tests/unit/lib/test_data_preparation.test.ts
   verification: All85 status_from139, SHA256, Git blob, and executable-bit records match; exact10 ETF paths passed the released old guards and match the source.
   state: Root-released development dependency only; corrected-fixture full RRG/Results qualification remains pending.
-tc_common_runtime_dependency_active_2666aa55:
+historical_tc_common_runtime_dependency_2666aa55:
   authority: Root released exact TC source 2666aa559afbff7cff8dff6b50ead357ae1f654f for development consumption only; final browser, exact CI, and release qualification remain Root-owned.
   source: 2666aa559afbff7cff8dff6b50ead357ae1f654f
   previous_active_dependency: c9fc3bbbfa9cc92ad037040fa3e610dd95bbf0ec
@@ -6703,3 +6702,24 @@ rrg_r52_d1_tail_sampling_2026_11_07:
   diagnostic_scope: ETF_RRG_D1_DIAGNOSTIC returns after D1 checks only; no W1/MN or layout lifecycle qualification is claimed.
   strategy_review: Read-only review of workstation_lifecycle_journey.spec.ts:149-205 shows a single rounded-center pixel exact RGB/alpha check. R51 raster has11 markers; the minimum exact opaque state-color count in each3x3 center neighborhood is4, while XLC center is [230,180,107,255] vs [231,188,104]. Recommend an interior neighborhood check requiring an exact opaque state-color pixel while preserving marker count, latest-frame, and clipping checks; no sibling edit made.
   remaining: Root owns the normal D1/W1/MN plus full layout lifecycle replay, Results acceptance, exact CI, and release gates.
+
+tc_common_runtime_dependency_active_e902e835:
+  authority: Root released exact TC source e902e83597661de1e5a636a2d94902b0fe01b747
+    for development consumption only; combined browser, exact CI, and release qualification
+    remain Root-owned.
+  source: e902e83597661de1e5a636a2d94902b0fe01b747
+  previous_active_dependency: 2666aa559afbff7cff8dff6b50ead357ae1f654f
+  manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-e902e835-common-runtime-development-consumption-contract.json
+  manifest_sha256: a87a59f7c1e76e1c8273e2949b67d676d72a43ee2b691463f82482567c71683f
+  local_manifest_copy: ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/e902e83597661de1e5a636a2d94902b0fe01b747.json
+  current_manifest_records_verified: 86
+  consumer_import_paths:
+  - frontend/src/components/workstation/EasyScanTool.vue
+  - frontend/tests/unit/components/test_easy_scan_tool.test.ts
+  verification: All86 source manifest rows match exact Git blobs/SHA256; the only
+    ETF imports were the two declared EasyScan paths, each matching its old guard
+    before import and released hash/blob afterward.
+  scope: TC common UI/diagnostic dependency; no other common or owner paths were copied
+    by this import.
+  state: Root-released development dependency only; combined qualification remains
+    pending Root.
