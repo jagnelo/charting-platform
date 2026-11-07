@@ -6,6 +6,12 @@ type SearchCandidate = {
   instrument_id: number
 }
 
+type CachedAdjustedBar = {
+  ts: string
+  close: number
+  is_adjusted: boolean
+}
+
 async function resolveCanonicalInstrument(
   request: import('@playwright/test').APIRequestContext,
   headers: Record<string, string>,
@@ -21,6 +27,22 @@ async function resolveCanonicalInstrument(
   expect(exact, `Search API should return one canonical ${symbol} instrument`).toHaveLength(1)
   expect(Number.isSafeInteger(exact[0]?.instrument_id) && (exact[0]?.instrument_id ?? 0) > 0).toBeTruthy()
   return exact[0]
+}
+
+async function readCachedAdjustedBars(
+  request: import('@playwright/test').APIRequestContext,
+  headers: Record<string, string>,
+  symbol: string,
+): Promise<CachedAdjustedBar[]> {
+  const response = await request.get(`/api/v1/ohlcv/local/${symbol}/D1`, {
+    headers,
+    params: { limit: 500, adjusted: 'true' },
+  })
+  expect(response.status(), `local selected-series history for ${symbol} is readable`).toBe(200)
+  const bars = await response.json() as CachedAdjustedBar[]
+  expect(bars.length, `${symbol} has retained adjusted bars before basket creation`).toBeGreaterThanOrEqual(20)
+  expect(bars.every(bar => bar.is_adjusted && Number.isFinite(Date.parse(bar.ts)) && Number.isFinite(bar.close) && bar.close > 0)).toBeTruthy()
+  return bars
 }
 
 async function chooseResolvedInstrument(page: import('@playwright/test').Page, symbol: string) {
@@ -157,8 +179,27 @@ test('opening a basket submits each member preparation independently while cache
   const token = await page.evaluate(() => localStorage.getItem('access_token'))
   expect(token).toBeTruthy()
   const headers = { Authorization: `Bearer ${token}` }
-  const canonicalMembers = await Promise.all(['AAPL', 'MSFT'].map(symbol =>
+  const canonicalMembers = await Promise.all(['SPY', 'QQQ'].map(symbol =>
     resolveCanonicalInstrument(request, headers, symbol)))
+  const cachedBarsBySymbol = new Map(await Promise.all(canonicalMembers.map(async member => [
+    member.symbol.toUpperCase(),
+    await readCachedAdjustedBars(request, headers, member.symbol),
+  ] as const)))
+  const firstCachedBars = cachedBarsBySymbol.get('SPY')!
+  const secondCachedBars = cachedBarsBySymbol.get('QQQ')!
+  const firstByTimestamp = new Map(firstCachedBars.map(bar => [Date.parse(bar.ts), bar.close]))
+  const secondByTimestamp = new Map(secondCachedBars.map(bar => [Date.parse(bar.ts), bar.close]))
+  const cachedCommonTimestamps = [...firstByTimestamp.keys()]
+    .filter(timestamp => secondByTimestamp.has(timestamp))
+    .sort((left, right) => left - right)
+  expect(cachedCommonTimestamps.length, 'both selected members have a substantial shared cached date range').toBeGreaterThanOrEqual(20)
+  const firstBase = firstByTimestamp.get(cachedCommonTimestamps[0])!
+  const secondBase = secondByTimestamp.get(cachedCommonTimestamps[0])!
+  const expectedCloseByTimestamp = new Map(cachedCommonTimestamps.map(timestamp => {
+    const firstClose = firstByTimestamp.get(timestamp)!
+    const secondClose = secondByTimestamp.get(timestamp)!
+    return [timestamp, ((firstClose / firstBase) + (secondClose / secondBase)) * 50] as const
+  }))
   const created = await request.post('/api/v1/baskets', {
     headers,
     data: {
@@ -254,9 +295,16 @@ test('opening a basket submits each member preparation independently while cache
 
       const chartResponse = await basketChartResponse
       expect(chartResponse.status()).toBe(200)
-      const bars = await chartResponse.json() as Array<{ timestamp: string; close: number }>
-      expect(bars.length).toBeGreaterThan(0)
+      const bars = await chartResponse.json() as Array<{ ts: string; close: number }>
+      expect(bars.length, 'basket chart contains actual rows from the pre-verified member intersection').toBeGreaterThanOrEqual(20)
       expect(bars.every(bar => Number.isFinite(bar.close) && bar.close > 0)).toBeTruthy()
+      const responseTimestamps = bars.map(bar => Date.parse(bar.ts))
+      expect(responseTimestamps).toEqual([...responseTimestamps].sort((left, right) => left - right))
+      for (const bar of bars) {
+        const expectedClose = expectedCloseByTimestamp.get(Date.parse(bar.ts))
+        expect(expectedClose, `basket timestamp ${bar.ts} comes from both selected cached series`).toBeDefined()
+        expect(bar.close).toBeCloseTo(expectedClose!, 8)
+      }
 
       const primaryChart = page.locator('.tool-window[data-window-key="primary-chart"]')
       await expect(primaryChart).toBeVisible()

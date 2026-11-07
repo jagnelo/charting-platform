@@ -675,9 +675,9 @@
           "browser_evidence": {
             "path": "frontend/tests/e2e/baskets_journey.spec.ts",
             "case": "opening a basket submits each member preparation independently while cached chart data stays visible",
-            "coverage": "The current actual-API test intends to hold the first accepted member ensure, verify all resolved-member submissions, then prove cached basket bars/tooltip remain visible. Root R20 actually reached basket OHLCV200 but emitted zero member-ID ensures; its trace shows three unresolved GET /api/v1/baskets/10 membership requests. The current shared chart loader awaits that response before ensure dispatch. Current test SHA256 4c0778071c712fdc65ad21e710da02e17a5d3d6618815dfdc7cbd324126de90b; browser body is failed on predecessor frontend e8/backend F84 and the shared runtime cause remains TC-owned.",
-            "body_run": true,
-            "status": "Root R20 failed the required member-preparation outcome; do not treat zero requests as deduplication or acceptance."
+            "coverage": "The R32 AAPL/MSFT synthetic response was empty because those members had zero common retained candles, so the fixture premise was invalid. The current actual-API story first verifies selected adjusted D1 SPY/QQQ bars and >=20 shared timestamps, then checks all returned basket timestamps and weighted closes against those cached rows while holding the first member preparation. Current spec SHA256 b6b0d4e138ee31c573fc39d80463c933e35712e62d5dc0b90c5698c06a059ef7.",
+            "body_run": false,
+            "status": "Root browser replay pending; current cached-series premise and exact weighted readback have not been browser-qualified."
           },
           "contract_gap_owner": "TC owns the chart/basket-load integration in the shared chart path. The currently identified entry point is frontend/src/stores/chart.ts::chartStore.loadBars() BASKET:<id> branch; ETF does not add another coordinator or queue."
         },
@@ -732,16 +732,26 @@
       ],
       "evidence": {
         "backend_contract": "Authenticated normal APIs; successful seeded paths are not route-fulfilled or mocked.",
-    "focused": "Frontend npm run type-check passed; Playwright discovery lists2 S&P cases; S&P spec SHA256 0a5ec5bc7aa0dd8a4b02851af55836fe8d152c54a0d3288ac8601a14617a6423. Provider21be dependency manifest49/49 verified in the same checkpoint.",
+    "focused": "Frontend npm run type-check passed; Playwright discovery lists2 S&P cases; current spec SHA256 a49970e4a4ad5a07f51257f43570dee248046fe2848b61a30ace8f2b4e813ec8. Actual cached ratio response checks canonical-local freshness, full coverage-preflight and exact overlapping date bounds; Root R33 reload capture is fenced to the reloaded document. Provider21be dependency manifest49/49 was verified historically.",
         "browser": {
           "body_run": false,
-      "status": "The current ETF spec at 0a5ec5bc has not been browser-run. Root's focused r7 run failed on prior EED spec 005bbb95 before UI assertions because seeded adjusted bars were queried as raw; the current spec now uses matching split-adjusted inputs. Root owns rerun of current S&P/RRG bodies in the existing fixture.",
+      "status": "Root R32 payload evidence shows XLB/SPY is canonical-local, current, full coverage with1824 aligned points and exact2019-01-02..2025-12-29 bounds; the separate preparation hold masks the visible local-adjusted status. The owned test retains the strict local-adjusted expectation and TC owns the status composition defect. Root R33 failed before the RRG UI loop because the waiter matched an old-document response; the current test fences the response to a request started after main-frame navigation and consumes it immediately. Current test has not been browser-run. The shared basket/maximize failures remain open.",
       "prior_attempts": [
         {
           "receipt": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/validation-fixture/focused-sp500-ratios-r7-receipt.json",
           "source": "eedc1a9369a702ddfb588786fc77b5657c978e42",
           "spec_sha256": "005bbb95c70963cf795158a5a197fd21a6ccc5e8eba4c0dcb477c8fd2f7cb867",
           "result": "failed_before_UI_interaction_no_aligned_unadjusted_points_against_adjusted_only_fixture"
+        },
+        {
+          "receipt": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/validation-fixture/focused-backend-r32-receipt.json",
+          "source": "Root controlled R32 on frontend45ea51bf/backenddd70319e",
+          "result": "0_of_3_cases_passed; S&P case failed at status text before completing ratio loop; screenshot and network trace prove visible XLB chart/ratio data while the status reports no eligible source and current view usable"
+        },
+        {
+          "receipt": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/validation-fixture/focused-tc1fd-r33.log",
+          "source": "Root controlled R33 on TC1fd/Provider dd703; current owner candidate is a descendant",
+          "result": "0_of_4_cases_passed; S&P failed reading response body after navigation because the waiter selected a pre-reload request. Current owner spec now accepts only a post-navigation main-frame request; unrun."
         }
       ]
         }
@@ -765,8 +775,8 @@
           "GET /api/v1/notes/instruments/{canonical_instrument_id}",
           "PUT /api/v1/notes/instruments/{canonical_instrument_id}"
         ],
-        "assertions": "Initial no-note state, autosave and edit, reload persistence, switch to a second symbol without leaking the first note, return to the original symbol. Pending drafts flush on switch/unmount; delayed older acknowledgements cannot mark a newer draft saved, and an unacknowledged draft remains in the existing query cache. Focused component tests cover switch, close, and ordered acknowledgement.",
-        "evidence": "Supporting browser body remains pending Root; focused InstrumentNoteTool lifecycle module passed3/3."
+        "assertions": "Initial no-note state, autosave and edit, reload persistence, switch to a second symbol without leaking the first note, return to the original symbol. Pending drafts flush on switch/unmount; delayed older acknowledgements cannot mark a newer draft saved; queued writes retain their originating auth epoch and cannot be sent or repopulate the private cache after a session boundary.",
+        "evidence": "Supporting browser body remains pending Root; focused InstrumentNoteTool lifecycle module passed4/4; frontend type-check passed."
       },
       "alerts": {
         "entry": "Workstation /chart/{symbol} -> active-symbol Alerts tool; application navigation -> Alerts at /legacy/alerts (/alerts redirects).",

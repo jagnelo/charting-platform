@@ -1,4 +1,4 @@
-import type { APIRequestContext, Page, Response } from '@playwright/test'
+import type { APIRequestContext, Page, Request, Response } from '@playwright/test'
 import { expect, test } from './helpers'
 
 const SECTOR_SYMBOLS = [
@@ -15,12 +15,30 @@ interface Bar {
 }
 
 interface RatioResponse {
+  data_provenance: string
+  freshness: string
+  freshness_detail: { requested: number; current: number; stale: number; other: number }
   symbol: string
   benchmark: string
   timeframe: string
   adjustment: string
   points: Array<{ timestamp: string; value: number }>
   coverage: number
+  overlap_start: string | null
+  overlap_end: string | null
+  coverage_preflight: {
+    status: string
+    item_count: number
+    ready_instrument_count: number
+    items: Array<{
+      status: string
+      required_start: string | null
+      required_end: string | null
+      covered_start: string | null
+      covered_end: string | null
+      missing_slices: unknown[]
+    }>
+  }
   warnings: Array<{ code: string; message: string }>
 }
 
@@ -88,6 +106,12 @@ function rotationResponseFor(response: Response, timeframe: AnalysisTimeframe): 
     && url.searchParams.get('timeframe') === timeframe
 }
 
+function rotationRequestFor(request: Request, timeframe: AnalysisTimeframe): boolean {
+  const url = new URL(request.url())
+  return url.pathname === '/api/v1/analysis/groups/sp500-sectors/relative-rotation'
+    && url.searchParams.get('timeframe') === timeframe
+}
+
 function relativeStrengthResponseFor(response: Response, numerator: string, denominator: string): boolean {
   const url = new URL(response.url())
   return url.pathname === '/api/v1/analysis/relative-strength'
@@ -124,6 +148,9 @@ function assertRatioMatchesAdjustedIntersection(
   expect(response.benchmark).toBe(benchmark)
   expect(response.timeframe).toBe('D1')
   expect(response.adjustment).toBe('split_adjusted')
+  expect(response.data_provenance).toBe('canonical_local_database')
+  expect(response.freshness).toBe('current')
+  expect(response.freshness_detail).toMatchObject({ requested: 2, current: 2, stale: 0 })
   expect(response.warnings.filter(warning => warning.code === 'stale_data')).toEqual([])
 
   const primaryByTime = new Map(primaryBars.map(bar => [Date.parse(bar.ts), bar.close]))
@@ -135,6 +162,28 @@ function assertRatioMatchesAdjustedIntersection(
 
   expect(response.points.length, `${primary}/${benchmark} must contain every split-adjusted timestamp intersection`).toBe(expected.length)
   expect(response.coverage).toBeGreaterThan(0)
+  expect(response.overlap_start).toBe(expected.length ? new Date(expected[0].timestamp).toISOString() : null)
+  expect(response.overlap_end).toBe(expected.length ? new Date(expected.at(-1)!.timestamp).toISOString() : null)
+  expect(response.coverage_preflight).toMatchObject({
+    status: 'full',
+    item_count: 2,
+    ready_instrument_count: 2,
+  })
+  expect(response.coverage_preflight.items).toHaveLength(2)
+  for (const item of response.coverage_preflight.items) {
+    expect(item.status).toBe('ready')
+    expect(item.required_start).toBeTruthy()
+    expect(item.required_end).toBeTruthy()
+    expect(item.covered_start).toBeTruthy()
+    expect(item.covered_end).toBeTruthy()
+    expect(response.overlap_start).toBeTruthy()
+    expect(response.overlap_end).toBeTruthy()
+    expect(Date.parse(item.required_start!)).toBe(Date.parse(item.covered_start!))
+    expect(Date.parse(item.required_end!)).toBe(Date.parse(item.covered_end!))
+    expect(Date.parse(item.covered_start!)).toBe(Date.parse(response.overlap_start!))
+    expect(Date.parse(item.covered_end!)).toBe(Date.parse(response.overlap_end!))
+    expect(item.missing_slices).toEqual([])
+  }
   const mismatches: Array<{
     index: number
     timestamp: string
@@ -455,6 +504,8 @@ async function assertRatioUiLine(page: Page, numerator: string, denominator: str
   const ratio = page.locator('.tool-window[data-window-key="ratio-chart"] .ratio-chart')
   await expect(ratio).toBeVisible()
   await expect(ratio.locator('.ratio-chart__legend strong')).toContainText(`${numerator}/${denominator}`)
+  // A separate preparation hold must not replace the status of this valid
+  // locally covered ratio. The hold remains visible elsewhere in the app.
   await expect(ratio.locator('.ratio-chart__legend [role="status"]')).toContainText('local adjusted')
   const benchmarkNames = await ratio.locator('.ratio-chart__chip').evaluateAll(elements => elements.map(element => element.getAttribute('aria-label')?.replace('Remove ratio comparison ', '') ?? ''))
   const colorIndex = benchmarkNames.indexOf(denominator)
@@ -611,13 +662,35 @@ test('S&P 500 RRG renders deep D1/W1/MN data and survives selection, resize, max
   const pageResponses = new Map<AnalysisTimeframe, RotationResponse>()
   const directResponses = new Map<AnalysisTimeframe, RotationResponse>()
 
-  // Consume the response body as soon as it arrives; a later navigation can
-  // invalidate Playwright's retained response body even though the response
-  // itself was matched before reload completed.
-  const initialD1Payload = page.waitForResponse(response => response.ok() && rotationResponseFor(response, 'D1'))
-    .then(response => response.json() as Promise<RotationResponse>)
-  await page.reload()
-  const d1Payload = await initialD1Payload
+  // Match only a request initiated by the reloaded main document. A pending
+  // request from the previous document can otherwise satisfy waitForResponse
+  // before reload, then lose its body when navigation disposes that response.
+  const mainFrame = page.mainFrame()
+  let reloadedMainDocument = false
+  const reloadedRotationRequests = new WeakSet<Request>()
+  const onFrameNavigated = (frame: typeof mainFrame) => {
+    if (frame === mainFrame) reloadedMainDocument = true
+  }
+  const onRequest = (request: Request) => {
+    if (!reloadedMainDocument || !rotationRequestFor(request, 'D1')) return
+    if (request.frame() === mainFrame) reloadedRotationRequests.add(request)
+  }
+  page.on('framenavigated', onFrameNavigated)
+  page.on('request', onRequest)
+  const initialD1Payload = page.waitForResponse(response =>
+    reloadedRotationRequests.has(response.request()),
+  ).then(async response => {
+    expect(response.status()).toBe(200)
+    return await response.json() as RotationResponse
+  })
+  let d1Payload: RotationResponse
+  try {
+    const [, payload] = await Promise.all([page.reload(), initialD1Payload])
+    d1Payload = payload
+  } finally {
+    page.off('framenavigated', onFrameNavigated)
+    page.off('request', onRequest)
+  }
   pageResponses.set('D1', d1Payload)
   // The saved workspace may restore its primary Technicals dock tab. Restore
   // the maximized window first, then activate Relative Rotation through its

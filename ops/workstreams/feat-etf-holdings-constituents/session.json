@@ -1141,8 +1141,8 @@
     "status": "Root-delegated bounded software checkpoint accepted; exact final-source CI pending.",
     "validated_implementation_sha": "b6d67ce93104a0a2cf83b1c41f385513b3c230f8"
   },
-  "plan_hash": "0ced2ae7696beeefcc9972644ca653aef22718eab5e2711f8d19094d34e3cf4f",
-  "plan_sha256": "0ced2ae7696beeefcc9972644ca653aef22718eab5e2711f8d19094d34e3cf4f",
+  "plan_hash": "7d300f207058e4e5c2248540f688eac89ccf7b20f89c50f5fb574dddbd21cfb0",
+  "plan_sha256": "7d300f207058e4e5c2248540f688eac89ccf7b20f89c50f5fb574dddbd21cfb0",
   "planning_required": false,
   "planning_state": "ready",
   "previous_active_changeset": {
@@ -4301,12 +4301,12 @@
   "current_sp500_analysis_spec": {
     "authority": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/etf-sp500-analysis-acceptance-ownership-20261107.json",
     "path": "frontend/tests/e2e/sp500_analysis_journey.spec.ts",
-    "sha256": "005bbb95c70963cf795158a5a197fd21a6ccc5e8eba4c0dcb477c8fd2f7cb867",
-    "frontend_typecheck": "passed after all Root review corrections including canvas overload preservation",
+    "sha256": "a49970e4a4ad5a07f51257f43570dee248046fe2848b61a30ace8f2b4e813ec8",
+    "frontend_typecheck": "passed after R33 reload request fence and cached-lineage assertions",
     "playwright_cases_discovered": 2,
     "browser_body_run": false,
     "next_owner": "Root combined seeded-backend browser profile",
-    "assertion_scope": "Actual price renderer paint and returned-bar OHLC/date tooltip using the single chart-root; both visible ratio directions; independently aligned raw-close arithmetic; active D1/W1/MN payloads and latest-draw marker/tail raster; restores maximized RRG before linked-chart visibility; plot pointer and accessible Duplicate layout control; canvas audit preserves zero-argument native stroke overload; layout-copy assertions capture initial tab count and active stable key, require one new key, and switch original/copy by identity.",
+    "assertion_scope": "Actual price renderer paint and returned-bar OHLC/date tooltip; both visible ratio directions; independently aligned split-adjusted arithmetic plus canonical-local freshness, full coverage-preflight and exact date-bound assertions; active D1/W1/MN payloads and latest-draw marker/tail raster; RRG reload payload is tied to a main-frame request started after navigation and consumed immediately; restore, plot pointer, Duplicate layout, tab restore and original/copy identity assertions remain.",
     "required_tc_layout_control": "Duplicate layout is present in exact TC5a source; no old-label fallback. Browser body still awaits Root combined profile."
   },
   "current_search_bar_exact_prefetch": {
@@ -4321,14 +4321,22 @@
     "browser_execution": "No browser body was run; Root owns the combined profile and release acceptance."
   },
   "current_tc_common_runtime_dependency": {
+    "source": "1fdc92f1a1628d191ad1d5b2f0ba071a80df5052",
+    "previous_source": "45ea51bfa78b6ae167462b518358164a5a3e29f4",
+    "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-1fdc92f1-common-runtime-development-consumption-contract.json",
+    "manifest_sha256": "fddaab9536bb885b9656e861ece0df60481466e365e2b04612c953404f57b70d",
+    "current_manifest_records_verified": 77,
+    "consumer_import_paths_verified": 5,
+    "verification": "All77 source SHA/Git blob/executable-bit records verified; exact5 ETF paths imported under old/new guards and executable-bit semantics.",
+    "state": "Root-released development dependency only; Root owns browser, exact CI, and release qualification."
+  },
+  "historical_tc_common_runtime_dependency_45ea51bf": {
     "source": "45ea51bfa78b6ae167462b518358164a5a3e29f4",
-    "previous_source": "77190340a4a2335e8f7f9a30ee32ded599a714ef",
     "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-45ea51bf-common-runtime-development-consumption-contract.json",
     "manifest_sha256": "126b87449853c3e9b52aff4a19d0efd786ad833d16d52b2b76f28914f8dde6c",
-    "current_manifest_records_verified": 77,
-    "consumer_import_paths_verified": 10,
-    "verification": "All77 source SHA/Git blob/executable-bit records verified; exact10 ETF paths imported under old/new guards and executable-bit semantics.",
-    "state": "Root-released development dependency only; Root owns browser, exact CI, and release qualification."
+    "verified_manifest_records": 77,
+    "imported_paths": 10,
+    "state": "Superseded current import; preserved as immutable development history."
   },
   "historical_provider_runtime_consumption_732": {
     "source": "732da0f9f84ee495ee58ca3b9f8311839291ff59",
@@ -4467,7 +4475,7 @@
     "source": "dd70319eb725dc6b5c1b4feb0ba5a5ba060efd04",
     "previous_source": "dcd3c823f9f76ed65b65d8b6c3628e1bc02a222e",
     "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providerdd70319e-runtime-development-consumption-contract.json",
-    "manifest_sha256": "e6894199dbc54abc0c4f25b6f6dd24e871091f5a9d2d6ccbcc3243bb324dc5e0",
+    "manifest_sha256": "9679b42e3e8dc4190d1b221b7b4ce7c0b86b3cd66d90e5a4f936eb8e61c6e95e",
     "current_manifest_records_verified": 61,
     "consumer_import_paths_verified": 4,
     "verification": "All61 current manifest entries match released Git blobs, SHA256 and executable-bit semantics; the four declared ETF paths passed old/new guards and were imported exactly.",
@@ -4475,18 +4483,35 @@
     "state": "Root-released development dependency only; no combined release or acceptance claimed."
   },
   "current_checkpoint_2026_11_07_notes_lifecycle": {
-    "source_parent": "6ff05d8224da622bf195c6d2829842d85d2d1acb",
+    "source_parent": "369f0c8d051d8d7e17ea0dfe7478860f51218368",
     "owned_paths": [
       "frontend/src/components/workstation/InstrumentNoteTool.vue",
       "frontend/tests/unit/components/test_instrument_note_tool.test.ts",
       "frontend/tests/e2e/supporting_features_journey.spec.ts"
     ],
-    "component_sha256": "5f967f195c433e2415fdf744d1f1e1aedb83f90085408f8d740e4be7fe5136de",
-    "unit_sha256": "d9a8431721f9b0d508c05421b3f8b9152048c56369b4b4c75ca3cc49c2a46bd4",
+    "component_sha256": "dfee1f12a212c4bfc138ef6d23eec5b83b84e4ca159c4e0c0fc5a5100899c33f",
+    "unit_sha256": "43b95300e0d3443baac6238f507fe2fbbb8d1a6da726a440f236dee46737a7db",
     "supporting_journey_sha256": "60e4cf196dd9e21bd4ee31206df7678f1b185ab6ca700924b3cd7c942be19451",
-    "provider_dependency": "dd70319eb725dc6b5c1b4feb0ba5a5ba060efd04; exact4 declared deltas imported and all61 manifest records verified; manifest SHA256 e6894199dbc54abc0c4f25b6f6dd24e871091f5a9d2d6ccbcc3243bb324dc5e0.",
-    "focused_validation": "InstrumentNoteTool lifecycle unit3/3 passed; frontend type-check passed. Alert POST assertion now requires exact201.",
-    "root_browser_evidence": "R30 first four supporting cases:0 passed/4 failed in77.27s. R28 remains unaccepted; R29 was0 passed/3 failed in138.2s. Shared route-script latency and chart/maximize failures remain external-owner work.",
+    "provider_dependency": "dd70319eb725dc6b5c1b4feb0ba5a5ba060efd04; exact4 declared deltas imported and all61 manifest records verified; manifest SHA256 9679b42e3e8dc4190d1b221b7b4ce7c0b86b3cd66d90e5a4f936eb8e61c6e95e.",
+    "sp500_spec_sha256_current": "a49970e4a4ad5a07f51257f43570dee248046fe2848b61a30ace8f2b4e813ec8",
+    "focused_validation": "InstrumentNoteTool lifecycle unit4/4 passed; frontend type-check exited0; Ruff check/format passed for basket service and integration test. The two leased basket PostgreSQL nodes passed2/2 against the unique empty DB and Redis DB15 with provider routing/live flags disabled and isolated quota path. S&P and basket Playwright discovery lists5 total cases, with no browser body run here. Alert POST assertion requires exact201.",
+    "root_browser_evidence": "R30 first four supporting cases:0 passed/4 failed in77.27s. R28 remains unaccepted; R29 was0 passed/3 failed in138.2s. R32 was0/3. R33 was0/4; its S&P failure was stale pre-reload response-body capture, corrected in the current unrun spec. Shared ratio-status composition, basket shared-chart readiness, maximize, and Strategy Results issues remain open.",
+    "focused_s_and_p_validation": "Frontend type-check exited0; Playwright discovery lists2 cases. Current ratio payload assertions include canonical local lineage, freshness, full coverage and exact date bounds. R32 showed the strict local-adjusted UI status is masked by a separate coordinator hold; no browser body run for the current spec.",
     "release_status": "Local implementation checkpoint only; Root browser qualification and release gates remain pending."
+  },
+  "current_basket_selected_series_repair_2026_11_07": {
+    "owned_paths": [
+      "backend/app/services/baskets.py",
+      "backend/tests/integration/api/test_baskets.py",
+      "frontend/tests/e2e/baskets_journey.spec.ts"
+    ],
+    "behavior": "Synthetic basket reads apply the existing selected-series predicate per member before adjusted/date aggregation. The browser premise checks locally cached adjusted D1 SPY and QQQ bars and independently computes their equal-weight rebase over the shared timestamps; the AAPL/MSFT empty-cache outcome is preserved as a truthful fixture diagnosis.",
+    "focused_validation": "The two Root-leased PostgreSQL basket nodes passed2/2 against the unique empty database and Redis DB15; provider routing/live flags were disabled and quota path isolated. Ruff check/format passed both changed Python paths.",
+    "source_hashes": {
+      "backend/app/services/baskets.py": "d4d2bc5f247d31fe1e382b1708861c545e4ad7e982fea9f1acc03a1d696207bc",
+      "backend/tests/integration/api/test_baskets.py": "5ede032abeb7eb5c44effff911e1c2586f116122e6b0fcfc3a1bb8d0b3d81555",
+      "frontend/tests/e2e/baskets_journey.spec.ts": "b6b0d4e138ee31c573fc39d80463c933e35712e62d5dc0b90c5698c06a059ef7"
+    },
+    "browser_execution": "No current browser body was run; Root owns combined execution."
   }
 }

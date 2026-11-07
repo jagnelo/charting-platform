@@ -6423,7 +6423,7 @@ provider_runtime_dependency_active_dcd3c823:
   verification: All61 source records match Git blob/SHA256; all four ETF paths match exact source bytes/blob and executable-bit semantics.
   state: Root-released development dependency only; Root owns runtime, browser, CI, and release qualification.
 
-tc_common_runtime_dependency_active_45ea51bf:
+tc_common_runtime_dependency_historical_45ea51bf:
   source: 45ea51bfa78b6ae167462b518358164a5a3e29f4
   previous_source: 77190340a4a2335e8f7f9a30ee32ded599a714ef
   manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-45ea51bf-common-runtime-development-consumption-contract.json
@@ -6453,23 +6453,41 @@ root_allocated_supporting_feature_journey_2026_11_07:
   coverage: Authenticated normal-API notes, alerts, Settings preference, and saved-watchlist journeys with test-account-owned records; reachable Instrument Report coverage maps to the existing F8s-report browser case rather than duplicating it.
   safeguards: Preserve pre-existing user records; do not modify account-wide settings, enable browser notifications, trigger delivery, or call native providers. No standalone report route is implemented.
   validation: Type-check and Playwright discovery only; browser bodies remain pending Root's shared browser slot.
-  root_r30_observation: Root's first four supporting-feature browser cases ended0/4 passed and4 failed in77.27s. Alert creation reached the API and returned exact201; the owner spec now asserts201. Notes exposed a pending-save timer lost on context change/unmount; the owned lifecycle fix has3 focused unit passes. Watchlist and Settings route-script readiness delays remain shared TC/Provider-owned and are not masked by longer waits.
+  root_r30_observation: Root's first four supporting-feature browser cases ended0/4 passed and4 failed in77.27s. Alert creation reached the API and returned exact201; the owner spec now asserts201. Notes exposed a pending-save timer lost on context change/unmount; the owned lifecycle fix has4 focused unit passes, including queued-save auth-session fencing. Watchlist and Settings route-script readiness delays remain shared TC/Provider-owned and are not masked by longer waits.
   state: in_progress; Root browser qualification remains pending.
 etf_note_draft_lifecycle_2026_11_07:
   authority: Root assigned only InstrumentNoteTool.vue and its focused unit module; TC is excluded from those two paths until the exact ETF source is consumed.
   owned_paths: [frontend/src/components/workstation/InstrumentNoteTool.vue, frontend/tests/unit/components/test_instrument_note_tool.test.ts]
-  behavior: Flush the latest debounced note on instrument change or panel unmount; serialize writes per instrument, retain failed/unacknowledged text in the existing query cache as pending, and allow only the latest revision acknowledgement to clear pending state or show Saved.
-  validation: Focused note lifecycle module passed3/3; frontend type-check passed. No browser, database, provider, native-source, production, or quota operation.
+  behavior: Flush the latest debounced note on instrument change or panel unmount; serialize writes per instrument; bind each draft and queued request to its captured auth-session epoch and prevent stale acknowledgements from repopulating the cleared private cache; retain failed/unacknowledged text in the existing query cache as pending and allow only the latest revision acknowledgement to clear pending state or show Saved.
+  validation: Focused note lifecycle module passed4/4; frontend type-check passed. No browser, database, provider, native-source, production, or quota operation.
   remaining: Root-owned browser qualification and shared TC/Provider route-load latency remain pending.
 rrg_raster_status_2026_11_07:
   evidence: Root's retained R28 screenshot proves a visible XLK tail; the raw RGB oracle missed the alpha-composited stroke and was corrected without changing counts, tolerances, or baselines.
   qualification: R28 is not accepted. Root R29 ended0 passed/3 failed in138.2s; the sector catalogue now exposed all11 entries, but XLB's price renderer did not mount, basket member hold was not observed within5s, and the shared maximize diagnostic lacked Restore. No full S&P/RRG journey closure is claimed.
+  root_r32_r33: Root R32 ended0/3 and R33 ended0/4. The retained XLB/SPY response is current canonical-local data:1824 points, coverage1.0, no warnings, both instruments current/ready with full cached coverage from2019-01-02 through2025-12-29. The separate preparation hold currently replaces the ratio's local-adjusted status in shared RatioUPlot; the owned assertion stays strict and TC owns that status-composition defect. The R33 reload capture now selects only a request started after the reloaded main-frame navigation and consumes its response body immediately. Current spec has type-check/discovery only, no browser rerun. Shared basket cache selection and maximize/Restore, plus Strategy-owned Results failures, remain open.
+basket_selected_series_repair_2026_11_07:
+  owned_paths: [backend/app/services/baskets.py, backend/tests/integration/api/test_baskets.py, frontend/tests/e2e/baskets_journey.spec.ts]
+  cause: Root R32 used AAPL/MSFT members with no common retained candles; empty OHLCV200[] was truthful. Separately, basket aggregation filtered adjustment but not each member's selected MarketSeries.
+  change: Apply the existing selected-series predicate in basket aggregation. Add a real selected/default-versus-alternate-series regression whose alternate-only timestamp cannot extend the ordinary basket. The browser journey verifies local adjusted SPY/QQQ coverage first and checks the weighted synthetic close at every common timestamp.
+  evidence: Both Root-leased basket PostgreSQL integration nodes passed2/2 against the dedicated empty DB and Redis DB15; Ruff check/format passed both Python files. Frontend type-check passed and the owned basket/S&P specs discover5 cases; browser remains Root-owned.
+  state: ETF source repair implemented; Root must consume the exact backend delta and run the shared browser journey. No source HTTP or production mutation.
+tc_common_runtime_dependency_active_1fdc92f1:
+  authority: Root released this exact common-runtime source for development consumption only; no browser or release acceptance is implied.
+  source: 1fdc92f1a1628d191ad1d5b2f0ba071a80df5052
+  previous_source: 45ea51bfa78b6ae167462b518358164a5a3e29f4
+  manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-1fdc92f1-common-runtime-development-consumption-contract.json
+  manifest_sha256: fddaab9536bb885b9656e861ece0df60481466e365e2b04612c953404f57b70d
+  consumer_import_paths: [frontend/src/components/workstation/ToolWindow.vue, frontend/src/components/workstation/WorkspaceLayoutHost.vue, frontend/src/stores/chart.ts, frontend/tests/unit/components/test_workspace_layout_host.test.ts, frontend/tests/unit/stores/test_stores.test.ts]
+  current_manifest_records_verified: 77
+  verification: All77 source SHA/Git blob/executable-bit records match; all5 ETF paths passed old/new guards and match the released bytes/blob/modes.
+  source_changes: Cached chart bars render independently of metadata; workspace layout reversal during an in-flight dock save is supported.
+  state: Root-released development dependency only; affected browser journeys and full release qualification remain pending.
 provider_runtime_dependency_active_dd70319e:
   authority: Root released this exact Provider source for development consumption only; no staging, deployment, or final acceptance is implied.
   source: dd70319eb725dc6b5c1b4feb0ba5a5ba060efd04
   previous_active_dependency: dcd3c823f9f76ed65b65d8b6c3628e1bc02a222e
   manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providerdd70319e-runtime-development-consumption-contract.json
-  manifest_sha256: e6894199dbc54abc0c4f25b6f6dd24e871091f5a9d2d6ccbcc3243bb324dc5e0
+  manifest_sha256: 9679b42e3e8dc4190d1b221b7b4ce7c0b86b3cd66d90e5a4f936eb8e61c6e95e
   changed_paths_imported:
   - backend/app/routers/analysis.py
   - backend/app/routers/research.py

@@ -9,6 +9,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
+import { assertAuthSessionCurrent, captureAuthSession, type AuthSessionSnapshot } from '@/lib/authSession'
 
 const props = defineProps<{ instrumentId: number | null | undefined; symbol: string }>()
 const queryClient = useQueryClient()
@@ -17,7 +18,7 @@ const loading = ref(false)
 const status = ref('No note')
 const statusRole = computed(() => /unable|error|failed|unavailable/i.test(status.value) ? 'alert' : 'status')
 type NoteCacheValue = { content: string; updated_at: string; pending?: boolean }
-type PendingSave = { instrumentId: number; content: string; revision: number }
+type PendingSave = { instrumentId: number; content: string; revision: number; authSession: AuthSessionSnapshot }
 let saveTimer: ReturnType<typeof setTimeout> | null = null
 let pendingSave: PendingSave | null = null
 let loadedId: number | null = null
@@ -41,7 +42,9 @@ function flushPendingSave(): Promise<void> {
 
   const previous = saveByInstrument.get(draft.instrumentId) ?? Promise.resolve()
   const operation = previous.catch(() => undefined).then(async () => {
+    assertAuthSessionCurrent(draft.authSession)
     const note = await api.put<{ updated_at: string }>(`/notes/instruments/${draft.instrumentId}`, { content: draft.content })
+    assertAuthSessionCurrent(draft.authSession)
     if (latestRevisionByInstrument.get(draft.instrumentId) !== draft.revision) return
     queryClient.setQueryData<NoteCacheValue>(noteKey(draft.instrumentId), {
       content: draft.content,
@@ -51,6 +54,11 @@ function flushPendingSave(): Promise<void> {
       status.value = `Saved ${new Date(note.updated_at).toLocaleString()}`
     }
   }).catch((cause: any) => {
+    try {
+      assertAuthSessionCurrent(draft.authSession)
+    } catch {
+      return
+    }
     if (latestRevisionByInstrument.get(draft.instrumentId) === draft.revision
       && mounted && props.instrumentId === draft.instrumentId && loadedId === draft.instrumentId) {
       status.value = cause?.message ?? 'Unable to save note'
@@ -112,7 +120,12 @@ watch(content, () => {
   if (saveTimer) clearTimeout(saveTimer)
   status.value = 'Saving…'
   const instrumentId = props.instrumentId
-  const draft: PendingSave = { instrumentId, content: content.value, revision: ++contentRevision }
+  const draft: PendingSave = {
+    instrumentId,
+    content: content.value,
+    revision: ++contentRevision,
+    authSession: captureAuthSession(),
+  }
   pendingSave = draft
   latestRevisionByInstrument.set(instrumentId, draft.revision)
   const previous = queryClient.getQueryData<NoteCacheValue>(noteKey(instrumentId))

@@ -1,11 +1,13 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query'
+import { createPinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { apiGet, apiPut } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPut: vi.fn() }))
 vi.mock('@/lib/api', () => ({ api: { get: apiGet, put: apiPut } }))
 
 import InstrumentNoteTool from '@/components/workstation/InstrumentNoteTool.vue'
+import { beginAuthSessionBoundary, installAuthSessionCleanup } from '@/lib/authSession'
 
 function deferred<T>() {
   let resolve!: (value: T) => void
@@ -125,6 +127,43 @@ describe('InstrumentNoteTool draft lifecycle', () => {
       content: 'newest draft',
       updated_at: '2026-11-07T10:03:00Z',
     })
+    wrapper.unmount()
+    queryClient.clear()
+  })
+
+  it('does not send a queued old-session draft after auth changes or repopulate its cleared cache', async () => {
+    const first = deferred<{ updated_at: string }>()
+    apiPut.mockReturnValueOnce(first.promise)
+    const { wrapper, queryClient } = mountTool()
+    const removeSessionCleanup = installAuthSessionCleanup(queryClient, createPinia())
+    await flushPromises()
+    await waitForLoaded(wrapper)
+
+    await wrapper.get('textarea').setValue('first old-session draft')
+    await debounceSave()
+    await flushPromises()
+    expect(apiPut).toHaveBeenCalledTimes(1)
+
+    await wrapper.get('textarea').setValue('newer queued old-session draft')
+    await debounceSave()
+    await flushPromises()
+    expect(apiPut).toHaveBeenCalledTimes(1)
+    expect(queryClient.getQueryData(['workstation', 'instrument-note', 7])).toMatchObject({
+      content: 'newer queued old-session draft',
+      pending: true,
+    })
+
+    beginAuthSessionBoundary()
+    expect(queryClient.getQueryData(['workstation', 'instrument-note', 7])).toBeUndefined()
+    first.resolve({ updated_at: '2026-11-07T10:04:00Z' })
+    await flushPromises()
+    await new Promise(resolve => setTimeout(resolve, 0))
+
+    expect(apiPut).toHaveBeenCalledTimes(1)
+    expect(apiPut).toHaveBeenCalledWith('/notes/instruments/7', { content: 'first old-session draft' })
+    expect(queryClient.getQueryData(['workstation', 'instrument-note', 7])).toBeUndefined()
+
+    removeSessionCleanup()
     wrapper.unmount()
     queryClient.clear()
   })
