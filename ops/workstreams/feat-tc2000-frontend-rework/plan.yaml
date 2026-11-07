@@ -1518,6 +1518,7 @@ owned_paths:
 - frontend/src/router/index.ts
 - frontend/src/views/AlertsView.vue
 - frontend/src/lib/dataPreparation.ts
+- frontend/src/components/radar/RadarDetailPreviewChart.vue
 excluded_paths:
 - .env.example
 - backend/.env.example

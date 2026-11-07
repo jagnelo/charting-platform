@@ -29,6 +29,12 @@
       "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/134c63f535bb78c84da7c90063f81aca91843ba0.json",
       "manifest_sha256": "a0d8d58f3dc8d8bfd361e62337c5f7b4b13cd6a5c8f49e124cfe7169ad0012bd",
       "qualification": "Exact released Strategy-owned focused tests are imported; rendered browser acceptance remains pending."
+    },
+    "provider_runtime_import": {
+      "source_commit": "07490844c39d56e7023294f5e8798e4da2acdce0",
+      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/07490844c39d56e7023294f5e8798e4da2acdce0.json",
+      "manifest_sha256": "4ba7c34cc5926013668a9f28c7adc0cd74bc3ee0ce7c2378659f79b28d498c9b",
+      "qualification": "Root-released development import contains the canonical workspace tool catalogue API; exact CI and browser recreation acceptance remain pending."
     }
   },
   "counts": {
@@ -128,7 +134,8 @@
       "component": "RadarView",
       "evidence_status": "focused_route_contract",
       "evidence": [
-        "frontend/tests/unit/router/test_application_routes.test.ts"
+        "frontend/tests/unit/router/test_application_routes.test.ts",
+        "frontend/tests/unit/components/test_radar_detail_preview_chart.test.ts"
       ],
       "journey": "TC09"
     },
@@ -458,7 +465,7 @@
       "evidence": [
         "frontend/tests/unit/stores/test_workspace_store.test.ts"
       ],
-      "pending_reason": "Root has not released the canonical server catalogue contract; verify every item opens with its semantic role and survives recreation.",
+      "pending_reason": "The server-backed canonical catalogue is consumed; verify every item opens with its semantic role and survives clone, import, reload and recreation in the Root-owned browser journey.",
       "key": "chart",
       "tool_type": "chart",
       "title": "Chart",
@@ -474,7 +481,7 @@
       "evidence": [
         "frontend/tests/unit/stores/test_workspace_store.test.ts"
       ],
-      "pending_reason": "Root has not released the canonical server catalogue contract; verify every item opens with its semantic role and survives recreation.",
+      "pending_reason": "The server-backed canonical catalogue is consumed; verify every item opens with its semantic role and survives clone, import, reload and recreation in the Root-owned browser journey.",
       "key": "watchlist",
       "tool_type": "watchlist",
       "title": "WatchList",
@@ -490,7 +497,7 @@
       "evidence": [
         "frontend/tests/unit/stores/test_workspace_store.test.ts"
       ],
-      "pending_reason": "Root has not released the canonical server catalogue contract; verify every item opens with its semantic role and survives recreation.",
+      "pending_reason": "The server-backed canonical catalogue is consumed; verify every item opens with its semantic role and survives clone, import, reload and recreation in the Root-owned browser journey.",
       "key": "favorites",
       "tool_type": "watchlist",
       "title": "My Favorites",
@@ -506,7 +513,7 @@
       "evidence": [
         "frontend/tests/unit/stores/test_workspace_store.test.ts"
       ],
-      "pending_reason": "Root has not released the canonical server catalogue contract; verify every item opens with its semantic role and survives recreation.",
+      "pending_reason": "The server-backed canonical catalogue is consumed; verify every item opens with its semantic role and survives clone, import, reload and recreation in the Root-owned browser journey.",
       "key": "notes",
       "tool_type": "notes",
       "title": "Notes",
@@ -521,7 +528,7 @@
       "evidence": [
         "frontend/tests/unit/stores/test_workspace_store.test.ts"
       ],
-      "pending_reason": "Root has not released the canonical server catalogue contract; verify every item opens with its semantic role and survives recreation.",
+      "pending_reason": "The server-backed canonical catalogue is consumed; verify every item opens with its semantic role and survives clone, import, reload and recreation in the Root-owned browser journey.",
       "key": "alerts",
       "tool_type": "alerts",
       "title": "Alerts",
@@ -536,7 +543,7 @@
       "evidence": [
         "frontend/tests/unit/stores/test_workspace_store.test.ts"
       ],
-      "pending_reason": "Root has not released the canonical server catalogue contract; verify every item opens with its semantic role and survives recreation.",
+      "pending_reason": "The server-backed canonical catalogue is consumed; verify every item opens with its semantic role and survives clone, import, reload and recreation in the Root-owned browser journey.",
       "key": "easy-scan",
       "tool_type": "scan",
       "title": "EasyScan",
@@ -551,7 +558,7 @@
       "evidence": [
         "frontend/tests/unit/stores/test_workspace_store.test.ts"
       ],
-      "pending_reason": "Root has not released the canonical server catalogue contract; verify every item opens with its semantic role and survives recreation.",
+      "pending_reason": "The server-backed canonical catalogue is consumed; verify every item opens with its semantic role and survives clone, import, reload and recreation in the Root-owned browser journey.",
       "key": "market-gauge",
       "tool_type": "gauge",
       "title": "Market Gauge",
@@ -566,7 +573,7 @@
       "evidence": [
         "frontend/tests/unit/stores/test_workspace_store.test.ts"
       ],
-      "pending_reason": "Root has not released the canonical server catalogue contract; verify every item opens with its semantic role and survives recreation.",
+      "pending_reason": "The server-backed canonical catalogue is consumed; verify every item opens with its semantic role and survives clone, import, reload and recreation in the Root-owned browser journey.",
       "key": "study-lab",
       "tool_type": "study_lab",
       "title": "Study Lab",
@@ -581,7 +588,7 @@
       "evidence": [
         "frontend/tests/unit/stores/test_workspace_store.test.ts"
       ],
-      "pending_reason": "Root has not released the canonical server catalogue contract; verify every item opens with its semantic role and survives recreation.",
+      "pending_reason": "The server-backed canonical catalogue is consumed; verify every item opens with its semantic role and survives clone, import, reload and recreation in the Root-owned browser journey.",
       "key": "research-results",
       "tool_type": "research_results",
       "title": "Study Results",
@@ -594,7 +601,7 @@
       "evidence": [
         "frontend/tests/unit/stores/test_workspace_store.test.ts"
       ],
-      "pending_reason": "Root has not released the canonical server catalogue contract; verify every item opens with its semantic role and survives recreation.",
+      "pending_reason": "The server-backed canonical catalogue is consumed; verify every item opens with its semantic role and survives clone, import, reload and recreation in the Root-owned browser journey.",
       "key": "relative-rotation",
       "tool_type": "relative_rotation",
       "title": "Relative Rotation",
@@ -615,7 +622,7 @@
       "evidence": [
         "frontend/tests/unit/stores/test_workspace_store.test.ts"
       ],
-      "pending_reason": "Root has not released the canonical server catalogue contract; verify every item opens with its semantic role and survives recreation.",
+      "pending_reason": "The server-backed canonical catalogue is consumed; verify every item opens with its semantic role and survives clone, import, reload and recreation in the Root-owned browser journey.",
       "key": "breadth",
       "tool_type": "breadth",
       "title": "Market Breadth",
@@ -630,7 +637,7 @@
       "evidence": [
         "frontend/tests/unit/stores/test_workspace_store.test.ts"
       ],
-      "pending_reason": "Root has not released the canonical server catalogue contract; verify every item opens with its semantic role and survives recreation.",
+      "pending_reason": "The server-backed canonical catalogue is consumed; verify every item opens with its semantic role and survives clone, import, reload and recreation in the Root-owned browser journey.",
       "key": "market-map",
       "tool_type": "market_map",
       "title": "Market Map",
@@ -648,7 +655,7 @@
       "evidence": [
         "frontend/tests/unit/stores/test_workspace_store.test.ts"
       ],
-      "pending_reason": "Root has not released the canonical server catalogue contract; verify every item opens with its semantic role and survives recreation.",
+      "pending_reason": "The server-backed canonical catalogue is consumed; verify every item opens with its semantic role and survives clone, import, reload and recreation in the Root-owned browser journey.",
       "key": "technical-summary",
       "tool_type": "technical_summary",
       "title": "Technicals",
@@ -663,7 +670,7 @@
       "evidence": [
         "frontend/tests/unit/stores/test_workspace_store.test.ts"
       ],
-      "pending_reason": "Root has not released the canonical server catalogue contract; verify every item opens with its semantic role and survives recreation.",
+      "pending_reason": "The server-backed canonical catalogue is consumed; verify every item opens with its semantic role and survives clone, import, reload and recreation in the Root-owned browser journey.",
       "key": "coverage",
       "tool_type": "coverage",
       "title": "Coverage",
@@ -678,7 +685,7 @@
       "evidence": [
         "frontend/tests/unit/stores/test_workspace_store.test.ts"
       ],
-      "pending_reason": "Root has not released the canonical server catalogue contract; verify every item opens with its semantic role and survives recreation.",
+      "pending_reason": "The server-backed canonical catalogue is consumed; verify every item opens with its semantic role and survives clone, import, reload and recreation in the Root-owned browser journey.",
       "key": "report",
       "tool_type": "report",
       "title": "Instrument Report",
@@ -691,7 +698,7 @@
       "evidence": [
         "frontend/tests/unit/stores/test_workspace_store.test.ts"
       ],
-      "pending_reason": "Root has not released the canonical server catalogue contract; verify every item opens with its semantic role and survives recreation.",
+      "pending_reason": "The server-backed canonical catalogue is consumed; verify every item opens with its semantic role and survives clone, import, reload and recreation in the Root-owned browser journey.",
       "key": "code-library",
       "tool_type": "code_library",
       "title": "Python Library",
@@ -704,7 +711,7 @@
       "evidence": [
         "frontend/tests/unit/stores/test_workspace_store.test.ts"
       ],
-      "pending_reason": "Root has not released the canonical server catalogue contract; verify every item opens with its semantic role and survives recreation.",
+      "pending_reason": "The server-backed canonical catalogue is consumed; verify every item opens with its semantic role and survives clone, import, reload and recreation in the Root-owned browser journey.",
       "key": "benchmark-list",
       "tool_type": "watchlist",
       "title": "Benchmarks",
@@ -719,7 +726,7 @@
       "evidence": [
         "frontend/tests/unit/stores/test_workspace_store.test.ts"
       ],
-      "pending_reason": "Root has not released the canonical server catalogue contract; verify every item opens with its semantic role and survives recreation.",
+      "pending_reason": "The server-backed canonical catalogue is consumed; verify every item opens with its semantic role and survives clone, import, reload and recreation in the Root-owned browser journey.",
       "key": "sector-list",
       "tool_type": "watchlist",
       "title": "S&P 500 Sectors",
@@ -734,7 +741,7 @@
       "evidence": [
         "frontend/tests/unit/stores/test_workspace_store.test.ts"
       ],
-      "pending_reason": "Root has not released the canonical server catalogue contract; verify every item opens with its semantic role and survives recreation.",
+      "pending_reason": "The server-backed canonical catalogue is consumed; verify every item opens with its semantic role and survives clone, import, reload and recreation in the Root-owned browser journey.",
       "key": "industry-list",
       "tool_type": "watchlist",
       "title": "Industries",
@@ -749,7 +756,7 @@
       "evidence": [
         "frontend/tests/unit/stores/test_workspace_store.test.ts"
       ],
-      "pending_reason": "Root has not released the canonical server catalogue contract; verify every item opens with its semantic role and survives recreation.",
+      "pending_reason": "The server-backed canonical catalogue is consumed; verify every item opens with its semantic role and survives clone, import, reload and recreation in the Root-owned browser journey.",
       "key": "constituent-list",
       "tool_type": "watchlist",
       "title": "Constituents",
@@ -764,7 +771,7 @@
       "evidence": [
         "frontend/tests/unit/stores/test_workspace_store.test.ts"
       ],
-      "pending_reason": "Root has not released the canonical server catalogue contract; verify every item opens with its semantic role and survives recreation.",
+      "pending_reason": "The server-backed canonical catalogue is consumed; verify every item opens with its semantic role and survives clone, import, reload and recreation in the Root-owned browser journey.",
       "key": "ratio-chart",
       "tool_type": "chart",
       "title": "Relative Strength",
@@ -1864,7 +1871,8 @@
       "journey": "TC08",
       "evidence_status": "pending_combined_backend_browser",
       "evidence": [
-        "frontend/tests/unit/lib/test_data_preparation.test.ts"
+        "frontend/tests/unit/lib/test_data_preparation.test.ts",
+        "frontend/tests/unit/components/test_radar_detail_preview_chart.test.ts"
       ],
       "pending_reason": "The listed focused evidence is not a substitute for the still-pending complete browser action journey.",
       "control_surface_refs": [
@@ -3154,7 +3162,8 @@
       ],
       "evidence_status": "source_mapped_browser_pending",
       "evidence": [
-        "frontend/src/views/RadarView.vue"
+        "frontend/src/views/RadarView.vue",
+        "frontend/tests/unit/components/test_radar_detail_preview_chart.test.ts"
       ],
       "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
     },

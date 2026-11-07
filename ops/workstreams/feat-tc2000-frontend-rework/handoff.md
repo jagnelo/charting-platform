@@ -26450,3 +26450,8 @@ A replayed dated holding URL now restores its compact historical caption only af
 ## 2026-11-07 — Reversible layout deletion recovery
 
 Deleting a saved layout now captures its configuration, window identities, and original position for a bounded same-workspace Undo. Restoring regenerates local IDs, rejects cross-workspace or identity collisions, and persists the restored layout. The workspace-store and mounted Workstation tests passed 183/183; frontend type-check and workstream/scope/journey/diff guards passed. Full browser roundtrip, complete route/action journey acceptance, exact-tip CI, and Root-owned combined release gates remain open. `integration_capture: exact branch HEAD`.
+
+
+## 2026-11-07 — Radar preview preparation and catalogue inventory status
+
+The selected Radar detection preview now loads its local candles first, then asks the shared coordinator to prepare history using the exact canonical instrument ID carried by the detection. Current partial/ready coverage refreshes the local preview; a changed detection aborts the prior observer and fences late progress. Focused component tests passed 2/2 and frontend type-check passed. The global matrix now cites this evidence and the released server-backed catalogue dependency; it no longer describes the catalogue contract as unreleased. All 21 Add-tool semantic/recreation browser journeys, complete routes/actions, exact CI and Root-owned release gates remain pending. The exact Radar preview source path is now included in TC owned_paths. `integration_capture: exact branch HEAD`.
