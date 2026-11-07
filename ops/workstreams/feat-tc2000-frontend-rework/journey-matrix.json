@@ -5137,7 +5137,7 @@
     {
       "source": "frontend/src/components/chart/HistoryAcquisitionControl.vue",
       "control_count": 4,
-      "signature_sha256": "1d02b60cd49d43c35f447619593c965f173891e654b3ea499962cdef80221fb5",
+      "signature_sha256": "dcf4feb0dee83fce1285c0a167df4d804da33c2628dc68322fa541606f7fab95",
       "journeys": [
         "TC03",
         "TC04"

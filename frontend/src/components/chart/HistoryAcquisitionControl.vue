@@ -2,7 +2,7 @@
   <section class="history-acquisition" :aria-busy="busy ? 'true' : 'false'">
     <button
       type="button"
-      class="history-acquisition__load"
+      class="history-acquisition__load history-acquisition__load--secondary"
       data-testid="history-load-missing"
       :disabled="!props.symbol || !selectedRange || Boolean(rangeError) || busy"
       @click="loadMissingHistory"
@@ -270,7 +270,22 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .history-acquisition { display: flex; align-items: center; gap: 6px; min-width: 0; position: relative; }
-.history-acquisition__load { min-height: 30px; max-width: min(92vw, 360px); white-space: nowrap; }
+.history-acquisition__load {
+  min-height: 24px;
+  max-width: min(92vw, 360px);
+  padding: 2px 6px;
+  border: 1px solid var(--tc-border);
+  border-radius: var(--tc-radius);
+  background: transparent;
+  color: var(--tc-text-muted);
+  font: inherit;
+  font-size: 11px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.history-acquisition__load:hover:not(:disabled) { border-color: var(--tc-border-strong); color: var(--tc-text); }
+.history-acquisition__load:focus-visible { outline: 2px solid var(--tc-accent); outline-offset: 2px; }
+.history-acquisition__load:disabled { cursor: default; opacity: .6; }
 .history-acquisition__advanced { position: relative; }
 .history-acquisition__advanced summary { cursor: pointer; font-size: 12px; }
 .history-acquisition__body { position: fixed; z-index: 1000; left: 8px; top: 8px; display: grid; gap: 8px; box-sizing: border-box; padding: 12px; overflow-y: auto; color: var(--tc-text, #d5dde4); background: var(--tc-surface, #20282e); border: 1px solid var(--tc-border, #38444c); border-radius: 6px; box-shadow: 0 8px 24px #0008; }
