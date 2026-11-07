@@ -92,9 +92,20 @@ async function chooseETF(page: Page, symbol: string): Promise<{ listing: Listing
   }
   expect(['complete', 'partial']).toContain(discoveryBody.status)
   const exactCandidates = discoveryBody.candidates.filter(candidate => candidate.symbol.trim().toUpperCase() === symbol)
-  expect(exactCandidates, `Discovery must expose one exact ${symbol} listing, or fail closed as ambiguous/unavailable`)
+  // Provider discovery may include a weak issuer hint alongside a real
+  // exchange-qualified listing. Only the latter can be selected as this ETF;
+  // bind acquisition to the exact provider/exchange candidate from the public
+  // response and fail closed if that same listing is duplicated.
+  const selectedListings = exactCandidates.filter(candidate =>
+    candidate.provider.trim() !== '' && candidate.exchange.trim().toUpperCase() === 'ARCX',
+  )
+  expect(selectedListings, `Discovery must expose one exact ${symbol} ARCX listing; weak issuer hints do not count as listings`)
     .toHaveLength(1)
-  const candidate = exactCandidates[0]!
+  const candidate = selectedListings[0]!
+  const candidateType = candidate.type.trim().toUpperCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ')
+  expect(['ETF', 'ETV', 'ETP', 'EXCHANGE TRADED FUND', 'EXCHANGE TRADED VEHICLE', 'EXCHANGE TRADED PRODUCT'],
+    `${candidate.provider}/ARCX candidate must retain a supported exchange-traded type`)
+    .toContain(candidateType)
   const discoveryAttempts = await Promise.all(discoveryResponses.map(async response => {
     const body = await response.json() as {
       request_id?: string; status?: string; reason_code?: string | null; retry_at?: string | null
@@ -130,8 +141,12 @@ async function chooseETF(page: Page, symbol: string): Promise<{ listing: Listing
   page.on('request', captureEnsureRequest)
   page.on('response', captureEnsureResponse)
   try {
-    const listingButton = page.getByRole('button', { name: new RegExp(`^Use ${symbol} ·`) })
-    await expect(listingButton, `The exact ${symbol} discovery choice should be visible`).toHaveCount(1)
+    const listingButton = page.getByRole('button', {
+      name: `Use ${symbol} · ${candidate.exchange} ${candidate.name}`,
+      exact: true,
+    })
+    await expect(listingButton, `The exact ${symbol} ${candidate.provider}/${candidate.exchange} discovery choice should be visible`)
+      .toHaveCount(1)
     const acquisitionPromise = page.waitForResponse(async response => {
       const request = response.request()
       if (request.method() !== 'POST' || new URL(response.url()).pathname !== '/api/v1/instruments/acquire') return false
@@ -169,12 +184,17 @@ async function chooseETF(page: Page, symbol: string): Promise<{ listing: Listing
     const acquiredResponse = await acquisitionPromise
     expect(acquiredResponse.status(), `${symbol} normal canonical acquisition`).toBe(200)
     const acquired = await acquiredResponse.json() as {
-      request_id?: string; status?: string; instrument?: { instrument_id?: number; symbol?: string; identity_status?: string; instrument_type?: string | null }
+      request_id?: string; status?: string; instrument?: {
+        instrument_id?: number; symbol?: string; identity_status?: string
+        instrument_type?: string | null; primary_listing_mic?: string | null
+      }
     }
     expect(acquired.status, `${symbol} canonical acquisition result`).toBe('resolved')
     expect(acquired.instrument?.symbol?.toUpperCase()).toBe(symbol)
     expect(Number.isSafeInteger(acquired.instrument?.instrument_id) && acquired.instrument!.instrument_id! > 0).toBeTruthy()
     expect(['resolved', 'verified']).toContain(acquired.instrument?.identity_status?.trim().toLowerCase())
+    expect(acquired.instrument?.primary_listing_mic?.trim().toUpperCase(), `${symbol} selected canonical primary listing`)
+      .toBe(candidate.exchange.trim().toUpperCase())
     const listing: Listing = {
       instrument_id: acquired.instrument!.instrument_id!, symbol: acquired.instrument!.symbol!,
       name: candidate.name,
