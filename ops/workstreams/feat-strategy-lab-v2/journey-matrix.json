@@ -150,7 +150,7 @@
         "Stable newest-first server pagination: backend/tests/integration/api/test_code.py :: test_research_runs_list_is_user_scoped_and_newest_first",
         "Cursor ordering: backend/tests/integration/api/test_strategy_lab.py :: test_research_run_listing_uses_stable_created_at_id_cursor"
       ],
-      "browser_evidence": "Authored in frontend/tests/e2e/strategy_study_journey.spec.ts against a controlled persisted-run API: verifies newest-first list order, loads an older cursor page, compares two run IDs, filters event occurrences and exports a scalar artifact. This is authored-only UI interaction evidence; execution and real backend behavior remain pending Root's combined gate.",
+      "browser_evidence": "Authored in frontend/tests/e2e/strategy_study_journey.spec.ts against a controlled persisted-run API whose list omits artifact bodies: verifies newest-first order, loads an older cursor page, recovers from one failed detail read via Retry, compares two run IDs, filters event occurrences and exports a scalar artifact. This is authored-only UI interaction evidence; execution and real backend behavior remain pending Root's combined gate.",
       "approved_journey": [
         "J10 Study: results/cancel/return supported workflow",
         "J12 recovery: pagination, filters, delayed failures and retry"

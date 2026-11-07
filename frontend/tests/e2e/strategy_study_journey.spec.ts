@@ -258,6 +258,7 @@ test('Results supports ordinary controls through a controlled persisted-run API'
   const olderRun = makeRun(7900, 'completed', '2026-11-06T00:00:00Z')
   let nextRunId = 8100
   let cancelAttempts = 0
+  let detailAttempts = 0
   let firstSnapshotRerun = true
   const rerunRequests: Array<{ sourceRunId: number; snapshot: string | null }> = []
 
@@ -266,12 +267,18 @@ test('Results supports ordinary controls through a controlled persisted-run API'
     const url = new URL(request.url())
     const pathname = url.pathname
     if (request.method() === 'GET' && pathname.endsWith('/research/runs')) {
-      const pageRows = url.searchParams.has('before_created_at') ? [olderRun] : persistedRuns.slice(0, 26)
+      const pageRows = (url.searchParams.has('before_created_at') ? [olderRun] : persistedRuns.slice(0, 26))
+        .map(run => ({ ...run, artifacts: [] }))
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(pageRows) })
       return
     }
     const detail = pathname.match(/\/research\/runs\/(\d+)$/)
     if (request.method() === 'GET' && detail) {
+      detailAttempts += 1
+      if (detailAttempts === 1) {
+        await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ detail: 'controlled result detail unavailable' }) })
+        return
+      }
       const run = persistedRuns.find(item => item.id === Number(detail[1])) ?? olderRun
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(run) })
       return
@@ -322,6 +329,12 @@ test('Results supports ordinary controls through a controlled persisted-run API'
   const runList = results.getByRole('list', { name: 'Persisted research runs' })
   await expect(runList.locator('.research-results-tool__run-select').nth(0)).toHaveAccessibleName('Run 8000, completed, 3 artifacts')
   await expect(runList.locator('.research-results-tool__run-select').nth(1)).toHaveAccessibleName('Run 7999, queued, 0 artifacts')
+  const selectedDetail = results.locator('article[aria-label="Research run 8000 details"]')
+  await expect(selectedDetail.getByRole('alert')).toBeVisible()
+  expect(detailAttempts).toBe(1)
+  await selectedDetail.getByRole('button', { name: 'Retry', exact: true }).click()
+  await expect(selectedDetail.locator('.research-results-tool__artifacts > article')).toHaveCount(3)
+  expect(detailAttempts).toBe(2)
 
   await results.getByRole('button', { name: 'Load older runs', exact: true }).click()
   await expect(results.getByRole('button', { name: 'Run 7900, completed, 0 artifacts' })).toBeVisible()

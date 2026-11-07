@@ -19616,3 +19616,7 @@ The normal Study E2E now selects the completed run in the adjacent Results tool 
 ### Study Results detail rehydration after reload (2026-11-06)
 
 The same normal-user browser journey now reopens the completed run in Research Results after workspace reload and checks that all eight persisted artifact panes return. This distinguishes persisted run hydration from the in-memory result shown before reload. The browser story remains authored-only until Root's combined profile runs; no backend or live data behavior is claimed.
+
+### Results detail retry through production-shaped summary responses (2026-11-06)
+
+The controlled Results story now returns list summaries without artifact bodies, matching the production list/detail boundary. Its first selected-run detail request fails with a controlled 503, the user sees the detail alert and retries, and all three saved artifacts then render before the compare/filter/export/cancel/rerun interactions. This is authored-only browser coverage; no real backend or browser run is claimed. Component-level detail retry evidence already exists in `test_research_results_tool.test.ts`; Root's combined profile remains required for browser execution.
