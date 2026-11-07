@@ -62,6 +62,17 @@ def _configured_native_usage_providers() -> tuple[str, ...]:
     )
 
 
+def _native_usage_refresh_succeeded_for_provider(result: dict, provider_name: str) -> bool:
+    """Accept one provider's multiple named observations without accepting peers."""
+
+    providers = {
+        str(value or "").strip().lower()
+        for value in (result.get("providers") or [])
+        if str(value or "").strip()
+    }
+    return result.get("status") == "refreshed" and providers == {provider_name.strip().lower()}
+
+
 async def _native_operation_baseline_states(
     db,
     provider_name: str,
@@ -161,6 +172,8 @@ async def _native_usage_job_for_operation_baseline(
     from app.services.provider_runtime import (
         account_usage_reconciled_dimensions,
         policy_allows_account_usage_bootstrap,
+        policy_has_known_quota,
+        provider_contract_operation_cost_known,
         quota_dimensions,
         resolve_provider_chain,
     )
@@ -179,13 +192,27 @@ async def _native_usage_job_for_operation_baseline(
         (item for item in usage_chain if item.provider_name == normalized_provider),
         None,
     )
-    if usage is None or not policy_allows_account_usage_bootstrap(
-        usage.policy, "fetch_account_usage"
-    ):
+    if usage is None:
+        return None, "native_usage_provider_not_resolved", True
+    bootstrap_allowed = policy_allows_account_usage_bootstrap(usage.policy, "fetch_account_usage")
+    normally_admitted = False
+    if not bootstrap_allowed:
+        normally_admitted = policy_has_known_quota(usage.policy) and (
+            provider_contract_operation_cost_known(
+                usage.policy,
+                usage.data_source,
+                "fetch_account_usage",
+            )
+        )
+    if not bootstrap_allowed and not normally_admitted:
         return None, "native_usage_bootstrap_not_admitted", True
 
     usage_policy_dimensions = quota_dimensions(usage.policy)
-    reconciled = account_usage_reconciled_dimensions(usage.policy, "fetch_account_usage")
+    reconciled = account_usage_reconciled_dimensions(
+        usage.policy,
+        "fetch_account_usage",
+        require_bootstrap=bootstrap_allowed,
+    )
     compatible_dimensions: list[dict] = []
     for history_dimension, history_state in unknown:
         name = str(history_dimension["name"])
@@ -288,8 +315,15 @@ async def _native_usage_prerequisite_for_operation(
     priority: int,
     request_id: str,
     now: datetime,
-) -> tuple[MarketRefreshJob | None, str | None, bool]:
-    """Find the first admitted provider operation needing native refresh."""
+) -> tuple[MarketRefreshJob | None, str | None, bool, dict | None]:
+    """Find an admitted native refresh prerequisite without blocking fallbacks.
+
+    An eligible resolver candidate may still be unusable because its native
+    usage pool is unknown and account-usage refresh is not admitted. Keep that
+    provider's hold, but inspect later exact-chain candidates before holding the
+    whole operation. The ordinary executor remains responsible for reserving
+    and selecting the provider that actually transports the operation.
+    """
 
     from app.services.provider_runtime import resolve_provider_chain
 
@@ -306,6 +340,7 @@ async def _native_usage_prerequisite_for_operation(
             instrument_id=instrument_id,
             provider_symbol=provider_symbol,
         )
+    held_candidates: list[dict] = []
     for resolved in chain:
         job, reason, needed = await _native_usage_job_for_operation_baseline(
             db,
@@ -315,9 +350,285 @@ async def _native_usage_prerequisite_for_operation(
             priority=priority,
             now=now,
         )
-        if needed:
-            return job, reason, True
-    return None, None, False
+        if not needed:
+            # Let the existing executor attempt the chain. It has the final,
+            # atomic admission decision and will continue after a candidate's
+            # current capacity is exhausted without sending an unreserved call.
+            return None, None, False, None
+
+        baseline, _baseline_reason = await _native_operation_baseline_states(
+            db,
+            resolved.provider_name,
+            capability=capability,
+            operation=operation,
+            now=now,
+        )
+        dimension_names = []
+        if baseline is not None:
+            _policy, states = baseline
+            dimension_names = [
+                str(dimension.get("name") or "")
+                for dimension, state in states
+                if state.get("status") == "unknown" and str(dimension.get("name") or "")
+            ]
+        context = {
+            "provider_name": resolved.provider_name,
+            "capability": capability.value,
+            "operation": operation,
+            "dimension_names": dimension_names,
+        }
+        if job is not None and not reason:
+            # A durable admitted prerequisite is useful work; preserve the
+            # normal wait/resume path instead of trying a later source before
+            # its pool has been observed.
+            return job, None, True, context
+        if job is not None and job.status != "completed":
+            return job, reason, True, context
+
+        # No admitted refresh can repair this candidate (or its prerequisite
+        # completed without qualification). Record it and continue the exact
+        # resolver chain so a later verified provider can serve the request.
+        held_candidates.append(
+            {**context, "reason_code": reason or "native_usage_refresh_not_qualified"}
+        )
+
+    if held_candidates:
+        first = held_candidates[0]
+        return (
+            None,
+            first["reason_code"],
+            True,
+            {
+                **{key: value for key, value in first.items() if key != "reason_code"},
+                "provider_holds": held_candidates,
+            },
+        )
+    return None, None, False, None
+
+
+async def resume_native_usage_held_identity_jobs(
+    db: AsyncSession,
+    *,
+    provider_name: str,
+    now: datetime | None = None,
+) -> int:
+    """Requeue held identity/profile children after their exact native pool verifies.
+
+    This only revisits durable children whose prior result was a native-usage
+    admission hold. It re-resolves the exact logical operation and resumes only
+    when the provider whose usage observation triggered this call is currently
+    eligible and every one of its quota dimensions has a verified baseline.
+    The original provider hold remains in child history for auditability.
+    """
+
+    normalized_provider = str(provider_name or "").strip().lower()
+    if not normalized_provider:
+        return 0
+    current = now or datetime.now(UTC)
+    reasons = {
+        "native_usage_bootstrap_not_admitted",
+        "native_usage_provider_not_resolved",
+        "native_usage_refresh_not_enabled_for_provider",
+    }
+    rows = (
+        (
+            await db.execute(
+                select(MarketRefreshJob)
+                .where(
+                    MarketRefreshJob.capability == ProviderCapability.INSTRUMENT_METADATA.value,
+                    MarketRefreshJob.status == "completed",
+                    MarketRefreshJob.result_summary["reason_code"].as_string().in_(reasons),
+                )
+                .with_for_update(skip_locked=True)
+                .execution_options(populate_existing=True)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    resumed = 0
+    for job in rows:
+        child = deepcopy((job.metadata_payload or {}).get("data_preparation_child") or {})
+        if child.get("kind") != "identity_profile":
+            continue
+        hold = child.get("native_usage_hold")
+        if isinstance(hold, dict):
+            try:
+                capability = ProviderCapability(str(hold.get("capability") or ""))
+            except ValueError:
+                continue
+            operation = str(hold.get("operation") or "")
+            dimension_names = {
+                str(value).strip()
+                for value in (hold.get("dimension_names") or [])
+                if str(value).strip()
+            }
+        else:
+            # Recover children held by an older build, before the exact provider
+            # and dimension were retained in the child metadata.
+            refresh_profile = (
+                bool(child.get("refresh_profile")) and child.get("instrument_id") is not None
+            )
+            capability = (
+                ProviderCapability.INSTRUMENT_METADATA
+                if refresh_profile
+                else ProviderCapability.INSTRUMENT_SEARCH
+            )
+            operation = "get_instrument_profile" if refresh_profile else "search_instruments"
+            dimension_names = set()
+        instrument_id = (
+            int(child["instrument_id"])
+            if capability == ProviderCapability.INSTRUMENT_METADATA
+            and child.get("instrument_id") is not None
+            else None
+        )
+        symbol = str(child.get("symbol") or "").strip().upper()
+        if not operation or not symbol:
+            continue
+        with bind_explicit_provider_acquisition(
+            request_id=f"native-usage-resume:{job.id}:{normalized_provider}",
+            operations=frozenset({(capability, operation)}),
+            instrument_id=instrument_id,
+            symbol=symbol,
+        ):
+            from app.services.provider_runtime import resolve_provider_chain
+
+            chain = await resolve_provider_chain(
+                db,
+                capability,
+                operation=operation,
+                instrument_id=instrument_id,
+                provider_symbol=symbol,
+                read_only=True,
+            )
+        current_provider_verified = False
+        for candidate in chain:
+            baseline, baseline_reason = await _native_operation_baseline_states(
+                db,
+                candidate.provider_name,
+                capability=capability,
+                operation=operation,
+                now=current,
+            )
+            if baseline is None or baseline_reason:
+                continue
+            _policy, states = baseline
+            by_name = {
+                str(dimension.get("name") or ""): state
+                for dimension, state in states
+                if str(dimension.get("name") or "")
+            }
+            required_dimensions = (
+                (dimension_names or set(by_name))
+                if candidate.provider_name == normalized_provider
+                else set(by_name)
+            )
+            if not required_dimensions or any(
+                by_name.get(name, {}).get("status") != "verified" for name in required_dimensions
+            ):
+                continue
+            if any(state.get("status") != "verified" for state in by_name.values()):
+                continue
+            if candidate.provider_name == normalized_provider:
+                current_provider_verified = True
+        if not current_provider_verified:
+            continue
+
+        refs = list(child.get("parent_refs") or [])
+        if not refs and child.get("parent_job_id") is not None:
+            refs = [{"parent_job_id": child["parent_job_id"]}]
+        from app.services.data_preparation import (
+            _TRACKING_ROLES,
+            _aggregate_status,
+            _lock_parent_for_update,
+        )
+
+        parent_updated = False
+        for parent_id in sorted(
+            {int(ref.get("parent_job_id") or 0) for ref in refs if ref.get("parent_job_id")}
+        ):
+            parent = await _lock_parent_for_update(db, parent_id)
+            if parent is None:
+                continue
+            data = deepcopy((parent.metadata_payload or {}).get("data_preparation") or {})
+            if data.get("role") not in _TRACKING_ROLES:
+                continue
+            dependencies = list(data.get("dependencies") or [])
+            changed = False
+            identity_dependency_ids = {
+                str(item.get("dependency_id"))
+                for item in dependencies
+                if item.get("dataset") == "identity"
+                and job.id in [int(value) for value in item.get("job_ids", [])]
+            }
+            for dependency in dependencies:
+                references_job = job.id in [int(value) for value in dependency.get("job_ids", [])]
+                waiting_for_identity = (
+                    dependency.get("dataset") == "history"
+                    and bool(
+                        identity_dependency_ids.intersection(
+                            str(value) for value in (dependency.get("depends_on") or [])
+                        )
+                    )
+                    and dependency.get("reason_code") in reasons
+                )
+                if references_job and dependency.get("dataset") in {"identity", "profile"}:
+                    dependency.update(
+                        {
+                            "status": "queued",
+                            "reason_code": None,
+                            "retry_at": None,
+                            "updated_at": current.isoformat(),
+                        }
+                    )
+                    changed = True
+                elif waiting_for_identity:
+                    dependency.update(
+                        {
+                            "status": "waiting",
+                            "reason_code": "identity_dependency_pending",
+                            "retry_at": None,
+                            "updated_at": current.isoformat(),
+                        }
+                    )
+                    changed = True
+            if changed:
+                data["dependencies"] = dependencies
+                data["status"] = _aggregate_status(dependencies)
+                data["version"] = int(data.get("version") or 1) + 1
+                data["last_progress_at"] = current.isoformat()
+                parent.metadata_payload = {
+                    **deepcopy(parent.metadata_payload or {}),
+                    "data_preparation": data,
+                }
+                parent_updated = True
+        if not parent_updated:
+            continue
+        previous_holds = list(child.get("native_usage_hold_history") or [])
+        if isinstance(hold, dict):
+            previous_holds.append(deepcopy(hold))
+        if previous_holds:
+            child["native_usage_hold_history"] = previous_holds
+        child.pop("native_usage_hold", None)
+        payload = deepcopy(job.metadata_payload or {})
+        payload["data_preparation_child"] = child
+        job.metadata_payload = payload
+        job.status = "queued"
+        job.next_attempt_at = current
+        job.leased_until = None
+        job.lease_token = None
+        job.last_error = None
+        job.finished_at = None
+        job.result_summary = {
+            "outcome": "queued",
+            "preparation_status": "queued",
+            "reason_code": "native_usage_baseline_verified",
+            "resumed_at": current.isoformat(),
+        }
+        resumed += 1
+    if resumed:
+        await db.flush()
+    return resumed
 
 
 async def _defer_refresh_job_for_native_usage(
@@ -387,6 +698,8 @@ async def _run_native_usage_refresh_job(db, request: dict) -> dict:
         provider_names=frozenset({provider_name}),
     ):
         usage_result = await refresh_provider_account_usage(db, provider_name=provider_name)
+    if _native_usage_refresh_succeeded_for_provider(usage_result, provider_name):
+        await resume_native_usage_held_identity_jobs(db, provider_name=provider_name)
     target_dimensions = {
         str(item.get("name") or "")
         for item in (request.get("dimensions") or [])
@@ -413,9 +726,7 @@ async def _run_native_usage_refresh_job(db, request: dict) -> dict:
             and state.get("status") == "verified"
         }
     baseline_verified = bool(target_dimensions) and verified_dimensions == target_dimensions
-    provider_observed = usage_result.get("status") == "refreshed" and usage_result.get(
-        "providers"
-    ) == [provider_name]
+    provider_observed = _native_usage_refresh_succeeded_for_provider(usage_result, provider_name)
     return {
         "preparation_status": "ready" if provider_observed and baseline_verified else "held",
         "reason_code": (
@@ -985,6 +1296,24 @@ def _older_chunk_priority(
     return 100
 
 
+def _history_chunk_data_status(*, bars: list, range_coverage_status: str | None) -> str:
+    """Do not turn a zero-output range into useful partial coverage."""
+    if not bars:
+        return "empty"
+    if range_coverage_status is not None and range_coverage_status != "ready":
+        return "partial"
+    return "ready"
+
+
+def _provider_no_data_reason(exc: ProviderNoDataError) -> str:
+    """Map typed provider exhaustion to a stable, truthful preparation reason."""
+    if str(exc).startswith(
+        "No currently-supported providers available for price_history/fetch_ohlcv"
+    ):
+        return "no_eligible_history_provider"
+    return "source_returned_no_data"
+
+
 async def _deepest_admitted_history_start(
     db: AsyncSession,
     instrument: Instrument,
@@ -1044,7 +1373,23 @@ async def _deepest_admitted_history_start(
         declared_constraints = isinstance(constraints, dict)
         earliest = None
         if declared_constraints:
-            earliest, _reason = provider_history_bound_start(constraints, now=end)
+            # Relative provider limits move with wall time. Anchor them when
+            # this worker plans the operation, not to the request's captured
+            # end timestamp, which may already be stale by the time transport
+            # admission rechecks the same limit.
+            earliest, _reason = provider_history_bound_start(constraints, now=datetime.now(UTC))
+            if (
+                earliest is not None
+                and requested_start is None
+                and (
+                    constraints.get("max_lookback_years") is not None
+                    or constraints.get("max_lookback_days") is not None
+                )
+            ):
+                # Leave a small in-window margin for the resolver's later
+                # admission check and bar-boundary rounding. Fixed vendor
+                # earliest dates and explicit caller ranges are unchanged.
+                earliest += timedelta(days=1)
             invalid_bound = invalid_bound or earliest is None
         elif (
             requested_start is None
@@ -1574,7 +1919,8 @@ async def _plan_and_fetch_history_chunk(
                             redis=redis,
                             source_provider=source_provider,
                         )
-        except ProviderNoDataError:
+        except ProviderNoDataError as exc:
+            candidate_preparation["provider_no_data_reason"] = _provider_no_data_reason(exc)
             bars = []
         except ProviderQuotaAdmissionError as exc:
             if not may_select_alternative or not _is_pretransport_history_quota_denial(
@@ -1720,6 +2066,7 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
 
     async with AsyncSessionLocal() as db:
         jobs = await claim_refresh_jobs(db, limit=_refresh_queue_batch_limit(limit))
+        claimed_leases = {id(job): (job.id, getattr(job, "lease_token", None)) for job in jobs}
         # Persist the lease and release its row locks before doing any
         # provider work. Request handlers may coalesce another owner onto a
         # leased child while the worker is waiting on a slow transport.
@@ -1729,8 +2076,14 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
         lease_lost = 0
         more_jobs = len(jobs) >= _refresh_queue_batch_limit(limit)
         next_wakeup_at: datetime | None = None
+        previous_job_rollback = False
         for job in jobs:
             try:
+                if previous_job_rollback:
+                    # A rollback expires every ORM object in this session, not
+                    # only the job whose work failed.
+                    await db.refresh(job)
+                    previous_job_rollback = False
                 if job.capability == ProviderCapability.ACCOUNT_USAGE.value:
                     request = (job.metadata_payload or {}).get(
                         "provider_account_usage_refresh"
@@ -1907,6 +2260,7 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                                 usage_job,
                                 usage_hold,
                                 usage_needed,
+                                usage_context,
                             ) = await _native_usage_prerequisite_for_operation(
                                 db,
                                 capability=ProviderCapability.INSTRUMENT_METADATA,
@@ -1919,15 +2273,30 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                             )
                             if usage_needed and usage_hold is not None:
                                 profile_preflight_held = True
+                                child_payload = deepcopy(job.metadata_payload or {})
+                                child_metadata = deepcopy(
+                                    child_payload.get("data_preparation_child") or {}
+                                )
+                                if usage_context is not None:
+                                    child_metadata["native_usage_hold"] = {
+                                        **usage_context,
+                                        "reason_code": usage_hold,
+                                    }
+                                    child_payload["data_preparation_child"] = child_metadata
+                                    job.metadata_payload = child_payload
                                 result_summary = {
-                                    "preparation_status": "unavailable",
+                                    "preparation_status": "held",
                                     "reason_code": usage_hold,
                                     "instrument_id": selected.id,
+                                    "native_usage_prerequisite": {
+                                        **(usage_context or {}),
+                                        "reason_code": usage_hold,
+                                    },
                                 }
                                 await record_identity_preparation_outcome(
                                     db,
                                     identity_job=job,
-                                    status="unavailable",
+                                    status="held",
                                     reason_code=usage_hold,
                                     dataset_filter=PreparationDataset.PROFILE,
                                 )
@@ -2029,6 +2398,7 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                                 usage_job,
                                 usage_hold,
                                 usage_needed,
+                                usage_context,
                             ) = await _native_usage_prerequisite_for_operation(
                                 db,
                                 capability=ProviderCapability.INSTRUMENT_SEARCH,
@@ -2040,16 +2410,31 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                                 now=datetime.now(UTC),
                             )
                             if usage_needed and usage_hold is not None:
+                                child_payload = deepcopy(job.metadata_payload or {})
+                                child_metadata = deepcopy(
+                                    child_payload.get("data_preparation_child") or {}
+                                )
+                                if usage_context is not None:
+                                    child_metadata["native_usage_hold"] = {
+                                        **usage_context,
+                                        "reason_code": usage_hold,
+                                    }
+                                    child_payload["data_preparation_child"] = child_metadata
+                                    job.metadata_payload = child_payload
                                 await record_identity_preparation_outcome(
                                     db,
                                     identity_job=job,
-                                    status="unavailable",
+                                    status="held",
                                     reason_code=usage_hold,
                                 )
                                 result_summary = {
-                                    "preparation_status": "unavailable",
+                                    "preparation_status": "held",
                                     "reason_code": usage_hold,
                                     "symbol": symbol,
+                                    "native_usage_prerequisite": {
+                                        **(usage_context or {}),
+                                        "reason_code": usage_hold,
+                                    },
                                 }
                             elif usage_needed and usage_job is not None:
                                 retry_at = await _defer_refresh_job_for_native_usage(
@@ -2297,7 +2682,11 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                                 adjusted=bool(preparation.get("adjusted", True)),
                             )
                         next_job_id = None
-                        if full_range_start is not None and planned_start > full_range_start:
+                        if (
+                            bars
+                            and full_range_start is not None
+                            and planned_start > full_range_start
+                        ):
                             next_job_id = await _enqueue_older_history_chunk(
                                 db,
                                 job=job,
@@ -2317,6 +2706,7 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                             from app.services.market_data import _coverage_calendar
                             from app.services.market_series import (
                                 select_default_series_for_complete_range,
+                                select_default_series_for_latest_contiguous_suffix,
                             )
                             from app.services.ohlcv_coverage import assess_ohlcv_coverage
 
@@ -2347,18 +2737,32 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                                 for bar in selected_range_bars
                                 if bar.market_series_id is not None
                             }
-                            if selected_coverage.status.value == "ready" and len(series_ids) == 1:
-                                default_series_selected = (
-                                    await select_default_series_for_complete_range(
-                                        db,
-                                        instrument_id=instrument.id,
-                                        timeframe=timeframe.value,
-                                        adjusted=bool(preparation.get("adjusted", True)),
-                                        market_series_id=next(iter(series_ids)),
-                                        start=selected_range_start,
-                                        end=full_range_end,
+                            if len(series_ids) == 1:
+                                selected_series_id = next(iter(series_ids))
+                                if selected_coverage.status.value == "ready":
+                                    default_series_selected = (
+                                        await select_default_series_for_complete_range(
+                                            db,
+                                            instrument_id=instrument.id,
+                                            timeframe=timeframe.value,
+                                            adjusted=bool(preparation.get("adjusted", True)),
+                                            market_series_id=selected_series_id,
+                                            start=selected_range_start,
+                                            end=full_range_end,
+                                        )
                                     )
-                                )
+                                if not default_series_selected:
+                                    default_series_selected = (
+                                        await select_default_series_for_latest_contiguous_suffix(
+                                            db,
+                                            instrument_id=instrument.id,
+                                            timeframe=timeframe.value,
+                                            adjusted=bool(preparation.get("adjusted", True)),
+                                            market_series_id=selected_series_id,
+                                            requested_start=selected_range_start,
+                                            end=full_range_end,
+                                        )
+                                    )
                             if next_job_id is None:
                                 complete_range_bars = (
                                     selected_range_bars
@@ -2421,7 +2825,10 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                     },
                     key=lambda item: tuple(-1 if value is None else value for value in item),
                 )
-                data_status = "ready" if bars else "empty"
+                data_status = _history_chunk_data_status(
+                    bars=bars,
+                    range_coverage_status=range_coverage_status,
+                )
                 if bars and planned_start is not None and planned_end is not None:
                     from app.services.market_data import _coverage_calendar
                     from app.services.ohlcv_coverage import assess_ohlcv_coverage
@@ -2436,8 +2843,20 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                     chunk_coverage_status = coverage.status.value
                     if coverage.status.value != "ready":
                         data_status = "partial"
-                if range_coverage_status is not None and range_coverage_status != "ready":
-                    data_status = "partial"
+                reason_code = (
+                    preparation.get("provider_no_data_reason") if data_status == "empty" else None
+                )
+                if reason_code is None:
+                    reason_code = (
+                        "analysis_history_depth_not_admitted"
+                        if preparation.get("analysis_requirement_unmet")
+                        else "history_depth_unknown"
+                        if preparation.get("history_depth_unknown_candidates")
+                        and range_coverage_status == "partial"
+                        else "history_coverage_partial"
+                        if range_coverage_status == "partial"
+                        else None
+                    )
                 await complete_refresh_job(
                     db,
                     job,
@@ -2483,16 +2902,7 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                         ),
                         "history_source_provider": preparation.get("source_provider"),
                         "range_coverage_status": range_coverage_status,
-                        "reason_code": (
-                            "analysis_history_depth_not_admitted"
-                            if preparation.get("analysis_requirement_unmet")
-                            else "history_depth_unknown"
-                            if preparation.get("history_depth_unknown_candidates")
-                            and range_coverage_status == "partial"
-                            else "history_coverage_partial"
-                            if range_coverage_status == "partial"
-                            else None
-                        ),
+                        "reason_code": reason_code,
                         "history_depth_unknown_candidates": preparation.get(
                             "history_depth_unknown_candidates", []
                         ),
@@ -2515,12 +2925,23 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                 )
                 lease_lost += 1
             except Exception as exc:
+                original_error = exc
+                original_error_message = str(exc)
                 try:
+                    await db.rollback()
+                    previous_job_rollback = True
+                    await db.refresh(job)
+                    claimed_job_id, claimed_lease_token = claimed_leases[id(job)]
+                    if job.id != claimed_job_id or job.lease_token != claimed_lease_token:
+                        raise RefreshLeaseLostError(
+                            f"refresh job {claimed_job_id} lease is no longer valid"
+                        )
                     await retry_refresh_job(
                         db,
                         job,
-                        str(exc),
-                        retry_at=getattr(exc, "retry_at", None),
+                        original_error_message,
+                        retry_at=getattr(original_error, "retry_at", None),
+                        lease_token=claimed_lease_token,
                     )
                 except RefreshLeaseLostError as lease_exc:
                     logger.info(
@@ -2529,6 +2950,14 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                         bounded_redact_provider_message(lease_exc),
                     )
                     lease_lost += 1
+                except Exception as retry_exc:
+                    logger.error(
+                        "Could not persist retry for refresh job %s after %s: %s",
+                        getattr(job, "id", "unknown"),
+                        type(original_error).__name__,
+                        type(retry_exc).__name__,
+                    )
+                    raise retry_exc from original_error
                 else:
                     retried += 1
                     if job.next_attempt_at is not None:
@@ -2658,11 +3087,16 @@ async def refresh_provider_account_usage_snapshots(ctx: dict) -> dict:
                     ),
                     provider_names=frozenset({provider.strip().lower()}),
                 ):
-                    results.append(
-                        await refresh_provider_account_usage(
-                            db, provider_name=provider.strip().lower()
+                    provider_name = provider.strip().lower()
+                    result = await refresh_provider_account_usage(db, provider_name=provider_name)
+                    if _native_usage_refresh_succeeded_for_provider(result, provider_name):
+                        resumed = await resume_native_usage_held_identity_jobs(
+                            db, provider_name=provider_name
                         )
-                    )
+                        if resumed:
+                            await db.commit()
+                            result["resumed_preparation_jobs"] = resumed
+                    results.append(result)
             except Exception as exc:  # noqa: BLE001 - keep one provider failure from suppressing others.
                 results.append(
                     {

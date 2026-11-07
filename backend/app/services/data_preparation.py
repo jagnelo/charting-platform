@@ -16,7 +16,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.asset_class import AssetClass, InstrumentType
 from app.models.data_source import DataSource
-from app.models.etf_holdings import ETFProfile
 from app.models.instrument import Instrument
 from app.models.market_data_foundation import MarketRefreshJob, MarketSeries, MarketSeriesDefault
 from app.models.ohlcv import OHLCVBar, Timeframe
@@ -33,6 +32,7 @@ from app.schemas.data_preparation import (
     PreparationDependencyResponse,
     ScreenerPreparationTarget,
 )
+from app.services.derived_timeframes import refresh_derived_timeframe_if_needed
 from app.services.market_refresh_queue import _acquire_enqueue_lock, enqueue_refresh_job
 from app.services.ohlcv_coverage import (
     CoverageStatus,
@@ -261,32 +261,30 @@ async def _retained_history_coverage(
     requested_end: datetime | None,
 ) -> tuple[OhlcvCoverageAssessment | None, list[PreparationCoveredRange]]:
     """Assess only the ordinary selected series before requiring a provider."""
-    if requested_start is None or requested_end is None:
-        return None, []
-
     from app.services.market_data import _coverage_calendar, _default_series_bar_condition
 
     instrument = await db.get(Instrument, instrument_id)
     if instrument is None:
         return None, []
-    start, end = _as_utc(requested_start), _as_utc(requested_end)
-    bars = list(
-        (
-            await db.execute(
-                select(OHLCVBar)
-                .where(
-                    OHLCVBar.instrument_id == instrument_id,
-                    OHLCVBar.timeframe == timeframe,
-                    OHLCVBar.ts >= start,
-                    OHLCVBar.ts <= end,
-                    _default_series_bar_condition(instrument_id, timeframe, adjusted),
-                )
-                .order_by(OHLCVBar.ts)
-            )
-        ).scalars()
+    start = _as_utc(requested_start) if requested_start is not None else None
+    end = _as_utc(requested_end) if requested_end is not None else None
+    statement = select(OHLCVBar).where(
+        OHLCVBar.instrument_id == instrument_id,
+        OHLCVBar.timeframe == timeframe,
+        _default_series_bar_condition(instrument_id, timeframe, adjusted),
     )
+    if start is not None:
+        statement = statement.where(OHLCVBar.ts >= start)
+    if end is not None:
+        statement = statement.where(OHLCVBar.ts <= end)
+    bars = list((await db.execute(statement.order_by(OHLCVBar.ts))).scalars())
+    if not bars:
+        return None, []
+
+    observed_start = start or _as_utc(bars[0].ts)
+    observed_end = end or _as_utc(bars[-1].ts)
     assessment = assess_ohlcv_coverage(
-        bars, timeframe, start, end, calendar=_coverage_calendar(instrument)
+        bars, timeframe, observed_start, observed_end, calendar=_coverage_calendar(instrument)
     )
     gaps = assessment.missing_slices
     ranges: list[PreparationCoveredRange] = []
@@ -329,6 +327,11 @@ async def _retained_history_coverage(
         segment.append(bar)
         previous = timestamp
     append_segment()
+    # An open-ended ensure has no claimable full range. Keep actual selected
+    # series segments available to the status response, but let the worker's
+    # reviewed provider floor and continuation determine readiness.
+    if requested_start is None or requested_end is None:
+        return None, ranges
     return assessment, ranges
 
 
@@ -508,13 +511,6 @@ async def _resolve_requested_instruments(
 
 
 async def _instrument_is_etf(db: AsyncSession, instrument_id: int) -> bool:
-    profile_id = (
-        await db.execute(
-            select(ETFProfile.id).where(ETFProfile.instrument_id == instrument_id).limit(1)
-        )
-    ).scalar_one_or_none()
-    if profile_id is not None:
-        return True
     names = (
         await db.execute(
             select(InstrumentType.name, AssetClass.name)
@@ -528,12 +524,12 @@ async def _instrument_is_etf(db: AsyncSession, instrument_id: int) -> bool:
     instrument_type, asset_class = (
         str(value or "").strip().casefold().replace("-", "_").replace(" ", "_") for value in names
     )
-    # Explicit ETF type is enough to plan the dataset.  The actual issuer
-    # handler still owns profile/identity checks before any holdings fetch.
-    return instrument_type in {"etf", "exchange_traded_fund"} or (
-        instrument_type == "exchange_traded_vehicle"
-        and asset_class == "exchange_traded_product"
-        and profile_id is not None
+    # Keep dataset planning aligned with the canonical fund types accepted by
+    # etf_holdings_refresh._resolve_canonical_fund_instrument.  Type metadata
+    # is enough to plan holdings before an ETFProfile exists; identity and
+    # synthetic checks remain in _dataset_initial_state and the handler.
+    return instrument_type in {"etf", "index_etf", "mutual_fund", "closed_end_fund"} or (
+        instrument_type == "exchange_traded_vehicle" and asset_class == "exchange_traded_product"
     )
 
 
@@ -666,6 +662,8 @@ async def _dataset_initial_state(
     dataset: PreparationDataset,
     *,
     now: datetime,
+    timeframe: Timeframe = Timeframe.D1,
+    adjusted: bool = True,
     required_profile_fields: list[str] | tuple[str, ...] = (),
 ) -> tuple[str, str | None]:
     instrument = await db.get(Instrument, instrument_id)
@@ -687,11 +685,19 @@ async def _dataset_initial_state(
     if dataset is PreparationDataset.HOLDINGS:
         if not await _instrument_is_etf(db, instrument_id):
             return "unavailable", "not_applicable"
+        if instrument.is_synthetic:
+            return "unavailable", "synthetic_instrument_not_supported"
+        if instrument.identity_status != "resolved" or not instrument.domain_key:
+            return "waiting", "canonical_etf_instrument_required"
         if _etf_holdings_preparer() is None:
             return "unavailable", "etf_preparation_handler_not_registered"
         return "queued", None
     if dataset is PreparationDataset.FUNDAMENTALS:
         return "unavailable", "fundamentals_preparation_handler_unavailable"
+    if dataset is PreparationDataset.HISTORY and timeframe in {Timeframe.W1, Timeframe.MN}:
+        # A durable derived-only request may reuse existing bars and completed
+        # children, so repair stale state before coverage decides it is ready.
+        await refresh_derived_timeframe_if_needed(db, instrument_id, timeframe, adjusted=adjusted)
     return "queued", None
 
 
@@ -720,6 +726,18 @@ async def _enqueue_identity_profile_job(
         ]
     )
     await _acquire_enqueue_lock(db, key)
+    prior_job = (
+        await db.execute(select(MarketRefreshJob).where(MarketRefreshJob.request_key == key))
+    ).scalar_one_or_none()
+    if _identity_job_has_terminal_negative(prior_job):
+        # A completed negative identity child is immutable history, not a
+        # successful reusable result. Permit one fresh user/maintenance intent
+        # to retry it in the same hour while equivalent requests coalesce on
+        # this deterministic recovery key. The hour in the base key bounds
+        # repeated no-match work; the queue still enforces provider admission
+        # and native quota for every actual attempt.
+        key = f"{key}:recovery"
+        await _acquire_enqueue_lock(db, key)
     prior_refs = await _existing_parent_refs(db, key)
     job = await enqueue_refresh_job(
         db,
@@ -748,6 +766,30 @@ async def _enqueue_identity_profile_job(
     return job
 
 
+def _identity_job_has_terminal_negative(job: MarketRefreshJob | None) -> bool:
+    """Whether a completed identity child recorded a result worth re-evaluating.
+
+    Older workers wrote native usage context only to ``result_summary``; newer
+    workers also persist ``native_usage_hold`` on the child metadata. Accept
+    either evidence shape so a normal later ensure can recover old held jobs
+    without deleting or rewriting their result.
+    """
+
+    if job is None or job.status != "completed":
+        return False
+    summary = job.result_summary or {}
+    child = (job.metadata_payload or {}).get("data_preparation_child") or {}
+    terminal_status = summary.get("preparation_status")
+    native_hold = summary.get("native_usage_prerequisite") or child.get("native_usage_hold")
+    return terminal_status in {
+        "held",
+        "unavailable",
+        "failed",
+        "no_match",
+        "identity_conflict",
+    } or isinstance(native_hold, dict)
+
+
 async def _enqueue_etf_holdings_job(
     db: AsyncSession,
     *,
@@ -760,9 +802,22 @@ async def _enqueue_etf_holdings_job(
     now: datetime,
 ) -> MarketRefreshJob:
     freshness_scope = now.strftime("%Y-%m-%dT%H")
-    request_key = "prep-holdings:" + _digest([instrument_id, freshness_scope])
-    await _acquire_enqueue_lock(db, request_key)
+    base_request_key = "prep-holdings:" + _digest([instrument_id, freshness_scope])
+    await _acquire_enqueue_lock(db, base_request_key)
+    prior_job = (
+        await db.execute(
+            select(MarketRefreshJob).where(MarketRefreshJob.request_key == base_request_key)
+        )
+    ).scalar_one_or_none()
+    request_key = base_request_key
+    if _holdings_job_has_terminal_negative(prior_job, now=now):
+        # A prior held/unavailable result is immutable history. A fresh user
+        # request gets one bounded retry for this hourly freshness scope;
+        # equivalent requests then coalesce on that recovery child.
+        request_key = f"{base_request_key}:recovery"
+        await _acquire_enqueue_lock(db, request_key)
     prior_refs = await _existing_parent_refs(db, request_key)
+    recovery_suffix = ":recovery" if request_key != base_request_key else ""
     job = await enqueue_refresh_job(
         db,
         request_key=request_key,
@@ -774,8 +829,13 @@ async def _enqueue_etf_holdings_job(
             "data_preparation_child": {
                 "kind": "etf_holdings",
                 "instrument_id": instrument_id,
-                "request_id": f"data-preparation-holdings:{instrument_id}:{freshness_scope}",
-                "dependency_id": f"shared-holdings:{instrument_id}:{freshness_scope}",
+                "request_id": (
+                    f"data-preparation-holdings:{instrument_id}:{freshness_scope}"
+                    f"{recovery_suffix}"
+                ),
+                "dependency_id": (
+                    f"shared-holdings:{instrument_id}:{freshness_scope}{recovery_suffix}"
+                ),
                 "freshness_scope": freshness_scope,
                 "parent_refs": prior_refs,
             }
@@ -789,6 +849,31 @@ async def _enqueue_etf_holdings_job(
     ]:
         await _append_parent_ref(db, job, ref)
     return job
+
+
+def _holdings_job_has_terminal_negative(job: MarketRefreshJob | None, *, now: datetime) -> bool:
+    """Whether a completed holdings result can be reconsidered on a new ensure.
+
+    A known future retry remains authoritative. Otherwise completed negative
+    outcomes may be retried once in the current hourly scope; the queue still
+    applies the issuer route, provider admission, and native quota controls.
+    """
+
+    if job is None or job.status != "completed":
+        return False
+    summary = job.result_summary or {}
+    if summary.get("preparation_status") not in {"waiting", "held", "unavailable", "failed"}:
+        return False
+    retry_at = summary.get("retry_at")
+    if isinstance(retry_at, str):
+        try:
+            retry_at = datetime.fromisoformat(retry_at)
+        except ValueError:
+            retry_at = None
+    if isinstance(retry_at, datetime) and retry_at.tzinfo is not None:
+        if retry_at.astimezone(UTC) > _as_utc(now):
+            return False
+    return True
 
 
 def _history_request_key(
@@ -1061,6 +1146,8 @@ async def _enqueue_instrument_dependencies(
                 instrument_id,
                 dataset,
                 now=now,
+                timeframe=request.timeframe,
+                adjusted=request.adjusted,
                 required_profile_fields=required_profile_fields,
             )
             status = current_status
@@ -1850,6 +1937,13 @@ async def record_identity_preparation_outcome(
 ) -> None:
     """Persist a terminal/waiting identity outcome without hiding other data."""
 
+    # Rollbacks expire ORM attributes. Use an explicit async refresh rather
+    # than letting a synchronous attribute read trigger MissingGreenlet, but
+    # leave a loaded in-memory update alone (for example a newly recorded hold).
+    identity_state = inspect(identity_job, raiseerr=False)
+    if identity_state is not None and "metadata_payload" in identity_state.expired_attributes:
+        await db.refresh(identity_job, attribute_names=["metadata_payload"])
+    identity_job_id = identity_job.id
     preparation = (identity_job.metadata_payload or {}).get("data_preparation_child") or {}
     refs = list(preparation.get("parent_refs") or [])
     if parent_job_id is not None:
@@ -1859,7 +1953,7 @@ async def record_identity_preparation_outcome(
     for ref in refs:
         await _record_parent_identity_outcome(
             db,
-            identity_job=identity_job,
+            identity_job_id=identity_job_id,
             parent_id=int(ref["parent_job_id"]),
             status=status,
             reason_code=reason_code,
@@ -1872,7 +1966,7 @@ async def record_identity_preparation_outcome(
 async def _record_parent_identity_outcome(
     db: AsyncSession,
     *,
-    identity_job: MarketRefreshJob,
+    identity_job_id: int,
     parent_id: int,
     status: str,
     reason_code: str | None,
@@ -1894,12 +1988,12 @@ async def _record_parent_identity_outcome(
         str(dependency["dependency_id"])
         for dependency in dependencies
         if dependency.get("dataset") == PreparationDataset.IDENTITY.value
-        and identity_job.id in [int(value) for value in dependency.get("job_ids", [])]
+        and identity_job_id in [int(value) for value in dependency.get("job_ids", [])]
     }
     for dependency in dependencies:
         if dataset_filter is not None and dependency.get("dataset") != dataset_filter.value:
             continue
-        references_job = identity_job.id in [int(value) for value in dependency.get("job_ids", [])]
+        references_job = identity_job_id in [int(value) for value in dependency.get("job_ids", [])]
         waiting_for_identity = dependency.get(
             "reason_code"
         ) == "identity_dependency_pending" and bool(
@@ -2085,7 +2179,17 @@ async def get_data_preparation_response(
                         retry_at,
                     )
                 elif "failed" in preparation_statuses:
-                    item_status, reason = "failed", "preparation_job_failed"
+                    item_status, reason = (
+                        "failed",
+                        next(
+                            (
+                                outcome.get("reason_code")
+                                for outcome in outcomes
+                                if outcome.get("reason_code")
+                            ),
+                            "preparation_job_failed",
+                        ),
+                    )
                 elif preparation_statuses & {"unavailable", "no_match", "identity_conflict"}:
                     item_status, reason = (
                         "unavailable",
@@ -2123,7 +2227,13 @@ async def get_data_preparation_response(
                         ),
                     )
                 elif any(outcome.get("data_status") == "empty" for outcome in outcomes):
-                    item_status, reason = "unavailable", "source_returned_no_data"
+                    empty_outcome = next(
+                        outcome for outcome in outcomes if outcome.get("data_status") == "empty"
+                    )
+                    item_status, reason = (
+                        "unavailable",
+                        empty_outcome.get("reason_code") or "source_returned_no_data",
+                    )
                 elif any(outcome.get("data_status") == "partial" for outcome in outcomes):
                     item_status, reason = (
                         "partial",
@@ -2190,6 +2300,11 @@ async def get_data_preparation_response(
                     # Keep an old provider hold visible while exposing useful
                     # cached portions and the exact remaining gaps.
                     item_status = "partial"
+            elif retained_ranges:
+                # Open-ended requests cannot be called complete, but their
+                # actual selected-series observations remain useful coverage
+                # even before a worker has completed its first bounded chunk.
+                coverage_ranges = retained_ranges
             elif child_jobs or background_jobs:
                 if timeframe_enum in {Timeframe.W1, Timeframe.MN}:
                     coverage_ranges = await _persisted_derived_coverage_ranges(

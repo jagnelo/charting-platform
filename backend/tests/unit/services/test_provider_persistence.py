@@ -530,6 +530,55 @@ async def test_single_provider_cached_search_outcome_counts_persisted_candidates
 
 
 @pytest.mark.asyncio
+async def test_cached_exact_search_keeps_provider_qualified_candidates_but_merges_fuzzy_rows(
+    db, monkeypatch
+):
+    async_db = AsyncSessionAdapter(db)
+    edgar = _resolved_provider(
+        db, provider_name="edgar", capability=ProviderCapability.INSTRUMENT_SEARCH
+    )
+    massive = _resolved_provider(
+        db, provider_name="massive", capability=ProviderCapability.INSTRUMENT_SEARCH
+    )
+    for resolved, exchange in ((edgar, "XNYS"), (massive, "ARCX")):
+        await provider_observations.store_search_snapshot(
+            async_db,
+            data_source_id=resolved.data_source.id,
+            query="SPY",
+            results=[
+                ProviderSearchResult(
+                    symbol="SPY",
+                    name="SPDR S&P 500 ETF Trust",
+                    exchange=exchange,
+                    instrument_type="ETF",
+                ),
+                ProviderSearchResult(
+                    symbol="SPY-A",
+                    name="Fuzzy duplicate",
+                    exchange=exchange,
+                    instrument_type="ETF",
+                ),
+            ],
+        )
+
+    async def _two_provider_chain(*_args, **_kwargs):
+        return [edgar, massive]
+
+    async def _unexpected_fetch(*_args, **_kwargs):
+        pytest.fail("fresh exact-symbol snapshots must remain cache-only")
+
+    monkeypatch.setattr(market_data, "resolve_provider_chain", _two_provider_chain)
+    monkeypatch.setattr(market_data, "execute_provider_call", _unexpected_fetch)
+
+    rows = await market_data.search_provider_instruments_async(async_db, "SPY")
+
+    assert [
+        (row["symbol"], row["provider"], row["exchange"]) for row in rows if row["symbol"] == "SPY"
+    ] == [("SPY", "edgar", "XNYS"), ("SPY", "massive", "ARCX")]
+    assert sum(row["symbol"] == "SPY-A" for row in rows) == 1
+
+
+@pytest.mark.asyncio
 async def test_profile_fetch_persists_snapshot_and_then_reuses_cache(db, instrument, monkeypatch):
     async_db = AsyncSessionAdapter(db)
     resolved = _resolved_provider(

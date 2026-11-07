@@ -128,3 +128,78 @@ async def test_workstation_maintenance_skips_controlled_e2e_market_data(monkeypa
     result = await data_tasks.enqueue_workstation_maintenance({})
 
     assert result == {"skipped": True, "reason": "controlled fixture mode owns workstation data"}
+
+
+@pytest.mark.asyncio
+async def test_refresh_worker_rolls_back_before_refreshing_and_retrying_failed_job(monkeypatch):
+    job = SimpleNamespace(
+        id=41,
+        capability=data_tasks.ProviderCapability.ACCOUNT_USAGE.value,
+        status="leased",
+        attempts=3,
+        lease_token="lease-41",
+        next_attempt_at=None,
+        metadata_payload={"provider_account_usage_refresh": {"provider_name": "alpaca"}},
+    )
+
+    class Session:
+        def __init__(self):
+            self.commits = 0
+            self.rollbacks = 0
+            self.failed = False
+            self.refreshes = 0
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return False
+
+        async def commit(self):
+            self.commits += 1
+
+        async def rollback(self):
+            self.rollbacks += 1
+            self.failed = False
+
+        async def refresh(self, refreshed_job):
+            assert refreshed_job is job
+            self.refreshes += 1
+            assert not self.failed
+            if self.refreshes == 2:
+                assert self.rollbacks == 1
+
+    session = Session()
+    retry_calls = []
+
+    async def complete_with_database_error(*_args, **_kwargs):
+        session.failed = True
+        raise RuntimeError("database transaction aborted while persisting outcome")
+
+    async def retry(_db, retried_job, error, **kwargs):
+        assert session.rollbacks == 1
+        assert retried_job is job
+        retry_calls.append((error, kwargs))
+        retried_job.next_attempt_at = datetime(2026, 11, 7, 12, tzinfo=UTC)
+
+    monkeypatch.setattr(data_tasks, "AsyncSessionLocal", lambda: session)
+    monkeypatch.setattr(data_tasks, "claim_refresh_jobs", AsyncMock(return_value=[job]))
+    monkeypatch.setattr(
+        data_tasks,
+        "_run_native_usage_refresh_job",
+        AsyncMock(return_value={"status": "refreshed", "providers": ["alpaca"]}),
+    )
+    monkeypatch.setattr(data_tasks, "complete_refresh_job", complete_with_database_error)
+    monkeypatch.setattr(data_tasks, "retry_refresh_job", retry)
+
+    result = await data_tasks.process_refresh_jobs({})
+
+    assert result["retried"] == 1
+    assert session.rollbacks == 1
+    assert session.commits == 2  # Persist the lease, then persist the retry.
+    assert retry_calls == [
+        (
+            "database transaction aborted while persisting outcome",
+            {"retry_at": None, "lease_token": "lease-41"},
+        )
+    ]

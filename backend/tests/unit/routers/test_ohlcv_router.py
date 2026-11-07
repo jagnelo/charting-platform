@@ -55,6 +55,7 @@ class TestOHLCVRouter:
             fetched_at=recent_end,
             coverage_start=recent_start,
             coverage_end=recent_end,
+            stale_after=datetime.now(UTC) + timedelta(days=1),
             extra_data={
                 "adjustment_provenance": {
                     "factor_status": "rebuildable_provider_factors",
@@ -213,7 +214,10 @@ class TestOHLCVRouter:
             materialize_calls.append(True)
             return await real_materialize(*args, **kwargs)
 
-        monkeypatch.setattr("app.routers.ohlcv.materialize_derived_timeframes", _count_materialize)
+        monkeypatch.setattr(
+            "app.services.derived_timeframes.materialize_derived_timeframes",
+            _count_materialize,
+        )
 
         weekly_response = client.get(
             f"/api/v1/ohlcv/local/{instrument.symbol}/{Timeframe.W1.value}",
@@ -270,11 +274,42 @@ class TestOHLCVRouter:
         assert preserved_rows[raw_derived_id].close == Decimal("51")
         assert preserved_rows[raw_derived_id].is_adjusted is False
 
+        # Normal coarse reads can encounter the deployed legacy state too:
+        # rows exist, but the durable state still says pending with no bounds.
+        monthly_state = (
+            db.query(InstrumentDatasetState)
+            .filter(
+                InstrumentDatasetState.instrument_id == instrument.id,
+                InstrumentDatasetState.data_source_id.is_(None),
+                InstrumentDatasetState.dataset_key == "MN:adj",
+            )
+            .one()
+        )
+        monthly_state.status = DatasetStatus.PENDING
+        monthly_state.coverage_start = None
+        monthly_state.coverage_end = None
+        monthly_state.extra_data = {"derived_bar_count": 0}
+        db.flush()
+        normal_monthly_response = client.get(
+            f"/api/v1/ohlcv/{instrument.symbol}/{Timeframe.MN.value}",
+            params={"limit": 5000, "local_only": True},
+            headers=auth_headers,
+        )
+        assert normal_monthly_response.status_code == 200, normal_monthly_response.text
+        assert normal_monthly_response.json()
+        db.refresh(monthly_state)
+        assert monthly_state.status == DatasetStatus.FRESH
+        assert monthly_state.coverage_start is not None
+        assert monthly_state.coverage_end is not None
+        assert monthly_state.extra_data["derived_bar_count"] > 0
+        assert materialize_calls == [True, True]
+
         async def _must_not_rematerialize(*_args, **_kwargs):
             raise AssertionError("current derived history should not be rebuilt on each read")
 
         monkeypatch.setattr(
-            "app.routers.ohlcv.materialize_derived_timeframes", _must_not_rematerialize
+            "app.services.derived_timeframes.materialize_derived_timeframes",
+            _must_not_rematerialize,
         )
         for timeframe in (Timeframe.W1, Timeframe.MN):
             response = client.get(
@@ -283,6 +318,13 @@ class TestOHLCVRouter:
                 headers=auth_headers,
             )
             assert response.status_code == 200, response.text
+        normal_repeat = client.get(
+            f"/api/v1/ohlcv/{instrument.symbol}/{Timeframe.MN.value}",
+            params={"limit": 5000, "local_only": True},
+            headers=auth_headers,
+        )
+        assert normal_repeat.status_code == 200, normal_repeat.text
+        assert materialize_calls == [True, True]
         assert provider_calls == []
 
     def test_local_only_returns_retained_bars_in_consumer_shape(
@@ -460,7 +502,7 @@ class TestOHLCVRouter:
     ):
         monkeypatch.setattr(settings, "E2E_SEED_MARKET_DATA", False)
         monkeypatch.setattr(
-            "app.routers.ohlcv.derived_timeframe_needs_refresh",
+            "app.services.derived_timeframes.derived_timeframe_needs_refresh",
             lambda *_args, **_kwargs: asyncio.sleep(0, result=False),
         )
         scopes = {

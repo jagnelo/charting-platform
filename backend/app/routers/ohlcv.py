@@ -18,10 +18,7 @@ from app.services.adjustment_factors import (
     materialize_local_split_adjusted_view,
 )
 from app.services.bar_transforms import TRANSFORM_REGISTRY, apply_transform
-from app.services.derived_timeframes import (
-    derived_timeframe_needs_refresh,
-    materialize_derived_timeframes,
-)
+from app.services.derived_timeframes import refresh_derived_timeframe_if_needed
 from app.services.distributed_locks import DistributedLockError
 from app.services.market_data import (
     _default_series_bar_condition,
@@ -202,8 +199,9 @@ async def get_local_ohlcv(
         and not settings.E2E_SEED_MARKET_DATA
         and timeframe in (Timeframe.W1, Timeframe.MN)
     ):
-        if await derived_timeframe_needs_refresh(db, instrument.id, timeframe, adjusted=adjusted):
-            await materialize_derived_timeframes(db, instrument.id, adjusted=adjusted)
+        if await refresh_derived_timeframe_if_needed(
+            db, instrument.id, timeframe, adjusted=adjusted
+        ):
             await db.commit()
             bars = (
                 (
@@ -266,6 +264,19 @@ async def get_ohlcv_transformed(
         raise HTTPException(404, f"Instrument '{symbol}' not found.")
 
     await db.refresh(instrument, ["listings"])
+
+    # Request-driven and explicit local-only reads stay provider-free, while
+    # sharing the same W1/MN freshness repair as the canonical local endpoint.
+    if (
+        local_only
+        and view in {"canonical", "derived"}
+        and not settings.E2E_SEED_MARKET_DATA
+        and timeframe in (Timeframe.W1, Timeframe.MN)
+        and await refresh_derived_timeframe_if_needed(
+            db, instrument.id, timeframe, adjusted=adjusted
+        )
+    ):
+        await db.commit()
 
     # Fetch enough raw bars to feed the transform (transforms may collapse bars)
     fetch_limit = PAGE_SIZE * 3
@@ -378,6 +389,19 @@ async def get_ohlcv(
         )
 
     await db.refresh(instrument, ["listings"])
+
+    # Request-driven and explicit local-only reads stay provider-free, while
+    # repairing stale coarse coverage before the shared fetch/cache selector.
+    if (
+        local_only
+        and view in {"canonical", "derived"}
+        and not settings.E2E_SEED_MARKET_DATA
+        and timeframe in (Timeframe.W1, Timeframe.MN)
+        and await refresh_derived_timeframe_if_needed(
+            db, instrument.id, timeframe, adjusted=adjusted
+        )
+    ):
+        await db.commit()
 
     if before is not None:
         # Paginated: return the PAGE_SIZE bars immediately before `before`

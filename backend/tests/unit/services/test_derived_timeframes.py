@@ -6,11 +6,18 @@ import pytest
 from sqlalchemy import select
 
 from app.models.data_source import DataSource
+from app.models.market_data_foundation import (
+    AdjustmentBasis,
+    MarketSeries,
+    MarketSeriesDefault,
+)
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
 from app.services.derived_timeframes import (
     DERIVATION_METHOD,
+    _canonical_d1_signature,
     aggregate_d1_bars,
+    derived_timeframe_needs_refresh,
     materialize_derived_timeframes,
 )
 from tests.unit.conftest import AsyncSessionAdapter
@@ -165,6 +172,201 @@ async def test_materialize_derived_timeframes_persists_lineage_and_preserves_pro
     assert len(monthly) == 1
     assert monthly[0].is_derived is True
     assert monthly[0].source_timeframe == "D1"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("stored_signature_present", [False, True])
+async def test_cached_derived_state_recovers_with_autoflush_disabled_and_inherits_d1_contract(
+    db, instrument, stored_signature_present
+):
+    db.autoflush = False
+    source = DataSource(name="derived-autoflush-false-provider")
+    db.add(source)
+    db.flush()
+    daily_series = MarketSeries(
+        instrument_id=instrument.id,
+        data_source_id=source.id,
+        feed_scope="alpaca-iex",
+        session_code="regular",
+        timeframe=Timeframe.D1.value,
+        adjustment_basis=AdjustmentBasis.SPLIT_ADJUSTED,
+        adjustment_version="alpaca-split-adjusted",
+        is_canonical=True,
+        is_active=True,
+    )
+    db.add(daily_series)
+    db.flush()
+    db.add(
+        MarketSeriesDefault(
+            instrument_id=instrument.id,
+            timeframe=Timeframe.D1.value,
+            is_adjusted=True,
+            market_series_id=daily_series.id,
+            selection_reason="test-selected-daily-series",
+        )
+    )
+
+    daily_times = [datetime(2025, 1, day, 21, tzinfo=UTC) for day in (2, 3)]
+    for index, timestamp in enumerate(daily_times):
+        close = Decimal("100") + index
+        db.add(
+            OHLCVBar(
+                instrument_id=instrument.id,
+                data_source_id=source.id,
+                market_series_id=daily_series.id,
+                timeframe=Timeframe.D1,
+                ts=timestamp,
+                open=close - 1,
+                high=close + 2,
+                low=close - 2,
+                close=close,
+                volume=Decimal("100"),
+                is_adjusted=True,
+                adjustment_basis=AdjustmentBasis.SPLIT_ADJUSTED.value,
+                adjustment_version="alpaca-split-adjusted",
+                provenance={"provider": "alpaca", "feed": "iex"},
+                is_derived=False,
+            )
+        )
+    fetched_at = datetime.now(UTC) - timedelta(minutes=5)
+    stale_after = fetched_at + timedelta(minutes=20)
+    db.add(
+        InstrumentDatasetState(
+            instrument_id=instrument.id,
+            data_source_id=source.id,
+            dataset_type="ohlcv",
+            dataset_key="D1:adj",
+            status=DatasetStatus.FRESH,
+            coverage_start=daily_times[0],
+            coverage_end=daily_times[-1],
+            observed_at=fetched_at,
+            fetched_at=fetched_at,
+            stale_after=stale_after,
+            version=3,
+            extra_data={
+                "adjustment_provenance": {
+                    "mode": "split_adjusted",
+                    "source_kind": "provider_observation",
+                    "factor_status": "rebuildable_provider_factors",
+                    "factor_version": "alpaca-split-adjusted",
+                    "contract_version": 1,
+                }
+            },
+        )
+    )
+    db.flush()
+
+    source_signature = await _canonical_d1_signature(
+        AsyncSessionAdapter(db), instrument.id, adjusted=True
+    )
+    for timeframe in (Timeframe.W1, Timeframe.MN):
+        derived_series = MarketSeries(
+            instrument_id=instrument.id,
+            data_source_id=source.id,
+            feed_scope=f"derived-d1-{daily_series.id}",
+            session_code="regular",
+            timeframe=timeframe.value,
+            adjustment_basis=AdjustmentBasis.SPLIT_ADJUSTED,
+            adjustment_version="alpaca-split-adjusted",
+            is_canonical=True,
+            is_active=True,
+            source_series_key=f"derived-from-d1:{daily_series.id}",
+        )
+        db.add(derived_series)
+        db.flush()
+        db.add(
+            MarketSeriesDefault(
+                instrument_id=instrument.id,
+                timeframe=timeframe.value,
+                is_adjusted=True,
+                market_series_id=derived_series.id,
+                selection_reason="test-existing-derived-default",
+            )
+        )
+        db.add(
+            OHLCVBar(
+                instrument_id=instrument.id,
+                data_source_id=source.id,
+                market_series_id=derived_series.id,
+                timeframe=timeframe,
+                ts=daily_times[0],
+                open=Decimal("99"),
+                high=Decimal("103"),
+                low=Decimal("98"),
+                close=Decimal("100"),
+                volume=Decimal("100"),
+                is_adjusted=True,
+                adjustment_basis=AdjustmentBasis.RAW.value,
+                adjustment_version="legacy",
+                is_derived=True,
+                source_timeframe=Timeframe.D1.value,
+                derivation_method=DERIVATION_METHOD,
+                source_bar_count=1,
+                source_start=daily_times[0],
+                source_end=daily_times[0],
+                scope_key=f"series:{derived_series.id}:regular",
+            )
+        )
+        db.add(
+            InstrumentDatasetState(
+                instrument_id=instrument.id,
+                data_source_id=None,
+                dataset_type="ohlcv",
+                dataset_key=f"{timeframe.value}:adj",
+                status=DatasetStatus.PENDING,
+                coverage_start=None,
+                coverage_end=None,
+                extra_data={
+                    "source_d1_signature": (source_signature if stored_signature_present else None),
+                    "derived_bar_count": 0,
+                },
+            )
+        )
+    db.flush()
+
+    async_db = AsyncSessionAdapter(db)
+    assert await derived_timeframe_needs_refresh(
+        async_db, instrument.id, Timeframe.W1, adjusted=True
+    )
+    assert await derived_timeframe_needs_refresh(
+        async_db, instrument.id, Timeframe.MN, adjusted=True
+    )
+
+    result = await materialize_derived_timeframes(async_db, instrument.id, adjusted=True)
+    assert result == {"W1": 1, "MN": 1}
+    for timeframe in (Timeframe.W1, Timeframe.MN):
+        row = (
+            db.query(OHLCVBar)
+            .filter(
+                OHLCVBar.instrument_id == instrument.id,
+                OHLCVBar.timeframe == timeframe,
+                OHLCVBar.is_derived.is_(True),
+            )
+            .one()
+        )
+        assert row.adjustment_basis == AdjustmentBasis.SPLIT_ADJUSTED.value
+        assert row.adjustment_version == "alpaca-split-adjusted"
+        assert row.provenance["derivation_method"] == DERIVATION_METHOD
+        assert row.provenance["source_data_source_id"] == source.id
+        state = (
+            db.query(InstrumentDatasetState)
+            .filter_by(
+                instrument_id=instrument.id,
+                data_source_id=None,
+                dataset_type="ohlcv",
+                dataset_key=f"{timeframe.value}:adj",
+            )
+            .one()
+        )
+        assert state.status == DatasetStatus.FRESH
+        assert state.extra_data["derived_bar_count"] == 1
+        assert state.fetched_at.replace(tzinfo=UTC) == fetched_at
+        assert state.stale_after.replace(tzinfo=UTC) == stale_after
+        assert state.coverage_start == row.ts
+        assert state.coverage_end == row.ts
+        assert not await derived_timeframe_needs_refresh(
+            async_db, instrument.id, timeframe, adjusted=True
+        )
 
 
 @pytest.mark.asyncio

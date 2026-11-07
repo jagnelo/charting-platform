@@ -395,7 +395,7 @@ async def _fresh_search_from_cache(
 ) -> list[dict] | None:
     now = datetime.now(UTC)
     merged: list[dict] = []
-    seen: set[str] = set()
+    seen: set[tuple[str, ...]] = set()
     for resolved in await resolve_provider_chain(
         db,
         ProviderCapability.INSTRUMENT_SEARCH,
@@ -433,9 +433,26 @@ async def _fresh_search_from_cache(
             )
         for item in provider_rows:
             symbol = item.get("symbol", "")
-            if not symbol or symbol in seen:
+            if not symbol:
                 continue
-            seen.add(symbol)
+            # Keep exact ticker hits provider-qualified. Acquisition needs to
+            # compare each admitted source's own listing/profile authority;
+            # collapsing them by symbol makes whichever cache is visited
+            # first the only candidate. Fuzzy rows remain merged by symbol so
+            # the bounded result page does not fill with duplicate guesses.
+            dedupe_key = (
+                (
+                    "exact",
+                    str(item.get("provider") or "").strip().lower(),
+                    symbol,
+                    str(item.get("exchange") or "").strip().upper(),
+                )
+                if symbol.strip().upper() == query.strip().upper()
+                else ("symbol", symbol)
+            )
+            if dedupe_key in seen:
+                continue
+            seen.add(dedupe_key)
             merged.append(item)
     return merged
 
@@ -456,6 +473,7 @@ async def _fresh_profile_from_cache(
     *,
     instrument_id: int | None = None,
     provider_symbol: str | None = None,
+    provider_name: str | None = None,
 ) -> InstrumentProfile | None:
     instrument = None
     if instrument_id is not None:
@@ -482,6 +500,7 @@ async def _fresh_profile_from_cache(
             instrument_id=instrument_id,
             provider_symbol=provider_symbol,
         )
+        if provider_name is None or resolved.provider_name == provider_name
     }
     snapshots = (
         (
@@ -1009,6 +1028,10 @@ async def _fetch_ohlcv_impl(
         OHLCVBar.ts <= end,
         OHLCVBar.is_adjusted == adjusted,
     ]
+    base_predicates = list(predicates)
+    source_id = None
+    selected_series_id = None
+    source_predicates = []
     if source_provider:
         source_id = (
             await db.execute(
@@ -1034,6 +1057,11 @@ async def _fetch_ohlcv_impl(
                 .limit(1)
             )
         ).scalar_one_or_none()
+        source_predicates = [
+            OHLCVBar.data_source_id == source_id,
+            OHLCVBar.market_series_id == MarketSeries.id,
+            OHLCVBar.is_derived.is_(False),
+        ]
         if selected_series_id is None:
             # The fetch path will create this provider's first scoped series;
             # on the next read it becomes the exact cache identity.
@@ -1042,10 +1070,8 @@ async def _fetch_ohlcv_impl(
             selected_series_predicate = MarketSeries.id == selected_series_id
         predicates.extend(
             [
-                OHLCVBar.data_source_id == source_id,
-                OHLCVBar.market_series_id == MarketSeries.id,
+                *source_predicates,
                 selected_series_predicate,
-                OHLCVBar.is_derived.is_(False),
             ]
         )
     else:
@@ -1111,7 +1137,27 @@ async def _fetch_ohlcv_impl(
                 await db.rollback()
                 logger.error(f"Failed to save bars: {e}")
 
-        # Re-query after insert so cached reflects actual DB state with valid ORM objects
+        # Re-query after insert so cached reflects actual DB state with valid ORM objects.
+        # When the request created a provider's first series, the initial cache
+        # statement intentionally matched no series. Rebuild that source filter
+        # from the series attached to the persisted response instead of reusing
+        # the pre-transport ``MarketSeries.id IS NULL`` predicate.
+        if source_provider and selected_series_id is None and new_bars:
+            created_series_ids = {
+                int(bar.market_series_id) for bar in new_bars if bar.market_series_id is not None
+            }
+            if len(created_series_ids) == 1:
+                created_series_id = next(iter(created_series_ids))
+                refreshed_stmt = select(OHLCVBar).where(
+                    and_(
+                        *base_predicates,
+                        *source_predicates,
+                        MarketSeries.id == created_series_id,
+                    )
+                )
+                if _seeded_market_data():
+                    refreshed_stmt = refreshed_stmt.where(_e2e_fixture_bar_condition())
+                stmt = refreshed_stmt.order_by(OHLCVBar.ts)
         cached = list((await db.execute(stmt)).scalars().all())
 
     cached.sort(key=lambda b: b.ts)
@@ -1881,7 +1927,7 @@ async def search_provider_instruments_async(
         provider_symbol=query,
     )
     merged: list[dict] = []
-    seen: set[str] = set()
+    seen: set[tuple[str, ...]] = set()
     for resolved in chain:
         try:
             execution = await execute_provider_call(
@@ -1951,9 +1997,21 @@ async def search_provider_instruments_async(
             provider_name=execution.provider_name,
         ):
             symbol = item.get("symbol", "")
-            if not symbol or symbol in seen:
+            if not symbol:
                 continue
-            seen.add(symbol)
+            dedupe_key = (
+                (
+                    "exact",
+                    str(item.get("provider") or "").strip().lower(),
+                    symbol,
+                    str(item.get("exchange") or "").strip().upper(),
+                )
+                if symbol.strip().upper() == query.strip().upper()
+                else ("symbol", symbol)
+            )
+            if dedupe_key in seen:
+                continue
+            seen.add(dedupe_key)
             merged.append(item)
         if source_outcomes is not None:
             provider_results = [
@@ -1992,6 +2050,7 @@ async def get_provider_profile_async(
         db,
         instrument_id=instrument_id,
         provider_symbol=provider_symbol,
+        provider_name=provider_name,
     )
     required_fields = tuple(
         dict.fromkeys(str(field).strip().lower() for field in required_profile_fields)

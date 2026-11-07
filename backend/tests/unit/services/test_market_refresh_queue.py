@@ -174,6 +174,33 @@ async def test_provider_reset_defers_job_until_retry_at(db):
 
 
 @pytest.mark.asyncio
+async def test_known_provider_retry_is_not_extended_by_generic_attempt_backoff(db):
+    async_db = AsyncSessionAdapter(db)
+    now = datetime(2026, 9, 4, 12, tzinfo=UTC)
+    retry_at = now + timedelta(seconds=5)
+    job = await enqueue_refresh_job(
+        async_db,
+        request_key="d1:short-known-reset",
+        capability="price_history",
+        now=now,
+    )
+    await claim_refresh_jobs(async_db, now=now)
+    job.attempts = 10
+
+    await retry_refresh_job(
+        async_db,
+        job,
+        "known local application bucket refill",
+        now=now,
+        retry_at=retry_at,
+    )
+
+    assert job.status == "deferred"
+    assert job.next_attempt_at == retry_at
+    assert job.metadata_payload["provider_retry_at"] == retry_at.isoformat()
+
+
+@pytest.mark.asyncio
 async def test_preparation_join_preserves_live_provider_wait_but_legacy_join_requeues(db):
     async_db = AsyncSessionAdapter(db)
     now = datetime(2026, 9, 4, 12, tzinfo=UTC)

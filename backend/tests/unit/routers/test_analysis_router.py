@@ -11,6 +11,7 @@ from app.models.etf_holdings import ETFHoldingsSnapshot
 from app.models.instrument_event import InstrumentEventFetchState
 from app.models.market_data_foundation import AdjustmentBasis, MarketSeries, MarketSeriesDefault
 from app.models.ohlcv import OHLCVBar, Timeframe
+from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
 from app.models.provider_runtime import ProviderCapability, ProviderEntitlement
 from app.models.workstation import MarketGroup, MarketGroupMember
 from app.routers.analysis import (
@@ -770,6 +771,185 @@ async def test_rrg_analysis_reads_only_selected_coarse_series_after_repeated_der
         assert retained.adjustment_basis == AdjustmentBasis.RAW
         assert retained.close == Decimal("100")
     assert all(len(series_ids) == 1 for series_ids in selected_series_by_timeframe.values())
+
+
+@pytest.mark.asyncio
+async def test_rrg_route_repairs_pending_derived_state_from_retained_daily_cache(
+    db, instrument, monkeypatch
+):
+    """The normal RRG caller repairs stale W1/MN readiness without provider I/O."""
+    from app.routers.analysis import group_relative_rotation
+    from app.services.derived_timeframes import materialize_derived_timeframes
+    from tests.unit.conftest import AsyncSessionAdapter
+
+    monkeypatch.setattr(settings, "E2E_SEED_MARKET_DATA", False)
+    benchmark = type(instrument)(
+        instrument_type_id=instrument.instrument_type_id,
+        symbol="RRGBENCH",
+        name="RRG benchmark",
+        currency="USD",
+        is_active=True,
+        identity_status="resolved",
+        domain_key="test:rrg-benchmark",
+    )
+    db.add(benchmark)
+    group = MarketGroup(stable_key="rrg-repair", group_type="test", name="RRG repair")
+    group.members = [
+        MarketGroupMember(
+            instrument_id=instrument.id,
+            position=0,
+            effective_at=datetime(2024, 1, 1, tzinfo=UTC),
+            known_at=datetime(2024, 1, 1, tzinfo=UTC),
+        )
+    ]
+    db.add(group)
+    db.flush()
+
+    session = AsyncSessionAdapter(db)
+    daily_start = datetime(2025, 1, 2, 21, tzinfo=UTC)
+    for target, base in ((instrument, 100), (benchmark, 200)):
+        series = MarketSeries(
+            instrument_id=target.id,
+            data_source_id=None,
+            feed_scope=f"rrg-repair-{target.symbol.lower()}",
+            session_code="regular",
+            timeframe=Timeframe.D1.value,
+            adjustment_basis=AdjustmentBasis.SPLIT_ADJUSTED,
+            adjustment_version="rrg-cache-v1",
+            is_canonical=True,
+            is_active=True,
+        )
+        db.add(series)
+        db.flush()
+        db.add(
+            MarketSeriesDefault(
+                instrument_id=target.id,
+                timeframe=Timeframe.D1.value,
+                is_adjusted=True,
+                market_series_id=series.id,
+                selection_reason="rrg-retained-cache",
+            )
+        )
+        cursor = daily_start
+        offset = 0
+        while cursor <= datetime(2025, 9, 30, 21, tzinfo=UTC):
+            if cursor.weekday() < 5:
+                close = Decimal(base + offset + (offset % 9) ** 2)
+                db.add(
+                    OHLCVBar(
+                        instrument_id=target.id,
+                        data_source_id=None,
+                        market_series_id=series.id,
+                        timeframe=Timeframe.D1,
+                        ts=cursor,
+                        open=close,
+                        high=close + 1,
+                        low=close - 1,
+                        close=close,
+                        volume=Decimal("100"),
+                        is_adjusted=True,
+                        adjustment_basis=AdjustmentBasis.SPLIT_ADJUSTED,
+                        adjustment_version="rrg-cache-v1",
+                        scope_key=f"series:{series.id}:regular",
+                    )
+                )
+                offset += 1
+            cursor += timedelta(days=1)
+        db.add(
+            InstrumentDatasetState(
+                instrument_id=target.id,
+                data_source_id=None,
+                dataset_type="ohlcv",
+                dataset_key="D1:adj",
+                status=DatasetStatus.FRESH,
+                observed_at=datetime.now(UTC),
+                fetched_at=datetime.now(UTC),
+                stale_after=datetime.now(UTC) + timedelta(days=1),
+                coverage_start=daily_start,
+                coverage_end=datetime(2025, 9, 30, 21, tzinfo=UTC),
+                extra_data={
+                    "adjustment_provenance": {
+                        "factor_status": "rebuildable_split_factors",
+                        "factor_version": "rrg-cache-v1",
+                    }
+                },
+            )
+        )
+    db.flush()
+
+    for target in (instrument, benchmark):
+        await materialize_derived_timeframes(session, target.id, adjusted=True)
+        for timeframe in (Timeframe.W1, Timeframe.MN):
+            state = (
+                db.query(InstrumentDatasetState)
+                .filter(
+                    InstrumentDatasetState.instrument_id == target.id,
+                    InstrumentDatasetState.data_source_id.is_(None),
+                    InstrumentDatasetState.dataset_key == f"{timeframe.value}:adj",
+                )
+                .one()
+            )
+            state.status = DatasetStatus.PENDING
+            state.coverage_start = None
+            state.coverage_end = None
+            state.extra_data = {"derived_bar_count": 0}
+    db.commit()
+
+    materialize_calls = []
+    original_materialize = materialize_derived_timeframes
+
+    async def count_materialize(*args, **kwargs):
+        materialize_calls.append((args[1], kwargs.get("end")))
+        return await original_materialize(*args, **kwargs)
+
+    monkeypatch.setattr(
+        "app.services.derived_timeframes.materialize_derived_timeframes", count_materialize
+    )
+
+    async def forbid_provider_io(*_args, **_kwargs):
+        raise AssertionError("cached RRG readiness must not issue provider requests")
+
+    monkeypatch.setattr("app.services.market_data.execute_provider_call", forbid_provider_io)
+
+    async def run_rrg():
+        return await group_relative_rotation(
+            group_key=group.stable_key,
+            benchmark=benchmark.symbol,
+            timeframe=Timeframe.MN,
+            adjusted=True,
+            as_of=None,
+            sampling=1,
+            lookback=2,
+            tail_length=2,
+            history_length=0,
+            _=None,
+            db=session,
+        )
+
+    first = await run_rrg()
+    assert first.rows and first.rows[0].trend is not None
+    assert len(first.rows[0].tail) == 2
+    assert not any(warning.code == "stale_data" for warning in first.rows[0].warnings)
+    assert len(materialize_calls) == 2
+    for target in (instrument, benchmark):
+        for timeframe in (Timeframe.W1, Timeframe.MN):
+            state = (
+                db.query(InstrumentDatasetState)
+                .filter(
+                    InstrumentDatasetState.instrument_id == target.id,
+                    InstrumentDatasetState.data_source_id.is_(None),
+                    InstrumentDatasetState.dataset_key == f"{timeframe.value}:adj",
+                )
+                .one()
+            )
+            assert state.status == DatasetStatus.FRESH
+            assert state.coverage_start is not None
+            assert state.coverage_end is not None
+            assert state.extra_data["derived_bar_count"] > 0
+
+    second = await run_rrg()
+    assert second.rows and second.rows[0].trend is not None
+    assert len(materialize_calls) == 2
 
 
 @pytest.mark.asyncio

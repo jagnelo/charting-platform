@@ -3,32 +3,28 @@
   "dependency": "provider-runtime-development-consumption",
   "state": "imported_for_strategy_consumer_development; full_release_qualification_pending",
   "root_authority": {
-    "contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider22c31cd3-runtime-development-consumption-contract.json",
-    "contract_sha256": "a5079b0eb78a8fd67e48e94a7d749bc171ffa2b21165fc9c59c405501dc2db85",
-    "superseded_contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providerdd05c5e8-runtime-development-consumption-contract.json",
-    "superseded_contract_sha256": "0be00f63f7c9c77b2f4c41696657e122bd54265ff68b614f6e9d958b074493e9",
+    "contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider9b196304-runtime-development-consumption-contract.json",
+    "contract_sha256": "fc1cbb7bd2fa5f5d0dcaf30177270ebab81f0572c2b50b1d381086441e32b353",
+    "superseded_contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider22c31cd3-runtime-development-consumption-contract.json",
+    "superseded_contract_sha256": "a5079b0eb78a8fd67e48e94a7d749bc171ffa2b21165fc9c59c405501dc2db85",
     "state": "released_for_exact_development_consumption_not_product_acceptance",
     "authority": "Root coordinates the human-approved common-interface implementation; no staging or deployment acceptance"
   },
   "producer": "original Provider session/worktree",
-  "source_commit": "22c31cd3e7f35e361e286ef40576d379aaf44449",
+  "source_commit": "9b196304b573e323fb349fe4d7badfe2d8208f95",
   "base_commit": "139b350238b5e1c8a170dce5af09a805301d857e",
-  "scope": "Source-specific unknown-depth planning and scoped native earliest-history witness with exact operation cost; explicit bounded requests retain eligible unknown-floor alternatives instead of inheriting a shallower provider ceiling. Actual owner focused proof is in its handoff. Native/provider, final combined and release acceptance remain pending. Existing fixture/calendar/cached-series and lineage contracts retained; no paid/trial activation, quota reset or arbitrary history floor.",
+  "scope": "Recover native identity persistence and rollback-safe worker retry; preserve historical identifier values without repeated suffix growth. Retain first-series, partial coverage, deeper coherent defaults and known local refill repairs. Recover completed negative holdings children through normal bounded deduplicated requests; flush derived W1/MN before state projection, inherit source freshness and preserve adjustment lineage, and recover existing pending/null-signature caches through ordinary reads. All prior source fallback, canonical identity, quotas, source lineage, independent datasets and background preparation retained. Preserve all native quotas, prior held outcomes, provider eligibility, compatible series and all earlier shared backend contracts. Actual native, combined, exact CI and release proof remains pending.",
   "qualification": {
-    "previous_source_evidence": "Provider dd05c5e8318ff59a90f879867cae9664dcc0de4f and its exact consumer history remain under historical_sources and ops/workstreams/feat-strategy-lab-v2/development-dependency-imports/dd05c5e8318ff59a90f879867cae9664dcc0de4f.json.",
+    "previous_source_evidence": "Provider 22c31cd3e7f35e361e286ef40576d379aaf44449 and its exact consumer import history remain in historical_sources and ops/workstreams/feat-strategy-lab-v2/development-dependency-imports/22c31cd3e7f35e361e286ef40576d379aaf44449.json.",
     "successor_evidence": {
-      "root_exact_manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider22c31cd3-runtime-development-consumption-contract.json",
-      "root_manifest_sha256": "a5079b0eb78a8fd67e48e94a7d749bc171ffa2b21165fc9c59c405501dc2db85",
-      "root_reported_owner_evidence": {
-        "owner": "See exact Provider handoff and validation records for focused proof; Root does not substitute this style export for functional, CI, real-source or browser proof",
-        "root_exact_export": "provider22c31cd3-exact-development-review.json",
-        "full_release": "pending"
-      },
-      "scope": "Source-specific unknown-depth planning and scoped native earliest-history witness with exact operation cost; explicit bounded requests retain eligible unknown-floor alternatives instead of inheriting a shallower provider ceiling. Actual owner focused proof is in its handoff. Native/provider, final combined and release acceptance remain pending. Existing fixture/calendar/cached-series and lineage contracts retained; no paid/trial activation, quota reset or arbitrary history floor.",
-      "full_release": "pending; no staging, deployment or live-source qualification is implied."
+      "root_exact_manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider9b196304-runtime-development-consumption-contract.json",
+      "root_manifest_sha256": "fc1cbb7bd2fa5f5d0dcaf30177270ebab81f0572c2b50b1d381086441e32b353",
+      "root_exact_style_review": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider9b196304-exact-development-review.json",
+      "scope": "Recover native identity persistence and rollback-safe worker retry; preserve historical identifier values without repeated suffix growth. Retain first-series, partial coverage, deeper coherent defaults and known local refill repairs. Recover completed negative holdings children through normal bounded deduplicated requests; flush derived W1/MN before state projection, inherit source freshness and preserve adjustment lineage, and recover existing pending/null-signature caches through ordinary reads. All prior source fallback, canonical identity, quotas, source lineage, independent datasets and background preparation retained. Preserve all native quotas, prior held outcomes, provider eligibility, compatible series and all earlier shared backend contracts. Actual native, combined, exact CI and release proof remains pending.",
+      "full_release": "pending; no staging, deployment, live-source or full-roadmap qualification is implied."
     },
-    "local_import_verification": "Imported only the 6 guarded Strategy paths. Verified all 67 manifest rows against SHA256, Git blob, status_from139 and executable-bit modes.",
-    "full_release_gates": "pending; Root owns combined browser/profile, exact-source CI and release acceptance."
+    "local_import_verification": "Imported only the 36 guarded Strategy paths. Verified all 76 source manifest rows and all consumer blobs, SHA256, base statuses and executable-bit modes.",
+    "full_release_gates": "pending; Root owns native, combined browser/profile, exact-source CI and release acceptance."
   },
   "strategy_consumer": {
     "component": "frontend/src/components/workstation/StudyLabTool.vue",
@@ -43,7 +39,7 @@
       "Study awaits all target outcomes before source validation/run dispatch, fences changed intents and aborts only obsolete client subscriptions.",
       "Provider owns durable queueing, worker scheduling, provider policy and series lineage; Strategy does not duplicate or activate these operations."
     ],
-    "qualification_boundary": "TC e902e835 and Provider22c31cd3 are exact development imports. R57 is terminal 5 pass / 4 fail on its frozen predecessor. R58b diagnosed the full Study-to-Library cold-flow miss as suggestion-layout reflow before click; the Strategy overlay repair and new Dashboard journeys remain unexecuted. No full-profile, exact-source CI, staging or release acceptance is implied.",
+    "qualification_boundary": "TC e902e835 common context and Provider 9b196304 are exact development imports. E099 remains terminal 4/10 on the frozen frontend e099a0ee/backend 13630db1; Root directly verified the bounded Study ensure request returns ready in 0.16s on the prior controlled backend, while the browser request burst is assigned to TC shared request lifecycle/dedup. No consumer browser, exact-source CI, combined acceptance or release qualification is implied.",
     "prior_client_pins": [
       {
         "source": "877df044d2496c5f1be0e86b4dd49503cc6e55db",
@@ -997,20 +993,32 @@
     {
       "path": "backend/app/routers/analysis.py",
       "status_from139": "M",
-      "git_blob": "8099306776174af5186e612d9a300bc64b5ecf7f",
-      "sha256": "5396c1c3178678947ab4c6fd70f51a65054b0d4d2e502aa06fc54875b2274212"
+      "git_blob": "2d39d0e2626fa64269020b18bad4eff0a124f4ba",
+      "sha256": "469c4ccd2262dad39cc824756167adae9c6f6f6d5e80643034b48ff8f65915d7"
     },
     {
       "path": "backend/app/routers/data_preparation.py",
       "status_from139": "A",
-      "git_blob": "6a076671ad88a0e4f93ca742a644d6fa8958032d",
-      "sha256": "3f263b31955de71deac04cccbbeb63add7b5ac9d59d8afcf9e0a25ba344d634b"
+      "git_blob": "27107e027c9e39f477a73fa9f58442342849e5ec",
+      "sha256": "1b48668eca087b4a0c221f0a534aa2a1f612f296a78298bdaf45815a32c72bd4"
+    },
+    {
+      "path": "backend/app/routers/instruments.py",
+      "status_from139": "M",
+      "git_blob": "7187af2f8e8af86e083011cebf7cf807cbc58192",
+      "sha256": "946a438135c22bc5ea706f7828c5ef71eb9e0164b6f1cb04dd43bf006e17a052"
     },
     {
       "path": "backend/app/routers/ohlcv.py",
       "status_from139": "M",
-      "git_blob": "d0921270b79f2ac24419a32833f75e5f441af96e",
-      "sha256": "420387926e48794e48cd452c04fbd9478b68980f0162762acdd434a019407b30"
+      "git_blob": "222cdcf8f496d2aff6e6cc81f12827ce023cdbc2",
+      "sha256": "f0a67ac5ba9d3c568099f9a8ce52396295e4fec0356bf16ecd5c76070abfd031"
+    },
+    {
+      "path": "backend/app/routers/providers.py",
+      "status_from139": "M",
+      "git_blob": "652d49c14a389a1f16ec7f45a7ece5dbf43bc60a",
+      "sha256": "96e7c9e956049c75660943cc5fae30cd249fc8a3eedc7968c5074664160c8864"
     },
     {
       "path": "backend/app/routers/research.py",
@@ -1045,8 +1053,8 @@
     {
       "path": "backend/app/services/data_preparation.py",
       "status_from139": "A",
-      "git_blob": "47cedcba03e7fc8ec718a2dc3fd5de28f302eb9d",
-      "sha256": "665433063a696ae1287cd427cbe334cfb18c163e9e908e67612f8fe5fd6a36f9"
+      "git_blob": "45dbdb9d55cc7ded828f1e1291a935d4496b54e9",
+      "sha256": "c5b43f639ca0120b5494ff9015f91549c2d07fa11df5e5e78fbe6978d3e273a8"
     },
     {
       "path": "backend/app/services/data_preparation_contracts.py",
@@ -1057,8 +1065,8 @@
     {
       "path": "backend/app/services/derived_timeframes.py",
       "status_from139": "M",
-      "git_blob": "3b2c6337ad25a533096f1a9ed213fcc7207d933f",
-      "sha256": "d88137707ebb337e7bb30ad7b2e55ba9c92b7c3e55c007b7d58c86a2caa492e5"
+      "git_blob": "723056233e9d5a4b08a6e0753364baea51693abe",
+      "sha256": "12eb40ee648befa0c8d1ad7e11741fb16204f05c5584056aba33702eb9af98e2"
     },
     {
       "path": "backend/app/services/e2e_seed.py",
@@ -1081,8 +1089,8 @@
     {
       "path": "backend/app/services/etf_holdings_refresh.py",
       "status_from139": "M",
-      "git_blob": "8ab7d7879661abb68309b668c61648cf212785cd",
-      "sha256": "e258f61bcc7aa288897999cb421d320512439e101157ff0f91fe5be4b216fce3"
+      "git_blob": "c2f0051c4a54f52d4c03a3424a58e662a41a6ec6",
+      "sha256": "c64d737b9f5ca0af7c7b960afe3bea9fc03c2ccc0e7e6b0c97dd29b563e0d4bf"
     },
     {
       "path": "backend/app/services/evaluator_preflight.py",
@@ -1105,26 +1113,26 @@
     {
       "path": "backend/app/services/instrument_mastering.py",
       "status_from139": "M",
-      "git_blob": "14a29699796ab68ad99f4352b6084130092967fe",
-      "sha256": "3bac765ed5e48d8027ec7382e80320b264edc396c12c74afdf17b40d31f74861"
+      "git_blob": "68ac9b55b83d243732088b413078fa26d5a1bd7d",
+      "sha256": "faf0c8967f688c75d693060cdcf74fa6d19c27a4464b8e33e6193daf1d622eae"
     },
     {
       "path": "backend/app/services/market_data.py",
       "status_from139": "M",
-      "git_blob": "4be042a3da3405e461b9a61d280e1a03ca7dac66",
-      "sha256": "6ddacd402572398b3e70d88c303d05ab2a8b21a59764692ac30522d628ea56c0"
+      "git_blob": "3fd30857b910d4529b4457330f011174728d8a42",
+      "sha256": "b865a768e692a83268336e63f9091a986e23edfe4d0b261d0553f046a20e223e"
     },
     {
       "path": "backend/app/services/market_refresh_queue.py",
       "status_from139": "M",
-      "git_blob": "ee5f702001d0670e8d4c37a9533c5bc4809d5521",
-      "sha256": "3ea7b26e93ae932bd17791c5032f2d21ec789fed34b74be7c45a905665525b5f"
+      "git_blob": "6ffae2c69dc32b008d1442cd7969bf5970008142",
+      "sha256": "0a51f75b81f5e936098477217a6f3862e4f25bb416f060015d0a595b25a610d7"
     },
     {
       "path": "backend/app/services/market_series.py",
       "status_from139": "M",
-      "git_blob": "a971b4c3acb7856596afb77508401b4347414a89",
-      "sha256": "eecfac599f3d6a097f282ba467271a13194f99148ea3ffff339d7c1795b73597"
+      "git_blob": "29d8d44e1d7a8784e5aefd897fcb34e95524bb62",
+      "sha256": "d4cc4ea17b07b3aa89661c0760dc7bdc1149f2a37f5d60af0320d0400434409b"
     },
     {
       "path": "backend/app/services/ohlcv_coverage.py",
@@ -1135,8 +1143,8 @@
     {
       "path": "backend/app/services/provider_runtime.py",
       "status_from139": "M",
-      "git_blob": "307fc7bb14e94b76b02a03acf7f6f6c4b78ca9dd",
-      "sha256": "60a9438595d2d4a772e971697b3496b295dd97091f2dcf2d6703e35cf0a73b28"
+      "git_blob": "a23301c5b95feb89359c89eae7a326c963ee5abe",
+      "sha256": "6114bd49cb1441907a9a19bd3755c94c8de5c383ed8a603d07b86f717b90f850"
     },
     {
       "path": "backend/app/services/screener_engine.py",
@@ -1153,8 +1161,8 @@
     {
       "path": "backend/app/tasks/data_tasks.py",
       "status_from139": "M",
-      "git_blob": "96a7ff5ab9d056445bcc55542d5471daa7b2168a",
-      "sha256": "4552cd54c6a2cae965f074b39d60cf4c8db56011f6bc3d297c22c5e6c5f6e4fe"
+      "git_blob": "27e74c1f9a1584917c2cbc65404fd3dfcf0c75c3",
+      "sha256": "4efe3de859ef6c2411d768bbf970cd5a344dab64899f24e1229ac6e641b76fe7"
     },
     {
       "path": "backend/app/workers/arq_worker.py",
@@ -1201,8 +1209,8 @@
     {
       "path": "backend/tests/unit/routers/test_analysis_router.py",
       "status_from139": "M",
-      "git_blob": "035f6fb82411b959f1dac807c4f19878f0674cea",
-      "sha256": "627a1cb968f97d73e4f16462d42fd68b6e00280292db94eed7c78b0539eef832"
+      "git_blob": "05e71082ebdac1d15986363c39b52ea67dc07831",
+      "sha256": "72b11ab035acd8d6e93d65f254d45039102b874d72c20d014094a4a7bec1a17d"
     },
     {
       "path": "backend/tests/unit/routers/test_calendar_router.py",
@@ -1213,14 +1221,26 @@
     {
       "path": "backend/tests/unit/routers/test_data_preparation_router.py",
       "status_from139": "A",
-      "git_blob": "33ab5fe3e37dee0dd43fde91af726d8e74a80f6e",
-      "sha256": "aafe967b75126e5aa1634ceb4c8267f84604c33dd9396ac9290c16e3e7dd227b"
+      "git_blob": "6c0c17d8b7cb73a1e30feaeb03f2aee3b37ea20a",
+      "sha256": "fad059d6ff0588fb321911ea556687473c182e9bb21ed75c65dc70ea6430f6e8"
+    },
+    {
+      "path": "backend/tests/unit/routers/test_instruments_router.py",
+      "status_from139": "M",
+      "git_blob": "eb96823a7dee08aa788b2bc0dd25bb9177f0775c",
+      "sha256": "c81498ceaae717cec70eec698783da8d7933d49a909579f2d4365beba729dbe7"
     },
     {
       "path": "backend/tests/unit/routers/test_ohlcv_router.py",
       "status_from139": "M",
-      "git_blob": "57cc0d615df4351a9a7f74ec798145f6ab9c1b0a",
-      "sha256": "7f676110a98ab05c8739acf0c094bc797c5486fe4298dcce5982b62027be3ede"
+      "git_blob": "57f979e2ee98d590f28e97c52db81cb7bb99f911",
+      "sha256": "ae31cbea7df63155fabf35d4e9ff620a5d94aac8f0034eb44f75a4681b120642"
+    },
+    {
+      "path": "backend/tests/unit/routers/test_providers_router.py",
+      "status_from139": "M",
+      "git_blob": "44de29959d57603b741d2b5c6aaad0325d5d8944",
+      "sha256": "e51e1ddc645fe9547ef78bf25e8e0c421912a2a336c28e919b4f5b08030e2aba"
     },
     {
       "path": "backend/tests/unit/routers/test_research_router.py",
@@ -1237,26 +1257,32 @@
     {
       "path": "backend/tests/unit/services/test_data_preparation_contracts.py",
       "status_from139": "A",
-      "git_blob": "794f8e8043d3164b53a4406db7acd5788ff02ac1",
-      "sha256": "d863fa6099ad77750a24391d652f92467c2e47d660711dc5e12862697ba9efca"
+      "git_blob": "18fc96bb461ec3bd6de682e10b55ad2662a31497",
+      "sha256": "6e81025d0acb4d6ebccd26f835738e6411e7295de58a757b9a607435dc470904"
     },
     {
       "path": "backend/tests/unit/services/test_data_preparation_history_planning.py",
       "status_from139": "A",
-      "git_blob": "10e51ae300e9d8463a9737f1bbf080438cce1174",
-      "sha256": "3f4cce785014db1397acc92b675e8142012203de4a8979b2b759db56eb623ae2"
+      "git_blob": "c0838112598e277e6bd88e89325cedea94e600fa",
+      "sha256": "b9cc3600cacaad9adcafde1eed4d55e2d09b408b356d9e73f46bdc6e40d10bae"
     },
     {
       "path": "backend/tests/unit/services/test_data_preparation_service.py",
       "status_from139": "A",
-      "git_blob": "9c52afab7f832634be26c24e2e7c7171db75b91b",
-      "sha256": "7be509956059fd19aa98b3de944829d1d9cb08ce729a4aaab85b0a07ce9833af"
+      "git_blob": "6378c6ee5c280ac02499186b32dbb980562d0d7b",
+      "sha256": "bd9cc6dc43e975a3d62c91e99c70f4e6d8f9a84178dee4b6fa6281c4b41363c1"
+    },
+    {
+      "path": "backend/tests/unit/services/test_data_preparation_worker_deeper_default.py",
+      "status_from139": "A",
+      "git_blob": "1bf74be5f807861aa5705b6fcdc4c11e5a3160a0",
+      "sha256": "d09f76d114e118c76ed0c235107e5e24d8845160fdc4a46f80092d0b3dc9795b"
     },
     {
       "path": "backend/tests/unit/services/test_derived_timeframes.py",
       "status_from139": "M",
-      "git_blob": "85811ade209a4adfbe1b095527453fa2608e9207",
-      "sha256": "a20cd49f05714cff8b14d564ca4a36ad0e0e3fe4888b4177f381d787c60bd66a"
+      "git_blob": "333160f0612e8150a09e6da5086373c3b409143f",
+      "sha256": "536576495edb6084e0464d3ab2934c09356392a1b02379bed85adecf49126cd6"
     },
     {
       "path": "backend/tests/unit/services/test_e2e_seed.py",
@@ -1269,6 +1295,12 @@
       "status_from139": "M",
       "git_blob": "b92a703639113398ef2b753f0927425ad6d5ed1b",
       "sha256": "3cdbcb0d10e2367b9cedc11d097950d8fbbdfb8ff3852af1bd9c34bf0d52e330"
+    },
+    {
+      "path": "backend/tests/unit/services/test_etf_holdings_bootstrap.py",
+      "status_from139": "M",
+      "git_blob": "867986a09f6534c706ea8bbbf588ea66aa29ea65",
+      "sha256": "2e5726a5c855c16c67b1352e5d4285140a7bd82afdc570b12d99fd4968898c5a"
     },
     {
       "path": "backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py",
@@ -1291,8 +1323,14 @@
     {
       "path": "backend/tests/unit/services/test_etf_holdings_preparation_hook.py",
       "status_from139": "A",
-      "git_blob": "d745f4845a06708a8deaa5fd7f3a3c8a3a39b560",
-      "sha256": "2d4ff55d6dbf495c42ad3f6cc1728aa98d6269fdb577afbbe9700c1a08f213f0"
+      "git_blob": "4b48c647a0a13891f9f55bd3aafb16232792164e",
+      "sha256": "d50b231ee6aa2b5f7f471f114cf5620622890ebaae8df4e57c90671a1cc44f47"
+    },
+    {
+      "path": "backend/tests/unit/services/test_etf_holdings_provider_bridge.py",
+      "status_from139": "M",
+      "git_blob": "964045c9cc1832e56fa40abd64c7a670f02c117d",
+      "sha256": "3cc309c786b952827a44b20591020fc20fac0e64bcd1b077436d1bdddebe1e73"
     },
     {
       "path": "backend/tests/unit/services/test_etf_issuer_catalog.py",
@@ -1315,20 +1353,32 @@
     {
       "path": "backend/tests/unit/services/test_market_data.py",
       "status_from139": "M",
-      "git_blob": "b388a6d0d70e47b1467853423ae5162072398364",
-      "sha256": "1af74e5e49557198f3dc6de7fa94a31516367159c2d909dab630501fca727b76"
+      "git_blob": "28b1913a88a5fcd26cadc17216565ca3199f8232",
+      "sha256": "a6942812281b4af644430fbc31ccd07a8637ae78d1961f627093ed8282890e01"
     },
     {
       "path": "backend/tests/unit/services/test_market_refresh_queue.py",
       "status_from139": "M",
-      "git_blob": "8f3fa448896f7c2d9a39bf86eae23a9e16e11caa",
-      "sha256": "5f0b94451148f877fdbfbc3c8c32664d06e355c15eebc676cd384e49cd881dae"
+      "git_blob": "9bb8ab769738423af573af5426c0ce6d7928d12b",
+      "sha256": "7b679ab3e5299d9ccb2a72c8c8801a299daea765712b6cac782669e088ef9ca9"
     },
     {
       "path": "backend/tests/unit/services/test_market_series_defaults.py",
       "status_from139": "M",
-      "git_blob": "1d80bdd386cce3232181f59b7fcae52c5423c16e",
-      "sha256": "45020f23deb48434a2065f8828a9e0d45577e2da982ea0ee8834443866f84c7f"
+      "git_blob": "f4a80f5eb1d75d96886a2a0c271fd119d4827990",
+      "sha256": "abc510d61a90844d31437210234c35b37db2318aca76506024b5645ad4597095"
+    },
+    {
+      "path": "backend/tests/unit/services/test_provider_persistence.py",
+      "status_from139": "M",
+      "git_blob": "27c246db9ced29a634105457f288da22955654a1",
+      "sha256": "dc5b10caedb8af4a44270a1742fd12f8558ee0c0abfc4643937f09b3fa23c7b8"
+    },
+    {
+      "path": "backend/tests/unit/services/test_provider_quota_contract.py",
+      "status_from139": "M",
+      "git_blob": "650b49d95cd38b5240a0935036bd408f2887c165",
+      "sha256": "73607ea8eb483b41b216a7cf818494e1a25e7dc44d61619d19d25e8f09bbdb53"
     },
     {
       "path": "backend/tests/unit/services/test_provider_quota_coordinator.py",
@@ -1339,8 +1389,8 @@
     {
       "path": "backend/tests/unit/services/test_provider_runtime.py",
       "status_from139": "M",
-      "git_blob": "9920483f34e2dda17ef49528429257b1a9853dc9",
-      "sha256": "f607b2c6e67954e996ba47916ad9875d3eb8698ce4a0d53c430aa3e85436fc3c"
+      "git_blob": "bbff0c9ef12fd86e7e0fffa248e73d453025f1b2",
+      "sha256": "d6aa4d332bfa3733894cdf555142fb95666eb797af1de279eac5a81f8879a549"
     },
     {
       "path": "backend/tests/unit/services/test_workstation_tool_catalogue.py",
@@ -1351,20 +1401,20 @@
     {
       "path": "backend/tests/unit/tasks/test_data_tasks.py",
       "status_from139": "M",
-      "git_blob": "6b5dbdbba5f3b0a5f4af2e27d5fa8db2abd30623",
-      "sha256": "3d2271a807e7bc30d7c2510c01d9faeb730422f7c3aff3d9b5e5eaca97425a28"
+      "git_blob": "ed65c8843422808036ff11b11cd4c96115e62b03",
+      "sha256": "0eb8ec2416869744bfbf3876e1a2e77e6714c151a881859c391a5325b8cb83dc"
     },
     {
       "path": "backend/tests/unit/tasks/test_native_usage_prerequisite.py",
       "status_from139": "A",
-      "git_blob": "4d4933dcfea1b1d051e25fa0fc008b977c452082",
-      "sha256": "b53638df1eae692b448e287b1a21fc7e83e62463b7a2f197b70a227b8e1fa987"
+      "git_blob": "a45abe43c3a3147427fba1720575bc97a67624ae",
+      "sha256": "ad18cc0bf29385123869b3f09f910bea6d9814ba8211d3dca67f3e7543a998fa"
     },
     {
       "path": "backend/tests/unit/workers/test_arq_worker.py",
       "status_from139": "M",
-      "git_blob": "1b3578e9d1fbb612bc3ad7f3dc4ff235a181b6b6",
-      "sha256": "29ed8466dd10417310afadcc00cbd7d6b736806576a6e31974270c6bba25d886"
+      "git_blob": "31c1751c06bfdc5ce81f666c81f2a9a0c991fcb3",
+      "sha256": "967b6727bf7c4ce06de5b51e48d5c8aff5a33c4627a658f6d48f8ed6149a632a"
     }
   ],
   "excluded": [
@@ -1377,23 +1427,53 @@
   "preserve": "Keep complete roadmap and previous manifests as immutable history; preserve domain frontend/parser edits. Root owns combined qualification and release.",
   "no_new_tables_or_migration": true,
   "import_verification": {
-    "method": "Imported only the exact 6 Strategy consumer paths after all old guards passed; verified all 67 manifest source rows, SHA256, Git blobs, base status and executable-bit modes.",
-    "path_count": 6,
-    "changed_paths_count": 6,
-    "source_manifest_entries_verified": 67,
+    "method": "Imported only the exact 36 Strategy consumer paths after all old guards passed; verified all 76 source manifest rows, Git blobs, SHA256, status_from139, and Git executable-bit modes.",
+    "path_count": 36,
+    "changed_paths_count": 36,
+    "source_manifest_entries_verified": 76,
     "git_blob_and_sha256_verified": true,
     "status_from139_verified": true,
     "executable_bit_verified": true,
     "consumer_import_paths": [
-      "backend/app/config.py",
-      "backend/app/providers/optional_market_data.py",
+      "backend/app/routers/analysis.py",
+      "backend/app/routers/data_preparation.py",
+      "backend/app/routers/instruments.py",
+      "backend/app/routers/ohlcv.py",
+      "backend/app/routers/providers.py",
+      "backend/app/services/data_preparation.py",
+      "backend/app/services/derived_timeframes.py",
+      "backend/app/services/etf_holdings_refresh.py",
+      "backend/app/services/instrument_mastering.py",
+      "backend/app/services/market_data.py",
+      "backend/app/services/market_refresh_queue.py",
+      "backend/app/services/market_series.py",
       "backend/app/services/provider_runtime.py",
       "backend/app/tasks/data_tasks.py",
-      "backend/tests/unit/providers/test_optional_market_data.py",
-      "backend/tests/unit/services/test_data_preparation_history_planning.py"
+      "backend/tests/unit/routers/test_analysis_router.py",
+      "backend/tests/unit/routers/test_data_preparation_router.py",
+      "backend/tests/unit/routers/test_instruments_router.py",
+      "backend/tests/unit/routers/test_ohlcv_router.py",
+      "backend/tests/unit/routers/test_providers_router.py",
+      "backend/tests/unit/services/test_data_preparation_contracts.py",
+      "backend/tests/unit/services/test_data_preparation_history_planning.py",
+      "backend/tests/unit/services/test_data_preparation_service.py",
+      "backend/tests/unit/services/test_data_preparation_worker_deeper_default.py",
+      "backend/tests/unit/services/test_derived_timeframes.py",
+      "backend/tests/unit/services/test_etf_holdings_bootstrap.py",
+      "backend/tests/unit/services/test_etf_holdings_preparation_hook.py",
+      "backend/tests/unit/services/test_etf_holdings_provider_bridge.py",
+      "backend/tests/unit/services/test_market_data.py",
+      "backend/tests/unit/services/test_market_refresh_queue.py",
+      "backend/tests/unit/services/test_market_series_defaults.py",
+      "backend/tests/unit/services/test_provider_persistence.py",
+      "backend/tests/unit/services/test_provider_quota_contract.py",
+      "backend/tests/unit/services/test_provider_runtime.py",
+      "backend/tests/unit/tasks/test_data_tasks.py",
+      "backend/tests/unit/tasks/test_native_usage_prerequisite.py",
+      "backend/tests/unit/workers/test_arq_worker.py"
     ],
     "consumer_import_exact": true,
-    "checked_at": "2026-11-07T15:42:32+00:00"
+    "checked_at": "2026-11-07T23:43:01Z"
   },
   "historical_sources": [
     {
@@ -6054,20 +6134,68 @@
         "backend/tests/unit/services/test_market_data.py"
       ],
       "qualification": "Development-only dependency; its exact manifest rows and local guards remain in the linked immutable receipt. Full combined/release proof pending."
+    },
+    {
+      "source_commit": "22c31cd3e7f35e361e286ef40576d379aaf44449",
+      "superseded_by": "9b196304b573e323fb349fe4d7badfe2d8208f95",
+      "contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider22c31cd3-runtime-development-consumption-contract.json",
+      "contract_sha256": "a5079b0eb78a8fd67e48e94a7d749bc171ffa2b21165fc9c59c405501dc2db85",
+      "scope": "Source-specific unknown-depth planning and scoped native earliest-history witness with exact operation cost; explicit bounded requests retain eligible unknown-floor alternatives instead of inheriting a shallower provider ceiling. Actual owner focused proof is in its handoff. Native/provider, final combined and release acceptance remain pending. Existing fixture/calendar/cached-series and lineage contracts retained; no paid/trial activation, quota reset or arbitrary history floor.",
+      "local_import_receipt": "ops/workstreams/feat-strategy-lab-v2/development-dependency-imports/22c31cd3e7f35e361e286ef40576d379aaf44449.json",
+      "consumer_import_paths": [
+        "backend/app/config.py",
+        "backend/app/providers/optional_market_data.py",
+        "backend/app/services/provider_runtime.py",
+        "backend/app/tasks/data_tasks.py",
+        "backend/tests/unit/providers/test_optional_market_data.py",
+        "backend/tests/unit/services/test_data_preparation_history_planning.py"
+      ],
+      "qualification": "Preserved exact previous active Provider development import and evidence; superseded as the current pin only."
     }
   ],
   "successor": {
-    "previous_source": "dd05c5e8318ff59a90f879867cae9664dcc0de4f",
+    "previous_source": "13630db12d4f0f5810b9baa73725f75fb7e653cc",
+    "previous_consumer_pin": "22c31cd3e7f35e361e286ef40576d379aaf44449",
     "changed_paths_since_previous": [
-      "backend/app/config.py",
-      "backend/app/providers/optional_market_data.py",
+      "backend/app/routers/analysis.py",
+      "backend/app/routers/data_preparation.py",
+      "backend/app/routers/instruments.py",
+      "backend/app/routers/ohlcv.py",
+      "backend/app/routers/providers.py",
+      "backend/app/services/data_preparation.py",
+      "backend/app/services/derived_timeframes.py",
+      "backend/app/services/etf_holdings_refresh.py",
+      "backend/app/services/instrument_mastering.py",
+      "backend/app/services/market_data.py",
+      "backend/app/services/market_refresh_queue.py",
+      "backend/app/services/market_series.py",
       "backend/app/services/provider_runtime.py",
       "backend/app/tasks/data_tasks.py",
-      "backend/tests/unit/providers/test_optional_market_data.py",
-      "backend/tests/unit/services/test_data_preparation_history_planning.py"
+      "backend/tests/unit/routers/test_analysis_router.py",
+      "backend/tests/unit/routers/test_data_preparation_router.py",
+      "backend/tests/unit/routers/test_instruments_router.py",
+      "backend/tests/unit/routers/test_ohlcv_router.py",
+      "backend/tests/unit/routers/test_providers_router.py",
+      "backend/tests/unit/services/test_data_preparation_contracts.py",
+      "backend/tests/unit/services/test_data_preparation_history_planning.py",
+      "backend/tests/unit/services/test_data_preparation_service.py",
+      "backend/tests/unit/services/test_data_preparation_worker_deeper_default.py",
+      "backend/tests/unit/services/test_derived_timeframes.py",
+      "backend/tests/unit/services/test_etf_holdings_bootstrap.py",
+      "backend/tests/unit/services/test_etf_holdings_preparation_hook.py",
+      "backend/tests/unit/services/test_etf_holdings_provider_bridge.py",
+      "backend/tests/unit/services/test_market_data.py",
+      "backend/tests/unit/services/test_market_refresh_queue.py",
+      "backend/tests/unit/services/test_market_series_defaults.py",
+      "backend/tests/unit/services/test_provider_persistence.py",
+      "backend/tests/unit/services/test_provider_quota_contract.py",
+      "backend/tests/unit/services/test_provider_runtime.py",
+      "backend/tests/unit/tasks/test_data_tasks.py",
+      "backend/tests/unit/tasks/test_native_usage_prerequisite.py",
+      "backend/tests/unit/workers/test_arq_worker.py"
     ],
-    "successor_scope": "Source-specific unknown-depth planning and scoped native earliest-history witness with exact operation cost; explicit bounded requests retain eligible unknown-floor alternatives instead of inheriting a shallower provider ceiling. Actual owner focused proof is in its handoff. Native/provider, final combined and release acceptance remain pending. Existing fixture/calendar/cached-series and lineage contracts retained; no paid/trial activation, quota reset or arbitrary history floor.",
-    "full_release_qualification": "Pending Root combined browser/exact-source qualification; this development import is not product acceptance."
+    "successor_scope": "Recover native identity persistence and rollback-safe worker retry; preserve historical identifier values without repeated suffix growth. Retain first-series, partial coverage, deeper coherent defaults and known local refill repairs. Recover completed negative holdings children through normal bounded deduplicated requests; flush derived W1/MN before state projection, inherit source freshness and preserve adjustment lineage, and recover existing pending/null-signature caches through ordinary reads. All prior source fallback, canonical identity, quotas, source lineage, independent datasets and background preparation retained. Preserve all native quotas, prior held outcomes, provider eligibility, compatible series and all earlier shared backend contracts. Actual native, combined, exact CI and release proof remains pending.",
+    "full_release_qualification": "Pending Root combined/browser/native/exact-source qualification; this import is not product acceptance."
   },
   "superseded_manifest_contracts": [
     {
@@ -6153,9 +6281,15 @@
       "sha256": "0be00f63f7c9c77b2f4c41696657e122bd54265ff68b614f6e9d958b074493e9",
       "superseded_by": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider22c31cd3-runtime-development-consumption-contract.json",
       "reason": "Exact Provider22c31cd3 development successor replaces the active dd05 source pin; the dd05 receipt and all earlier Provider history remain preserved."
+    },
+    {
+      "path": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider22c31cd3-runtime-development-consumption-contract.json",
+      "sha256": "a5079b0eb78a8fd67e48e94a7d749bc171ffa2b21165fc9c59c405501dc2db85",
+      "superseded_by": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider9b196304-runtime-development-consumption-contract.json",
+      "reason": "Provider 22c31cd3 exact development source is preserved in historical_sources and superseded by 9b196304b573e323fb349fe4d7badfe2d8208f95."
     }
   ],
-  "supersedes_manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider22c31cd3-runtime-development-consumption-contract.json",
+  "supersedes_manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider9b196304-runtime-development-consumption-contract.json",
   "metadata_correction": {
     "at": "2026-11-07T01:23:23.038877+00:00",
     "original_contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider732da0f9-runtime-development-consumption-contract.json",
@@ -6167,5 +6301,5 @@
   },
   "client_owner": "TC; exact86-path common runtime verified; Strategy imports only the declared WorkstationView.vue delta at d954.",
   "client_release_commit": "d954436898a254ba9bb461ebc86a55f248172d5d",
-  "qualification_boundary": "TC d954436898a254ba9bb461ebc86a55f248172d5d and Provider22c31cd3 are exact development imports. Root R57 remains terminal5/4 on its frozen predecessor; current common-context adoption does not change that result. No combined browser, exact-source CI, or release acceptance is implied."
+  "qualification_boundary": "Provider 9b196304 is an exact development import. Root directly verified the same bounded Study ensure request returns ready in 0.16 seconds on its controlled diagnostic runtime; E099 browser traffic instead showed repeated shared preparation requests during tool close/recreate, owned by TC. E099 remains 4/10 red on its frozen source. No owner runtime/browser, exact-source CI, combined acceptance, staging or release acceptance is claimed."
 }
