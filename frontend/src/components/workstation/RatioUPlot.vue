@@ -7,7 +7,7 @@
         <button type="button" class="ratio-chart__add" aria-label="Add ratio comparison" @click="addBenchmark"><WorkstationGlyph kind="plus" /></button>
         <button v-for="benchmark in localBenchmarks" :key="benchmark" type="button" class="ratio-chart__chip" :aria-label="`Remove ratio comparison ${benchmark}`" :disabled="localBenchmarks.length <= 1" @click="removeBenchmark(benchmark)">{{ benchmark }} <WorkstationGlyph kind="close" /></button>
       </template>
-      <label>As of <input v-model="asOfDraft" type="date" aria-label="Ratio as of" /></label><span role="status" aria-live="polite">{{ preparationMessage || (loading ? 'Checking ratio inputs…' : status) }}</span>
+      <label>As of <input v-model="asOfDraft" type="date" aria-label="Ratio as of" /></label><span role="status" aria-live="polite">{{ legendStatus }}</span>
     </div>
     <div v-if="error" class="ratio-chart__state ratio-chart__state--error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</div>
     <div v-else-if="!hasPoints" class="ratio-chart__state" role="status" aria-live="polite" aria-atomic="true">No aligned local bars.</div>
@@ -53,6 +53,13 @@ const preparationMessage = computed(() => [
   ...Object.entries(preparationByBenchmark.value).filter(([, message]) => message).map(([benchmark, message]) => `${benchmark}: ${message}`),
   ...Object.entries(analysisFailureByBenchmark.value).map(([benchmark, message]) => `${benchmark}: ${message}`),
 ].join(' · '))
+const legendStatus = computed(() => {
+  const localStatus = loading.value && !hasPoints.value ? 'Checking ratio inputs…' : status.value
+  if (!preparationMessage.value) return localStatus
+  // A preparation hold describes work that could not extend the local range;
+  // it must not hide the successful local calculation or its adjustment basis.
+  return hasPoints.value ? `${localStatus} · ${preparationMessage.value}` : preparationMessage.value
+})
 const loading = ref(false)
 const asOfDraft = ref(props.asOf ? props.asOf.slice(0, 10) : '')
 let chart: uPlot | null = null

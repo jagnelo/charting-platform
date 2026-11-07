@@ -120,8 +120,12 @@ describe('RatioUPlot', () => {
     vi.mocked(api.get).mockResolvedValue({ coverage: 0.6, points: [{ timestamp: '2026-01-01T00:00:00Z', value: 1.2 }], warnings: [] })
     const wrapper = mountTool({ props: { symbol: 'NVDA', benchmarks: ['SPY'] } })
 
-    await vi.waitFor(() => expect(wrapper.text()).toContain('credentials are not available'))
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain('credentials are not available')
+      expect(wrapper.get('.ratio-chart__legend [role="status"]').text()).toContain('local adjusted')
+    })
     expect(wrapper.text()).toContain('NVDA/SPY')
+    expect(wrapper.find('.ratio-chart__host').exists()).toBe(true)
     expect(wrapper.text()).not.toContain('source_credentials_not_configured')
     expect(api.get).toHaveBeenCalledWith('/analysis/relative-strength', expect.objectContaining({ symbol: 'NVDA', benchmark: 'SPY' }), expect.any(Object))
   })
@@ -139,7 +143,8 @@ describe('RatioUPlot', () => {
     await vi.waitFor(() => expect(uPlot).toHaveBeenCalledTimes(1))
     expect(wrapper.get('.ratio-chart').attributes('aria-busy')).toBe('true')
     expect(wrapper.text()).toContain('NVDA/SPY')
-    expect(wrapper.text()).toContain('Checking ratio inputs…')
+    expect(wrapper.get('.ratio-chart__legend [role="status"]').text()).toContain('local adjusted')
+    expect(wrapper.get('.ratio-chart__legend [role="status"]').text()).not.toContain('Checking ratio inputs…')
     releasePreparation({
       request_id: 'ratio-held', status: 'unavailable', created_at: '2026-11-06T12:00:00Z', updated_at: '2026-11-06T12:00:00Z',
       version: 1, target: {}, completed: 1, total: 2, last_progress_at: '2026-11-06T12:00:00Z', dependencies: [{
@@ -148,7 +153,11 @@ describe('RatioUPlot', () => {
         covered_ranges: [], reason_code: 'history_provider_unavailable', retry_at: null, updated_at: '2026-11-06T12:00:00Z',
       }],
     })
-    await vi.waitFor(() => expect(wrapper.text()).toContain('reviewed data source'))
+    await vi.waitFor(() => {
+      const legendStatus = wrapper.get('.ratio-chart__legend [role="status"]').text()
+      expect(legendStatus).toContain('reviewed data source')
+      expect(legendStatus).toContain('local adjusted')
+    })
     expect(uPlot).toHaveBeenCalledTimes(1)
     expect(wrapper.text()).toContain('NVDA/SPY')
     wrapper.unmount()
@@ -167,6 +176,7 @@ describe('RatioUPlot', () => {
     await vi.waitFor(() => expect(wrapper.text()).toContain('available local results remain visible'))
     expect(wrapper.text()).not.toContain('provider_quota_admission_denied')
     expect(wrapper.text()).toContain('NVDA/SPY')
+    expect(wrapper.get('.ratio-chart__legend [role="status"]').text()).toContain('local adjusted')
     expect(uPlot).toHaveBeenCalledTimes(1)
     wrapper.unmount()
   })
