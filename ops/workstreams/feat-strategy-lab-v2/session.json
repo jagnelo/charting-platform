@@ -50,16 +50,19 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "current_blocker": "Root R378 comparison-tooltip test failed because a separate boundingBox snapshot returned null immediately after the plot was found visible and both plotted series had painted. Trace and screenshot support a detached-prone test interaction, not sustained product flicker. Strategy replaced raw coordinate movement with locator.hover() while retaining tooltip and series assertions. Root’s immutable 65-case profile was running at inspection (frontend 378eaa78b3ff113c05d798811163228be5dce7e9, backend e8701591e23a0207d4292476d30a24c6f5d6ed7b, two workers, zero retries); no browser/harness mutation was made.",
+  "current_blocker": "Root R378 terminal profile is red (33 passed/32 failed, zero retries). Strategy updated only its Study/Results/Library and workstation E2E contracts: the generic market-group wait now requires actual rows; an empty personal WatchList is created through public controls and SPY membership/list identity are checked through reload; duplicate Results panes are avoided and persisted immutable SPY run detail is asserted separately from editable XLB draft. Factory Study still receives no_eligible_history_provider with has_pending_work=false and null requested bounds for retained 2024-01-01..2025-12-29; do not claim validation or run success. R378 also showed Library assets GET 200 while the common host stayed Loading tool\u2026; Strategy now waits for the exact response and seeded row, while persistent lazy activation/status behavior is TC-owned. Root owns the next combined browser profile; all18 roadmap criteria and safety holds remain open.",
   "current_execution_checkpoint": {
     "authority": "Human-activated platform-usability plan; existing session-local goal aligned in place by Root, no objective/accounting reset.",
     "full_roadmap_preserved": true,
-    "heavy_profile": "Root’s immutable 65-case profile remains owned by Root. R378 isolated a null boundingBox interaction after visible uPlot and painted-series checks; Strategy test now uses ordinary locator.hover() for both initial/restored tooltip witnesses without changing tooltip, value, or plotted-series assertions. No product defect was evidenced and no browser body reran locally.",
+    "heavy_profile": "Root\u2019s immutable 65-case profile remains owned by Root. R378 isolated a null boundingBox interaction after visible uPlot and painted-series checks; Strategy test now uses ordinary locator.hover() for both initial/restored tooltip witnesses without changing tooltip, value, or plotted-series assertions. No product defect was evidenced and no browser body reran locally.",
     "id": "strategy-study-usability-2026-11-06",
     "next_action": "Freeze the hover-only test correction and hand the exact commit to Root; do not run a competing browser or modify the immutable profile.",
     "status": "in_progress"
   },
   "dirty_paths": [
+    "frontend/tests/e2e/strategy_study_journey.spec.ts",
+    "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts",
+    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
     "ops/workstreams/feat-strategy-lab-v2/session.json",
     "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
   ],
@@ -96,12 +99,12 @@
     }
   ],
   "goal_unavailable_reason": null,
-  "head": "8ae5f9aca10803f300b6d5a41a3bced447f70ebc",
+  "head": "537630b27acc619d821f3da4b05e5875e87f8960",
   "implementation_sha": "55851d2b953ce38de5afe59ba90b613ffde08f87",
   "last_checkpoint": "2026-11-07T19:28:47Z",
   "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Freeze and hand Root this test-only candidate for the next affected journey run. Do not run a local browser/native/full suite.",
+  "next_action": "Root to consume and run the two Strategy-owned E2E spec updates in the next combined profile; keep SPY history/default-source availability and shared Library lazy activation/status unresolved until actual evidence.",
   "parent_branch": "staging",
   "plan_hash": "aa4900899cbce55fa6895a6a928364a60164739ed8618a0585838d8790e87188",
   "planning_required": false,
@@ -132,11 +135,11 @@
       "SU3",
       "SU4"
     ],
-    "current_blocker": "Root R68 is terminal with 1 pass / 4 fail on frontend 851b4dbe556c2d03951fd20a245aefc2000d3c6b and backend ec44347092a140b3b0cf615da8f2e77dedf2d5cc. Strategy corrected the three assigned test contracts: both Dashboard Details loops scope label locators through the widget's page; the completed second Study run is read through the existing authenticated browser fetch and checked for persisted XLB canonical identity; Coverage now follows the public active symbol and compares the exact canonical D1 count/provenance. The reference-only checker reports no actionable unbound references; unrelated Node ambient and fixture/type advisories remain unqualified. No browser body or product change ran. TC owns the separate Gauge race repair; Root owns the next combined browser run. Full qualification, original roadmap and safety holds remain open.",
+    "current_blocker": "Root R378 terminal profile is red (33 passed/32 failed, zero retries). Strategy updated only its Study/Results/Library and workstation E2E contracts: the generic market-group wait now requires actual rows; an empty personal WatchList is created through public controls and SPY membership/list identity are checked through reload; duplicate Results panes are avoided and persisted immutable SPY run detail is asserted separately from editable XLB draft. Factory Study still receives no_eligible_history_provider with has_pending_work=false and null requested bounds for retained 2024-01-01..2025-12-29; do not claim validation or run success. R378 also showed Library assets GET 200 while the common host stayed Loading tool\u2026; Strategy now waits for the exact response and seeded row, while persistent lazy activation/status behavior is TC-owned. Root owns the next combined browser profile; all18 roadmap criteria and safety holds remain open.",
     "current_phase": "strategy-study-usability-2026-11-06",
-    "next_action": "Freeze and hand Root this test-only candidate for the next affected journey run. Do not run a local browser/native/full suite.",
+    "next_action": "Root to consume and run the two Strategy-owned E2E spec updates in the next combined profile; keep SPY history/default-source availability and shared Library lazy activation/status unresolved until actual evidence.",
     "total": 9,
-    "updated_at": "2026-11-07T19:28:47Z"
+    "updated_at": "2026-11-07T20:53:16Z"
   },
   "remote": "b555268b8237d1c50e34b39320b4cb18a8bd9a03",
   "remote_sha": "b555268b8237d1c50e34b39320b4cb18a8bd9a03",
@@ -243,7 +246,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for Strategy Lab v2 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-11-07T20:14:11Z",
+  "updated_at": "2026-11-07T20:53:16Z",
   "validation_tier": "full_integration",
   "workstream": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2",
   "workstream_files": [

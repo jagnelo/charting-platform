@@ -262,10 +262,21 @@ function escapeRegExp(value: string) {
 async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUTCOMES[string], configuration: Record<string, unknown> = {}) {
   const tool = await activatePanel(page, title)
   if (kind === 'watchlist') {
-    const rows = tool.locator('.watchlist__row')
+    const table = tool.locator('.watchlist').first()
+    const rows = table.locator('.watchlist__row')
     const spyRow = tool.getByRole('option', { name: /^SPY\s/ })
     const emptyPersonalList = tool.getByText('No personal watchlists available.', { exact: true })
-    await expect.poll(async () => (await rows.count()) > 0 || await emptyPersonalList.isVisible()).toBe(true)
+    const isPersonalWatchlist = configuration.personal === true || title === 'WatchList' || title === 'My Favorites'
+    if (isPersonalWatchlist && title !== 'My Favorites') {
+      await expect.poll(async () => (await rows.count()) > 0 || await emptyPersonalList.isVisible(), { timeout: 20_000 }).toBe(true)
+    } else {
+      // Factory market-group tools (Benchmarks, Sectors, and Constituents)
+      // share the virtual table renderer, not the personal-list empty state.
+      // A pending refresh is fine if cached rows are already useful; never
+      // treat an empty table or the personal-list message as a successful panel.
+      await expect(table).toBeVisible({ timeout: 20_000 })
+      await expect.poll(() => rows.count(), { timeout: 20_000 }).toBeGreaterThan(0)
+    }
     if (title === 'WatchList' && await spyRow.count() === 0) {
       if (await rows.count() === 0) {
         const listName = `Factory journey ${Date.now()}`
@@ -739,6 +750,26 @@ test.describe('Workstation lifecycle journeys', () => {
       await catalogue.getByRole('menuitem', { name: item.title, exact: true }).click()
       await assertUsefulTool(page, item.title, kind)
     }
+
+    const createdWatchlist = await activatePanel(page, 'WatchList')
+    const selectedList = createdWatchlist.getByRole('combobox', { name: 'Personal watchlist', exact: true })
+    const selectedListId = await selectedList.inputValue()
+    expect(Number.isInteger(Number(selectedListId)) && Number(selectedListId) > 0).toBe(true)
+    const selectedListOption = selectedList.locator(`option[value="${selectedListId}"]`)
+    const selectedListName = (await selectedListOption.innerText()).trim()
+    expect(selectedListName).toMatch(/^Factory journey /)
+    await expect(createdWatchlist.getByRole('option', { name: /^SPY\s/ })).toBeVisible()
+
+    await page.reload()
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
+    await activateLayout(page, 'US Top Down')
+    const restoredWatchlist = await activatePanel(page, 'WatchList')
+    const restoredSelection = restoredWatchlist.getByRole('combobox', { name: 'Personal watchlist', exact: true })
+    await expect(restoredSelection.locator(`option[value="${selectedListId}"]`)).toHaveText(selectedListName)
+    await expect(restoredSelection).toHaveValue(selectedListId)
+    const restoredSpy = restoredWatchlist.getByRole('option', { name: /^SPY\s/ })
+    await expect(restoredSpy).toBeVisible({ timeout: 20_000 })
+    await expect(restoredSpy).toHaveAttribute('aria-label', /SPY .+Last:.*\d/)
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
