@@ -816,6 +816,54 @@ async function selectFirst() {
       errorMessage.value = `More than one listing matches ${query.value.trim().toUpperCase()}. Choose the correct exchange listing.`
       return
     }
+    if (props.mode === 'picker' && !optionExplicitlyNavigated.value && props.allowSourceDiscovery
+      && ((pendingSearch?.generation === searchGeneration && pendingSearch.query === query.value.trim()) || discoveryHeld.value)) {
+      const submittedQuery = query.value.trim()
+      // A prefix query can already have a useful visible local result while
+      // source discovery is only scheduled. Preserve picker Enter semantics
+      // for that result; only exact ticker intent waits for canonical resolve.
+      if (highlightIdx.value >= 0 && highlightIdx.value < results.value.length
+        && results.value[highlightIdx.value].symbol.trim().toUpperCase() !== submittedQuery.toUpperCase()) {
+        select(results.value[highlightIdx.value])
+        return
+      }
+      const generation = searchGeneration
+      const pending = pendingSearch
+      if (pending?.generation === generation && pending.query === submittedQuery) {
+        pendingEnterIntent = { generation, query: submittedQuery, lastRetryAtMs: 0 }
+        await pending.promise
+      } else if (discoveryHeld.value) {
+        await retryHeldDiscoveryForEnter(submittedQuery, generation)
+      }
+      if (generation !== searchGeneration || query.value.trim() !== submittedQuery) return
+      if (pendingEnterIntent?.generation === generation) pendingEnterIntent = null
+
+      const exactResults = results.value.filter(result =>
+        result.symbol.trim().toUpperCase() === submittedQuery.toUpperCase(),
+      )
+      if (exactResults.length > 1) {
+        errorMessage.value = `More than one listing matches ${submittedQuery.toUpperCase()}. Choose the correct exchange listing.`
+        return
+      }
+      if (exactResults.length === 1) {
+        select(exactResults[0])
+        return
+      }
+      if (highlightIdx.value >= 0 && highlightIdx.value < results.value.length) {
+        select(results.value[highlightIdx.value])
+        return
+      }
+      if (discoveryHeld.value) return
+      const exactCandidates = discoveryCandidates.value.filter(candidate =>
+        candidate.symbol.trim().toUpperCase() === submittedQuery.toUpperCase(),
+      )
+      if (exactCandidates.length > 1) {
+        discoveryMessage.value = `More than one listing matches ${submittedQuery.toUpperCase()}. Choose the correct exchange listing.`
+      } else if (exactCandidates.length === 1 || discoveryCandidates.value.length) {
+        discoveryMessage.value = 'Choose a matching ticker listing before continuing.'
+      }
+      return
+    }
     if (props.mode === 'chart' && !optionExplicitlyNavigated.value) {
       const submittedQuery = query.value.trim()
       const exact = exactLocalResults[0]

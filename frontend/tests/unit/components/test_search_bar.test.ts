@@ -343,6 +343,48 @@ describe('SearchBar', () => {
     }), expect.objectContaining({ onProgress: expect.any(Function) }))
   })
 
+  it('keeps the exact resolved listing when picker Enter arrives during discovery', async () => {
+    vi.stubGlobal('crypto', { randomUUID: () => 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d' })
+    vi.mocked(api.get).mockResolvedValueOnce([])
+    vi.mocked(api.post)
+      .mockResolvedValueOnce({
+        status: 'complete',
+        candidates: [{ symbol: 'EVOL', name: 'Example Vehicle', exchange: 'XNYS', type: 'Common Stock', provider: 'fixture', instrument_id: null, identity_status: 'candidate' }],
+        source_outcomes: [],
+      })
+      .mockResolvedValueOnce({
+        status: 'resolved',
+        instrument: { instrument_id: 294, symbol: 'EVOL', identity_status: 'verified', instrument_type: 'Exchange Traded Vehicle' },
+        source_outcomes: [],
+      })
+    const wrapper = mountSearchBar({
+      props: { mode: 'picker', allowSourceDiscovery: true },
+      global: { stubs: { RouterLink: true } },
+    })
+    const input = wrapper.get('input')
+    await input.setValue('EVOL')
+    const enter = input.trigger('keydown.enter')
+    vi.advanceTimersByTime(260)
+    await flushPromises()
+    vi.advanceTimersByTime(300)
+    await flushPromises()
+    await enter
+    await flushPromises()
+    await vi.waitFor(() => expect(wrapper.emitted('select')?.[0]?.[0]).toBe('EVOL'))
+
+    expect(api.post).toHaveBeenCalledTimes(2)
+    expect(wrapper.emitted('select')?.[0]?.[1]).toMatchObject({
+      symbol: 'EVOL', type: 'Exchange Traded Vehicle', instrument_id: 294, explicitlyResolved: true,
+    })
+    expect(wrapper.emitted('select')?.[0]?.[2]).toMatchObject({
+      status: 'resolved', instrument: { instrument_id: 294, symbol: 'EVOL', instrument_type: 'Exchange Traded Vehicle' },
+    })
+    expect(preparationMock.ensure).toHaveBeenCalledWith(expect.objectContaining({
+      target: { kind: 'instrument', instrument_id: 294 },
+      datasets: ['identity', 'profile', 'history', 'holdings'],
+    }), expect.objectContaining({ onProgress: expect.any(Function) }))
+  })
+
   it('does not prefetch an exact discovery candidate when resolution returns a different ticker', async () => {
     vi.stubGlobal('crypto', { randomUUID: () => 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d' })
     vi.mocked(api.get).mockResolvedValueOnce([])
