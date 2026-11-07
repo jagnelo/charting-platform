@@ -32,6 +32,7 @@ from app.schemas.data_preparation import (
     PreparationDependencyResponse,
     ScreenerPreparationTarget,
 )
+from app.services.derived_timeframes import refresh_derived_timeframe_if_needed
 from app.services.market_refresh_queue import _acquire_enqueue_lock, enqueue_refresh_job
 from app.services.ohlcv_coverage import (
     CoverageStatus,
@@ -658,6 +659,8 @@ async def _dataset_initial_state(
     dataset: PreparationDataset,
     *,
     now: datetime,
+    timeframe: Timeframe = Timeframe.D1,
+    adjusted: bool = True,
     required_profile_fields: list[str] | tuple[str, ...] = (),
 ) -> tuple[str, str | None]:
     instrument = await db.get(Instrument, instrument_id)
@@ -688,6 +691,10 @@ async def _dataset_initial_state(
         return "queued", None
     if dataset is PreparationDataset.FUNDAMENTALS:
         return "unavailable", "fundamentals_preparation_handler_unavailable"
+    if dataset is PreparationDataset.HISTORY and timeframe in {Timeframe.W1, Timeframe.MN}:
+        # A durable derived-only request may reuse existing bars and completed
+        # children, so repair stale state before coverage decides it is ready.
+        await refresh_derived_timeframe_if_needed(db, instrument_id, timeframe, adjusted=adjusted)
     return "queued", None
 
 
@@ -1136,6 +1143,8 @@ async def _enqueue_instrument_dependencies(
                 instrument_id,
                 dataset,
                 now=now,
+                timeframe=request.timeframe,
+                adjusted=request.adjusted,
                 required_profile_fields=required_profile_fields,
             )
             status = current_status

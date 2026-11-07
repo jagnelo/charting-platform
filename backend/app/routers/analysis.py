@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.auth.dependencies import get_current_user
+from app.config import settings
 from app.database import get_db
 from app.models.data_source import DataSource
 from app.models.etf_holdings import (
@@ -148,6 +149,7 @@ from app.services.breadth import (
     evaluate_breadth,
     evaluate_breadth_history,
 )
+from app.services.derived_timeframes import refresh_derived_timeframe_if_needed
 from app.services.etf_consumer_types import (
     is_equity_holding_type,
     is_placeholder_symbol,
@@ -1813,7 +1815,12 @@ async def _instrument(db: AsyncSession, symbol: str) -> Instrument:
 
 
 async def _bars_by_instrument(
-    db: AsyncSession, instrument_ids: list[int], timeframe: Timeframe, adjusted: bool
+    db: AsyncSession,
+    instrument_ids: list[int],
+    timeframe: Timeframe,
+    adjusted: bool,
+    *,
+    refresh_coarse_cache: bool = False,
 ) -> dict[int, list[OHLCVBar]]:
     if not instrument_ids:
         return {}
@@ -1823,6 +1830,20 @@ async def _bars_by_instrument(
     # returned bar. On broad D1 groups that predicate caused PostgreSQL to
     # repeat an indexed existence lookup tens of thousands of times.
     ordered_ids = list(dict.fromkeys(int(instrument_id) for instrument_id in instrument_ids))
+    if (
+        refresh_coarse_cache
+        and not settings.E2E_SEED_MARKET_DATA
+        and timeframe in (Timeframe.W1, Timeframe.MN)
+    ):
+        refreshed = False
+        for instrument_id in ordered_ids:
+            refreshed = (
+                await refresh_derived_timeframe_if_needed(
+                    db, instrument_id, timeframe, adjusted=adjusted
+                )
+            ) or refreshed
+        if refreshed:
+            await db.commit()
     adjustment_predicate = adjustment_scope_predicate(adjusted)
     mapped_has_bars = exists(
         select(OHLCVBar.id).where(
@@ -2480,7 +2501,14 @@ async def benchmark_family_relative_rotation(
             )
     instrument_ids = [instrument.id for instrument in role_instruments.values()]
     bars_by_id = _truncate_bars_at(
-        await _bars_by_instrument(db, instrument_ids, timeframe, adjusted), as_of
+        await _bars_by_instrument(
+            db,
+            instrument_ids,
+            timeframe,
+            adjusted,
+            refresh_coarse_cache=as_of is None,
+        ),
+        as_of,
     )
     stale_ids = (
         set()
@@ -2678,7 +2706,11 @@ async def group_relative_rotation(
         ).scalars()
     }
     bars_by_id = await _bars_by_instrument(
-        db, [*instrument_ids, benchmark_instrument.id], timeframe, adjusted
+        db,
+        [*instrument_ids, benchmark_instrument.id],
+        timeframe,
+        adjusted,
+        refresh_coarse_cache=as_of is None,
     )
     bars_by_id = _truncate_bars_at(bars_by_id, as_of)
     rotation_ids = [*instrument_ids, benchmark_instrument.id]

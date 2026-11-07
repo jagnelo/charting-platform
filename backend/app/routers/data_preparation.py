@@ -7,6 +7,7 @@ from uuid import uuid4
 
 from arq.connections import RedisSettings, create_pool
 from fastapi import APIRouter, Depends, Header, status
+from redis.exceptions import TimeoutError as RedisTimeoutError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
@@ -39,7 +40,15 @@ async def _wake_refresh_worker() -> None:
         logger.warning("Could not prompt data-preparation worker: %s", type(exc).__name__)
     finally:
         if redis is not None:
-            await redis.aclose()
+            try:
+                await redis.aclose()
+            except RedisTimeoutError as exc:
+                # The durable request was committed before this optional wake.
+                # A slow connection shutdown must not turn that acceptance into
+                # an HTTP error; the scheduled queue poll will still find it.
+                logger.warning(
+                    "Could not close data-preparation Redis pool: %s", type(exc).__name__
+                )
 
 
 @router.post(

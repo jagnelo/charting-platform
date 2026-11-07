@@ -33687,3 +33687,42 @@ freshness assertions. No provider HTTP,
 database/runtime mutation, quota/ledger/policy change, migration, or fixture
 was used. Root owns the retained native-runtime replay, exact-source CI and
 combined release qualification; the full Provider roadmap remains open.
+
+## 2026-11-07 — durable ensure survives Redis pool close timeout
+
+Root's retained 591 run showed a queued authenticated `/data/ensure` request
+was already committed, but `redis.aclose()` raised a Redis `TimeoutError` from
+the router's `finally` block and converted the accepted request into HTTP 500.
+The router now handles only that expected Redis cleanup timeout, logs it, and
+returns the durable response. Unexpected cleanup errors still propagate; the
+existing database queue poll and retry path remain unchanged.
+
+The focused preparation-router module passed 6/6, including the authenticated
+ensure/readback path with a simulated close timeout and a regression proving
+an unexpected `RuntimeError` still surfaces. Ruff check/format and
+`git diff --check` passed on the two changed Python paths. No native HTTP,
+live runtime, quota/ledger/policy change, or fixture was used. Root owns
+exact-source rebuild/replay and the broader release gates; the full Provider
+roadmap remains open.
+
+## 2026-11-07 — shared cached W1/MN readiness on analysis and preparation paths
+
+Root's retained 591 analysis replay showed that normal monthly reads could
+return derived rows while their dataset states remained `PENDING` with zero
+count and null coverage. The freshness repair had only been called from the
+`/ohlcv/local` route. A shared cache-only repair now runs before standard
+local-only W1/MN selection, RRG analysis reads, and durable W1/MN preparation
+assesses retained coverage. It uses the existing selected D1 source and
+materializer, preserves adjustment/freshness evidence, and skips rebuilding
+once the persisted source signature and row count are valid.
+
+The focused slice passed 9/9 across the authenticated ensure router, normal
+coarse OHLCV route, RRG route, and monthly preparation. The actual RRG caller
+repairs pending/zero-count W1/MN states, returns a finite tail from retained
+bars, makes no provider call, and does not rebuild on a second read. The normal
+MN route also repairs the retained pending state; durable preparation observes
+the repaired cache state. Ruff, format, workstream validation, and diff checks
+passed. The Redis close-timeout fix is included in this same coherent
+successor. No provider HTTP, live runtime, database fixture, quota/ledger/
+policy mutation or migration was used. Root owns native replay, exact-source
+CI and combined release qualification; broader roadmaps remain open.

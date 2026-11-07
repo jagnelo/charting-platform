@@ -364,6 +364,27 @@ async def derived_timeframe_needs_refresh(
     )
 
 
+async def refresh_derived_timeframe_if_needed(
+    db: AsyncSession,
+    instrument_id: int,
+    timeframe: Timeframe,
+    *,
+    adjusted: bool = True,
+) -> bool:
+    """Repair a stale persisted W1/MN cache from its selected D1 source.
+
+    The caller owns transaction commit. This shared seam is used by explicit
+    cached reads, analysis reads, and durable preparation so those paths agree
+    on the freshness of the same derived dataset. It never requests provider
+    data and is a no-op when the stored series/state already matches D1.
+    """
+
+    if not await derived_timeframe_needs_refresh(db, instrument_id, timeframe, adjusted=adjusted):
+        return False
+    await materialize_derived_timeframes(db, instrument_id, adjusted=adjusted)
+    return True
+
+
 def aggregate_d1_bars(bars: Iterable[_BarLike], timeframe: Timeframe) -> list[dict[str, object]]:
     """Aggregate D1 bars into deterministic W1 or MN payloads.
 

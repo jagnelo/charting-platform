@@ -15563,3 +15563,51 @@ provider_e08b_holdings_recovery_and_derived_state_20261107:
   no_provider_http_or_database_mutation: true
   root_native_runtime_replay_exact_source_ci_and_combined_release: pending Root-owned
   full_platform_goal_and_roadmaps: remain open
+
+provider_data_ensure_redis_cleanup_timeout_20261107:
+  id: provider-data-ensure-redis-cleanup-timeout-20261107
+  status: focused_local_green_root_runtime_replay_pending
+  root_finding: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/root-native591-wakeup-cleanup-500-review.json
+  behavior:
+    - A Redis TimeoutError from optional ARQ pool close is logged and suppressed after the durable ensure request has been committed.
+    - Other cleanup exceptions remain visible; queue polling, persistence, retries, provider admission, and native quota behavior are unchanged.
+  changed_paths:
+    - backend/app/routers/data_preparation.py
+    - backend/tests/unit/routers/test_data_preparation_router.py
+  focused_validation:
+    command: backend/.venv/bin/pytest backend/tests/unit/routers/test_data_preparation_router.py -q
+    result: 6 passed; Ruff check and format passed for both changed Python paths; git diff --check passed.
+    regression: authenticated ensure returns 202 and owner readback remains queued after Redis close timeout; unexpected close RuntimeError still propagates.
+  no_provider_http_or_runtime_mutation: true
+  exact_source_ci_and_native_replay: pending Root-owned
+  full_platform_goal_and_roadmaps: remain open
+
+provider_shared_coarse_cache_readiness_and_redis_cleanup_20261107:
+  id: provider-shared-coarse-cache-readiness-and-redis-cleanup-20261107
+  status: focused_local_green_root_runtime_replay_pending
+  base_source: 591bdfd977fd156d2a489b055bb8662f487e6b3c
+  root_findings:
+    - /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/root-native591-wakeup-cleanup-500-review.json
+    - /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/root-native591-analysis-derived-repair-path-review.json
+  implementation:
+    - Expected Redis pool-close TimeoutError after committed data-ensure acceptance is logged and suppressed; unexpected cleanup errors still propagate.
+    - A shared cache-only derived-timeframe freshness repair now serves the local OHLCV route, standard local-only W1/MN route, RRG analysis reads, and durable W1/MN preparation before retained-cache coverage is assessed.
+    - Existing valid derived state is not rematerialized; actual selected D1 series, adjustment lineage and freshness remain authoritative. The repair makes no provider request.
+  changed_paths:
+    - backend/app/routers/analysis.py
+    - backend/app/routers/data_preparation.py
+    - backend/app/routers/ohlcv.py
+    - backend/app/services/data_preparation.py
+    - backend/app/services/derived_timeframes.py
+    - backend/tests/unit/routers/test_analysis_router.py
+    - backend/tests/unit/routers/test_data_preparation_router.py
+    - backend/tests/unit/routers/test_ohlcv_router.py
+    - backend/tests/unit/services/test_data_preparation_service.py
+  focused_validation:
+    command: backend/.venv/bin/pytest -q backend/tests/unit/services/test_data_preparation_service.py::test_monthly_preparation_repairs_pending_derived_state_before_cache_reuse backend/tests/unit/routers/test_ohlcv_router.py::TestOHLCVRouter::test_local_weekly_monthly_read_refreshes_stale_derived_history_once backend/tests/unit/routers/test_analysis_router.py::test_rrg_route_repairs_pending_derived_state_from_retained_daily_cache backend/tests/unit/routers/test_data_preparation_router.py
+    result: 9 passed in 8.93s; Ruff check/format, workstream validation and git diff check passed.
+    regressions: standard local-only MN GET repairs pending/zero-count state once; actual group RRG route repairs cached W1/MN states and returns a finite tail without provider I/O; durable monthly ensure repairs retained-cache state; authenticated ensure survives Redis close timeout while unexpected RuntimeError remains visible.
+  provider_http_or_runtime_mutation: false
+  policy_quota_ledger_database_fixture_or_migration_change: false
+  exact_source_ci_and_root_native_replay: pending Root-owned
+  full_platform_goal_and_roadmaps: remain open
