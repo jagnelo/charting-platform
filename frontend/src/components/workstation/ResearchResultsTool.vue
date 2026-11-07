@@ -5,7 +5,10 @@
       <button v-if="comparisonRuns.length === 2" type="button" :aria-pressed="comparisonOpen ? 'true' : 'false'" @click="comparisonOpen = !comparisonOpen">{{ comparisonOpen ? 'Hide compare' : 'Compare' }}</button>
       <button type="button" :disabled="loading" @click="refresh">Refresh</button>
     </header>
-    <p v-if="error" class="research-results-tool__error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</p>
+    <p v-if="error" class="research-results-tool__error" role="alert" aria-live="assertive" aria-atomic="true">
+      {{ error }}
+      <button v-if="!runs.length" type="button" aria-label="Retry loading runs" :disabled="loading" @click="refresh">Retry loading runs</button>
+    </p>
     <p v-else-if="loading && !runs.length" class="research-results-tool__notice" role="status" aria-live="polite" aria-atomic="true">Loading reproducible research runs…</p>
     <p v-else-if="!runs.length" class="research-results-tool__notice" role="status" aria-live="polite" aria-atomic="true">No persisted studies yet. Run a study in the adjacent Study Lab pane.</p>
     <div v-else class="research-results-tool__run-browser" :aria-busy="olderRunsLoading ? 'true' : 'false'">
@@ -244,6 +247,7 @@ interface ComparisonArtifactPair {
 
 const RESEARCH_RUN_PAGE_SIZE = 25
 const RESEARCH_RUN_FETCH_SIZE = RESEARCH_RUN_PAGE_SIZE + 1
+const RESEARCH_RUNS_LOAD_TIMEOUT_MS = 15_000
 const runs = ref<ResearchRunSummary[]>([])
 const hasMoreRuns = ref(false)
 const hasLoadedOlderRuns = ref(false)
@@ -410,12 +414,36 @@ function setPromotionMessage(runId: number, message: string) {
 function updateDocumentVisibility() { documentVisible.value = document.visibilityState !== 'hidden' }
 const runsQuery = useQuery({
   queryKey: runsQueryKey,
-  queryFn: async () => {
-    const serverRuns = (await api.get<ResearchRunSummary[]>('/research/runs', { limit: RESEARCH_RUN_FETCH_SIZE, include_artifacts: false })) ?? []
-    const cachedRuns = queryClient.getQueryData<ResearchRunSummary[]>(runsQueryKey) ?? []
-    return reconcileResearchRunsWithCache(serverRuns, cachedRuns)
+  queryFn: async ({ signal }) => {
+    const requestController = new AbortController()
+    const abortForQuery = () => requestController.abort(signal.reason)
+    let timedOut = false
+    const timeout = setTimeout(() => {
+      timedOut = true
+      requestController.abort()
+    }, RESEARCH_RUNS_LOAD_TIMEOUT_MS)
+    signal.addEventListener('abort', abortForQuery, { once: true })
+    if (signal.aborted) abortForQuery()
+    try {
+      const serverRuns = (await api.get<ResearchRunSummary[]>(
+        '/research/runs',
+        { limit: RESEARCH_RUN_FETCH_SIZE, include_artifacts: false },
+        { signal: requestController.signal },
+      )) ?? []
+      const cachedRuns = queryClient.getQueryData<ResearchRunSummary[]>(runsQueryKey) ?? []
+      return reconcileResearchRunsWithCache(serverRuns, cachedRuns)
+    } catch (cause) {
+      if (timedOut && !signal.aborted) {
+        throw new Error('Loading persisted research runs timed out. Retry to try again.')
+      }
+      throw cause
+    } finally {
+      clearTimeout(timeout)
+      signal.removeEventListener('abort', abortForQuery)
+    }
   },
   enabled: computed(() => surfaceVisible.value && documentVisible.value),
+  retry: false,
   staleTime: 5_000,
   refetchOnWindowFocus: true,
   refetchInterval: query => {

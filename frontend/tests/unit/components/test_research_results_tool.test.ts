@@ -75,12 +75,49 @@ describe('ResearchResultsTool', () => {
     }
   })
 
+  it('ends a stalled initial list read with a visible retry instead of loading forever', async () => {
+    vi.useFakeTimers()
+    apiGet
+      .mockImplementationOnce((_path: string, _params: unknown, options: { signal?: AbortSignal }) => new Promise((_resolve, reject) => {
+        options.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')), { once: true })
+      }))
+      .mockResolvedValueOnce([])
+    const wrapper = mountTool()
+    try {
+      await vi.advanceTimersByTimeAsync(0)
+      await Promise.resolve()
+      expect(apiGet).toHaveBeenCalledOnce()
+      const requestSignal = apiGet.mock.calls[0][2].signal as AbortSignal
+      expect(requestSignal.aborted).toBe(false)
+
+      await vi.advanceTimersByTimeAsync(15_000)
+      await vi.advanceTimersByTimeAsync(0)
+      await Promise.resolve()
+      expect(requestSignal.aborted).toBe(true)
+      expect(wrapper.get('[role="alert"]').text()).toContain('Loading persisted research runs timed out')
+      expect(wrapper.get('button[aria-label="Retry loading runs"]')).toBeTruthy()
+
+      await wrapper.get('button[aria-label="Retry loading runs"]').trigger('click')
+      await vi.advanceTimersByTimeAsync(0)
+      await Promise.resolve()
+      expect(apiGet).toHaveBeenCalledTimes(2)
+      expect(wrapper.get('[role="status"]').text()).toContain('No persisted studies yet')
+    } finally {
+      wrapper.unmount()
+      vi.useRealTimers()
+    }
+  })
+
   it('loads persisted runs and exposes selected structured artifacts', async () => {
     apiGet.mockResolvedValue([{ id: 9, status: 'completed', reproducibility_hash: 'abc', diagnostics: [], artifacts: [{ id: 3, name: 'current_streak', artifact_type: 'scalar', payload: { value: 4 } }, { id: 4, name: 'distribution', artifact_type: 'histogram', payload: { value: { bins: [{ start: 1, end: 2, count: 1 }] } } }, { id: 5, name: 'ranking', artifact_type: 'bar', payload: { value: { labels: ['XLK'], values: [12] } } }, { id: 6, name: 'confidence', artifact_type: 'range', payload: { value: { timestamps: ['2026-01-01'], lower: [1], upper: [3], center: [2] } } }] }])
     const wrapper = mountTool()
     await flushPromises()
 
-    expect(apiGet).toHaveBeenCalledWith('/research/runs', { limit: 26, include_artifacts: false })
+    expect(apiGet).toHaveBeenCalledWith(
+      '/research/runs',
+      { limit: 26, include_artifacts: false },
+      { signal: expect.any(AbortSignal) },
+    )
     expect(wrapper.text()).toContain('Run #9')
     expect(wrapper.text()).toContain('current_streak')
     expect(wrapper.find('.histogram-chart').exists()).toBe(true)

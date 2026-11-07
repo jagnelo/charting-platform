@@ -19896,3 +19896,21 @@ The R26 ordinary high-low Study journey passed on its recorded frontend771/backe
 does not qualify this local source. The RRG Restore and initial Results-loading failures remain open
 until Root runs this exact candidate and resolves actual fixture evidence. The full18-criterion
 roadmap and all disabled native/broker/capital/paid/trial/provider-live holds remain unchanged.
+
+### Initial Results request recovery (2026-11-07)
+
+R26 captured the initial `GET /research/runs` as pending but provided no response or causal diagnosis.
+Strategy retains the first-positive-visibility gate and now passes the Vue Query abort signal into
+the authenticated API client. The initial list request has a15-second deadline; timeout aborts that
+request, displays a specific alert and exposes `Retry loading runs`. Automatic retries are disabled
+for this initial list read so a failed request becomes actionable promptly; explicit retry returns
+to the persisted empty/list state. This fixes an indefinite spinner path but does not establish or
+repair the backend/relay latency cause.
+
+The focused `ResearchResultsTool` module passes69/69, including stalled request abort and successful
+explicit retry; `npm run type-check` passes. The first focused run was68/69 because one existing
+request assertion did not yet expect the new signal option; the assertion was corrected and the
+whole module rerun passed. The exact TC45 development dependency remains byte-identical in this
+worktree (all77 manifest entries verified); it is not browser/release qualification. Root must build
+and run the exact updated Strategy candidate in the shared fixture. R26 failures, the RRG Restore
+failure and all original18 roadmap criteria remain open; no browser or full-profile result is claimed.

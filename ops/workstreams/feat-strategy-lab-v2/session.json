@@ -50,28 +50,18 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "current_blocker": "Root R26 on frontend77190340/backenddcd3c823 ended1pass/2fail in182.7s with unchanged relay nr_throttled. The ordinary high-low Study prepare/validate/run/results journey passed; RRG Restore after maximize/reload and the initial Results Loading assertion failed. R26 trace records a pending research-runs GET at capture but does not establish the cause. Strategy added a first-positive-visibility gate to the initial Results list query and a focused regression; the local component module passes68/68 and frontend type-check passes. Root owns the exact-candidate browser verification and common runtime build; no current source browser result is claimed.",
+  "current_blocker": "Root R26 on frontend77190340/backenddcd3c823 ended1pass/2fail in182.7s with unchanged relay nr_throttled. The ordinary high-low Study prepare/validate/run/results journey passed; RRG Restore after maximize/reload and the initial Results Loading assertion failed. R26 records a pending research-runs GET but does not establish its cause. Strategy gates the list query on first pane visibility and now aborts a still-pending initial list request after15s with visible Retry loading runs; the focused Results module passes69/69 and frontend type-check exits0. These changes do not prove the backend/relay latency cause or browser recovery. Root owns exact-candidate browser verification; no current-source browser result is claimed.",
   "current_execution_checkpoint": {
     "authority": "Human-activated platform-usability plan; existing session-local goal aligned in place by Root, no objective/accounting reset.",
     "full_roadmap_preserved": true,
-    "heavy_profile": "Root R26 was partial1pass/2fail on frontend77190340/backenddcd3c823. Strategy now gates the initial Research Results list query on the pane becoming visible; the focused Results module passes68/68 and frontend type-check exits0. TC45 is consumed for development only. Root frontend build is underway; no exact-current browser or release acceptance is established. Root owns the next fixture and combined gate.",
+    "heavy_profile": "Root R26 was partial1pass/2fail on frontend77190340/backenddcd3c823. Strategy gates the initial Results list query on pane visibility and now adds an abortable15s request deadline with visible retry; the focused Results module passes69/69 and frontend type-check exits0. TC45 is consumed for development only. No exact-current browser or release acceptance is established; Root owns the next fixture and combined gate.",
     "id": "strategy-study-usability-2026-11-06",
     "status": "in_progress",
-    "next_action": "Hand Root the next coherent Strategy source with the bounded lookback call-site repair, truthful deferred-evaluation UI, Results visibility gate, exact TC45 and Provider dcd development inputs, and corrected Study/workstation journeys. Keep R26 red history and the RRG Restore / Results loading browser requirements open until exact-candidate evidence resolves them. Do not start a competing fixture or broaden the roadmap. Preserve all18 criteria and disabled native/broker/capital/paid/trial/provider-live holds."
+    "next_action": "Hand Root the next coherent Strategy source with the bounded lookback call-site repair, truthful deferred-evaluation UI, Results visibility gate plus abortable initial-load timeout/retry, exact TC45 and Provider dcd development inputs, and corrected Study/workstation journeys. Keep R26 red history and RRG Restore/browser verification open; the request latency cause remains unknown. Do not start a competing fixture or broaden the roadmap. Preserve all18 criteria and disabled native/broker/capital/paid/trial/provider-live holds."
   },
   "dirty_paths": [
     "frontend/src/components/workstation/ResearchResultsTool.vue",
-    "frontend/src/components/workstation/ToolWindow.vue",
-    "frontend/src/components/workstation/WorkspaceLayoutHost.vue",
-    "frontend/src/components/workstation/WorkstationToolContent.vue",
-    "frontend/src/stores/chart.ts",
-    "frontend/src/stores/workspace.ts",
-    "frontend/src/views/WorkstationView.vue",
     "frontend/tests/unit/components/test_research_results_tool.test.ts",
-    "frontend/tests/unit/components/test_workspace_layout_host.test.ts",
-    "frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts",
-    "frontend/tests/unit/stores/test_stores.test.ts",
-    "frontend/tests/unit/stores/test_workspace_store.test.ts",
     "ops/workstreams/feat-strategy-lab-v2/handoff.md",
     "ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
     "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
@@ -111,14 +101,14 @@
     }
   ],
   "goal_unavailable_reason": null,
-  "head": "f2f6d37a3384ff7e6f3d8d425bad3b39cc5a23ba",
-  "implementation_sha": "f2f6d37a3384ff7e6f3d8d425bad3b39cc5a23ba",
-  "last_checkpoint": "2026-11-07T09:19:27Z",
+  "head": "3f72fcd8c201d57d7631a485abf02eb6924da73b",
+  "implementation_sha": "3f72fcd8c201d57d7631a485abf02eb6924da73b",
+  "last_checkpoint": "2026-11-07T09:33:23Z",
   "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Hand Root the next coherent Strategy source with the bounded lookback call-site repair, truthful deferred-evaluation UI, Results visibility gate, exact TC45 and Provider dcd development inputs, and corrected Study/workstation journeys. Keep R26 red history and the RRG Restore / Results loading browser requirements open until exact-candidate evidence resolves them. Do not start a competing fixture or broaden the roadmap. Preserve all18 criteria and disabled native/broker/capital/paid/trial/provider-live holds.",
+  "next_action": "Hand Root the next coherent Strategy source with the bounded lookback call-site repair, truthful deferred-evaluation UI, Results visibility gate plus abortable initial-load timeout/retry, exact TC45 and Provider dcd development inputs, and corrected Study/workstation journeys. Keep R26 red history and RRG Restore/browser verification open; the request latency cause remains unknown. Do not start a competing fixture or broaden the roadmap. Preserve all18 criteria and disabled native/broker/capital/paid/trial/provider-live holds.",
   "parent_branch": "staging",
-  "plan_hash": "ec66e0018c11216007667c8c54215f096bc4bb179732080157149b038fd76bdc",
+  "plan_hash": "c28c94f548141b016d601cba2bce04c4d734131beecf08a4d86a212bc126b0bf",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -268,5 +258,5 @@
   ],
   "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
   "worktree_id": "feat-strategy-lab-v2-7794d9e53d",
-  "updated_at": "2026-11-07T09:19:27Z"
+  "updated_at": "2026-11-07T09:33:23Z"
 }
