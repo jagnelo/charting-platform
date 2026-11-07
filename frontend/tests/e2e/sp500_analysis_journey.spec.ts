@@ -1,4 +1,4 @@
-import type { APIRequestContext, Page, Request, Response } from '@playwright/test'
+import type { APIRequestContext, Locator, Page, Request, Response } from '@playwright/test'
 import { expect, test } from './helpers'
 
 const SECTOR_SYMBOLS = [
@@ -314,7 +314,19 @@ function assertRotationPayload(payload: RotationResponse, timeframe: AnalysisTim
   }
 }
 
+async function setDisclosureOpen(disclosure: Locator, open: boolean): Promise<void> {
+  const currentlyOpen = await disclosure.evaluate(element => (element as HTMLDetailsElement).open)
+  if (currentlyOpen !== open) await disclosure.locator(':scope > summary').click()
+  if (open) await expect(disclosure).toHaveAttribute('open', '')
+  else await expect(disclosure).not.toHaveAttribute('open')
+}
+
 async function assertRotationPainted(page: Page, payload: RotationResponse): Promise<{ width: number; height: number }> {
+  const rotation = page.getByRole('region', { name: 'Relative rotation vs SPY' })
+  const settingsDisclosure = rotation.locator('details.rotation-tool__settings')
+  const rowsDisclosure = rotation.locator('details.rotation-tool__rows-disclosure')
+  await setDisclosureOpen(settingsDisclosure, false)
+  await setDisclosureOpen(rowsDisclosure, false)
   const plot = page.getByRole('group', { name: 'Relative rotation trend and momentum plane' })
   await expect(plot).toBeVisible()
   const canvas = plot.locator('canvas').first()
@@ -601,6 +613,7 @@ async function assertRotationPainted(page: Page, payload: RotationResponse): Pro
     expect(tail.rasterHits, `${row.symbol} state-colored tail has raster pixels along its audited path`).toBeGreaterThanOrEqual(5)
   }
 
+  await setDisclosureOpen(rowsDisclosure, true)
   const rowsRegion = page.getByRole('region', { name: 'Relative rotation rows' })
   for (const row of payload.rows) {
     const rowButton = rowsRegion.getByRole('button', { name: new RegExp(`^${row.symbol},`) })
@@ -610,6 +623,7 @@ async function assertRotationPainted(page: Page, payload: RotationResponse): Pro
     await expect(rowButton).toHaveAttribute('aria-label', expect.stringContaining('momentum'))
     await expect(rowButton).toHaveAttribute('aria-label', expect.stringContaining('coverage'))
   }
+  await setDisclosureOpen(rowsDisclosure, false)
   return { width: paint.width, height: paint.height }
 }
 
@@ -922,6 +936,7 @@ test('S&P 500 RRG renders deep D1/W1/MN data and survives selection, resize, max
   await expect(rrgWindow.getByRole('button', { name: 'Restore tool' })).toHaveAttribute('aria-busy', 'false')
 
   const timeframeControl = rotation.getByLabel('Rotation timeframe')
+  const settingsDisclosure = rotation.locator('details.rotation-tool__settings')
   const pageResponses = new Map<AnalysisTimeframe, RotationResponse>()
   const directResponses = new Map<AnalysisTimeframe, RotationResponse>()
 
@@ -981,6 +996,7 @@ test('S&P 500 RRG renders deep D1/W1/MN data and survives selection, resize, max
   // Validate D1 while it is still the active UI selection, before changing the
   // visible control to W1 and MN.
   assertRotationPayload(d1Payload, 'D1')
+  await setDisclosureOpen(settingsDisclosure, true)
   await expect(timeframeControl).toHaveValue('D1')
   expect(d1Payload.rows.map(row => row.symbol).sort())
     .toEqual(directResponses.get('D1')!.rows.map(row => row.symbol).sort())
@@ -990,11 +1006,13 @@ test('S&P 500 RRG renders deep D1/W1/MN data and survives selection, resize, max
     expect(uiRow.momentum).toBeCloseTo(row.momentum!, 10)
     expect(uiRow.tail.length).toBe(row.tail.length)
   }
+  await setDisclosureOpen(settingsDisclosure, false)
   await assertRotationPainted(page, d1Payload)
 
   for (const timeframe of ['W1', 'MN'] as const) {
     await clearRotationCanvasAudit(page)
     const pageResponse = page.waitForResponse(response => response.ok() && rotationResponseFor(response, timeframe))
+    await setDisclosureOpen(settingsDisclosure, true)
     await page.getByRole('region', { name: 'Relative rotation vs SPY' })
       .getByLabel('Rotation timeframe').selectOption(timeframe)
     const actualPagePayload = await pageResponse.then(response => response.json() as Promise<RotationResponse>)
@@ -1009,6 +1027,7 @@ test('S&P 500 RRG renders deep D1/W1/MN data and survives selection, resize, max
       expect(uiRow.momentum).toBeCloseTo(row.momentum!, 10)
       expect(uiRow.tail.length).toBe(row.tail.length)
     }
+    await setDisclosureOpen(settingsDisclosure, false)
     await assertRotationPainted(page, actualPagePayload)
   }
 
@@ -1037,8 +1056,12 @@ test('S&P 500 RRG renders deep D1/W1/MN data and survives selection, resize, max
   // Table selection remains a separate ordinary path and also links the chart.
   const tableSector = finalPayload.rows[1].symbol
   const tableChartResponse = page.waitForResponse(response => response.ok() && barResponseFor(response, tableSector, 'D1'))
+  const activeRotation = page.getByRole('region', { name: 'Relative rotation vs SPY' })
+  const activeRowsDisclosure = activeRotation.locator('details.rotation-tool__rows-disclosure')
+  await setDisclosureOpen(activeRowsDisclosure, true)
   await page.getByRole('region', { name: 'Relative rotation rows' })
     .getByRole('button', { name: new RegExp(`^${tableSector},`) }).click()
+  await setDisclosureOpen(activeRowsDisclosure, false)
   await assertChartRendered(page, tableSector, await tableChartResponse.then(response => response.json() as Promise<Bar[]>))
   await expect(chartSymbol).toHaveText(tableSector)
 
@@ -1092,7 +1115,9 @@ test('S&P 500 RRG renders deep D1/W1/MN data and survives selection, resize, max
   await expect(copiedTab).toHaveAttribute('aria-selected', 'true')
   let copiedRotation = page.getByRole('region', { name: 'Relative rotation vs SPY' })
   await expect(copiedRotation).toBeVisible()
+  await setDisclosureOpen(copiedRotation.locator('details.rotation-tool__settings'), true)
   await expect(copiedRotation.getByLabel('Rotation timeframe')).toHaveValue('MN')
+  await setDisclosureOpen(copiedRotation.locator('details.rotation-tool__settings'), false)
   await assertRotationPainted(page, finalPayload)
 
   await originalTab.click()
@@ -1103,6 +1128,8 @@ test('S&P 500 RRG renders deep D1/W1/MN data and survives selection, resize, max
   await copiedTab.click()
   copiedRotation = page.getByRole('region', { name: 'Relative rotation vs SPY' })
   await expect(copiedTab).toHaveAttribute('aria-selected', 'true')
+  await setDisclosureOpen(copiedRotation.locator('details.rotation-tool__settings'), true)
   await expect(copiedRotation.getByLabel('Rotation timeframe')).toHaveValue('MN')
+  await setDisclosureOpen(copiedRotation.locator('details.rotation-tool__settings'), false)
   await assertRotationPainted(page, finalPayload)
 })
