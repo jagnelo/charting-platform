@@ -701,6 +701,7 @@ describe('ETFHoldingsView', () => {
     })
     vi.mocked(api.get)
       .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([xleProfile])
       .mockResolvedValueOnce([{ ...dates[0], snapshot_id: 95, composition_date: '2026-11-05' }])
       .mockResolvedValueOnce(xlePage)
@@ -742,6 +743,10 @@ describe('ETFHoldingsView', () => {
     await vi.waitFor(() => expect(api.post).toHaveBeenCalledWith('/data/ensure', {
       target: { kind: 'instrument', symbol: 'OIH' }, datasets: ['holdings'],
     }, expect.objectContaining({ signal: expect.any(AbortSignal) })))
+    expect(api.get).toHaveBeenCalledWith('/etf-holdings', { q: 'OIH' })
+    const exactProfileLookupCount = vi.mocked(api.get).mock.calls.filter(([path, params]) =>
+      path === '/etf-holdings' && (params as { q?: string } | undefined)?.q === 'OIH',
+    ).length
     const ensureSignal = vi.mocked(api.post).mock.calls[0]?.[2]?.signal
     expect(ensureSignal?.aborted).toBe(false)
 
@@ -752,7 +757,9 @@ describe('ETFHoldingsView', () => {
     // trigger a profile refresh or write a late selection into the disposed view.
     resolvePreparation(preparationResponse('OIH'))
     await flushPromises()
-    expect(api.get).not.toHaveBeenCalledWith('/etf-holdings', { q: 'OIH' })
+    expect(vi.mocked(api.get).mock.calls.filter(([path, params]) =>
+      path === '/etf-holdings' && (params as { q?: string } | undefined)?.q === 'OIH',
+    )).toHaveLength(exactProfileLookupCount)
   })
 
   it('keeps rapid selected-fund preparations isolated when the user switches tickers', async () => {
@@ -763,6 +770,8 @@ describe('ETFHoldingsView', () => {
       return Promise.resolve(preparationResponse('XLF')) as never
     })
     vi.mocked(api.get)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([{ ...profile, id: 4, instrument_id: 40, symbol: 'XLF', name: 'Financial Select Sector SPDR Fund', latest_snapshot_id: null }])
       .mockResolvedValueOnce([])
@@ -780,12 +789,16 @@ describe('ETFHoldingsView', () => {
     expect(api.post).toHaveBeenCalledTimes(2)
     expect(firstSignal?.aborted).toBe(true)
     expect(api.get).toHaveBeenCalledWith('/etf-holdings', { q: 'XLF' })
-    expect(api.get).not.toHaveBeenCalledWith('/etf-holdings', { q: 'XLE' })
+    expect(vi.mocked(api.get).mock.calls.filter(([path, params]) =>
+      path === '/etf-holdings' && (params as { q?: string } | undefined)?.q === 'XLE',
+    )).toHaveLength(1)
     expect(wrapper.get('[data-testid="etf-preparation-status"]').text()).toBe('Requested data is ready.')
 
     releaseFirst(preparationResponse('XLE'))
     await flushPromises()
-    expect(api.get).not.toHaveBeenCalledWith('/etf-holdings', { q: 'XLE' })
+    expect(vi.mocked(api.get).mock.calls.filter(([path, params]) =>
+      path === '/etf-holdings' && (params as { q?: string } | undefined)?.q === 'XLE',
+    )).toHaveLength(1)
     expect(wrapper.get('.panel-title-row h2').text()).toBe('XLF')
     await wrapper.unmount()
   })
@@ -1261,7 +1274,7 @@ describe('ETFHoldingsView', () => {
     wrapper.unmount()
   })
 
-  it('keeps an existing searched fund selected when startup profiles resolve after an unavailable preparation', async () => {
+  it('selects an existing fund before unrelated startup profiles finish and preserves it through unavailable preparation', async () => {
     const diaProfile = { ...profile, id: 16, instrument_id: 160, symbol: 'DIA', name: 'SPDR Dow Jones Industrial Average ETF Trust' }
     const xlbCapability = {
       ...profile.holdings_capability,
@@ -1318,8 +1331,10 @@ describe('ETFHoldingsView', () => {
       has_next: false,
     })
 
+    let startupProfilesResolved = false
     let finishStartupProfiles!: (value: unknown) => void
     const startupProfiles = new Promise<unknown>(resolve => { finishStartupProfiles = resolve })
+    void startupProfiles.then(() => { startupProfilesResolved = true })
     vi.mocked(api.get).mockImplementation((path, params) => {
       if (path === '/etf-holdings' && (params as { q?: string } | undefined)?.q === undefined) {
         return startupProfiles as never
@@ -1334,7 +1349,8 @@ describe('ETFHoldingsView', () => {
       if (path === '/etf-holdings/XLB/transitions') return Promise.resolve(transitionTimelinePayload()) as never
       return Promise.resolve([]) as never
     })
-    vi.mocked(api.post).mockResolvedValueOnce(preparationResponse('XLB', 'unavailable') as never)
+    let finishPreparation!: (response: unknown) => void
+    vi.mocked(api.post).mockImplementation(() => new Promise(resolve => { finishPreparation = resolve }) as never)
 
     const wrapper = mount(ETFHoldingsView)
     const picker = wrapper.findComponent({ name: 'SearchBar' })
@@ -1343,21 +1359,24 @@ describe('ETFHoldingsView', () => {
       name: xlbProfile.name,
       exchange: 'NYSE Arca',
       type: 'ETF',
-      instrument_id: xlbProfile.instrument_id,
-      identity_status: 'resolved',
-      explicitlyResolved: true,
     })
 
-    expect(wrapper.get('.panel-title-row h2').text()).toBe('XLB')
-    expect(api.post).not.toHaveBeenCalled()
-    finishStartupProfiles([diaProfile])
-
-    await vi.waitFor(() => expect(wrapper.get('.panel-title-row h2').text()).toBe('XLB'))
     await vi.waitFor(() => expect(api.get).toHaveBeenCalledWith('/etf-holdings', { q: 'XLB' }))
+    await vi.waitFor(() => expect(wrapper.get('.panel-title-row h2').text()).toBe('XLB'))
     await vi.waitFor(() => expect(api.get).toHaveBeenCalledWith('/etf-holdings/XLB/holdings', expect.objectContaining({ snapshot_id: '16' })))
     await vi.waitFor(() => expect(api.post).toHaveBeenCalledWith('/data/ensure', {
-      target: { kind: 'instrument', instrument_id: xlbProfile.instrument_id }, datasets: ['holdings'],
+      target: { kind: 'instrument', symbol: 'XLB' }, datasets: ['holdings'],
     }, expect.objectContaining({ signal: expect.any(AbortSignal) })))
+    expect(startupProfilesResolved).toBe(false)
+    expect(wrapper.get('[data-testid="etf-preparation-status"]').text()).toContain('Preparing XLB holdings.')
+    expect(wrapper.get('.panel-title-row h2').text()).toBe('XLB')
+    expect(wrapper.get('.holdings-table').text()).toContain('LIN')
+    finishStartupProfiles([diaProfile])
+    await vi.waitFor(() => expect(startupProfilesResolved).toBe(true))
+    await flushPromises()
+    expect(wrapper.get('.panel-title-row h2').text()).toBe('XLB')
+    expect(wrapper.findAll('button.profile-card').some(card => card.text().includes('XLB'))).toBe(true)
+    finishPreparation(preparationResponse('XLB', 'unavailable'))
     await vi.waitFor(() => expect(wrapper.get('[data-testid="etf-preparation-status"]').text()).toContain('No reviewed data source can provide this request.'))
 
     expect(wrapper.get('.panel-title-row h2').text()).toBe('XLB')

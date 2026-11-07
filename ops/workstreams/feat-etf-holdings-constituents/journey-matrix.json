@@ -112,6 +112,7 @@
                 "uses the shared instrument picker to select a stored ETF profile",
                 "discovers and deliberately selects a confirmed Exchange Traded Vehicle without admitting ETNs",
                 "resolves a newly selected fund and starts one generic holdings check",
+                "keeps an existing searched fund selected when startup profiles resolve after an unavailable preparation",
                 "does not let a late failed refresh for one selected fund alter the next fund",
                 "does not display a returned profile bound to a different selected ETF",
                 "stops after a denied identity in the selected-fund action"
@@ -143,7 +144,7 @@
             ],
             "mode": "one actual API-backed controlled-seed lineage journey plus controlled route-mocked acquisition/race cases",
             "body_run": false,
-            "status": "Type-check and five-case discovery pass. New XLB case uses normal seeded profile/latest/holdings APIs and asserts an automatic exact-ID data/ensure request; browser body is pending Root combined profile. Controlled fixture provenance is not genuine issuer acceptance."
+            "status": "Prior R37 actual-API run failed: search input showed XLB while DIA remained active and no browser XLB holdings read occurred. The current owner implementation fences startup auto-selection and queries the exact selected symbol independently of startup-list completion; the focused regression covers a stored XLB snapshot through held/unavailable preparation and a late DIA response. View tests and type-check pass. Root combined browser rerun remains pending. Controlled fixture provenance is not genuine issuer acceptance."
           }
         },
         {
@@ -790,7 +791,7 @@
         ],
         "assertions": "Incomplete form cannot submit; create a high non-triggering test-account rule; edit its note, pause/resume, reload to verify persistence, delete and verify it is absent. No notification permission or delivery is requested.",
         "creation_response": "The actual POST returns exact HTTP201; the browser assertion requires201, not a generic2xx.",
-        "evidence": "Root R30 observed actual201; the owner browser body remains pending Root."
+      "evidence": "Root R30 observed actual201; R37 advanced through preset creation/default/reload but read persisted state immediately after clicking Delete. The owner now awaits the exact DELETE 204 and row removal before durable readback; browser rerun remains pending Root."
       },
       "settings": {
         "entry": "Workstation application navigation -> Settings at /legacy/settings (/settings redirects).",
