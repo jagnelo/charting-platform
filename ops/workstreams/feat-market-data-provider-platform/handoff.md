@@ -33539,3 +33539,25 @@ The same focused 14-test selection passed in 28.58s, including the new
 unknown-US-MIC regression. Ruff check/format and `git diff --check` pass for the
 four modified Python files. No fresh DB, provider call, or external/production
 write was performed; Root owns the prepared fresh-database visual check.
+
+## 2026-11-07 — current native admission handoff
+
+The actionable exact-22c native admission/profile procedure is in
+`native-admission-handoff-20261107.md`. It distinguishes the isolated 64-row
+authenticated policy preparation from live qualification, marks the Nov 7
+14:49Z ledger snapshot as historical, prioritizes free Alpaca IEX independently
+of Twelve Data display rights, and gives Root bounded normal ensure/worker
+checks. No provider HTTP, runtime launch, ledger, policy, or production change
+was made. Native execution, exact-source CI, combined browser qualification,
+and the wider Provider roadmap remain Root-owned/open.
+
+
+## 2026-11-07 — TC D954 common context consumed
+
+Consumed only the three Provider-declared D954 files: `EasyScanTool.vue`,
+`WorkstationView.vue`, and `test_easy_scan_tool.test.ts`. Verified all 86 rows in
+the released common manifest and preserved the Provider 22c backend's 67 pinned
+rows. The current common dependency pointer is D954; ETF `b0db1656` and Strategy
+`f6521237` imports remain unchanged. No tests, browser, native calls, database or
+policy operations were run. This is development context only; exact-source CI,
+Root integration/release gates, and the full Provider roadmap remain open.
