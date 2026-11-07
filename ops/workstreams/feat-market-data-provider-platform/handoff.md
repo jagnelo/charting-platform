@@ -33285,6 +33285,14 @@ Checkpoint status is `ready_for_integration`; `integration_capture` is the exact
 This readiness handoff does not claim current production enablement or live qualification. Root owns account provisioning, operation-level policy/entitlement review, native evidence collection, deployment configuration and all real-source checks. The full Provider release scope, the 24 Provider and 14 ETF roadmaps, full local/hosted qualification and combined release remain open.
 
 
+## 2026-11-07 — PostgreSQL worker planner-mock contract correction
+
+- Exact CI `42328517364` on `46462f5531d689acf4c8004517dc4fb345d822ba` passed backend units but failed two tests in `test_data_preparation_queue_postgres.py`; the backend integration job reported 634 passed, 2 failed, 2 skipped. The original failed run is retained. A bounded real-PostgreSQL reproduction confirmed the persisted child state was `retry` with `last_error` reporting that each `fixed_chunk_plan` mock rejected the new `excluded_provider_names` keyword.
+- The two coverage-focused mocks now accept and honor the worker's exclusion argument and use a deterministic already-admitted native-baseline seam. Production history/native admission code and assertions are unchanged; separate native fallback/hold tests remain intact.
+- Both failing PostgreSQL cases passed 2/2, then the containing real-PostgreSQL queue module passed 10/10. Ruff check/format and `git diff --check` passed. The one owned internal PostgreSQL container was capped at 512 MiB/1 CPU/128 PIDs, used tmpfs only and was removed with its network after schema/client counts reached zero. Container/image/network/volume IDs for the protected baseline were unchanged. Private allocation and cleanup evidence is in `/tmp/provider-prep-46462-pg-20261107-r2/`.
+- This is a test-only correction, not a release claim. Root owns source publication and exact-tip CI; all broader Provider criteria and roadmaps remain open.
+
+
 ## 2026-11-07 — resolver-backed deeper-history planning regression
 
 - Added a focused no-network regression using the real provider resolver under request-driven and free-only admission. With an active primary USD XNAS listing and recent cached Massive D1 data selected as the default, synthetic reviewed credentials/policies for Massive (two-year bound) and Alpaca (fixed 2016-01-01 bound) make the shared history planner select Alpaca for the deeper range while preserving the existing Massive default and its cached row. The resolver ran read-only; no `ProviderRequestLog` was created.
