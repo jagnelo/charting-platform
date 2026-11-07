@@ -1655,8 +1655,22 @@ async def test_acquire_holds_unproven_adapter_without_transport(monkeypatch):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("cancelled", [False, True], ids=["failure", "cancellation"])
-async def test_acquire_failure_or_cancellation_restores_provider_scope(monkeypatch, cancelled):
+@pytest.mark.parametrize(
+    ("failure", "expected_reason", "cancelled"),
+    [
+        (RuntimeError("bounded test failure"), None, False),
+        (
+            ValueError("Issuer holdings route returned a future composition date."),
+            "future_dated_source",
+            False,
+        ),
+        (asyncio.CancelledError(), None, True),
+    ],
+    ids=["failure", "future-date", "cancellation"],
+)
+async def test_acquire_failure_or_cancellation_restores_provider_scope(
+    monkeypatch, failure, expected_reason, cancelled
+):
     db = FakeBootstrapDB()
     instrument = _canonical_fund_instrument()
     prior_snapshot = SimpleNamespace(id=98, source_provider="vaneck")
@@ -1678,7 +1692,6 @@ async def test_acquire_failure_or_cancellation_restores_provider_scope(monkeypat
         sec_series_id=None,
         sec_class_id=None,
     )
-    failure = asyncio.CancelledError() if cancelled else RuntimeError("bounded test failure")
     failure_records = []
     binder_calls = _install_explicit_etf_acquisition_binder(monkeypatch)
 
@@ -1748,6 +1761,7 @@ async def test_acquire_failure_or_cancellation_restores_provider_scope(monkeypat
         assert result.refresh_attempted is True
         assert result.refresh_succeeded is False
         assert result.provider_request_log_ids == [582]
+        assert result.reason_code == expected_reason
         assert failure_records == [(profile, failure)]
 
     assert len(binder_calls) == 1
