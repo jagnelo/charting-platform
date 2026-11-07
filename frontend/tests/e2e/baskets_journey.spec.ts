@@ -369,12 +369,17 @@ test('controlled snapshot basket materializes through the normal API and display
     headers,
     data: { name: 'Must remain read-only' },
   })
-  expect(editAttempt.status()).toBe(403)
+  expect(editAttempt.status()).toBe(404)
+  expect(await editAttempt.json()).toEqual({ detail: 'Basket not found' })
   const deleteAttempt = await request.delete(`/api/v1/baskets/${sourceBasket!.id}`, { headers })
-  expect(deleteAttempt.status()).toBe(403)
+  expect(deleteAttempt.status()).toBe(404)
+  expect(await deleteAttempt.json()).toEqual({ detail: 'Basket not found' })
   const unchanged = await request.get(`/api/v1/baskets/${sourceBasket!.id}`, { headers })
   expect(unchanged.ok()).toBeTruthy()
   const unchangedBody = await unchanged.json() as typeof sourceBasket
+  expect(unchangedBody?.name).toBe(sourceBasket?.name)
+  expect(unchangedBody?.is_system_managed).toBe(true)
+  expect(unchangedBody?.is_read_only).toBe(true)
   expect(unchangedBody?.source_snapshot_id).toBe(sourceBasket?.source_snapshot_id)
   expect(unchangedBody?.composition_date).toBe(sourceBasket?.composition_date)
   expect(unchangedBody?.metadata).toEqual(sourceBasket?.metadata)

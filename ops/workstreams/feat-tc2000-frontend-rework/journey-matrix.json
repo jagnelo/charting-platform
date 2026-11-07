@@ -3923,7 +3923,7 @@
     {
       "source": "frontend/src/components/workstation/ToolWindow.vue",
       "control_count": 13,
-      "signature_sha256": "221b549626994ac676bf8942ad4031e13d6adcdf211f21f0a9f5ecb302c5a600",
+      "signature_sha256": "ccd488720f7b59da82e589cff790860e0668a1527be64333d5b5ae7077672f6f",
       "journeys": [
         "TC06",
         "TC07"

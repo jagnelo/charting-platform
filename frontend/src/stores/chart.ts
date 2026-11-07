@@ -470,6 +470,25 @@ function createChartStore(storeId: string) {
           )
         : null
 
+      const publishLocalBars = (mapped: OHLCVBar[]) => {
+        if (!isCurrent()) return false
+        bars.value = mapped
+        renderedLoadScopeKey = requestScopeKey
+        hasReachedStart.value = mapped.length === 0
+        // The local-history endpoint is already scoped to a canonical cached
+        // series. Do not hide those bars behind the separate instrument/profile
+        // read; that metadata request can remain pending while the chart is
+        // useful. The normal identity path below still validates the selection
+        // before indicators or further acquisition are attached.
+        isLoading.value = false
+        return true
+      }
+      if (localBarsPromise) {
+        void localBarsPromise.then(result => {
+          if (!refreshesRenderedSelection && !result.error) publishLocalBars(result.mapped ?? [])
+        })
+      }
+
       const loadedInstrument = await fetchInstrument(sym)
       if (!isCurrent()) return
       if (loadedInstrument || !refreshesRenderedSelection) instrument.value = loadedInstrument
@@ -483,6 +502,18 @@ function createChartStore(storeId: string) {
       }
 
       if (!loadedInstrument) {
+        const localResult = localBarsPromise ? await localBarsPromise : null
+        if (!isCurrent()) return
+        if (localOnly && bars.value.length > 0 && renderedLoadScopeKey === requestScopeKey) {
+          historyBoundaryMessage.value = 'Instrument details are unavailable; cached local chart bars remain visible.'
+          isLoading.value = false
+          return
+        }
+        if (localResult && !localResult.error && localResult.mapped?.length) {
+          publishLocalBars(localResult.mapped)
+          historyBoundaryMessage.value = 'Instrument details are unavailable; cached local chart bars remain visible.'
+          return
+        }
         error.value = `Instrument "${sym.toUpperCase()}" was not found.`
         isLoading.value = false
         return

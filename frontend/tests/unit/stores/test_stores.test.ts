@@ -663,12 +663,39 @@ describe('useChartStore', () => {
     const loading = store.loadBars('XLB', 'D1', 'candles', true)
 
     await vi.waitFor(() => expect(localBarsRequested).toBe(true))
+    await vi.waitFor(() => {
+      expect(store.bars).toHaveLength(1)
+      expect(store.loading).toBe(false)
+    })
+    expect(store.instrument).toBeNull()
+    expect(store.uplotData[0]).toHaveLength(1)
     expect(api.get).not.toHaveBeenCalledWith('/instrument-indicators/42')
     releaseInstrument({ id: 42, symbol: 'XLB', stats: { week52_high: 1 } })
     await loading
 
     expect(store.bars).toHaveLength(1)
     expect(api.get).toHaveBeenCalledWith('/instrument-indicators/42')
+  })
+
+  it('keeps a valid cached chart visible when instrument metadata fails', async () => {
+    const localBars = [
+      { ts: '2026-01-02T00:00:00Z', open: 2, high: 3, low: 1, close: 2, volume: 10 },
+    ]
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/instruments/XLB') return Promise.reject(new Error('metadata temporarily unavailable')) as any
+      if (path === '/ohlcv/local/XLB/D1') return Promise.resolve(localBars) as any
+      return Promise.resolve([]) as any
+    })
+
+    const store = useChartStore()
+    await store.loadBars('XLB', 'D1', 'candles', true)
+
+    expect(store.bars).toEqual(localBars)
+    expect(store.uplotData[0]).toHaveLength(1)
+    expect(store.instrument).toBeNull()
+    expect(store.loading).toBe(false)
+    expect(store.error).toBeNull()
+    expect(store.historyBoundaryMessage).toBe('Instrument details are unavailable; cached local chart bars remain visible.')
   })
 
   it('publishes workstation bars before slow indicator hydration completes', async () => {

@@ -463,7 +463,7 @@ test.describe('Workstation lifecycle journeys', () => {
     await expect(renamedTab).toHaveCount(0)
     const recovery = page.locator('.workstation__layout-recovery')
     await expect(recovery).toContainText(renamed)
-    await recovery.getByRole('button', { name: 'Undo', exact: true }).click()
+    await recovery.getByRole('menuitem', { name: 'Undo', exact: true }).click()
     await expect(renamedTab).toBeVisible()
     await assertUsefulTool(page, 'Benchmarks', 'watchlist')
     await page.reload()
@@ -504,18 +504,19 @@ test.describe('Workstation lifecycle journeys', () => {
       const siblings = Array.from(parent.children)
       const index = siblings.indexOf(element)
       const before = siblings.slice(0, index).filter(child => child.classList.contains('lm_item')) as HTMLElement[]
-      return { rect: element.getBoundingClientRect().toJSON(), before: before.map(pane => pane.getBoundingClientRect().width) }
+      return { rect: element.getBoundingClientRect().toJSON(), before: before.map(pane => pane.getBoundingClientRect().height) }
     })
+    expect(beforeSize.rect.height).toBeLessThan(beforeSize.rect.width)
     await page.mouse.move(beforeSize.rect.x + beforeSize.rect.width / 2, beforeSize.rect.y + beforeSize.rect.height / 2)
     await page.mouse.down()
-    await page.mouse.move(beforeSize.rect.x + beforeSize.rect.width / 2 + 24, beforeSize.rect.y + beforeSize.rect.height / 2, { steps: 5 })
+    await page.mouse.move(beforeSize.rect.x + beforeSize.rect.width / 2, beforeSize.rect.y + beforeSize.rect.height / 2 + 24, { steps: 5 })
     await page.mouse.up()
     await expect.poll(async () => splitter.evaluate(element => {
       const parent = element.parentElement!
       const siblings = Array.from(parent.children)
       const index = siblings.indexOf(element)
       const before = siblings.slice(0, index).filter(child => child.classList.contains('lm_item')) as HTMLElement[]
-      return before.map(pane => pane.getBoundingClientRect().width)
+      return before.map(pane => pane.getBoundingClientRect().height)
     })).not.toEqual(beforeSize.before)
     await expect(canvas).toBeVisible()
     await chart.getByRole('button', { name: 'Maximize tool' }).click()

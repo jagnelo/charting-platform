@@ -564,6 +564,28 @@ describe('StudyLabTool', () => {
     expect(apiGet).toHaveBeenCalledWith('/research/runs/77')
   })
 
+  it('distinguishes a saved deferred evaluation from a completed Study result', async () => {
+    apiGet.mockImplementation((path: string) => path === '/research/runs/77'
+      ? Promise.resolve({
+          id: 77,
+          status: 'completed',
+          evaluation_status: 'deferred',
+          run_config: { symbol: 'SPY', timeframe: 'D1' },
+          dataset_manifest: { symbol: 'SPY', timeframe: 'D1' },
+          diagnostics: [{ code: 'coverage_preflight_blocked' }],
+          artifact_count: 0,
+          artifacts: [],
+        })
+      : Promise.resolve(undefined))
+    const wrapper = mountTool({ activeSymbol: 'SPY', configuration: { study_run_id: 77 } })
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #77'))
+
+    expect(wrapper.get('[aria-label="Study run status: Evaluation deferred"]').attributes('data-status')).toBe('completed')
+    expect(wrapper.get('.study-lab-tool__run-guidance').text()).toContain('No artifacts were produced')
+    expect(wrapper.find('.study-lab-tool__metrics').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
   it('keeps a saved run tied to its recorded dataset while the current draft changes', async () => {
     const savedRun = {
       id: 6,

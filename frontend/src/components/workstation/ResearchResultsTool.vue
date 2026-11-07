@@ -27,7 +27,7 @@
             @click="selectedRun = run"
           >
             <strong>Run #{{ run.id }}</strong>
-            <span role="status" aria-live="polite" aria-atomic="true" :aria-label="`Run ${run.id} status: ${statusLabel(run.status)}`" :data-status="run.status" :class="`research-results-tool__status--${run.status}`">{{ statusLabel(run.status) }}</span>
+            <span role="status" aria-live="polite" aria-atomic="true" :aria-label="`Run ${run.id} status: ${runStatusLabel(run)}`" :data-status="run.status" :class="`research-results-tool__status--${runStatusClass(run)}`">{{ runStatusLabel(run) }}</span>
             <small>{{ run.artifact_count ?? run.artifacts?.length ?? 0 }} artifact{{ (run.artifact_count ?? run.artifacts?.length ?? 0) === 1 ? '' : 's' }}</small>
           </button>
         </div>
@@ -85,7 +85,7 @@
     </section>
     <article v-if="selectedRun" class="research-results-tool__detail" :aria-label="`Research run ${selectedRun.id} details`">
       <div class="research-results-tool__detail-header"><strong>Run #{{ selectedRun.id }}</strong><button v-if="canCancel(selectedRun)" type="button" :disabled="canceling" @click="cancel(selectedRun)">Cancel</button><button v-if="canPromoteBreadth(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteScan(selectedRun)">{{ promoting ? 'Promoting…' : 'Promote to EasyScan' }}</button><button v-if="canPromoteBreadthBoolean(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteAlert(selectedRun)">{{ promoting ? 'Promoting…' : 'Promote to alert' }}</button><button v-if="canPromoteBreadthBoolean(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteGauge(selectedRun)">{{ promoting ? 'Promoting…' : 'Use as Market Gauge' }}</button><button v-if="canPromoteBreadthBoolean(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteSignal(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as Strategy signal' }}</button><button v-if="canPromoteEventSignal(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteEventSignal(selectedRun)">{{ promoting ? 'Promoting…' : 'Save events as Strategy signal' }}</button><button v-if="canPromoteEventFilter(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteEventFilter(selectedRun)">{{ promoting ? 'Promoting…' : 'Save events as watchlist filter' }}</button><button v-if="canPromoteEventFilter(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteEventAlert(selectedRun)">{{ promoting ? 'Promoting…' : 'Promote events to alert' }}</button><button v-if="canPromoteBreadthStudy(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteStudy(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as Study Lab study' }}</button><button v-if="canPromoteBreadthPlot(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promotePlot(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as chart plot' }}</button><button v-if="canPromoteBreadthAggregatePlot(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteAggregatePlot(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as aggregate chart plot' }}</button><button v-if="canPromoteBreadthColumn(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteColumn(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as watchlist column' }}</button><button type="button" :disabled="rerunning || canceling || promoting" @click="rerun(selectedRun, true)">Rerun snapshot</button><button type="button" :disabled="rerunning || canceling || promoting" @click="rerun(selectedRun, false)">Rerun latest</button></div>
-      <p class="research-results-tool__run-guidance" role="status" aria-live="polite" aria-atomic="true">{{ statusGuidance(selectedRun.status) }}</p>
+      <p class="research-results-tool__run-guidance" role="status" aria-live="polite" aria-atomic="true">{{ statusGuidance(selectedRun) }}</p>
       <p v-if="promotionMessage && promotionRunId === selectedRun.id" class="research-results-tool__run-guidance" role="status" aria-live="polite" aria-atomic="true">{{ promotionMessage }}</p>
       <small v-if="selectedRun.reproducibility_hash">{{ selectedRun.reproducibility_hash }}</small>
       <details v-if="selectedRun.diagnostics?.length" class="research-results-tool__run-details"><summary>Diagnostics ({{ selectedRun.diagnostics.length }})</summary><pre>{{ formatMessages(selectedRun.diagnostics) }}</pre></details>
@@ -215,6 +215,7 @@ interface ResearchRunSummary {
   id: number
   created_at?: string
   status: string
+  evaluation_status?: string | null
   code_version_id: number
   output_contract?: string | null
   run_config: Record<string, unknown>
@@ -381,7 +382,10 @@ const comparisonArtifacts = computed<ComparisonArtifactPair[]>(() => {
 const comparisonLoadKey = computed(() => comparisonOpen.value && comparisonRuns.value.length === 2
   ? `${comparisonRuns.value.map(run => `${run.id}:${run.status}:${run.artifact_count ?? run.artifacts.length}`).join('|')}|retry:${comparisonAttempt.value}`
   : '')
-const surfaceVisible = ref(true)
+// Dock tools can mount while their tab is hidden. Do not start a query until
+// IntersectionObserver confirms the pane is visible; otherwise the first
+// request can race the hidden-tab transition and leave the empty state loading.
+const surfaceVisible = ref(typeof IntersectionObserver === 'undefined')
 const documentVisible = ref(typeof document === 'undefined' || document.visibilityState !== 'hidden')
 const runsQueryKey = researchRunsQueryKey
 const queryClient = useQueryClient()
@@ -530,8 +534,21 @@ function statusLabel(status: string) {
   const labels: Record<string, string> = { queued: 'Queued', running: 'Running', completed: 'Completed', failed: 'Failed', canceled: 'Canceled' }
   return labels[status] ?? status.replace(/_/g, ' ')
 }
+function runStatusLabel(run: ResearchRunSummary) {
+  if (run.status === 'completed' && run.evaluation_status === 'deferred') return 'Evaluation deferred'
+  if (run.status === 'completed' && run.evaluation_status === 'failed') return 'Evaluation failed'
+  return statusLabel(run.status)
+}
+function runStatusClass(run: ResearchRunSummary) {
+  return run.status === 'completed' && run.evaluation_status === 'deferred'
+    ? 'deferred'
+    : run.status === 'completed' && run.evaluation_status === 'failed'
+      ? 'failed'
+      : run.status
+}
 function canInspectStudyArtifact(run: ResearchRunSummary | null, artifact: ResearchArtifact): boolean {
   return run?.status === 'completed'
+    && run.evaluation_status === 'completed'
     && run.output_contract === 'study'
     && Number.isSafeInteger(run.id)
     && run.id > 0
@@ -546,8 +563,14 @@ function studyArtifactInspectorLocation(run: ResearchRunSummary, artifact: Resea
     query: { researchRunId: String(run.id), artifactId: String(artifact.id) },
   }
 }
-function statusGuidance(status: string) {
-  switch (status) {
+function statusGuidance(run: ResearchRunSummary) {
+  if (run.status === 'completed' && run.evaluation_status === 'deferred') {
+    return 'The runner finished, but this Study was deferred because required local data coverage is incomplete. No artifacts were produced. Adjust the requested range or resolve the stated data gap, then rerun this saved attempt.'
+  }
+  if (run.status === 'completed' && run.evaluation_status === 'failed') {
+    return 'The runner finished, but Study evaluation failed. No successful result is available; inspect diagnostics before retrying the saved attempt.'
+  }
+  switch (run.status) {
     case 'queued': return 'The isolated runner is preparing the declared dataset.'
     case 'running': return 'The isolated runner is evaluating the study; results will refresh automatically.'
     case 'completed': return 'Study completed. Inspect artifacts or compare this run with another snapshot.'
@@ -1811,6 +1834,7 @@ onBeforeUnmount(() => {
 <style scoped>
 .research-results-tool { display:grid; grid-template-rows:auto minmax(55px,.35fr) minmax(0,1fr); gap:6px; height:100%; min-height:0; padding:6px; color:#cbd5dc; background:#11161b; font:10px "Segoe UI",Arial,sans-serif; }.research-results-tool header { display:flex; align-items:center; gap:6px; }.research-results-tool header button { margin-left:auto; }.research-results-tool header button + button { margin-left:0; }.research-results-tool button { border:1px solid #3a4954; background:#172027; color:#dce6ed; font:inherit; cursor:pointer; }.research-results-tool button:disabled { opacity:.55; cursor:default; }.research-results-tool__runs { overflow:auto; display:grid; align-content:start; gap:3px; }.research-results-tool__run { display:grid; grid-template-columns:14px minmax(55px,1fr); gap:5px; padding:5px; border:1px solid #3a4954; background:#172027; }.research-results-tool__run:hover,.research-results-tool__run--selected { background:#1d3543; border-color:#52748a; }.research-results-tool .research-results-tool__run-select { display:grid; grid-template-columns:minmax(55px,1fr) auto auto; gap:5px; min-width:0; padding:0; border:0; background:transparent; text-align:left; }.research-results-tool__run-select:focus-visible { outline:2px solid #80bce8; outline-offset:1px; }.research-results-tool__run small,.research-results-tool__detail small,.research-results-tool__notice { color:#8195a3; }.research-results-tool__comparison { overflow:auto; border:1px solid #34424c; padding:5px; }.research-results-tool__comparison div { display:grid; grid-template-columns:70px 1fr; gap:5px; margin-top:3px; }.research-results-tool__comparison b { overflow-wrap:anywhere; font-weight:500; }.research-results-tool__same { color:#82c49b; }.research-results-tool__changed { color:#e7c274; }.research-results-tool__detail { border-top:1px solid #34424c; padding-top:5px; overflow:auto; }.research-results-tool__detail-header { display:flex; align-items:center; gap:4px; }.research-results-tool__detail-header button { padding:1px 4px; }.research-results-tool__detail-header button:first-of-type { margin-left:auto; }.research-results-tool__detail p { margin:4px 0; }.research-results-tool__artifacts { display:grid; gap:5px; }.research-results-tool__artifacts article { display:grid; gap:3px; border-top:1px solid #29343c; padding-top:4px; }.research-results-tool__artifact-header { display:flex; align-items:center; gap:4px; }.research-results-tool__artifact-header small { color:#8195a3; }.research-results-tool__artifact-header button { margin-left:auto; padding:1px 4px; }.research-results-tool__artifacts table { border-collapse:collapse; width:100%; }.research-results-tool__artifacts th,.research-results-tool__artifacts td { padding:2px 4px; border:1px solid #2c3943; text-align:left; }.research-results-tool__events { display:grid; gap:2px; }.research-results-tool__events button { display:grid; grid-template-columns:50px 1fr; padding:3px 4px; text-align:left; }.research-results-tool__events span { color:#91a8b4; }.research-results-tool__artifacts pre { margin:0; max-height:100px; overflow:auto; white-space:pre-wrap; }.research-results-tool__boolean--true { color:#80d5a5; }.research-results-tool__boolean--false { color:#f0a0a0; }.research-results-tool__error { color:#f0a2a2; }.research-results-tool__status--completed { color:#82c49b; }.research-results-tool__status--failed,.research-results-tool__status--canceled { color:#ed9696; }.research-results-tool__status--queued,.research-results-tool__status--running { color:#80bce8; }
 .research-results-tool__run-details { margin:4px 0; border-top:1px solid #29343c; padding-top:3px; }.research-results-tool__run-details summary { color:#9db0bc; cursor:pointer; }.research-results-tool__run-details pre { margin:3px 0 0; max-height:90px; overflow:auto; white-space:pre-wrap; }
+.research-results-tool__status--deferred { color:#e7c274; }
 .research-results-tool__run-guidance { margin:3px 0; color:#91a8b4; line-height:1.35; }.research-results-tool__status--failed,.research-results-tool__status--canceled { color:#ed9696; }
 .research-results-tool__events small { grid-column:2; color:#91a8b4; }.research-results-tool__events > [role="listitem"] { display:grid; }.research-results-tool__breadth-history > small,.research-results-tool__event-artifact > small { color:#91a8b4; }.research-results-tool__breadth-history { display:grid; gap:3px; }.research-results-tool__breadth-history :deep(.generic-breadth-history) { height:150px; }
 .research-results-tool__occurrence-filters { display:flex; align-items:center; flex-wrap:wrap; gap:5px; color:#91a8b4; }.research-results-tool__occurrence-filters label { display:flex; align-items:center; gap:3px; }.research-results-tool__occurrence-filters input,.research-results-tool__occurrence-filters select { min-width:80px; border:1px solid #3a4954; background:#121a20; color:#dce6ed; font:inherit; padding:2px 3px; }.research-results-tool__occurrence-filters span { margin-left:auto; }

@@ -27,7 +27,7 @@ interface RatioResponse {
 const RATIO_SERIES_COLORS = ['#6bc0ef', '#e7b35b', '#aa86e8', '#5fc8a2']
 const ROTATION_STATE_COLORS = {
   leading: '#61c58c',
-  weakening: '#e7be68',
+  weakening: '#e7bc68',
   improving: '#6dbbe6',
   lagging: '#df8181',
 } as const
@@ -263,8 +263,11 @@ async function assertRotationPainted(page: Page, payload: RotationResponse): Pro
     if (!context) return { width: element.width, height: element.height, painted: 0, markers: [], tails: [] }
     const image = context.getImageData(0, 0, element.width, element.height).data
     const stateColors: Record<string, [number, number, number]> = {
-      leading: [97, 197, 140], weakening: [231, 190, 104], improving: [109, 187, 230], lagging: [223, 129, 129],
+      leading: [97, 197, 140], weakening: [231, 188, 104], improving: [109, 187, 230], lagging: [223, 129, 129],
     }
+    const plotShell = element.closest('.rotation-tool__plot-shell')
+    const backgroundMatch = plotShell ? getComputedStyle(plotShell).backgroundColor.match(/\d+(?:\.\d+)?/g) : null
+    const plotBackground = backgroundMatch ? backgroundMatch.slice(0, 3).map(Number) as [number, number, number] : [16, 20, 25]
     let painted = 0
     for (let offset = 0; offset < image.length; offset += 4) {
       const red = image[offset], green = image[offset + 1], blue = image[offset + 2], alpha = image[offset + 3]
@@ -291,6 +294,8 @@ async function assertRotationPainted(page: Page, payload: RotationResponse): Pro
     }
     const tailRasterHits = (path: Array<{ x: number; y: number }>, color: [number, number, number]) => {
       let hits = 0
+      const strokeVector = color.map((channel, index) => channel - plotBackground[index])
+      const strokeLengthSquared = strokeVector.reduce((sum, channel) => sum + channel * channel, 0)
       for (let index = 1; index < path.length; index += 1) {
         const x = Math.round((path[index - 1].x + path[index].x) / 2)
         const y = Math.round((path[index - 1].y + path[index].y) / 2)
@@ -299,8 +304,22 @@ async function assertRotationPainted(page: Page, payload: RotationResponse): Pro
           const px = x + dx, py = y + dy
           if (px < 0 || py < 0 || px >= element.width || py >= element.height) continue
           const offset = (py * element.width + px) * 4
-          const distance = Math.hypot(image[offset] - color[0], image[offset + 1] - color[1], image[offset + 2] - color[2])
-          if (image[offset + 3] > 100 && distance < 88) { found = true; break }
+          const alpha = image[offset + 3]
+          const pixel = [image[offset], image[offset + 1], image[offset + 2]]
+          if (alpha > 0 && alpha < 250) {
+            // Transparent canvas pixels retain the unblended stroke RGB; alpha
+            // records stroke coverage. Opaque marker and label pixels are not tails.
+            const distance = Math.hypot(...pixel.map((channel, channelIndex) => channel - color[channelIndex]))
+            if (alpha >= 30 && distance <= 2) { found = true; break }
+          } else if (alpha >= 250) {
+            // On the opaque plot backing, recover effective stroke opacity along
+            // the source-color/background vector. The renderer's 0.72 alpha plus
+            // antialias coverage lies below opaque markers and label text.
+            const fromBackground = pixel.map((channel, channelIndex) => channel - plotBackground[channelIndex])
+            const opacity = fromBackground.reduce((sum, channel, channelIndex) => sum + channel * strokeVector[channelIndex], 0) / strokeLengthSquared
+            const residual = Math.hypot(...fromBackground.map((channel, channelIndex) => channel - opacity * strokeVector[channelIndex]))
+            if (opacity >= 0.2 && opacity <= 0.75 && residual <= 8) { found = true; break }
+          }
         }
         if (found) hits += 1
       }
@@ -356,7 +375,7 @@ async function assertRotationPainted(page: Page, payload: RotationResponse): Pro
 async function installRotationCanvasAudit(page: Page): Promise<void> {
   await page.addInitScript(() => {
     const selector = '[role="group"][aria-label="Relative rotation trend and momentum plane"]'
-    const colors = new Set(['#61c58c', '#e7be68', '#6dbbe6', '#df8181'])
+    const colors = new Set(['#61c58c', '#e7bc68', '#6dbbe6', '#df8181'])
     const audit = { markers: [] as Array<{ x: number; y: number; radius: number; color: string }>, tails: [] as Array<{ color: string; alpha: number; points: Array<{ x: number; y: number }> }> }
     ;(window as any).__rrgCanvasAudit = audit
     const paths = new WeakMap<CanvasRenderingContext2D, Array<{ x: number; y: number }>>()

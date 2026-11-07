@@ -39,6 +39,42 @@ describe('ResearchResultsTool', () => {
     })
   }
 
+  it('waits until a dock-mounted Results pane is observed visible before fetching runs', async () => {
+    let onIntersection: ((isIntersecting: boolean, target: Element) => void) | undefined
+    let observedTarget: Element | undefined
+    class ControlledIntersectionObserver {
+      constructor(callback: IntersectionObserverCallback) {
+        onIntersection = (isIntersecting, target) => callback([
+          { isIntersecting, intersectionRatio: isIntersecting ? 1 : 0, target } as IntersectionObserverEntry,
+        ], this as unknown as IntersectionObserver)
+      }
+      observe(target: Element) { observedTarget = target }
+      disconnect() {}
+      unobserve() {}
+      takeRecords() { return [] }
+    }
+    vi.stubGlobal('IntersectionObserver', ControlledIntersectionObserver)
+    apiGet.mockResolvedValue([])
+    const wrapper = mountTool()
+    try {
+      await flushPromises()
+      expect(observedTarget).toBe(wrapper.find('.research-results-tool').element)
+      expect(apiGet).not.toHaveBeenCalled()
+
+      onIntersection?.(false, observedTarget!)
+      await flushPromises()
+      expect(apiGet).not.toHaveBeenCalled()
+
+      onIntersection?.(true, observedTarget!)
+      await vi.waitFor(() => expect(apiGet).toHaveBeenCalledOnce())
+      await flushPromises()
+      expect(wrapper.text()).toContain('No persisted studies yet. Run a study in the adjacent Study Lab pane.')
+    } finally {
+      wrapper.unmount()
+      vi.unstubAllGlobals()
+    }
+  })
+
   it('loads persisted runs and exposes selected structured artifacts', async () => {
     apiGet.mockResolvedValue([{ id: 9, status: 'completed', reproducibility_hash: 'abc', diagnostics: [], artifacts: [{ id: 3, name: 'current_streak', artifact_type: 'scalar', payload: { value: 4 } }, { id: 4, name: 'distribution', artifact_type: 'histogram', payload: { value: { bins: [{ start: 1, end: 2, count: 1 }] } } }, { id: 5, name: 'ranking', artifact_type: 'bar', payload: { value: { labels: ['XLK'], values: [12] } } }, { id: 6, name: 'confidence', artifact_type: 'range', payload: { value: { timestamps: ['2026-01-01'], lower: [1], upper: [3], center: [2] } } }] }])
     const wrapper = mountTool()
@@ -80,7 +116,7 @@ describe('ResearchResultsTool', () => {
   })
 
   it('links completed Study outputs to the read-only v2 inspector with their persisted IDs', async () => {
-    apiGet.mockResolvedValue([{ id: 29, status: 'completed', output_contract: 'study', reproducibility_hash: 'abc', diagnostics: [], artifacts: [
+    apiGet.mockResolvedValue([{ id: 29, status: 'completed', evaluation_status: 'completed', output_contract: 'study', reproducibility_hash: 'abc', diagnostics: [], artifacts: [
       { id: 73, name: 'score', artifact_type: 'scalar', payload: { type: 'scalar', value: 6 } },
       { id: 74, name: 'unsupported', artifact_type: 'custom', payload: { type: 'custom', value: 6 } },
       { id: 75, name: 'mismatched', artifact_type: 'scalar', payload: { type: 'series', value: 6 } },
@@ -97,10 +133,33 @@ describe('ResearchResultsTool', () => {
     expect(apiPost).not.toHaveBeenCalled()
   })
 
-  it('does not offer the v2 Study inspector for running or non-Study outputs', async () => {
+  it('shows a deferred evaluation as no-results rather than completed output', async () => {
+    apiGet.mockResolvedValue([{
+      id: 31,
+      status: 'completed',
+      evaluation_status: 'deferred',
+      output_contract: 'study',
+      code_version_id: 4,
+      run_config: {},
+      dataset_manifest: {},
+      diagnostics: [{ code: 'coverage_preflight_blocked' }],
+      artifact_count: 0,
+      artifacts: [],
+    }])
+    const wrapper = mountTool()
+    await flushPromises()
+
+    const status = wrapper.get('[aria-label="Run 31 status: Evaluation deferred"]')
+    expect(status.attributes('data-status')).toBe('completed')
+    expect(wrapper.get('.research-results-tool__run-guidance').text()).toContain('No artifacts were produced')
+    expect(wrapper.find('a[aria-label*="immutable Study lineage"]').exists()).toBe(false)
+  })
+
+  it('does not offer the v2 Study inspector for running, non-Study, or deferred outputs', async () => {
     apiGet.mockResolvedValue([
       { id: 29, status: 'running', output_contract: 'study', diagnostics: [], artifacts: [{ id: 73, name: 'score', artifact_type: 'scalar', payload: { value: 6 } }] },
       { id: 30, status: 'completed', output_contract: 'events', diagnostics: [], artifacts: [{ id: 74, name: 'events', artifact_type: 'events', payload: { value: [] } }] },
+      { id: 31, status: 'completed', evaluation_status: 'deferred', output_contract: 'study', diagnostics: [], artifacts: [{ id: 75, name: 'deferred-score', artifact_type: 'scalar', payload: { type: 'scalar', value: 6 } }] },
     ])
     const wrapper = mountTool()
     await flushPromises()
