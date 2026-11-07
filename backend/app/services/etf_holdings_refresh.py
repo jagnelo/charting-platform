@@ -1965,6 +1965,11 @@ async def acquire_etf_holdings_profile(
             provider_request_log_ids=request_log_ids,
             message=bounded_redact_provider_message(exc, max_length=1000)
             or "The selected issuer request failed; prior stored evidence was preserved.",
+            reason_code=(
+                "future_dated_source"
+                if _canary_failure_class(exc) == "future_dated_source"
+                else None
+            ),
         )
 
 

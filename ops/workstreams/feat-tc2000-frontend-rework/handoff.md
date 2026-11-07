@@ -26632,3 +26632,10 @@ Root traced the Watchlist, Alerts, and Settings menu failures to the Workstation
 ## 2026-11-07 — Provider 591bdfd9 exact backend dependency import
 
 Root released Provider source 591bdfd977fd156d2a489b055bb8662f487e6b3c for development consumption. Imported its exact 18 TC consumer paths after old-byte checks and verified all 73 manifest rows against source blob, SHA256, and file mode. The current Provider pin now points to this source; the prior 22c31 pin and manifests remain historical. The frontend stays frozen at e1ee9d984ecbf8de66783612902cbc76fa0b8ef3. Root owns build/browser qualification, exact-tip CI, combined acceptance, native proof, and release; all remain pending. No tests, browser, service, or native operation was started for this import.
+
+
+## 2026-11-07 — Independent preparation feedback and Provider ad114d20
+
+Root reviewed two common Workstation feedback defects. Future-dated holdings now explain that current holdings are unavailable because the source snapshot is dated in the future; no future snapshot is described as current. History feedback now reports covered partial D1/W1/MN data independently from identity/profile waits, while an actual history backfill remains identified as older-history work and retains its real retry time. Focused coverage includes the BWET future-dated reason and the mounted partial-history feedback case.
+
+Imported only Provider ad114d20's 11 declared TC delta paths after exact old-byte checks; all 74 source manifest rows and consumer hashes/modes were verified. The active Provider pin now uses the exact ad114 manifest; the earlier 591 source remains available in the previous commit and immutable manifest. Data-preparation tests passed 25/25, the mounted Workstation feedback test passed 1/1, and `vue-tsc --noEmit` passed. The full Workstation unit module had 94/95 pass; the remaining failure is the separate application-menu test expectation at `test_workstation_popout_bindings.test.ts:397`, outside this feedback assignment. Root's build and ten critical affected journeys remain pending, as do full route/action and release gates. No browser, source request, or runtime was started.

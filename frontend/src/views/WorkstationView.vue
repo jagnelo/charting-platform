@@ -386,7 +386,7 @@ import {
 import { isSharedNavigationItemActive, sharedShellNavigation } from '@/router'
 import CompactStatusNotice from '@/components/common/CompactStatusNotice.vue'
 import type { Timeframe } from '@/types'
-import { dataPreparationCoordinator, instrumentHistoryPreparationRequest, PreparationProgressRefreshQueue, preparationMessageSummary, preparationStatusMessage, type DataEnsureResponse } from '@/lib/dataPreparation'
+import { dataPreparationCoordinator, historyPreparationStatusMessage, instrumentHistoryPreparationRequest, PreparationProgressRefreshQueue, preparationMessageSummary, preparationStatusMessage, type DataEnsureResponse } from '@/lib/dataPreparation'
 
 const BLOCKED_POPOUT_ERROR = 'Browser blocked the pop-out. The tool remains docked.'
 const CHART_TIMEFRAME_ORDER: readonly Timeframe[] = ['M1', 'M5', 'M15', 'M30', 'H1', 'H2', 'H4', 'H12', 'D1', 'W1', 'MN']
@@ -1533,9 +1533,7 @@ async function acquireSelectedTickerData(
           || (dependency.covered_start !== null && dependency.covered_end !== null))
         selectionHistoryMessage.value = response.status === 'ready'
           ? `Refreshing the available ${timeframe} history for ${symbol}…`
-          : response.status === 'partial' && response.has_pending_work === false
-            ? preparationStatusMessage(response)
-            : `Preparing the admitted ${timeframe} history for ${symbol} (${completed}/${total})…`
+          : historyPreparationStatusMessage(response, symbol, timeframe, completed, total)
         if (hasHistoryOutput) {
           void refreshQueue.request(response, refreshVisibleSelection).catch(() => {
             if (isCurrent()) selectionHistoryError.value = `Available ${timeframe} history for ${symbol} could not be refreshed; saved bars remain visible.`
@@ -1553,10 +1551,8 @@ async function acquireSelectedTickerData(
       if (result.status === 'ready') {
         selectionHistoryError.value = ''
         selectionHistoryMessage.value = `The admitted ${timeframe} history for ${symbol} is available locally.`
-      } else if (result.status === 'partial') {
-        selectionHistoryMessage.value = preparationStatusMessage(result)
       } else {
-        selectionHistoryMessage.value = preparationStatusMessage(result)
+        selectionHistoryMessage.value = historyPreparationStatusMessage(result, symbol, timeframe, result.completed, result.total)
       }
       const hasHistoryOutput = result.dependencies.some(dependency => dependency.dataset === 'history'
         && (dependency.covered_ranges.length > 0 || (dependency.covered_start !== null && dependency.covered_end !== null)))

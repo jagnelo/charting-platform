@@ -2455,6 +2455,43 @@ describe('WorkstationView pop-out bindings', () => {
     }
   })
 
+  it('describes usable partial price history independently from pending instrument metadata', async () => {
+    routeState.path = '/chart/BWET'
+    routeState.params = { symbol: 'BWET' }
+    dataPreparationPost.mockImplementation(async (request: any) => {
+      const progress = readyPreparationResponse(request, dataPreparationPost.mock.calls.length)
+      if (!request.datasets?.includes('history')) return progress
+      progress.status = 'partial'
+      progress.completed = 1
+      progress.total = 3
+      progress.has_pending_work = true
+      const retryAt = '2026-11-06T12:05:00Z'
+      const identity = progress.dependencies.find((dependency: any) => dependency.dataset === 'identity')
+      const profile = progress.dependencies.find((dependency: any) => dependency.dataset === 'profile')
+      const history = progress.dependencies.find((dependency: any) => dependency.dataset === 'history')
+      for (const dependency of [identity, profile]) {
+        dependency.status = 'waiting'
+        dependency.reason_code = 'provider_capacity_deferred'
+        dependency.retry_at = retryAt
+      }
+      history.status = 'partial'
+      history.reason_code = 'history_coverage_partial'
+      return progress
+    })
+
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    try {
+      await flushPromises()
+      expect(wrapper.text()).toContain('Partial D1 price history for BWET remains available.')
+      expect(wrapper.text()).toContain('Instrument identity and profile details are still being checked.')
+      expect(wrapper.text()).not.toContain('Preparing the admitted D1 history for BWET (1/3)')
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
   it('shows newly prepared history on a cold canonical chart without another click or reload', async () => {
     routeState.path = '/chart/NVDA'
     routeState.params = { symbol: 'NVDA' }

@@ -17,7 +17,11 @@ from app.models.market_data_foundation import (
     MarketSeriesDefault,
 )
 from app.models.ohlcv import OHLCVBar, Timeframe
-from app.models.provider_observation import InstrumentProfileSnapshot
+from app.models.provider_observation import (
+    DatasetStatus,
+    InstrumentDatasetState,
+    InstrumentProfileSnapshot,
+)
 from app.models.provider_runtime import ProviderCapability, ProviderPolicy
 from app.schemas.data_preparation import DataEnsureRequest
 from app.services.data_preparation import (
@@ -168,6 +172,57 @@ async def test_fully_retained_selected_range_is_ready_without_provider_job(
 
 
 @pytest.mark.asyncio
+async def test_monthly_preparation_repairs_pending_derived_state_before_cache_reuse(db, instrument):
+    from app.services.derived_timeframes import materialize_derived_timeframes
+
+    _qualify_test_instrument(instrument)
+    _add_selected_cached_history(db, instrument, days=[1, 2, 3, 4, 5])
+    async_db = AsyncSessionAdapter(db)
+    await materialize_derived_timeframes(async_db, instrument.id, adjusted=True)
+    monthly_state = (
+        db.query(InstrumentDatasetState)
+        .filter(
+            InstrumentDatasetState.instrument_id == instrument.id,
+            InstrumentDatasetState.data_source_id.is_(None),
+            InstrumentDatasetState.dataset_key == "MN:adj",
+        )
+        .one()
+    )
+    monthly_state.status = DatasetStatus.PENDING
+    monthly_state.coverage_start = None
+    monthly_state.coverage_end = None
+    monthly_state.extra_data = {"derived_bar_count": 0}
+    db.flush()
+
+    request = DataEnsureRequest.model_validate(
+        {
+            "target": {"kind": "instrument", "instrument_id": instrument.id},
+            "datasets": ["history"],
+            "timeframe": "MN",
+            "adjusted": True,
+            "start_at": "2026-01-01T00:00:00Z",
+            "end_at": "2026-01-05T00:00:00Z",
+        }
+    )
+    parent = await create_data_preparation_request(async_db, owner_user_id=81, request=request)
+    response = await get_data_preparation_response(async_db, parent=parent, owner_user_id=81)
+
+    assert response.dependencies[0].status in {"partial", "queued", "ready"}
+    assert monthly_state.status == DatasetStatus.FRESH
+    assert monthly_state.coverage_start is not None
+    assert monthly_state.coverage_end is not None
+    assert monthly_state.extra_data["derived_bar_count"] > 0
+    assert (
+        any(
+            job_id
+            for dependency in parent.metadata_payload["data_preparation"]["dependencies"]
+            for job_id in dependency["job_ids"]
+        )
+        or response.dependencies[0].status == "ready"
+    )
+
+
+@pytest.mark.asyncio
 async def test_close_labelled_retained_range_is_ready_at_exact_bounds(db, instrument, monkeypatch):
     import app.services.data_preparation as preparation
 
@@ -245,6 +300,33 @@ async def test_existing_held_request_reprojects_ready_after_compatible_cache_arr
     assert response.dependencies[0].reason_code is None
     assert response.dependencies[0].covered_start == datetime(2026, 1, 1, tzinfo=UTC)
     assert response.dependencies[0].covered_end == datetime(2026, 1, 5, tzinfo=UTC)
+
+
+@pytest.mark.parametrize(
+    ("reason_code", "expected_reason"),
+    [
+        ("future_dated_source", "future_dated_source"),
+        (None, "preparation_job_failed"),
+    ],
+)
+@pytest.mark.asyncio
+async def test_failed_completed_preparation_preserves_typed_reason_or_uses_fallback(
+    db, instrument, reason_code, expected_reason
+):
+    async_db, request_id = await _create_previously_held_history_request(db, instrument)
+    parent = await load_owner_request(async_db, request_id=request_id, owner_user_id=81)
+    dependency = parent.metadata_payload["data_preparation"]["dependencies"][0]
+    child = await async_db.get(MarketRefreshJob, dependency["job_ids"][0])
+    child.result_summary = {
+        "preparation_status": "failed",
+        "reason_code": reason_code,
+    }
+    await async_db.commit()
+
+    response = await get_data_preparation_response(async_db, parent=parent, owner_user_id=81)
+
+    assert response.dependencies[0].status == "failed"
+    assert response.dependencies[0].reason_code == expected_reason
 
 
 @pytest.mark.asyncio

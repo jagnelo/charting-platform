@@ -330,8 +330,8 @@ on_demand_consumer_implementation: 'Current TC-owned mocked implementation at th
   tree and passed its full required CI40656688915. This feature-branch adoption records ancestry only; its exact branch CI
   is pending Root. Controlled tests are not genuine Provider/issuer proof; target/deployment and the complete roadmap remain
   open.'
-current_blocker: "No local frontend work is authorized while Root owns the frozen-source qualification. Root-owned build/browser, exact-tip CI, combined qualification, native proof and release gates remain pending."
-current_checkpoint_status: "Frontend source remains frozen at e1ee9d984ecbf8de66783612902cbc76fa0b8ef3. Imported the exact Provider 591bdfd9 backend dependency: 18 TC delta paths and all 73 manifest rows verified; Root-owned build/browser and exact-tip qualification remain pending."
+current_blocker: 'The assigned feedback cases and type-check pass. One non-targeted Workstation application-menu unit assertion still fails at test_workstation_popout_bindings.test.ts:397; Root-owned ten-journey qualification and the broader release gates remain pending.'
+current_checkpoint_status: 'Current TC feedback successor based on 64eec09d adds future-dated holdings feedback and dataset-aware history progress, plus the exact Provider ad114d20 dependency. Root build and ten critical affected journeys remain pending; full platform acceptance is not claimed.'
 
 ordinary_ticker_latest_update: 'Root accepted the exact combined served profile at backend source 6eae00eb8380438da771fed0c42d19587e9520ce
   / image sha256:6c962aad753959c2ecdd79f0a1d6057d77f2ba6b829ec85b99404b009a42e76a and frontend source 36e7ad2cb08c769a242773ab2b6be69fcc350774
@@ -1981,17 +1981,9 @@ status: in_progress
 progress:
   completed: []
   total: 9
-  current_phase: 'Current focused successor: EasyScan/Gauge follow matching asynchronous
-    replacement runs while retaining completed results, and Workstation preserves the
-    saved Library Study symbol and dataset defaults on return. Strategy2144 imports are
-    current; remaining full-platform journeys stay open.'
-  current_blocker: No local focused-test blocker. Root-owned rendered factory/browser
-    confirmation, exact-tip CI, combined qualification, native proof, and release gates
-    remain pending.
-  next_action: Root to build the exact current frontend and verify saved Library return,
-    Gauge/Scan recovery, and remaining affected journeys. Continue unfinished route,
-    factory, analysis, lifecycle, visual, and complete route/action acceptance only
-    after the coordinated browser review; do not claim full platform acceptance.
+  current_phase: 'Implement common preparation feedback: report future-dated holdings as unavailable without treating them as current, and distinguish usable partial history from active older-history work and unrelated identity/profile waits. Imported the exact 11-path Provider ad114d20 delta.'
+  current_blocker: 'Root build and ten critical affected journeys are pending. The assigned data-preparation tests (25/25), mounted Workstation feedback test (1/1), and vue-tsc passed. The full Workstation unit module had one non-targeted application-menu assertion failure at line 397; broader route/action and release acceptance remain open.'
+  next_action: 'Root to build the exact TC/Provider successor and run the ten critical affected journeys. After Root evidence, address only a demonstrated TC defect and continue the full approved route/action matrix; do not claim integration or release acceptance.'
   updated_at: '2026-11-07'
 historical_checkpoint_status_archive: 'Current boundary (2026-10-22): published HEAD is a7c8ecba208ce6c79d8f1a5d7294500122e462e5;
   one test-only change in workstation_performance.spec.ts and the four owned records are pending review. Exact hosted CI39693019337
@@ -5097,9 +5089,9 @@ development_dependency_import_history:
     superseded_by: 8ae5f9aca10803f300b6d5a41a3bced447f70ebc
 
 approved_development_dependency_imports:
-- source_sha: 591bdfd977fd156d2a489b055bb8662f487e6b3c
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/591bdfd977fd156d2a489b055bb8662f487e6b3c.json
-  manifest_sha256: 76749e76f08820cd2382be3d575027142d2f3271b598defdb00b53795599bd84
+- source_sha: ad114d20eff04992f384b5a57bb3999e3da6d6f7
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/ad114d20eff04992f384b5a57bb3999e3da6d6f7.json
+  manifest_sha256: 1854e1e23b605629b7772111426d91b6ba36c0758ea4a41efcda31fe35329f02
   paths:
   - backend/app/config.py
   - backend/app/main.py
@@ -5156,6 +5148,7 @@ approved_development_dependency_imports:
   - backend/tests/unit/services/test_derived_timeframes.py
   - backend/tests/unit/services/test_e2e_seed.py
   - backend/tests/unit/services/test_etf_holdings_adapters.py
+  - backend/tests/unit/services/test_etf_holdings_bootstrap.py
   - backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py
   - backend/tests/unit/services/test_etf_holdings_native_qualification.py
   - backend/tests/unit/services/test_etf_holdings_preparation.py

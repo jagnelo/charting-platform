@@ -3,6 +3,7 @@ from decimal import Decimal
 from unittest.mock import AsyncMock
 
 import pytest
+from redis.exceptions import TimeoutError as RedisTimeoutError
 from sqlalchemy import select
 
 from app.models.data_source import DataSource
@@ -41,6 +42,67 @@ async def test_wakeup_failure_does_not_replace_durable_database_queue(monkeypatc
     await data_preparation._wake_refresh_worker()
 
     pool_factory.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_wakeup_cleanup_timeout_does_not_escape_after_enqueue(monkeypatch):
+    redis = AsyncMock()
+    redis.aclose = AsyncMock(side_effect=RedisTimeoutError("Timed out closing connection after 1"))
+    pool_factory = AsyncMock(return_value=redis)
+    monkeypatch.setattr(data_preparation, "create_pool", pool_factory)
+
+    await data_preparation._wake_refresh_worker()
+
+    redis.enqueue_job.assert_awaited_once()
+    redis.aclose.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_unexpected_wakeup_cleanup_error_remains_visible(monkeypatch):
+    redis = AsyncMock()
+    redis.aclose = AsyncMock(side_effect=RuntimeError("unexpected close bug"))
+    pool_factory = AsyncMock(return_value=redis)
+    monkeypatch.setattr(data_preparation, "create_pool", pool_factory)
+
+    with pytest.raises(RuntimeError, match="unexpected close bug"):
+        await data_preparation._wake_refresh_worker()
+
+
+def test_ensure_returns_accepted_and_keeps_request_when_redis_close_times_out(
+    client, auth_headers, db, monkeypatch
+):
+    redis = AsyncMock()
+    redis.aclose = AsyncMock(side_effect=RedisTimeoutError("Timed out closing connection after 1"))
+    monkeypatch.setattr(data_preparation, "create_pool", AsyncMock(return_value=redis))
+
+    response = client.post(
+        "/api/v1/data/ensure",
+        headers=auth_headers,
+        json={
+            "target": {"kind": "instrument", "symbol": "WAKECLOSE"},
+            "datasets": ["identity"],
+        },
+    )
+
+    assert response.status_code == 202, response.text
+    body = response.json()
+    assert body["status"] == "queued"
+    assert body["has_pending_work"] is True
+    redis.enqueue_job.assert_awaited_once()
+    redis.aclose.assert_awaited_once()
+
+    persisted = db.scalars(
+        select(MarketRefreshJob).where(
+            MarketRefreshJob.capability == "data_preparation_request",
+            MarketRefreshJob.metadata_payload["data_preparation"]["request_id"].as_string()
+            == body["request_id"],
+        )
+    ).one()
+    assert persisted.status == "tracking"
+    readback = client.get(f"/api/v1/data/requests/{body['request_id']}", headers=auth_headers)
+    assert readback.status_code == 200, readback.text
+    assert readback.json()["request_id"] == body["request_id"]
+    assert readback.json()["status"] == "queued"
 
 
 def test_authenticated_ensure_uses_retained_selected_history_without_provider_job(

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { api } from '@/lib/api'
-import { DataEnsureRequest, DataEnsureResponse, DataPreparationCoordinator, instrumentHistoryPreparationRequest, isPreparationTimeframe, PreparationDependency, PreparationProgressRefreshQueue, preparationMessageSummary, preparationStatusMessage, savedScreenerPreparationContextKey, shouldRefreshAnalysisProgress } from '@/lib/dataPreparation'
+import { DataEnsureRequest, DataEnsureResponse, DataPreparationCoordinator, historyPreparationStatusMessage, instrumentHistoryPreparationRequest, isPreparationTimeframe, PreparationDependency, PreparationProgressRefreshQueue, preparationMessageSummary, preparationStatusMessage, savedScreenerPreparationContextKey, shouldRefreshAnalysisProgress } from '@/lib/dataPreparation'
 
 const baseTime = '2026-11-06T12:00:00.000Z'
 const request: DataEnsureRequest = { target: { kind: 'instrument', symbol: 'SPY' }, timeframe: 'D1', datasets: ['identity', 'history'] }
@@ -438,6 +438,64 @@ describe('DataPreparationCoordinator', () => {
       reason_code: 'provider_source_unavailable', retry_at: null, updated_at: baseTime,
     }] }), Date.parse(baseTime))).toContain('reviewed data source')
     expect(preparationStatusMessage(waiting, Date.parse(baseTime))).not.toContain('Try again')
+  })
+
+  it('explains future-dated holdings without presenting them as current', () => {
+    const failed = response('failed', 2, {
+      completed: 1, total: 3,
+      dependencies: [{ dependency_id: 'holdings:48', depends_on: ['identity:48'], instrument_id: 48,
+        symbol: 'BWET', dataset: 'holdings', status: 'failed', updated_at: baseTime,
+        reason_code: 'future_dated_source' }],
+    })
+
+    const message = preparationStatusMessage(failed, Date.parse(baseTime))
+
+    expect(message).toContain('Current holdings are unavailable')
+    expect(message).toContain('dated in the future')
+    expect(message).toContain('current view remains usable')
+    expect(message).not.toContain('future_dated_source')
+    expect(message).not.toContain('available locally')
+  })
+
+  it('reports usable partial history separately from metadata waits and actual older-history work', () => {
+    const coveredRange = [{ start_at: '2025-01-01T00:00:00Z', end_at: '2026-11-06T00:00:00Z',
+      data_source_id: 4, market_series_id: 9, adjustment_basis: 'split_dividend', adjustment_version: 'v1', is_adjusted: true }]
+    const partialWithMetadataWaits = response('partial', 4, {
+      completed: 1, total: 3, has_pending_work: true,
+      dependencies: [
+        { dependency_id: 'identity:48', depends_on: [], instrument_id: 48, symbol: 'BWET', dataset: 'identity',
+          status: 'waiting', updated_at: baseTime, reason_code: 'provider_capacity_deferred', retry_at: '2026-11-06T12:05:00Z' },
+        { dependency_id: 'profile:48', depends_on: ['identity:48'], instrument_id: 48, symbol: 'BWET', dataset: 'profile',
+          status: 'waiting', updated_at: baseTime, reason_code: 'provider_capacity_deferred', retry_at: '2026-11-06T12:05:00Z' },
+        { dependency_id: 'history:48:D1', depends_on: ['identity:48'], instrument_id: 48, symbol: 'BWET', dataset: 'history',
+          status: 'partial', updated_at: baseTime, reason_code: 'history_coverage_partial', covered_ranges: coveredRange,
+          covered_start: coveredRange[0]!.start_at, covered_end: coveredRange[0]!.end_at },
+      ],
+    })
+    const partialWithOlderBackfill = response('partial', 5, {
+      completed: 1, total: 3, has_pending_work: true,
+      dependencies: [
+        { dependency_id: 'identity:48', depends_on: [], instrument_id: 48, symbol: 'BWET', dataset: 'identity',
+          status: 'ready', updated_at: baseTime },
+        { dependency_id: 'profile:48', depends_on: ['identity:48'], instrument_id: 48, symbol: 'BWET', dataset: 'profile',
+          status: 'ready', updated_at: baseTime },
+        { dependency_id: 'history:48:D1', depends_on: ['identity:48'], instrument_id: 48, symbol: 'BWET', dataset: 'history',
+          status: 'partial', updated_at: baseTime, reason_code: 'history_backfill_pending', retry_at: '2026-11-06T12:05:00Z',
+          covered_ranges: coveredRange, covered_start: coveredRange[0]!.start_at, covered_end: coveredRange[0]!.end_at },
+      ],
+    })
+
+    const usable = historyPreparationStatusMessage(partialWithMetadataWaits, 'BWET', 'D1', 1, 3, Date.parse(baseTime))
+    const backfilling = historyPreparationStatusMessage(partialWithOlderBackfill, 'BWET', 'D1', 1, 3, Date.parse(baseTime))
+
+    expect(usable).toContain('Partial D1 price history for BWET remains available')
+    expect(usable).toContain('Instrument identity and profile details are still being checked')
+    expect(usable).not.toContain('Preparing older')
+    expect(backfilling).toContain('Older D1 history for BWET is not yet complete')
+    expect(backfilling).toContain('Additional price history is still being prepared')
+    expect(backfilling).toContain('will resume at')
+    expect(backfilling).toContain('current view remains usable')
+    expect(backfilling).not.toContain('history_backfill_pending')
   })
 
   it('accepts only the Provider-owned timeframe enum, including its supported annual period', async () => {
