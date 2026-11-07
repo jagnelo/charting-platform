@@ -11,7 +11,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, time
 from typing import Any, Literal
 
 from sqlalchemy import select
@@ -101,6 +101,36 @@ class EvaluatorPreflight:
 
 def _as_utc(value: datetime) -> datetime:
     return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+
+
+def _date_only_daily_assessment_bounds(
+    bars: Sequence[OHLCVBar],
+    timeframe: Timeframe,
+    start: datetime,
+    end: datetime,
+) -> tuple[datetime, datetime]:
+    """Treat date-only D1 bounds as full sessions, including close-labelled bars.
+
+    Date-only callers express midnight through end-of-day, while many daily
+    providers label a completed session at its close. When the requested edge
+    date itself has an observation, compare coverage from that day's observed
+    session timestamp. A missing edge date remains missing; interior gaps are
+    still assessed by the normal calendar/cadence rules.
+    """
+    if timeframe != Timeframe.D1:
+        return start, end
+
+    normalized_start, normalized_end = _as_utc(start), _as_utc(end)
+    ordered = sorted(_as_utc(bar.ts) for bar in bars)
+    if normalized_start.time() == time.min:
+        edge_bars = [bar_ts for bar_ts in ordered if bar_ts.date() == normalized_start.date()]
+        if edge_bars:
+            normalized_start = edge_bars[0]
+    if normalized_end.time() == time.max:
+        edge_bars = [bar_ts for bar_ts in ordered if bar_ts.date() == normalized_end.date()]
+        if edge_bars:
+            normalized_end = edge_bars[-1]
+    return normalized_start, normalized_end
 
 
 def _aggregate_status(items: list[EvaluatorCoverageItem]) -> EvaluatorPreflightStatus:
@@ -203,11 +233,14 @@ async def preflight_ohlcv(
             covered_end = observed_end
             bar_count = len(bars)
         else:
+            assessment_start, assessment_end = _date_only_daily_assessment_bounds(
+                bars, timeframe, required_start, required_end
+            )
             assessment = assess_ohlcv_coverage(
                 bars,
                 timeframe,
-                required_start,
-                required_end,
+                assessment_start,
+                assessment_end,
                 mode=mode,
                 freshness_seconds=freshness_seconds,
                 now=observed_at,

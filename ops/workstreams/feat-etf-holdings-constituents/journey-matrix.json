@@ -753,5 +753,69 @@
       "required_tc_runtime": "TC5a exact development import contains accessible Duplicate layout; browser body remains pending Root."
     }
   ],
-  "full_roadmaps": "The complete platform-usability and ETF roadmaps, all prior acceptance criteria, histories, holds, and source datasets remain open and unchanged."
+  "full_roadmaps": "The complete platform-usability and ETF roadmaps, all prior acceptance criteria, histories, holds, and source datasets remain open and unchanged.",
+  "supporting_features_journey": {
+    "owner": "ETF-owned supporting-features browser journey; Root owns the combined browser execution.",
+    "spec": "frontend/tests/e2e/supporting_features_journey.spec.ts",
+    "account_isolation": "Each case uses the existing loggedIn fixture, which provisions a unique E2E account. Created alerts, watchlists and presets are scoped to that account; tests compare and preserve any pre-existing rows. Instrument notes are per-user/per-instrument and remain only on the disposable test account.",
+    "routes_and_actions": {
+      "notes": {
+        "entry": "Workstation /chart/{symbol} -> Add tool -> Notes",
+        "api": [
+          "GET /api/v1/notes/instruments/{canonical_instrument_id}",
+          "PUT /api/v1/notes/instruments/{canonical_instrument_id}"
+        ],
+        "assertions": "Initial no-note state, autosave and edit, reload persistence, switch to a second symbol without leaking the first note, return to the original symbol.",
+        "evidence": "New supporting notes case; body not run by this owner."
+      },
+      "alerts": {
+        "entry": "Workstation /chart/{symbol} -> active-symbol Alerts tool; application navigation -> Alerts at /legacy/alerts (/alerts redirects).",
+        "api": [
+          "POST /api/v1/alerts/price",
+          "GET /api/v1/alerts/price",
+          "PATCH /api/v1/alerts/price/{id}",
+          "DELETE /api/v1/alerts/price/{id}"
+        ],
+        "assertions": "Incomplete form cannot submit; create a high non-triggering test-account rule; edit its note, pause/resume, reload to verify persistence, delete and verify it is absent. No notification permission or delivery is requested.",
+        "evidence": "New supporting alerts case plus existing flows.spec.ts F11a-F11c alert-creation cases; new body not run by this owner."
+      },
+      "settings": {
+        "entry": "Workstation application navigation -> Settings at /legacy/settings (/settings redirects).",
+        "api": [
+          "GET /api/v1/presets",
+          "POST /api/v1/presets from the chart indicator preset dialog",
+          "PATCH /api/v1/presets/{id} through Set Default",
+          "DELETE /api/v1/presets/{id} through the Settings UI"
+        ],
+        "assertions": "Show empty-state guidance when baseline has no presets; create a named preset from the chart indicator dialog, set it default in Settings, reload and verify persistence, delete it, and restore any pre-existing default. Notification setup is inspected only; browser storage, app ID, push permission and SDK are not changed.",
+        "evidence": "New supporting Settings case; body not run by this owner."
+      },
+      "saved_watchlists": {
+        "entry": "Workstation application navigation -> Watchlist at /legacy/watchlist (/watchlist redirects).",
+        "api": [
+          "GET /api/v1/watchlists",
+          "POST /api/v1/watchlists",
+          "POST /api/v1/watchlists/{id}/items",
+          "PATCH /api/v1/watchlists/{id}",
+          "DELETE /api/v1/watchlists/{id}"
+        ],
+        "assertions": "Cancel a draft create without a write; keyboard-create uniquely named lists; add canonical SPY through the picker; recover from a real duplicate-name 409; reload and switch lists; cancel then confirm deletion; verify baseline list IDs are unchanged.",
+        "evidence": "New supporting Watchlist case; body not run by this owner."
+      },
+      "instrument_report": {
+        "entry": "Workstation /chart/{symbol} -> Add tool -> Instrument Report.",
+        "route_note": "Report is an in-dashboard tool; there is no standalone report route in the route table.",
+        "assertions": "Existing keyboard-operable disclosure and report-region contract.",
+        "evidence": "Existing frontend/tests/e2e/flows.spec.ts F8s-report; intentionally not duplicated in the new spec."
+      }
+    },
+    "recovery_and_boundaries": [
+      "No-data guidance and canceled drafts remain visible without creating a record.",
+      "A real watchlist name conflict is announced, can be canceled, and leaves the original name intact.",
+      "No account-wide settings, pre-existing user records, system-managed watchlists, provider policies, notifications or external source state are changed.",
+      "The only settings mutation is a user-owned preset in the unique E2E account; notification setup remains read-only.",
+      "This is authored browser coverage and discovery only; no browser body/API environment was run by this owner."
+    ],
+    "execution_status": "pending Root-owned combined browser slot; no body run or browser acceptance claimed."
+  }
 }

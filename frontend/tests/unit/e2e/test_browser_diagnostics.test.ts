@@ -3,6 +3,7 @@ import { BrowserDiagnostics } from '../../e2e/helpers'
 
 const controlledUrl = 'http://frontend/api/v1/etf-holdings/OIH/acquire'
 const controlledRequestId = '17814d8d-f8e4-4128-9d5c-1786aaf47b0d'
+const controlledResponseId = 'd64ee80b-27ea-4d70-89cc-31f6395b71e8'
 const console503 = 'Failed to load resource: the server responded with a status of 503 (Service Unavailable)'
 
 function diagnosticHarness() {
@@ -29,6 +30,20 @@ function responseEvent(url = controlledUrl, requestId = controlledRequestId, sta
     url: () => url,
     status: () => status,
     request: () => ({ method: () => 'POST', postDataJSON: () => ({ request_id: requestId }) }),
+  }
+}
+
+function responseHeaderEvent(
+  url = controlledUrl,
+  method = 'GET',
+  responseId = controlledResponseId,
+  status = 503,
+) {
+  return {
+    url: () => url,
+    status: () => status,
+    headers: () => ({ 'x-controlled-response-id': responseId }),
+    request: () => ({ method: () => method, postDataJSON: () => null }),
   }
 }
 
@@ -97,5 +112,50 @@ describe('BrowserDiagnostics controlled API faults', () => {
     wrongLocation.emit('response', responseEvent())
     wrongLocation.emit('console', consoleEvent('http://frontend/api/v1/etf-holdings/IGV/acquire'))
     await expect(wrongLocation.diagnostics.expectNoCriticalIssues()).rejects.toThrow('unexpected browser console/page/request failures')
+  })
+
+  it('allows one exact response-header fault for its URL and method, while rejecting a duplicate', async () => {
+    for (const method of ['GET', 'POST'] as const) {
+      const { diagnostics, emit } = diagnosticHarness()
+      diagnostics.allowExpectedControlledApiResponseFault(controlledUrl, method, controlledResponseId)
+      emit('response', responseHeaderEvent(controlledUrl, method))
+      emit('console', consoleEvent())
+
+      await expect(diagnostics.expectNoCriticalIssues()).resolves.toBeUndefined()
+      expect(diagnostics.unexpectedApi503s).toEqual([])
+    }
+  })
+
+  it.each([
+    ['wrong URL', responseHeaderEvent('http://frontend/api/v1/research/runs/9001')],
+    ['wrong method', responseHeaderEvent(controlledUrl, 'DELETE')],
+    ['wrong response ID', responseHeaderEvent(controlledUrl, 'GET', 'another-response')],
+  ])('keeps a %s response-header 503 fatal', async (_caseName, response) => {
+    const { diagnostics, emit } = diagnosticHarness()
+    diagnostics.allowExpectedControlledApiResponseFault(controlledUrl, 'GET', controlledResponseId)
+    emit('response', response)
+    emit('console', consoleEvent())
+
+    await expect(diagnostics.expectNoCriticalIssues()).rejects.toThrow('unexpected browser console/page/request failures')
+    expect(diagnostics.unexpectedApi503s).toHaveLength(2)
+    expect(diagnostics.unexpectedApi503s[1]).toContain('Expected controlled 503 was not observed')
+  })
+
+  it('rejects an exact second 503 and an armed response fault that never arrives', async () => {
+    const duplicate = diagnosticHarness()
+    duplicate.diagnostics.allowExpectedControlledApiResponseFault(controlledUrl, 'GET', controlledResponseId)
+    duplicate.emit('response', responseHeaderEvent())
+    duplicate.emit('console', consoleEvent())
+    duplicate.emit('response', responseHeaderEvent())
+    duplicate.emit('console', consoleEvent())
+    await expect(duplicate.diagnostics.expectNoCriticalIssues()).rejects.toThrow('unexpected browser console/page/request failures')
+    expect(duplicate.diagnostics.unexpectedApi503s).toHaveLength(1)
+
+    const missing = diagnosticHarness()
+    missing.diagnostics.allowExpectedControlledApiResponseFault(controlledUrl, 'GET', controlledResponseId)
+    await expect(missing.diagnostics.expectNoCriticalIssues()).rejects.toThrow('unexpected browser console/page/request failures')
+    expect(missing.diagnostics.unexpectedApi503s).toContain(
+      `Expected controlled 503 was not observed: GET ${controlledUrl} response_id=${controlledResponseId}`,
+    )
   })
 })

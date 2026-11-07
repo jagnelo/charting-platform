@@ -193,6 +193,7 @@ import { ref, watch, onMounted, onUnmounted, nextTick, computed, reactive, injec
 import uPlot from 'uplot'
 import 'uplot/dist/uPlot.min.css'
 import { api } from '@/lib/api'
+import { fetchInstrumentCalendar } from '@/lib/workstation/instrumentCalendar'
 import { usePanelStore }        from '@/stores/chart'
 import { useLayoutStore }       from '@/stores/layout'
 import { useDrawingsStore }     from '@/stores/drawings'
@@ -200,7 +201,7 @@ import { useAlertsStore }       from '@/stores/alerts'
 import { useUserSettingsStore } from '@/stores/userSettings'
 import { useOptionsExposureStore } from '@/stores/optionsExposure'
 import { useWorkspaceStore } from '@/stores/workspace'
-import { useQuery } from '@tanstack/vue-query'
+import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { isEditorTarget } from '@/lib/workstation/keyboard'
 import { customDateSortRangeFromChartPositions } from '@/lib/workstation/customDateSort'
 import type { CustomDateSortRange } from '@/lib/workstation/customDateSort'
@@ -316,6 +317,7 @@ const PREFETCH_THRESHOLD = 80  // bar indices from left edge before prefetch fir
 // ── Stores & DOM refs ─────────────────────────────────────────────────────────
 const panelId            = inject<string>('panelId', 'main')
 const chartInstanceId    = useId()
+const queryClient        = useQueryClient()
 const chartStore         = usePanelStore(panelId)
 const layoutStore        = useLayoutStore()
 const drawStore          = useDrawingsStore()
@@ -1062,9 +1064,15 @@ async function loadInstrumentEvents() {
   eventRangeKey = key
   const seq = ++eventLoadSeq
   try {
-    const loaded = await api.get<InstrumentEvent[]>(
-      `/calendar/instruments/${encodeURIComponent(symbol)}/calendar`,
-      { start, end },
+    // Dock layout edits can recreate virtual tool roots even though the chart
+    // query is unchanged. Share the exact date-range read through the existing
+    // authenticated Vue Query cache so those remounts do not fan out duplicate
+    // calendar/enrichment requests.
+    const loaded = await fetchInstrumentCalendar<InstrumentEvent[]>(queryClient, symbol, start, end, () =>
+      api.get<InstrumentEvent[]>(
+        `/calendar/instruments/${encodeURIComponent(symbol)}/calendar`,
+        { start, end },
+      ),
     )
     if (seq === eventLoadSeq && symbol === chartStore.symbol) {
       instrumentEvents.value = loaded
@@ -1823,6 +1831,12 @@ async function initChart() {
 
 async function rebuildChart(): Promise<boolean> {
   if (!chartRef.value || !wrapperRef.value) return false
+  const w = wrapperRef.value.clientWidth
+  const h = wrapperRef.value.clientHeight
+  // Golden Layout can keep an inactive virtual component at zero size. Wait
+  // for the wrapper's own ResizeObserver rather than creating a guessed-size
+  // chart that is clipped when the dock later reveals the real pane.
+  if (w <= 0 || h <= 0) return false
   const generation = ++initGeneration
 
   // Snapshot the current viewport before destroying so we can restore it after
@@ -1841,9 +1855,6 @@ async function rebuildChart(): Promise<boolean> {
   const data = chartStore.uplotData as number[][]
   if (!data[0]?.length) return false
 
-  const w = wrapperRef.value.clientWidth || 900
-  const totalSubPaneH = subPanes.value.reduce((sum, p) => sum + (subPaneHeights[p.key] ?? SUB_PANE_DEFAULT_H), 0)
-  const h = Math.max(80, (rootRef.value?.clientHeight ?? 600) - totalSubPaneH - subPanes.value.length * 4 - 20)
   const series = buildSeries()
   lastSeriesCount = series.length
 
@@ -3406,10 +3417,14 @@ async function finishDrawing(points: DrawingPoint[], type: DrawingType, indicato
 
 // ── Resize ────────────────────────────────────────────────────────────────────
 function handleResize() {
-  if (!uplot || !wrapperRef.value) return
+  if (!wrapperRef.value) return
   const w = wrapperRef.value.clientWidth
-  const totalSubPaneH = subPanes.value.reduce((sum, p) => sum + (subPaneHeights[p.key] ?? SUB_PANE_DEFAULT_H), 0)
-  const h = Math.max(80, (rootRef.value?.clientHeight ?? 600) - totalSubPaneH - subPanes.value.length * 4 - 20)
+  const h = wrapperRef.value.clientHeight
+  if (w <= 0 || h <= 0) return
+  if (!uplot) {
+    void initChart()
+    return
+  }
   uplot.setSize({ width: w, height: h }); syncCanvasSize(w, h)
   drawingRenderer?.resize(); renderVisualOverlays()
   for (const pane of subPanes.value) {
@@ -3464,6 +3479,7 @@ onMounted(async () => {
     // Prevent browser back/forward navigation gestures when over the chart
     rootRef.value.addEventListener('wheel', (e) => e.preventDefault(), { passive: false, capture: true })
   }
+  if (wrapperRef.value) resizeObserver.observe(wrapperRef.value)
 })
 
 onUnmounted(() => {
@@ -3639,6 +3655,8 @@ defineExpose({ jumpToTs })
 .uplot-wrapper {
   position: relative;
   flex: 1;
+  min-width: 0;
+  min-height: 0;
   overflow: hidden;
   touch-action: none;
   overscroll-behavior: none;

@@ -9,12 +9,14 @@ from app.config import settings
 from app.models.data_source import DataSource
 from app.models.etf_holdings import ETFHoldingsSnapshot
 from app.models.instrument_event import InstrumentEventFetchState
+from app.models.market_data_foundation import AdjustmentBasis, MarketSeries
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_runtime import ProviderCapability, ProviderEntitlement
 from app.models.workstation import MarketGroup, MarketGroupMember
 from app.routers.analysis import (
     _aggregate_series_cells,
     _as_utc,
+    _bars_by_instrument,
     _breadth_events_by_instrument,
     _calendar_year_cells,
     _entitlement_state,
@@ -31,6 +33,7 @@ from app.routers.analysis import (
     _python_breadth_occurrences,
     _python_breadth_point,
     _role_readiness,
+    _rotation_metrics,
     _rotation_state,
     _sample_aligned_points,
     _stale_instrument_ids,
@@ -661,6 +664,112 @@ async def test_historical_profile_snapshot_cutoff_requires_fetch_proof():
     assert "instrument_profile_snapshot.fetched_at IS NOT NULL" in sql
     assert "instrument_profile_snapshot.fetched_at <=" in sql
     assert list(compiled.params.values()).count(datetime(2024, 3, 10, tzinfo=UTC)) == 2
+
+
+@pytest.mark.asyncio
+async def test_rrg_analysis_reads_only_selected_coarse_series_after_repeated_derivation(
+    db, instrument
+):
+    """Retained incompatible coarse rows must not duplicate newly derived periods."""
+    from app.services.derived_timeframes import materialize_derived_timeframes
+    from tests.unit.conftest import AsyncSessionAdapter
+
+    stale_series_by_timeframe = {}
+    for timeframe, timestamp in (
+        (Timeframe.W1, datetime(2025, 12, 15, 21, tzinfo=UTC)),
+        (Timeframe.MN, datetime(2025, 12, 1, 21, tzinfo=UTC)),
+    ):
+        stale = MarketSeries(
+            instrument_id=instrument.id,
+            data_source_id=None,
+            feed_scope="retained-old-seed",
+            session_code="regular",
+            timeframe=timeframe.value,
+            adjustment_basis=AdjustmentBasis.RAW,
+            adjustment_version="legacy-seed",
+            is_canonical=True,
+            is_active=True,
+        )
+        db.add(stale)
+        db.flush()
+        stale_series_by_timeframe[timeframe] = stale
+        db.add(
+            OHLCVBar(
+                instrument_id=instrument.id,
+                market_series_id=stale.id,
+                timeframe=timeframe,
+                ts=timestamp,
+                open=Decimal("90"),
+                high=Decimal("110"),
+                low=Decimal("89"),
+                close=Decimal("100"),
+                volume=Decimal("100"),
+                is_adjusted=True,
+                adjustment_basis=AdjustmentBasis.RAW,
+                adjustment_version="legacy-seed",
+                is_derived=True,
+                source_timeframe=Timeframe.D1.value,
+                derivation_method="legacy-seed-aggregate",
+                scope_key=f"series:{stale.id}:regular",
+            )
+        )
+
+    cursor = datetime(2025, 11, 3, 21, tzinfo=UTC)
+    index = 0
+    while cursor <= datetime(2026, 2, 27, 21, tzinfo=UTC):
+        if cursor.weekday() < 5:
+            close = Decimal(100 + index)
+            db.add(
+                OHLCVBar(
+                    instrument_id=instrument.id,
+                    timeframe=Timeframe.D1,
+                    ts=cursor,
+                    open=close,
+                    high=close + 1,
+                    low=close - 1,
+                    close=close,
+                    volume=Decimal("100"),
+                    is_adjusted=True,
+                    adjustment_basis=AdjustmentBasis.SPLIT_ADJUSTED,
+                    adjustment_version="e2e-split-adjusted-v1",
+                )
+            )
+            index += 1
+        cursor += timedelta(days=1)
+    db.flush()
+
+    session = AsyncSessionAdapter(db)
+    await materialize_derived_timeframes(session, instrument.id, adjusted=True)
+    await materialize_derived_timeframes(session, instrument.id, adjusted=True)
+
+    selected_series_by_timeframe = {}
+    for timeframe in (Timeframe.W1, Timeframe.MN):
+        selected = await _bars_by_instrument(session, [instrument.id], timeframe, True)
+        rows = selected[instrument.id]
+        timestamps = [
+            row.ts.replace(tzinfo=UTC) if row.ts.tzinfo is None else row.ts for row in rows
+        ]
+        assert timestamps == sorted(set(timestamps))
+        assert rows
+        assert all(row.is_derived and row.source_timeframe == Timeframe.D1.value for row in rows)
+        assert all(row.market_series_id != stale_series_by_timeframe[timeframe].id for row in rows)
+        selected_series_by_timeframe[timeframe] = {row.market_series_id for row in rows}
+        _, tail, _, _ = _rotation_metrics(
+            [(_as_utc(row.ts), float(row.close)) for row in rows],
+            sampling=1,
+            lookback=2,
+            tail_length=10,
+        )
+        tail_timestamps = [point.timestamp for point in tail]
+        assert tail_timestamps == sorted(set(tail_timestamps))
+        retained = (
+            db.query(OHLCVBar)
+            .filter(OHLCVBar.market_series_id == stale_series_by_timeframe[timeframe].id)
+            .one()
+        )
+        assert retained.adjustment_basis == AdjustmentBasis.RAW
+        assert retained.close == Decimal("100")
+    assert all(len(series_ids) == 1 for series_ids in selected_series_by_timeframe.values())
 
 
 def test_relative_rotation_sampling_retains_latest_aligned_observation():

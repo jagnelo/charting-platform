@@ -1746,6 +1746,8 @@ owned_paths:
 - ops/workstreams/feat-etf-holdings-constituents/validation.jsonl
 - ops/workstreams/feat-etf-holdings-constituents/session.json
 - ops/workstreams/feat-etf-holdings-constituents/integration-checkpoint.md
+- frontend/tests/e2e/supporting_features_journey.spec.ts
+- ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json
 common_baseline_reconciliation:
   recorded_at: '2026-10-19T23:17:00Z'
   pre_merge_etf_sha: d1c560dc95d681fb5c67bf8916846a2f354bb5f5
@@ -5740,7 +5742,7 @@ previous_provider_21be2915_development_import:
   changed_paths_imported: 2
   manifest_records_verified: 49
   purpose: Root-released calendar/event latency development dependency; exact import only, no Provider workstream edits or acceptance claim.
-current_provider_580571e4_development_import:
+historical_provider_580571e4_development_import:
   source: 580571e41b9797589bf205b61d337f8c92ec04c6
   previous_source: 21be29150de8298e15d34bb9eed8207b92917a34
   manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider580571e4-runtime-development-consumption-contract.json
@@ -6360,7 +6362,7 @@ provider_runtime_dependency_active_8c264774:
   shared_chart_finding: The R20 trace has a successful basket OHLCV200, then three unresolved GET /api/v1/baskets/10 member-list requests and zero member-ID ensure requests. Workstation callers pass localOnly=true, and the shared chart loader awaits the member GET before dispatching ensure. TC owns the unresolved request diagnosis; generation/remount is not established by this trace.
   state: Development dependency only; Root owns the compatible runtime, combined browser qualification and final release gates.
 
-tc_common_runtime_dependency_active_ce2262ab:
+historical_tc_common_runtime_dependency_ce2262ab:
   authority: Root released exact TC source ce2262ab2d47fc1ccda96f0c2aa7c8839e4e03f9 for development consumption; imported only the ETF consumer's declared paths, without TC records.
   previous_active_dependency: 5a783e745b211cfe8b3dd20cb77d275149f15de2
   manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-ce2262ab-common-runtime-development-consumption-contract.json
@@ -6378,7 +6380,7 @@ workstation_unknown_ticker_shared_ensure_fixture_2026_11_07:
   correction: Fixture now returns an exact resolved-instrument M1 adjusted-history progress response, asserts one M1 ensure for the selected canonical ID, verifies one returned local bar, and rejects legacy history calls or direct OHLCV writes.
   validation: Frontend type-check passed; SearchBar and Workstation history-acquisition unit modules56/56 passed; acquisition Playwright discovery lists7 cases. No browser body or fixture was run.
   pending: Root owns combined browser execution; no browser pass is claimed.
-provider_runtime_dependency_active_2ce29c30:
+historical_provider_runtime_dependency_2ce29c30:
   authority: Root released exact Provider source 2ce29c3031ee4a5011f80927dacd984d4f3d166a for development consumption; no staging or deployment acceptance.
   previous_active_dependency: 8c26477498b1963231b0770e30e1ab8087d023a9
   manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider2ce29c30-runtime-development-consumption-contract.json
@@ -6389,6 +6391,64 @@ provider_runtime_dependency_active_2ce29c30:
   verification: all59 status_from139/Git-blob/SHA256/executable-bit entries match exact source2ce29c30.
   behavior: persisted waiting/held requests project current compatible cached coverage on status read and clear stale no-eligible blockers only when complete; partial/held semantics remain truthful and no replacement request is created.
   provider_validation: Root reports pinned Ruff check/format and focused Provider tests pass; not replayed by ETF.
-  consumer_validation: no unchanged ETF frontend or backend suites replayed; Root normal-API projection proof is pending.
+  api_evidence: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/validation-fixture/source-ce2262ab/frontend/output/root-r22-cache-first-proof.json
+  api_evidence_sha256: 6b46fb38f279227cb3d322c8db40ae34af998df5ca1efe2b91bf5f754cc999fc
+  api_result: Root R22 focused backend API scope passed; old persisted waiting request reads ready, idempotent short replay stays ready, deep selected-series range is ready, and normal local-only read returns1824 finite positive adjusted bars from2019-01-02 through2025-12-29. Provider egress denied; production unchanged.
+  consumer_validation: Root R22 focused normal-API proof passed; no unchanged ETF frontend or backend suites replayed. Exact receipt and result are recorded above; combined release acceptance remains pending.
   prior_dependency_history: provider_runtime_dependency_active_8c264774 remains preserved verbatim.
-  state: Development dependency only; Root owns normal-API proof, combined qualification and final release gates.
+  state: Development dependency only; Root owns combined qualification and final release gates.
+tc_r23_shared_basket_member_preparation_live_result:
+  authority: TC owns the shared Workstation/chart runtime; ETF owns BasketsView and its route/CRUD journey only.
+  source_receipt: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-r23-basket-current-candidate-failure.json
+  source: frontend77190340 with Provider backend2ce29c3031ee4a5011f80927dacd984d4f3d166a
+  observed: R23 ran18 cases with one worker and zero retries; the first basket member-preparation case failed because firstEnsureWasHeld remained false at5 seconds. Remaining cases were still running at receipt time.
+  ETF_boundary_review: BasketsView.openBasketChart immediately calls routeToBasketChart; it has no view-owned ensure loop or completion barrier. Focused existing component tests cover immediate navigation and selected-basket identity.
+  prior_evidence: R20 failure remains preserved; basket OHLCV200 was followed by unresolved basket-member GETs and zero member-ID ensures.
+  next_owner: TC diagnoses/fixes shared membership loading and member dispatch; Root owns compatible fixture replay. ETF makes no shared runtime edit.
+  state: Live shared-runtime issue; do not claim basket preparation journey passed or weaken the member assertions.
+
+provider_runtime_dependency_active_dcd3c823:
+  source: dcd3c823f9f76ed65b65d8b6c3628e1bc02a222e
+  previous_source: 2ce29c3031ee4a5011f80927dacd984d4f3d166a
+  manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providerdcd3c823-runtime-development-consumption-contract.json
+  manifest_sha256: 723300fa7f2119d3e1856710904f0abe743288cee7f1ab52a685bbb0d2f4d5b3
+  consumer_import_paths:
+  - backend/app/routers/analysis.py
+  - backend/app/services/evaluator_preflight.py
+  - backend/tests/unit/routers/test_analysis_router.py
+  - backend/tests/unit/services/test_evaluator_preflight.py
+  current_manifest_records_verified: 61
+  verification: All61 source records match Git blob/SHA256; all four ETF paths match exact source bytes/blob and executable-bit semantics.
+  state: Root-released development dependency only; Root owns runtime, browser, CI, and release qualification.
+
+tc_common_runtime_dependency_active_45ea51bf:
+  source: 45ea51bfa78b6ae167462b518358164a5a3e29f4
+  previous_source: 77190340a4a2335e8f7f9a30ee32ded599a714ef
+  manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-45ea51bf-common-runtime-development-consumption-contract.json
+  manifest_sha256: 126b87449853c3e9b52aff4a19d0efd786ad833d16d52b2b76f28914f8dde6c
+  consumer_import_paths:
+  - frontend/src/components/workstation/ToolWindow.vue
+  - frontend/src/components/workstation/WorkspaceLayoutHost.vue
+  - frontend/src/components/workstation/WorkstationToolContent.vue
+  - frontend/src/stores/chart.ts
+  - frontend/src/stores/workspace.ts
+  - frontend/src/views/WorkstationView.vue
+  - frontend/tests/unit/components/test_workspace_layout_host.test.ts
+  - frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts
+  - frontend/tests/unit/stores/test_stores.test.ts
+  - frontend/tests/unit/stores/test_workspace_store.test.ts
+  current_manifest_records_verified: 77
+  verification: All77 source SHA/Git blob/executable-bit records match; the exact10 ETF import paths passed old/new guards and match source bytes/blob/modes.
+  source_changes: Sector catalogue hydration, basket member preparation before cached reads, request coalescing, and persisted maximize state.
+  frontend_typecheck: Exit0 after importing TC45; both owned S&P and supporting-feature browser specs discover successfully.
+  state: Root-released development dependency only; Root owns browser, exact CI, and release qualification.
+
+root_allocated_supporting_feature_journey_2026_11_07:
+  authority: Root's explicit assignment in the original ETF session under the activated platform-usability plan.
+  owned_paths:
+  - frontend/tests/e2e/supporting_features_journey.spec.ts
+  - ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json
+  coverage: Authenticated normal-API notes, alerts, Settings preference, and saved-watchlist journeys with test-account-owned records; reachable Instrument Report coverage maps to the existing F8s-report browser case rather than duplicating it.
+  safeguards: Preserve pre-existing user records; do not modify account-wide settings, enable browser notifications, trigger delivery, or call native providers. No standalone report route is implemented.
+  validation: Type-check and Playwright discovery only; browser bodies remain pending Root's shared browser slot.
+  state: in_progress

@@ -8,6 +8,7 @@ import { GoldenLayout, type LayoutConfig } from 'golden-layout'
 import '../../../node_modules/golden-layout/dist/css/goldenlayout-base.css'
 import { normaliseGoldenLayoutConfig } from '@/lib/workstation/layout'
 import { resizePanesEvenly, type PaneResizeSide } from '@/lib/workstation/modifier-pane-resize'
+import { dockTabWindowKey } from '@/lib/workstation/toolActivation'
 
 interface DockToolState {
   instance_key: string
@@ -16,8 +17,9 @@ interface DockToolState {
 }
 
 export interface DockToolActions {
-  toggleMaximize: () => void
+  toggleMaximize: () => Promise<void>
   maximized: Readonly<Ref<boolean>>
+  maximizing: Readonly<Ref<boolean>>
   close: () => void
 }
 
@@ -28,6 +30,8 @@ const props = defineProps<{
   activeWindowKey?: string | null
   /** Increment only when the parent replaces the complete workspace snapshot. */
   reloadKey?: number
+  /** Persist a user maximize/restore change before exposing it as committed UI state. */
+  persistLayout?: () => Promise<boolean>
   renderTool: (tool: DockToolState, actions: DockToolActions) => VNode
 }>()
 const emit = defineEmits<{
@@ -53,7 +57,7 @@ let lastLayoutFingerprint: string | null = null
 let installedTabKey: string | null | undefined = null
 let layoutGeneration = 0
 const mountedToolRoots: HTMLElement[] = []
-const maximizeStateCleanups: Array<() => void> = []
+const maximizeStateCleanups = new Map<string, () => void>()
 // Golden Layout's virtual component root is intentionally detached from the
 // visible stack DOM. Retain the actual ComponentItem supplied to the factory so
 // activation remains reliable even when tabs overflow into the dropdown.
@@ -204,6 +208,24 @@ function releaseInitialSuppression(event?: Event) {
     if (activationGuardTimer !== null) window.clearTimeout(activationGuardTimer)
     activationGuardTimer = null
   }
+}
+
+function activateClickedDockTab(event: PointerEvent) {
+  const bindings = [...componentItems.entries()].flatMap(([windowKey, component]) => {
+    const tabs = component.parentItem?.header?.tabs
+    if (!Array.isArray(tabs)) return []
+    return tabs
+      .filter((tab: any) => tab.contentItem === component && tab.element instanceof HTMLElement)
+      .map((tab: any) => ({ windowKey, element: tab.element as HTMLElement }))
+  })
+  const windowKey = dockTabWindowKey(event.target, bindings)
+  if (!windowKey || windowKey === props.activeWindowKey) return
+  // Golden Layout's activation callback can be suppressed while a persisted
+  // selection is being restored. A real pointer action is newer intent: sync
+  // the parent key immediately so the async virtual-root and stack activation
+  // paths reassert the clicked component instead of the stale saved selection.
+  if (installedTabKey === undefined) emit('active-window-changed', windowKey)
+  else emit('active-window-changed', windowKey, installedTabKey)
 }
 
 function layoutFingerprint(layout: LayoutConfig) {
@@ -362,7 +384,7 @@ function activateWindow(windowKey: string | null | undefined) {
 }
 
 function clearMountedTools() {
-  for (const cleanup of maximizeStateCleanups.splice(0)) cleanup()
+  for (const cleanup of [...maximizeStateCleanups.values()]) cleanup()
   for (const root of mountedToolRoots.splice(0)) {
     render(null, root)
     // Virtual roots are appended directly to the host by Golden Layout rather
@@ -437,8 +459,115 @@ function withoutComponent(value: unknown, windowKey: string): unknown {
   return { ...record, content: children }
 }
 
+interface SerializedToolComponent {
+  key: string
+  title: string
+  componentType: string
+  state: DockToolState
+  stack: Record<string, unknown> | null
+  index: number
+}
+
+function serializedToolComponents(value: unknown): SerializedToolComponent[] {
+  const results: SerializedToolComponent[] = []
+  const visit = (candidate: unknown, parentStack: Record<string, unknown> | null = null) => {
+    if (Array.isArray(candidate)) {
+      candidate.forEach(child => visit(child, parentStack))
+      return
+    }
+    if (!candidate || typeof candidate !== 'object') return
+    const record = candidate as Record<string, unknown>
+    if (record.type === 'component') {
+      const state = record.componentState
+      if (state && typeof state === 'object') {
+        const tool = state as DockToolState
+        if (typeof tool.instance_key === 'string' && tool.instance_key) {
+          results.push({
+            key: tool.instance_key,
+            title: typeof record.title === 'string' ? record.title : tool.title,
+            componentType: typeof record.componentType === 'string' ? record.componentType : 'workstation-tool',
+            state: tool,
+            stack: parentStack,
+            index: -1,
+          })
+        }
+      }
+      return
+    }
+    const content = Array.isArray(record.content) ? record.content : null
+    if (content) {
+      const nextStack = record.type === 'stack' ? record : parentStack
+      content.forEach((child, index) => {
+        const before = results.length
+        visit(child, nextStack)
+        if (results.length === before + 1 && results[before].stack === nextStack) results[before].index = index
+      })
+    }
+    if (record.root && typeof record.root === 'object') visit(record.root, parentStack)
+  }
+  visit(value)
+  return results
+}
+
+/**
+ * Add-tool is the common single-component structural edit. Apply it to the
+ * existing Golden Layout stack when removing the new component from the
+ * serialized target reproduces the currently installed tree. This preserves
+ * mounted siblings and their analysis/preparation work.
+ */
+function addAppendedToolInPlace(layout: LayoutConfig): boolean {
+  if (!goldenLayout || !lastLayoutFingerprint) return false
+  const desired = serializedToolComponents(layout)
+  const mountedKeys = new Set(componentItems.keys())
+  const additions = desired.filter(component => !mountedKeys.has(component.key))
+  if (additions.length !== 1) return false
+  const added = additions[0]
+  if (added.index < 0 || !added.stack) return false
+  if (layoutFingerprint(withoutComponent(layout, added.key) as LayoutConfig) !== lastLayoutFingerprint) return false
+  const sibling = desired.slice(0, desired.length).find(component => component.key !== added.key
+    && component.stack === added.stack
+    && componentItems.has(component.key))
+  if (!sibling) return false
+  const target = componentItems.get(sibling.key)
+  const stack = target?.parentItem
+  if (!stack || typeof stack.addComponent !== 'function') return false
+  const stackKeys = (added.stack.content as unknown[] | undefined)
+    ?.map(child => serializedToolComponents(child)[0]?.key)
+    .filter((key): key is string => Boolean(key)) ?? []
+  const liveKeys = (stack.contentItems ?? []).map((item: any) => item.config?.componentState?.instance_key)
+  if (stackKeys.filter(key => key !== added.key).join('\u0000') !== liveKeys.join('\u0000')) return false
+
+  suppressChange = true
+  try {
+    stack.addComponent(added.componentType, added.state, added.title)
+    lastLayoutFingerprint = layoutFingerprint(layout)
+  } catch {
+    // A Golden Layout version-specific insertion failure falls back to the
+    // established full install path below.
+    return false
+  } finally {
+    suppressChange = false
+  }
+  const requestedWindowKey = props.activeWindowKey ?? added.key
+  void nextTick(() => activateWindow(requestedWindowKey))
+  return true
+}
+
 function closeComponent(windowKey: string) {
   if (!goldenLayout) return
+  const component = componentItems.get(windowKey)
+  const stack = component?.parentItem
+  if (component && stack && Array.isArray(stack.contentItems) && stack.contentItems.length > 1 && typeof stack.removeChild === 'function') {
+    suppressChange = true
+    try {
+      stack.removeChild(component, false)
+    } finally {
+      suppressChange = false
+    }
+    persistCurrentLayout()
+    void nextTick(() => activateWindow(props.activeWindowKey))
+    return
+  }
   const saved = goldenLayout.saveLayout() as unknown as Record<string, unknown>
   const filtered = withoutComponent(saved, windowKey)
   if (!filtered || typeof filtered !== 'object') return
@@ -481,25 +610,54 @@ function install(layout: LayoutConfig) {
     const tool = (state ?? {}) as DockToolState
     const stack = container.parent.parentItem as any
     const maximized = ref(Boolean(stack.isMaximised))
-    const syncMaximized = () => { maximized.value = Boolean(stack.isMaximised) }
+    const maximizing = ref(false)
+    const syncMaximized = () => {
+      if (!maximizing.value) maximized.value = Boolean(stack.isMaximised)
+    }
     stack.on?.('maximised', syncMaximized)
     stack.on?.('minimised', syncMaximized)
-    maximizeStateCleanups.push(() => {
+    maximizeStateCleanups.set(tool.instance_key, () => {
       stack.off?.('maximised', syncMaximized)
       stack.off?.('minimised', syncMaximized)
+      maximizeStateCleanups.delete(tool.instance_key)
     })
     if (tool.instance_key && (container as any).parent) componentItems.set(tool.instance_key, (container as any).parent)
     const rootHtmlElement = document.createElement('section')
     rootHtmlElement.className = 'workspace-layout-host__virtual-tool'
     rootHtmlElement.dataset.toolKey = tool.instance_key ?? ''
     mountedToolRoots.push(rootHtmlElement)
+    let cleaned = false
+    const cleanup = () => {
+      if (cleaned) return
+      cleaned = true
+      const rootIndex = mountedToolRoots.indexOf(rootHtmlElement)
+      if (rootIndex >= 0) mountedToolRoots.splice(rootIndex, 1)
+      render(null, rootHtmlElement)
+      rootHtmlElement.remove()
+      if (componentItems.get(tool.instance_key) === (container as any).parent) componentItems.delete(tool.instance_key)
+      maximizeStateCleanups.get(tool.instance_key)?.()
+    }
+    ;(container as any).on?.('destroy', cleanup)
     const vnode = props.renderTool(tool, {
       maximized,
       toggleMaximize: () => {
+        if (maximizing.value) return Promise.resolve()
+        const previous = Boolean(stack.isMaximised)
+        maximizing.value = true
         stack.toggleMaximise?.()
-        syncMaximized()
+        const persist = Boolean(stack.isMaximised) !== previous ? props.persistLayout : undefined
+        if (!persist) {
+          maximizing.value = false
+          syncMaximized()
+          return Promise.resolve()
+        }
+        return persist().then(() => undefined).finally(() => {
+          maximizing.value = false
+          syncMaximized()
+        })
       },
       close: () => closeComponent(tool.instance_key),
+      maximizing,
     })
     // Golden Layout asks Vue to render each virtual component into a detached root.
     // Carry the host application context across that boundary so injected services
@@ -598,7 +756,9 @@ watch(
     // object while retaining the same Golden Layout structure; the explicit
     // reload token refreshes virtual roots in that case without making normal
     // tool-configuration edits recreate the dock or its uPlot instances.
-    if (reloadKey !== previousReloadKey || layoutFingerprint(layout) !== lastLayoutFingerprint) {
+    const structuralChange = layoutFingerprint(layout) !== lastLayoutFingerprint
+    if (reloadKey === previousReloadKey && structuralChange && addAppendedToolInPlace(layout)) return
+    if (reloadKey !== previousReloadKey || structuralChange) {
       scheduleInstall(layout, windowKey, reloadKey)
     } else {
       activateWindow(windowKey)
@@ -609,6 +769,7 @@ watch(
 )
 onMounted(() => {
   host.value?.addEventListener('pointerdown', releaseInitialSuppression, true)
+  host.value?.addEventListener('pointerdown', activateClickedDockTab, true)
   host.value?.addEventListener('pointerdown', beginModifierResize, true)
   host.value?.addEventListener('keydown', releaseInitialSuppression, true)
   install(props.layout)
@@ -626,6 +787,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   if (installTimer !== null) window.clearTimeout(installTimer)
   host.value?.removeEventListener('pointerdown', releaseInitialSuppression, true)
+  host.value?.removeEventListener('pointerdown', activateClickedDockTab, true)
   host.value?.removeEventListener('pointerdown', beginModifierResize, true)
   host.value?.removeEventListener('keydown', releaseInitialSuppression, true)
   teardown()

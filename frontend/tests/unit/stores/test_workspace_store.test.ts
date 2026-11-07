@@ -99,6 +99,28 @@ describe('workspace store layout tabs', () => {
     expect(store.marketAnalysisRefreshedAt).toEqual(expect.any(String))
   })
 
+  it('joins active-panel reads to the shell refresh without cancelling its generation', async () => {
+    const sharedResponse = deferred<unknown>()
+    apiGet.mockReturnValue(sharedResponse.promise)
+    const store = useWorkspaceStore()
+
+    const shellRefresh = store.refreshMarketAnalysis()
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledTimes(6))
+    const panelReads = Promise.all([
+      store.loadGroupSnapshot('sp500-sectors', 'SPY'),
+      store.loadBreadth('sp500-sectors'),
+      store.loadBreadthHistory('sp500-sectors'),
+    ])
+
+    expect(apiGet).toHaveBeenCalledTimes(6)
+    sharedResponse.resolve({ group_key: 'sp500-sectors', rows: [], points: [], coverage: 1 })
+    await Promise.all([shellRefresh, panelReads])
+
+    expect(store.groupSnapshots['sp500-sectors']).toEqual(expect.objectContaining({ group_key: 'sp500-sectors' }))
+    expect(store.breadth['sp500-sectors']).toEqual(expect.objectContaining({ group_key: 'sp500-sectors' }))
+    expect(store.breadthHistory['sp500-sectors']).toEqual(expect.objectContaining({ group_key: 'sp500-sectors' }))
+  })
+
   it('does not start queued market-analysis loaders while the document is hidden', async () => {
     Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' })
     const store = useWorkspaceStore()
@@ -132,6 +154,30 @@ describe('workspace store layout tabs', () => {
       sourceWindowId: expect.any(String),
     }))
     store.disconnect()
+  })
+
+  it('flushes a scheduled workspace snapshot immediately and avoids a second debounce write', async () => {
+    const store = useWorkspaceStore()
+    store.workspace = {
+      id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [{
+        id: 20, stable_key: 'us-top-down', name: 'US Top Down', position: 0,
+        active_window_key: 'relative-rotation',
+        layout_config: { root: { type: 'stack', maximised: true, content: [] } },
+        windows: [{ id: 30, instance_key: 'relative-rotation', tool_type: 'relative_rotation', title: 'Relative Rotation', link_group: 'blue', configuration: {}, style: {}, state_schema_version: 1, position: 0 }],
+      }],
+    }
+    apiPut.mockResolvedValue({ ...store.workspace, revision: 5 })
+    vi.useFakeTimers()
+    store.scheduleSnapshot()
+
+    const saved = await store.saveSnapshot()
+    await vi.runAllTimersAsync()
+
+    expect(saved).toBe(true)
+    expect(apiPut).toHaveBeenCalledTimes(1)
+    expect(apiPut.mock.calls[0][1].tabs[0].layout_config.root.maximised).toBe(true)
+    vi.useRealTimers()
   })
 
   it('refreshes a follower from a leader refresh event without starting its own announcement', async () => {
@@ -1405,6 +1451,65 @@ describe('workspace store layout tabs', () => {
     apiGet.mockResolvedValue([{ ...base }])
     await expect(store.deleteCurrentWorkspace()).resolves.toBe(true)
     expect(apiDelete).toHaveBeenCalledWith('/workspaces/11')
+  })
+
+  it('reconciles cloned layout component identities and persists the repaired dock tree', async () => {
+    const source = {
+      id: 77, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 8,
+      schema_version: 1, settings: { factory_id: 'us-top-down' },
+      tabs: [{
+        id: 90, stable_key: 'us-top-down', name: 'US Top Down', position: 0,
+        active_window_key: 'benchmark-list',
+        layout_config: { root: { type: 'stack', content: [
+          { type: 'component', componentName: 'workstation-tool', title: 'Benchmarks', componentState: { instance_key: 'benchmark-list' } },
+          { type: 'component', componentName: 'workstation-tool', title: 'Chart', componentState: { instance_key: 'chart-main' } },
+        ] } },
+        windows: [
+          { id: 1, instance_key: 'benchmark-list', tool_type: 'watchlist', title: 'Benchmarks', link_group: 'blue', configuration: { market_group: 'us-benchmarks' }, style: {}, state_schema_version: 1, position: 0 },
+          { id: 2, instance_key: 'chart-main', tool_type: 'chart', title: 'Chart', link_group: 'blue', configuration: { symbol: 'SPY' }, style: {}, state_schema_version: 1, position: 1 },
+        ],
+      }],
+    }
+    const cloned = {
+      ...source,
+      id: 78,
+      name: 'US Top Down Copy',
+      is_default: false,
+      revision: 1,
+      tabs: [{
+        ...source.tabs[0],
+        id: 91,
+        windows: [
+          { ...source.tabs[0].windows[0], id: 3, instance_key: 'benchmark-list-copy-1' },
+          { ...source.tabs[0].windows[1], id: 4, instance_key: 'chart-copy-1' },
+        ],
+      }],
+    }
+    const saved = { ...cloned, revision: 2 }
+    apiPost.mockResolvedValueOnce(cloned)
+    apiGet.mockResolvedValueOnce([])
+    apiPut.mockResolvedValueOnce(saved)
+    const store = useWorkspaceStore()
+    store.workspace = source
+
+    const result = await store.cloneWorkspace()
+
+    expect(result?.tabs[0]).toMatchObject({
+      active_window_key: 'benchmark-list-copy-1',
+      layout_config: { root: { content: [
+        { componentState: { instance_key: 'benchmark-list-copy-1' } },
+        { componentState: { instance_key: 'chart-copy-1' } },
+      ] } },
+    })
+    await vi.waitFor(() => expect(apiPut).toHaveBeenCalledWith('/workspaces/78/snapshot', expect.objectContaining({
+      tabs: [expect.objectContaining({
+        active_window_key: 'benchmark-list-copy-1',
+        layout_config: expect.objectContaining({ root: expect.objectContaining({ content: expect.arrayContaining([
+          expect.objectContaining({ componentState: { instance_key: 'benchmark-list-copy-1' } }),
+          expect.objectContaining({ componentState: { instance_key: 'chart-copy-1' } }),
+        ]) }) }),
+      })],
+    })))
   })
 
   it('settles a stale layout snapshot before renaming the active workspace', async () => {

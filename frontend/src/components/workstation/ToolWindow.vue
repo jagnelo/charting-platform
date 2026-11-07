@@ -25,7 +25,7 @@
         <div ref="menuRoot" class="tool-window__menu-wrap">
           <button ref="menuTrigger" type="button" title="Tool menu" aria-label="Open tool menu" aria-haspopup="menu" :aria-expanded="menuOpen" :aria-controls="menuId" @click.stop="toggleMenu" @keydown="handleMenuTriggerKeydown"><span class="tool-window__menu-glyph" aria-hidden="true" /></button>
         </div>
-        <button type="button" :title="maximized ? 'Restore' : 'Maximize'" :aria-label="maximized ? 'Restore tool' : 'Maximize tool'" @click="emit('maximize')"><span class="tool-window__maximize-glyph" aria-hidden="true" /></button>
+        <button type="button" :disabled="maximizing" :aria-busy="maximizing" :title="maximizing ? 'Saving layout' : maximized ? 'Restore' : 'Maximize'" :aria-label="maximized ? 'Restore tool' : 'Maximize tool'" @click="emit('maximize')"><span class="tool-window__maximize-glyph" aria-hidden="true" /></button>
         <button type="button" title="Float" aria-label="Float tool" @click="emit('float')"><span class="tool-window__float-glyph" aria-hidden="true" /></button>
         <button type="button" title="Close" aria-label="Close tool" @click="emit('close')"><span class="tool-window__close-glyph" aria-hidden="true" /></button>
       </div>
@@ -57,6 +57,7 @@ const props = withDefaults(defineProps<{
   timeframe?: string
   active?: boolean
   maximized?: boolean
+  maximizing?: boolean
   favoriteAvailable?: boolean
   favoriteActive?: boolean
   scrollableBody?: boolean
@@ -67,6 +68,7 @@ const props = withDefaults(defineProps<{
   timeframe: '',
   active: false,
   maximized: false,
+  maximizing: false,
   favoriteAvailable: false,
   favoriteActive: false,
   scrollableBody: false,
