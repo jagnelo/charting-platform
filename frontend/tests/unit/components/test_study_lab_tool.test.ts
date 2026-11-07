@@ -78,6 +78,20 @@ describe('StudyLabTool', () => {
     expect(wrapper.find('[aria-label="Study as of"]').element).toHaveProperty('value', '2024-02-01T15:30')
   })
 
+  it('restores an explicit draft symbol ahead of linked context and applies later saved configuration updates', async () => {
+    const wrapper = mountTool({ activeSymbol: 'SPY', configuration: { symbol: 'XLB' } })
+    const symbol = wrapper.get('[aria-label="Study symbol"]')
+
+    expect(symbol.element).toHaveProperty('value', 'XLB')
+
+    await wrapper.setProps({ activeSymbol: 'XLK' })
+    expect(symbol.element).toHaveProperty('value', 'XLB')
+
+    await wrapper.setProps({ configuration: { symbol: 'QQQ' } })
+    expect(symbol.element).toHaveProperty('value', 'QQQ')
+    wrapper.unmount()
+  })
+
   it('applies a completed parent configuration update without recursive intermediate emissions', async () => {
     const configuration = reactive<Record<string, unknown>>({
       symbol: 'SPY',

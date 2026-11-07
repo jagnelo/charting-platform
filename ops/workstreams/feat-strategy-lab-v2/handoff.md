@@ -1,3 +1,9 @@
+## 2026-11-07 — Study draft restoration after reload
+
+Root corrected the R33 chronology: the Study journey saved and validated an editable XLB draft, reloaded the page, then activated the global Study layout control. It was not returning from Python Library. Read-only inspection of the exact R33 Playwright trace confirms an XLB workspace snapshot PUT returned 200, followed after reload by another successful snapshot PUT containing SPY with the same date range. The immutable saved Run 5 remains a separate SPY result.
+
+The cause was local Study symbol hydration. `StudyLabTool.vue` initialized the editable symbol from linked `activeSymbol` and its configuration watcher restored dates and other fields but omitted `configuration.symbol`; the next input/configuration emission could therefore persist SPY over XLB. The Strategy-owned fix initializes from a nonempty saved draft symbol first, hydrates subsequent explicit configuration updates, and prevents linked-symbol changes from replacing a saved explicit symbol. A focused regression covers saved XLB versus active SPY, a later linked-symbol change, and a subsequent saved-symbol update. The complete Study Lab unit module passes 66/66. No browser rerun was performed; Root owns the next combined browser slot. Saved Study Run 5 and its immutable identity are unchanged. The 18-criterion roadmap and all native, provider-live, broker, capital, paid, and trial holds remain open.
+
 ## 2026-11-06 — Strategy Study usability checkpoint (active)
 
 The human-activated platform-usability plan is now the active Strategy checkpoint; the accepted immutable-Study-inspector checkpoint and the complete original 18-criterion Strategy roadmap remain preserved below and open where applicable. Root aligned the existing session-local goal in place; no goal, claim, model, effort, or accounting reset occurred.

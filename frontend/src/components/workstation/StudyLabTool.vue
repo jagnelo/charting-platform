@@ -192,7 +192,10 @@ const props = defineProps<{ toolKey?: string; activeSymbol: string; configuratio
 const queryClient = useQueryClient()
 const emit = defineEmits<{ occurrence: [event: { symbol: string; timestamp: string; kind?: string }]; configuration: [configuration: Record<string, unknown>] }>()
 const name = ref('Consecutive Positive Closes')
-const symbol = ref(props.activeSymbol)
+const configuredSymbol = typeof props.configuration?.symbol === 'string' && props.configuration.symbol.trim()
+  ? props.configuration.symbol.trim().toUpperCase()
+  : ''
+const symbol = ref(configuredSymbol || props.activeSymbol)
 const positiveStreakSource = "streaks = stats.positive_close_streaks(dataset)\nindices = [record['end_index'] for record in streaks['records']]\noutput.scalar('current_streak', streaks['current'])\noutput.scalar('longest_streak', streaks['longest'])\noutput.scalar('average_streak', streaks['average'])\noutput.scalar('shortest_streak', streaks['shortest'])\noutput.table('completed_streaks', streaks['records'])\noutput.table('forward_returns', research.forward_returns(dataset, indices, [1, 5, 20]))\noutput.events('streak_events', research.occurrences(dataset, indices, 'positive_close_streak'))\noutput.histogram('streak_distribution', streaks['lengths'], 8, streaks['current'])"
 const negativeStreakSource = "closes = market.close()\nstreaks = stats.streaks(closes, 'negative')\nindices = [record['end_index'] for record in streaks['records']]\noutput.scalar('current_negative_streak', streaks['current'])\noutput.scalar('longest_negative_streak', streaks['longest'])\noutput.scalar('average_negative_streak', streaks['average'])\noutput.scalar('shortest_negative_streak', streaks['shortest'])\noutput.table('completed_negative_streaks', streaks['records'])\noutput.table('forward_returns', research.forward_returns(dataset, indices, [1, 5, 20]))\noutput.events('negative_streak_events', research.occurrences(dataset, indices, 'negative_close_streak'))\noutput.histogram('negative_streak_distribution', streaks['lengths'], 8, streaks['current'])"
 const movingAverageParticipationSource = "lookback = int(parameters.get('lookback', 20))\ncloses = market.close()\naverage = ta.sma(closes, lookback)\nparticipation = [100 if value is not None and closes[index] > value else 0 for index, value in enumerate(average)]\noutput.series('above_moving_average', participation)\noutput.boolean('currently_above_moving_average', participation[-1] == 100 if participation else False)\noutput.scalar('percent_above_moving_average', sum(participation) / len(participation) if participation else 0)"
@@ -783,8 +786,12 @@ const parameterDefinitions = computed<ParameterDefinition[]>(() => {
   })
 })
 const parameterSchemaError = computed(() => parameterSchemaText.value.trim() && !parsedParameterSchema.value ? 'Parameter schema must be a JSON object.' : '')
-watch(() => props.activeSymbol, value => { if (!symbol.value || symbol.value === 'SPY') symbol.value = value })
+watch(() => props.activeSymbol, value => {
+  const hasSavedDraftSymbol = typeof props.configuration?.symbol === 'string' && props.configuration.symbol.trim().length > 0
+  if (!hasSavedDraftSymbol && (!symbol.value || symbol.value === 'SPY')) symbol.value = value
+})
 watch(() => props.configuration, configuration => {
+  if (typeof configuration?.symbol === 'string' && configuration.symbol.trim()) symbol.value = configuration.symbol.trim().toUpperCase()
   if (typeof configuration?.study_asset_version_id === 'number' && Number.isInteger(configuration.study_asset_version_id) && configuration.study_asset_version_id > 0) openedStudyVersionId.value = configuration.study_asset_version_id
   if (typeof configuration?.study_source === 'string' && configuration.study_source.trim()) {
     openedStudySource.value = configuration.study_source
