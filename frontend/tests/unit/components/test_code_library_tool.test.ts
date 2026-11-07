@@ -2,8 +2,13 @@ import { flushPromises, mount as vueMount } from '@vue/test-utils'
 import { VueQueryPlugin, QueryClient } from '@tanstack/vue-query'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { apiGet, apiPost } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn() }))
+const { apiGet, apiPost, workspaceState } = vi.hoisted(() => ({
+  apiGet: vi.fn(),
+  apiPost: vi.fn(),
+  workspaceState: { activeTab: null as any },
+}))
 vi.mock('@/lib/api', () => ({ api: { get: apiGet, post: apiPost } }))
+vi.mock('@/stores/workspace', () => ({ useWorkspaceStore: () => workspaceState }))
 
 import CodeLibraryTool from '@/components/workstation/CodeLibraryTool.vue'
 
@@ -23,6 +28,7 @@ function deferred<T>() {
 describe('CodeLibraryTool', () => {
   beforeEach(() => {
     apiGet.mockReset(); apiPost.mockReset(); apiGet.mockResolvedValue([asset])
+    workspaceState.activeTab = null
     apiPost.mockImplementation((path: string) => path === '/code/validate'
       ? Promise.resolve({ valid: true, diagnostics: [], dependencies: [], output_contracts: ['study', 'scalar'] })
       : Promise.resolve({}))
@@ -221,6 +227,31 @@ describe('CodeLibraryTool', () => {
         defaultParameters: {},
       },
     ]])
+  })
+
+  it('preserves the matching Study date window when opening an immutable Library version', async () => {
+    workspaceState.activeTab = {
+      windows: [
+        { tool_type: 'study_lab', configuration: { study_run_name: 'Other study', start_date: '2020-01-01', end_date: '2020-12-31' } },
+        { tool_type: 'study_lab', configuration: { study_run_name: 'Streak study', start_date: '2024-01-02', end_date: '2025-12-29' } },
+      ],
+    }
+    const wrapper = mount(CodeLibraryTool)
+    await flushPromises()
+
+    await wrapper.get('[aria-label="Open Streak study in Study Lab"]').trigger('click')
+
+    expect(wrapper.emitted('open-study')).toEqual([[
+      {
+        name: 'Streak study',
+        versionId: 8,
+        source: "output.scalar('n', 1)",
+        outputContract: 'study',
+        parameterSchema: {},
+        defaultParameters: { start_date: '2024-01-02', end_date: '2025-12-29' },
+      },
+    ]])
+    wrapper.unmount()
   })
 
   it('opens the selected historical immutable study version in Study Lab', async () => {

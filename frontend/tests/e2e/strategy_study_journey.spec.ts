@@ -284,6 +284,8 @@ test('Study journey keeps saved identity, refreshes Results, and returns from Py
   await expect(returnedStudy).toBeVisible({ timeout: 15_000 })
   await expect(returnedStudy.getByRole('textbox', { name: 'Study name' })).toHaveValue(studyName)
   await expect(returnedStudy.getByRole('textbox', { name: 'Study Python source' })).toHaveValue(savedVersionBody.source!)
+  await expect(returnedStudy.getByLabel('Study start date')).toHaveValue(retainedStudyStartDate)
+  await expect(returnedStudy.getByLabel('Study end date')).toHaveValue(retainedStudyEndDate)
   expect(runRequests).toHaveLength(1)
 
   const returnedPreparation = page.waitForResponse(response => isStudyHistoryEnsure(
@@ -300,7 +302,7 @@ test('Study journey keeps saved identity, refreshes Results, and returns from Py
   const returnedRunBody = (await returnedRunRequest).postDataJSON() as typeof runRequests[number]
   expect(returnedRunBody.code_version_id).toBe(savedVersionBody.id)
   expect(returnedRunBody).toMatchObject({
-    run_config: { start_date: retainedStudyStartDate, end_date: retainedStudyEndDate },
+    run_config: { symbol: 'SPY', start_date: retainedStudyStartDate, end_date: retainedStudyEndDate },
     dataset_manifest: { start_date: retainedStudyStartDate, end_date: retainedStudyEndDate },
   })
   await expect(returnedStudy.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
