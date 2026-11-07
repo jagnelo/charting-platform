@@ -1746,6 +1746,7 @@ owned_paths:
 - ops/workstreams/feat-etf-holdings-constituents/validation.jsonl
 - ops/workstreams/feat-etf-holdings-constituents/session.json
 - ops/workstreams/feat-etf-holdings-constituents/integration-checkpoint.md
+- ops/workstreams/feat-etf-holdings-constituents/native-selected-etf-journey-successor.spec.ts
 - frontend/tests/e2e/supporting_features_journey.spec.ts
 - frontend/src/components/workstation/InstrumentNoteTool.vue
 - frontend/tests/unit/components/test_instrument_note_tool.test.ts
@@ -6792,3 +6793,11 @@ provider_runtime_dependency_active_ad114d20:
   verification: All74 manifest rows match the released source tree/status/blob/SHA256/executable semantics; all22 ETF-declared import paths passed old guards and match exact source. The non-imported ETF-owned test_etf_holdings_preparation_hook.py remains byte-identical to 3969 and was preserved.
   validation: Four focused offline tests passed, covering held-child recovery/coalescing, typed retry preservation, unknown hold behavior, and future-source typed failure. Provider's broader runtime checks and all release gates remain Root/Provider-owned.
   state: Root-authorized development dependency only; no native request/replay, quota/policy change, production mutation, integration, or deployment is implied. Root owns XHB diagnosis and combined qualification.
+
+native_xhb_current_rows_proof_successor_2026_11_07:
+  authority: Root assigned a test-only successor after root-native-XHB-current-rows-proof-contract-review.json.
+  source: native-selected-etf-journey.spec.ts remains immutable; this successor fixes actual constituent row scoping and source-bound matching.
+  contract: Scope options to the actual constituent watchlist listbox, then bind each rendered row to ETF/snapshot/holding identity and verify its displayed reported name and row/holding type. Cash rows may use an em-dash symbol and remain valid reported holdings.
+  preserved: Current snapshot/date/completeness/source provenance, price paint and tooltip, resolved-equity dashboard drilldown, lineage clearing, reload and all original strict BWET assertions.
+  validation: Root-owned browser execution pending; local Playwright discovery and workstream/diff guards only.
+  non_actions: No product changes, browser body, Source HTTP, database, runtime, policy, quota, production or sibling-worktree operation.

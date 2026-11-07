@@ -18679,3 +18679,23 @@ The source boundary remains held: Root's retained evidence confirms composition 
 Root review of checkpoint `815bf46dbe4796b660daf71bbad2ee0fcf3a6069` identified a stale generic reason assertion. Read the frozen TC14f source only (manifest `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-14f335e2-common-runtime-development-consumption-contract.json`, SHA256 `98b65e2cd6271f4b78e216b2b47783e75fb82530f66a3429beabb9868220d7ff`; source `14f335e28a352b508b8b7f6710937c3e2bd7b874`; `frontend/src/lib/dataPreparation.ts` Git blob `f293a907009583c77d84c18d76a34912383dd80d`). Its holdings-specific `future_dated_source` message is now asserted exactly, including that the current price view remains usable. The no-leak check now selects only constituent rows in the actual `.watchlist__scroll[role=listbox]`, excluding hidden filter `<option>` elements. No TC file was imported or edited.
 
 The separate BWET case is the only changed test; Playwright discovery lists exactly one test. Browser execution remains Root-owned and pending. Original strict three-ETF native proof remains unchanged at SHA256 `3df9ef6bdaf4dfb3261ba21ef30cf733654ca917a0efa5a40bc48825f30eaabe`. Updated spec SHA256 `3d4bb78fbbb369a9707db4bc1c21dc0b7d172e3871f1da38453392780b5dbe46`.
+
+
+## Native XHB current rows proof successor — 2026-11-07
+
+Root review `root-native-XHB-current-rows-proof-contract-review.json` confirmed
+the genuine XHB snapshot and its 36 reported rows, including a cash row with an
+em-dash symbol and authoritative reported name. Added
+`native-selected-etf-journey-successor.spec.ts` as a separate successor; the
+original strict `native-selected-etf-journey.spec.ts` remains byte-identical.
+The row helper scopes checks to the actual constituent watchlist listbox, binds
+rendered DOM IDs to the selected ETF, snapshot ID and holding ID, and checks
+each rendered row's reported symbol/name and row/holding type. Missing symbols
+are matched as the UI's em dash without inventing an identity. The resolved
+equity drilldown selects only an actual listbox row by its stable source-bound
+ID. Current snapshot, provenance, paint/tooltip, lineage, reload and strict
+BWET assertions are preserved. Playwright discovery listed one case; the
+workstream validator and `git diff --check` passed. No browser body, Source
+HTTP, runtime, database or production operation ran. Root owns XHB/IGV variant
+derivation and browser execution. Successor SHA256
+`b0a48ae2d5e2c0f91ae531d908aa0f15de947f80e4f663a8217e4cb4a707b81d`.
