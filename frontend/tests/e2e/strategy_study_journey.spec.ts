@@ -1,4 +1,12 @@
 import { test, expect } from './helpers'
+import type { Page } from '@playwright/test'
+
+async function activateDockToolTab(page: Page, title: string) {
+  const tab = page.locator(`.lm_tab[title="${title}"]`).last()
+  await expect(tab).toBeVisible()
+  await tab.click()
+  await expect(tab).toHaveClass(/lm_active/)
+}
 
 test('Study journey keeps saved identity, refreshes Results, and returns from Python Library on the immutable version', async ({ page, loggedIn, browserDiagnostics }) => {
   test.setTimeout(150_000)
@@ -20,8 +28,10 @@ test('Study journey keeps saved identity, refreshes Results, and returns from Py
   await page.getByRole('menu', { name: 'Workstation tools' }).getByRole('menuitem', { name: 'Study Results', exact: true }).click()
   const results = page.locator('.research-results-tool:visible').last()
   await expect(results).toBeVisible({ timeout: 15_000 })
-  await expect(results.getByRole('list', { name: 'Persisted research runs' })).toBeVisible()
+  const resultsRegion = page.getByRole('region', { name: 'Study Lab research results' }).last()
+  await expect(resultsRegion.getByRole('status')).toContainText('No persisted studies yet. Run a study in the adjacent Study Lab pane.')
 
+  await activateDockToolTab(page, 'Study Lab')
   const study = page.locator('.study-lab-tool:visible').last()
   await expect(study).toBeVisible({ timeout: 15_000 })
   await study.getByRole('combobox', { name: 'Factory study' }).selectOption('positive_streak')
@@ -51,13 +61,16 @@ test('Study journey keeps saved identity, refreshes Results, and returns from Py
   const runId = runLabel.match(/Run #(\d+)/)?.[1]
   expect(runId).toBeTruthy()
   await expect(study.getByRole('status', { name: 'Saved run dataset' })).toContainText(`Saved run #${runId} dataset: symbol SPY`)
-  const completedRun = results.getByRole('button', { name: `Run ${runId}, completed, 8 artifacts` })
+  await activateDockToolTab(page, 'Study Results')
+  const activeResults = page.locator('.research-results-tool:visible').last()
+  const completedRun = activeResults.getByRole('button', { name: `Run ${runId}, completed, 8 artifacts` })
   await expect(completedRun).toBeVisible({ timeout: 15_000 })
   await completedRun.click()
-  const resultDetail = results.locator(`article[aria-label="Research run ${runId} details"]`)
+  const resultDetail = activeResults.locator(`article[aria-label="Research run ${runId} details"]`)
   await expect(resultDetail).toBeVisible()
   await expect(resultDetail.locator('.research-results-tool__artifacts > article')).toHaveCount(8, { timeout: 15_000 })
 
+  await activateDockToolTab(page, 'Study Lab')
   const savedDraft = page.waitForResponse(response => response.request().method() === 'PUT' && new URL(response.url()).pathname.endsWith('/snapshot'))
   await study.getByRole('textbox', { name: 'Study symbol' }).fill('XLB')
   expect((await savedDraft).ok()).toBe(true)
@@ -74,6 +87,7 @@ test('Study journey keeps saved identity, refreshes Results, and returns from Py
   await expect(restoredStudy.locator('.study-lab-tool__dataset-summary')).toContainText('Current draft dataset: XLB')
   await expect(restoredStudy.getByRole('status', { name: 'Saved run dataset' })).toContainText(`Saved run #${runId} dataset: symbol SPY`)
   await expect(restoredStudy.locator('.study-lab-tool__metrics article').filter({ hasText: 'current_streak' })).toBeVisible()
+  await activateDockToolTab(page, 'Study Results')
   const restoredResults = page.locator('.research-results-tool:visible').last()
   const restoredRun = restoredResults.getByRole('button', { name: `Run ${runId}, completed, 8 artifacts` })
   await expect(restoredRun).toBeVisible()
@@ -83,6 +97,7 @@ test('Study journey keeps saved identity, refreshes Results, and returns from Py
 
   await page.getByRole('button', { name: 'Add tool', exact: true }).click()
   await page.getByRole('menu', { name: 'Workstation tools' }).getByRole('menuitem', { name: 'Python Library', exact: true }).click()
+  await activateDockToolTab(page, 'Python Library')
   const library = page.locator('.code-library-tool:visible').last()
   await expect(library.getByRole('button', { name: `Open ${studyName} in Study Lab`, exact: true })).toBeVisible({ timeout: 15_000 })
   const libraryAsset = library.locator('.code-library-tool__asset').filter({ hasText: studyName }).first()
@@ -153,6 +168,7 @@ test('Study prepares SPY before validating and completes a configured high-low b
   await page.getByRole('button', { name: 'Study', exact: true }).click()
   await page.getByRole('button', { name: 'Add tool', exact: true }).click()
   await page.getByRole('menu', { name: 'Workstation tools' }).getByRole('menuitem', { name: 'Study Results', exact: true }).click()
+  await activateDockToolTab(page, 'Study Lab')
   const study = page.locator('.study-lab-tool:visible').last()
   await expect(study).toBeVisible({ timeout: 15_000 })
   await study.getByRole('combobox', { name: 'Factory study' }).selectOption('high_low_breakouts')
@@ -297,6 +313,7 @@ test('Study preparation submits every universe member and benchmark while one me
   await page.getByRole('button', { name: 'Study', exact: true }).click()
   await page.getByRole('button', { name: 'Add tool', exact: true }).click()
   await page.getByRole('menu', { name: 'Workstation tools' }).getByRole('menuitem', { name: 'Study Results', exact: true }).click()
+  await activateDockToolTab(page, 'Study Lab')
   const study = page.locator('.study-lab-tool:visible').last()
   await expect(study).toBeVisible({ timeout: 15_000 })
   await study.getByRole('textbox', { name: 'Study universe' }).fill('SPY, XLK')
@@ -412,6 +429,7 @@ test('Study ignores obsolete preparation after the selected symbol changes and v
   await page.getByRole('button', { name: 'Study', exact: true }).click()
   await page.getByRole('button', { name: 'Add tool', exact: true }).click()
   await page.getByRole('menu', { name: 'Workstation tools' }).getByRole('menuitem', { name: 'Study Results', exact: true }).click()
+  await activateDockToolTab(page, 'Study Lab')
   const study = page.locator('.study-lab-tool:visible').last()
   await expect(study).toBeVisible({ timeout: 15_000 })
   await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
@@ -550,6 +568,7 @@ test('Results supports ordinary controls through a controlled persisted-run API'
   await page.getByRole('button', { name: 'Study', exact: true }).click()
   await page.getByRole('button', { name: 'Add tool', exact: true }).click()
   await page.getByRole('menu', { name: 'Workstation tools' }).getByRole('menuitem', { name: 'Study Results', exact: true }).click()
+  await activateDockToolTab(page, 'Study Results')
   const results = page.locator('.research-results-tool:visible').last()
   await expect(results.getByRole('button', { name: 'Run 8000, completed, 3 artifacts' })).toBeVisible()
   const runList = results.getByRole('list', { name: 'Persisted research runs' })
@@ -676,6 +695,7 @@ test('Python Library supports create, import, clone, archive, export and filter 
   await page.getByRole('button', { name: 'Study', exact: true }).click()
   await page.getByRole('button', { name: 'Add tool', exact: true }).click()
   await page.getByRole('menu', { name: 'Workstation tools' }).getByRole('menuitem', { name: 'Python Library', exact: true }).click()
+  await activateDockToolTab(page, 'Python Library')
   const library = page.locator('.code-library-tool:visible').last()
   await expect(library.getByRole('listitem').filter({ hasText: 'Seed Study' })).toBeVisible()
 
@@ -741,8 +761,11 @@ test('closing Study Lab while run creation is pending preserves the durable run 
   await page.getByRole('button', { name: 'Study', exact: true }).click()
   await page.getByRole('button', { name: 'Add tool', exact: true }).click()
   await page.getByRole('menu', { name: 'Workstation tools' }).getByRole('menuitem', { name: 'Study Results', exact: true }).click()
+  await activateDockToolTab(page, 'Study Results')
   const results = page.locator('.research-results-tool:visible').last()
-  await expect(results.getByRole('list', { name: 'Persisted research runs' })).toBeVisible({ timeout: 15_000 })
+  const resultsRegion = page.getByRole('region', { name: 'Study Lab research results' }).last()
+  await expect(resultsRegion.getByRole('status')).toContainText('No persisted studies yet. Run a study in the adjacent Study Lab pane.')
+  await activateDockToolTab(page, 'Study Lab')
   const study = page.locator('.study-lab-tool:visible').last()
   await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
   const validationResponse = page.waitForResponse(response => response.request().method() === 'POST'
@@ -763,6 +786,7 @@ test('closing Study Lab while run creation is pending preserves the durable run 
   const created = await createdResponse
   expect(created.status()).toBe(202)
   const run = await created.json() as { id: number }
+  await activateDockToolTab(page, 'Study Results')
   const runRow = results.getByRole('button', { name: new RegExp(`^Run ${run.id},`) })
   await expect(runRow).toBeVisible({ timeout: 15_000 })
   expect(await runRow.getAttribute('aria-label')).not.toContain('canceled')
