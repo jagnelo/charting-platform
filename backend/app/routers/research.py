@@ -16,7 +16,7 @@ from app.lib.time_utils import wire_datetime
 from app.models.instrument import Instrument
 from app.models.listing import InstrumentListing
 from app.models.ohlcv import OHLCVBar, Timeframe
-from app.models.research import CodeAsset, CodeVersion, ResearchRun
+from app.models.research import CodeAsset, CodeVersion, ResearchArtifact, ResearchRun
 from app.models.screener import ScreenerDefinition
 from app.models.strategy import StrategyDefinition, StrategyVersion
 from app.models.user import User
@@ -955,10 +955,18 @@ async def list_runs(
             detail="before_created_at and before_id must be provided together",
         )
     bounded_limit = max(1, min(limit, 100))
+    artifact_loader = selectinload(ResearchRun.artifacts)
+    if not include_artifacts:
+        # The ordinary Results list needs the artifact count, while opening a
+        # run detail is the explicit path for reading payloads. Loading JSON
+        # series/tables for every row in the list adds substantial I/O without
+        # changing the list response. Keep artifact IDs available so recovering
+        # a just-finished result can append its rows and report the exact count.
+        artifact_loader = artifact_loader.load_only(ResearchArtifact.id, raiseload=True)
     statement = (
         select(ResearchRun)
         .options(
-            selectinload(ResearchRun.artifacts),
+            artifact_loader,
             selectinload(ResearchRun.code_version),
         )
         .where(ResearchRun.user_id == current_user.id)
