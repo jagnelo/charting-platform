@@ -33815,3 +33815,10 @@ Root's retained native worker trace showed a PostgreSQL `VARCHAR(80)` truncation
 The worker now saves the original exception, rolls back the failed transaction, asynchronously refreshes the job, checks the originally claimed lease token, and uses the existing queue CAS to persist retry state. Other claimed jobs are refreshed after a rollback before access. Identity outcome projection explicitly refreshes expired metadata while retaining loaded hold updates. A secondary retry-persistence error is surfaced and chained from the original error.
 
 The separate Redis connection timeout occurred in ARQ `processmain`; current evidence does not establish it as a consequence of the PostgreSQL error, so no Redis restart policy or code behavior was changed. Four focused affected modules passed 118 tests; pinned Ruff check/format and diff checks passed. Root owns the PostgreSQL native replay and exact-source CI; the full Provider/platform roadmaps remain open.
+
+
+## 2026-11-07 — retain expected native-usage prerequisite waits
+
+Root's browser-closed MSFT replay on `9b196304` showed history jobs repeatedly deferred on `RefreshDependencyPending`, while their newly created native-usage job and `wait_for_job_ids` remained absent. The generic exception path had rolled back an expected wait. The worker now treats that exception separately: it locks and validates the current unexpired lease row, commits the prerequisite and wait edge, then persists the actual defer time through the existing retry CAS. Genuine transaction failures retain the rollback/refresh/retry behavior from `9b196304`; native admission and unknown-hold rules are unchanged.
+
+The two affected worker modules passed 65/65, with Ruff check/format and diff validation passing. No native HTTP, runtime, ledger, policy, or quota mutation was performed. Root owns replay on the preserved native runtime and exact-source CI; the full Provider goal remains open.

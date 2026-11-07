@@ -15767,3 +15767,23 @@ provider_native_worker_retry_identity_20261107:
   provider_http_runtime_or_quota_ledger_policy_mutation: false
   exact_source_and_root_native_replay: pending Root-owned
   full_platform_roadmaps: remain open
+
+
+provider_native_expected_prerequisite_deferral_20261107:
+  id: provider-native-expected-prerequisite-deferral-20261107
+  status: focused_local_green_root_native_replay_and_exact_ci_pending
+  base_source: 9b196304b573e323fb349fe4d7badfe2d8208f95
+  root_finding: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/root-native9b-rollback-prerequisite-loss-review.json
+  implementation:
+    - RefreshDependencyPending is handled as an expected wait rather than a database failure. The worker locks and validates the current unexpired lease row before flushing the newly queued prerequisite and its wait_for_job_ids edge; then it defers the history job with the existing retry CAS and actual retry_at.
+    - Genuine transaction failures retain the prior rollback, asynchronous refresh, lease-token verification, and original-error-preserving retry path. Unknown native holds and their admission checks are unchanged.
+  changed_paths:
+    - backend/app/tasks/data_tasks.py
+    - backend/tests/unit/tasks/test_data_tasks.py
+  focused_validation:
+    command: backend/.venv/bin/pytest backend/tests/unit/tasks/test_data_tasks.py backend/tests/unit/workers/test_arq_worker.py -q; pinned Ruff check and format --check on changed Python paths; git diff --check
+    result: 65 passed in 2.85s; Ruff check and format passed; git diff --check passed.
+    coverage: A flushed native account-usage prerequisite and its history wait_for_job_ids edge survive session commit/reload; the history child is deferred at the actual retry time. The separate failed-transaction retry still rolls back before refresh and retains the lease token.
+  provider_http_runtime_or_quota_ledger_policy_mutation: false
+  root_native_replay_and_exact_source_ci: pending Root-owned
+  full_platform_roadmaps: remain open
