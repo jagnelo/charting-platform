@@ -146,35 +146,47 @@ async function plottedSeriesPixels(canvas: ReturnType<Page['locator']>, colors: 
   }, { expectedColors: colors, colorTolerance: tolerance })
 }
 
-async function hasRrgMarkerCenters(canvas: ReturnType<Page['locator']>) {
+async function readRrgMarkerAudit(canvas: ReturnType<Page['locator']>) {
   return canvas.evaluate((element) => {
-    type MarkerArc = { x: number; y: number; radius: number; fillStyle: string }
-    type AuditedCanvas = HTMLCanvasElement & { __rrgLatestMarkerDraw?: MarkerArc[] }
+    type MarkerArc = { x: number; y: number; radius: number; fillStyle: string; frame: number }
+    type AuditedCanvas = HTMLCanvasElement & { __rrgLatestMarkerDraw?: MarkerArc[]; __rrgAuditFrame?: number }
     const target = element as AuditedCanvas
     const markers = target.__rrgLatestMarkerDraw ?? []
     const dpr = window.devicePixelRatio || 1
     const visibleMarkers = markers.filter(marker => marker.radius >= 3.4 * dpr)
-    if (!visibleMarkers.length) return false
     const context = target.getContext('2d', { willReadFrequently: true })
-    if (!context) return false
     const colors = new Set(['#61c58c', '#e7bc68', '#6dbbe6', '#df8181'])
-    return visibleMarkers.every((marker) => {
-      if (!Number.isFinite(marker.x) || !Number.isFinite(marker.y) || !colors.has(marker.fillStyle.toLowerCase())) return false
+    const samples = visibleMarkers.map((marker) => {
       const x = Math.round(marker.x)
       const y = Math.round(marker.y)
-      if (x < 0 || y < 0 || x >= target.width || y >= target.height) return false
-      const pixel = context.getImageData(x, y, 1, 1).data
-      if (pixel[3] !== 255) return false
+      const inBounds = Number.isFinite(x) && Number.isFinite(y) && x >= 0 && y >= 0 && x < target.width && y < target.height
+      const pixel = context && inBounds ? Array.from(context.getImageData(x, y, 1, 1).data) : null
       const expected = marker.fillStyle.slice(1).match(/../g)?.map(value => Number.parseInt(value, 16))
-      return Boolean(expected && pixel[0] === expected[0] && pixel[1] === expected[1] && pixel[2] === expected[2])
+      const opaqueStateColor = Boolean(
+        pixel && pixel[3] === 255 && expected && colors.has(marker.fillStyle.toLowerCase())
+        && pixel[0] === expected[0] && pixel[1] === expected[1] && pixel[2] === expected[2],
+      )
+      return { x, y, radius: marker.radius, fillStyle: marker.fillStyle, frame: marker.frame, pixel, opaqueStateColor }
     })
+    const passed = Boolean(target.isConnected && visibleMarkers.length && samples.every(sample => sample.opaqueStateColor))
+    return {
+      passed,
+      currentDocument: location.href,
+      connected: target.isConnected,
+      canvas: { width: target.width, height: target.height, rect: target.getBoundingClientRect().toJSON() },
+      dpr,
+      frame: target.__rrgAuditFrame ?? 0,
+      markerCount: markers.length,
+      visibleMarkerCount: visibleMarkers.length,
+      samples,
+    }
   })
 }
 
 async function installRrgArcAudit(page: Page) {
   await page.addInitScript(() => {
-    type MarkerArc = { x: number; y: number; radius: number; fillStyle: string }
-    type AuditedCanvas = HTMLCanvasElement & { __rrgLatestMarkerDraw?: MarkerArc[] }
+    type MarkerArc = { x: number; y: number; radius: number; fillStyle: string; frame: number }
+    type AuditedCanvas = HTMLCanvasElement & { __rrgLatestMarkerDraw?: MarkerArc[]; __rrgAuditFrame?: number }
     type AuditedContext = CanvasRenderingContext2D & { __rrgPendingMarkerArcs?: Array<{ x: number; y: number; radius: number }> }
     const prototype = CanvasRenderingContext2D.prototype
     const originalArc = prototype.arc
@@ -184,7 +196,11 @@ async function installRrgArcAudit(page: Page) {
     const isRrgCanvas = (context: CanvasRenderingContext2D) => Boolean(context.canvas.closest('.rotation-tool__plot-shell'))
 
     prototype.clearRect = function (..._args: Parameters<typeof originalClearRect>) {
-      if (isRrgCanvas(this)) (this.canvas as AuditedCanvas).__rrgLatestMarkerDraw = []
+      if (isRrgCanvas(this)) {
+        const canvas = this.canvas as AuditedCanvas
+        canvas.__rrgAuditFrame = (canvas.__rrgAuditFrame ?? 0) + 1
+        canvas.__rrgLatestMarkerDraw = []
+      }
       return Reflect.apply(originalClearRect, this, arguments)
     }
     prototype.beginPath = function (..._args: Parameters<typeof originalBeginPath>) {
@@ -206,7 +222,7 @@ async function installRrgArcAudit(page: Page) {
         const pending = context.__rrgPendingMarkerArcs ?? []
         for (const marker of pending) {
           canvas.__rrgLatestMarkerDraw ??= []
-          canvas.__rrgLatestMarkerDraw.push({ ...marker, fillStyle: String(this.fillStyle) })
+          canvas.__rrgLatestMarkerDraw.push({ ...marker, fillStyle: String(this.fillStyle), frame: canvas.__rrgAuditFrame ?? 0 })
         }
         context.__rrgPendingMarkerArcs = []
       }
@@ -233,7 +249,7 @@ async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUT
         const personalList = tool.getByLabel('Personal watchlist', { exact: true })
         await expect(personalList.locator('option').filter({ hasText: listName })).toBeAttached()
       }
-      await tool.getByLabel('Add symbol to personal watchlist').fill('SPY')
+      await tool.getByRole('textbox', { name: 'Add symbol to personal watchlist', exact: true }).fill('SPY')
       await tool.getByRole('button', { name: 'Add symbol to personal watchlist', exact: true }).click()
       await expect(rows.locator('[aria-label^="SPY "]')).toBeVisible({ timeout: 20_000 })
     }
@@ -363,7 +379,7 @@ async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUT
     await expect(plot).toBeVisible({ timeout: 30_000 })
     const canvas = plot.locator('canvas')
     await expect(canvas).toBeVisible()
-    await expect.poll(() => hasRrgMarkerCenters(canvas), { timeout: 30_000 }).toBe(true)
+    await expect.poll(() => readRrgMarkerAudit(canvas), { timeout: 30_000 }).toMatchObject({ passed: true })
     await plot.focus()
     await page.keyboard.press('Home')
     const tooltip = tool.locator('.rotation-tool__tooltip')

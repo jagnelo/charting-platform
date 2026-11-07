@@ -1,0 +1,155 @@
+{
+  "schema": 1,
+  "dependency": "tc-common-runtime-development-consumption",
+  "source_commit": "a2e222251d4ea796d0d4bfb6b0e8705f503c1e4d",
+  "previous_source": "1fdc92f1a1628d191ad1d5b2f0ba071a80df5052",
+  "root_manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-a2e22225-common-runtime-development-consumption-contract.json",
+  "root_manifest_sha256": "6e6c1233cc1fe168528779908908b57cd777e09ea2317367ff3a1e5e7826a145ba1",
+  "root_entry": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-a2e22225-common-entry-feat-strategy-lab-v2.yaml",
+  "consumer": "Strategy",
+  "imported_paths": [
+    "frontend/src/App.vue",
+    "frontend/src/components/chart/ChartPanel.vue",
+    "frontend/src/components/chart/HistoryAcquisitionControl.vue",
+    "frontend/src/components/workstation/MarketMapTool.vue",
+    "frontend/src/components/workstation/RatioUPlot.vue",
+    "frontend/src/components/workstation/RelativeRotationTool.vue",
+    "frontend/src/stores/workspace.ts",
+    "frontend/src/views/AlertsView.vue",
+    "frontend/src/views/ChartView.vue",
+    "frontend/src/views/ScreenerView.vue",
+    "frontend/src/views/WatchlistView.vue",
+    "frontend/src/views/WorkstationView.vue",
+    "frontend/tests/unit/components/test_chart_panel_lifecycle.test.ts",
+    "frontend/tests/unit/components/test_history_acquisition_control.test.ts",
+    "frontend/tests/unit/components/test_market_map_tool.test.ts",
+    "frontend/tests/unit/components/test_ratio_uplot.test.ts",
+    "frontend/tests/unit/components/test_relative_rotation_tool.test.ts",
+    "frontend/tests/unit/stores/test_workspace_store.test.ts",
+    "frontend/tests/unit/views/test_alerts_view_creation_path.test.ts",
+    "frontend/tests/unit/views/test_chart_view_radar_handoff.test.ts",
+    "frontend/tests/unit/views/test_screener_view_accessibility.test.ts",
+    "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts"
+  ],
+  "old_guards": {
+    "frontend/src/App.vue": {
+      "sha256": "97da879a96c0ccb11fd632f1e801e7aa61796630fa447dbec353b8fe9ee29153",
+      "known_source": "1fdc92f1a1628d191ad1d5b2f0ba071a80df5052",
+      "absent": false
+    },
+    "frontend/src/components/chart/ChartPanel.vue": {
+      "sha256": "317b0fc2c242fb34fd6cbdf5c51d00a3a904877066b5b65a5d39f66086d831f9",
+      "known_source": "1fdc92f1a1628d191ad1d5b2f0ba071a80df5052",
+      "absent": false
+    },
+    "frontend/src/components/chart/HistoryAcquisitionControl.vue": {
+      "sha256": "3e0e7d9e7a7e7e1fb9ce55ac689a5b6e0a94d566c0311b0232ffadd0ec36c8e3",
+      "known_source": "1fdc92f1a1628d191ad1d5b2f0ba071a80df5052",
+      "absent": false
+    },
+    "frontend/src/components/workstation/MarketMapTool.vue": {
+      "sha256": "0a17a0b308344699f881af19adc760efe60a38818ee447ceb21a20a4efa8cb00",
+      "known_source": "1fdc92f1a1628d191ad1d5b2f0ba071a80df5052",
+      "absent": false
+    },
+    "frontend/src/components/workstation/RatioUPlot.vue": {
+      "sha256": "da077d3203ae85976ad90268e112f49732e5732c2b86ea7830920e2b56b2a482",
+      "known_source": "1fdc92f1a1628d191ad1d5b2f0ba071a80df5052",
+      "absent": false
+    },
+    "frontend/src/components/workstation/RelativeRotationTool.vue": {
+      "sha256": "37ec398d1a3a2d7c6925a3d39e73b1b8569533a817329e622751b5438dd547b1",
+      "known_source": "1fdc92f1a1628d191ad1d5b2f0ba071a80df5052",
+      "absent": false
+    },
+    "frontend/src/stores/workspace.ts": {
+      "sha256": "6ffa4d731c7df3f64900c5ff6a3263bab22dd425c553fc8a0282e719214bbbe8",
+      "known_source": "1fdc92f1a1628d191ad1d5b2f0ba071a80df5052",
+      "absent": false
+    },
+    "frontend/src/views/AlertsView.vue": {
+      "sha256": "424dc46ad8058c3be768fff4965b362b6677f5e9f896b16d04efd211402c169b",
+      "known_source": "1fdc92f1a1628d191ad1d5b2f0ba071a80df5052",
+      "absent": false
+    },
+    "frontend/src/views/ChartView.vue": {
+      "sha256": "00da56e3a99e6d9447af27814f0be00f5ea97975c2176cc9804b3bb89b62fca3",
+      "known_source": "1fdc92f1a1628d191ad1d5b2f0ba071a80df5052",
+      "absent": false
+    },
+    "frontend/src/views/ScreenerView.vue": {
+      "sha256": "af7366c78eb4beb4193e4c0eca4f7b24f92d58951df1e54ed690a42fec40ba3e",
+      "known_source": "1fdc92f1a1628d191ad1d5b2f0ba071a80df5052",
+      "absent": false
+    },
+    "frontend/src/views/WatchlistView.vue": {
+      "sha256": "8ee4a25ec8798c51b97e8c7278626d1649732d2f7d7c0ffbcb538abfed556f62",
+      "known_source": "1fdc92f1a1628d191ad1d5b2f0ba071a80df5052",
+      "absent": false
+    },
+    "frontend/src/views/WorkstationView.vue": {
+      "sha256": "6330c7814885d7969efbbf63f7ae2184ccee1256752cfcf268707908f891bab1",
+      "known_source": "1fdc92f1a1628d191ad1d5b2f0ba071a80df5052",
+      "absent": false
+    },
+    "frontend/tests/unit/components/test_chart_panel_lifecycle.test.ts": {
+      "sha256": "ee8297a3665db199966f6ff305a985df8f32e8e5bb1dc5349bd5d9a2c8173792",
+      "known_source": "1fdc92f1a1628d191ad1d5b2f0ba071a80df5052",
+      "absent": false
+    },
+    "frontend/tests/unit/components/test_history_acquisition_control.test.ts": {
+      "sha256": "80e4e9f8720980d52d1e225b106d653827359829cea953f9103fc0e51cb7e1d3",
+      "known_source": "1fdc92f1a1628d191ad1d5b2f0ba071a80df5052",
+      "absent": false
+    },
+    "frontend/tests/unit/components/test_market_map_tool.test.ts": {
+      "sha256": "0fb436cf38d968d311d501bf0d70445919bac56cbd03e8025f39e8b81278d38e",
+      "known_source": "1fdc92f1a1628d191ad1d5b2f0ba071a80df5052",
+      "absent": false
+    },
+    "frontend/tests/unit/components/test_ratio_uplot.test.ts": {
+      "sha256": "d6ad4b0aa32e386cdc2fe0f768123d64fbd04e106bf286a010b2f85dacfe2ea0",
+      "known_source": "1fdc92f1a1628d191ad1d5b2f0ba071a80df5052",
+      "absent": false
+    },
+    "frontend/tests/unit/components/test_relative_rotation_tool.test.ts": {
+      "sha256": "b5751b267bbabf506a8bfa205214047259c156504d81d2496f4e3aba8cfc60bf",
+      "known_source": "1fdc92f1a1628d191ad1d5b2f0ba071a80df5052",
+      "absent": false
+    },
+    "frontend/tests/unit/stores/test_workspace_store.test.ts": {
+      "sha256": "83f5145350bd68a46c9ff3508ba077ff537a236307d242b509510875abbafc6b",
+      "known_source": "1fdc92f1a1628d191ad1d5b2f0ba071a80df5052",
+      "absent": false
+    },
+    "frontend/tests/unit/views/test_alerts_view_creation_path.test.ts": {
+      "sha256": "ee2acc4c6a0e6504dcc49a7d9c3012b0541fa0719f33a63f6a58759ca724f925",
+      "known_source": "1fdc92f1a1628d191ad1d5b2f0ba071a80df5052",
+      "absent": false
+    },
+    "frontend/tests/unit/views/test_chart_view_radar_handoff.test.ts": {
+      "sha256": "734391222ec33b028220a8b8c470979fd1590189a6836e4098de4e1939e3d993",
+      "known_source": "1fdc92f1a1628d191ad1d5b2f0ba071a80df5052",
+      "absent": false
+    },
+    "frontend/tests/unit/views/test_screener_view_accessibility.test.ts": {
+      "sha256": null,
+      "known_source": "1fdc92f1a1628d191ad1d5b2f0ba071a80df5052",
+      "absent": true
+    },
+    "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts": {
+      "sha256": "440523d573b1936156dd6858ff26f02d7b89c7812bb2b5b21994909a9c19fc93",
+      "known_source": "1fdc92f1a1628d191ad1d5b2f0ba071a80df5052",
+      "absent": false
+    }
+  },
+  "verified_source_manifest_rows": 83,
+  "verification": {
+    "sha256": true,
+    "git_blob": true,
+    "status_from139": true,
+    "git_executable_mode": true,
+    "consumer_import_exact": true
+  },
+  "qualification": "Exact development consumption only; combined browser, exact-source CI, staging, deployment and full-roadmap acceptance remain Root-owned and pending."
+}

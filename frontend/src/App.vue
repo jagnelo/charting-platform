@@ -324,10 +324,12 @@ body:has(#app .tc-legacy-app) :is([class*="-menu"],[class*="-results"],.row-drop
 #app .tc-legacy-app .tc-app-route-frame ::selection { background: #68b6e955; color: #f4f8fb; }
 #app .tc-legacy-app .tc-app-route-frame * { scrollbar-color: var(--tc-border-strong) var(--tc-window-bg); }
 
-@media (max-width: 900px) {
+@media (max-width: 1500px) {
   .tc-app-header { flex-wrap: wrap; gap: 6px 12px; padding: 8px 10px 0; }
   .tc-app-navigation { order: 3; flex-basis: 100%; }
   .tc-app-account { margin-left: auto; }
+}
+@media (max-width: 900px) {
   .tc-app-nav-link { min-height: 32px; padding: 0 8px; }
 }
 @media (max-width: 520px) {

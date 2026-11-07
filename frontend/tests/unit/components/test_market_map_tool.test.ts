@@ -1997,4 +1997,32 @@ describe('MarketMapTool', () => {
     const request = apiPost.mock.calls.map(call => call[1]).find(body => body?.color_metric === 'relative_return')
     expect(request).toEqual(expect.objectContaining({ reference_source_id: 'watchlist:reference', reference_symbol: null }))
   })
+
+  it('prepares the selected and reference market groups using each source canonical key', async () => {
+    sourceState.sources = [
+      { ...defaultSources[0]!, stable_key: 'sp500-primary-key' },
+      {
+        ...defaultSources[0]!,
+        source_id: 'market-group:consumer-discretionary',
+        stable_key: 'consumer-discretionary-reference-key',
+        name: 'Consumer Discretionary',
+      },
+    ]
+    const wrapper = mount(MarketMapTool, {
+      props: {
+        configuration: {
+          source_id: 'market-group:sp500',
+          color_metric: 'relative_return',
+          reference_source_id: 'market-group:consumer-discretionary',
+        },
+      },
+    })
+    await flushPromises()
+
+    const preparedTargets = ensurePreparation.mock.calls.map(([request]) => request.target)
+    expect(preparedTargets).toContainEqual({ kind: 'market_group', group_key: 'sp500-primary-key' })
+    expect(preparedTargets).toContainEqual({ kind: 'market_group', group_key: 'consumer-discretionary-reference-key' })
+    expect(preparedTargets).toHaveLength(2)
+    wrapper.unmount()
+  })
 })

@@ -20088,3 +20088,43 @@ A source review found three Study journeys still waiting for any `POST /data/ens
 ### Library historical Study version journey (2026-11-07)
 
 The Study E2E now exercises the public `Open version 1 … in Study Lab` control after saving version2. It matches the resulting workspace snapshot by Study tool type, immutable CodeVersion ID, and source, then checks the visible editor shows that exact historical source and that opening it dispatches no run. The existing latest-version handoff and real run against version2 continue afterward. The journey matrix records this expanded authored path; type-check, Playwright discovery, workstream validation, and JSON checks pass. Browser execution on the current candidate remains pending Root's combined profile.
+
+
+### R46 Results, R49 Dashboard portal repair, and exact shared-runtime successors (2026-11-07T13:41:25Z)
+
+Root's R46 predecessor run (`frontend84b88fa8` / `backend182173f3`, test source `fadd181f8e21d4a5477d7b048a0f91af2abfc04d`) was terminal `1 pass / 3 fail / zero retries`. The Study draft XLB and immutable SPY run9 survived reload; the complete workstation layout duplicate/rename/reorder/delete/cancel/Undo-only acknowledgement/reload story passed. The real Results failure was reproduced from a detail GET containing eight completed artifacts while the expanded UI rendered none. `ResearchResultsTool.vue` now merges a count-only run summary with the selected or cached full-detail record rather than replacing its artifacts. A focused regression covers eight visible outputs through list refresh, row reselection, and remount from the same query cache.
+
+Root's R49 predecessor Dashboard run on `frontend84b` / `backend182` was terminal `1 pass / 3 fail / 100.73 seconds`: symbol/comparison save rollback and explicit Cancel/Retry passed. The actual ambiguous-candidate failure was caused by the document mousedown handler considering only the search root while results are teleported to `body`. Dashboard search now treats the root and teleported menu as one focus/click surface; controlled tests cover ordinary mousedown+click, keyboard selection, and a late superseded resolution. The seeded chart test now matches the actual local D1 `limit=500` request while retaining its minimum50 valid bars/paint/quote checks. The layout story now injects one controlled503 for each drag/resize phase, so each explicit retry can succeed and each durable rollback remains asserted. These corrections are authored and focused-tested, not browser-executed.
+
+The R46 screenshot showed visible RRG points, but its prior boolean-only arc audit did not expose why marker-center verification returned false. The owned audit now reports current-document canvas bounds, latest-clear frame counter, eligible arc centers, and center RGBA samples on failure. It still requires a nonempty current frame with finite centers and opaque canonical state-color pixels, plus keyboard tooltip interaction; no plot assertion or tolerance was weakened. Root must run this exact test successor to obtain the actual diagnostic values.
+
+Root released TC common runtime `a2e222251d4ea796d0d4bfb6b0e8705f503c1e4d` under `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-a2e22225-common-runtime-development-consumption-contract.json` (SHA256 `6e6c1233cc1fe168528779908908b57cd777e09ea2317367ff3a1e5e7826a145ba1`). Only its22 Strategy-declared guarded paths were imported; all83 source manifest rows match exact SHA256, Git blob, base status, and Git executable-bit semantics. The supplied active-plan entry was merged without replacing the Provider dependency or retaining stale current common-runtime entries; its local receipt is `development-dependency-imports/a2e222251d4ea796d0d4bfb6b0e8705f503c1e4d.json`.
+
+Root also released Provider runtime `182173f346d4a27694a46beba057102a5b7449e6` under `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider182173f3-runtime-development-consumption-contract.json` (SHA256 `8d48966b85588d46222de04b1ade9401379db284688253280ef8630d40a73a56`). Only its nine Strategy-declared paths were imported after all old guards passed; all62 source manifest rows match the exact commit, Git blobs, base status, and executable modes. Provider/backend suites and fixtures were not rerun by Strategy. This records development consumption only.
+
+Local evidence on the combined candidate: Results and Dashboard search component modules pass `79/79` focused tests; frontend `vue-tsc --noEmit` exits0; Playwright discovery lists all eight Dashboard and workstation lifecycle cases. No browser body, Compose/DB fixture, provider request, or live service action ran on this candidate. Root owns the next browser execution, combined profile, exact-source CI and release acceptance. Preserve all18 roadmap criteria and all native, forward, broker, capital, paid/trial and provider-live holds.
+
+### R49 dashboard search and Results detail follow-through (2026-11-07)
+
+Root's R49 predecessor run on frontend `84b` / backend `182` was terminal
+`1 pass / 3 fail` in `100.73s`. The ordinary symbol/comparison save failure,
+Cancel, and Retry journey passed. Two other failures were test setup defects:
+the seeded daily-bars response expected obsolete `limit=300` instead of the
+actual local D1 request `limit=500`, and the layout test scheduled two 503s
+while expecting its explicit retry to succeed. The Dashboard journey now uses
+`limit=500` while retaining its minimum valid bars/paint/quote/math checks and
+injects one controlled failure in each drag and resize phase, retaining both
+rollback and successful retry assertions.
+
+The remaining R49 failure exposed a product defect: discovery results are
+teleported to `body`, but outside-click dismissal checked only the search root,
+so an ordinary candidate mousedown removed the choice before click. The owned
+search now includes both root and teleported menu in outside-click and focusout
+containment. Focused component regressions cover ordinary mousedown/click,
+keyboard choice, and a late superseded resolution. The selected Results detail
+also now survives a count-only list projection; its eight-artifact regression
+covers refresh, reselection, and remount. The combined focused Results/Search
+modules passed `79/79`; `npm run type-check` exited0; Playwright discovery lists
+eight Dashboard and workstation cases. These current changes have not run in
+a browser; Root owns the next combined slot. Results/API contracts, test
+assertions, visual references and thresholds are unchanged.

@@ -489,6 +489,62 @@ describe('ResearchResultsTool', () => {
     expect(wrapper.text()).not.toContain('Loading selected run details…')
   })
 
+  it('keeps full selected-run artifacts across summary refresh, reselection, and remount', async () => {
+    const summary = {
+      id: 9,
+      status: 'completed',
+      code_version_id: 7,
+      run_config: {},
+      dataset_manifest: {},
+      artifact_count: 8,
+      artifacts: [],
+    }
+    const detail = {
+      ...summary,
+      run_config: { symbol: 'SPY' },
+      dataset_manifest: { symbol: 'SPY', bar_count: 520 },
+      artifacts: Array.from({ length: 8 }, (_, index) => ({
+        id: index + 1,
+        name: `metric_${index + 1}`,
+        artifact_type: 'scalar',
+        payload: { value: index + 1 },
+      })),
+    }
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/research/runs') return Promise.resolve([{ ...summary, artifacts: [] }])
+      if (path === '/research/runs/9') return Promise.resolve(detail)
+      return Promise.reject(new Error(`Unexpected Research Results request: ${path}`))
+    })
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 60_000 } } })
+    const showAllEightArtifacts = (wrapper: ReturnType<typeof mountTool>) => {
+      expect(wrapper.find('[aria-label="Research run 9 details"]').exists()).toBe(true)
+      expect(wrapper.findAll('.research-results-tool__artifacts > article')).toHaveLength(8)
+      expect(wrapper.text()).toContain('metric_1')
+      expect(wrapper.text()).toContain('metric_8')
+    }
+
+    const first = mountTool(queryClient)
+    await vi.waitFor(() => showAllEightArtifacts(first))
+
+    await queryClient.invalidateQueries({ queryKey: ['workstation', 'research-runs'] })
+    await vi.waitFor(() => expect(apiGet.mock.calls.filter(([path]) => path === '/research/runs')).toHaveLength(2))
+    showAllEightArtifacts(first)
+
+    await first.get('button.research-results-tool__run-select').trigger('click')
+    await flushPromises()
+    showAllEightArtifacts(first)
+
+    first.unmount()
+    const remounted = mountTool(queryClient)
+    try {
+      await vi.waitFor(() => showAllEightArtifacts(remounted))
+      expect(apiGet.mock.calls.filter(([path]) => path === '/research/runs/9')).toHaveLength(1)
+    } finally {
+      remounted.unmount()
+      queryClient.clear()
+    }
+  })
+
   it('shows detail-load failure and allows an explicit retry', async () => {
     let detailAttempt = 0
     let resolveRetry!: (value: unknown) => void

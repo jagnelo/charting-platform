@@ -1198,24 +1198,19 @@ progress:
       selected dataset first; never acquire data inside evaluation or mutate saved-run identity.
       Maintain the Strategy-owned J10/J11/J12 action matrix as an input to TC's global inventory,
       distinguishing component/API evidence from exact-source browser acceptance. The current Provider
-      development source is dd70319eb725dc6b5c1b4feb0ba5a5ba060efd04 under
-      providerdd70319e-runtime-development-consumption-contract.json (manifest SHA256
-      9679b42e3e8dc4190d1b221b7b4ce7c0b86b3cd66d90e5a4f936eb8e61c6e95e). Strategy imported only
-      its two declared analysis paths; all61 source manifest entries were checked against the exact
-      commit. The owned research router/test were source-equivalent before the current local Results
-      list optimization. Earlier Provider pins remain historical. This is development consumption,
+      development source is `182173f346d4a27694a46beba057102a5b7449e6` under
+      `provider182173f3-runtime-development-consumption-contract.json` (manifest SHA256
+      `8d48966b85588d46222de04b1ade9401379db284688253280ef8630d40a73a56`). Strategy imported only
+      nine guarded paths; all62 source rows were verified against the exact commit by SHA256, Git blob,
+      base status, and executable-bit semantics. Earlier Provider pins remain historical. This is development consumption,
       not release acceptance. Consume the authenticated durable ensure/status contract through the exact
       TC-owned shared preparation client without duplicating worker, acquisition, quota, or provider
-      behavior. The TC runtime history preserves the earlier AEA, D5, 5a, ce, 5a783e and771 pins. The
-      current common-runtime pin is exact source1fdc92f1a1628d191ad1d5b2f0ba071a80df5052 under
-      tc-1fdc92f1-common-runtime-development-consumption-contract.json (manifest SHA256
-      fddaab9536bb885b9656e861ece0df60481466e365e2b04612c953404f57b70d). Strategy consumed only its
-      five declared paths after all five old_guards passed and verified all77 manifest SHA/blob/status/
-      executable-bit records. Root reported the exact frontend build and four affected ordinary browser
-      journeys running; no terminal result is recorded here. This remains development consumption,
-      not browser or release acceptance. Prior imports and evidence remain historical.
-      Author the separately reserved Strategy workstation
-      lifecycle journey; its public-UI browser body remains pending Root's combined slot. Repair the
+      behavior. Earlier TC common-runtime pins and evidence remain in the append-only handoff history.
+      Current common-runtime source is exact A2E `a2e222251d4ea796d0d4bfb6b0e8705f503c1e4d`; it
+      preserves Study publication, acknowledged Undo, accessible support controls, RRG marker/scroll,
+      history viewport and shared preparation for multi-panel charts. Its imported context is not
+      browser or release acceptance. Author the separately reserved Strategy workstation lifecycle
+      journey; its public-UI browser body remains pending Root's combined slot. Repair the
       seven Root-reserved Dashboard product
       files and focused tests: prepare profile/history before reads, submit independent per-target
       preparation and abort obsolete subscriptions, preserve listing-bound discovery, persist symbol
@@ -1412,7 +1407,7 @@ dependencies:
     feat/market-data-provider-platform owns canonical identity, market series,
     capability/entitlement, acquisition, coverage, and repair contracts. Consume
     after its reviewed work reaches staging, except for the exact Root-released
-    development dependency dffcf2e2cda4a3046b5e224fb4c7607574156797 recorded in
+    development dependency `182173f346d4a27694a46beba057102a5b7449e6` recorded in
     provider-runtime-consumption.json; that release is not full qualification or
     product acceptance. Do not duplicate providers or provider runtime policy.
   - >-
@@ -1427,14 +1422,15 @@ dependencies:
     `frontend/src/lib/dataPreparation.ts` from TC commit
     `877df044d2496c5f1be0e86b4dd49503cc6e55db` (SHA256
     `c1157a680c5a461647b82b18bd9923c53d36a401dd3397c2361e91b125d43a0d`), preserved as prior
-    shared-client history. The active import is now the exact66-path TC common-runtime release
-    `ce2262ab2d47fc1ccda96f0c2aa7c8839e4e03f9` under
-    `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-ce2262ab-common-runtime-development-consumption-contract.json`.
-    Its19 declared delta paths over5a were imported and all66 manifest entries verified by SHA256,
-    Git blob, source status, and executable-bit semantics. The two ETF-owned SearchBar files already
-    matched a0c5250 and were left untouched. Prior AEA/D5/5a qualification remains historical; this
-    development import does not claim full application/browser qualification or auth isolation beyond
-    the imported scope.
+    shared-client history. The active common-runtime dependency is exact TC source
+    `a2e222251d4ea796d0d4bfb6b0e8705f503c1e4d` under
+    `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-a2e22225-common-runtime-development-consumption-contract.json`
+    (manifest SHA256 `6e6c1233cc1fe168528779908908b57cd777e09ea2317367ff3a1e5e7826a145ba1`). Strategy
+    imported only its22 guarded paths; all83 manifest rows match exact source SHA256, Git blob, base
+    status, and executable-bit semantics. The current local import receipt is
+    `ops/workstreams/feat-strategy-lab-v2/development-dependency-imports/a2e222251d4ea796d0d4bfb6b0e8705f503c1e4d.json`.
+    Earlier common pins and qualification remain historical; this is development consumption, not
+    full application/browser qualification or release acceptance.
     Provider DTOs are at `3d10`; the exact Provider backend preparation runtime is imported under the
     explicit development release in provider-runtime-consumption.json. Combined end-to-end proof
     remains Root-owned and pending.
@@ -2189,7 +2185,7 @@ roadmap_progress_history:
     completed EasyScan and finite Gauge coverage. Relative Rotation requires opaque state-colored
     pixels at finite centers captured from the latest RRG canvas draw's marker arcs and retains its
     keyboard tooltip interaction. Static type-check/discovery/workstream checks do not establish
-    browser execution or release acceptance. Provider b0eae597 is the current saved-screener/development runtime dependency; its exact-source CI and combined release qualification remain pending. The b1a94d98
+    browser execution or release acceptance. Provider182173f346d4a27694a46beba057102a5b7449e6 is the current saved-screener/development runtime dependency; its exact-source CI and combined release qualification remain pending. The b1a94d98
     F8p predecessor timed out without a captured run ID, terminal status, preparation response, or backend
     exception, so its runtime cause is unresolved. Current StudyLabTool prepares selected data before
     Validate and Run and fences stale context; the Strategy-owned F8p witness records the ensure response,
@@ -2263,3 +2259,92 @@ context_adoption_139:
   strategy_roadmap: all 18 original criteria and active full-roadmap goal remain open and unchanged.
   operation_activation: none
   local_tests_or_runtime: none
+
+approved_development_dependency_imports:
+- source_sha: a2e222251d4ea796d0d4bfb6b0e8705f503c1e4d
+  manifest_path: ops/workstreams/feat-strategy-lab-v2/development-dependency-imports/a2e222251d4ea796d0d4bfb6b0e8705f503c1e4d.json
+  manifest_sha256: 6e6c1233cc1fe168528779908b57cd777e09ea2317367ff3a1e5e7826a145ba1
+  paths:
+  - frontend/package-lock.json
+  - frontend/package.json
+  - frontend/src/App.vue
+  - frontend/src/components/chart/ChartPanel.vue
+  - frontend/src/components/chart/HistoryAcquisitionControl.vue
+  - frontend/src/components/chart/UPlotChart.vue
+  - frontend/src/components/common/Notification.vue
+  - frontend/src/components/common/SearchBar.vue
+  - frontend/src/components/radar/RadarDetailPreviewChart.vue
+  - frontend/src/components/workstation/EasyScanTool.vue
+  - frontend/src/components/workstation/MarketGaugeTool.vue
+  - frontend/src/components/workstation/MarketMapTool.vue
+  - frontend/src/components/workstation/RatioUPlot.vue
+  - frontend/src/components/workstation/RelativeRotationTool.vue
+  - frontend/src/components/workstation/ToolWindow.vue
+  - frontend/src/components/workstation/VirtualWatchlistTool.vue
+  - frontend/src/components/workstation/WorkspaceLayoutHost.vue
+  - frontend/src/components/workstation/WorkstationToolContent.vue
+  - frontend/src/lib/api.ts
+  - frontend/src/lib/authSession.ts
+  - frontend/src/lib/dataPreparation.ts
+  - frontend/src/lib/etfHoldingDrilldown.ts
+  - frontend/src/lib/workstation/benchmarkFamilySources.ts
+  - frontend/src/lib/workstation/instrumentCalendar.ts
+  - frontend/src/lib/workstation/marketMap.ts
+  - frontend/src/lib/workstation/ohlcvRequests.ts
+  - frontend/src/lib/workstation/toolActivation.ts
+  - frontend/src/main.ts
+  - frontend/src/router/index.ts
+  - frontend/src/stores/alerts.ts
+  - frontend/src/stores/auth.ts
+  - frontend/src/stores/chart.ts
+  - frontend/src/stores/layout.ts
+  - frontend/src/stores/panelLinks.ts
+  - frontend/src/stores/radar.ts
+  - frontend/src/stores/recentInstruments.ts
+  - frontend/src/stores/userSettings.ts
+  - frontend/src/stores/watchlist.ts
+  - frontend/src/stores/workspace.ts
+  - frontend/src/views/AlertsView.vue
+  - frontend/src/views/ChartView.vue
+  - frontend/src/views/ScreenerView.vue
+  - frontend/src/views/SettingsView.vue
+  - frontend/src/views/WatchlistView.vue
+  - frontend/src/views/WorkstationView.vue
+  - frontend/tests/e2e/auth_session_boundary.spec.ts
+  - frontend/tests/e2e/flows.spec.ts
+  - frontend/tests/e2e/helpers.ts
+  - frontend/tests/e2e/tc2000_visual.spec.ts
+  - frontend/tests/unit/components/test_chart_panel_lifecycle.test.ts
+  - frontend/tests/unit/components/test_easy_scan_tool.test.ts
+  - frontend/tests/unit/components/test_history_acquisition_control.test.ts
+  - frontend/tests/unit/components/test_market_gauge_tool.test.ts
+  - frontend/tests/unit/components/test_market_map_tool.test.ts
+  - frontend/tests/unit/components/test_radar_detail_preview_chart.test.ts
+  - frontend/tests/unit/components/test_ratio_uplot.test.ts
+  - frontend/tests/unit/components/test_relative_rotation_tool.test.ts
+  - frontend/tests/unit/components/test_search_bar.test.ts
+  - frontend/tests/unit/components/test_tool_window.test.ts
+  - frontend/tests/unit/components/test_uplot_chart_context.test.ts
+  - frontend/tests/unit/components/test_workspace_layout_host.test.ts
+  - frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts
+  - frontend/tests/unit/e2e/test_browser_diagnostics.test.ts
+  - frontend/tests/unit/lib/test_api_client.test.ts
+  - frontend/tests/unit/lib/test_auth_session.test.ts
+  - frontend/tests/unit/lib/test_benchmark_family_sources.test.ts
+  - frontend/tests/unit/lib/test_data_preparation.test.ts
+  - frontend/tests/unit/lib/test_instrument_calendar.test.ts
+  - frontend/tests/unit/lib/test_market_map.test.ts
+  - frontend/tests/unit/lib/test_tool_activation.test.ts
+  - frontend/tests/unit/lib/workstation_ohlcv_requests.test.ts
+  - frontend/tests/unit/router/test_app_shell.test.ts
+  - frontend/tests/unit/router/test_application_routes.test.ts
+  - frontend/tests/unit/setup.ts
+  - frontend/tests/unit/stores/test_drawings_store.test.ts
+  - frontend/tests/unit/stores/test_stores.test.ts
+  - frontend/tests/unit/stores/test_workspace_store.test.ts
+  - frontend/tests/unit/views/test_alerts_view_creation_path.test.ts
+  - frontend/tests/unit/views/test_chart_view_radar_handoff.test.ts
+  - frontend/tests/unit/views/test_screener_view_accessibility.test.ts
+  - frontend/tests/unit/views/test_settings_view.test.ts
+  - frontend/tests/unit/views/test_workstation_capabilities.test.ts
+  - frontend/tests/unit/views/test_workstation_popout_bindings.test.ts

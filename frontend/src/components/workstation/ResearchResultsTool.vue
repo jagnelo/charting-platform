@@ -28,7 +28,7 @@
             class="research-results-tool__run-select"
             :aria-label="`Run ${run.id}, ${run.status}, ${run.artifact_count ?? run.artifacts?.length ?? 0} artifacts`"
             :aria-pressed="selectedRun?.id === run.id ? 'true' : 'false'"
-            @click="selectedRun = run"
+            @click="selectRun(run)"
           >
             <strong>Run #{{ run.id }}</strong>
             <span role="status" aria-live="polite" aria-atomic="true" :aria-label="`Run ${run.id} status: ${runStatusLabel(run)}`" :data-status="run.status" :class="`research-results-tool__status--${runStatusClass(run)}`">{{ runStatusLabel(run) }}</span>
@@ -200,7 +200,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
-import { researchRunsQueryKey } from '@/lib/workstation/researchQueryKeys'
+import { researchRunQueryKey, researchRunsQueryKey } from '@/lib/workstation/researchQueryKeys'
 import { normalizeStructuredNumericSeries } from '@/lib/workstation/numericSeries'
 import { normalizeStudyDashboardPanels } from '@/lib/workstation/studyArtifacts'
 import { studyArtifactCapability } from '@/lib/workstation/studyArtifactCapabilities'
@@ -299,6 +299,20 @@ function mergeResearchRuns(...groups: ResearchRunSummary[][]) {
   }
   return [...byId.values()]
 }
+function mergeRunSummaryWithDetail(summary: ResearchRunSummary, detail?: ResearchRunSummary | null) {
+  if (!detail || detail.id !== summary.id || !detail.artifacts?.length) return summary
+  const artifacts = summary.artifacts.length > detail.artifacts.length ? summary.artifacts : detail.artifacts
+  const summaryRunConfig = summary.run_config ?? {}
+  const summaryDatasetManifest = summary.dataset_manifest ?? {}
+  return {
+    ...detail,
+    ...summary,
+    run_config: Object.keys(summaryRunConfig).length ? summaryRunConfig : detail.run_config,
+    dataset_manifest: Object.keys(summaryDatasetManifest).length ? summaryDatasetManifest : detail.dataset_manifest,
+    artifacts,
+    artifact_count: Math.max(summary.artifact_count ?? 0, detail.artifact_count ?? detail.artifacts.length),
+  }
+}
 function publishAcceptedRunMutation(run: ResearchRunSummary) {
   queryClient.setQueryData<ResearchRunSummary[]>(runsQueryKey, current =>
     mergeResearchRuns([run], current ?? []).slice(0, RESEARCH_RUN_FETCH_SIZE),
@@ -395,6 +409,11 @@ const surfaceVisible = ref(typeof IntersectionObserver === 'undefined')
 const documentVisible = ref(typeof document === 'undefined' || document.visibilityState !== 'hidden')
 const runsQueryKey = researchRunsQueryKey
 const queryClient = useQueryClient()
+function selectRun(run: ResearchRunSummary) {
+  const currentDetail = selectedRun.value?.id === run.id ? selectedRun.value : null
+  const cachedDetail = queryClient.getQueryData<ResearchRunSummary>(researchRunQueryKey(run.id))
+  selectedRun.value = mergeRunSummaryWithDetail(run, currentDetail ?? cachedDetail)
+}
 const artifactSummaryId = (artifactId: number) => `${resultsInstanceId}-research-artifact-${artifactId}-summary`
 let visibilityObserver: IntersectionObserver | null = null
 let mounted = false
@@ -481,15 +500,20 @@ watch(() => runsQuery.data.value, next => {
   const selectedId = selectedRun.value?.id
   runs.value = mergeResearchRuns(firstPage, hasLoadedOlderRuns.value ? runs.value : [])
   if (!hasLoadedOlderRuns.value) hasMoreRuns.value = next.length > RESEARCH_RUN_PAGE_SIZE
-  selectedRun.value = runs.value.find(run => run.id === selectedId) ?? runs.value[0] ?? null
+  const nextSelectedRun = runs.value.find(run => run.id === selectedId) ?? runs.value[0] ?? null
+  if (nextSelectedRun) {
+    const currentDetail = selectedRun.value?.id === nextSelectedRun.id ? selectedRun.value : null
+    const cachedDetail = queryClient.getQueryData<ResearchRunSummary>(researchRunQueryKey(nextSelectedRun.id))
+    selectedRun.value = mergeRunSummaryWithDetail(nextSelectedRun, currentDetail ?? cachedDetail)
+  } else selectedRun.value = null
   comparisonIds.value = comparisonIds.value.filter(id => runs.value.some(run => run.id === id))
 }, { immediate: true })
 watch(() => runsQuery.error.value, cause => {
   if (cause) runsLoadError.value = cause instanceof Error ? cause.message : 'Unable to load persisted research runs'
 })
 watch(() => selectedRunDetailQuery.data.value, detail => {
-  if (detail && detail.id === selectedRun.value?.id) selectedRun.value = detail
-})
+  if (detail && detail.id === selectedRun.value?.id) selectedRun.value = mergeRunSummaryWithDetail(selectedRun.value, detail)
+}, { immediate: true })
 watch([occurrenceSymbolFilter, occurrenceKindFilter, () => selectedRun.value?.id], () => {
   occurrencePageSizes.value = {}
 })

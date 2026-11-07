@@ -50,35 +50,81 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "current_blocker": "Root R26 remains historical1pass/2fail on frontend77190340/backenddcd3c823; its pending /research/runs GET did not identify a cause. Strategy retains the visibility-gated Results query, abortable15s timeout and explicit retry. The count-only list endpoint now loads artifact IDs without saved JSON payloads while run detail keeps full payload access; the focused research-router module passes15/15. This reduces avoidable list I/O but does not establish the prior pending request cause. Root reported four affected ordinary browser journeys running against TC1fdc92f1 and Providerdd70319e; no terminal outcome is recorded here. RRG Restore remains open with TC. Full browser/profile and release gates remain Root-owned.",
+  "current_blocker": "Root R46 predecessor on frontend84b/backend182 reproduced a completed run9 detail response with eight artifacts while Research Results rendered0; the local summary/detail merge preserves selected cached artifacts and its71-case regression passes. Study immutable draft/run reload and the complete layout lifecycle passed in R46. Root R49 predecessor on frontend84b/backend182 passed symbol/comparison rollback+retry but exposed two test setup errors and a real teleported-search dismissal; the portal-aware fix, corrected D1 limit500 predicate, and one-failure-per-layout-phase test are locally focused-tested/type-checked/discovered, not browser-executed. The RRG screenshot shows visible points, but actual current-frame centers/RGBA remain unobserved; the owned helper now reports those details while retaining the strong assertion. Current common dependency is TC A2E; current Provider dependency is182. Root owns the next combined browser run and full/exact-source qualification. All18 roadmap criteria and safety holds remain open.",
   "current_execution_checkpoint": {
     "authority": "Human-activated platform-usability plan; existing session-local goal aligned in place by Root, no objective/accounting reset.",
     "full_roadmap_preserved": true,
-    "heavy_profile": "Root R26 was1pass/2fail on predecessor pins; current exact candidate has no terminal browser result in this record. The Strategy Results list avoids unnecessary saved-artifact JSON payload loading and its focused Research router module passes15/15. Root reported four affected ordinary journeys running under TC1fdc92f1/Providerdd70319e; Root owns the browser outcome and full qualification.",
+    "heavy_profile": "Root R46 predecessor on frontend84b/backend182 reproduced a completed run9 detail response with eight artifacts while Research Results rendered0; the local summary/detail merge preserves selected cached artifacts and its71-case regression passes. Study immutable draft/run reload and the complete layout lifecycle passed in R46. Root R49 predecessor on frontend84b/backend182 passed symbol/comparison rollback+retry but exposed two test setup errors and a real teleported-search dismissal; the portal-aware fix, corrected D1 limit500 predicate, and one-failure-per-layout-phase test are locally focused-tested/type-checked/discovered, not browser-executed. The RRG screenshot shows visible points, but actual current-frame centers/RGBA remain unobserved; the owned helper now reports those details while retaining the strong assertion. Current common dependency is TC A2E; current Provider dependency is182. Root owns the next combined browser run and full/exact-source qualification. All18 roadmap criteria and safety holds remain open.",
     "id": "strategy-study-usability-2026-11-06",
-    "status": "in_progress",
-    "next_action": "Receive Root terminal evidence for the four current affected ordinary browser journeys, then address any concrete Strategy-owned failure. Preserve earlier R26 red outcomes, the full18-criterion roadmap and all native/broker/capital/paid/trial/provider-live holds; do not start a competing fixture."
+    "next_action": "Hand this exact Strategy candidate to Root for the next existing combined browser slot. Verify Results detail retention through summary refresh/reselection/remount, ordinary teleported candidate mouse/keyboard selection with stale-resolution fencing, actual RRG marker centers/RGBA, and corrected Dashboard seeded/layout recovery journeys. No local browser/fixture. Preserve all18 roadmap criteria and all native, forward, broker, capital, paid/trial, and provider-live holds.",
+    "status": "in_progress"
   },
   "dirty_paths": [
-    "backend/app/routers/analysis.py",
-    "backend/app/routers/research.py",
-    "backend/tests/unit/routers/test_analysis_router.py",
-    "backend/tests/unit/routers/test_research_router.py",
-    "frontend/src/components/workstation/ToolWindow.vue",
-    "frontend/src/components/workstation/WorkspaceLayoutHost.vue",
-    "frontend/src/stores/chart.ts",
-    "frontend/tests/unit/components/test_workspace_layout_host.test.ts",
-    "frontend/tests/unit/stores/test_stores.test.ts",
+    "backend/app/routers/workspaces.py",
+    "backend/app/services/baskets.py",
+    "backend/app/services/e2e_seed.py",
+    "backend/app/tasks/data_tasks.py",
+    "backend/tests/integration/api/test_baskets.py",
+    "backend/tests/integration/test_data_preparation_queue_postgres.py",
+    "backend/tests/unit/services/test_data_preparation_history_planning.py",
+    "backend/tests/unit/services/test_e2e_seed.py",
+    "frontend/src/App.vue",
+    "frontend/src/components/chart/ChartPanel.vue",
+    "frontend/src/components/chart/HistoryAcquisitionControl.vue",
+    "frontend/src/components/dashboard/DashboardInstrumentSearch.vue",
+    "frontend/src/components/workstation/MarketMapTool.vue",
+    "frontend/src/components/workstation/RatioUPlot.vue",
+    "frontend/src/components/workstation/RelativeRotationTool.vue",
+    "frontend/src/components/workstation/ResearchResultsTool.vue",
+    "frontend/src/stores/workspace.ts",
+    "frontend/src/views/AlertsView.vue",
+    "frontend/src/views/ChartView.vue",
+    "frontend/src/views/ScreenerView.vue",
+    "frontend/src/views/WatchlistView.vue",
+    "frontend/src/views/WorkstationView.vue",
+    "frontend/tests/e2e/dashboard_usability_journey.spec.ts",
+    "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts",
+    "frontend/tests/unit/components/test_chart_panel_lifecycle.test.ts",
+    "frontend/tests/unit/components/test_dashboard_instrument_search.test.ts",
+    "frontend/tests/unit/components/test_history_acquisition_control.test.ts",
+    "frontend/tests/unit/components/test_market_map_tool.test.ts",
+    "frontend/tests/unit/components/test_ratio_uplot.test.ts",
+    "frontend/tests/unit/components/test_relative_rotation_tool.test.ts",
+    "frontend/tests/unit/components/test_research_results_tool.test.ts",
+    "frontend/tests/unit/stores/test_workspace_store.test.ts",
+    "frontend/tests/unit/views/test_alerts_view_creation_path.test.ts",
+    "frontend/tests/unit/views/test_chart_view_radar_handoff.test.ts",
+    "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts",
     "ops/workstreams/feat-strategy-lab-v2/handoff.md",
     "ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
     "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
     "ops/workstreams/feat-strategy-lab-v2/provider-runtime-consumption.json",
     "ops/workstreams/feat-strategy-lab-v2/session.json",
-    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
+    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl",
+    "backend/tests/integration/api/test_workspace_read_consistency_postgres.py",
+    "frontend/tests/unit/views/test_screener_view_accessibility.test.ts",
+    "ops/workstreams/feat-strategy-lab-v2/development-dependency-imports/"
   ],
   "docker": {
-    "available": false,
-    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-feat-strategy-lab-v2-7794d9e5",
+      "charting-stack-feat-strategy-lab-v2-7794d9e5"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "docker_ready": {
     "ready": false,
@@ -87,7 +133,7 @@
     "wait_seconds": 180
   },
   "goal_budget_policy": "unbounded_unless_human_authorized",
-  "goal_objective": "Advance feat/strategy-lab-v2: Implement the Strategy-owned Study usability scope from the human-activated platform-usability release: reliable Study editing, validation, ordinary runs, truthful persisted Results, recovery, and immutable promotion bindings. Preserve the complete original Strategy Lab v2 roadmap and all safety holds; this active checkpoint does not qualify native execution or complete the platform.. Acceptance criteria: SU1: A loaded persisted Study displays dataset and source identity from that saved run's immutable run_config and dataset_manifest, separately from the editable current draft; switching context, restoring a run, and validating a new draft never relabel old outputs.; SU2: A newly created or completed Study run appears in the adjacent persisted Results list without manual refresh, and its terminal status and artifact count agree across list/detail projections.; SU3: Code Library validation and save operations are bound to the exact source, output contract and base CodeVersion snapshot that was validated; late responses cannot certify changed drafts.; SU4: Reload, explicit cancel, snapshot/latest rerun, return and result promotion remain recoverable and operate on the selected persisted run's immutable source/config/manifest, never current draft fallbacks. Closing a view does not cancel a durable run.; SU5: A Strategy-owned Study-only browser journey covers normal-user validate/run, automatic Results arrival, accurate artifacts, and draft-versus-saved identity; the complete unchanged full local profile and exact-source CI remain required before readiness.; SU6: Preserve all original 18 roadmap criteria and accepted checkpoint history; retain honest limits and disabled native/forward/broker/capital/provider-live scopes. Full platform profile and any Root-owned genuine target acceptance remain distinct and open.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_objective": "Advance feat/strategy-lab-v2: Implement the Strategy-owned Study usability scope from the human-activated platform-usability release: reliable Study editing, validation, ordinary runs, truthful persisted Results, recovery, and immutable promotion bindings. Preserve the complete original Strategy Lab v2 roadmap and all safety holds; this active checkpoint does not qualify native execution or complete the platform.. Acceptance criteria: SU1: A loaded persisted Study displays dataset and source identity from that saved run's immutable run_config and dataset_manifest, separately from the editable current draft; switching context, restoring a run, and validating a new draft never relabel old outputs.; SU2: A newly created or completed Study run appears in the adjacent persisted Results list without manual refresh, and its terminal status and artifact count agree across list/detail projections.; SU3: Code Library validation and save operations are bound to the exact source, output contract and base CodeVersion snapshot that was validated; late responses cannot certify changed drafts.; SU4: Reload, explicit cancel, snapshot/latest rerun, return and result promotion remain recoverable and operate on the selected persisted run's immutable source/config/manifest, never current draft fallbacks. Closing a view does not cancel a durable run.; SU5: A Strategy-owned Study-only browser journey covers normal-user validate/run, automatic Results arrival, accurate artifacts, and draft-versus-saved identity; the complete unchanged full local profile and exact-source CI remain required before readiness.; SU6: Preserve all original 18 roadmap criteria and accepted checkpoint history; retain honest limits and disabled native/forward/broker/capital/provider-live scopes. Full platform profile and any Root-owned genuine target acceptance remain distinct and open.; SU7: History/profile-backed Dashboard widgets use the shared preparation coordinator before local reads, submit comparison datasets independently, report per-target outcomes, and fence obsolete symbol/timeframe contexts without cancelling durable work.; SU8: Dashboard search keeps prefix results as identity-bearing candidates; it resolves only a unique exact match from complete discovery or an explicit candidate choice, and failed symbol/comparison saves retain the prior configuration with visible retry feedback.; SU9: Dashboard layout-save failures restore the saved arrangement, explain the failure, and allow a retry that reconciles the visible layout with the server.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
   "goal_recorded_at": "2026-10-22T19:55:30Z",
   "goal_request": {
     "objective": "Advance feat/strategy-lab-v2: Prepare strategy-lab-v2-integration-1 for human review, preserving the complete original roadmap. Prepare independent consumer evidence now, then reconcile synchronized green staging after Provider, ETF and TC2000 integration and validate the combined application. Stop at ready_for_human_review.. Acceptance criteria: SLICP1: Preserve original goal and all 18 criterion IDs/texts, exhaustive dispositions and pending human acceptance; reconcile stale session progress with later evidence.; SLICP2: Prepare independent API/migration/worker and immutable-input consumer success/rejection evidence without importing unstaged implementations.; SLICP3: After Provider, ETF and TC2000 reach synchronized green staging and this source is unfrozen, merge staging here and reconcile canonical identity/series/coverage, known-at ETF membership and immutable CodeVersion/Study outputs.; SLICP4: Reconcile routers, migrations, configuration and Compose workers; pass full application and exact-source CI gates with unsupported scopes explicit and Nautilus RC results qualified by exact build and scope.; SLICP5: Publish a clean pushed checkpoint with tested source, impacts, limitations and outstanding roadmap; stop at ready_for_human_review, closure pending human acceptance.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
@@ -109,14 +155,14 @@
     }
   ],
   "goal_unavailable_reason": null,
-  "head": "b5899a47e67c1d15b9fa5f5f23b2ad4ceebbec04",
-  "implementation_sha": "b5899a47e67c1d15b9fa5f5f23b2ad4ceebbec04",
-  "last_checkpoint": "2026-11-07T09:59:05Z",
+  "head": "fadd181f8e21d4a5477d7b048a0f91af2abfc04d",
+  "implementation_sha": "fadd181f8e21d4a5477d7b048a0f91af2abfc04d",
+  "last_checkpoint": "2026-11-07T13:41:48Z",
   "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Receive Root terminal evidence for the four current affected ordinary browser journeys, then address any concrete Strategy-owned failure. Preserve earlier R26 red outcomes, the full18-criterion roadmap and all native/broker/capital/paid/trial/provider-live holds; do not start a competing fixture.",
+  "next_action": "Hand this exact Strategy candidate to Root for the next existing combined browser slot. Verify Results detail retention through summary refresh/reselection/remount, ordinary teleported candidate mouse/keyboard selection with stale-resolution fencing, actual RRG marker centers/RGBA, and corrected Dashboard seeded/layout recovery journeys. No local browser/fixture. Preserve all18 roadmap criteria and all native, forward, broker, capital, paid/trial, and provider-live holds.",
   "parent_branch": "staging",
-  "plan_hash": "53bd4a59e52f7743ecfc7ef4f95f63e39520c6e5db3a3e639e799d59b7ee0afc",
+  "plan_hash": "0afd972dd617e21cf61f1414834d5f8557b3ac240e7167bfb50dbd68730718c2",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -145,13 +191,13 @@
       "SU3",
       "SU4"
     ],
-    "current_blocker": "Root R26 remains historical1pass/2fail on frontend77190340/backenddcd3c823; its pending /research/runs GET did not identify a cause. Strategy retains the visibility-gated Results query, abortable15s timeout and explicit retry. The count-only list endpoint now loads artifact IDs without saved JSON payloads while run detail keeps full payload access; the focused research-router module passes15/15. This reduces avoidable list I/O but does not establish the prior pending request cause. Root reported four affected ordinary browser journeys running against TC1fdc92f1 and Providerdd70319e; no terminal outcome is recorded here. RRG Restore remains open with TC. Full browser/profile and release gates remain Root-owned.",
+    "current_blocker": "Root R46 predecessor on frontend84b/backend182 reproduced a completed run9 detail response with eight artifacts while Research Results rendered0; the local summary/detail merge preserves selected cached artifacts and its71-case regression passes. Study immutable draft/run reload and the complete layout lifecycle passed in R46. Root R49 predecessor on frontend84b/backend182 passed symbol/comparison rollback+retry but exposed two test setup errors and a real teleported-search dismissal; the portal-aware fix, corrected D1 limit500 predicate, and one-failure-per-layout-phase test are locally focused-tested/type-checked/discovered, not browser-executed. The RRG screenshot shows visible points, but actual current-frame centers/RGBA remain unobserved; the owned helper now reports those details while retaining the strong assertion. Current common dependency is TC A2E; current Provider dependency is182. Root owns the next combined browser run and full/exact-source qualification. All18 roadmap criteria and safety holds remain open.",
     "current_phase": "strategy-study-usability-2026-11-06",
-    "next_action": "Receive Root terminal evidence for the four current affected ordinary browser journeys, then address any concrete Strategy-owned failure. Preserve earlier R26 red outcomes, the full18-criterion roadmap and all native/broker/capital/paid/trial/provider-live holds; do not start a competing fixture.",
+    "next_action": "Hand this exact Strategy candidate to Root for the next existing combined browser slot. Verify Results detail retention through summary refresh/reselection/remount, ordinary teleported candidate mouse/keyboard selection with stale-resolution fencing, actual RRG marker centers/RGBA, and corrected Dashboard seeded/layout recovery journeys. No local browser/fixture. Preserve all18 roadmap criteria and all native, forward, broker, capital, paid/trial, and provider-live holds.",
     "total": 9,
-    "updated_at": "2026-11-07T09:59:05Z"
+    "updated_at": "2026-11-07T13:41:48Z"
   },
-  "remote": "c7f0585fc6735bbfe5e768836092419b13ce8a25",
+  "remote": "b555268b8237d1c50e34b39320b4cb18a8bd9a03",
   "remote_sha": "b555268b8237d1c50e34b39320b4cb18a8bd9a03",
   "remote_synchronized": false,
   "retained_docker_resources": [],
@@ -256,6 +302,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for Strategy Lab v2 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
+  "updated_at": "2026-11-07T09:38:36Z",
   "validation_tier": "full_integration",
   "workstream": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2",
   "workstream_files": [
@@ -265,6 +312,5 @@
     "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/session.json"
   ],
   "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
-  "worktree_id": "feat-strategy-lab-v2-7794d9e53d",
-  "updated_at": "2026-11-07T09:38:36Z"
+  "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
 }

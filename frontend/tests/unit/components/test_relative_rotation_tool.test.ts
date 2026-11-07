@@ -50,6 +50,8 @@ describe('RelativeRotationTool', () => {
     expect(wrapper.get('.rotation-tool__plot').attributes('aria-label')).toBe('Relative rotation trend and momentum plane')
     expect(wrapper.get('.rotation-tool__plot').attributes('aria-describedby')).toBe(wrapper.get('.rotation-tool__sr-only').attributes('id'))
     expect(wrapper.get('.rotation-tool__plot').attributes('aria-keyshortcuts')).toContain('ArrowRight')
+    expect(wrapper.get('.rotation-tool').attributes('tabindex')).toBe('0')
+    expect(wrapper.get('.rotation-tool__table').exists()).toBe(true)
     expect(wrapper.get('.rotation-tool__warning-heading').text()).toBe('Warnings')
     expect(observedHost).toBe(wrapper.get('.rotation-tool__plot').element)
     resize?.()
@@ -98,6 +100,7 @@ describe('RelativeRotationTool', () => {
     draw(chart)
     expect(chart.ctx.fillText.mock.calls.map(([label]) => label)).toEqual(['Leading', 'Weakening', 'Improving', 'Lagging', 'XLK', 'XLE'])
     expect(chart.ctx.arc).toHaveBeenCalledTimes(3)
+    expect(Math.min(...chart.ctx.arc.mock.invocationCallOrder)).toBeGreaterThan(Math.max(...chart.ctx.fillRect.mock.invocationCallOrder))
     expect(chart.ctx.stroke).toHaveBeenCalled()
     expect(chart.valToPos).toHaveBeenCalledWith(0, 'x', true)
     expect(chart.valToPos).toHaveBeenCalledWith(0, 'y', true)
@@ -107,6 +110,28 @@ describe('RelativeRotationTool', () => {
     Object.defineProperty(chart, 'bbox', { value: { left: 20, top: 30, width: 850, height: 440 } })
     draw(chart)
     expect(chart.ctx.arc.mock.calls.at(-1)?.[2]).toBe(4.375)
+    wrapper.unmount()
+  })
+
+  it('keeps near-coincident latest marker centers visible above symbol label backdrops', async () => {
+    vi.mocked(api.get).mockResolvedValue({ freshness: 'current', rows: [
+      { instrument_id: 1, symbol: 'XLK', state: 'weakening', coverage: 1, tail: [], history: [{ timestamp: '2026-01-01', trend: 0.00023907524, momentum: -0.00010455282 }] },
+      { instrument_id: 2, symbol: 'XLY', state: 'weakening', coverage: 1, tail: [], history: [{ timestamp: '2026-01-01', trend: 0.00023907530, momentum: -0.00010455269 }] },
+    ] })
+    const wrapper = mountTool()
+    await vi.waitFor(() => expect(wrapper.text()).toContain('XLY'))
+    await nextTick()
+    resize?.()
+    await vi.waitFor(() => expect(uPlot).toHaveBeenCalledTimes(1))
+
+    const [options] = vi.mocked(uPlot).mock.calls.at(-1)!
+    const chart = vi.mocked(uPlot).mock.results.at(-1)!.value
+    options.plugins?.[0].hooks.draw[0](chart)
+
+    expect(chart.ctx.fillRect).toHaveBeenCalledTimes(2)
+    expect(chart.ctx.fillText.mock.calls.slice(-2).map(([label]) => label)).toEqual(['XLK', 'XLY'])
+    expect(Math.min(...chart.ctx.arc.mock.invocationCallOrder)).toBeGreaterThan(Math.max(...chart.ctx.fillRect.mock.invocationCallOrder))
+    expect(chart.ctx.arc).toHaveBeenCalledTimes(2)
     wrapper.unmount()
   })
 

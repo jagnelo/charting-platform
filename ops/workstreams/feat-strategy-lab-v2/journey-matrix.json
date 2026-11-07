@@ -36,7 +36,7 @@
     "status": "pending",
     "spec": "frontend/tests/e2e/strategy_study_journey.spec.ts",
     "dashboard_spec": "frontend/tests/e2e/dashboard_usability_journey.spec.ts",
-    "qualification": "Root R26 ran the same three journeys/assertions on frontend77190340/backenddcd3c823, changing relay CPU0.25 to1.0 only; terminal1pass/2fail in182.7s, nr_throttled delta0. The ordinary high-low Study prepare/validate/run/results journey passed. RRG maximize/reload still fails at Restore and initial Results remained Loading. Its trace contains a pending research-runs GET at capture but does not prove why it remained unresolved. The local exact-current candidate adds a first-positive-visibility gate to the Results query and a focused transition regression; browser verification is pending. This is not release acceptance. Earlier red receipts remain history; Root owns the next fixture and combined qualification. Root subsequently reported four affected ordinary browser journeys running against TC1fdc92f1/Providerdd70319e; their terminal outcomes are not included in this record.",
+    "qualification": "Root's earlier R26 terminal result remains historical1pass/2fail on frontend77190340/backenddcd3c823. Root R46 then ran the Strategy/Workstation predecessor source frontend84b88fa8/backend182173f3: 1pass/3fail/zero retries. The immutable Study draft and saved run survived reload and the complete layout duplicate/rename/reorder/delete/cancel/Undo-only acknowledgement/reload journey passed. The Research Results GET detail contained8 artifacts but the selected UI rendered0; Strategy now merges summary projections with full cached detail and has a focused regression. RRG displayed points in the captured frame, but the previous boolean audit did not expose current centers/pixels; the candidate now reports per-frame center/RGBA evidence while retaining the same strong assertion. Root R49 ran the Dashboard predecessor on frontend84b/backend182:1pass/3fail/100.73s; failed-save Cancel+Retry passed, while a request-limit expectation and two controlled layout failures were test-authoring errors, and an ambiguous candidate was dismissed by the document mousedown handler because the menu is teleported. Strategy corrected the request limit and one-failure-per-phase setup, and made outside-click/focus containment portal-aware with mouse, keyboard, and stale-resolution unit regressions. These current corrections are unexecuted. Root owns their next combined browser run and all release gates; no predecessor result is current-source acceptance.",
     "workstation_spec": "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts"
   },
   "journeys": [
@@ -424,7 +424,7 @@
         "Seeded /ohlcv/{symbol}/D1 responses are checked for actual bars; the browser witness remains pending and does not claim a new acquisition.",
         "The E2E controls unused default QQQ/DIA preparation with explicit unavailable fixture responses; it does not allow those defaults to trigger unrelated preparation."
       ],
-      "browser_evidence": "Authored in frontend/tests/e2e/dashboard_usability_journey.spec.ts; Playwright discovery only. Exact-source browser execution is pending Root's single combined slot.",
+      "browser_evidence": "Root R49 ran the predecessor 4-case Dashboard source once:1pass/3fail/100.73s; save rollback/retry passed, with two browser test setup defects and one real portal-dismissal defect. Current limit/retry setup and portal containment corrections are local and unexecuted; Root owns the next combined run.",
       "approved_journey": [
         "J01 first-use/return: persistent workspace and useful seeded content",
         "J11 supporting: normal-user Dashboard widget configuration and restore"
@@ -446,7 +446,7 @@
         "PATCH /api/v1/dashboards/widgets/{id}; persisted default dashboard readback verifies the old and retried values.",
         "The E2E 503 responses are controlled transition fixtures, not backend reliability evidence."
       ],
-      "browser_evidence": "Authored controlled failure/recovery interactions in frontend/tests/e2e/dashboard_usability_journey.spec.ts; not executed.",
+      "browser_evidence": "Root R49 ran the predecessor 4-case Dashboard source once:1pass/3fail/100.73s; save rollback/retry passed, with two browser test setup defects and one real portal-dismissal defect. Current limit/retry setup and portal containment corrections are local and unexecuted; Root owns the next combined run.",
       "approved_journey": [
         "J11 supporting: recoverable edits without losing a saved Dashboard configuration",
         "J12 recovery: explicit cancel and retry"
@@ -469,7 +469,7 @@
         "PATCH /api/v1/dashboards/tabs/{id}/widgets/layout; backend/tests/unit/routers/test_dashboards_router.py :: TestDashboardsRouter.test_widget_crud_and_layout_patch",
         "The E2E 503 responses are controlled transition fixtures; no backend failure is claimed."
       ],
-      "browser_evidence": "Authored drag/resize and rollback/retry interactions in frontend/tests/e2e/dashboard_usability_journey.spec.ts; not executed.",
+      "browser_evidence": "Root R49 ran the predecessor 4-case Dashboard source once:1pass/3fail/100.73s; save rollback/retry passed, with two browser test setup defects and one real portal-dismissal defect. Current limit/retry setup and portal containment corrections are local and unexecuted; Root owns the next combined run.",
       "approved_journey": [
         "J11 supporting: visible widget-layout persistence",
         "J12 recovery: restore saved layout and retry"
@@ -494,7 +494,7 @@
         "POST /api/v1/instruments/discover and /api/v1/instruments/acquire plus shared /api/v1/data/ensure contract.",
         "The E2E discovery, identity resolution, unused-default QQQ/DIA preparation and unavailable-history responses are controlled route fixtures. This is not genuine source discovery, provider acquisition, or a history-fetch claim."
       ],
-      "browser_evidence": "Authored in frontend/tests/e2e/dashboard_usability_journey.spec.ts; Playwright discovery only and no provider or external HTTP. Browser execution remains pending Root.",
+      "browser_evidence": "Root R49 ran the predecessor 4-case Dashboard source once:1pass/3fail/100.73s; save rollback/retry passed, with two browser test setup defects and one real portal-dismissal defect. Current limit/retry setup and portal containment corrections are local and unexecuted; Root owns the next combined run.",
       "approved_journey": [
         "J01 first-use/return: identity-aware instrument selection",
         "J11 supporting: listing-safe Dashboard configuration",
@@ -503,7 +503,7 @@
     }
   ],
   "known_coverage_gaps": [
-    "No current-source browser execution has exercised the authored Study/Results/Library or Dashboard journeys; the new Dashboard stories are discovered source only until Root runs the combined browser profile.",
+    "Root has run predecessor Strategy/Workstation and Dashboard bodies (R46 and R49) with real failures preserved; current owner corrections are focused-tested/type-checked/discovered but have not been browser-executed. Root's combined source run remains required.",
     "The new Library-to-Study return is specified in the Study E2E but remains unexecuted until Root's compatible Producer API and combined profile are available.",
     "The visible Paper forward mode is not activated or qualified by this usability scope; retain existing forward/native/broker/capital holds and report the boundary rather than treating UI presence as support."
   ],
@@ -538,8 +538,8 @@
   "workstation_lifecycle": {
     "owner": "Strategy browser-spec author; TC owns shared workstation product and global matrix",
     "spec": "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts",
-    "source_pin": "TC 1fdc92f1a1628d191ad1d5b2f0ba071a80df5052; Provider dd70319eb725dc6b5c1b4feb0ba5a5ba060efd04 development dependency; ETF SearchBar remains exact a0c5250 dependency",
-    "status": "authored_discovery_only_browser_pending_root_combined_slot",
+    "source_pin": "TC a2e222251d4ea796d0d4bfb6b0e8705f503c1e4d; Provider182173f346d4a27694a46beba057102a5b7449e6; ETF SearchBar remains exact a0c5250 dependency",
+    "status": "authored_with_predecessor_R46_evidence_current_corrections_pending_Root_browser_run",
     "journeys": [
       {
         "id": "WL1",
@@ -568,14 +568,15 @@
           "seed My Favorites through the Chart window star action before reading its rows",
           "verify chart and ratio series-color pixels, Market Map tile selection, and Relative Rotation marker-arc centers plus keyboard tooltip"
         ],
-        "visible_outcome": "The spec derives tool titles and the eight factory layouts from the authenticated canonical endpoints; missing catalogue/factory mappings fail. The factory Breadth window is mapped to the canonical breadth outcome, and the recreation flow closes alias panels by canonical catalogue key plus tool_type (for example breadth/breadth-summary and chart/primary-chart) before opening the public catalogue entry. All21 catalogue entries have visible outcomes including My Favorites populated by the public Chart star action, actual EasyScan coverage and finite Gauge reading, ordinary Study output in Results, saved validated Python Library asset, Market Map selection, chart/ratio series-color paint, and Relative Rotation markers captured from the latest real canvas draw: only arcs at least 3.4 DPR are eligible, centers must be finite, and each center pixel must be opaque and match a canonical state color. Keyboard plot interaction remains asserted. The broad catalogue story has a240-second test timeout. No browser body has run; these are pending Root combined qualification.",
+        "visible_outcome": "The spec derives tool titles and the eight factory layouts from the authenticated canonical endpoints; missing catalogue/factory mappings fail. The factory Breadth window is mapped to the canonical breadth outcome, and the recreation flow closes alias panels by canonical catalogue key plus tool_type (for example breadth/breadth-summary and chart/primary-chart) before opening the public catalogue entry. All21 catalogue entries have visible outcomes including My Favorites populated by the public Chart star action, actual EasyScan coverage and finite Gauge reading, ordinary Study output in Results, saved validated Python Library asset, Market Map selection, chart/ratio series-color paint, and Relative Rotation markers captured from the current document's latest canvas frame: only arcs at least 3.4 DPR are eligible, centers must be finite, and each center pixel must be opaque and match a canonical state color. The failure report retains canvas bounds, frame counter, centers and RGBA values. Keyboard plot interaction remains asserted. The broad catalogue story has a240-second test timeout. Root R46 executed the predecessor and captured visible RRG point paint before the old marker audit failed. The current diagnostic correction is pending Root execution; no marker-center browser pass is claimed.",
         "evidence": [
           "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts :: closes and recreates every canonical catalogue tool with a per-family useful-content witness",
           "backend/app/services/workstation_tool_catalogue.py :: authenticated canonical 21-tool catalogue",
           "backend/app/routers/workspaces.py::_factory_tabs :: eight canonical factory layouts and their window definitions",
           "frontend/src/components/workstation/RelativeRotationTool.vue :: 3.5-DPR latest-point arcs and keyboard tooltip interaction",
           "frontend/src/components/workstation/MarketGaugeTool.vue and EasyScanTool.vue :: retained scan selection and evaluated/universe coverage"
-        ]
+        ],
+        "browser_evidence": "Root R46 predecessor test source fadd181 ran this journey and stopped at the marker-center assertion after visible point paint; the current per-frame diagnostic correction is authored but not executed. Root owns the next combined browser run."
       },
       {
         "id": "WL3",

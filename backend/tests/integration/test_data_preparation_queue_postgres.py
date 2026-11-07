@@ -1835,18 +1835,28 @@ async def test_duplicate_ensure_returns_while_shared_history_child_is_leased(
     async def no_wakeup():
         return None
 
-    async def fixed_plan(_db, job, _instrument, _timeframe, preparation, *, priority):
+    async def fixed_plan(
+        _db,
+        job,
+        _instrument,
+        _timeframe,
+        preparation,
+        *,
+        priority,
+        excluded_provider_names=frozenset(),
+    ):
         assert priority == 10
+        assert not excluded_provider_names
         return (
             (
                 job.start_at + timedelta(days=2),
                 job.end_at,
                 job.start_at,
                 job.end_at,
-                None,
+                "massive",
                 None,
             ),
-            preparation,
+            {**preparation, "source_provider": "massive"},
             None,
             None,
             None,
