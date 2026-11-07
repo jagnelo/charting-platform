@@ -1,18 +1,23 @@
 import hashlib
 import json
 import math
+from collections import Counter
 from datetime import UTC, datetime
 from decimal import Decimal
+from zoneinfo import ZoneInfo
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import event, select
 
+from app.config import settings
 from app.models.listing import InstrumentListing
 from app.models.market_data_foundation import AdjustmentBasis, MarketSeries, MarketSeriesDefault
 from app.services.e2e_seed import (
     _E2E_BENCHMARK_PROXY_NAMES,
     _E2E_HOLDINGS,
     _E2E_INDUSTRIES,
+    _E2E_INTRADAY_BARS_PER_SESSION,
+    _E2E_INTRADAY_HISTORY_BARS,
     _E2E_LONG_RRG_START,
     _E2E_MARKET_NAMES,
     _E2E_MONTHLY_RRG_SYMBOLS,
@@ -101,7 +106,27 @@ def test_controlled_fixture_covers_every_benchmark_family_leg():
 
 
 @pytest.mark.asyncio
-async def test_monthly_rrg_fixture_extends_only_controlled_top_down_history(db):
+async def test_market_data_seed_performs_no_database_io_when_disabled(db, monkeypatch):
+    from tests.unit.conftest import AsyncSessionAdapter
+
+    monkeypatch.setattr(settings, "E2E_SEED_MARKET_DATA", False)
+    statements = []
+    engine = db.get_bind()
+
+    def record_statement(_connection, _cursor, statement, _parameters, _context, _many):
+        statements.append(statement)
+
+    event.listen(engine, "before_cursor_execute", record_statement)
+    try:
+        await seed_e2e_market_data(AsyncSessionAdapter(db))
+    finally:
+        event.remove(engine, "before_cursor_execute", record_statement)
+
+    assert statements == []
+
+
+@pytest.mark.asyncio
+async def test_monthly_rrg_fixture_extends_only_controlled_top_down_history(db, monkeypatch):
     from app.models.data_source import DataSource
     from app.models.instrument import Instrument
     from app.models.ohlcv import OHLCVBar, Timeframe
@@ -113,6 +138,7 @@ async def test_monthly_rrg_fixture_extends_only_controlled_top_down_history(db):
         async def scalar(self, *args, **kwargs):
             return self._session.scalar(*args, **kwargs)
 
+    monkeypatch.setattr(settings, "E2E_SEED_MARKET_DATA", True)
     fixture_db = AsyncFixtureSession(db)
     await seed_e2e_instruments(fixture_db)
 
@@ -214,6 +240,92 @@ async def test_monthly_rrg_fixture_extends_only_controlled_top_down_history(db):
     original_values = [(row.ts, row.close) for row in original_rows]
     assert len(original_rows) > _E2E_RECENT_HISTORY_BARS
 
+    intraday_default = db.scalar(
+        select(MarketSeriesDefault).where(
+            MarketSeriesDefault.instrument_id == spy.id,
+            MarketSeriesDefault.timeframe == Timeframe.M15.value,
+            MarketSeriesDefault.is_adjusted.is_(True),
+        )
+    )
+    assert intraday_default is not None
+    intraday_series = db.get(MarketSeries, intraday_default.market_series_id)
+    assert intraday_series is not None
+    assert intraday_default.market_series_id == intraday_series.id
+    assert intraday_series.instrument_id == spy.id
+    assert intraday_series.exchange_id == spy_listing.exchange_id
+    assert intraday_series.data_source_id == source.id
+    assert intraday_series.feed_scope == "e2e-reference"
+    assert intraday_series.session_code == "regular"
+    assert intraday_series.adjustment_basis == AdjustmentBasis.SPLIT_ADJUSTED
+    assert intraday_series.adjustment_version == "e2e-split-adjusted-v1"
+    assert intraday_series.provenance["controlled_fixture"] is True
+    assert intraday_series.provenance["listing"] == {
+        "listing_id": spy_listing.id,
+        "ticker": "SPY",
+        "exchange_id": spy_listing.exchange_id,
+        "currency": "USD",
+        "source": "e2e_reference",
+    }
+    intraday_rows = (
+        db.query(OHLCVBar)
+        .filter(
+            OHLCVBar.market_series_id == intraday_series.id,
+            OHLCVBar.timeframe == Timeframe.M15,
+            OHLCVBar.is_adjusted.is_(True),
+            OHLCVBar.is_derived.is_(False),
+        )
+        .order_by(OHLCVBar.ts)
+        .all()
+    )
+    assert len(intraday_rows) == _E2E_INTRADAY_HISTORY_BARS
+    intraday_times = [
+        row.ts.replace(tzinfo=UTC) if row.ts.tzinfo is None else row.ts.astimezone(UTC)
+        for row in intraday_rows
+    ]
+    assert intraday_times == sorted(set(intraday_times))
+    local_times = [stamp.astimezone(ZoneInfo("America/New_York")) for stamp in intraday_times]
+    assert all(
+        (stamp.hour, stamp.minute) >= (9, 30)
+        and (stamp.hour, stamp.minute) <= (15, 45)
+        and stamp.minute % 15 == 0
+        and stamp.second == 0
+        for stamp in local_times
+    )
+    assert set(Counter(stamp.date() for stamp in local_times).values()) == {
+        _E2E_INTRADAY_BARS_PER_SESSION
+    }
+    assert all(
+        row.open.is_finite()
+        and row.high.is_finite()
+        and row.low.is_finite()
+        and row.close.is_finite()
+        and row.volume.is_finite()
+        and row.low > 0
+        and row.high >= max(row.open, row.close)
+        and row.low <= min(row.open, row.close)
+        and row.volume > 0
+        and row.adjustment_basis == AdjustmentBasis.SPLIT_ADJUSTED
+        and row.adjustment_version == "e2e-split-adjusted-v1"
+        and row.market_series_id == intraday_series.id
+        for row in intraday_rows
+    )
+    intraday_ids = [row.id for row in intraday_rows]
+    intraday_values = [
+        (row.ts, row.open, row.high, row.low, row.close, row.volume) for row in intraday_rows
+    ]
+    intraday_state = db.scalar(
+        select(InstrumentDatasetState).where(
+            InstrumentDatasetState.instrument_id == spy.id,
+            InstrumentDatasetState.data_source_id == source.id,
+            InstrumentDatasetState.dataset_key == "M15:adj",
+        )
+    )
+    assert intraday_state is not None
+    assert intraday_state.extra_data["controlled_fixture"] is True
+    assert intraday_state.extra_data["listing_id"] == spy_listing.id
+    assert intraday_state.extra_data["market_series_id"] == intraday_series.id
+    assert intraday_state.extra_data["bar_count"] == _E2E_INTRADAY_HISTORY_BARS
+
     # Re-running controlled startup retains existing rows without deletion or
     # duplicate insertion, including the same canonical series mapping.
     await seed_e2e_market_data(fixture_db)
@@ -225,6 +337,25 @@ async def test_monthly_rrg_fixture_extends_only_controlled_top_down_history(db):
     )
     assert [row.id for row in repeated_rows] == original_ids
     assert [(row.ts, row.close) for row in repeated_rows] == original_values
+    repeated_intraday = (
+        db.query(OHLCVBar)
+        .filter(OHLCVBar.market_series_id == intraday_series.id)
+        .order_by(OHLCVBar.ts)
+        .all()
+    )
+    repeated_intraday_default = db.scalar(
+        select(MarketSeriesDefault).where(
+            MarketSeriesDefault.instrument_id == spy.id,
+            MarketSeriesDefault.timeframe == Timeframe.M15.value,
+            MarketSeriesDefault.is_adjusted.is_(True),
+        )
+    )
+    assert repeated_intraday_default is not None
+    assert repeated_intraday_default.market_series_id == intraday_series.id
+    assert [row.id for row in repeated_intraday] == intraday_ids
+    assert [
+        (row.ts, row.open, row.high, row.low, row.close, row.volume) for row in repeated_intraday
+    ] == intraday_values
     assert set(_E2E_MONTHLY_RRG_SYMBOLS) == set(_RECENT_RRG_BAR_DIGESTS)
     assert _E2E_LONG_RRG_START < _E2E_RECENT_HISTORY_START
 

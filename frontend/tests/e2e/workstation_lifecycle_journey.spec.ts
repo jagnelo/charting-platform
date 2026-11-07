@@ -47,6 +47,7 @@ const FACTORY_LAYOUT_NAMES = [
 const FACTORY_INSTANCE_KEYS_BY_CATALOGUE_KEY: Record<string, string[]> = {
   chart: ['primary-chart'],
   breadth: ['breadth-summary'],
+  coverage: ['coverage-summary'],
 }
 let retainedGaugeScanName = ''
 
@@ -94,23 +95,32 @@ async function assertCanonicalCoverage(page: Page) {
   expect(catalogueResponse.status).toBe(200)
   expect(workspaceResponse.status).toBe(200)
   const catalogue = catalogueResponse.body as { tools: Array<{ key: string; tool_type: string; title: string }> }
-  const workspace = workspaceResponse.body as { tabs: Array<{ name: string; windows: Array<{ instance_key: string; tool_type: string; title: string }> }> }
+  const workspace = workspaceResponse.body as { tabs: Array<{ name: string; windows: Array<{ instance_key: string; tool_type: string; title: string; configuration: Record<string, unknown> }> }> }
   const catalogueTitles = catalogue.tools.map(tool => tool.title).sort()
   expect(catalogueTitles.filter(title => !(title in TOOL_OUTCOMES)), 'every canonical catalogue entry needs a useful outcome assertion').toEqual([])
   expect(workspace.tabs.map(tab => tab.name).sort()).toEqual([...FACTORY_LAYOUT_NAMES].sort())
   const factoryTitles = [...new Set(workspace.tabs.flatMap(tab => tab.windows.map(window => window.title)))].sort()
   const unmappedFactoryTitles = factoryTitles.filter(title => !(title in TOOL_OUTCOMES))
   expect(unmappedFactoryTitles, 'every factory window must map to a useful outcome assertion').toEqual([])
+  const topDown = workspace.tabs.find(tab => tab.name === 'US Top Down')
+  expect(topDown?.windows.find(window => window.title === 'Coverage')).toMatchObject({
+    instance_key: 'coverage-summary',
+    tool_type: 'coverage',
+  })
   return { catalogue, workspace }
 }
 
-async function assertFactoryLayouts(page: Page, tabs: Array<{ name: string; windows: Array<{ title: string }> }>) {
+async function assertFactoryLayouts(page: Page, tabs: Array<{ name: string; windows: Array<{ instance_key: string; tool_type: string; title: string; configuration: Record<string, unknown> }> }>) {
   expect(tabs.map(tab => tab.name).sort()).toEqual([...FACTORY_LAYOUT_NAMES].sort())
   for (const layout of tabs) {
     await activateLayout(page, layout.name)
     const visibleTitles = await page.locator('.tool-window__title').allTextContents()
     expect(visibleTitles.sort(), `${layout.name} factory windows`).toEqual(layout.windows.map(window => window.title).sort())
-    for (const window of layout.windows) expect(TOOL_OUTCOMES[window.title], `${layout.name}: ${window.title}`).toBeTruthy()
+    for (const window of layout.windows) {
+      const outcome = TOOL_OUTCOMES[window.title]
+      expect(outcome, `${layout.name}: ${window.title} must map to a useful outcome`).toBeTruthy()
+      await assertUsefulTool(page, window.title, outcome, window.configuration)
+    }
   }
 }
 
@@ -209,17 +219,52 @@ function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
-async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUTCOMES[string]) {
+async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUTCOMES[string], configuration: Record<string, unknown> = {}) {
   const tool = await activatePanel(page, title)
   if (kind === 'watchlist') {
-    await expect(tool.locator('.watchlist__row').first()).toBeVisible({ timeout: 20_000 })
-    await expect.poll(() => tool.locator('.watchlist__row').count()).toBeGreaterThan(0)
+    const rows = tool.locator('.watchlist__row')
+    const emptyPersonalList = tool.getByText('No personal watchlists available.', { exact: true })
+    await expect.poll(async () => (await rows.count()) > 0 || await emptyPersonalList.isVisible()).toBe(true)
+    if (title === 'WatchList' && await rows.locator('[aria-label^="SPY "]').count() === 0) {
+      if (await rows.count() === 0) {
+        const listName = `Factory journey ${Date.now()}`
+        await tool.getByLabel('Personal watchlist name').fill(listName)
+        await tool.getByRole('button', { name: 'Create personal watchlist', exact: true }).click()
+        const personalList = tool.getByLabel('Personal watchlist')
+        await expect(personalList.locator('option').filter({ hasText: listName })).toBeAttached()
+      }
+      await tool.getByLabel('Add symbol to personal watchlist').fill('SPY')
+      await tool.getByRole('button', { name: 'Add symbol to personal watchlist', exact: true }).click()
+      await expect(rows.locator('[aria-label^="SPY "]')).toBeVisible({ timeout: 20_000 })
+    }
+    const firstRow = rows.first()
+    await expect(firstRow).toBeVisible({ timeout: 20_000 })
+    await expect.poll(() => rows.count()).toBeGreaterThan(0)
+    await expect(firstRow).toHaveAttribute('aria-label', /^[A-Z0-9._-]+ .+\. Position 1 of \d+\./)
+    await expect(firstRow).not.toContainText(/Loading|Unavailable/i)
+    if (title === 'WatchList' || title === 'Fundamentals WatchList') {
+      await expect(firstRow).toHaveAttribute('aria-label', /SPY .+Last:.*\d/)
+    } else {
+      if (title === 'S&P 500 Sectors' || title === 'Sector Indexes') await firstRow.click()
+      if (title === 'Industries' || title === 'Industry Indexes') await firstRow.click()
+      await assertUsefulWatchlistNumbers(tool)
+    }
   } else if (kind === 'chart' || kind === 'ratio') {
+    const expectedTimeframe = typeof configuration.timeframe === 'string' ? configuration.timeframe : null
+    if (expectedTimeframe) await expect(tool.getByLabel(`${title} timeframe`, { exact: true })).toHaveValue(expectedTimeframe)
     const plot = kind === 'chart' ? tool.locator('.chart-tool .uplot canvas').first() : tool.locator('.ratio-chart__host canvas').first()
     await expect(plot).toBeVisible({ timeout: 20_000 })
     const seriesColors = kind === 'chart' ? [[38, 166, 154], [239, 83, 80]] as Array<[number, number, number]> : [[107, 192, 239]] as Array<[number, number, number]>
     await expect.poll(() => plottedSeriesPixels(plot, seriesColors), { timeout: 30_000 }).toBeGreaterThan(20)
-    if (kind === 'ratio') await expect(tool.locator('.ratio-chart__state')).toHaveCount(0)
+    if (kind === 'ratio') {
+      await expect(tool.locator('.ratio-chart__state')).toHaveCount(0)
+      const expression = typeof configuration.expression === 'string' ? configuration.expression : ''
+      const denominator = expression.match(/^=\s*[A-Z0-9._-]+\s*\/\s*([A-Z0-9._-]+)\s*$/)?.[1]
+      if (denominator) await expect(tool.locator('.ratio-chart__chip').filter({ hasText: denominator })).toBeVisible()
+    } else {
+      const comparisons = Array.isArray(configuration.comparison_symbols) ? configuration.comparison_symbols.filter((symbol): symbol is string => typeof symbol === 'string') : []
+      for (const symbol of comparisons) await expect(tool.locator('.chart-tool__compare').getByRole('button', { name: new RegExp(`^Remove ${escapeRegExp(symbol)}$`) })).toBeVisible()
+    }
   } else if (kind === 'technicals') {
     const metrics = tool.locator('.metrics').first()
     await expect(metrics).toBeVisible({ timeout: 20_000 })
@@ -233,8 +278,11 @@ async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUT
   } else if (kind === 'coverage') {
     const coverage = tool.locator('.coverage-summary')
     await expect(coverage).toBeVisible({ timeout: 20_000 })
-    await expect(coverage.locator('.coverage-summary__grid')).toBeVisible({ timeout: 20_000 })
-    await expect(coverage.locator('.coverage-summary__grid')).toContainText(/\d/)
+    await expect(coverage.getByText('Canonical instrument', { exact: true }).locator('..').locator('strong')).toHaveText('SPY')
+    const dailyGrid = coverage.locator('.coverage-summary__grid')
+    await expect(dailyGrid).toBeVisible({ timeout: 20_000 })
+    const dailyBarCount = Number((await dailyGrid.locator('b').first().innerText()).replaceAll(',', ''))
+    expect(Number.isFinite(dailyBarCount) && dailyBarCount > 0, 'coverage must report actual local adjusted daily observations').toBe(true)
   } else if (kind === 'notes') {
     const note = tool.getByRole('textbox', { name: 'Instrument note' })
     const content = `Lifecycle note ${Date.now()}`
@@ -454,7 +502,6 @@ test.describe('Workstation lifecycle journeys', () => {
     await expect(page.locator('.workspace-layout-host')).toBeVisible()
     retainedGaugeScanName = ''
     const { catalogue, workspace } = await assertCanonicalCoverage(page)
-    await assertFactoryLayouts(page, workspace.tabs)
     await activateLayout(page, 'US Top Down')
     const usTopDown = workspace.tabs.find(layout => layout.name === 'US Top Down')!
     const chartTool = await activatePanel(page, 'Chart')
@@ -489,12 +536,11 @@ test.describe('Workstation lifecycle journeys', () => {
     await page.goto('/chart/SPY')
     await expect(page.locator('.workspace-layout-host')).toBeVisible()
     await page.getByRole('button', { name: 'Duplicate layout', exact: true }).click()
-    await openWorkspaceMenu(page)
+    const layoutMenu = await openWorkspaceMenu(page)
     const renamed = `Review ${Date.now()}`
-    const copiedLayoutItem = page.locator('.workstation__layout-item').filter({
-      has: page.getByRole('menuitem', { name: 'US Top Down Copy', exact: true }),
-    })
-    const renameField = copiedLayoutItem.getByRole('textbox', { name: 'Rename layout' })
+    // The layout item's accessible name changes as soon as the text field is
+    // filled, so keep the active rename control anchored by its stable role.
+    const renameField = layoutMenu.getByRole('textbox', { name: 'Rename layout', exact: true })
     await renameField.fill(renamed)
     await renameField.press('Tab')
     const renamedTab = page.getByRole('tab', { name: renamed, exact: true })
@@ -515,8 +561,8 @@ test.describe('Workstation lifecycle journeys', () => {
     await expect.poll(() => page.locator('.workstation__tabs > [role="tab"]').allTextContents()).not.toEqual(beforeOrder)
 
     page.once('dialog', dialog => dialog.dismiss())
-    const layoutMenu = await openWorkspaceMenu(page)
-    await layoutMenu.getByRole('button', { name: `Delete layout ${renamed}`, exact: true }).click()
+    const deleteMenu = await openWorkspaceMenu(page)
+    await deleteMenu.getByRole('button', { name: `Delete layout ${renamed}`, exact: true }).click()
     await expect(renamedTab).toBeVisible()
 
     page.once('dialog', dialog => dialog.accept())

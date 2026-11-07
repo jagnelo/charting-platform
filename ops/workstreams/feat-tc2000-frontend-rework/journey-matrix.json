@@ -31,16 +31,16 @@
       "qualification": "Exact Strategy-owned dashboard recovery paths and tests are imported; current-source browser acceptance remains pending."
     },
     "strategy_domain_runtime_import": {
-      "source_commit": "1ca97c377849fd06d413fb96b4c0a0621fea3bc1",
-      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/1ca97c377849fd06d413fb96b4c0a0621fea3bc1.json",
-      "manifest_sha256": "177ec944f0f9c6121b202e67e520c4cb471450f304948797586df86b7e7826e2",
-      "qualification": "Exact Strategy-owned Study domain successor 1ca97c3 and declared TC imports are present; current-source browser and release acceptance remain Root-owned and pending."
+      "source_commit": "ab46db86965dcc59f1121416ca52950f2ccc8514",
+      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/ab46db86965dcc59f1121416ca52950f2ccc8514.json",
+      "manifest_sha256": "9e8e55fe9804c2f12f835b53d2fd42c72f20e95929689a78e75e5f969a51d263",
+      "qualification": "Exact Strategy-owned Study and lifecycle successor ab46db8 and declared TC imports are present; current-source browser and release acceptance remain Root-owned and pending."
     },
     "provider_runtime_import": {
-      "source_commit": "580571e41b9797589bf205b61d337f8c92ec04c6",
-      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/580571e41b9797589bf205b61d337f8c92ec04c6.json",
-      "manifest_sha256": "4eda89809b752114c73c95083a260672d0fe0f02f5921cc9b29535dc02ca11c7",
-      "qualification": "Provider 580571 adds same-request provider-metadata reuse and a query-count regression over 21be for development; exact-source CI and combined browser acceptance remain pending."
+      "source_commit": "182173f346d4a27694a46beba057102a5b7449e6",
+      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/182173f346d4a27694a46beba057102a5b7449e6.json",
+      "manifest_sha256": "8d48966b85588d46222de04b1ade9401379db284688253280ef8630d40a73a56",
+      "qualification": "Provider 182 adds the controlled M15 fixture and consistent workspace reads for development; exact-source CI and combined browser acceptance remain pending."
     },
     "etf_domain_runtime_import": {
       "source_commit": "9f3ffcd9bf85d8458c14630ab244694a4dfca127",

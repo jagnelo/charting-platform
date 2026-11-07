@@ -4920,9 +4920,9 @@ development_dependency_import_history:
     state: superseded_development_import
     superseded_by: 055641eaafab37a8160908e974a3ec1a4483e7c6
 approved_development_dependency_imports:
-- source_sha: 23b6aba94476fed5eeb54d9073dadb373d169aaa
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/23b6aba94476fed5eeb54d9073dadb373d169aaa.json
-  manifest_sha256: 5f49dd7ec0c0e6722bcacaa34195588e022133752cedde4562b26f0958d196e8
+- source_sha: 182173f346d4a27694a46beba057102a5b7449e6
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/182173f346d4a27694a46beba057102a5b7449e6.json
+  manifest_sha256: 8d48966b85588d46222de04b1ade9401379db284688253280ef8630d40a73a56
   paths:
   - backend/app/main.py
   - backend/app/providers/alpaca.py
@@ -4955,6 +4955,7 @@ approved_development_dependency_imports:
   - backend/app/tasks/data_tasks.py
   - backend/app/workers/arq_worker.py
   - backend/tests/integration/api/test_baskets.py
+  - backend/tests/integration/api/test_workspace_read_consistency_postgres.py
   - backend/tests/integration/test_data_preparation_queue_postgres.py
   - backend/tests/unit/conftest.py
   - backend/tests/unit/providers/test_new_providers.py
@@ -5003,9 +5004,9 @@ approved_development_dependency_imports:
   - frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts
   - frontend/tests/unit/stores/test_dashboard_store.test.ts
   - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts
-- source_sha: 1ca97c377849fd06d413fb96b4c0a0621fea3bc1
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/1ca97c377849fd06d413fb96b4c0a0621fea3bc1.json
-  manifest_sha256: 177ec944f0f9c6121b202e67e520c4cb471450f304948797586df86b7e7826e2
+- source_sha: ab46db86965dcc59f1121416ca52950f2ccc8514
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/ab46db86965dcc59f1121416ca52950f2ccc8514.json
+  manifest_sha256: 9e8e55fe9804c2f12f835b53d2fd42c72f20e95929689a78e75e5f969a51d263
   paths:
   - frontend/src/components/workstation/CodeLibraryTool.vue
   - frontend/src/components/workstation/ResearchResultsTool.vue
