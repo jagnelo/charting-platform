@@ -1647,6 +1647,51 @@ describe('ETFHoldingsView', () => {
     wrapper.unmount()
   })
 
+  it('fails closed when ready symbol preparation returns multiple exact stored listings', async () => {
+    const firstListing = {
+      ...profile,
+      id: 21,
+      instrument_id: 210,
+      symbol: 'OIH',
+      name: 'Oil Services ETF · NYSE Arca',
+    }
+    const secondListing = {
+      ...profile,
+      id: 22,
+      instrument_id: 220,
+      symbol: 'OIH',
+      name: 'Oil Services ETF · Cboe BZX',
+    }
+    let exactLookupCount = 0
+    vi.mocked(api.get).mockImplementation((path, params) => {
+      if (path !== '/etf-holdings') return Promise.resolve([]) as never
+      const query = (params as { q?: string } | undefined)?.q
+      if (query === undefined) return Promise.resolve([]) as never
+      if (query !== 'OIH') return Promise.resolve([]) as never
+      exactLookupCount += 1
+      return Promise.resolve(exactLookupCount === 1 ? [] : [firstListing, secondListing]) as never
+    })
+    vi.mocked(api.post).mockResolvedValueOnce(preparationResponse('OIH') as never)
+
+    const wrapper = mount(ETFHoldingsView)
+    await wrapper.findComponent({ name: 'SearchBar' }).vm.$emit('select', 'OIH', {
+      symbol: 'OIH', name: 'Oil Services ETF', exchange: 'NYSE Arca', type: 'ETF',
+    })
+
+    await vi.waitFor(() => expect(wrapper.get('[data-testid="etf-preparation-status"]').text())
+      .toContain('Multiple saved ETF profiles match OIH.'))
+    expect(api.post).toHaveBeenCalledWith('/data/ensure', {
+      target: { kind: 'instrument', symbol: 'OIH' }, datasets: ['holdings'],
+    }, expect.objectContaining({ signal: expect.any(AbortSignal) }))
+    expect(api.post).toHaveBeenCalledTimes(1)
+    expect(exactLookupCount).toBe(2)
+    expect(wrapper.get('.panel-title-row h2').text()).toBe('OIH')
+    expect(wrapper.find('.holdings-browser').exists()).toBe(false)
+    expect(api.get).not.toHaveBeenCalledWith('/etf-holdings/OIH/dates', expect.anything())
+    expect(api.get).not.toHaveBeenCalledWith('/etf-holdings/OIH/holdings', expect.anything())
+    wrapper.unmount()
+  })
+
   it('does not let a late failed refresh for one selected fund alter the next fund', async () => {
     const qqqDates = dates.map((date, index) => ({ ...date, snapshot_id: 77 - index }))
     let resolveSpyPreparation: ((value: unknown) => void) | undefined

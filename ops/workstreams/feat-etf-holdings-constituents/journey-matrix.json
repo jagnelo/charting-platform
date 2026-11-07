@@ -738,7 +738,7 @@
     "focused": "Frontend npm run type-check passed; Playwright discovery lists2 S&P cases; current spec SHA256 a49970e4a4ad5a07f51257f43570dee248046fe2848b61a30ace8f2b4e813ec8. Actual cached ratio response checks canonical-local freshness, full coverage-preflight and exact overlapping date bounds; Root R33 reload capture is fenced to the reloaded document. Provider21be dependency manifest49/49 was verified historically.",
         "browser": {
           "body_run": false,
-      "status": "Root R32 payload evidence shows XLB/SPY is canonical-local, current, full coverage with1824 aligned points and exact2019-01-02..2025-12-29 bounds; the separate preparation hold masks the visible local-adjusted status. The owned test retains the strict local-adjusted expectation and TC owns the status composition defect. Root R33 failed before the RRG UI loop because the waiter matched an old-document response; the current test fences the response to a request started after main-frame navigation and consumes it immediately. Current test has not been browser-run. The shared basket/maximize failures remain open.",
+      "status": "Root R32 payload evidence shows XLB/SPY is canonical-local, current, full coverage with1824 aligned points and exact2019-01-02..2025-12-29 bounds; the separate preparation hold masks the visible local-adjusted status. The owned test retains the strict local-adjusted expectation and TC owns the status composition defect. Root R33 failed before the RRG UI loop because the waiter matched an old-document response; the current test fences the response to a request started after main-frame navigation and consumes it immediately. The owned full test remains unrun. Root R39's separate data/paint diagnostic timed out before RRG checks: after reload the restored workspace showed Missing persisted tool placeholders, including Relative Rotation, so no matching analysis response was issued. Treat R39 as a shared workspace restore prerequisite failure, not RRG data/paint evidence; Root/TC owns diagnosis. The shared basket/maximize failures remain open.",
       "prior_attempts": [
         {
           "receipt": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/validation-fixture/focused-sp500-ratios-r7-receipt.json",
@@ -755,6 +755,13 @@
           "receipt": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/validation-fixture/focused-tc1fd-r33.log",
           "source": "Root controlled R33 on TC1fd/Provider dd703; current owner candidate is a descendant",
           "result": "0_of_4_cases_passed; S&P failed reading response body after navigation because the waiter selected a pre-reload request. Current owner spec now accepts only a post-navigation main-frame request; unrun."
+        },
+        {
+          "receipt": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/validation-fixture/root-r39-rrg-data-paint-receipt.json",
+          "source": "Root R39 diagnostic on frontend7c2f4238/backend23b6aba9; same fixture, no production changes, provider egress denied",
+          "result": "1_case_failed_after_253.9s_at_post-reload_response_waiter; screenshot/error context shows all persisted dock tools missing after reload, including Relative Rotation; RRG payload, paint and tail assertions were not reached, so this is not a data/paint result.",
+          "receipt_sha256": "413d05355dfacf9475d6ea08215d559e68729177278bef7575dc7361da0b60f7",
+          "log_sha256": "34c97fc86b37e0bd12f68e631c009189e6638c61fcb9af810c54e96938ce2d06"
         }
       ]
         }

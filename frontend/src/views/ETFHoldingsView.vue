@@ -1137,11 +1137,16 @@ async function prepareSelectedHoldings(symbol: string, instrumentId: number | nu
 
     const loaded = await api.get<ETFProfile[]>('/etf-holdings', { q: normalized })
     if (generation !== fundSelectionGeneration || pendingFund.value?.symbol !== normalized) return
-    const updatedProfile = (Array.isArray(loaded) ? loaded : []).find(
-      candidate => candidate.symbol.trim().toUpperCase() === normalized,
+    const matchingProfiles = (Array.isArray(loaded) ? loaded : []).filter(candidate =>
+      candidate.symbol.trim().toUpperCase() === normalized
+      && (instrumentId == null || candidate.instrument_id === instrumentId),
     )
-    if (!updatedProfile
-      || (instrumentId != null && updatedProfile.instrument_id !== instrumentId)) {
+    if (matchingProfiles.length > 1) {
+      preparationMessage.value = `Multiple saved ETF profiles match ${normalized}. Resolve an exact listing before opening its holdings.`
+      return
+    }
+    const updatedProfile = matchingProfiles[0]
+    if (!updatedProfile) {
       preparationMessage.value = `${normalized} preparation completed without a matching holdings profile. Any previous snapshot remains unchanged.`
       return
     }
