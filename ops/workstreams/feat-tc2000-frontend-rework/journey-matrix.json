@@ -90,7 +90,7 @@
     "owned_actions": 12,
     "etf_actions": 16,
     "strategy_actions": 48,
-    "journey_cases": 57,
+    "journey_cases": 66,
     "critical_review_slots": 9,
     "control_surfaces": 57
   },
@@ -2508,8 +2508,16 @@
         "TC03"
       ],
       "case_refs": [
-        "TC01-first-chart",
         "TC03-timeframe",
+        "TC03-chart-exploration",
+        "TC03-chart-navigation",
+        "TC03-promotion-watchlist",
+        "TC03-promotion-boolean-watchlist",
+        "TC03-promotion-strategy-signal",
+        "TC03-promotion-filter",
+        "TC03-promotion-alert",
+        "TC03-promotion-scan",
+        "TC03-promotion-gauge",
         "TC03-data-entrypoints",
         "TC04-holding-route"
       ],
@@ -6092,8 +6100,7 @@
     {
       "id": "TC01-first-chart",
       "journey_ids": [
-        "TC01",
-        "TC03"
+        "TC01"
       ],
       "test_path": "frontend/tests/e2e/flows.spec.ts",
       "test_name": "F6 — chart page loads with default state",
@@ -6137,6 +6144,96 @@
       ],
       "test_path": "frontend/tests/e2e/flows.spec.ts",
       "test_name": "F8 — linked timeframe selector switches the chart timeframe",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC03-critical-review"
+    },
+    {
+      "id": "TC03-chart-exploration",
+      "journey_ids": [
+        "TC03"
+      ],
+      "test_path": "frontend/tests/e2e/flows.spec.ts",
+      "test_name": "F8e.swing-analysis — trader can complete the top-down trend, ratio, drawing, and traversal flow",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC03-critical-review"
+    },
+    {
+      "id": "TC03-chart-navigation",
+      "journey_ids": [
+        "TC03"
+      ],
+      "test_path": "frontend/tests/e2e/flows.spec.ts",
+      "test_name": "F8n-gesture — uPlot chart preserves its surface through wheel zoom, trackpad pan, and latest recovery",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC03-critical-review"
+    },
+    {
+      "id": "TC03-promotion-watchlist",
+      "journey_ids": [
+        "TC03"
+      ],
+      "test_path": "frontend/tests/e2e/flows.spec.ts",
+      "test_name": "F8u — chart plots transfer into a watchlist numeric column through the real drag path",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC03-critical-review"
+    },
+    {
+      "id": "TC03-promotion-boolean-watchlist",
+      "journey_ids": [
+        "TC03"
+      ],
+      "test_path": "frontend/tests/e2e/flows.spec.ts",
+      "test_name": "F8u-boolean — chart indicators promote into a persisted Boolean watchlist column",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC03-critical-review"
+    },
+    {
+      "id": "TC03-promotion-strategy-signal",
+      "journey_ids": [
+        "TC03"
+      ],
+      "test_path": "frontend/tests/e2e/flows.spec.ts",
+      "test_name": "F8u-signal — single-output chart indicators promote into a Strategy signal",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC03-critical-review"
+    },
+    {
+      "id": "TC03-promotion-filter",
+      "journey_ids": [
+        "TC03"
+      ],
+      "test_path": "frontend/tests/e2e/flows.spec.ts",
+      "test_name": "F8u-filter — chart indicators promote into a persisted watchlist filter",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC03-critical-review"
+    },
+    {
+      "id": "TC03-promotion-alert",
+      "journey_ids": [
+        "TC03"
+      ],
+      "test_path": "frontend/tests/e2e/flows.spec.ts",
+      "test_name": "F8u-alert — chart indicators promote into an indicator alert for the active instrument",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC03-critical-review"
+    },
+    {
+      "id": "TC03-promotion-scan",
+      "journey_ids": [
+        "TC03"
+      ],
+      "test_path": "frontend/tests/e2e/flows.spec.ts",
+      "test_name": "F8u-scan — chart indicators promote into a reusable EasyScan",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC03-critical-review"
+    },
+    {
+      "id": "TC03-promotion-gauge",
+      "journey_ids": [
+        "TC03"
+      ],
+      "test_path": "frontend/tests/e2e/flows.spec.ts",
+      "test_name": "F8u-gauge — chart indicators promote into a Market Gauge through EasyScan",
       "execution_status": "authored_pending_root_run",
       "critical_review_slot": "TC03-critical-review"
     },

@@ -159,6 +159,38 @@ describe('RelativeRotationTool', () => {
     wrapper.unmount()
   })
 
+  it('draws every historical marker before latest markers across rows', async () => {
+    vi.mocked(api.get).mockResolvedValue({ freshness: 'current', rows: [
+      { instrument_id: 1, symbol: 'XLK', state: 'leading', coverage: 1, tail: [], history: [
+        { timestamp: '2026-01-02', trend: 0.1, momentum: 0.2 },
+      ] },
+      { instrument_id: 2, symbol: 'XLY', state: 'lagging', coverage: 1, tail: [], history: [
+        { timestamp: '2026-01-01', trend: 0.1, momentum: 0.2 },
+        { timestamp: '2026-01-02', trend: 0.2, momentum: 0.3 },
+      ] },
+    ] })
+    const wrapper = mountTool()
+    await vi.waitFor(() => expect(wrapper.text()).toContain('XLY'))
+    await vi.waitFor(() => expect(uPlot).toHaveBeenCalledTimes(1))
+
+    const [options] = vi.mocked(uPlot).mock.calls.at(-1)!
+    const chart = vi.mocked(uPlot).mock.results.at(-1)!.value
+    chart.valToPos.mockImplementation((value: number) => value * 1000)
+    const markerPaintOrder: Array<{ x: number; y: number; radius: number; color: unknown }> = []
+    chart.ctx.arc.mockImplementation((x: number, y: number, radius: number) => {
+      markerPaintOrder.push({ x, y, radius, color: chart.ctx.fillStyle })
+    })
+
+    options.plugins?.[0].hooks.draw[0](chart)
+
+    expect(markerPaintOrder).toEqual([
+      { x: 100, y: 200, radius: 2, color: '#df8181' },
+      { x: 100, y: 200, radius: 3.5, color: '#61c58c' },
+      { x: 200, y: 300, radius: 3.5, color: '#df8181' },
+    ])
+    wrapper.unmount()
+  })
+
   it('hit-tests against the plot-area origin rather than the host origin', async () => {
     vi.mocked(api.get).mockResolvedValue({ freshness: 'current', rows: [
       { instrument_id: 1, symbol: 'XLK', state: 'leading', coverage: 1, tail: [], history: [

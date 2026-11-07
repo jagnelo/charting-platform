@@ -4287,7 +4287,7 @@ closing_tip_ci:
   run_id: null
   scope: "Exact closing TC source after the active platform-usability implementation checkpoint."
   status: "pending Root observation after publication"
-current_candidate_ci_status: The TC route/action inventory checkpoint e217a38 maps 28 routes/aliases, 21 Add tools, 38 factory panels and 76 owner actions to named cases; the validator, scope/workstream guards and frontend type-check passed. Provider dd05 is imported only as an exact development dependency, not release-qualified. Root rendered journeys, exact-tip CI and combined qualification remain pending.
+current_candidate_ci_status: Current TC source adds the generic RRG marker paint-order fix for Root R53's concrete W1 XLI overlap, the overlapping historical/latest-marker unit regression, and stronger TC03 chart exploration, pan, and indicator-promotion case mappings. The focused RRG component module passed 21/21, frontend type-check and current journey/workstream/scope guards pass, and Provider dd05 remains an exact development dependency only. Root's full RRG rerun, all other rendered journeys, exact-tip CI, combined qualification, native proof, and release remain pending.
 history_dashboard_scope_archive:
   path: ops/workstreams/feat-tc2000-frontend-rework/checkpoint-archives/history-dashboard-repair-scope-archive-20261106.json
   sha256: 2880cdb5ef6a0074b6204267b51ba9f676160bad2ef1ecff1385db1d5819d6cd
