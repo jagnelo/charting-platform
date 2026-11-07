@@ -20035,3 +20035,10 @@ On exact local source `ab46db86965dcc59f1121416ca52950f2ccc8514`, the Study comp
 ### Study deferred-evaluation status boundary (2026-11-07)
 
 The focused backend checks on the frozen Strategy source pass for the split between worker transport and evaluator outcome. `research_jobs` persists deferred evaluation status additively while preserving transport state and other resource usage; the isolated runner returns a coverage-blocked diagnostic without producing output artifacts. Study's existing component regression renders `Evaluation deferred` and the truthful no-artifacts guidance instead of a successful-result label. The backend selection passed8/8 (`test_research_jobs.py` and the single incomplete-preflight runner case,1.99s). This is focused unit evidence only; the browser journey on the current Strategy source and Root's combined qualification remain pending.
+
+
+### R40 layout rename locator correction (2026-11-07)
+
+Root's R40 run was terminal4pass/3fail on frontend `a52f87847c0ff1c2fb1770dcbc046724b2fb8d9b` / backend `23b6aba94476fed5eeb54d9073dadb373d169aaa`. The Undo journey stopped at `renameField.press('Tab')`: its row locator depended on the copied layout's old accessible name, which changes as soon as the input is filled. The current Strategy spec now reads the duplicated tab's stable key before editing, maps that key to the parallel layout-menu row, and keeps the textbox scoped to that row through fill and Tab. It asserts the field value before and after editing; the subsequent delete, Undo-only snapshot acknowledgement, stable-key persistence, and reload checks are unchanged.
+
+The Study draft restore repair and the all-factory useful-outcome coverage remain in this same source ancestry (`bfb853ab12c0537b297cf553cda79e3a15ef8d17`, `ab46db86965dcc59f1121416ca52950f2ccc8514`, and `7a7f6d6bf8510e6d248b77024b0deadd0d3598c6`). Current local type-check and Playwright discovery pass; the four workstation bodies remain unexecuted on this candidate and require Root's combined browser slot. The R40 browser result is not accepted-source or release qualification.

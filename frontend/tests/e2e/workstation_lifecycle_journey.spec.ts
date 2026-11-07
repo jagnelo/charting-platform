@@ -538,10 +538,18 @@ test.describe('Workstation lifecycle journeys', () => {
     await page.getByRole('button', { name: 'Duplicate layout', exact: true }).click()
     const layoutMenu = await openWorkspaceMenu(page)
     const renamed = `Review ${Date.now()}`
-    // The layout item's accessible name changes as soon as the text field is
-    // filled, so keep the active rename control anchored by its stable role.
-    const renameField = layoutMenu.getByRole('textbox', { name: 'Rename layout', exact: true })
+    // The row's menu-item name changes as soon as its input is filled. Map the
+    // copied tab's stable key to the parallel menu-row position before editing.
+    const copiedTab = page.getByRole('tab', { name: 'US Top Down Copy', exact: true })
+    const copiedTabKey = await copiedTab.getAttribute('data-tab-key')
+    expect(copiedTabKey).toBeTruthy()
+    const copiedLayoutIndex = await page.locator('.workstation__tabs > [role="tab"]').evaluateAll((tabs, stableKey) => tabs.findIndex(tab => tab.getAttribute('data-tab-key') === stableKey), copiedTabKey!)
+    expect(copiedLayoutIndex, 'the copied stable tab key should map to its layout-menu row').toBeGreaterThanOrEqual(0)
+    const copiedLayoutRow = layoutMenu.locator('.workstation__layout-item').nth(copiedLayoutIndex)
+    const renameField = copiedLayoutRow.getByRole('textbox', { name: 'Rename layout', exact: true })
+    await expect(renameField).toHaveValue('US Top Down Copy')
     await renameField.fill(renamed)
+    await expect(renameField).toHaveValue(renamed)
     await renameField.press('Tab')
     const renamedTab = page.getByRole('tab', { name: renamed, exact: true })
     await expect(renamedTab).toBeVisible()
