@@ -585,11 +585,11 @@
           "Undo",
           "reload"
         ],
-        "visible_outcome": "Cancel preserves the renamed layout; confirmation removes it; public Undo restores its layout and data-bearing Benchmarks content. A distinct post-Undo rename is acknowledged by the persisted workspace snapshot before reload, then the tab survives reload.",
+        "visible_outcome": "Cancel preserves the renamed layout; confirmation removes it; public Undo restores that same stable key and original renamed name. The fresh snapshot request initiated for Undo is acknowledged successfully, visible Workspace save status reaches saved, and the original renamed tab survives reload with data-bearing Benchmarks content.",
         "evidence": [
           "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts :: renames, reorders, cancels and confirms layout deletion, then undoes and reloads",
           "frontend/src/views/WorkstationView.vue :: Rename layout input, Delete layout <name>, public Undo",
-          "R35 showed the prior rename absent after reload; the candidate waits for a fresh PUT /workspaces/{id}/snapshot containing the restored layout stable key and unique post-Undo name, verifies the 2xx response payload, then reloads. Product persistence remains unverified and TC owns the shared implementation."
+          "R35 showed the renamed tab absent after reload. The corrected candidate arms waitForRequest before public Undo, matching a newly initiated PUT /workspaces/{id}/snapshot containing the restored stable key and original renamed name; it awaits that exact request response, checks the persisted payload and visible Workspace save status=saved, then reloads without another mutation. TC owns the shared save-feedback implementation; this body remains pending Root execution."
         ]
       },
       {

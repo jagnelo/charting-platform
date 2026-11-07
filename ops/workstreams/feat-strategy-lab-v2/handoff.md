@@ -19992,3 +19992,15 @@ actual completed-run DOM: it requires the finite named `current_streak` metric a
 `completed_streaks` table, not a nonexistent `.study-lab-tool__artifacts` selector. Source review
 confirmed the remaining factory outcome selectors against current component markup, including the
 existing Results run-select. Updated browser bodies remain pending Root's combined run.
+## 2026-11-07 - Undo recovery persistence assertion correction
+
+The workstation lifecycle story now verifies the original delete -> public
+Undo -> reload journey without a second rename or other mutation. Before Undo,
+it registers a request-initiation waiter for a workspace snapshot containing
+the restored layout's stable key and original renamed name. It awaits that
+new request's response, verifies the persisted payload and successful response,
+then waits for the shared `Workspace save status` to report `saved` before
+reload and checks that the same renamed layout and useful Benchmarks content
+survive. This excludes an older in-flight snapshot by matching the request
+initiated after the Undo action. TC owns the shared save-feedback implementation;
+the browser body remains pending Root execution.

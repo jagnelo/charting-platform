@@ -515,27 +515,22 @@ test.describe('Workstation lifecycle journeys', () => {
     await expect(renamedTab).toHaveCount(0)
     const recovery = page.locator('.workstation__layout-recovery')
     await expect(recovery).toContainText(renamed)
+    const recoverySnapshotRequest = page.waitForRequest(request => isWorkspaceSnapshotWithTab(request, renamedKey!, renamed))
     await recovery.getByRole('menuitem', { name: 'Undo', exact: true }).click()
     await expect(renamedTab).toBeVisible()
-    await assertUsefulTool(page, 'Benchmarks', 'watchlist')
-    const persistedName = `${renamed} persisted`
-    const savedLayoutResponse = page.waitForResponse(response =>
-      response.ok() && isWorkspaceSnapshotWithTab(response.request(), renamedKey!, persistedName))
-    const recoveryMenu = await openWorkspaceMenu(page)
-    const restoredLayoutItem = recoveryMenu.locator('.workstation__layout-item').filter({
-      has: page.getByRole('menuitem', { name: renamed, exact: true }),
-    })
-    const restoredRenameField = restoredLayoutItem.getByRole('textbox', { name: 'Rename layout' })
-    await restoredRenameField.fill(persistedName)
-    await restoredRenameField.press('Tab')
-    const persistedLayoutTab = page.getByRole('tab', { name: persistedName, exact: true })
-    await expect(persistedLayoutTab).toBeVisible()
-    const snapshotResponse = await savedLayoutResponse
-    const persistedWorkspace = await snapshotResponse.json() as { tabs?: Array<{ stable_key?: string; name?: string }> }
-    expect(persistedWorkspace.tabs?.some(tab => tab.stable_key === renamedKey && tab.name === persistedName)).toBe(true)
+    const snapshotRequest = await recoverySnapshotRequest
+    const snapshotResponse = await snapshotRequest.response()
+    expect(snapshotResponse).not.toBeNull()
+    expect(snapshotResponse?.ok()).toBe(true)
+    const persistedWorkspace = await snapshotResponse!.json() as { tabs?: Array<{ stable_key?: string; name?: string }> }
+    expect(persistedWorkspace.tabs?.some(tab => tab.stable_key === renamedKey && tab.name === renamed)).toBe(true)
+    const saveStatus = page.getByRole('status', { name: 'Workspace save status', exact: true })
+    await expect(saveStatus).toHaveAttribute('data-state', 'saved')
+    await expect(saveStatus).toHaveText('Workspace saved')
     await page.reload()
-    await expect(persistedLayoutTab).toBeVisible()
+    await expect(renamedTab).toBeVisible()
     await expect(page.locator('.workstation__tabs > [role="tab"]')).toHaveCount(beforeOrder.length)
+    await assertUsefulTool(page, 'Benchmarks', 'watchlist')
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
