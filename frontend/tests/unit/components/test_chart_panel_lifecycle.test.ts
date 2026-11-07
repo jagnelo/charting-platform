@@ -10,6 +10,7 @@ import { useAlertsStore } from '@/stores/alerts'
 import { useDrawingsStore } from '@/stores/drawings'
 import { useLayoutStore } from '@/stores/layout'
 import { usePanelStore } from '@/stores/chart'
+import { usePanelLinksStore } from '@/stores/panelLinks'
 
 const routerLinkStub = { template: '<a><slot /></a>' }
 
@@ -364,11 +365,18 @@ describe('ChartPanel lifecycle fencing', () => {
 
     const panelStore = usePanelStore('p0')
     const cachedBars = [{ time: 1, open: 10, high: 11, low: 9, close: 10.5, volume: 100 }]
+    let releaseInitialBars!: () => void
+    const initialBars = new Promise<void>(resolve => { releaseInitialBars = resolve })
+    let initialBarsResolved = false
     vi.spyOn(panelStore, 'loadBars').mockImplementation(async (symbol: string, timeframe: any = 'D1') => {
       panelStore.symbol = symbol
       panelStore.timeframe = timeframe
       panelStore.instrument = { id: 23, symbol, name: symbol, is_active: true, currency: 'USD' }
       panelStore.bars = cachedBars as never
+      if (timeframe === 'D1' && !initialBarsResolved) {
+        await initialBars
+        initialBarsResolved = true
+      }
     })
     vi.spyOn(useDrawingsStore(), 'loadDrawings').mockResolvedValue()
     vi.spyOn(useAlertsStore(), 'loadAlerts').mockResolvedValue()
@@ -391,9 +399,14 @@ describe('ChartPanel lifecycle fencing', () => {
     })
     await vi.waitFor(() => expect(dataPreparationCoordinator.ensure).toHaveBeenCalledTimes(1))
     const initialRequest = vi.mocked(dataPreparationCoordinator.ensure).mock.calls[0]?.[0]
-    expect(initialRequest).toMatchObject({ target: { kind: 'instrument', instrument_id: 23 }, timeframe: 'D1', datasets: ['identity', 'profile', 'history'] })
+    expect(initialRequest).toMatchObject({ target: { kind: 'instrument', symbol: 'SPY' }, timeframe: 'D1', datasets: ['identity', 'profile', 'history'] })
     expect(initialRequest).not.toHaveProperty('start_at')
+    expect(initialBarsResolved).toBe(false)
     expect(panelStore.bars).toEqual(cachedBars)
+    releaseInitialBars()
+    await vi.waitFor(() => expect(initialBarsResolved).toBe(true))
+    resolvePreparation(readyPreparationResponse())
+    await flushPromises()
 
     await wrapper.get('.change-timeframe').trigger('click')
     await vi.waitFor(() => expect(dataPreparationCoordinator.ensure).toHaveBeenCalledTimes(2))
@@ -401,8 +414,47 @@ describe('ChartPanel lifecycle fencing', () => {
     expect(weeklyRequest).toMatchObject({ target: { kind: 'instrument', instrument_id: 23 }, timeframe: 'W1' })
     expect(weeklyRequest).not.toHaveProperty('start_at')
     expect(panelStore.bars).toEqual(cachedBars)
-
-    resolvePreparation(readyPreparationResponse())
     wrapper.unmount()
+  })
+
+  it('prepares every linked chart pane at its own timeframe after a sibling symbol selection', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const layoutStore = useLayoutStore()
+    layoutStore.setLayout('2h')
+    const panelLinks = usePanelLinksStore()
+    panelLinks.setPanelGroup('p0', 'blue')
+    panelLinks.setPanelGroup('p1', 'blue')
+    const p0 = usePanelStore('p0')
+    const p1 = usePanelStore('p1')
+    for (const panelStore of [p0, p1]) {
+      vi.spyOn(panelStore, 'loadBars').mockImplementation(async (symbol: string, timeframe: any) => {
+        panelStore.symbol = symbol
+        panelStore.timeframe = timeframe
+        panelStore.instrument = { id: 23, symbol, name: symbol, is_active: true, currency: 'USD' }
+        panelStore.bars = [{ time: 1, open: 10, high: 11, low: 9, close: 10.5, volume: 100 }] as never
+      })
+    }
+    vi.spyOn(useDrawingsStore(), 'loadDrawings').mockResolvedValue()
+    vi.spyOn(useAlertsStore(), 'loadAlerts').mockResolvedValue()
+    const stubs = { TimeframeSelector: { template: '<div />' }, UPlotChart: { template: '<div />' }, RouterLink: routerLinkStub }
+    const first = mount(ChartPanel, { props: { panelId: 'p0' }, global: { plugins: [pinia], stubs } })
+    const second = mount(ChartPanel, { props: { panelId: 'p1' }, global: { plugins: [pinia], stubs } })
+    await flushPromises()
+
+    const vm = first.vm as unknown as { onSymbolSelect: (symbol: string) => Promise<void> }
+    await vm.onSymbolSelect('XLB')
+    await vi.waitFor(() => expect(dataPreparationCoordinator.ensure).toHaveBeenCalledTimes(2))
+    const requests = vi.mocked(dataPreparationCoordinator.ensure).mock.calls.map(([request]) => request)
+    expect(requests).toEqual(expect.arrayContaining([
+      expect.objectContaining({ target: { kind: 'instrument', symbol: 'XLB' }, timeframe: 'D1' }),
+      expect.objectContaining({ target: { kind: 'instrument', instrument_id: 23 }, timeframe: 'H4' }),
+    ]))
+    expect(requests.every(request => !('start_at' in request))).toBe(true)
+    expect(p0.symbol).toBe('XLB')
+    expect(p1.symbol).toBe('XLB')
+
+    first.unmount()
+    second.unmount()
   })
 })

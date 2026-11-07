@@ -141,7 +141,9 @@ const linkMenuId = `panel-link-menu-${props.panelId}`
 const symbolSearchResultsId = `chart-panel-search-results-${props.panelId}`
 let lifecycleGeneration = 0
 let selectionGeneration = 0
+let panelMounted = false
 let selectedHistoryAbortController: AbortController | null = null
+let activeHistoryScopeKey: string | null = null
 const historyProgress = ref('')
 const historyError = ref('')
 
@@ -181,13 +183,16 @@ function handleClickOutside(e: MouseEvent) {
 
 onMounted(() => {
   lifecycleGeneration += 1
+  panelMounted = true
   document.addEventListener('mousedown', handleClickOutside)
 })
 onUnmounted(() => {
+  panelMounted = false
   lifecycleGeneration += 1
   selectionGeneration += 1
   selectedHistoryAbortController?.abort()
   selectedHistoryAbortController = null
+  activeHistoryScopeKey = null
   document.removeEventListener('mousedown', handleClickOutside)
 })
 
@@ -205,12 +210,15 @@ async function onSymbolSelect(
   const generation = lifecycleGeneration
   const selection = ++selectionGeneration
   selectedHistoryAbortController?.abort()
-  const historyController = new AbortController()
-  selectedHistoryAbortController = historyController
+  selectedHistoryAbortController = null
+  activeHistoryScopeKey = null
   const selectedTimeframe = localTf.value
   historyProgress.value = ''
   historyError.value = ''
   layoutStore.updatePanel(props.panelId, { symbol, timeframe: selectedTimeframe })
+  if (acquireHistory) {
+    startPanelHistoryPreparation(symbol, selectedTimeframe, generation, selection, confirmedIdentity)
+  }
   // A deliberate symbol selection may request missing history for this panel.
   const targetIds = panelLinks.linkedPanelIds(props.panelId, layoutStore.panels.map(p => p.id))
   for (const id of targetIds) {
@@ -223,15 +231,34 @@ async function onSymbolSelect(
     await pStore.loadBars(symbol, tf)
   }
   if (!isCurrent(generation, selection)) return
-  // The shared coordinator owns admitted depth, progress polling and retry
-  // timing. Start it after the selected local chart has published its current
-  // bars so a fast preparation response cannot be overwritten by hydration.
-  if (acquireHistory) void acquirePanelHistory(symbol, selectedTimeframe, generation, selection, confirmedIdentity, historyController.signal)
   if (store.instrument) {
     await drawStore.loadDrawings(store.instrument.id, localTf.value)
     if (!isCurrent(generation, selection)) return
     await alertsStore.loadAlerts(store.instrument.id)
   }
+}
+
+function startPanelHistoryPreparation(
+  symbol: string,
+  timeframe: Timeframe,
+  generation: number,
+  selection: number,
+  confirmedIdentity?: InstrumentAcquireResponse,
+) {
+  const normalized = symbol.trim().toUpperCase()
+  if (!normalized || normalized.startsWith('=') || !isPreparationTimeframe(timeframe)) return
+  const scopeKey = JSON.stringify([normalized, timeframe])
+  if (selectedHistoryAbortController && !selectedHistoryAbortController.signal.aborted && activeHistoryScopeKey === scopeKey) return
+  selectedHistoryAbortController?.abort()
+  const controller = new AbortController()
+  selectedHistoryAbortController = controller
+  activeHistoryScopeKey = scopeKey
+  void acquirePanelHistory(normalized, timeframe, generation, selection, confirmedIdentity, controller.signal).finally(() => {
+    if (selectedHistoryAbortController === controller) {
+      selectedHistoryAbortController = null
+      activeHistoryScopeKey = null
+    }
+  })
 }
 
 async function acquirePanelHistory(
@@ -274,7 +301,9 @@ async function acquirePanelHistory(
     && (dependency.covered_ranges.length > 0 || (dependency.covered_start !== null && dependency.covered_end !== null)),
   )
   const refreshCurrentPanel = async () => {
-    if (!isSelectedScope()) return
+    if (!isSelectedScope()
+      || store.symbol.trim().toUpperCase() !== normalized
+      || store.timeframe !== timeframe) return
     await store.refreshLocalBars()
   }
   const refreshForProgress = (response: DataEnsureResponse) => refreshQueue.request(response, refreshCurrentPanel)
@@ -313,10 +342,15 @@ async function acquirePanelHistory(
 watch(localTf, async (tf) => {
   selectedHistoryAbortController?.abort()
   selectedHistoryAbortController = null
+  activeHistoryScopeKey = null
   const generation = lifecycleGeneration
   const selection = ++selectionGeneration
   layoutStore.updatePanel(props.panelId, { timeframe: tf })
   if (!store.symbol) return
+  const symbol = store.symbol.trim().toUpperCase()
+  if (symbol && !symbol.startsWith('=') && !store.instrument?.is_synthetic) {
+    startPanelHistoryPreparation(symbol, tf, generation, selection)
+  }
   await store.loadBars(store.symbol, tf)
   if (!isCurrent(generation, selection)) return
   if (store.instrument) {
@@ -324,12 +358,17 @@ watch(localTf, async (tf) => {
     if (!isCurrent(generation, selection)) return
     await alertsStore.loadAlerts(store.instrument.id)
   }
-  const symbol = store.symbol.trim().toUpperCase()
-  if (symbol && !symbol.startsWith('=') && !store.instrument?.is_synthetic) {
-    const controller = new AbortController()
-    selectedHistoryAbortController = controller
-    void acquirePanelHistory(symbol, tf, generation, selection, undefined, controller.signal)
-  }
+})
+
+// A linked panel may be selected by a sibling chart. Each mounted pane prepares
+// its own timeframe as soon as the shared selection reaches its local store.
+watch([() => store.symbol, () => store.timeframe], ([symbol, timeframe]) => {
+  if (!panelMounted) return
+  const normalized = symbol.trim().toUpperCase()
+  const panel = panelConfig.value
+  if (!normalized || normalized.startsWith('=') || store.instrument?.is_synthetic
+    || panel?.symbol.trim().toUpperCase() !== normalized || panel.timeframe !== timeframe) return
+  startPanelHistoryPreparation(normalized, timeframe, lifecycleGeneration, selectionGeneration)
 })
 
 // Cross-panel cursor sync: when another panel moves the cursor, jump here too
@@ -348,18 +387,16 @@ onMounted(async () => {
   const selection = ++selectionGeneration
   const cfg = panelConfig.value
   if (cfg?.symbol) {
+    const symbol = cfg.symbol.trim().toUpperCase()
+    if (symbol && !symbol.startsWith('=') && !store.instrument?.is_synthetic) {
+      startPanelHistoryPreparation(symbol, cfg.timeframe, generation, selection)
+    }
     await store.loadBars(cfg.symbol, cfg.timeframe)
     if (!isCurrent(generation, selection)) return
     if (store.instrument) {
       await drawStore.loadDrawings(store.instrument.id, cfg.timeframe)
       if (!isCurrent(generation, selection)) return
       await alertsStore.loadAlerts(store.instrument.id)
-    }
-    const symbol = cfg.symbol.trim().toUpperCase()
-    if (symbol && !symbol.startsWith('=') && !store.instrument?.is_synthetic) {
-      const controller = new AbortController()
-      selectedHistoryAbortController = controller
-      void acquirePanelHistory(symbol, cfg.timeframe, generation, selection, undefined, controller.signal)
     }
   }
 })
