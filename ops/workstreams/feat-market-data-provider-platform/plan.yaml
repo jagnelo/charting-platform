@@ -14950,9 +14950,9 @@ progress:
   - PLATFORM-PREP-6
   - PLATFORM-PREP-7
   total: 8
-  current_phase: provider_native_metadata_fallback_and_first_use_recovery
-  current_blocker: Root-owned no-seed verification of weak issuer-hint exact-profile fallback, recovery from preserved terminal-negative identity children, ETV holdings planning, account-usage observation normalization, and exact-source/combined gates remains pending; no live runtime or native ledger was touched here.
-  next_action: Root rebuilds this successor and verifies ordinary BWET/SPY search-profile-acquire recovery, automatic retry of preserved negative identity children, and ETV holdings preparation on its existing no-seed runtime; exact-source CI and combined release gates remain Root-owned, with the wider Provider roadmap still active.
+  current_phase: e870_cold_canonical_history_boundary_repair
+  current_blocker: Root must replay cold canonical BWET history against the retained no-seed runtime and confirm the moving Massive floor no longer suppresses transport; exact-source CI and combined qualification remain Root-owned. No provider HTTP, runtime mutation, or real-ledger action occurred in this worktree.
+  next_action: Root replays a fresh cold canonical BWET history request on the preserved native runtime, checks the actual provider request log and typed outcome, and owns exact-source CI and combined release gates. Preserve the full Provider roadmap and existing native holds.
 local_validation_profile: "full_stack_browser"
 local_validation_reason: >-
   API, persistence, queue, worker and provider-history routing are in scope; cumulative profile remains full_stack_browser/full_integration.

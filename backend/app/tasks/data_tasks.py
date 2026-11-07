@@ -1296,6 +1296,24 @@ def _older_chunk_priority(
     return 100
 
 
+def _history_chunk_data_status(*, bars: list, range_coverage_status: str | None) -> str:
+    """Do not turn a zero-output range into useful partial coverage."""
+    if not bars:
+        return "empty"
+    if range_coverage_status is not None and range_coverage_status != "ready":
+        return "partial"
+    return "ready"
+
+
+def _provider_no_data_reason(exc: ProviderNoDataError) -> str:
+    """Map typed provider exhaustion to a stable, truthful preparation reason."""
+    if str(exc).startswith(
+        "No currently-supported providers available for price_history/fetch_ohlcv"
+    ):
+        return "no_eligible_history_provider"
+    return "source_returned_no_data"
+
+
 async def _deepest_admitted_history_start(
     db: AsyncSession,
     instrument: Instrument,
@@ -1355,7 +1373,23 @@ async def _deepest_admitted_history_start(
         declared_constraints = isinstance(constraints, dict)
         earliest = None
         if declared_constraints:
-            earliest, _reason = provider_history_bound_start(constraints, now=end)
+            # Relative provider limits move with wall time. Anchor them when
+            # this worker plans the operation, not to the request's captured
+            # end timestamp, which may already be stale by the time transport
+            # admission rechecks the same limit.
+            earliest, _reason = provider_history_bound_start(constraints, now=datetime.now(UTC))
+            if (
+                earliest is not None
+                and requested_start is None
+                and (
+                    constraints.get("max_lookback_years") is not None
+                    or constraints.get("max_lookback_days") is not None
+                )
+            ):
+                # Leave a small in-window margin for the resolver's later
+                # admission check and bar-boundary rounding. Fixed vendor
+                # earliest dates and explicit caller ranges are unchanged.
+                earliest += timedelta(days=1)
             invalid_bound = invalid_bound or earliest is None
         elif (
             requested_start is None
@@ -1885,7 +1919,8 @@ async def _plan_and_fetch_history_chunk(
                             redis=redis,
                             source_provider=source_provider,
                         )
-        except ProviderNoDataError:
+        except ProviderNoDataError as exc:
+            candidate_preparation["provider_no_data_reason"] = _provider_no_data_reason(exc)
             bars = []
         except ProviderQuotaAdmissionError as exc:
             if not may_select_alternative or not _is_pretransport_history_quota_denial(
@@ -2640,7 +2675,11 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                                 adjusted=bool(preparation.get("adjusted", True)),
                             )
                         next_job_id = None
-                        if full_range_start is not None and planned_start > full_range_start:
+                        if (
+                            bars
+                            and full_range_start is not None
+                            and planned_start > full_range_start
+                        ):
                             next_job_id = await _enqueue_older_history_chunk(
                                 db,
                                 job=job,
@@ -2764,7 +2803,10 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                     },
                     key=lambda item: tuple(-1 if value is None else value for value in item),
                 )
-                data_status = "ready" if bars else "empty"
+                data_status = _history_chunk_data_status(
+                    bars=bars,
+                    range_coverage_status=range_coverage_status,
+                )
                 if bars and planned_start is not None and planned_end is not None:
                     from app.services.market_data import _coverage_calendar
                     from app.services.ohlcv_coverage import assess_ohlcv_coverage
@@ -2779,8 +2821,20 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                     chunk_coverage_status = coverage.status.value
                     if coverage.status.value != "ready":
                         data_status = "partial"
-                if range_coverage_status is not None and range_coverage_status != "ready":
-                    data_status = "partial"
+                reason_code = (
+                    preparation.get("provider_no_data_reason") if data_status == "empty" else None
+                )
+                if reason_code is None:
+                    reason_code = (
+                        "analysis_history_depth_not_admitted"
+                        if preparation.get("analysis_requirement_unmet")
+                        else "history_depth_unknown"
+                        if preparation.get("history_depth_unknown_candidates")
+                        and range_coverage_status == "partial"
+                        else "history_coverage_partial"
+                        if range_coverage_status == "partial"
+                        else None
+                    )
                 await complete_refresh_job(
                     db,
                     job,
@@ -2826,16 +2880,7 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                         ),
                         "history_source_provider": preparation.get("source_provider"),
                         "range_coverage_status": range_coverage_status,
-                        "reason_code": (
-                            "analysis_history_depth_not_admitted"
-                            if preparation.get("analysis_requirement_unmet")
-                            else "history_depth_unknown"
-                            if preparation.get("history_depth_unknown_candidates")
-                            and range_coverage_status == "partial"
-                            else "history_coverage_partial"
-                            if range_coverage_status == "partial"
-                            else None
-                        ),
+                        "reason_code": reason_code,
                         "history_depth_unknown_candidates": preparation.get(
                             "history_depth_unknown_candidates", []
                         ),

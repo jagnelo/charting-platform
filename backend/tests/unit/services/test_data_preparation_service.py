@@ -268,6 +268,30 @@ async def test_existing_held_request_keeps_partial_gaps_and_reason_after_cache_a
 
 
 @pytest.mark.asyncio
+async def test_zero_bar_no_transport_outcome_is_unavailable_with_admission_reason(db, instrument):
+    async_db, request_id = await _create_previously_held_history_request(db, instrument)
+    parent = await load_owner_request(async_db, request_id=request_id, owner_user_id=81)
+    dependency = parent.metadata_payload["data_preparation"]["dependencies"][0]
+    child = await async_db.get(MarketRefreshJob, dependency["job_ids"][0])
+    child.status = "completed"
+    child.result_summary = {
+        "bars_observed": 0,
+        "data_status": "empty",
+        "chunk_coverage_status": None,
+        "range_coverage_status": "missing",
+        "reason_code": "no_eligible_history_provider",
+    }
+    await async_db.commit()
+
+    response = await get_data_preparation_response(async_db, parent=parent, owner_user_id=81)
+
+    assert response.status == "unavailable"
+    assert response.has_pending_work is False
+    assert response.dependencies[0].status == "unavailable"
+    assert response.dependencies[0].reason_code == "no_eligible_history_provider"
+
+
+@pytest.mark.asyncio
 async def test_partial_retained_range_queues_only_missing_edge_and_reports_cache(db, instrument):
     _qualify_test_instrument(instrument)
     _add_selected_cached_history(db, instrument, days=[3, 4, 5])

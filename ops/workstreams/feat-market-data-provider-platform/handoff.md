@@ -33649,3 +33649,10 @@ pass. No provider HTTP, native runtime call, real-ledger/quota/policy/hold
 mutation, fixture, or migration was performed. Root owns the preserved no-seed
 runtime replay, exact-source CI, and combined qualification; the full Provider
 roadmap remains in progress.
+
+
+## 2026-11-07 — cold canonical history boundary
+
+Root's retained e870 evidence showed BWET's automatic history child planned the Massive two-year floor from the request end timestamp, then the later worker admission check found that moving floor had advanced and resolved no provider before transport. The instrument is a canonical US ETV; the current resolver intentionally routes ETV price history to Massive only, so this was not an alternate-provider mapping defect. Automatic relative floors now use current planning time with a one-day in-window margin; fixed earliest dates and explicit caller ranges are unchanged. Typed no-eligible-provider outcomes now remain empty/unavailable with `no_eligible_history_provider`, and empty results no longer enqueue older chunks or claim partial progress.
+
+The cold canonical ETV regression uses the real resolver/planner, one exact Massive listing binding, no alternate mapping, and no provider request. The history planning and preparation response modules passed 62/62; Ruff check/format and the workstream/diff guards pass. Root owns replay against the retained no-seed native runtime and exact-source/combined qualification. No live provider call, runtime/DB write, policy/ledger/quota mutation, or source identity/lineage change occurred here. The full Provider roadmap remains active.

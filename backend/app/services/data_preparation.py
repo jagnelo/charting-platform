@@ -2155,7 +2155,13 @@ async def get_data_preparation_response(
                         ),
                     )
                 elif any(outcome.get("data_status") == "empty" for outcome in outcomes):
-                    item_status, reason = "unavailable", "source_returned_no_data"
+                    empty_outcome = next(
+                        outcome for outcome in outcomes if outcome.get("data_status") == "empty"
+                    )
+                    item_status, reason = (
+                        "unavailable",
+                        empty_outcome.get("reason_code") or "source_returned_no_data",
+                    )
                 elif any(outcome.get("data_status") == "partial" for outcome in outcomes):
                     item_status, reason = (
                         "partial",
