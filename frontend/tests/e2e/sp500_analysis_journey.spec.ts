@@ -336,7 +336,18 @@ async function assertRotationPainted(page: Page, payload: RotationResponse): Pro
     }
     const audit = (window as any).__rrgCanvasAudit as {
       markers: Array<{ x: number; y: number; radius: number; color: string }>
-      tails: Array<{ color: string; alpha: number; points: Array<{ x: number; y: number }> }>
+      tails: Array<{
+        color: string
+        alpha: number
+        points: Array<{ x: number; y: number }>
+        preMarkerSamples: Array<{
+          segmentIndex: number
+          x: number
+          y: number
+          before: number[][]
+          after: number[][]
+        }>
+      }>
     }
     const bounds = element.getBoundingClientRect()
     const pixelRatio = element.width / bounds.width
@@ -473,6 +484,7 @@ async function assertRotationPainted(page: Page, payload: RotationResponse): Pro
         alpha: path.alpha,
         expectedColor: stateColors[expectedRows[index]?.state ?? ''],
         points: path.points,
+        preMarkerSamples: path.preMarkerSamples,
       })),
     }
     return {
@@ -537,7 +549,21 @@ async function installRotationCanvasAudit(page: Page): Promise<void> {
   const installAudit = () => {
     const selector = '[role="group"][aria-label="Relative rotation trend and momentum plane"]'
     const colors = new Set(['#61c58c', '#e7bc68', '#6dbbe6', '#df8181'])
-    const audit = { markers: [] as Array<{ x: number; y: number; radius: number; color: string }>, tails: [] as Array<{ color: string; alpha: number; points: Array<{ x: number; y: number }> }> }
+    const audit = {
+      markers: [] as Array<{ x: number; y: number; radius: number; color: string }>,
+      tails: [] as Array<{
+        color: string
+        alpha: number
+        points: Array<{ x: number; y: number }>
+        preMarkerSamples: Array<{
+          segmentIndex: number
+          x: number
+          y: number
+          before: number[][]
+          after: number[][]
+        }>
+      }>,
+    }
     ;(window as any).__rrgCanvasAudit = audit
     const paths = new WeakMap<CanvasRenderingContext2D, Array<{ x: number; y: number }>>()
     const isRotationCanvas = (context: CanvasRenderingContext2D) => Boolean(context.canvas.closest(selector))
@@ -567,10 +593,54 @@ async function installRotationCanvasAudit(page: Page): Promise<void> {
     prototype.stroke = function (path?: Path2D) {
       const color = String(this.strokeStyle).toLowerCase()
       const points = paths.get(this) ?? []
-      if (isRotationCanvas(this) && colors.has(color) && this.globalAlpha < 1 && points.length >= 10) {
-        audit.tails.push({ color, alpha: this.globalAlpha, points: [...points] })
+      const isTailStroke = isRotationCanvas(this) && colors.has(color) && this.globalAlpha < 1 && points.length >= 10
+      let preMarkerSamples: Array<{ segmentIndex: number; x: number; y: number; before: number[][]; after: number[][] }> = []
+      let sampleBounds: { left: number; top: number; width: number; height: number } | undefined
+      let beforePixels: Uint8ClampedArray | undefined
+      if (isTailStroke) {
+        const rect = this.canvas.getBoundingClientRect()
+        const ratioX = rect.width > 0 ? this.canvas.width / rect.width : 1
+        const ratioY = rect.height > 0 ? this.canvas.height / rect.height : 1
+        const centers = points.slice(1).map((point, index) => ({
+          segmentIndex: index,
+          x: Math.round(((points[index].x + point.x) / 2) * ratioX),
+          y: Math.round(((points[index].y + point.y) / 2) * ratioY),
+        }))
+        const left = Math.max(0, Math.min(...centers.map(center => center.x - 1)))
+        const top = Math.max(0, Math.min(...centers.map(center => center.y - 1)))
+        const right = Math.min(this.canvas.width, Math.max(...centers.map(center => center.x + 2)))
+        const bottom = Math.min(this.canvas.height, Math.max(...centers.map(center => center.y + 2)))
+        if (right > left && bottom > top) {
+          sampleBounds = { left, top, width: right - left, height: bottom - top }
+          beforePixels = this.getImageData(left, top, sampleBounds.width, sampleBounds.height).data
+          preMarkerSamples = centers.map(center => {
+            const before: number[][] = []
+            for (let dy = -1; dy <= 1; dy += 1) for (let dx = -1; dx <= 1; dx += 1) {
+              const x = center.x + dx, y = center.y + dy
+              if (x < left || y < top || x >= right || y >= bottom) continue
+              const offset = ((y - top) * sampleBounds!.width + (x - left)) * 4
+              before.push(Array.from(beforePixels!.slice(offset, offset + 4)))
+            }
+            return { ...center, before, after: [] }
+          })
+        }
       }
-      return Reflect.apply(originalStroke, this, arguments)
+      const result = Reflect.apply(originalStroke, this, arguments)
+      if (isTailStroke) {
+        if (sampleBounds && beforePixels) {
+          const afterPixels = this.getImageData(sampleBounds.left, sampleBounds.top, sampleBounds.width, sampleBounds.height).data
+          for (const sample of preMarkerSamples) {
+            for (let dy = -1; dy <= 1; dy += 1) for (let dx = -1; dx <= 1; dx += 1) {
+              const x = sample.x + dx, y = sample.y + dy
+              if (x < sampleBounds.left || y < sampleBounds.top || x >= sampleBounds.left + sampleBounds.width || y >= sampleBounds.top + sampleBounds.height) continue
+              const offset = ((y - sampleBounds.top) * sampleBounds.width + (x - sampleBounds.left)) * 4
+              sample.after.push(Array.from(afterPixels.slice(offset, offset + 4)))
+            }
+          }
+        }
+        audit.tails.push({ color, alpha: this.globalAlpha, points: [...points], preMarkerSamples })
+      }
+      return result
     }
   }
   // Keep the audit available both in the current document and after the
