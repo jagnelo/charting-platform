@@ -667,8 +667,17 @@ test('S&P 500 RRG renders deep D1/W1/MN data and survives selection, resize, max
   await expect(rrgTab).toHaveClass(/lm_active/)
   await expect(rotation).toBeVisible()
   await expect(rrgWindow.getByRole('button', { name: 'Maximize tool' })).toBeVisible()
+  const maximizeSnapshotAcknowledged = page.waitForResponse(response => {
+    const url = new URL(response.url())
+    return response.request().method() === 'PUT'
+      && /^\/api\/v1\/workspaces\/\d+\/snapshot$/.test(url.pathname)
+      && response.ok()
+  })
   await rrgWindow.getByRole('button', { name: 'Maximize tool' }).click()
   await expect(rrgWindow.getByRole('button', { name: 'Restore tool' })).toBeVisible()
+  const savedMaximizedSnapshot = await maximizeSnapshotAcknowledged
+  expect(savedMaximizedSnapshot.status()).toBe(200)
+  await expect(rrgWindow.getByRole('button', { name: 'Restore tool' })).toHaveAttribute('aria-busy', 'false')
 
   const timeframeControl = rotation.getByLabel('Rotation timeframe')
   const pageResponses = new Map<AnalysisTimeframe, RotationResponse>()
