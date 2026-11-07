@@ -31,10 +31,10 @@
       "qualification": "Exact released Strategy-owned focused tests are imported; rendered browser acceptance remains pending."
     },
     "provider_runtime_import": {
-      "source_commit": "07490844c39d56e7023294f5e8798e4da2acdce0",
-      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/07490844c39d56e7023294f5e8798e4da2acdce0.json",
-      "manifest_sha256": "4ba7c34cc5926013668a9f28c7adc0cd74bc3ee0ce7c2378659f79b28d498c9b",
-      "qualification": "Root-released development import contains the canonical workspace tool catalogue API; exact CI and browser recreation acceptance remain pending."
+      "source_commit": "46462f5531d689acf4c8004517dc4fb345d822ba",
+      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/46462f5531d689acf4c8004517dc4fb345d822ba.json",
+      "manifest_sha256": "3600f958dd684d72bf0ed95425c4e52792566d6136c57d676c67f4f107e5301d",
+      "qualification": "Provider464 is an exact Root-released development import; exact Provider/TC CI and combined browser acceptance remain pending."
     }
   },
   "counts": {
@@ -1613,11 +1613,12 @@
         "Add tool",
         "all factory layouts"
       ],
-      "evidence_status": "pending_provider_contract_and_browser",
+      "evidence_status": "focused_units_browser_pending",
       "evidence": [
-        "frontend/tests/unit/stores/test_workspace_store.test.ts"
+        "frontend/tests/unit/stores/test_workspace_store.test.ts",
+        "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts"
       ],
-      "pending_reason": "Canonical catalogue source is not yet released; guard tracks all current 21 entries and 38 factory instances."
+      "pending_reason": "The canonical server catalogue contract is released and imported for development. Focused coverage dispatches all 21 definitions with their exact semantics; rendering/recreation across clone, import, reload and restore still needs the assigned browser journey."
     },
     {
       "id": "TC07",
@@ -1649,9 +1650,10 @@
       "evidence_status": "focused_units_combined_browser_pending",
       "evidence": [
         "frontend/tests/unit/lib/test_data_preparation.test.ts",
-        "frontend/tests/unit/components/test_study_lab_tool.test.ts"
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts",
+        "frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts"
       ],
-      "pending_reason": "TC shared client is implemented; accepted backend catalogue/runtime and combined progress journeys remain pending."
+      "pending_reason": "Provider464 development runtime is imported and the main configured breadth-group path now reads cached analysis before preparation, then refreshes on durable progress. Market Map, saved-scan/gauge and other analysis dependencies remain incompletely wired; full visible journeys and combined browser acceptance are pending Root."
     },
     {
       "id": "TC09",
@@ -1811,11 +1813,12 @@
       "owner": "feat-tc2000-frontend-rework",
       "action": "Open all Add-tool entries and preserve semantic roles through clone, import and restore",
       "journey": "TC06",
-      "evidence_status": "pending_provider_catalogue_and_browser",
+      "evidence_status": "focused_units_browser_pending",
       "evidence": [
-        "frontend/tests/unit/stores/test_workspace_store.test.ts"
+        "frontend/tests/unit/stores/test_workspace_store.test.ts",
+        "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts"
       ],
-      "pending_reason": "The listed focused evidence is not a substitute for the still-pending complete browser action journey.",
+      "pending_reason": "The focused shell test confirms all 21 server-defined Add-tool entries reach the dispatcher with their exact semantic keys and configurations; actual panel rendering and clone/import/reload/restore journeys remain pending Root-owned browser qualification.",
       "control_surface_refs": [
         "frontend/src/views/WorkstationView.vue",
         "frontend/src/components/chart/LayoutPicker.vue",
@@ -3209,7 +3212,7 @@
     {
       "source": "frontend/src/views/WorkstationView.vue",
       "control_count": 47,
-      "signature_sha256": "6761c66ffb01eba8923528ba7df2b4cd67e3a7dbe54827ea1c2d62a4c3828415",
+      "signature_sha256": "d46258603b029796b5d96a4144a4986dd471b55481b63da87dea52b40a63066d",
       "journeys": [
         "TC01",
         "TC02",

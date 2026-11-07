@@ -113,13 +113,27 @@ const apiPost = vi.hoisted(() => vi.fn())
 const dataPreparationPost = vi.hoisted(() => vi.fn())
 const refreshMountedPanels = vi.hoisted(() => vi.fn().mockResolvedValue(undefined))
 const openableTools = vi.hoisted(() => [
-  { key: 'research-results', tool_type: 'research_results', title: 'Study Results', instance_prefix: 'research-results', configuration: {} },
+  { key: 'chart', tool_type: 'chart', title: 'Chart', instance_prefix: 'chart', configuration: { symbol: 'SPY', timeframe: 'D1' } },
+  { key: 'watchlist', tool_type: 'watchlist', title: 'WatchList', instance_prefix: 'watchlist', configuration: { personal: true, watchlist_id: null } },
+  { key: 'favorites', tool_type: 'watchlist', title: 'My Favorites', instance_prefix: 'favorites', configuration: { personal: true, favorites: true } },
   { key: 'notes', tool_type: 'notes', title: 'Notes', instance_prefix: 'notes', configuration: { scope: 'active-instrument' } },
-  { key: 'sector-list', tool_type: 'watchlist', title: 'Sectors', instance_prefix: 'sector-list', configuration: { market_group: 'sp500-sectors' } },
+  { key: 'alerts', tool_type: 'alerts', title: 'Alerts', instance_prefix: 'alerts', configuration: { scope: 'active-instrument' } },
+  { key: 'easy-scan', tool_type: 'scan', title: 'EasyScan', instance_prefix: 'easy-scan', configuration: { scope: 'saved-conditions' } },
+  { key: 'market-gauge', tool_type: 'gauge', title: 'Market Gauge', instance_prefix: 'market-gauge', configuration: { scope: 'saved-scans' } },
+  { key: 'study-lab', tool_type: 'study_lab', title: 'Study Lab', instance_prefix: 'study-lab', configuration: { symbol: 'SPY' } },
+  { key: 'research-results', tool_type: 'research_results', title: 'Study Results', instance_prefix: 'research-results', configuration: {} },
+  { key: 'relative-rotation', tool_type: 'relative_rotation', title: 'Relative Rotation', instance_prefix: 'relative-rotation', configuration: { group_key: 'sp500-sectors', benchmark: 'SPY', timeframe: 'D1', sampling: 1, lookback: 20, tail_length: 10, adjusted: true } },
+  { key: 'breadth', tool_type: 'breadth', title: 'Market Breadth', instance_prefix: 'breadth', configuration: { group_key: 'sp500-sectors' } },
+  { key: 'market-map', tool_type: 'market_map', title: 'Market Map', instance_prefix: 'market-map', configuration: { group_by: 'sector_industry', period: '1D', area_metric: 'market_cap', color_metric: 'return' } },
+  { key: 'technical-summary', tool_type: 'technical_summary', title: 'Technicals', instance_prefix: 'technical-summary', configuration: { scope: 'selected' } },
+  { key: 'coverage', tool_type: 'coverage', title: 'Coverage', instance_prefix: 'coverage', configuration: { scope: 'selected' } },
+  { key: 'report', tool_type: 'report', title: 'Instrument Report', instance_prefix: 'report', configuration: {} },
+  { key: 'code-library', tool_type: 'code_library', title: 'Python Library', instance_prefix: 'code-library', configuration: {} },
+  { key: 'benchmark-list', tool_type: 'watchlist', title: 'Benchmarks', instance_prefix: 'benchmark-list', configuration: { market_group: 'us-benchmarks' } },
   { key: 'industry-list', tool_type: 'watchlist', title: 'Industries', instance_prefix: 'industry-list', configuration: { market_group: 'selected-sector-industries' } },
   { key: 'constituent-list', tool_type: 'watchlist', title: 'Constituents', instance_prefix: 'constituent-list', configuration: { market_group: 'selected-industry-constituents' } },
+  { key: 'sector-list', tool_type: 'watchlist', title: 'S&P 500 Sectors', instance_prefix: 'sector-list', configuration: { market_group: 'sp500-sectors' } },
   { key: 'ratio-chart', tool_type: 'chart', title: 'Relative Strength', instance_prefix: 'ratio-chart', configuration: { expression: '=SPY/RSP', timeframe: 'D1', auto_ratio: true } },
-  { key: 'relative-rotation', tool_type: 'relative_rotation', title: 'Relative Rotation', instance_prefix: 'relative-rotation', configuration: { group_key: 'sp500-sectors', benchmark: 'SPY', timeframe: 'D1' } },
 ])
 
 vi.mock('@/stores/workspace', () => ({
@@ -431,7 +445,8 @@ describe('WorkstationView pop-out bindings', () => {
     })
     try {
       await wrapper.get('.workstation__tool-library > button').trigger('click')
-      await wrapper.get('.workstation__tool-library-menu [role="menuitem"]').trigger('click')
+      await wrapper.findAll('.workstation__tool-library-menu [role="menuitem"]')
+        .find(item => item.text() === 'Study Results')!.trigger('click')
       expect(harness.workspace.openTool).not.toHaveBeenCalled()
       expect(wrapper.find('.workstation__tool-library-menu').exists()).toBe(false)
     } finally {
@@ -564,9 +579,11 @@ describe('WorkstationView pop-out bindings', () => {
       global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
     })
 
-    const cloneButton = wrapper.get('button[aria-label="Clone active layout"]')
+    const cloneButton = wrapper.get('button[aria-label="Duplicate layout"]')
     expect(cloneButton.text()).toBe('+')
-    expect(await cloneButton.attributes('title')).toBe('Clone active layout')
+    expect(await cloneButton.attributes('title')).toBe('Duplicate layout')
+    await wrapper.get('.workstation__workspace-menu > button').trigger('click')
+    expect(wrapper.get('.workstation__layout-list input[aria-label="Rename layout"]').exists()).toBe(true)
     await cloneButton.trigger('click')
     expect(harness.workspace.cloneActiveTab).toHaveBeenCalledTimes(1)
     wrapper.unmount()
@@ -2550,7 +2567,7 @@ describe('WorkstationView pop-out bindings', () => {
       await wrapper.get('.workstation__tool-library > button').trigger('click')
       const menu = wrapper.get('.workstation__tool-library-menu')
       const labels = menu.findAll('[role="menuitem"]').map(item => item.text().trim())
-      expect(labels).toContain('Sectors')
+      expect(labels).toContain('S&P 500 Sectors')
       expect(labels).toContain('Industries')
       expect(labels).toContain('Constituents')
       expect(labels).toContain('Relative Strength')
@@ -2713,9 +2730,16 @@ describe('WorkstationView pop-out bindings', () => {
     })
     await wrapper.get('button[title="Open a workstation tool"]').trigger('click')
     const items = wrapper.findAll('.workstation__tool-library-menu [role="menuitem"]')
+    expect(items).toHaveLength(21)
     expect(items.map(item => item.text())).toEqual(openableTools.map(tool => tool.title))
-    await items.find(item => item.text() === 'Relative Strength')!.trigger('click')
-    expect(harness.workspace.openTool).toHaveBeenCalledWith(expect.objectContaining({ key: 'ratio-chart', tool_type: 'chart' }), {})
+    for (const [index, definition] of openableTools.entries()) {
+      if (index > 0) await wrapper.get('.workstation__tool-library > button').trigger('click')
+      const item = wrapper.findAll('.workstation__tool-library-menu [role="menuitem"]')
+        .find(candidate => candidate.text() === definition.title)
+      expect(item, `Add-tool item ${definition.key}`).toBeDefined()
+      await item!.trigger('click')
+      expect(harness.workspace.openTool).toHaveBeenNthCalledWith(index + 1, definition, {})
+    }
     wrapper.unmount()
   })
 
