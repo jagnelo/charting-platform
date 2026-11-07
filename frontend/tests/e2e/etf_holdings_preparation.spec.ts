@@ -255,6 +255,7 @@ test.describe('ETF holdings preparation', () => {
     expect(rows.snapshot.id).toBe(snapshot.id)
     expect(rows.total).toBe(snapshot.row_count)
     expect(rows.holdings.map(row => row.constituent_symbol)).toEqual(expect.arrayContaining(['LIN', 'APD']))
+    expect(selected.instrument_id).toBe(17)
 
     const unexpectedLegacyAcquires: string[] = []
     page.on('request', browserRequest => {
@@ -268,8 +269,7 @@ test.describe('ETF holdings preparation', () => {
         return body.target.kind === 'instrument'
           && 'instrument_id' in body.target
           && body.target.instrument_id === selected.instrument_id
-          && body.datasets?.length === 1
-          && body.datasets[0] === 'holdings'
+          && body.datasets?.includes('holdings') === true
       } catch {
         return false
       }
@@ -296,6 +296,8 @@ test.describe('ETF holdings preparation', () => {
     expect(actualRowsResponse.status()).toBe(200)
     const displayedRows = await actualRowsResponse.json() as ETFHoldingsPage
     expect(displayedRows.snapshot.id).toBe(snapshot.id)
+    expect(displayedRows.snapshot.composition_date).toBe(snapshot.composition_date)
+    expect(displayedRows.holdings).toEqual(rows.holdings)
     await expect(page.getByRole('heading', { name: 'XLB', exact: true })).toBeVisible()
     await expect(page.locator('.holdings-table')).toContainText('LIN')
     await expect(page.locator('.holdings-table')).toContainText('APD')

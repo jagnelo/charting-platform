@@ -334,7 +334,7 @@ test('opening a basket submits each member preparation independently while cache
       const tooltipClose = label.match(/close ([0-9]+(?:\.[0-9]+)?)/i)?.[1]
       expect(tooltipClose, 'visible basket OHLC tooltip exposes a close').toBeTruthy()
       expect(bars.some(bar => {
-        const timestamp = new Date(bar.timestamp)
+        const timestamp = new Date(bar.ts)
         const date = `${timestamp.getFullYear()}-${String(timestamp.getMonth() + 1).padStart(2, '0')}-${String(timestamp.getDate()).padStart(2, '0')}`
         return date === tooltipDate && bar.close.toFixed(4) === tooltipClose
       }), 'visible basket tooltip matches the returned cached chart series').toBeTruthy()
@@ -388,6 +388,7 @@ test('controlled snapshot basket materializes through the normal API and display
     id: number
     name: string
     is_system_managed: boolean
+    is_read_only: boolean
     source_snapshot_id: number | null
     composition_date: string | null
     metadata?: Record<string, unknown>
