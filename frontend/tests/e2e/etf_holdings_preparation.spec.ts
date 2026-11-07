@@ -1,23 +1,34 @@
 import { test, expect } from './helpers'
 import type { ETFHoldingsDate, ETFHoldingsPage, ETFProfile } from '../../src/types'
+import type { DataEnsureRequest } from '../../src/lib/dataPreparation'
 
 type EnsureStatus = 'waiting' | 'ready'
-type EnsureRequest = { target: { kind: 'instrument'; symbol: string }; datasets: ['holdings'] }
+type EnsureRequest = DataEnsureRequest
+const ETF_INSTRUMENT_IDS: Record<number, string> = { 701: 'FNEW', 702: 'RACE', 704: 'QQQ', 811: 'BWET' }
+const ETF_INSTRUMENT_IDS_BY_SYMBOL: Record<string, number> = { FNEW: 701, RACE: 702, QQQ: 704, BWET: 811 }
 
-function ensureResponse(symbol: string, status: EnsureStatus, requestId = `etf-${symbol.toLowerCase()}`) {
+function ensureRequestSymbol(request: EnsureRequest): string | null {
+  if (request.target.kind !== 'instrument') return null
+  if ('symbol' in request.target && typeof request.target.symbol === 'string') return request.target.symbol.toUpperCase()
+  if ('instrument_id' in request.target && typeof request.target.instrument_id === 'number') {
+    return ETF_INSTRUMENT_IDS[request.target.instrument_id] ?? null
+  }
+  return null
+}
+
+function ensureResponse(request: EnsureRequest, symbol: string, status: EnsureStatus, requestId = `etf-${symbol.toLowerCase()}`) {
   const now = new Date().toISOString()
-  const instrumentIds: Record<string, number> = { FNEW: 701, QQQ: 704, RACE: 702, BWET: 811 }
   return {
     request_id: requestId,
     status,
     created_at: now,
     updated_at: now,
     version: 1,
-    target: { kind: 'instrument', symbol },
+    target: request.target,
     dependencies: [{
       dependency_id: `holdings-${symbol.toLowerCase()}`,
       depends_on: [],
-      instrument_id: instrumentIds[symbol] ?? null,
+      instrument_id: ETF_INSTRUMENT_IDS_BY_SYMBOL[symbol] ?? null,
       symbol,
       dataset: 'holdings',
       status,
@@ -206,10 +217,12 @@ test.describe('ETF holdings preparation', () => {
       await route.fulfill({ status: 200, json: query === 'FNEW' ? [selected] : !query ? [savedPeer] : [] })
     })
     await page.route('**/api/v1/data/ensure', async route => {
-      expect(route.request().method()).toBe('POST')
       const body = route.request().postDataJSON() as EnsureRequest
-      requested.push(body)
-      await route.fulfill({ status: 200, json: ensureResponse('FNEW', 'ready') })
+      const symbol = ensureRequestSymbol(body)
+      if (!symbol || !body.datasets?.includes('holdings')) return route.continue()
+      expect(route.request().method()).toBe('POST')
+      if (body.datasets.length === 1 && body.datasets[0] === 'holdings') requested.push(body)
+      await route.fulfill({ status: 200, json: ensureResponse(body, symbol, 'ready') })
     })
     await page.route('**/api/v1/etf-holdings/FNEW/dates', route => route.fulfill({ status: 200, json: snapshotDates(901) }))
     await page.route('**/api/v1/etf-holdings/FNEW/holdings**', async route => {
@@ -256,7 +269,7 @@ test.describe('ETF holdings preparation', () => {
     await expect(page.getByTestId('etf-snapshot-source-url')).toHaveText('https://fixture.invalid/holdings')
     await expect(page.getByTestId('etf-snapshot-known-at')).toHaveAttribute('datetime', '2026-11-06T10:15:00Z')
     await expect(page.getByTestId('etf-selected-snapshot-kind')).toHaveText('Latest stored snapshot')
-    expect(requested).toEqual([{ target: { kind: 'instrument', symbol: 'FNEW' }, datasets: ['holdings'] }])
+    expect(requested).toEqual([{ target: { kind: 'instrument', instrument_id: 701 }, datasets: ['holdings'] }])
     expect(legacyAcquireRequests).toEqual([])
     await expect(page.getByRole('button', { name: 'Load latest holdings' })).toHaveCount(0)
 
@@ -312,9 +325,11 @@ test.describe('ETF holdings preparation', () => {
     })
     await page.route('**/api/v1/data/ensure', async route => {
       const body = route.request().postDataJSON() as EnsureRequest
-      requests.push(body)
-      const status = body.target.symbol === 'RACE' ? 'ready' : 'waiting'
-      await route.fulfill({ status: 200, json: ensureResponse(body.target.symbol, status) })
+      const symbol = ensureRequestSymbol(body)
+      if (!symbol || !body.datasets?.includes('holdings')) return route.continue()
+      const status = symbol === 'RACE' ? 'ready' : 'waiting'
+      if (body.datasets.length === 1 && body.datasets[0] === 'holdings') requests.push(body)
+      await route.fulfill({ status: 200, json: ensureResponse(body, symbol, status) })
     })
     await page.route('**/api/v1/etf-holdings/RACE/dates', route => route.fulfill({ status: 200, json: snapshotDates(902) }))
     await page.route('**/api/v1/etf-holdings/RACE/holdings**', route => route.fulfill({ status: 200, json: fixtureHoldings('RACE', 702, 72, 902) }))
@@ -337,8 +352,8 @@ test.describe('ETF holdings preparation', () => {
     await expect(page.locator('.holdings-table')).not.toContainText('FNEW1')
     await expect(page.getByTestId('etf-preparation-status')).toHaveText('Requested data is ready.')
     expect(requests).toEqual([
-      { target: { kind: 'instrument', symbol: 'FNEW' }, datasets: ['holdings'] },
-      { target: { kind: 'instrument', symbol: 'RACE' }, datasets: ['holdings'] },
+      { target: { kind: 'instrument', instrument_id: 701 }, datasets: ['holdings'] },
+      { target: { kind: 'instrument', instrument_id: 702 }, datasets: ['holdings'] },
     ])
     expect(loggedIn).toBeUndefined()
   })
@@ -420,8 +435,10 @@ test.describe('ETF holdings preparation', () => {
     })
     await page.route('**/api/v1/data/ensure', async route => {
       const body = route.request().postDataJSON() as EnsureRequest
+      const symbol = ensureRequestSymbol(body)
+      if (symbol !== 'BWET' || !body.datasets?.includes('holdings')) return route.continue()
       ensureRequests.push(body)
-      await route.fulfill({ status: 200, json: ensureResponse('BWET', 'ready') })
+      await route.fulfill({ status: 200, json: ensureResponse(body, symbol, 'ready') })
     })
     await page.route('**/api/v1/etf-holdings/BWET/dates', route => route.fulfill({
       status: 200,
@@ -468,10 +485,21 @@ test.describe('ETF holdings preparation', () => {
     await expect(page.locator('.holding-detail h3')).toHaveText('C5TCM')
     await expect(page.locator('.holding-detail')).toContainText('reference')
     await expect(page.getByRole('button', { name: 'View history' })).toBeDisabled()
-    expect(ensureRequests).toEqual([{
-      target: { kind: 'instrument', symbol: 'BWET' },
-      datasets: ['holdings'],
-    }])
+    expect(ensureRequests).toEqual([
+      {
+        target: { kind: 'instrument', instrument_id: 811 },
+        datasets: ['identity', 'profile', 'history', 'holdings'],
+        timeframe: 'D1',
+        adjusted: true,
+      },
+      {
+        target: { kind: 'instrument', instrument_id: 811 },
+        datasets: ['identity', 'profile', 'history', 'holdings'],
+        timeframe: 'D1',
+        adjusted: true,
+      },
+      { target: { kind: 'instrument', symbol: 'BWET' }, datasets: ['holdings'] },
+    ])
     await expect(page).toHaveURL(/\/etf-holdings$/)
     expect(loggedIn).toBeUndefined()
   })
