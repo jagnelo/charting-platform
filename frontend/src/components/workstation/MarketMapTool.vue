@@ -316,7 +316,7 @@ import BreadthConditionTreeEditor, { type BreadthConditionNode } from './Breadth
 import { marketMapPythonUniverse } from '@/lib/workstation/marketMapPublication'
 import { describeMarketMap } from '@/lib/workstation/marketMapAccessibility'
 import { dataPreparationCoordinator, PreparationProgressRefreshQueue, preparationStatusMessage, shouldRefreshAnalysisProgress, type DataEnsureRequest, type DataEnsureResponse, type PreparationTarget } from '@/lib/dataPreparation'
-import { buildMarketMapHitTestIndex, cancelWatchlistHistoryRefreshRun, deleteMarketMapSnapshot, fetchBenchmarkFamilyCoverage, fetchMarketMap, fetchMarketMapSnapshot, fetchMarketMapSnapshots, fetchWatchlistHistoryRefreshRun, fetchWatchlistSourceHistoryStatus, findMarketMapCell, layoutMarketMapCells, layoutMarketMapGroupsFromLayout, refreshWatchlistSourceHistory, saveMarketMapSnapshot, type BenchmarkFamilyCoverage, type BenchmarkFamilyCoverageRole, type MarketMapLayoutCell, type MarketMapLayoutGroup, type WatchlistHistoryRefreshRun, type WatchlistSourceHistoryStatus } from '@/lib/workstation/marketMap'
+import { buildMarketMapHitTestIndex, cancelWatchlistHistoryRefreshRun, deleteMarketMapSnapshot, fetchBenchmarkFamilyCoverageShared, fetchMarketMap, fetchMarketMapSnapshot, fetchMarketMapSnapshots, fetchWatchlistHistoryRefreshRun, fetchWatchlistSourceHistoryStatusShared, findMarketMapCell, layoutMarketMapCells, layoutMarketMapGroupsFromLayout, refreshWatchlistSourceHistory, saveMarketMapSnapshot, type BenchmarkFamilyCoverage, type BenchmarkFamilyCoverageRole, type MarketMapLayoutCell, type MarketMapLayoutGroup, type WatchlistHistoryRefreshRun, type WatchlistSourceHistoryStatus } from '@/lib/workstation/marketMap'
 import type { MarketMap, MarketMapAreaMetric, MarketMapCell, MarketMapColorMetric, MarketMapGroupBy, MarketMapNumericAreaField, MarketMapSnapshotSummary, Timeframe, WatchlistSource, WatchlistSourceKind } from '@/types'
 
 type MarketMapSort = 'area_desc' | 'color_desc' | 'symbol_asc'
@@ -692,7 +692,7 @@ async function loadHistoryStatus(schedulePoll = false) {
   historyLoading.value = true
   historyError.value = ''
   try {
-    const result = await fetchWatchlistSourceHistoryStatus(requestSourceId, [timeframe.value], 5000, historyAsOf.value)
+    const result = await fetchWatchlistSourceHistoryStatusShared(queryClient, requestSourceId, [timeframe.value], 5000, historyAsOf.value)
     if (!componentMounted || generation !== historyGeneration || sourceId.value !== requestSourceId) return
     historyStatus.value = result && !Array.isArray(result) ? result : null
     await loadHistoryRun(false, generation)
@@ -721,7 +721,7 @@ async function loadBenchmarkCoverage() {
   benchmarkCoverageLoading.value = true
   benchmarkCoverageError.value = ''
   try {
-    const result = await fetchBenchmarkFamilyCoverage(familyKey, historyAsOf.value)
+    const result = await fetchBenchmarkFamilyCoverageShared(queryClient, familyKey, historyAsOf.value)
     if (!componentMounted || generation !== benchmarkCoverageGeneration || sourceId.value !== requestSourceId) return
     benchmarkCoverage.value = result && typeof result === 'object' && Array.isArray(result.roles) ? result : null
   } catch (cause) {

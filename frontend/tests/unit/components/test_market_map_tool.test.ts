@@ -1,7 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { apiGet, apiPost, loadWatchlistSources, loadWatchlists, resolveWatchlistSource, createWatchlist, addItem, loadUserSettings, toggleFollowedSource, togglePinnedSource, invalidateQueries } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn(), loadWatchlistSources: vi.fn(), loadWatchlists: vi.fn(), resolveWatchlistSource: vi.fn(), createWatchlist: vi.fn(), addItem: vi.fn(), loadUserSettings: vi.fn(), toggleFollowedSource: vi.fn(), togglePinnedSource: vi.fn(), invalidateQueries: vi.fn() }))
+const { apiGet, apiPost, loadWatchlistSources, loadWatchlists, resolveWatchlistSource, createWatchlist, addItem, loadUserSettings, toggleFollowedSource, togglePinnedSource, invalidateQueries, fetchQuery } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn(), loadWatchlistSources: vi.fn(), loadWatchlists: vi.fn(), resolveWatchlistSource: vi.fn(), createWatchlist: vi.fn(), addItem: vi.fn(), loadUserSettings: vi.fn(), toggleFollowedSource: vi.fn(), togglePinnedSource: vi.fn(), invalidateQueries: vi.fn(), fetchQuery: vi.fn(({ queryFn }: { queryFn: () => unknown }) => queryFn()) }))
 const defaultSources = vi.hoisted(() => [{ source_id: 'market-group:sp500', source_kind: 'index_membership', name: 'S&P 500', locked: true, can_follow: true, can_clone: true, can_edit_membership: false, member_count: 2, provenance: {} }])
 const sourceState = vi.hoisted(() => ({
   sources: defaultSources,
@@ -11,7 +11,7 @@ const sourceState = vi.hoisted(() => ({
 }))
 
 vi.mock('@/lib/api', () => ({ api: { get: apiGet, post: apiPost, delete: vi.fn() } }))
-vi.mock('@tanstack/vue-query', () => ({ useQueryClient: () => ({ invalidateQueries }) }))
+vi.mock('@tanstack/vue-query', () => ({ useQueryClient: () => ({ invalidateQueries, fetchQuery }) }))
 vi.mock('@/stores/watchlist', () => ({ useWatchlistStore: () => ({ watchlistSources: sourceState.sources, watchlistSourcesLoading: sourceState.loading, watchlistSourcesError: sourceState.error, watchlists: sourceState.watchlists, loadWatchlistSources, loadWatchlists, resolveWatchlistSource, createWatchlist, addItem }) }))
 vi.mock('@/stores/userSettings', () => ({ useUserSettingsStore: () => ({ followedSourceIds: [], pinnedSourceIds: [], loadSettings: loadUserSettings, toggleFollowedSource, togglePinnedSource }) }))
 
@@ -51,6 +51,7 @@ describe('MarketMapTool', () => {
     toggleFollowedSource.mockReset()
     togglePinnedSource.mockReset()
     invalidateQueries.mockReset()
+    fetchQuery.mockReset().mockImplementation(({ queryFn }: { queryFn: () => unknown }) => queryFn())
     sourceState.sources = [...defaultSources]
     sourceState.watchlists = []
     apiPost.mockResolvedValue(response)

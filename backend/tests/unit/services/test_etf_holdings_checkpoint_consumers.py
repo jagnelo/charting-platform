@@ -13,6 +13,7 @@ import pytest
 from sqlalchemy import func, select
 
 import app.routers.etf_holdings as etf_holdings_router
+from app.lib.time_utils import wire_datetime
 from app.models.basket import Basket
 from app.models.etf_holdings import (
     ETFHolding,
@@ -78,6 +79,7 @@ def lineage(db, instrument, instrument_type):
         etf_profile_id=profile.id,
         source_kind="issuer_current_holdings",
         source_url="https://issuer.example/holdings.csv",
+        source_identifier="ark:holdings:fixture",
         content_hash="checkpoint-original-artifact",
         fetched_at=now - timedelta(days=1),
         payload_text="Ticker,Weight\nAAPL,100%\n",
@@ -196,8 +198,24 @@ def test_denied_refresh_preserves_history_and_rejects_current_analysis(
         headers=auth_headers,
     )
     assert historical.status_code == 200, historical.text
-    assert historical.json()["source_snapshot_id"] == snapshot.id
-    assert historical.json()["metadata"]["provenance"] == "issuer_current_holdings"
+    basket_body = historical.json()
+    assert basket_body["source_snapshot_id"] == snapshot.id
+    assert basket_body["metadata"]["provenance"] == "issuer_current_holdings"
+    assert basket_body["metadata"]["source_provider"] == "ark"
+    assert basket_body["metadata"]["source_identifier"] == artifact.source_identifier
+    assert basket_body["metadata"]["source_url"] == artifact.source_url
+    assert basket_body["metadata"]["source_artifact_id"] == artifact.id
+    assert basket_body["metadata"]["source_artifact_hash"] == artifact.content_hash
+    assert basket_body["metadata"]["snapshot_hash"] == snapshot.snapshot_hash
+    assert basket_body["metadata"]["composition_date"] == snapshot.composition_date.isoformat()
+    assert basket_body["metadata"]["known_at"] == wire_datetime(snapshot.known_at)
+    basket_snapshots = client.get(
+        f"/api/v1/baskets/{basket_body['id']}/snapshots", headers=auth_headers
+    )
+    assert basket_snapshots.status_code == 200
+    history_metadata = basket_snapshots.json()[0]["metadata"]
+    assert history_metadata["source_artifact_hash"] == artifact.content_hash
+    assert history_metadata["source_identifier"] == artifact.source_identifier
     db.refresh(snapshot)
     db.refresh(artifact)
     assert snapshot.snapshot_hash == original_hash

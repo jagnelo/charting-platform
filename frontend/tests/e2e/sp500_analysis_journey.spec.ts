@@ -72,11 +72,14 @@ async function getJson<T>(request: APIRequestContext, token: string, path: strin
 }
 
 function barResponseFor(response: Response, symbol: string, timeframe: string): boolean {
-  const parts = new URL(response.url()).pathname.split('/').filter(Boolean)
+  const url = new URL(response.url())
+  const parts = url.pathname.split('/').filter(Boolean)
   const ohlcvIndex = parts.lastIndexOf('ohlcv')
   if (ohlcvIndex < 0) return false
   const symbolIndex = parts[ohlcvIndex + 1] === 'local' ? ohlcvIndex + 2 : ohlcvIndex + 1
-  return parts[symbolIndex]?.toUpperCase() === symbol && parts[symbolIndex + 1] === timeframe
+  return parts[symbolIndex]?.toUpperCase() === symbol
+    && parts[symbolIndex + 1] === timeframe
+    && url.searchParams.get('adjusted') !== 'false'
 }
 
 function rotationResponseFor(response: Response, timeframe: AnalysisTimeframe): boolean {
@@ -100,13 +103,17 @@ function rotationPercent(value: number): string {
 
 function assertActualBars(symbol: string, bars: Bar[], minimumCount = 2): void {
   expect(bars.length, `${symbol} must have persisted bars in the seeded backend`).toBeGreaterThanOrEqual(minimumCount)
-  for (const bar of bars) {
-    expect(Number.isFinite(Date.parse(bar.ts)), `${symbol} bar timestamp`).toBe(true)
-    expect(Number.isFinite(bar.close) && bar.close > 0, `${symbol} raw close`).toBe(true)
-  }
+  const invalidBars: Array<{ index: number; ts: string; close: number; invalid: string[] }> = []
+  bars.forEach((bar, index) => {
+    const invalid: string[] = []
+    if (!Number.isFinite(Date.parse(bar.ts))) invalid.push('timestamp')
+    if (!Number.isFinite(bar.close) || bar.close <= 0) invalid.push('close')
+    if (invalid.length) invalidBars.push({ index, ts: bar.ts, close: bar.close, invalid })
+  })
+  expect(invalidBars, `${symbol} bars must all have finite timestamps and positive closes`).toEqual([])
 }
 
-function assertRatioMatchesRawIntersection(
+function assertRatioMatchesAdjustedIntersection(
   primary: string,
   benchmark: string,
   primaryBars: Bar[],
@@ -116,7 +123,7 @@ function assertRatioMatchesRawIntersection(
   expect(response.symbol).toBe(primary)
   expect(response.benchmark).toBe(benchmark)
   expect(response.timeframe).toBe('D1')
-  expect(response.adjustment).toBe('raw')
+  expect(response.adjustment).toBe('split_adjusted')
   expect(response.warnings.filter(warning => warning.code === 'stale_data')).toEqual([])
 
   const primaryByTime = new Map(primaryBars.map(bar => [Date.parse(bar.ts), bar.close]))
@@ -126,17 +133,43 @@ function assertRatioMatchesRawIntersection(
     .sort((left, right) => left - right)
     .map(timestamp => ({ timestamp, value: primaryByTime.get(timestamp)! / benchmarkByTime.get(timestamp)! }))
 
-  expect(response.points.length, `${primary}/${benchmark} must contain every raw timestamp intersection`).toBe(expected.length)
+  expect(response.points.length, `${primary}/${benchmark} must contain every split-adjusted timestamp intersection`).toBe(expected.length)
   expect(response.coverage).toBeGreaterThan(0)
+  const mismatches: Array<{
+    index: number
+    timestamp: string
+    expectedTimestamp?: number
+    value: number
+    expectedValue?: number
+    delta?: number
+    invalid: string[]
+  }> = []
   response.points.forEach((point, index) => {
-    expect(Date.parse(point.timestamp)).toBe(expected[index].timestamp)
-    expect(Number.isFinite(point.value)).toBe(true)
-    expect(Math.abs(point.value - expected[index].value), `${primary}/${benchmark} at ${point.timestamp}`).toBeLessThan(1e-10)
+    const expectedPoint = expected[index]
+    const timestamp = Date.parse(point.timestamp)
+    const delta = expectedPoint ? point.value - expectedPoint.value : undefined
+    const invalid: string[] = []
+    if (!expectedPoint || !Number.isFinite(timestamp) || timestamp !== expectedPoint.timestamp) invalid.push('timestamp')
+    if (!Number.isFinite(point.value)) invalid.push('value')
+    if (delta === undefined || !Number.isFinite(delta) || Math.abs(delta) >= 1e-10) invalid.push('ratio')
+    if (invalid.length) {
+      mismatches.push({
+        index,
+        timestamp: point.timestamp,
+        expectedTimestamp: expectedPoint?.timestamp,
+        value: point.value,
+        expectedValue: expectedPoint?.value,
+        delta,
+        invalid,
+      })
+    }
   })
+  expect(mismatches, `${primary}/${benchmark} every aligned timestamp and ratio must match within 1e-10`).toEqual([])
 }
 
 async function assertChartRendered(page: Page, symbol: string, bars: Bar[]): Promise<void> {
   assertActualBars(symbol, bars)
+  expect(bars.every(bar => bar.is_adjusted === true), `${symbol} chart response uses the default split-adjusted basis`).toBe(true)
   const chart = page.locator('.tool-window[data-window-key="primary-chart"]')
   await expect(chart.locator('.tool-window__symbol')).toHaveText(symbol)
   const plot = chart.locator('.chart-root')
@@ -198,18 +231,25 @@ function assertRotationPayload(payload: RotationResponse, timeframe: AnalysisTim
   expect(payload.coverage_preflight.status).toBe('full')
   expect(payload.rows.map(row => row.symbol).sort()).toEqual([...SECTOR_SYMBOLS].sort())
   for (const row of payload.rows) {
-    expect(row.state, `${timeframe} ${row.symbol} has a computed quadrant`).toMatch(/^(leading|weakening|improving|lagging)$/)
-    expect(Number.isFinite(row.trend), `${timeframe} ${row.symbol} trend is finite`).toBe(true)
-    expect(Number.isFinite(row.momentum), `${timeframe} ${row.symbol} momentum is finite`).toBe(true)
-    expect(row.coverage, `${timeframe} ${row.symbol} has coverage`).toBeGreaterThan(0)
-    expect(row.tail.length, `${timeframe} ${row.symbol} has its configured RRG tail`).toBeGreaterThanOrEqual(10)
-    for (const point of row.tail) {
-      expect(Number.isFinite(Date.parse(point.timestamp))).toBe(true)
-      expect(Number.isFinite(point.trend) && Number.isFinite(point.momentum)).toBe(true)
-    }
+    const invalid: Array<Record<string, unknown>> = []
+    if (!row.state || !/^(leading|weakening|improving|lagging)$/.test(row.state)) invalid.push({ state: row.state })
+    if (!Number.isFinite(row.trend)) invalid.push({ trend: row.trend })
+    if (!Number.isFinite(row.momentum)) invalid.push({ momentum: row.momentum })
+    if (!Number.isFinite(row.coverage) || row.coverage <= 0) invalid.push({ coverage: row.coverage })
+    if (row.tail.length < 10) invalid.push({ tail_length: row.tail.length, required_minimum: 10 })
     for (let index = 1; index < row.tail.length; index += 1) {
-      expect(Date.parse(row.tail[index - 1].timestamp)).toBeLessThan(Date.parse(row.tail[index].timestamp))
+      const previous = Date.parse(row.tail[index - 1].timestamp)
+      const current = Date.parse(row.tail[index].timestamp)
+      if (!Number.isFinite(previous) || !Number.isFinite(current) || previous >= current) {
+        invalid.push({ index, previous_timestamp: row.tail[index - 1].timestamp, timestamp: row.tail[index].timestamp })
+      }
     }
+    row.tail.forEach((point, index) => {
+      if (!Number.isFinite(Date.parse(point.timestamp)) || !Number.isFinite(point.trend) || !Number.isFinite(point.momentum)) {
+        invalid.push({ index, timestamp: point.timestamp, trend: point.trend, momentum: point.momentum })
+      }
+    })
+    expect(invalid, `${timeframe} ${row.symbol} RRG result and every tail point must be complete and finite`).toEqual([])
   }
 }
 
@@ -416,7 +456,7 @@ async function assertRatioUiLine(page: Page, numerator: string, denominator: str
   }, 0), expectedRgb)).toBeGreaterThan(8)
 }
 
-test('SPY and all eleven sector charts use real bars, and both sector/SPY ratios match raw aligned closes', async ({ page, request, loggedIn }) => {
+test('SPY and all eleven sector charts use real bars, and both sector/SPY ratios match split-adjusted aligned closes', async ({ page, request, loggedIn }) => {
   void loggedIn
   test.setTimeout(180_000)
   const token = await bearerToken(page)
@@ -434,17 +474,17 @@ test('SPY and all eleven sector charts use real bars, and both sector/SPY ratios
         symbol: primary,
         benchmark,
         timeframe: 'D1',
-        adjusted: false,
+        adjusted: true,
       })
       ratioResponses.set(`${primary}/${benchmark}`, response)
     }
   }
 
   const ratioTimestamps = [...ratioResponses.values()].flatMap(response => response.points.map(point => Date.parse(point.timestamp)))
-  expect(ratioTimestamps.length, 'the actual ratio APIs must return aligned raw points').toBeGreaterThan(0)
+  expect(ratioTimestamps.length, 'the actual ratio APIs must return aligned split-adjusted points').toBeGreaterThan(0)
   const start = new Date(Math.min(...ratioTimestamps)).toISOString()
   const end = new Date(Math.max(...ratioTimestamps)).toISOString()
-  const rawBarsBySymbol = new Map<string, Bar[]>()
+  const adjustedBarsBySymbol = new Map<string, Bar[]>()
   await Promise.all(SP500_SYMBOLS.map(async symbol => {
     // The default chart endpoint is capped at its latest 500 bars. A bounded
     // explicit range keeps this independent arithmetic aligned with the full
@@ -452,21 +492,21 @@ test('SPY and all eleven sector charts use real bars, and both sector/SPY ratios
     const bars = await getJson<Bar[]>(request, token, `/api/v1/ohlcv/${symbol}/D1`, {
       start,
       end,
-      adjusted: false,
+      adjusted: true,
       local_only: true,
     })
     assertActualBars(symbol, bars, 20)
-    expect(bars.every(bar => bar.is_adjusted === false), `${symbol} response is raw`).toBe(true)
-    rawBarsBySymbol.set(symbol, bars)
+    expect(bars.every(bar => bar.is_adjusted === true), `${symbol} response uses the default split-adjusted basis`).toBe(true)
+    adjustedBarsBySymbol.set(symbol, bars)
   }))
 
   for (const symbol of SECTOR_SYMBOLS) {
     for (const [primary, benchmark] of [[symbol, 'SPY'], ['SPY', symbol]] as const) {
-      assertRatioMatchesRawIntersection(
+      assertRatioMatchesAdjustedIntersection(
         primary,
         benchmark,
-        rawBarsBySymbol.get(primary)!,
-        rawBarsBySymbol.get(benchmark)!,
+        adjustedBarsBySymbol.get(primary)!,
+        adjustedBarsBySymbol.get(benchmark)!,
         ratioResponses.get(`${primary}/${benchmark}`)!,
       )
     }
@@ -491,7 +531,15 @@ test('SPY and all eleven sector charts use real bars, and both sector/SPY ratios
     const uiRatioResponse = page.waitForResponse(response => response.ok() && relativeStrengthResponseFor(response, symbol, 'SPY'))
     await option.click()
     await assertChartRendered(page, symbol, await chartResponse.then(response => response.json() as Promise<Bar[]>))
-    await assertRatioUiLine(page, symbol, 'SPY', await uiRatioResponse.then(response => response.json() as Promise<RatioResponse>))
+    const visibleRatio = await uiRatioResponse.then(response => response.json() as Promise<RatioResponse>)
+    assertRatioMatchesAdjustedIntersection(
+      symbol,
+      'SPY',
+      adjustedBarsBySymbol.get(symbol)!,
+      adjustedBarsBySymbol.get('SPY')!,
+      visibleRatio,
+    )
+    await assertRatioUiLine(page, symbol, 'SPY', visibleRatio)
     await expect(ratioTool.locator('.ratio-chart__legend strong')).toContainText(`${symbol}/SPY`)
   }
 
@@ -507,7 +555,15 @@ test('SPY and all eleven sector charts use real bars, and both sector/SPY ratios
     await compare.fill(symbol)
     const uiRatioResponse = page.waitForResponse(response => response.ok() && relativeStrengthResponseFor(response, 'SPY', symbol))
     await ratioTool.getByRole('button', { name: 'Add ratio comparison' }).click()
-    await assertRatioUiLine(page, 'SPY', symbol, await uiRatioResponse.then(response => response.json() as Promise<RatioResponse>))
+    const visibleRatio = await uiRatioResponse.then(response => response.json() as Promise<RatioResponse>)
+    assertRatioMatchesAdjustedIntersection(
+      'SPY',
+      symbol,
+      adjustedBarsBySymbol.get('SPY')!,
+      adjustedBarsBySymbol.get(symbol)!,
+      visibleRatio,
+    )
+    await assertRatioUiLine(page, 'SPY', symbol, visibleRatio)
   }
 })
 
@@ -523,6 +579,10 @@ test('S&P 500 RRG renders deep D1/W1/MN data and survives selection, resize, max
 
   const rrgWindow = page.locator('.tool-window[data-window-key="relative-rotation"]')
   const rotation = page.getByRole('region', { name: 'Relative rotation vs SPY' })
+  const rrgTab = page.locator('.lm_tab:visible').filter({ hasText: /^Relative Rotation$/ }).last()
+  await expect(rrgTab).toBeVisible()
+  await rrgTab.click()
+  await expect(rrgTab).toHaveClass(/lm_active/)
   await expect(rotation).toBeVisible()
   await expect(rrgWindow.getByRole('button', { name: 'Maximize tool' })).toBeVisible()
   await rrgWindow.getByRole('button', { name: 'Maximize tool' }).click()
@@ -537,20 +597,25 @@ test('S&P 500 RRG renders deep D1/W1/MN data and survives selection, resize, max
   const reloadedD1 = await initialD1Response
   const d1Payload = await reloadedD1.json() as RotationResponse
   pageResponses.set('D1', d1Payload)
-  await expect(page.getByRole('region', { name: 'Relative rotation vs SPY' })).toBeVisible()
-  // Workspace state survives reload. Restore the chart window before proving
-  // linked primary-chart visibility, so a hidden chart cannot satisfy the flow.
+  // The saved workspace may restore its primary Technicals dock tab. Restore
+  // the maximized window first, then activate Relative Rotation through its
+  // ordinary visible Golden Layout tab before asserting the analysis surface.
   await expect(rrgWindow.getByRole('button', { name: 'Restore tool' })).toBeVisible()
   await rrgWindow.getByRole('button', { name: 'Restore tool' }).click()
   await expect(rrgWindow.getByRole('button', { name: 'Maximize tool' })).toBeVisible()
   await expect(page.locator('.tool-window[data-window-key="primary-chart"]')).toBeVisible()
+  const reloadedRrgTab = page.locator('.lm_tab:visible').filter({ hasText: /^Relative Rotation$/ }).last()
+  await expect(reloadedRrgTab).toBeVisible()
+  await reloadedRrgTab.click()
+  await expect(reloadedRrgTab).toHaveClass(/lm_active/)
+  await expect(page.getByRole('region', { name: 'Relative rotation vs SPY' })).toBeVisible()
 
   for (const timeframe of TIMEFRAMES) {
     directResponses.set(timeframe, await getJson<RotationResponse>(
       request,
       token,
       '/api/v1/analysis/groups/sp500-sectors/relative-rotation',
-      { timeframe, adjusted: true, sampling: 1, lookback: 20, tail_length: 10, history_length: 0 },
+      { benchmark: 'SPY', timeframe, adjusted: true, sampling: 1, lookback: 20, tail_length: 10, history_length: 0 },
     ))
     assertRotationPayload(directResponses.get(timeframe)!, timeframe)
   }

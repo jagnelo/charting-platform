@@ -12,6 +12,7 @@ from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
 from app.models.exchange import Exchange
 from app.models.instrument import EquityDetail, Instrument
 from app.models.listing import InstrumentListing
+from app.models.market_data_foundation import AdjustmentBasis
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
 from app.services.top_down_taxonomy import benchmark_family_proxy_symbols
@@ -439,6 +440,8 @@ async def seed_e2e_market_data(db: AsyncSession) -> None:
                     close=Decimal(str(round(close, 8))),
                     volume=Decimal(str(1_000_000 + (index % 31) * 10_000 + len(symbol) * 1_000)),
                     is_adjusted=True,
+                    adjustment_basis=AdjustmentBasis.SPLIT_ADJUSTED,
+                    adjustment_version="e2e-split-adjusted-v1",
                 )
             )
             previous = close
@@ -470,6 +473,8 @@ async def seed_e2e_market_data(db: AsyncSession) -> None:
                         close=Decimal(str(round(close, 8))),
                         volume=Decimal(str(800_000 + (index % 31) * 9_000 + len(symbol) * 1_000)),
                         is_adjusted=True,
+                        adjustment_basis=AdjustmentBasis.SPLIT_ADJUSTED,
+                        adjustment_version="e2e-split-adjusted-v1",
                     )
                 )
                 historical_previous = close

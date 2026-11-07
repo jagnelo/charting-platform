@@ -4970,7 +4970,7 @@ class SpdrHoldingsAdapter(IssuerCsvHoldingsAdapter):
     @staticmethod
     def _classify_row(*, name: str | None, source_ticker: str | None) -> tuple[str, str]:
         text = " ".join(part for part in (name, source_ticker) if part).upper()
-        if any(token in text for token in ("CASH", "MONEY MARKET", "TREASURY BILL")):
+        if any(token in text for token in ("CASH", "MONEY MARKET", "TREASURY BILL", "US DOLLAR")):
             return "cash", "cash"
         if any(token in text for token in ("OPTION", "FUTURE", "SWAP", "FORWARD")) or re.search(
             r"\b\d{6}[CP]\d{8}\b",
@@ -41392,7 +41392,10 @@ class AmplifyHoldingsAdapter(IssuerCsvHoldingsAdapter):
             row_type = "cash" if holding_type == "cash" else "security"
             rows.append(
                 CanonicalHoldingRow(
-                    symbol=symbol_value if row_type != "cash" else None,
+                    # A reported futures row can carry a contract code that
+                    # resembles a ticker. Keep it in the source payload, but
+                    # do not expose it as a priceable equity symbol.
+                    symbol=symbol_value if holding_type == "security" else None,
                     name=name,
                     cusip=raw_identifier if _looks_like_cusip(raw_identifier) else None,
                     sedol=(

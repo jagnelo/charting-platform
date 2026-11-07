@@ -3191,8 +3191,8 @@
   "control_surfaces": [
     {
       "source": "frontend/src/views/AlertsView.vue",
-      "control_count": 21,
-      "signature_sha256": "527eb4e0d549791791ae432c9e67c76d53ad67b4bdbedf1d9d6795c727cc77c4",
+      "control_count": 27,
+      "signature_sha256": "5a82bfa77b6686e66a6a820b075387ca33b0b02c8a906a16043d81bbd13b3be7",
       "journeys": [
         "TC09"
       ],
@@ -3203,9 +3203,24 @@
       "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
     },
     {
+      "source": "frontend/src/views/ChartView.vue",
+      "control_count": 12,
+      "signature_sha256": "70c5b6da306d20b05b78a8e11abdd7461350fc19421bcc3c3fe803697d8afce1",
+      "journeys": [
+        "TC04",
+        "TC06",
+        "TC08"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/views/ChartView.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
       "source": "frontend/src/views/DashboardView.vue",
-      "control_count": 28,
-      "signature_sha256": "6a0f5a729ea64881896dab0949038036f8833c07577426e06fb3a3e164fcd3ff",
+      "control_count": 61,
+      "signature_sha256": "8d19b9a3de47eb9e714ee4978ca71b997d47d735077150b58b6d33da057ae26c",
       "journeys": [
         "TC09"
       ],
@@ -3225,8 +3240,8 @@
     },
     {
       "source": "frontend/src/views/LoginView.vue",
-      "control_count": 5,
-      "signature_sha256": "0a10a2ee706ac4688fb035eb62a4bedda906ad2ff9fd3e9a9379ce646659bac2",
+      "control_count": 7,
+      "signature_sha256": "d07acb937eb2c4c49cb89ee97c8101aa3afa3a27a4c393524124200dacb7923f",
       "journeys": [
         "TC09"
       ],
@@ -3238,8 +3253,8 @@
     },
     {
       "source": "frontend/src/views/RadarView.vue",
-      "control_count": 20,
-      "signature_sha256": "779052da40e730a885bcb4683cedca634aa14fa3c4d32d38a9c7f8f25c212012",
+      "control_count": 31,
+      "signature_sha256": "49e9cd90ef738b7e2498c6f4ad716ae3ee9bf05eab596d3e4e15b57719bd0c78",
       "journeys": [
         "TC09"
       ],
@@ -3252,8 +3267,8 @@
     },
     {
       "source": "frontend/src/views/ScreenerView.vue",
-      "control_count": 40,
-      "signature_sha256": "e5ec30893e1687107e1217819596fa61820dd4a3809f7798187e439fb149f5ce",
+      "control_count": 48,
+      "signature_sha256": "55d9e1de9361f45f2eb3ecb12d962a18175d207c03c28b99e7725f091ad4a6dd",
       "journeys": [
         "TC09"
       ],
@@ -3265,8 +3280,8 @@
     },
     {
       "source": "frontend/src/views/SettingsView.vue",
-      "control_count": 6,
-      "signature_sha256": "c58aa2937aaf0321163a53e875f833a02d1d1c20d75313e75fc73e189a278a0e",
+      "control_count": 17,
+      "signature_sha256": "f890703e351dcffade7d64c96352428d506856ed5b6b796d8c60661f32f8b142",
       "journeys": [
         "TC09"
       ],
@@ -3278,8 +3293,8 @@
     },
     {
       "source": "frontend/src/views/WatchlistView.vue",
-      "control_count": 8,
-      "signature_sha256": "4a0e13adfe5ade59490279ca417c2bf72883a4c3247a59c205c37cbeeffc217a",
+      "control_count": 22,
+      "signature_sha256": "ac5422421d8ea9d27a96dee541603e1977c41a433ea078d3bbe01f3ff5296f35",
       "journeys": [
         "TC09"
       ],
@@ -3308,8 +3323,8 @@
     },
     {
       "source": "frontend/src/components/alerts/AlertForm.vue",
-      "control_count": 5,
-      "signature_sha256": "37ddb0457e58584cc2dd82a792c322b0a7248a40c2ffef5c6e098a0963a1c74b",
+      "control_count": 23,
+      "signature_sha256": "ceb8d06094ddb77d4ee5b76606383c574c8ab757ee9bcbec76991494e30a8b71",
       "journeys": [
         "TC09"
       ],
@@ -3362,8 +3377,8 @@
     },
     {
       "source": "frontend/src/components/chart/IndicatorPanel.vue",
-      "control_count": 30,
-      "signature_sha256": "c5bf77a7e4cffc0109334b38cbbc936168a09ed01b2fab7af08f39ad4ae3d18f",
+      "control_count": 79,
+      "signature_sha256": "38b6e8e91b13b198d7e40a34b61b2de00c3b521e272c1fabf83e8193542c6f77",
       "journeys": [
         "TC09"
       ],
@@ -3375,8 +3390,8 @@
     },
     {
       "source": "frontend/src/components/chart/InstrumentInfoPanel.vue",
-      "control_count": 2,
-      "signature_sha256": "38329e2977d3f2b88860d2f689430d78f1102c54e2bcfe7572dba5d6db5c87e1",
+      "control_count": 4,
+      "signature_sha256": "cbff8dcebc3b2c686ad2bfcc3e9e8a0a49f82c6b01d874949cbdd404a9d6cbd0",
       "journeys": [
         "TC09"
       ],
@@ -3388,8 +3403,8 @@
     },
     {
       "source": "frontend/src/components/chart/LayoutPicker.vue",
-      "control_count": 5,
-      "signature_sha256": "890114df5ae106aa870301121b097da5c2a47ea14692e44a7552fdc12288349a",
+      "control_count": 12,
+      "signature_sha256": "763a1248dfa9ab403584ae60c08eded540f03de1698c8c1da45387ff2f6accbb",
       "journeys": [
         "TC06",
         "TC07"
@@ -3416,8 +3431,8 @@
     },
     {
       "source": "frontend/src/components/chart/UPlotChart.vue",
-      "control_count": 6,
-      "signature_sha256": "50e2f2e78970adff27c69742d5cf65c1389eddd74912afdec2eec15ea9e69d1b",
+      "control_count": 26,
+      "signature_sha256": "ce46494fe38cdba8310eeb7d6bbc299ab6c33f92008d5d67c8c8117f28cd1831",
       "journeys": [
         "TC03",
         "TC04"
@@ -3456,8 +3471,8 @@
     },
     {
       "source": "frontend/src/components/common/SearchBar.vue",
-      "control_count": 4,
-      "signature_sha256": "006c9ecb2fab1a07f56d726d1606d567573406afe49f0bf59a70a4fdf50811a2",
+      "control_count": 7,
+      "signature_sha256": "7a66c2b8f6d7dbb7116ad9a2512d1f3fe871d5bc8199373e1c84dd9010f72d20",
       "journeys": [
         "TC02"
       ],
@@ -3502,8 +3517,8 @@
     },
     {
       "source": "frontend/src/components/common/TechnicalConditionEditor.vue",
-      "control_count": 7,
-      "signature_sha256": "994072f17276b29f6297b2e13951b0b6c903ae4f59724305c0f6afc8253bade5",
+      "control_count": 49,
+      "signature_sha256": "82a5223ba119d2d7d6489ee9b6d5696d88622ea399ac74591e526b3813e5048f",
       "journeys": [
         "TC09"
       ],
@@ -3541,8 +3556,8 @@
     },
     {
       "source": "frontend/src/components/dashboard/DashboardHeatMapWidget.vue",
-      "control_count": 2,
-      "signature_sha256": "ebeb15d54055ffbeeb820decd7ac9fa7f97d2db65f051eb525b55a1d689b7e72",
+      "control_count": 3,
+      "signature_sha256": "a6312581be975446634950285e86dda5fbe77632db1b6684f20fe3b6d866619b",
       "journeys": [
         "TC09"
       ],
@@ -3567,8 +3582,8 @@
     },
     {
       "source": "frontend/src/components/dashboard/DashboardNotesWidget.vue",
-      "control_count": 6,
-      "signature_sha256": "3c9f2d92f70aca39feae408e5a71c12d90566464fb3b5e6b2318406795252e1b",
+      "control_count": 7,
+      "signature_sha256": "0c4f2db06034b19c6d33384fd014db942288bf497b8b4cb35f48a3cf06031e39",
       "journeys": [
         "TC09"
       ],
@@ -3580,8 +3595,8 @@
     },
     {
       "source": "frontend/src/components/dashboard/DashboardRadarWidget.vue",
-      "control_count": 2,
-      "signature_sha256": "986afba1dc742327b80ca13d8a21f51e313757e417aa5baf78cc0c07496dc5d6",
+      "control_count": 5,
+      "signature_sha256": "e5812a0e331e8f0ba699711cfda4506a468421061f395df6bc02236afe4f17e9",
       "journeys": [
         "TC09"
       ],
@@ -3658,8 +3673,8 @@
     },
     {
       "source": "frontend/src/components/watchlist/WatchlistPanel.vue",
-      "control_count": 14,
-      "signature_sha256": "9f25f92a4d0727b3a0146a33bc7726ad410dbfdafac9401a3993e68e1df2c1af",
+      "control_count": 24,
+      "signature_sha256": "b5a0fa367fa9cf3cbc7448433c41129e38f01f82073a9dc29d10786c8310764a",
       "journeys": [
         "TC09"
       ],
@@ -3671,8 +3686,8 @@
     },
     {
       "source": "frontend/src/components/workstation/BreadthConditionTreeEditor.vue",
-      "control_count": 1,
-      "signature_sha256": "003192f7cdeb4de24800487252e90826ab879b833a0d6e501f803f94be08bf22",
+      "control_count": 64,
+      "signature_sha256": "f5c44f552233fc2ad576880d51b8619b03105ad939ea71575bde23916ab7ef9a",
       "journeys": [
         "TC04",
         "TC06",
@@ -3701,8 +3716,8 @@
     },
     {
       "source": "frontend/src/components/workstation/ChartTemplateControl.vue",
-      "control_count": 10,
-      "signature_sha256": "e79d5c21857c57523e001e3959f98f4d8bcbc876ba09ffcf11a74be5ce522908",
+      "control_count": 19,
+      "signature_sha256": "962d64f1cd46c38053804d216c0c44a6b4dee0fe8a976f5182bd2c57a500ed3e",
       "journeys": [
         "TC04",
         "TC06",
@@ -3716,8 +3731,8 @@
     },
     {
       "source": "frontend/src/components/workstation/ConditionGroupEditor.vue",
-      "control_count": 2,
-      "signature_sha256": "3e59e1e63e528ec8433405ec54695e747a88fefc1d32480219720e9252cfebde",
+      "control_count": 4,
+      "signature_sha256": "b751b49c1c4d18555f06776c4a08c4eba75df8dc83ea626f36895779b89568cb",
       "journeys": [
         "TC04",
         "TC06",
@@ -3776,8 +3791,8 @@
     },
     {
       "source": "frontend/src/components/workstation/InstrumentAlertsTool.vue",
-      "control_count": 10,
-      "signature_sha256": "d98b4c715c46c6536205e88f9ddc98e16afcf77aab2cbe86c8e7b247e3e45103",
+      "control_count": 32,
+      "signature_sha256": "9e296746e06e7058e7ae85e94b998e499f0348138b84999b6095b483893cbb6b",
       "journeys": [
         "TC04",
         "TC06",
@@ -3821,8 +3836,8 @@
     },
     {
       "source": "frontend/src/components/workstation/MarketMapTool.vue",
-      "control_count": 7,
-      "signature_sha256": "f8a63533f7a3987a0024fc8b80123388b9c2bcbbee1b55e9a77458af88d04d93",
+      "control_count": 63,
+      "signature_sha256": "93165a43aa29a3e3fd20a3133c87636f440b99fe9fece2edebd105a7bfa0232f",
       "journeys": [
         "TC04",
         "TC06",
@@ -3851,8 +3866,8 @@
     },
     {
       "source": "frontend/src/components/workstation/RatioUPlot.vue",
-      "control_count": 3,
-      "signature_sha256": "237c01d739939b30d1867a7f06f468da300a9b834d951b74ebd55ee58057f553",
+      "control_count": 4,
+      "signature_sha256": "c8ed4ce7c039409d2a5d18b9c6d9321272aaafaf4a1b4768ab7dc606e8cd605d",
       "journeys": [
         "TC05"
       ],
@@ -3872,6 +3887,21 @@
       "evidence_status": "source_mapped_browser_pending",
       "evidence": [
         "frontend/src/components/workstation/RelativeRotationTool.vue"
+      ],
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+    },
+    {
+      "source": "frontend/src/components/workstation/StudyDashboard.vue",
+      "control_count": 1,
+      "signature_sha256": "fd921e6f448f388808dfbe91552d8c30e93d45728189dc6f56ebe291412084d6",
+      "journeys": [
+        "TC04",
+        "TC06",
+        "TC08"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/workstation/StudyDashboard.vue"
       ],
       "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
     },
@@ -3921,8 +3951,8 @@
     },
     {
       "source": "frontend/src/components/workstation/VirtualWatchlistTool.vue",
-      "control_count": 33,
-      "signature_sha256": "6ddf89ffa6a5d1ce4624f39714513f6464dcff6eedd1df1ddf0cb7d93ef36e40",
+      "control_count": 62,
+      "signature_sha256": "f838c5ba349fd608035945d8313303f3efefe0f1cd3609957b8658fe34af81b5",
       "journeys": [
         "TC04",
         "TC06",
@@ -3936,8 +3966,8 @@
     },
     {
       "source": "frontend/src/components/workstation/WorkstationToolContent.vue",
-      "control_count": 24,
-      "signature_sha256": "268083919a0ab0d7b6316302b2fb4e33bedd319dd5ee5b232d0ac184b35bbe5a",
+      "control_count": 116,
+      "signature_sha256": "bab54272d8f5fa1fa5cc945e7fe8dcd5452c1faf9d65215049b10398507a9cf5",
       "journeys": [
         "TC04",
         "TC06",

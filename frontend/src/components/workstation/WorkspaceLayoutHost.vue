@@ -8,6 +8,7 @@ import { GoldenLayout, type LayoutConfig } from 'golden-layout'
 import '../../../node_modules/golden-layout/dist/css/goldenlayout-base.css'
 import { normaliseGoldenLayoutConfig } from '@/lib/workstation/layout'
 import { resizePanesEvenly, type PaneResizeSide } from '@/lib/workstation/modifier-pane-resize'
+import { dockTabWindowKey } from '@/lib/workstation/toolActivation'
 
 interface DockToolState {
   instance_key: string
@@ -204,6 +205,24 @@ function releaseInitialSuppression(event?: Event) {
     if (activationGuardTimer !== null) window.clearTimeout(activationGuardTimer)
     activationGuardTimer = null
   }
+}
+
+function activateClickedDockTab(event: PointerEvent) {
+  const bindings = [...componentItems.entries()].flatMap(([windowKey, component]) => {
+    const tabs = component.parentItem?.header?.tabs
+    if (!Array.isArray(tabs)) return []
+    return tabs
+      .filter((tab: any) => tab.contentItem === component && tab.element instanceof HTMLElement)
+      .map((tab: any) => ({ windowKey, element: tab.element as HTMLElement }))
+  })
+  const windowKey = dockTabWindowKey(event.target, bindings)
+  if (!windowKey || windowKey === props.activeWindowKey) return
+  // Golden Layout's activation callback can be suppressed while a persisted
+  // selection is being restored. A real pointer action is newer intent: sync
+  // the parent key immediately so the async virtual-root and stack activation
+  // paths reassert the clicked component instead of the stale saved selection.
+  if (installedTabKey === undefined) emit('active-window-changed', windowKey)
+  else emit('active-window-changed', windowKey, installedTabKey)
 }
 
 function layoutFingerprint(layout: LayoutConfig) {
@@ -609,6 +628,7 @@ watch(
 )
 onMounted(() => {
   host.value?.addEventListener('pointerdown', releaseInitialSuppression, true)
+  host.value?.addEventListener('pointerdown', activateClickedDockTab, true)
   host.value?.addEventListener('pointerdown', beginModifierResize, true)
   host.value?.addEventListener('keydown', releaseInitialSuppression, true)
   install(props.layout)
@@ -626,6 +646,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   if (installTimer !== null) window.clearTimeout(installTimer)
   host.value?.removeEventListener('pointerdown', releaseInitialSuppression, true)
+  host.value?.removeEventListener('pointerdown', activateClickedDockTab, true)
   host.value?.removeEventListener('pointerdown', beginModifierResize, true)
   host.value?.removeEventListener('keydown', releaseInitialSuppression, true)
   teardown()

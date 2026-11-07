@@ -1859,18 +1859,18 @@ function onCtrlWheel(event: WheelEvent) {
 </script>
 
 <style scoped>
-.watchlist { position: relative; display: grid; box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%; height: 100%; min-height: 0; grid-template-columns: minmax(0, 1fr); grid-template-rows: 23px auto minmax(0, 1fr); color: #c7d0d8; background: #11161b; font: 11px/1.2 "Segoe UI", Arial, sans-serif; }
+.watchlist { position: relative; display: grid; box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%; height: 100%; min-height: 0; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(23px, auto) auto minmax(0, 1fr); color: #c7d0d8; background: #11161b; font: 11px/1.2 "Segoe UI", Arial, sans-serif; }
 .watchlist--plot-drop-active { outline: 1px solid #69a9d2; outline-offset: -1px; }
 .watchlist__plot-drop-hint { position: absolute; z-index: 4; inset: 3px 3px auto; margin: 0; padding: 4px 6px; border: 1px solid #69a9d2; background: #193040eF; color: #dcecf6; text-align: center; pointer-events: none; }
 .watchlist__drop-error { position: absolute; z-index: 4; inset: 3px 3px auto; margin: 0; padding: 4px 6px; border: 1px solid #9e5b5b; background: #3a1d1d; color: #f1b0b0; pointer-events: none; }
 .watchlist__loading-status { position: absolute; z-index: 3; inset: 25px 3px auto; margin: 0; padding: 4px 6px; border: 1px solid #4d7084; background: #193040eF; color: #c7e4f4; text-align: center; pointer-events: none; }
 .watchlist__data-error { position: absolute; z-index: 3; inset: 25px 3px auto; margin: 0; padding: 4px 6px; border: 1px solid #9e5b5b; background: #3a1d1d; color: #f1b0b0; text-align: center; pointer-events: none; }
-.watchlist--columns-open, .watchlist--sets-open { grid-template-rows: 23px auto auto minmax(0, 1fr); }
-.watchlist--condition-open { grid-template-rows: 23px auto auto minmax(0, 1fr); }
-.watchlist--grouped { grid-template-rows: 23px 32px minmax(0, 1fr); }
-.watchlist--condition-open.watchlist--grouped { grid-template-rows: 23px auto 32px minmax(0, 1fr); }
-.watchlist--columns-open.watchlist--grouped,.watchlist--sets-open.watchlist--grouped { grid-template-rows: 23px auto auto 32px minmax(0, 1fr); }
-.watchlist__controls { display: flex; align-items: center; gap: 6px; padding: 0 7px; color: #84939e; background: #181f25; border-bottom: 1px solid #2b343c; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; }
+.watchlist--columns-open, .watchlist--sets-open { grid-template-rows: minmax(23px, auto) auto auto minmax(0, 1fr); }
+.watchlist--condition-open { grid-template-rows: minmax(23px, auto) auto auto minmax(0, 1fr); }
+.watchlist--grouped { grid-template-rows: minmax(23px, auto) 32px minmax(0, 1fr); }
+.watchlist--condition-open.watchlist--grouped { grid-template-rows: minmax(23px, auto) auto 32px minmax(0, 1fr); }
+.watchlist--columns-open.watchlist--grouped,.watchlist--sets-open.watchlist--grouped { grid-template-rows: minmax(23px, auto) auto auto 32px minmax(0, 1fr); }
+.watchlist__controls { box-sizing: border-box; display: flex; flex-wrap: wrap; align-content: center; align-items: center; gap: 4px 6px; min-height: 23px; padding: 2px 7px; color: #84939e; background: #181f25; border-bottom: 1px solid #2b343c; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; }
 .watchlist__controls input { min-width: 0; width: 80px; margin-left: auto; padding: 1px 4px; border: 1px solid #3d4a54; background: #11161b; color: #dce9f2; font: inherit; text-transform: none; }
 .watchlist__controls select { min-width: 0; max-width: 120px; padding: 1px 2px; border: 1px solid #3d4a54; background: #11161b; color: #a9c0d0; font: inherit; text-transform: none; }
 .watchlist__columns-button { border: 1px solid #3d4a54; background: #1b252d; color: #a9c0d0; font: inherit; cursor: pointer; }

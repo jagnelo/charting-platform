@@ -341,6 +341,7 @@ import { workstationFreshness } from '@/lib/workstation/freshness'
 import { isInteractiveTarget } from '@/lib/workstation/keyboard'
 import { capturePopoutGeometry, popoutWindowFeatures, readPopoutGeometry, recoverPopoutGeometry, type PopoutScreen } from '@/lib/workstation/popoutGeometry'
 import { resolveMarketMapAnalysisSource } from '@/lib/workstation/marketMapPublication'
+import { isActiveVirtualToolRoot } from '@/lib/workstation/toolActivation'
 import {
   isConfirmedETFHoldingIdentity,
   isSameETFHoldingDrilldownContext,
@@ -2093,6 +2094,11 @@ async function openTool(tool: OpenableToolDefinition, configurationOverride: Rec
       if (!componentMounted) return
       continue
     }
+    // Virtual component roots are rendered outside Golden Layout's stack DOM.
+    // The host contract already applies active_window_key through its layout
+    // watcher, so waiting for or clicking a nonexistent `.lm_tab` only adds a
+    // multi-second delay to ordinary Add-tool and Market Map actions.
+    if (isActiveVirtualToolRoot(toolRoot, opened.instance_key, workspaceStore.activeTab?.active_window_key)) return opened
     const stack = toolRoot?.closest<HTMLElement>('.lm_stack')
     const stackItems = stack ? [...stack.querySelectorAll<HTMLElement>('.lm_items > div')] : []
     const itemIndex = toolRoot

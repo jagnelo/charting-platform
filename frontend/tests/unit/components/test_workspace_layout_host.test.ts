@@ -1,5 +1,7 @@
-import { h, nextTick } from 'vue'
-import { mount } from '@vue/test-utils'
+import { defineAsyncComponent, defineComponent, h, nextTick } from 'vue'
+import { flushPromises, mount } from '@vue/test-utils'
+import { VueQueryPlugin, QueryClient } from '@tanstack/vue-query'
+import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { goldenLayouts, MockGoldenLayout } = vi.hoisted(() => {
@@ -67,10 +69,13 @@ vi.mock('@/lib/workstation/layout', () => ({
 }))
 
 import WorkspaceLayoutHost from '@/components/workstation/WorkspaceLayoutHost.vue'
+import WorkstationToolContent from '@/components/workstation/WorkstationToolContent.vue'
+import { api } from '@/lib/api'
 
 describe('WorkspaceLayoutHost', () => {
   beforeEach(() => {
     goldenLayouts.length = 0
+    setActivePinia(createPinia())
     vi.stubGlobal('ResizeObserver', class {
       observe() {}
       disconnect() {}
@@ -357,6 +362,117 @@ describe('WorkspaceLayoutHost', () => {
 
     expect(wrapper.emitted('active-window-changed')).toEqual([['chart-2']])
     wrapper.unmount()
+  })
+
+  it('publishes the exact virtual tool key from an ordinary tab pointer before a late GL activation callback', () => {
+    const wrapper = mount(WorkspaceLayoutHost, {
+      props: {
+        layout: { root: { type: 'row', content: [] } } as any,
+        activeWindowKey: 'chart-1',
+        tabKey: 'layout-a',
+        renderTool: () => h('div'),
+      },
+    })
+    const host = wrapper.find('.workspace-layout-host').element
+    const stack = goldenLayouts[0].root.contentItems[0].parentItem
+    const chart = goldenLayouts[0].root.contentItems[0]
+    const study = {
+      type: 'component',
+      config: { componentState: { instance_key: 'study-lab-copy' } },
+      parentItem: stack,
+    }
+    stack.contentItems.push(study)
+    const chartTab = document.createElement('div')
+    chartTab.className = 'lm_tab'
+    const studyTab = document.createElement('div')
+    studyTab.className = 'lm_tab'
+    const title = document.createElement('span')
+    studyTab.append(title)
+    const close = document.createElement('div')
+    close.className = 'lm_close_tab'
+    studyTab.append(close)
+    stack.header.tabs = [
+      { contentItem: chart, element: chartTab },
+      { contentItem: study, element: studyTab },
+    ]
+    host.append(chartTab, studyTab)
+    goldenLayouts[0].factory!({ close: vi.fn(), parent: study }, {
+      instance_key: 'study-lab-copy',
+      title: 'Study Lab',
+      tool_type: 'study_lab',
+    })
+
+    title.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }))
+
+    expect(wrapper.emitted('active-window-changed')).toEqual([['study-lab-copy', 'layout-a']])
+    close.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }))
+    expect(wrapper.emitted('active-window-changed')).toHaveLength(1)
+    wrapper.unmount()
+  })
+
+  it('resolves an asynchronously loaded tool body in its detached Golden Layout root', async () => {
+    const AsyncTool = defineAsyncComponent(() => Promise.resolve(
+      defineComponent({ render: () => h('article', { 'data-loaded-tool-body': '' }, 'Loaded tool body') }),
+    ))
+    const wrapper = mount(WorkspaceLayoutHost, {
+      props: {
+        layout: { root: { type: 'row', content: [] } } as any,
+        renderTool: () => h(AsyncTool),
+      },
+    })
+    const rendered = goldenLayouts[0].factory!({ parent: { parentItem: { toggleMaximise: vi.fn() } } }, {
+      instance_key: 'study-lab-main',
+      title: 'Study Lab',
+      tool_type: 'study_lab',
+    }) as { rootHtmlElement: HTMLElement }
+    wrapper.find('.workspace-layout-host').element.append(rendered.rootHtmlElement)
+
+    await flushPromises()
+
+    expect(rendered.rootHtmlElement.querySelector('[data-loaded-tool-body]')?.textContent).toBe('Loaded tool body')
+    wrapper.unmount()
+  })
+
+  it('mounts the real lazy WorkstationToolContent body in a Golden Layout virtual root', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue([] as never)
+    const pinia = createPinia()
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    const layout = { root: { type: 'row', content: [] } } as any
+    const wrapper = mount(WorkspaceLayoutHost, {
+      props: {
+        layout,
+        activeWindowKey: 'code-library-main',
+        renderTool: tool => h(WorkstationToolContent, {
+          tool: {
+            ...tool,
+            instance_key: tool.instance_key,
+            title: tool.title,
+            tool_type: tool.tool_type,
+            link_group: 'blue',
+            configuration: {},
+            style: {},
+          } as any,
+          activeWindowKey: 'code-library-main',
+        }),
+      },
+      global: { plugins: [pinia, [VueQueryPlugin, { queryClient }]] },
+    })
+    const stack = { isMaximised: false, on() {}, off() {}, toggleMaximise() {} }
+    const rendered = goldenLayouts[0].factory!({ parent: { parentItem: stack } }, {
+      instance_key: 'code-library-main',
+      title: 'Python Library',
+      tool_type: 'code_library',
+    }) as { rootHtmlElement: HTMLElement }
+    wrapper.find('.workspace-layout-host').element.append(rendered.rootHtmlElement)
+
+    await vi.waitFor(() => expect(rendered.rootHtmlElement.querySelector('.code-library-tool')).not.toBeNull(), { timeout: 2_000 })
+    await flushPromises()
+
+    expect(rendered.rootHtmlElement.textContent).not.toContain('Loading tool…')
+    expect(rendered.rootHtmlElement.querySelector('.code-library-tool')).not.toBeNull()
+    wrapper.unmount()
+    queryClient.clear()
+    vi.restoreAllMocks()
   })
 
   it('evenly resizes panes above a Shift-dragged horizontal splitter and persists the layout', async () => {

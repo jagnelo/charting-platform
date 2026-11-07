@@ -1,3 +1,4 @@
+import type { QueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
 import type { MarketMap, MarketMapCell, MarketMapRequest, MarketMapSnapshot, MarketMapSnapshotSummary } from '@/types'
 
@@ -265,6 +266,22 @@ export function fetchBenchmarkFamilyCoverage(
   )
 }
 
+/** Share identical family-readiness reads between docked/remounted analysis tools. */
+export function fetchBenchmarkFamilyCoverageShared(
+  queryClient: QueryClient,
+  familyKey: string,
+  asOf?: string | null,
+  limit = 256,
+  load?: () => Promise<BenchmarkFamilyCoverage>,
+): Promise<BenchmarkFamilyCoverage> {
+  const normalizedFamily = familyKey.trim().toLowerCase()
+  return queryClient.fetchQuery({
+    queryKey: ['workstation', 'benchmark-family-coverage', normalizedFamily, asOf ?? null, limit],
+    queryFn: load ?? (() => fetchBenchmarkFamilyCoverage(normalizedFamily, asOf, limit)),
+    staleTime: 1_000,
+  })
+}
+
 export function fetchWatchlistSourceHistoryStatus(
   sourceId: string,
   timeframes: string[] = ['D1'],
@@ -275,6 +292,23 @@ export function fetchWatchlistSourceHistoryStatus(
     `/watchlists/sources/history-status/${encodeURIComponent(sourceId)}`,
     { timeframes, max_instruments: maxInstruments, ...(asOf ? { as_of: asOf } : {}) },
   )
+}
+
+/** Share exact source/timeframe readiness reads without retaining stale status for long. */
+export function fetchWatchlistSourceHistoryStatusShared(
+  queryClient: QueryClient,
+  sourceId: string,
+  timeframes: string[] = ['D1'],
+  maxInstruments = 5000,
+  asOf?: string | null,
+  load?: () => Promise<WatchlistSourceHistoryStatus>,
+): Promise<WatchlistSourceHistoryStatus> {
+  const normalizedTimeframes = [...new Set(timeframes.map(value => value.trim().toUpperCase()))].sort()
+  return queryClient.fetchQuery({
+    queryKey: ['workstation', 'source-history-status', sourceId, normalizedTimeframes, maxInstruments, asOf ?? null],
+    queryFn: load ?? (() => fetchWatchlistSourceHistoryStatus(sourceId, normalizedTimeframes, maxInstruments, asOf)),
+    staleTime: 1_000,
+  })
 }
 
 export function refreshWatchlistSourceHistory(

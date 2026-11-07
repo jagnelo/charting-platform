@@ -4949,13 +4949,14 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 .industry-list__proxies { display: grid; gap: 3px; padding: 6px 7px; border-bottom: 1px solid #20282f; color: #8998a3; }
 .industry-list__proxy-table { height: 170px; border: 1px solid #34434e; }
 .constituent-tool { display: flex; flex-direction: column; align-items: stretch; box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%; height: 100%; min-height: 0; overflow: auto; background: #11161b; }
+.constituent-tool:not(.constituent-tool--factory) { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(160px, 1fr) auto auto; align-content: start; }
 .constituent-tool--factory { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
-.constituent-tool:not(.constituent-tool--factory) :deep(.watchlist) { flex: 1 0 160px; width: 100%; min-width: 0; max-width: 100%; height: auto; min-height: 160px; }
+.constituent-tool:not(.constituent-tool--factory) :deep(.watchlist) { grid-row: 2; width: 100%; min-width: 0; max-width: 100%; height: 100%; min-height: 160px; }
 .constituent-tool__selection { box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%; max-height: 75%; overflow: auto; padding: 4px 6px; border-top: 1px solid #28343c; background: #11161b; }
 .constituent-tool__selection :deep(.search-bar) { width: 100%; }
 .constituent-tool__selection :deep(.search-results) { position: static; max-height: 96px; }
 .constituent-tool__provenance { display: block; overflow: hidden; padding: 3px 7px; border-top: 1px solid #28343c; background: #121920; color: #d5ae72; font: 9px "Segoe UI", Arial, sans-serif; text-overflow: ellipsis; white-space: nowrap; }
-.constituent-tool__empty-context { box-sizing: border-box; position: relative; z-index: 1; margin: 0; padding: 6px 8px; color: #9fb0bb; font: 11px/1.35 "Segoe UI", Arial, sans-serif; }
+.constituent-tool__empty-context { grid-row: 1; box-sizing: border-box; min-width: 0; margin: 0; padding: 6px 8px; color: #9fb0bb; font: 11px/1.35 "Segoe UI", Arial, sans-serif; }
 .constituent-tool__selection-state { display: flex; flex-wrap: wrap; gap: 4px 8px; margin: 0; padding: 6px 8px; border-top: 1px solid #28343c; color: #b8c5cf; font: 11px "Segoe UI", Arial, sans-serif; }
 .instrument-report { height: 100%; overflow: auto; background: #11161b; }
 .industry-list__row strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

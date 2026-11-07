@@ -108,7 +108,7 @@ test('ordinary basket lifecycle persists edits and opens the shared dashboard ch
     const basketAfterMemberChart = await request.get(`/api/v1/baskets/${basketB.id}`, { headers })
     expect(basketAfterMemberChart.ok()).toBeTruthy()
     const unchangedBasket = await basketAfterMemberChart.json() as { members: Array<{ instrument_id: number }> }
-    expect(unchangedBasket.members.map(member => member.instrument_id)).toEqual([added.instrument_id])
+    expect(unchangedBasket.members.map(member => member.instrument_id)).toEqual([amzn.instrument_id, added.instrument_id])
     await page.goto('/legacy/baskets')
     await page.locator('.basket-card').filter({ hasText: basketBName }).click()
 
@@ -229,10 +229,39 @@ test('ordinary basket lifecycle persists edits and opens the shared dashboard ch
   expect(loggedIn).toBeUndefined()
 })
 
-test('existing issuer snapshot basket displays read-only source lineage from basket APIs', async ({ page, request, loggedIn }) => {
+test('issuer snapshot basket materializes through the normal API and displays read-only source lineage', async ({ page, request, loggedIn }) => {
+  await page.goto('/legacy/baskets')
+
+  const token = await page.evaluate(() => localStorage.getItem('access_token'))
+  expect(token).toBeTruthy()
+  const headers = { Authorization: `Bearer ${token}` }
+  const profilesResponse = await request.get('/api/v1/etf-holdings', { headers })
+  const profilesText = await profilesResponse.text()
+  expect(profilesResponse.status(), `GET /api/v1/etf-holdings returned ${profilesText}`).toBe(200)
+  const profiles = JSON.parse(profilesText) as Array<{ symbol: string; latest_snapshot_id: number | null }>
+  const profile = profiles.find(candidate => candidate.latest_snapshot_id !== null)
+  expect(profile, 'combined fixture must include an ETF with a persisted issuer snapshot').toBeTruthy()
+
+  // Use the application's supported materialization path. The explicit
+  // snapshot ID preserves historical point-in-time behavior and does not
+  // trigger a holdings refresh or provider request.
+  const materializedResponse = await request.get(`/api/v1/etf-holdings/${encodeURIComponent(profile!.symbol)}/basket`, {
+    headers,
+    params: { snapshot_id: profile!.latest_snapshot_id! },
+  })
+  const materializedText = await materializedResponse.text()
+  expect(materializedResponse.status(), `GET ETF holdings basket returned ${materializedText}`).toBe(200)
+  const materializedBasket = JSON.parse(materializedText) as {
+    id: number
+    source_snapshot_id: number | null
+    is_system_managed: boolean
+  }
+  expect(materializedBasket.is_system_managed).toBe(true)
+  expect(materializedBasket.source_snapshot_id).toBe(profile?.latest_snapshot_id)
+
   const basketResponsePromise = page.waitForResponse(response =>
     response.request().method() === 'GET' && new URL(response.url()).pathname === '/api/v1/baskets')
-  await page.goto('/legacy/baskets')
+  await page.reload()
   const basketResponse = await basketResponsePromise
   expect(basketResponse.ok()).toBeTruthy()
   const baskets = await basketResponse.json() as Array<{
@@ -244,8 +273,10 @@ test('existing issuer snapshot basket displays read-only source lineage from bas
     metadata?: Record<string, unknown>
     members: Array<{ instrument_id: number }>
   }>
-  const sourceBasket = baskets.find(basket => basket.is_system_managed && basket.source_snapshot_id)
-  expect(sourceBasket, 'combined fixture must include an existing issuer snapshot basket').toBeTruthy()
+  const sourceBasket = baskets.find(basket => basket.id === materializedBasket.id)
+  expect(sourceBasket, 'the normal ETF holdings API must expose the materialized source basket').toBeTruthy()
+  expect(sourceBasket?.is_system_managed).toBe(true)
+  expect(sourceBasket?.source_snapshot_id).toBe(profile?.latest_snapshot_id)
   expect(sourceBasket?.composition_date).toBeTruthy()
   expect(sourceBasket?.metadata?.source_provider).toBeTruthy()
   expect(sourceBasket?.metadata?.provenance).toBeTruthy()
@@ -266,9 +297,6 @@ test('existing issuer snapshot basket displays read-only source lineage from bas
   await expect(page.getByRole('button', { name: 'Delete' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled()
 
-  const token = await page.evaluate(() => localStorage.getItem('access_token'))
-  expect(token).toBeTruthy()
-  const headers = { Authorization: `Bearer ${token}` }
   const editAttempt = await request.patch(`/api/v1/baskets/${sourceBasket!.id}`, {
     headers,
     data: { name: 'Must remain read-only' },

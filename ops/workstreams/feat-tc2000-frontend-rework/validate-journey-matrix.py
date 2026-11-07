@@ -8,6 +8,7 @@ import hashlib
 import json
 import re
 import subprocess
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -36,7 +37,7 @@ ALLOWED_STATES = {
 }
 
 
-def _control_surfaces() -> list[dict[str, Any]]:
+def _control_surfaces(root: Path = ROOT) -> list[dict[str, Any]]:
     excluded = {
         "frontend/src/views/BasketsView.vue",
         "frontend/src/views/ETFHoldingsView.vue",
@@ -47,20 +48,20 @@ def _control_surfaces() -> list[dict[str, Any]]:
         "frontend/src/components/workstation/ResearchResultsTool.vue",
         "frontend/src/components/workstation/StudyLabTool.vue",
     }
-    roots = [ROOT / "frontend/src/views", ROOT / "frontend/src/components"]
+    roots = [root / "frontend/src/views", root / "frontend/src/components"]
     surfaces: list[dict[str, Any]] = []
     pattern = re.compile(r"<([a-z][\w.-]*)\b([^>]*)>", re.IGNORECASE)
     for source_root in roots:
         for path in sorted(source_root.rglob("*.vue")):
-            relative = path.relative_to(ROOT).as_posix()
+            relative = path.relative_to(root).as_posix()
             if relative in excluded or "/components/etf/" in relative or "/components/strategy/" in relative:
                 continue
             text = path.read_text()
-            match = re.search(r"<template>(.*?)</template>", text, re.DOTALL)
-            if not match:
+            template = _outer_sfc_template(text)
+            if template is None:
                 continue
             controls = []
-            for tag, attributes in pattern.findall(match.group(1)):
+            for tag, attributes in pattern.findall(_rendered_template_markup(template)):
                 attrs = " ".join(attributes.split())
                 native_control = tag.lower() in {"button", "a", "input", "select", "textarea"}
                 bound_action = bool(re.search(r"(?:@|v-on:)(?:click|submit|change|input|keydown|keyup|pointerdown|pointerup)\b", attrs))
@@ -90,6 +91,155 @@ def _control_surfaces() -> list[dict[str, Any]]:
                 "journeys": journeys,
             })
     return surfaces
+
+
+def _control_mapping_error(matrix_controls: list[dict[str, Any]], actual_controls: list[dict[str, Any]]) -> str | None:
+    matrix = {
+        row.get("source"): (row.get("control_count"), row.get("signature_sha256"))
+        for row in matrix_controls if isinstance(row, dict)
+    }
+    expected = {
+        row["source"]: (row["control_count"], row["signature_sha256"])
+        for row in actual_controls
+    }
+    if matrix == expected:
+        return None
+    return (
+        f"exposed control mapping mismatch; missing={sorted(set(expected) - set(matrix))}, "
+        f"stale={sorted(set(matrix) - set(expected))}, "
+        f"changed={sorted(key for key in set(matrix) & set(expected) if matrix[key] != expected[key])}"
+    )
+
+
+def _tag_end(source: str, start: int) -> int | None:
+    """Return the end of one HTML-like tag, ignoring `>` inside quotes."""
+    quote: str | None = None
+    index = start + 1
+    while index < len(source):
+        character = source[index]
+        if quote:
+            if character == quote:
+                quote = None
+        elif character in {"'", '"'}:
+            quote = character
+        elif character == ">":
+            return index + 1
+        index += 1
+    return None
+
+
+def _skip_vue_interpolation(source: str, start: int) -> int:
+    """Skip one `{{ ... }}` expression so template strings inside it are inert."""
+    index = start + 2
+    quote: str | None = None
+    escaped = False
+    braces = 0
+    while index < len(source):
+        character = source[index]
+        if quote:
+            if escaped:
+                escaped = False
+            elif character == "\\":
+                escaped = True
+            elif character == quote:
+                quote = None
+        elif character in {"'", '"', "`"}:
+            quote = character
+        elif source.startswith("{{", index):
+            braces += 1
+            index += 1
+        elif source.startswith("}}", index):
+            if braces == 0:
+                return index + 2
+            braces -= 1
+            index += 1
+        index += 1
+    return len(source)
+
+
+def _rendered_template_markup(source: str) -> str:
+    """Remove non-rendered comments/interpolations before scanning controls."""
+    pieces: list[str] = []
+    cursor = 0
+    while cursor < len(source):
+        if source.startswith("<!--", cursor):
+            end = source.find("-->", cursor + 4)
+            cursor = len(source) if end < 0 else end + 3
+            continue
+        if source.startswith("{{", cursor):
+            cursor = _skip_vue_interpolation(source, cursor)
+            continue
+        pieces.append(source[cursor])
+        cursor += 1
+    return "".join(pieces)
+
+
+def _outer_sfc_template(source: str) -> str | None:
+    """Extract one complete Vue SFC template, including nested `<template>` blocks."""
+    opening: int | None = None
+    cursor = 0
+    while cursor < len(source):
+        start = source.find("<", cursor)
+        if start < 0:
+            return None
+        if source.startswith("<!--", start):
+            end = source.find("-->", start + 4)
+            cursor = len(source) if end < 0 else end + 3
+            continue
+        end = _tag_end(source, start)
+        if end is None:
+            return None
+        match = re.match(r"<\s*(/?)\s*([A-Za-z][\w.-]*)\b", source[start:end])
+        cursor = end
+        if not match or match.group(1):
+            continue
+        name = match.group(2).lower()
+        if name == "template":
+            opening = start
+            break
+        # SFC non-template blocks are raw text. Ignore their contents so a
+        # template-looking string in script, style, or a custom block cannot
+        # be mistaken for the rendered component template.
+        close = re.search(rf"</\s*{re.escape(name)}\s*>", source[cursor:], re.IGNORECASE)
+        if not close:
+            return None
+        cursor += close.end()
+    if opening is None:
+        return None
+    opening_end = _tag_end(source, opening)
+    if opening_end is None:
+        return None
+    depth = 1
+    cursor = opening_end
+    while cursor < len(source):
+        if source.startswith("{{", cursor):
+            cursor = _skip_vue_interpolation(source, cursor)
+            continue
+        start = source.find("<", cursor)
+        interpolation = source.find("{{", cursor)
+        if interpolation >= 0 and (start < 0 or interpolation < start):
+            cursor = _skip_vue_interpolation(source, interpolation)
+            continue
+        if start < 0:
+            return None
+        if source.startswith("<!--", start):
+            comment_end = source.find("-->", start + 4)
+            cursor = len(source) if comment_end < 0 else comment_end + 3
+            continue
+        end = _tag_end(source, start)
+        if end is None:
+            return None
+        match = re.match(r"<\s*(/?)\s*([A-Za-z][\w.-]*)\b", source[start:end])
+        cursor = end
+        if not match or match.group(2).lower() != "template":
+            continue
+        if match.group(1):
+            depth -= 1
+            if depth == 0:
+                return source[opening_end:start]
+        elif not source[start:end].rstrip().endswith("/>"):
+            depth += 1
+    return None
 
 
 def _source_inventory() -> tuple[dict[str, dict[str, str]], dict[str, dict[str, Any]], dict[str, dict[str, Any]], list[dict[str, Any]], set[tuple[str, str, str]], str]:
@@ -306,22 +456,10 @@ def validate(data: dict[str, Any]) -> list[str]:
             elif not panel.get("evidence") or not panel.get("instance_key") or not panel.get("catalogue_key"):
                 errors.append(f"factory layout {layout.get('key')} contains an unmapped panel identity")
 
-    matrix_controls = {
-        row.get("source"): (row.get("control_count"), row.get("signature_sha256"))
-        for row in data.get("control_surfaces", []) if isinstance(row, dict)
-    }
-    expected_controls = {
-        row["source"]: (row["control_count"], row["signature_sha256"])
-        for row in actual_controls
-    }
-    if matrix_controls != expected_controls:
-        errors.append(
-            f"exposed control mapping mismatch; missing={sorted(set(expected_controls) - set(matrix_controls))}, "
-            f"stale={sorted(set(matrix_controls) - set(expected_controls))}, "
-            f"changed={sorted(key for key in set(matrix_controls) & set(expected_controls) if matrix_controls[key] != expected_controls[key])}"
-        )
-
-    control_sources = set(expected_controls)
+    control_error = _control_mapping_error(data.get("control_surfaces", []), actual_controls)
+    if control_error:
+        errors.append(control_error)
+    control_sources = {row["source"] for row in actual_controls}
     for label, rows in (("shell action", data.get("shell_actions", [])), ("action", data.get("actions", []))):
         for row in rows:
             if label == "action" and isinstance(row, dict) and row.get("owner", data.get("owner")) != data.get("owner"):
@@ -443,6 +581,34 @@ def validate(data: dict[str, Any]) -> list[str]:
 
 
 def self_test(data: dict[str, Any]) -> None:
+    nested_template = '''<template>
+      <template v-if="ready"><button @click="first">First</button></template>
+      <!-- <button @click="comment">not rendered</button> -->
+      <section>{{ '<template><button @click="expression">ignored</button></template>' }}</section>
+      <button @click="afterNested">After nested block</button>
+    </template>
+    <script setup>const example = "<template><button>not an SFC control</button></template>"</script>'''
+    extracted = _outer_sfc_template(nested_template)
+    _require(extracted is not None, "nested SFC template was not extracted")
+    rendered_markup = _rendered_template_markup(extracted)
+    _require(
+        '<button @click="afterNested">' in rendered_markup
+        and "comment" not in rendered_markup
+        and "expression" not in rendered_markup
+        and "not an SFC control" not in rendered_markup,
+        "outer SFC extraction truncated nested controls or included non-template markup",
+    )
+    with tempfile.TemporaryDirectory(prefix="tc-journey-nested-template-") as temporary:
+        root = Path(temporary)
+        view = root / "frontend/src/views/Nested.vue"
+        view.parent.mkdir(parents=True)
+        view.write_text(nested_template)
+        actual = _control_surfaces(root)
+        _require(len(actual) == 1 and actual[0]["control_count"] == 2, "nested-template controls were not inventoried")
+        _require(
+            "Nested.vue" in (_control_mapping_error([], actual) or ""),
+            "an unmapped control after a nested template was not rejected",
+        )
     errors = validate(data)
     _require(not errors, "valid journey inventory failed: " + "; ".join(errors))
     mutated = json.loads(json.dumps(data))
