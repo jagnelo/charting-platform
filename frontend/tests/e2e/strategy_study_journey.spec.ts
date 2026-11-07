@@ -224,7 +224,12 @@ test('Study journey keeps saved identity, refreshes Results, and returns from Py
   await expect(returnedStudy.getByRole('textbox', { name: 'Study Python source' })).toHaveValue(libraryEditedSource)
   expect(runRequests).toHaveLength(1)
 
-  const returnedPreparation = page.waitForResponse(response => response.request().method() === 'POST' && new URL(response.url()).pathname.endsWith('/data/ensure'))
+  const returnedPreparation = page.waitForResponse(response => isStudyHistoryEnsure(
+    response.request(),
+    preparationSymbols,
+    `${retainedStudyStartDate}T00:00:00.000Z`,
+    `${retainedStudyEndDate}T23:59:59.999Z`,
+  ))
   await returnedStudy.getByRole('button', { name: 'Validate study' }).click()
   expect((await returnedPreparation).ok()).toBe(true)
   await expect(returnedStudy).toContainText('Validated for isolated execution', { timeout: 15_000 })
@@ -288,8 +293,12 @@ test('Study prepares SPY before validating and completes a configured high-low b
   await study.getByLabel('Study start date').fill(retainedStudyStartDate)
   await study.getByLabel('Study end date').fill(retainedStudyEndDate)
 
-  const preparationResponse = page.waitForResponse(response => response.request().method() === 'POST'
-    && new URL(response.url()).pathname.endsWith('/data/ensure'))
+  const preparationResponse = page.waitForResponse(response => isStudyHistoryEnsure(
+    response.request(),
+    new Set(['SPY']),
+    `${retainedStudyStartDate}T00:00:00.000Z`,
+    `${retainedStudyEndDate}T23:59:59.999Z`,
+  ))
   const validationResponse = page.waitForResponse(response => response.request().method() === 'POST'
     && new URL(response.url()).pathname.endsWith('/code/validate'))
   await study.getByRole('button', { name: 'Validate study' }).click()
@@ -1000,8 +1009,12 @@ test('closing Study Lab while run creation is pending preserves the durable run 
   await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
   await study.getByLabel('Study start date').fill(retainedStudyStartDate)
   await study.getByLabel('Study end date').fill(retainedStudyEndDate)
-  const preparationResponse = page.waitForResponse(response => response.request().method() === 'POST'
-    && new URL(response.url()).pathname.endsWith('/data/ensure'))
+  const preparationResponse = page.waitForResponse(response => isStudyHistoryEnsure(
+    response.request(),
+    new Set(['SPY']),
+    `${retainedStudyStartDate}T00:00:00.000Z`,
+    `${retainedStudyEndDate}T23:59:59.999Z`,
+  ))
   const validationResponse = page.waitForResponse(response => response.request().method() === 'POST'
     && new URL(response.url()).pathname.endsWith('/code/validate'))
   await study.getByRole('button', { name: 'Validate study', exact: true }).click()
