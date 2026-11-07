@@ -316,10 +316,13 @@ function openStudyVersion(asset: CodeAsset, versionNumber: number) {
   const studyWindows = (workspaceStore.activeTab?.windows ?? []).filter(window => window.tool_type === 'study_lab')
   const matchingStudy = [...studyWindows].reverse().find(window => window.configuration.study_run_name === asset.name)
     ?? [...studyWindows].reverse().find(window => window.configuration.study_name === asset.name)
-  const retainedDates: Record<string, string> = {}
-  for (const key of ['start_date', 'end_date'] as const) {
+  const retainedDatasetContext: Record<string, string> = {}
+  for (const key of [
+    'symbol', 'timeframe', 'benchmark', 'adjustment', 'session',
+    'universe_source_id', 'symbols', 'start_date', 'end_date', 'as_of',
+  ] as const) {
     const value = matchingStudy?.configuration[key]
-    if (typeof value === 'string' && value.trim()) retainedDates[key] = value
+    if (typeof value === 'string' && value.trim()) retainedDatasetContext[key] = value
   }
   emit('open-study', {
     name: asset.name,
@@ -328,9 +331,9 @@ function openStudyVersion(asset: CodeAsset, versionNumber: number) {
     outputContract: version.output_contract,
     parameterSchema: version.parameter_schema ?? {},
     // Reopening an immutable version is a source change, not a request to
-    // discard the current Study's retained date window. WorkstationView maps
-    // these string defaults back to the Study dataset controls on open.
-    defaultParameters: { ...(version.default_parameters ?? {}), ...retainedDates },
+    // discard the current Study's dataset context. WorkstationView maps these
+    // string defaults back to the Study dataset controls on open.
+    defaultParameters: { ...(version.default_parameters ?? {}), ...retainedDatasetContext },
   })
 }
 function openStudy(asset: CodeAsset) {

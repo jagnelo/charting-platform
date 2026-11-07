@@ -229,11 +229,23 @@ describe('CodeLibraryTool', () => {
     ]])
   })
 
-  it('preserves the matching Study date window when opening an immutable Library version', async () => {
+  it('preserves the matching Study dataset context when opening an immutable Library version', async () => {
     workspaceState.activeTab = {
       windows: [
         { tool_type: 'study_lab', configuration: { study_run_name: 'Other study', start_date: '2020-01-01', end_date: '2020-12-31' } },
-        { tool_type: 'study_lab', configuration: { study_run_name: 'Streak study', start_date: '2024-01-02', end_date: '2025-12-29' } },
+        { tool_type: 'study_lab', configuration: {
+          study_run_name: 'Streak study',
+          symbol: 'XLB',
+          timeframe: 'W1',
+          benchmark: 'IWM',
+          adjustment: 'raw',
+          session: 'regular',
+          universe_source_id: 'universe-study-7',
+          symbols: 'XLB,XLK',
+          start_date: '2024-01-02',
+          end_date: '2025-12-29',
+          as_of: '2025-12-29T18:00',
+        } },
       ],
     }
     const wrapper = mount(CodeLibraryTool)
@@ -248,7 +260,18 @@ describe('CodeLibraryTool', () => {
         source: "output.scalar('n', 1)",
         outputContract: 'study',
         parameterSchema: {},
-        defaultParameters: { start_date: '2024-01-02', end_date: '2025-12-29' },
+        defaultParameters: {
+          symbol: 'XLB',
+          timeframe: 'W1',
+          benchmark: 'IWM',
+          adjustment: 'raw',
+          session: 'regular',
+          universe_source_id: 'universe-study-7',
+          symbols: 'XLB,XLK',
+          start_date: '2024-01-02',
+          end_date: '2025-12-29',
+          as_of: '2025-12-29T18:00',
+        },
       },
     ]])
     wrapper.unmount()
