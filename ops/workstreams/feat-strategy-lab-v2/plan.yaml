@@ -1197,12 +1197,7 @@ progress:
       preparation coordinator in Study controls so explicit Validate/Run actions prepare the
       selected dataset first; never acquire data inside evaluation or mutate saved-run identity.
       Maintain the Strategy-owned J10/J11/J12 action matrix as an input to TC's global inventory,
-      distinguishing component/API evidence from exact-source browser acceptance. Consume corrected
-      Root-released Provider source b0eae5974801e320b3da858d7e1a33829b206430 at all47 active backend
-      paths in provider-runtime-consumption.json. Exactly two declared durable-queue/continuation-reference paths
-      were imported over 5cdc5ee0 after old/new byte guards; 5cdc and earlier pins and qualifications remain
-      preserved as history. Root owns same-fixture runtime checks and combined qualification; this development
-      import is not release acceptance. Consume the authenticated durable ensure/status contract through the exact
+      distinguishing component/API evidence from exact-source browser acceptance. Consume exact Provider source 21be29150de8298e15d34bb9eed8207b92917a34 under provider21be2915-runtime-development-consumption-contract.json (manifest SHA256 ebab538d0daa266ba40c07a38bc39f474bee332bd3a28e9fb03f04eedc37a1f5) at all49 active backend paths. Only instrument_events.py and test_calendar_router.py changed over b0eae597, and both current files matched the exact predecessor before import. All49 entries match source SHA256, Git blob, status_from139, and executable-bit semantics. Root reports12 focused calendar/event tests plus pinned Ruff check/format pass; Strategy did not rerun Provider tests. Prior b0 and earlier Provider pins remain historical. This development import is not release acceptance. Consume the authenticated durable ensure/status contract through the exact
       TC-owned shared preparation client without duplicating worker, acquisition, quota, or provider
       behavior. The TC runtime history preserves the earlier AEA, D5, and5a pins. The prior TC ce2262ab common-runtime pin imported19 declared paths over5a and all66 entries were verified;
       the current common-runtime pin is exact source 4cfee47689ebeffa05ccae5f1b7cc690f6a871b8 under
@@ -1256,7 +1251,7 @@ progress:
     Root owns the affected Study normal-user browser reruns against the latest Strategy source and the combined
     backend/browser acceptance. The current Library follow-up preserves byte-exact source identity, including a trailing newline, during asynchronous validation; its focused regression and type-check pass. Study/Results focused component suites now pass129/129 across2 files;
     frontend type-check passes. The accepted late rerun/cancel shared-cache behavior has unit coverage but
-    no separate browser body; all authored Study browser bodies remain pending Root's fixture run. Provider b0eae597 is the active development dependency: exactly the two declared durable-queue/continuation-reference paths were imported over5cdc after old/new byte guards; all47 active entries match SHA/Git-blob/status/mode in the dependency manifest. Root reports the second-owner ensure and continuation-parent-reference PostgreSQL regressions and20-case ETF fixture module passed; no Provider test or browser rerun was launched in this worktree.
+    no separate browser body; all authored Study browser bodies remain pending Root's fixture run. Provider21be2915 is the active development dependency: the two declared calendar/event paths were imported over b0eae597 after predecessor-byte guards; all49 active entries match source SHA256/Git blob/status_from139/executable-bit records. Root reports12 focused calendar/event tests and pinned Ruff check/format passed; Strategy did not rerun Provider tests. Earlier pins remain historical; exact-source CI, combined browser qualification, and release remain pending.
     The separate b1a94d98 CI42332618010 was cancelled at the45-minute Playwright job limit and is not green.
     Earlier focused Strategy/Dashboard and shared auth/preparation checks against TC-d5e8 passed190/190
     across11 files with frontend type-check exit0; these are historical evidence and were not rerun for

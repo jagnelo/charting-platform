@@ -245,20 +245,22 @@
         "empty/error feedback",
         "create typed asset",
         "import/export",
-        "clone/archive"
+        "clone/archive",
+        "preserve newer create-form edits when the submitted asset succeeds late"
       ],
-      "visible_outcome": "Owned assets and empty/loading/error states are announced; create/import/clone/archive/export preserve typed asset and version data without silently mutating an immutable CodeVersion.",
+      "visible_outcome": "Owned assets and empty/loading/error states are announced; create/import/clone/archive/export preserve typed asset and version data without silently mutating an immutable CodeVersion. A late create response adds the submitted asset without discarding a newer form draft and announces the saved asset.",
       "unit_evidence": [
         "frontend/tests/unit/components/test_code_library_tool.test.ts :: announces loading and filtered-empty library states politely",
         "frontend/tests/unit/components/test_code_library_tool.test.ts :: loads, filters, clones, and archives user-owned assets",
         "frontend/tests/unit/components/test_code_library_tool.test.ts :: creates a typed new study asset from the library form",
         "frontend/tests/unit/components/test_code_library_tool.test.ts :: announces library request failures as assertive alerts",
-        "frontend/tests/unit/components/test_code_library_tool.test.ts :: keeps create-form control IDs unique across detached Code Library roots"
+        "frontend/tests/unit/components/test_code_library_tool.test.ts :: keeps create-form control IDs unique across detached Code Library roots",
+        "frontend/tests/unit/components/test_code_library_tool.test.ts :: preserves a newer create draft when the submitted asset is created late"
       ],
       "api_evidence": [
         "GET /code/assets, POST /code/assets, POST /code/assets/import, POST /code/assets/{id}/archive; backend/tests/integration/api/test_code.py :: test_code_assets_support_archive_clone_and_round_trip_import and test_code_asset_kind_and_declared_output_contract_must_match"
       ],
-      "browser_evidence": "Authored in frontend/tests/e2e/strategy_study_journey.spec.ts with controlled asset API responses: create/validate, export, import, clone, archive and filter interactions have visible outcomes. This is UI wiring evidence only; real API behavior and browser execution remain pending Root's combined gate. The separate persisted Study journey exercises immutable version save and return to Study.",
+      "browser_evidence": "Authored in frontend/tests/e2e/strategy_study_journey.spec.ts with controlled asset API responses: create/validate, export, import, clone, archive and filter interactions have visible outcomes. This is UI wiring evidence only; real API behavior and browser execution remain pending Root's combined gate. The separate persisted Study journey exercises immutable version save and return to Study. Late create-response draft preservation is component-tested only and remains pending Root’s combined browser execution.",
       "approved_journey": [
         "J10 Study: immutable saved version and return into Study workflow",
         "J12 recovery: delayed validation/refresh failure"
