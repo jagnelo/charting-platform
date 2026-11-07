@@ -1208,8 +1208,8 @@ progress:
 
       Exact current development dependencies are Provider `22c31cd3e7f35e361e286ef40576d379aaf44449`
       (six guarded Strategy imports; all67 manifest rows verified) and TC common runtime
-      `e902e83597661de1e5a636a2d94902b0fe01b747` (the two declared EasyScan paths; all86 rows
-      verified). Preserve earlier dependency receipts as history. Root reports TC's24 EasyScan
+      `d954436898a254ba9bb461ebc86a55f248172d5d` (the single declared WorkstationView path; all86
+      rows verified). Preserve earlier dependency receipts as history. Root reports TC's24 EasyScan
       unit/type/matrix checks green; Strategy did not rerun that producer suite. This is development
       consumption, not combined browser, exact-source CI, or release acceptance. Focused Search/editor
       checks pass17/17, type-check passes, and discovery lists five Dashboard plus four workstation
@@ -2340,3 +2340,10 @@ approved_development_dependency_imports:
   paths:
   - frontend/src/components/workstation/EasyScanTool.vue
   - frontend/tests/unit/components/test_easy_scan_tool.test.ts
+
+
+- source_sha: d954436898a254ba9bb461ebc86a55f248172d5d
+  manifest_path: ops/workstreams/feat-strategy-lab-v2/development-dependency-imports/d954436898a254ba9bb461ebc86a55f248172d5d.json
+  manifest_sha256: e0b70f752caeab0aaceb8e36b5807660b034f4ce86a76b03d41d426ac87f2afc
+  paths:
+  - frontend/src/views/WorkstationView.vue

@@ -6164,5 +6164,8 @@
     "corrected_contract_sha256": "d6508b43f603ef2d92d6dc00b63d53a4b9248b53ede7ad643eda8eab3ad00123",
     "reason": "The original732 export omitted the established authority field required by the existing import guard; v2 restores that exact field. Source,43 file records,13 delta paths, product bytes, and owner test/style evidence are unchanged.",
     "product_changed": false
-  }
+  },
+  "client_owner": "TC; exact86-path common runtime verified; Strategy imports only the declared WorkstationView.vue delta at d954.",
+  "client_release_commit": "d954436898a254ba9bb461ebc86a55f248172d5d",
+  "qualification_boundary": "TC d954436898a254ba9bb461ebc86a55f248172d5d and Provider22c31cd3 are exact development imports. Root R57 remains terminal5/4 on its frozen predecessor; current common-context adoption does not change that result. No combined browser, exact-source CI, or release acceptance is implied."
 }
