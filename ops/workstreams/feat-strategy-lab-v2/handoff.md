@@ -19667,3 +19667,45 @@ Root review corrected the first draft before freeze: the ordinary-success story 
 ### Provider46462f55 exact development successor (2026-11-07)
 
 Root released Provider source `46462f5531d689acf4c8004517dc4fb345d822ba` under `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider46462f55-runtime-development-consumption-contract.json` (SHA256 `3600f958dd684d72bf0ed95425c4e52792566d6136c57d676c67f4f107e5301d`). Exactly its four `changed_paths_since_previous` paths were imported over the active732 source; the other41 of45 active files were already byte-identical. All45 path/status_from139/Git-blob/SHA256 records match the exact source. The prior732 pin, contract and43-file manifest remain preserved in `provider-runtime-consumption.json` history. Root reports107 focused owner cases and locked Ruff0.4.7 check/format across45 files; Strategy did not rerun Provider tests. Exact Provider CI42328517364 remains in progress, so full runtime qualification, integration and deployment remain unclaimed. The successor supplies deeper-history fallback/resolver behavior and ETF test-clock dependency corrections while retaining732 contracts. No Strategy backend change, external request, fixture or service action was made for this import. The active Strategy dashboard journey remains source-discovered only, and Root owns the single combined browser/backend/visual profile.
+
+
+### TC5a common-runtime consumption and reserved workstation lifecycle journeys (2026-11-07)
+
+Root released TC source `5a783e745b211cfe8b3dd20cb77d275149f15de2` under `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-5a783e74-common-runtime-development-consumption-contract.json` (manifest SHA256 `4e7919990af84e733c0e7ef9d5c2cd5593cc961d3f08a0af6ec2bbcf80bdb290`). Exactly10 declared successor paths over D5 were imported; all53 manifest entries were verified against the source by SHA256, Git blob, status-from-139 and executable-bit semantics. The current client pin is updated once in `provider-runtime-consumption.json`; the49-path D5 pin and its qualification remain preserved as history. This is development consumption only; no full release, browser, staging or deployment qualification is implied.
+
+Under `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/strategy-workstation-lifecycle-acceptance-ownership-20261107.json`, Strategy authored `frontend/tests/e2e/workstation_lifecycle_journey.spec.ts` with four ordinary public-UI stories: factory-layout duplication/remapped identities and original preservation; closing/recreating all14 factory tools via the catalogue with output-specific witnesses; layout rename/reorder/delete cancel/confirm/Undo/reload; and workspace duplicate/delete cancel/confirm plus pane resize and maximize/restore content preservation. Gauge’s empty no-saved-scan state is asserted as an explicit prerequisite rather than a successful reading. No browser body ran. Frontend type-check passed and Playwright discovery listed all four tests. Root retains the single combined browser/backend/strict-visual slot.
+
+The workstream journey matrix now maps WL1-WL4 to the exact public UI, runtime and test evidence. The Dashboard four-story file remains source/discovery-only as well. The full18-criterion roadmap, Strategy/Study domain ownership, and native/forward/broker/capital/paid/trial/provider-live holds are unchanged.
+
+### Root corrections to the workstation lifecycle story (2026-11-07)
+
+The current WL2 story now creates the empty-user Favorites prerequisite through the public Chart-window
+star action before asserting visible Favorites rows. It sets a240-second test timeout for the complete
+catalogue workflow, whose authenticated catalogue/layout inventory covers all21 tools and all8 factory
+layouts. The Relative Rotation witness no longer accepts palette-colored labels as plot evidence: a
+test-only canvas audit is installed before navigation, scopes `arc`/`fill` capture to the actual RRG plot
+canvas, delegates native methods through `Reflect.apply`, and resets samples at each canvas clear. The
+latest draw must contain marker arcs of radius at least3.4 device pixels per DPR; each eligible center
+must be finite and its center pixel opaque in one of the canonical state colors. The keyboard tooltip
+interaction remains in the story. These assertions have only passed type-check and Playwright discovery;
+no browser body ran. Root owns actual execution in the single combined qualification. Provider b1a94d98
+remains a test-only development pin with45 manifest entries and only its one declared integration-test
+delta imported; its exact-source CI42332618010 remains in progress. The complete18-criterion roadmap and
+all disabled native/broker/capital/paid/trial/live-provider holds remain open.
+
+### ETF shared SearchBar exact-source consumption (2026-11-07)
+
+Root released ETF SearchBar source `bfc39453bbc986f736e1187434df48d716351e6e` under
+`/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/etfbfc39453-shared-search-development-consumption-contract.json`
+(SHA256 `88bb2743de90c5b80f0863c3ca7d9e8a1be7c61cb3a1001d9c0bdac4da4e075c`). Its exact two
+paths are `frontend/src/components/common/SearchBar.vue` (Git blob `dcafe47a9c3c7e538a5d8f0145d39cab88c441ce`,
+SHA256 `5a5a3e119c403276f0859eeb71b634869f8bbb8fdc6bd8c12b63be7fa6006aaf`) and
+`frontend/tests/unit/components/test_search_bar.test.ts` (Git blob `aeb57390a005c47c356f0ff4c8089367dce1c2ff`,
+SHA256 `b090aac0a9d7e321718d297ad30fa0bc730c9c848d3f97d5e192500fe352a942`). Both were clean and
+already byte-identical in this Strategy worktree, so no rewrite was made. This imports the released
+automatic exact/provisional ticker preparation, default discovery, history plus ETF holdings datasets,
+ambiguity, and stale/strict-identity behavior without changing producer files. Root reports42/42 focused
+SearchBar tests and frontend type-check; Strategy did not rerun them. Browser behavior and the combined
+qualification remain pending. The shared-consumption manifest is in `journey-matrix.json`. The current
+145/145 Strategy component,14/14 Research-router, and207/207 reserved Dashboard focused suites remain
+separately recorded; none substitutes for Root's combined gate or closes the full18-criterion roadmap.

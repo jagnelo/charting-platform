@@ -27,13 +27,17 @@
       "WorkstationToolContent.vue routing",
       "shared presentation, helpers, and flows.spec.ts"
     ],
-    "shared_navigation_rule": "Strategy consumes the shared Library-to-Study openStudy handoff; changes to the shared shell or coordinator are routed through Root/TC."
+    "shared_navigation_rule": "Strategy consumes the shared Library-to-Study openStudy handoff; changes to the shared shell or coordinator are routed through Root/TC.",
+    "strategy_reserved_e2e": [
+      "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts"
+    ]
   },
   "browser_gate": {
     "status": "pending",
     "spec": "frontend/tests/e2e/strategy_study_journey.spec.ts",
     "dashboard_spec": "frontend/tests/e2e/dashboard_usability_journey.spec.ts",
-    "qualification": "The Study/Library spec contains the normal-user immutable-version and saved-Results journey plus controlled lifecycle and preparation transitions. The separately Root-reserved Dashboard spec covers seeded SPY/XLB chart, quote and two-series comparison content with save/reload, controlled config/layout failure recovery, and controlled identity search transitions. Both files are discovered but neither browser body has run on this candidate. Controlled search and error fixtures do not claim genuine acquisition. Root owns the single combined backend/browser/strict-visual qualification; older-source deployed journeys do not qualify this branch source."
+    "qualification": "The Study/Library spec contains the normal-user immutable-version and saved-Results journey plus controlled lifecycle and preparation transitions. The separately Root-reserved Dashboard spec covers seeded SPY/XLB chart, quote and two-series comparison content with save/reload, controlled config/layout failure recovery, and controlled identity search transitions. Both files are discovered but neither browser body has run on this candidate. Controlled search and error fixtures do not claim genuine acquisition. Root owns the single combined backend/browser/strict-visual qualification; older-source deployed journeys do not qualify this branch source. The separately Root-reserved workstation lifecycle file discovers four authored stories only; no browser body has run.",
+    "workstation_spec": "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts"
   },
   "journeys": [
     {
@@ -495,5 +499,112 @@
     "The visible Paper forward mode is not activated or qualified by this usability scope; retain existing forward/native/broker/capital holds and report the boundary rather than treating UI presence as support."
   ],
   "safety": "No native-engine trial, broker/capital action, provider-live request, forward activation, or target/deployment claim is included.",
-  "approved_plan": " /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/APPROVED-PLAN.md"
+  "approved_plan": " /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/APPROVED-PLAN.md",
+  "tc_common_runtime": {
+    "owner": "TC",
+    "current_source": "5a783e745b211cfe8b3dd20cb77d275149f15de2",
+    "contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-5a783e74-common-runtime-development-consumption-contract.json",
+    "contract_sha256": "4e7919990af84e733c0e7ef9d5c2cd5593cc961d3f08a0af6ec2bbcf80bdb290",
+    "active_manifest_entries": 53,
+    "delta_paths_over_d5": 10,
+    "qualification": "Exact development consumption only; no final source/browser/full-profile acceptance."
+  },
+  "workstation_lifecycle": {
+    "owner": "Strategy browser-spec author; TC owns shared workstation product and global matrix",
+    "spec": "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts",
+    "source_pin": "TC 5a783e745b211cfe8b3dd20cb77d275149f15de2; Provider b1a94d9854e06f8235074141bf56d333f6350057 test-only dependency",
+    "status": "authored_discovery_only_browser_pending_root_combined_slot",
+    "journeys": [
+      {
+        "id": "WL1",
+        "actions": [
+          "duplicate factory layout",
+          "switch copied panels",
+          "reload",
+          "return to original"
+        ],
+        "visible_outcome": "Copied tab and tool instance identities differ at runtime; Benchmarks, chart and Relative Rotation show data-bearing content in the copy, while the original retains its semantic content after reload.",
+        "evidence": [
+          "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts :: duplicates a factory layout with remapped panels, preserves the original, and reloads both",
+          "frontend/src/views/WorkstationView.vue :: button aria-label=\"Duplicate layout\"",
+          "frontend/src/stores/workspace.ts :: cloneActiveTab"
+        ]
+      },
+      {
+        "id": "WL2",
+        "actions": [
+          "derive the canonical 21-entry authenticated tool catalogue and all 8 default factory layouts",
+          "fail if any catalogue entry or factory window lacks a useful-outcome mapping",
+          "close and recreate all 21 catalogue entries through public Add tool controls",
+          "run a one-instrument EasyScan and select its retained result in Market Gauge",
+          "inspect Study Lab run and persisted Study Results artifact, create/validate/save a Python Library asset",
+          "seed My Favorites through the Chart window star action before reading its rows",
+          "verify chart and ratio series-color pixels, Market Map tile selection, and Relative Rotation marker-arc centers plus keyboard tooltip"
+        ],
+        "visible_outcome": "The spec derives tool titles and the eight factory layouts from the authenticated canonical endpoints; missing catalogue/factory mappings fail. All21 catalogue entries have visible outcomes including My Favorites populated by the public Chart star action, actual EasyScan coverage and finite Gauge reading, ordinary Study output in Results, saved validated Python Library asset, Market Map selection, chart/ratio series-color paint, and Relative Rotation markers captured from the latest real canvas draw: only arcs at least 3.4 DPR are eligible, centers must be finite, and each center pixel must be opaque and match a canonical state color. Keyboard plot interaction remains asserted. The broad catalogue story has a240-second test timeout. No browser body has run; these are pending Root combined qualification.",
+        "evidence": [
+          "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts :: closes and recreates every canonical catalogue tool with a per-family useful-content witness",
+          "backend/app/services/workstation_tool_catalogue.py :: authenticated canonical 21-tool catalogue",
+          "backend/app/routers/workspaces.py::_factory_tabs :: eight canonical factory layouts and their window definitions",
+          "frontend/src/components/workstation/RelativeRotationTool.vue :: 3.5-DPR latest-point arcs and keyboard tooltip interaction",
+          "frontend/src/components/workstation/MarketGaugeTool.vue and EasyScanTool.vue :: retained scan selection and evaluated/universe coverage"
+        ]
+      },
+      {
+        "id": "WL3",
+        "actions": [
+          "rename layout",
+          "reorder tabs",
+          "cancel then confirm deletion",
+          "Undo",
+          "reload"
+        ],
+        "visible_outcome": "Cancel preserves the renamed layout; confirmation removes it; public Undo restores its layout and data-bearing Benchmarks content, and the renamed tab survives reload.",
+        "evidence": [
+          "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts :: renames, reorders, cancels and confirms layout deletion, then undoes and reloads",
+          "frontend/src/views/WorkstationView.vue :: Rename layout input, Delete layout <name>, public Undo"
+        ]
+      },
+      {
+        "id": "WL4",
+        "actions": [
+          "duplicate workspace",
+          "cancel then confirm deletion",
+          "resize pane",
+          "maximize/restore",
+          "reload"
+        ],
+        "visible_outcome": "Workspace deletion cancellation preserves the copy; confirmation removes only the duplicate and the source workspace retains identical benchmark rows and rendered Chart content after reload and layout resizing.",
+        "evidence": [
+          "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts :: duplicates and safely deletes a workspace while preserving its source and tool content through resize and maximize",
+          "frontend/src/views/WorkstationView.vue :: Duplicate workspace and Delete workspace",
+          "frontend/src/stores/workspace.ts :: cloneWorkspace and deleteCurrentWorkspace"
+        ]
+      }
+    ],
+    "execution_boundary": "Type-check, Playwright --list and workstream validation only; four test bodies and all runtime content witnesses remain unexecuted pending Root combined qualification. No browser session or fixture was started."
+  },
+  "shared_source_consumptions": [
+    {
+      "owner": "ETF SearchBar producer; Strategy consumes released bytes without editing the shared component or its tests",
+      "source_commit": "bfc39453bbc986f736e1187434df48d716351e6e",
+      "contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/etfbfc39453-shared-search-development-consumption-contract.json",
+      "contract_sha256": "88bb2743de90c5b80f0863c3ca7d9e8a1be7c61cb3a1001d9c0bdac4da4e075c",
+      "paths": [
+        {
+          "path": "frontend/src/components/common/SearchBar.vue",
+          "git_blob": "dcafe47a9c3c7e538a5d8f0145d39cab88c441ce",
+          "sha256": "5a5a3e119c403276f0859eeb71b634869f8bbb8fdc6bd8c12b63be7fa6006aaf"
+        },
+        {
+          "path": "frontend/tests/unit/components/test_search_bar.test.ts",
+          "git_blob": "aeb57390a005c47c356f0ff4c8089367dce1c2ff",
+          "sha256": "b090aac0a9d7e321718d297ad30fa0bc730c9c848d3f97d5e192500fe352a942"
+        }
+      ],
+      "import_check": "Both authorized paths were clean and already matched the exact released source Git blobs and SHA256 values in this Strategy checkout; no file rewrite or ETF test rerun was needed.",
+      "source_contract": "Shared automatic exact/provisional ticker preparation, default discovery, history plus ETF holdings datasets, ambiguity handling, and stale/strict-identity fencing; no duplicate producer logic.",
+      "qualification": "Development dependency consumption only. Root reports42/42 ETF tests and type-check; no Strategy browser, combined profile, release, deployment, or live-source acceptance is implied."
+    }
+  ]
 }

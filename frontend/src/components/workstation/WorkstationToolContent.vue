@@ -1008,6 +1008,7 @@
         <small v-if="!genericBreadthHistoryOccurrences.length">No member state changes were recorded for this history.</small>
       </section>
       <p v-if="breadthBusy" class="breadth-tool__status" role="status" aria-live="polite" aria-atomic="true">Loading breadth analysis…</p>
+      <p v-else-if="breadthPreparationStatus" class="breadth-tool__status" role="status" aria-live="polite" aria-atomic="true">{{ breadthPreparationStatus }}</p>
       <p v-else-if="breadthError" class="breadth-tool__status breadth-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">{{ breadthError }}</p>
       <p v-else-if="!breadth" class="breadth-tool__status" role="status" aria-live="polite" aria-atomic="true">Breadth analysis is unavailable.</p>
       <div class="metrics">
@@ -1063,7 +1064,7 @@ import { acquireSelectedHistory, defaultHistoryRange, type SelectedHistoryStage 
 import { dedupeOhlcvRequest } from '@/lib/workstation/ohlcvRequests'
 import { calculateCustomDateSortValue, customDateSortListColumn, parseCustomDateSortListColumn, type CustomDateSortListColumn, type CustomDateSortMode, type CustomDateSortPriceRange, type CustomDateSortRange, type CustomDateSortValue } from '@/lib/workstation/customDateSort'
 import { loadCustomDateSortLocalEvidence, loadCustomDateSortLocalListValues } from '@/lib/workstation/customDateSortData'
-import { dataPreparationCoordinator, PreparationProgressRefreshQueue, preparationStatusMessage, type DataEnsureResponse } from '@/lib/dataPreparation'
+import { dataPreparationCoordinator, PreparationProgressRefreshQueue, preparationStatusMessage, shouldRefreshAnalysisProgress, type DataEnsureResponse, type PreparationTimeframe } from '@/lib/dataPreparation'
 import UPlotChart from '@/components/chart/UPlotChart.vue'
 import DrawingToolbar from '@/components/chart/DrawingToolbar.vue'
 import HistoryAcquisitionControl from '@/components/chart/HistoryAcquisitionControl.vue'
@@ -2607,6 +2608,9 @@ watch([configuredScanPlots, activeTimeframe], () => { void loadScanPlots() }, { 
 onBeforeUnmount(() => {
   timeframeHistoryAbortController?.abort()
   timeframeHistoryAbortController = null
+  breadthPreparationGeneration += 1
+  breadthPreparationAbort?.abort()
+  breadthPreparationAbort = null
   industryProfilePreparationGeneration += 1
   industryProfilePreparationAbort?.abort()
   industryProfilePreparationAbort = null
@@ -2842,6 +2846,10 @@ const breadth = computed(() => workspaceStore.breadth[breadthGroupKey.value])
 const breadthHistory = computed(() => workspaceStore.breadthHistory[breadthGroupKey.value])
 const breadthBusy = computed(() => workspaceStore.breadthLoading[breadthGroupKey.value] === true || workspaceStore.breadthHistoryLoading[breadthGroupKey.value] === true)
 const breadthError = computed(() => workspaceStore.breadthErrors[breadthGroupKey.value] ?? workspaceStore.breadthHistoryErrors[breadthGroupKey.value] ?? null)
+const breadthPreparationStatus = ref('')
+let breadthPreparationGeneration = 0
+let breadthPreparationAbort: AbortController | null = null
+let breadthAnalysisRefreshQueue = new PreparationProgressRefreshQueue()
 const breadthCustomUniverseKind = computed(() => {
   const candidate = breadthConfigurationValue('custom_universe_kind')
   return candidate === 'etf_holdings' || candidate === 'benchmark_family' || candidate === 'watchlist' ? candidate : 'group'
@@ -4610,6 +4618,21 @@ async function loadBreadthPythonSeriesAssets() {
   }
 }
 async function loadBreadthUniverse(groupKey: string, timeframe = breadthTimeframe.value, adjusted = breadthAdjusted.value, lookback = breadthLookback.value) {
+  const generation = ++breadthPreparationGeneration
+  breadthPreparationAbort?.abort()
+  breadthPreparationAbort = null
+  breadthAnalysisRefreshQueue = new PreparationProgressRefreshQueue()
+  breadthPreparationStatus.value = ''
+  if (disposed || !groupKey) return
+  const controller = new AbortController()
+  breadthPreparationAbort = controller
+  const isCurrent = () => !disposed
+    && generation === breadthPreparationGeneration
+    && !controller.signal.aborted
+    && breadthGroupKey.value === groupKey
+    && breadthTimeframe.value === timeframe
+    && breadthAdjusted.value === adjusted
+    && breadthLookback.value === lookback
   const options = { ...(timeframe !== 'D1' ? { timeframe } : {}), ...(adjusted !== true ? { adjusted } : {}), ...(lookback !== 20 ? { new_high_lookback: lookback } : {}), ...(familyAsOf.value ? { as_of: familyAsOf.value } : {}) }
   const registry = workspaceStore.marketGroups['us-benchmarks']?.provenance?.benchmark_families
   const familyRecord = Array.isArray(registry)
@@ -4620,12 +4643,44 @@ async function loadBreadthUniverse(groupKey: string, timeframe = breadthTimefram
   // Family roots must never borrow SPY when their own cap mapping is absent. The
   // generic sector/benchmark groups retain their established SPY comparison.
   const snapshotBenchmark = familyRecord ? familyBenchmark : 'SPY'
-  await Promise.all([
-    workspaceStore.loadMarketGroup(groupKey),
-    workspaceStore.loadGroupSnapshot(groupKey, snapshotBenchmark, options),
-    workspaceStore.loadBreadth(groupKey, options),
-    workspaceStore.loadBreadthHistory(groupKey, options),
-  ])
+  const refreshAnalysis = async () => {
+    if (!isCurrent()) return
+    await Promise.all([
+      workspaceStore.loadMarketGroup(groupKey),
+      workspaceStore.loadGroupSnapshot(groupKey, snapshotBenchmark, options),
+      workspaceStore.loadBreadth(groupKey, options),
+      workspaceStore.loadBreadthHistory(groupKey, options),
+    ])
+  }
+  // Read the useful local result first. Durable preparation may take longer;
+  // new versions refresh this same configured group without hiding its cache.
+  await refreshAnalysis()
+  if (!isCurrent() || familyAsOf.value) return
+  breadthPreparationStatus.value = `Preparing ${groupKey} history for ${timeframe} breadth…`
+  void dataPreparationCoordinator.ensure({
+    target: isBenchmarkFamily.value
+      ? { kind: 'family', family_key: groupKey }
+      : { kind: 'market_group', group_key: groupKey },
+    datasets: ['history'],
+    timeframe: timeframe as PreparationTimeframe,
+    adjusted,
+  }, {
+    signal: controller.signal,
+    onProgress: ({ response }) => {
+      if (!isCurrent()) return
+      breadthPreparationStatus.value = preparationStatusMessage(response)
+      if (shouldRefreshAnalysisProgress(response)) {
+        void breadthAnalysisRefreshQueue.request(response, refreshAnalysis).catch(() => undefined)
+      }
+    },
+  }).then(async response => {
+    if (!isCurrent()) return
+    breadthPreparationStatus.value = response.status === 'ready' ? '' : preparationStatusMessage(response)
+    await breadthAnalysisRefreshQueue.request(response, refreshAnalysis)
+  }).catch(cause => {
+    if (!isCurrent() || (cause instanceof DOMException && cause.name === 'AbortError')) return
+    breadthPreparationStatus.value = 'Market data preparation is unavailable; showing any saved breadth results.'
+  })
 }
 let benchmarkFamilyLoadSequence = 0
 watch([benchmarkFamilyKey, benchmarkFamilyCapProxy, activeTimeframe], async ([familyKey, _capProxy, timeframe]) => {

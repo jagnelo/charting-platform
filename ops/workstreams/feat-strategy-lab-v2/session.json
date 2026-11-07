@@ -50,29 +50,15 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "current_blocker": "Root owns the single combined backend/browser/strict-visual qualification for Provider46462f55, TC-d5e8, and the Strategy Study/Results/Library plus reserved Dashboard changes. All45 current Provider manifest entries match exact source SHA256, Git blob and status_from139; only its four declared deltas were imported over732, which is preserved historically. Root-reported107 focused Provider cases and locked style checks are not full release acceptance, and CI42328517364 is in progress. The D5 49-entry consumer import remains exact. Dashboard persistence feedback passes3/3, type-check exits0, and Playwright discovers all4 Dashboard stories; no browser body or full profile has run. Preserve all18 original roadmap criteria and every disabled-operation hold.",
+  "current_blocker": "Root owns the single combined backend/browser/strict-visual qualification. Strategy Study/Results/Library component suites pass145/145; Research router units pass14/14; and five reserved Dashboard component files pass207/207. The five owned browser journeys remain authored/discovery-only. ETF SearchBar bfc39453 is an exact two-file shared dependency already byte-identical in the clean Strategy checkout; no producer code was changed or ETF test rerun. Provider b1a94d98 is test-only; its exact CI42332618010 has Backend and Frontend Unit green while E2E and Branch-declared remain pending. Preserve all18 criteria and disabled-operation holds.",
   "current_execution_checkpoint": {
     "authority": "Human-activated platform-usability plan; existing session-local goal aligned in place by Root, no objective/accounting reset.",
     "full_roadmap_preserved": true,
-    "heavy_profile": "Root owns the single combined backend/browser/strict-visual qualification for Provider46462f55, TC-d5e8 and Strategy Study/Results/Library plus reserved Dashboard changes. All45 Provider manifest records are verified after the four-path import; exact Provider CI is in progress. Dashboard feedback unit passes3/3, type-check exits0 and four E2E stories are discovered only; no browser body or full profile ran here.",
+    "heavy_profile": "Root owns one combined backend/browser/strict-visual qualification. Focused Strategy Study/Results/Library suites pass145/145; Research router unit module passes14/14; reserved Dashboard files pass207/207. These checks do not replace the full profile; five Strategy browser journeys remain discovered but unexecuted. TC5a is development-only. Provider b1a94d98 is test-only; exact CI42332618010 has Backend and Frontend Unit success while E2E and Branch-declared remain pending. ETF SearchBar bfc39453 is an exact two-path dependency already byte-identical in this worktree; Root reports42/42 owner tests and frontend type-check, not rerun by Strategy. No browser body or full profile ran locally.",
     "id": "strategy-study-usability-2026-11-06",
     "status": "in_progress"
   },
-  "dirty_paths": [
-    "backend/app/tasks/data_tasks.py",
-    "backend/tests/unit/services/test_data_preparation_history_planning.py",
-    "backend/tests/unit/services/test_etf_holdings_native_qualification.py",
-    "backend/tests/unit/services/test_etf_issuer_catalog.py",
-    "frontend/src/views/DashboardView.vue",
-    "frontend/tests/e2e/dashboard_usability_journey.spec.ts",
-    "frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts",
-    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
-    "ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
-    "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
-    "ops/workstreams/feat-strategy-lab-v2/provider-runtime-consumption.json",
-    "ops/workstreams/feat-strategy-lab-v2/session.json",
-    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
-  ],
+  "dirty_paths": [],
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
@@ -106,14 +92,14 @@
     }
   ],
   "goal_unavailable_reason": null,
-  "head": "134c63f535bb78c84da7c90063f81aca91843ba0",
-  "implementation_sha": "134c63f535bb78c84da7c90063f81aca91843ba0",
-  "last_checkpoint": "2026-11-07T02:26:25Z",
+  "head": "8dfeed8d9092bbf90e54f283afe1d96e71c23511",
+  "implementation_sha": "8dfeed8d9092bbf90e54f283afe1d96e71c23511",
+  "last_checkpoint": "2026-11-07T03:40:10Z",
   "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Hand the coherent Strategy consumer source, active Provider46462f55 development pin, and Study/Results/Library plus reserved Dashboard matrix to Root for the single combined backend/browser/visual qualification. Keep Provider CI42328517364 and the combined gate pending; do not treat focused tests, type-check or Playwright discovery as browser/full-profile acceptance. Preserve all18 roadmap criteria and disabled-operation holds.",
+  "next_action": "Provide Root the coherent Strategy-owned usability checkpoint with145 focused Study/Results/Library tests,14 Research router units,207 reserved Dashboard units, the five authored browser journeys, and the exact ETF SearchBar source pin. Root owns the combined browser/backend/strict-visual qualification; repair concrete Strategy-owned failures from that run. Keep SU5/full-profile and all18-roadmap completion pending.",
   "parent_branch": "staging",
-  "plan_hash": "6bc5a9e856b02e6707e57bcf2475663e138037ffecef250e54f82fe13818e617",
+  "plan_hash": "f0e7e297b51b3196fe0085daac0a0f40047d42fc81bd0941c9dd201113769dc6",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -142,11 +128,11 @@
       "SU3",
       "SU4"
     ],
-    "current_blocker": "Root owns the single combined backend/browser/strict-visual qualification for Provider46462f55, TC-d5e8, and the Strategy Study/Results/Library plus reserved Dashboard changes. All45 current Provider manifest entries match exact source SHA256, Git blob and status_from139; only its four declared deltas were imported over732, which is preserved historically. Root-reported107 focused Provider cases and locked style checks are not full release acceptance, and CI42328517364 is in progress. The D5 49-entry consumer import remains exact. Dashboard persistence feedback passes3/3, type-check exits0, and Playwright discovers all4 Dashboard stories; no browser body or full profile has run. Preserve all18 original roadmap criteria and every disabled-operation hold.",
+    "current_blocker": "Root owns the single combined backend/browser/strict-visual qualification. Strategy Study/Results/Library component suites pass145/145; Research router units pass14/14; and five reserved Dashboard component files pass207/207. The five owned browser journeys remain authored/discovery-only. ETF SearchBar bfc39453 is an exact two-file shared dependency already byte-identical in the clean Strategy checkout; no producer code was changed or ETF test rerun. Provider b1a94d98 is test-only; its exact CI42332618010 has Backend and Frontend Unit green while E2E and Branch-declared remain pending. Preserve all18 criteria and disabled-operation holds.",
     "current_phase": "strategy-study-usability-2026-11-06",
-    "next_action": "Hand the coherent Strategy consumer source, active Provider46462f55 development pin, and Study/Results/Library plus reserved Dashboard matrix to Root for the single combined backend/browser/visual qualification. Keep Provider CI42328517364 and the combined gate pending; do not treat focused tests, type-check or Playwright discovery as browser/full-profile acceptance. Preserve all18 roadmap criteria and disabled-operation holds.",
+    "next_action": "Provide Root the coherent Strategy checkpoint and focused evidence, including exact ETF SearchBar dependency consumption; Root owns the combined browser/backend/strict-visual qualification. Repair concrete Strategy-owned failures from that gate. No browser body ran locally; keep SU5/full-profile and all18-roadmap completion pending.",
     "total": 9,
-    "updated_at": "2026-11-07T02:31:25Z"
+    "updated_at": "2026-11-07T03:40:10Z"
   },
   "remote": "c7f0585fc6735bbfe5e768836092419b13ce8a25",
   "remote_sha": "c7f0585fc6735bbfe5e768836092419b13ce8a25",
@@ -263,5 +249,5 @@
   ],
   "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
   "worktree_id": "feat-strategy-lab-v2-7794d9e53d",
-  "updated_at": "2026-11-07T02:31:25Z"
+  "updated_at": "2026-11-07T03:40:10Z"
 }
