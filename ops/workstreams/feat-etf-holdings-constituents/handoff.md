@@ -18918,3 +18918,22 @@ Focused validation passed: `frontend/tests/unit/components/test_instrument_note_
 Consumed Root-released TC source `9ec4d7833c45cd2fc51916a2378445f7761b425e` using exactly12 ETF-declared old-guarded imports. Its complete136-row manifest verifies; the active foreign pin is126 paths and excludes all10 ETF-private paths. The previous305 dependency is retained as historical. Separately consumed exactly3 old-guarded Provider operator-test paths from `aed0d62c7e93ee6bd320c6b7a22791bb8d3d8b87`; the current Provider runtime pin9e2 (79 rows) was not changed. Exact manifest copies and current plan pins are recorded.
 
 Remaining integration requirement: the imported shared `WorkstationToolContent.vue` still renders `InstrumentNoteTool` without binding `requestPriority`; it must pass the actual foreground/visibility priority for the component's high-priority path to activate in the live caller. That shared caller remains TC-owned and was not edited. Root owns the combined browser profile, exact CI, publication, and release gates; no browser acceptance is claimed. The complete ETF roadmap and all prior evidence remain open/preserved.
+
+### Visible Notes shared-query priority join — 2026-11-08
+
+Root's `ETF-visible-Notes-shared-query-join-repair.json` identified that a
+visible high-priority Notes panel can join a pending hidden Notes read under
+the same TanStack Query key. Since the pending query function is reused, the
+new fetch options alone cannot promote its already-queued HTTP request. The
+ETF-owned `InstrumentNoteTool.vue` now promotes `instrument-note:<id>` when a
+high-priority load begins, including initial high-priority mount and instrument
+changes; the existing watcher still handles later priority changes. One shared
+QueryClient regression verifies the visible join promotes the request without
+issuing a duplicate read. Existing draft, autosave, auth, and late-acknowledgment
+guards remain in place.
+
+The Notes unit module passed 5/5 and frontend type-check completed without
+diagnostics. `git diff --check` passed. No browser, full suite, provider/native
+HTTP, database, quota, or production operation ran. TC's shared caller remains
+the owner of passing foreground priority into the component; that caller was
+not changed here. Root retains the combined browser and final release gates.
