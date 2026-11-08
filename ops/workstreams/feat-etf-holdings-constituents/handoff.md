@@ -19078,3 +19078,37 @@ The page response listener is installed before reload/selection to retain actual
 Consumed only the31 ETF-declared imports from TC source `db4b1f55f78b1d907aab9d062da9470b5e3cc109` under the exact old-byte guards. The local receipt records all150 released manifest rows; the active foreign context contains140 paths and explicitly excludes all10 ETF-private paths. The prior e750 pin and its evidence remain archived. This frontend development context does not change the already-current Provider `fc220` dependency and does not constitute release acceptance.
 
 The owned S&P RRG journey now activates Relative Rotation through its ordinary named Golden Layout tab. When compact layout places the tab in the overflow menu, the test derives that tab's own header, clicks its visible dropdown, selects the visible named overflow item, and checks the named tab's active state after Golden Layout reparents it. The same helper is used before initial graph assertions and after reload. Existing data, canvas, marker/tail, geometry, math, layout, and lifecycle assertions are unchanged. Playwright discovery lists both S&P cases; no browser body was run here. Root reports the DB4 full frontend unit run green (1953/1953); compact RRG browser rerun and combined release gates remain Root-owned and pending.
+
+
+## S&P RRG backing-pixel audit correction — 2026-11-08
+
+Root/TC reviewed the owned DPR audit and confirmed a test-oracle coordinate
+error. In the pinned uPlot source, `valToPos(..., true)` selects backing plot
+dimensions and backing offsets; `RelativeRotationTool` passes those values
+directly to the canvas context. uPlot sizes the canvas backing store to
+`CSS size * pixelRatio`, and the context has no additional transform. The audit
+therefore sampled recorded tail coordinates after multiplying by the
+CSS-to-backing ratio a second time. The owned S&P spec now interpolates and
+samples the recorded backing coordinates directly. Paired pre/post source-over
+pixels, final visible pixels, segment counts, markers, tails, numerical
+assertions, colors, tolerances, viewport, and timeouts are unchanged.
+
+Read-only diagnosis of the 8a retained browser failures was delivered to TC.
+The public-navigation test opens the application menu immediately after
+`page.goto('/chart')`; Workstation's initial active-symbol synchronization then
+replaces the route with `/chart/SPY`, and its route watcher closes the menu
+before the visibility assertion. The minimal test correction is to wait for
+the stable `/chart/SPY` route before opening the menu. In the no-snapshot
+holding chart test, the controlled M1 route is gated by the broader D1-success
+flag and consequently serves the D1 bar on the first M1 read. The later M1
+acquisition read serves a different timestamp; the chart's same-selection
+progress refresh merges both rows. Gate that fixture on the M1-specific success
+flag so pre-acquisition M1 reads remain empty. These findings require no ETF
+product change; the relevant flows test is TC-owned.
+
+The coordinate-only S&P correction is committed at `bd5129cea81774a5799768e4027e3118a9255d45`
+(`frontend/tests/e2e/sp500_analysis_journey.spec.ts` SHA256
+`add422ecebe07a1dd1a0480f3b1b682a6ae4b29bb07f440c7a51554d0d4a553e`).
+Playwright discovery lists both S&P journeys and `git diff --check` passes. No
+browser was run; Root owns exact-source RRG and combined browser qualification.
+The full ETF/platform roadmap remains open.
