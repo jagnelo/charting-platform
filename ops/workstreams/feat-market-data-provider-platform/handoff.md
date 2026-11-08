@@ -1,3 +1,28 @@
+## 2026-11-08 — bounded EODHD usage and Nasdaq qualification
+
+Using Root's corrected single-use runner entry at the pinned source
+`959006e7501942d8d55cc06e212fa8f72f4dec2f`, the EODHD account-usage case
+passed with one HTTP request and the Nasdaq official-directory case passed
+with exactly two file requests. The sanitized EODHD snapshot identified the
+plan as `free`, reported a 20-call daily limit and last-active usage date
+2026-10-19; the existing adapter interprets that past date as zero current-UTC-day
+usage, without folding the separate extra-call balance into the daily cap.
+Native minute headers reported 1,199 of 1,200 remaining.
+
+The EODHD recent-history preflight remained held before transport because the
+shared coordinator reported `eodhd/fetch_ohlcv: active requests_per_minute
+usage baseline is unknown`. No history request was sent, and this unknown
+baseline was not bypassed. Across the corrected allocation, three of four
+possible HTTP requests were made (usage 1, Nasdaq 2); all were accounted by
+the existing shared runner/ledger. The earlier v1 scope-less preflight receipts
+remain preserved and no mode was replayed. Root owns any baseline reconciliation
+and a separately authorized future history attempt. No policy, quota, account,
+production configuration, or application source was changed.
+
+Redacted runner receipts/logs are under
+`/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/`
+with the `Provider-four-http-v2-` prefix.
+
 # feat/market-data-provider-platform
 
 ## 2026-11-08 — keep Twelve Data earliest-timestamp outside live coverage
