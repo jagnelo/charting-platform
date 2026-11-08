@@ -4,7 +4,15 @@ import { VueQueryPlugin, QueryClient } from '@tanstack/vue-query'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { apiGet, apiPost, ensurePreparation, resolveWatchlistSource, watchlistSourceState } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn(), ensurePreparation: vi.fn(), resolveWatchlistSource: vi.fn(), watchlistSourceState: { sources: [] as unknown[] } }))
-vi.mock('@/lib/api', () => ({ api: { get: apiGet, post: apiPost } }))
+vi.mock('@/lib/api', () => ({
+  ApiError: class ApiError extends Error {
+    constructor(readonly method: string, readonly path: string, readonly status: number, body: string) {
+      super(`API ${method} ${path} → ${status}: ${body}`)
+      this.name = 'ApiError'
+    }
+  },
+  api: { get: apiGet, post: apiPost },
+}))
 vi.mock('@/lib/dataPreparation', () => ({
   dataPreparationCoordinator: { ensure: ensurePreparation },
   preparationStatusMessage: (response: { status: string }) => response.status === 'ready' ? 'Requested data is ready.' : 'Requested data is unavailable.',
@@ -20,12 +28,18 @@ vi.mock('@/components/workstation/StudyDashboard.vue', () => ({ default: { templ
 
 import StudyLabTool from '@/components/workstation/StudyLabTool.vue'
 import ResearchResultsTool from '@/components/workstation/ResearchResultsTool.vue'
+import { ApiError } from '@/lib/api'
 import type { WatchlistSource } from '@/types'
 
 function deferred<T>() {
   let resolve!: (value: T) => void
   const promise = new Promise<T>(res => { resolve = res })
   return { promise, resolve }
+}
+
+function terminalCancelConflict(runId: number, status: 'completed' | 'failed' | 'canceled' = 'completed') {
+  const path = `/research/runs/${runId}/cancel`
+  return new ApiError('POST', path, 409, JSON.stringify({ detail: { code: 'research_run_terminal', status } }))
 }
 
 describe('StudyLabTool', () => {
@@ -1008,6 +1022,34 @@ describe('StudyLabTool', () => {
     expect(queryClient.getQueryData(['workstation', 'research-run', 101])).toMatchObject({ id: 101, status: 'canceled' })
     first.unmount()
     second.unmount()
+  })
+
+  it('reads the canonical Study run when completion wins a cancel race', async () => {
+    const running = { id: 102, status: 'running', code_version_id: 4, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [] }
+    const completed = { ...running, status: 'completed' }
+    let cancelAttempted = false
+    apiGet.mockImplementation((path: string) => path === '/research/runs/102'
+      ? Promise.resolve(cancelAttempted ? completed : running)
+      : Promise.resolve(undefined))
+    apiPost.mockImplementationOnce(() => {
+      cancelAttempted = true
+      return Promise.reject(terminalCancelConflict(102))
+    })
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    const wrapper = mountTool({ activeSymbol: 'SPY', configuration: { study_run_id: 102 } }, queryClient)
+    await vi.waitFor(() => expect(wrapper.get('[aria-label="Study run status: Running"]').exists()).toBe(true))
+    const readsBeforeCancel = apiGet.mock.calls.filter(([path]) => path === '/research/runs/102').length
+
+    await wrapper.get('[aria-label="Cancel study run"]').trigger('click')
+    await vi.waitFor(() => expect(wrapper.get('[aria-label="Study run status: Completed"]').exists()).toBe(true))
+
+    expect(apiPost).toHaveBeenCalledWith('/research/runs/102/cancel', {})
+    expect(apiGet.mock.calls.filter(([path]) => path === '/research/runs/102').length).toBeGreaterThan(readsBeforeCancel)
+    expect(wrapper.text()).not.toContain('Study canceled.')
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+    expect(queryClient.getQueryData(['workstation', 'research-run', 102])).toMatchObject({ id: 102, status: 'completed' })
+    wrapper.unmount()
+    queryClient.clear()
   })
 
   it('does not let late persisted hydration replace a newly started run', async () => {

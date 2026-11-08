@@ -153,6 +153,7 @@ import type { DataEnsureRequest, PreparationTimeframe } from '@/lib/dataPreparat
 import { invalidateCodeAssets } from '@/lib/workstation/libraryQueries'
 import { normalizeStructuredNumericSeries } from '@/lib/workstation/numericSeries'
 import { researchRunQueryKey, researchRunsQueryKey } from '@/lib/workstation/researchQueryKeys'
+import { readTerminalRunAfterCancelConflict } from '@/lib/workstation/researchRunCancellation'
 import { normalizeStudyDashboardPanels } from '@/lib/workstation/studyArtifacts'
 import { describeStudyArtifact } from '@/lib/workstation/studyArtifactAccessibility'
 import { useWatchlistStore } from '@/stores/watchlist'
@@ -1961,10 +1962,11 @@ async function rerun(snapshot: boolean) {
 }
 async function cancel() {
   if (!run.value || cancelBusy.value) return
+  const runId = run.value.id
   const generation = runGeneration
   cancelBusy.value = true
   try {
-    const canceled = await api.post<Run>(`/research/runs/${run.value.id}/cancel`, {})
+    const canceled = await api.post<Run>(`/research/runs/${runId}/cancel`, {})
     queryClient.setQueryData(researchRunQueryKey(canceled.id), canceled)
     cacheResearchRunInList(canceled)
     void queryClient.invalidateQueries({ queryKey: researchRunsQueryKey })
@@ -1974,7 +1976,27 @@ async function cancel() {
     if (disposed || generation !== runGeneration) return
     queryClient.setQueryData(researchRunQueryKey(canceled.id), canceled)
   }
-  catch (cause: any) { if (!disposed && generation === runGeneration) error.value = cause?.message ?? 'Unable to cancel study run' }
+  catch (cause: any) {
+    if (disposed || generation !== runGeneration) return
+    try {
+      const terminal = await readTerminalRunAfterCancelConflict(cause, runId, () => api.get<Run>(`/research/runs/${runId}`))
+      if (terminal) {
+        queryClient.setQueryData(researchRunQueryKey(runId), terminal)
+        cacheResearchRunInList(terminal)
+        if (!disposed && generation === runGeneration && run.value?.id === runId) {
+          run.value = terminal
+          error.value = ''
+        }
+        return
+      }
+    } catch (refreshCause: any) {
+      if (!disposed && generation === runGeneration) {
+        error.value = `Unable to confirm Study run #${runId} after the cancel request: ${refreshCause?.message ?? 'run status refresh failed'}`
+      }
+      return
+    }
+    if (!disposed && generation === runGeneration) error.value = cause?.message ?? 'Unable to cancel study run'
+  }
   finally { if (!disposed && generation === runGeneration) cancelBusy.value = false }
 }
 onMounted(() => {

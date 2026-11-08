@@ -20290,4 +20290,12 @@ The Strategy-owned helper now captures the committed symbol from the visible wor
 
 ### Focused Study, Results, and Library unit evidence (2026-11-08)
 
+### d020 typed terminal-cancel race (2026-11-08)
+
+Root's exact d020 catalogue trace records `POST /api/v1/research/runs/70/cancel` returning typed `409 research_run_terminal` with server status `completed`. The request occurs during the all-tool catalogue lifecycle after EasyScan submits/rereads its scan result; there is no ordinary Study or Results Cancel-button action in that trace. The matching fire-and-forget request site is the shared `EasyScanTool.vue` `onBeforeUnmount` hook, which calls `api.post(.../cancel)` without observing rejection. Strategy did not change that shared component or mask its page error; TC/root must handle the shared unmount terminal race in its owner scope.
+
+Within Strategy-owned Study and Results controls, cancellation now recognizes only an `ApiError` for the exact `POST /research/runs/{id}/cancel` route whose body code is `research_run_terminal` and whose status is one of the server terminal states. It then rereads `/research/runs/{id}`, verifies the returned id/status against the conflict, and publishes that canonical state to the local/query caches. A mismatched or failed read remains a visible error; unrelated 409s and ordinary failures remain errors, and the client never invents `canceled`.
+
+Focused Study Lab and Research Results component suites pass 142/142, frontend `vue-tsc --noEmit` passes, the branch workstream validator passes, and `git diff --check` passes. Root still owns browser execution; the d020 PageError remains a shared EasyScan finding, not covered by these private component regressions. Full qualification and the 18-criterion roadmap remain open.
+
 On source `88b70230f03cab3f45b2817033892e4c9e1ea9f5`, the existing Strategy component suites passed: `test_study_lab_tool.test.ts` 68/68, `test_research_results_tool.test.ts` 71/71, and `test_code_library_tool.test.ts` 21/21 (160 total). This is focused component evidence only; no browser body, backend fixture, or full profile ran in Strategy. Root owns the affected-four browser rerun, shared-runtime qualification, and complete Study/Results/Library acceptance. The 8d96/19d 0/4 predecessor remains preserved; all18 roadmap criteria and operation holds remain open.

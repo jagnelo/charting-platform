@@ -3,7 +3,15 @@ import { VueQueryPlugin, QueryClient } from '@tanstack/vue-query'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { apiGet, apiPost } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn() }))
-vi.mock('@/lib/api', () => ({ api: { get: apiGet, post: apiPost } }))
+vi.mock('@/lib/api', () => ({
+  ApiError: class ApiError extends Error {
+    constructor(readonly method: string, readonly path: string, readonly status: number, body: string) {
+      super(`API ${method} ${path} → ${status}: ${body}`)
+      this.name = 'ApiError'
+    }
+  },
+  api: { get: apiGet, post: apiPost },
+}))
 vi.mock('@/components/workstation/StudyBarsUPlot.vue', () => ({ default: { template: '<div class="bars-chart" />', props: ['name', 'labels', 'values'] } }))
 vi.mock('@/components/workstation/StudySeriesUPlot.vue', () => ({ default: { template: '<div class="series-chart" :data-values="JSON.stringify(values)" />', props: ['name', 'timestamps', 'values'] } }))
 vi.mock('@/components/workstation/StudyHistogramUPlot.vue', () => ({ default: { template: '<div class="histogram-chart" />', props: ['name', 'bins', 'current'] } }))
@@ -14,6 +22,7 @@ vi.mock('@/components/workstation/StudyDashboard.vue', () => ({ default: { templ
 vi.mock('@/components/workstation/GenericBreadthHistoryUPlot.vue', () => ({ default: { template: '<div class="breadth-history-chart" />', props: ['history'] } }))
 
 import ResearchResultsTool from '@/components/workstation/ResearchResultsTool.vue'
+import { ApiError } from '@/lib/api'
 
 const routerLinkStub = {
   props: ['to'],
@@ -25,6 +34,11 @@ function deferred<T>() {
   let reject!: (reason?: unknown) => void
   const promise = new Promise<T>((res, rej) => { resolve = res; reject = rej })
   return { promise, resolve, reject }
+}
+
+function terminalCancelConflict(runId: number, status: 'completed' | 'failed' | 'canceled' = 'completed') {
+  const path = `/research/runs/${runId}/cancel`
+  return new ApiError('POST', path, 409, JSON.stringify({ detail: { code: 'research_run_terminal', status } }))
 }
 
 describe('ResearchResultsTool', () => {
@@ -584,6 +598,47 @@ describe('ResearchResultsTool', () => {
     await flushPromises()
     expect(apiPost).toHaveBeenCalledWith('/research/runs/12/cancel', {})
     expect(wrapper.text()).toContain('canceled')
+  })
+
+  it('confirms a terminal run after cancellation loses the completion race', async () => {
+    const running = { id: 27, status: 'running', code_version_id: 4, run_config: {}, dataset_manifest: {}, diagnostics: [], artifact_count: 0, artifacts: [] }
+    const completed = { ...running, status: 'completed' }
+    apiGet.mockImplementation((path: string) => path === '/research/runs/27' ? Promise.resolve(completed) : Promise.resolve([running]))
+    apiPost.mockRejectedValueOnce(terminalCancelConflict(27))
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    const wrapper = mountTool(queryClient)
+    await flushPromises()
+
+    await wrapper.get('[aria-label="Run 27, running, 0 artifacts"]').trigger('click')
+    await flushPromises()
+    await wrapper.get('[aria-label="Research run 27 details"]').get('button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.get('[aria-label="Run 27, completed, 0 artifacts"]').exists()).toBe(true))
+
+    expect(apiPost).toHaveBeenCalledWith('/research/runs/27/cancel', {})
+    expect(apiGet).toHaveBeenCalledWith('/research/runs/27')
+    expect(wrapper.text()).not.toContain('canceled')
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+    expect(queryClient.getQueryData(['workstation', 'research-run', 27])).toMatchObject({ id: 27, status: 'completed' })
+    wrapper.unmount()
+    queryClient.clear()
+  })
+
+  it('keeps an unrelated cancel 409 visible instead of treating every conflict as terminal', async () => {
+    const running = { id: 28, status: 'running', code_version_id: 4, run_config: {}, dataset_manifest: {}, diagnostics: [], artifact_count: 0, artifacts: [] }
+    const path = '/research/runs/28/cancel'
+    const conflict = new ApiError('POST', path, 409, JSON.stringify({ detail: { code: 'cancel_not_admitted', status: 'completed' } }))
+    apiGet.mockResolvedValue([running])
+    apiPost.mockRejectedValueOnce(conflict)
+    const wrapper = mountTool()
+    await flushPromises()
+
+    await wrapper.get('[aria-label="Run 28, running, 0 artifacts"]').trigger('click')
+    await wrapper.get('[aria-label="Research run 28 details"]').get('button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.get('[role="alert"]').text()).toContain('cancel_not_admitted'))
+
+    expect(apiGet).not.toHaveBeenCalledWith('/research/runs/28')
+    expect(wrapper.get('[aria-label="Research run 28 details"]').find('button').text()).toBe('Cancel')
+    wrapper.unmount()
   })
 
   it('reports a cancellation failure and leaves the selected run retryable', async () => {
