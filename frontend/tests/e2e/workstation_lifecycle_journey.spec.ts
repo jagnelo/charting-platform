@@ -371,7 +371,50 @@ async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUT
     const breadth = tool.locator('.breadth-tool')
     await expect(breadth).toBeVisible({ timeout: 20_000 })
     await expect(breadth).toHaveAttribute('aria-busy', 'false', { timeout: 30_000 })
-    await expect(breadth.locator('.breadth-tool__coverage-detail')).toContainText(/\d/)
+    const evaluationResponse = page.waitForResponse(response => response.request().method() === 'POST'
+      && new URL(response.url()).pathname === '/api/v1/analysis/breadth')
+    await breadth.getByRole('button', { name: 'Evaluate', exact: true }).click()
+    const evaluation = await evaluationResponse
+    expect(evaluation.status()).toBe(200)
+    const result = await evaluation.json() as {
+      requested_count?: number
+      eligible_count?: number
+      pass_count?: number
+      excluded_count?: number
+      percentage?: number | null
+      coverage?: number | null
+      members?: Array<{ instrument_id?: number; symbol?: string; value?: boolean | null; metric?: number | null }>
+    }
+    const requested = result.requested_count
+    const eligible = result.eligible_count
+    const passed = result.pass_count
+    const excluded = result.excluded_count
+    expect(Number.isInteger(requested) && Number(requested) > 0).toBe(true)
+    expect(Number.isInteger(eligible) && Number(eligible) > 0).toBe(true)
+    expect(Number.isInteger(passed) && Number(passed) >= 0 && Number(passed) <= Number(eligible)).toBe(true)
+    expect(Number.isInteger(excluded) && Number(excluded) >= 0).toBe(true)
+    expect(Number.isFinite(result.percentage)).toBe(true)
+    expect(Number.isFinite(result.coverage)).toBe(true)
+    expect(result.percentage).toBeCloseTo(Number(passed) / Number(eligible), 8)
+    expect(result.coverage).toBeCloseTo(Number(eligible) / Number(requested), 8)
+    const members = result.members ?? []
+    const eligibleMembers = members.filter(member => typeof member.value === 'boolean')
+    expect(members.length).toBeGreaterThanOrEqual(Number(eligible))
+    expect(members.length).toBeLessThanOrEqual(Number(requested))
+    expect(new Set(members.map(member => member.instrument_id)).size).toBe(members.length)
+    expect(members.every(member => Number.isInteger(member.instrument_id) && /^[A-Z0-9._-]+$/.test(member.symbol ?? '') && (member.value == null || typeof member.value === 'boolean') && (member.metric == null || Number.isFinite(member.metric)))).toBe(true)
+    expect(eligibleMembers.length).toBe(Number(eligible))
+    expect(eligibleMembers.filter(member => member.value === true).length).toBe(Number(passed))
+    const visibleResult = breadth.locator('.breadth-tool__custom-result')
+    await expect(visibleResult).toBeVisible()
+    await expect(visibleResult).toContainText(`${passed}/${eligible} eligible`)
+    await expect(visibleResult).toContainText(`${(Number(passed) / Number(eligible) * 100).toFixed(1)}%`)
+    const memberState = Number(passed) > 0 ? 'pass' : 'fail'
+    await breadth.locator('.breadth-tool__generic-drilldown').getByRole('button', { name: new RegExp(`^${memberState === 'pass' ? 'Pass' : 'Fail'} `) }).first().click()
+    const evaluatedMember = breadth.locator('.breadth-tool__generic-drilldown').getByRole('button', { name: /^Select / }).first()
+    await expect(evaluatedMember).toBeVisible()
+    await expect(evaluatedMember.locator('strong')).toHaveText(/^[A-Z0-9._-]+$/)
+    await expect(evaluatedMember.locator('span')).not.toBeEmpty()
   } else if (kind === 'coverage') {
     const coverage = tool.locator('.coverage-summary')
     await expect(coverage).toBeVisible({ timeout: 20_000 })
@@ -812,6 +855,10 @@ test.describe('Workstation lifecycle journeys', () => {
       await expect(catalogue).toBeVisible()
       await catalogue.getByRole('menuitem', { name: item.title, exact: true }).click()
       await assertUsefulTool(page, item.title, kind)
+      await test.info().attach(`catalogue-${item.key}-actual-panel`, {
+        body: await page.screenshot(),
+        contentType: 'image/png',
+      })
     }
 
     const createdWatchlist = await activatePanel(page, 'WatchList')

@@ -27009,3 +27009,10 @@ Imported only the three changed ETF consumer paths from `aae3665b6a8512ea9c5d53d
 Expanded the existing control scanner to include private ETF/Strategy view and component controls, record source ownership, and require exact journey IDs and named case references. Added 15 unit-only witnesses for imported owner controls and the ETF holdings panel/Study view controls. The matrix now records 77 control surfaces and 88 case mappings (62 E2E, 26 unit-only); summary counts are checked by the validator. Mutation self-tests cover private-source discovery, new-control signature drift, missing case/owner mappings and stale counts.
 
 Focused journey-matrix self-tests and validation pass; workstream validation and `git diff --check` pass. All nine critical-review slots remain `pending_root_receipt`; source mappings and unit witnesses do not claim rendered acceptance. Root owns browser, visual, full-suite, CI and release qualification.
+
+
+## 2026-11-08 — Import Strategy371 product paths for combined qualification
+
+Imported exactly the five TC consumer paths from `371aa656fef7faed8c6139dfddba02b3248ee70a` after all five old guards matched. All 26 manifest rows were verified by Git blob, SHA256 and mode; the other 21 consumer paths were already byte-identical. The exact manifest is archived at `development-dependency-imports/371aa656fef7faed8c6139dfddba02b3248ee70a.json`, the active private pin now references all 26 paths, and the previous `011e2fc8` pin is preserved in dependency history.
+
+This is a product/build checkpoint only. The released Strategy owner-matrix source and its exact destination guard are verified but its copy, provenance, new journey rows, private control crosswalk and case counts are the next records-only step. Root owns the combined build/browser/visual/full-suite and release qualification; no such results are claimed here.

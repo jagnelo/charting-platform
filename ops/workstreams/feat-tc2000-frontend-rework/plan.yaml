@@ -1995,7 +1995,7 @@ progress:
   total: 9
   current_phase: "Close the canonical route, action, factory, journey-case and control-surface inventory across TC-owned and imported ETF/Strategy controls; preserve all critical-review slots as pending Root evidence."
   current_blocker: "Canonical inventory coverage now includes imported ETF and Strategy controls. Root-rendered qualification, all nine critical-review receipts, full UI journey acceptance, exact CI and release gates remain pending; inventory mappings and focused unit witnesses are not browser acceptance."
-  next_action: "Run the exact-source scope, workstream, journey-matrix and diff guards; freeze the combined inventory and guarded ETF import checkpoint. Root owns the pending rendered qualification and critical-review receipts."
+  next_action: "After the Strategy371 product-import checkpoint, finish the records-only owner-matrix provenance, exact journey crosswalk, private control signatures and summary-count reconciliation while Root builds/tests the immutable product source. Root owns rendered qualification and all nine critical-review receipts."
   updated_at: '2026-11-08'
 historical_checkpoint_status_archive: 'Current boundary (2026-10-22): published HEAD is a7c8ecba208ce6c79d8f1a5d7294500122e462e5;
   one test-only change in workstation_performance.spec.ts and the four owned records are pending review. Exact hosted CI39693019337
@@ -5501,6 +5501,38 @@ development_dependency_import_history:
     state: superseded_development_import
     superseded_by: aae3665b6a8512ea9c5d53d9d6397da7407005ee
 
+  - source_sha: 011e2fc8b54360dbbe635440c12cce7146ca6b68
+    manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/011e2fc8b54360dbbe635440c12cce7146ca6b68.json
+    manifest_sha256: 9803144aa18391b199d4e6eb20d0a7eb086c3f3de3d53b67e3071ed1d5ef026c
+    paths:
+      - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
+      - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
+      - frontend/src/components/dashboard/DashboardInstrumentSearch.vue
+      - frontend/src/components/dashboard/DashboardLineChartWidget.vue
+      - frontend/src/components/dashboard/DashboardQuoteWidget.vue
+      - frontend/src/components/workstation/CodeLibraryTool.vue
+      - frontend/src/components/workstation/PythonSourceEditor.vue
+      - frontend/src/components/workstation/ResearchResultsTool.vue
+      - frontend/src/components/workstation/StudyLabTool.vue
+      - frontend/src/lib/workstation/researchQueryKeys.ts
+      - frontend/src/lib/workstation/researchRunCancellation.ts
+      - frontend/src/stores/dashboard.ts
+      - frontend/src/views/DashboardView.vue
+      - frontend/tests/e2e/dashboard_usability_journey.spec.ts
+      - frontend/tests/e2e/strategy_study_journey.spec.ts
+      - frontend/tests/e2e/workstation_lifecycle_journey.spec.ts
+      - frontend/tests/unit/components/test_code_library_tool.test.ts
+      - frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts
+      - frontend/tests/unit/components/test_dashboard_instrument_search.test.ts
+      - frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts
+      - frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts
+      - frontend/tests/unit/components/test_python_source_editor.test.ts
+      - frontend/tests/unit/components/test_research_results_tool.test.ts
+      - frontend/tests/unit/components/test_study_lab_tool.test.ts
+      - frontend/tests/unit/stores/test_dashboard_store.test.ts
+      - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts
+    state: superseded_development_import
+    superseded_by: 371aa656fef7faed8c6139dfddba02b3248ee70a
 approved_development_dependency_imports:
 - source_sha: fc220242ff9ff8be603c632dc80350a90708bec7
   manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/fc220242ff9ff8be603c632dc80350a90708bec7.json
@@ -5601,9 +5633,9 @@ approved_development_dependency_imports:
   - frontend/tests/unit/components/test_instrument_note_tool.test.ts
   - frontend/tests/unit/views/test_baskets_view.test.ts
   - frontend/tests/unit/views/test_etf_holdings_view.test.ts
-- source_sha: 011e2fc8b54360dbbe635440c12cce7146ca6b68
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/011e2fc8b54360dbbe635440c12cce7146ca6b68.json
-  manifest_sha256: 9803144aa18391b199d4e6eb20d0a7eb086c3f3de3d53b67e3071ed1d5ef026c
+- source_sha: 371aa656fef7faed8c6139dfddba02b3248ee70a
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/371aa656fef7faed8c6139dfddba02b3248ee70a.json
+  manifest_sha256: 39baa48e8958dcfa1c15f7c59394dc7f5ddc7335c2101845d25c88f147edd536
   paths:
   - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
   - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue

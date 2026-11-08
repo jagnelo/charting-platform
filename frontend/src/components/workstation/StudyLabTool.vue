@@ -2041,7 +2041,7 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.study-lab-tool { display:grid; height:100%; min-height:0; grid-template-rows:auto minmax(110px,1fr) auto auto auto; gap:5px; padding:6px; background:#11161b; color:#cbd5dc; font:10px "Segoe UI",Arial,sans-serif; }
+.study-lab-tool { display:grid; height:100%; min-height:0; min-width:0; container-type:inline-size; grid-template-rows:auto minmax(110px,1fr) auto auto auto; gap:5px; padding:6px; background:#11161b; color:#cbd5dc; font:10px "Segoe UI",Arial,sans-serif; }
 .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
 .study-lab-tool__editor-shell { min-height:0; }
 .study-lab-tool__sdk-reference { display:grid; gap:2px; color:#8195a3; }
@@ -2062,7 +2062,7 @@ input,textarea,button,select { min-width:0; border:1px solid #3a4954; background
 .study-lab-tool__run-details { margin-top:4px; border-top:1px solid #29343c; padding-top:3px; }.study-lab-tool__run-details summary { color:#9db0bc; cursor:pointer; }.study-lab-tool__run-details pre { max-height:90px; margin:3px 0 0; }
 .study-lab-tool__artifact-header { display:flex; align-items:center; gap:5px; }.study-lab-tool__artifact-header button { margin-left:auto; padding:1px 4px; }
 .study-lab-tool__preparation-outcomes { margin:0; padding-left:18px; display:grid; gap:2px; max-height:72px; overflow:auto; color:#91a8b4; }
-@media (max-width: 560px) {
+@container (max-width: 560px) {
   .study-lab-tool { padding:4px; gap:4px; }
   .study-lab-tool__header-main { grid-template-columns:minmax(0,1fr) 52px; }
   .study-lab-tool__header-main input:first-child,
