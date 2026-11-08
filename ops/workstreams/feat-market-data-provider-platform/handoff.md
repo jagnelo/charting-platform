@@ -1,3 +1,28 @@
+## 2026-11-08 — fresh-window EODHD history qualification
+
+Root supplied a new single-use v3 pair after the v2 history preflight proved
+the actual 60-second native minute baseline had expired during the operator
+gap. The pair completed usage preflight, one account-usage request, an immediate
+read-only check of the shared native baseline, history preflight, and the one
+recent raw AAPL D1 request in one process. The current observation was Free,
+20 calls/day with zero current-day calls, and the fresh minute baseline was
+within the reviewed cap; the history case then passed its nonempty/ordered,
+finite-OHLC and exact-one-request assertions.
+
+The previously passed Nasdaq directory case remains 2/2 requests. Total actual
+requests across the authorized sequence are 5: EODHD account usage twice
+(first v2 observation plus the freshly paired v3 observation), EODHD recent
+history once, and Nasdaq's two official files. The v1 and v2 blocked history
+preflights remain preserved; no failed or held request was replayed. No quota
+reset/copy, policy change, production configuration change, or application
+source change occurred. The normal runner used the shared ledger for the
+observations and history request. Broader Provider qualification and Root's
+combined release gates remain open.
+
+The single-use authorization and redacted mode receipts/logs are in the Root
+attempt directory with the `Provider-four-http-v3-` prefix; the fresh-baseline
+receipt is `Provider-four-http-v3-fresh-native-baseline-review.json`.
+
 ## 2026-11-08 — bounded EODHD usage and Nasdaq qualification
 
 Using Root's corrected single-use runner entry at the pinned source
