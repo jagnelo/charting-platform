@@ -87,17 +87,17 @@ describe('ETFHoldingResolutionAction', () => {
 
     await vi.waitFor(() => expect(api.post).toHaveBeenCalledWith('/instruments/discover', {
       query: 'UNXQ', types: ['Equity', 'Stock', 'CS'], limit: 10, request_id: 'c1de14e1-d595-4e68-a7aa-0ae10cb8fe20',
-    }))
+    }, expect.objectContaining({ priority: 'high' })))
     expect(api.post).toHaveBeenNthCalledWith(1, '/instruments/discover', {
       query: 'UNXQ', types: ['Equity', 'Stock', 'CS'], limit: 10, request_id: 'c1de14e1-d595-4e68-a7aa-0ae10cb8fe20',
-    })
+    }, expect.objectContaining({ priority: 'high' }))
     await vi.waitFor(() => expect(wrapper.find('.search-source-candidate').exists()).toBe(true))
     await wrapper.get('.search-source-candidate').trigger('click')
     expect(api.post).toHaveBeenNthCalledWith(2, '/instruments/acquire', {
       symbol: 'UNXQ',
       provider_candidate: { provider: 'free-source', symbol: 'UNXQ', exchange: 'XNYS' },
       request_id: 'c1de14e1-d595-4e68-a7aa-0ae10cb8fe20',
-    })
+    }, expect.objectContaining({ priority: 'high' }))
     expect(wrapper.emitted('resolved')?.[0]?.slice(0, 2)).toMatchObject([
       'UNXQ',
       {
@@ -145,7 +145,7 @@ describe('ETFHoldingResolutionAction', () => {
 
     await vi.waitFor(() => expect(api.post).toHaveBeenCalledWith('/instruments/discover', {
       query: 'UNXQ', types: ['Equity', 'Stock', 'CS'], limit: 10, request_id: 'c1de14e1-d595-4e68-a7aa-0ae10cb8fe20',
-    }))
+    }, expect.objectContaining({ priority: 'high' })))
     expect(wrapper.find('button').text()).toBe('Cancel')
     expect(wrapper.text()).toContain('The saved fund snapshot will not be changed.')
     expect(wrapper.emitted('resolved')).toBeUndefined()

@@ -1,12 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
+const setQueuedApiRequestPriority = vi.hoisted(() => vi.fn())
 vi.mock('@/lib/api', () => ({
   api: {
     get: vi.fn(),
     put: vi.fn(),
     delete: vi.fn(),
   },
+  setQueuedApiRequestPriority,
 }))
 
 import { api } from '@/lib/api'
@@ -38,7 +40,23 @@ describe('useFavoritesStore', () => {
 
     expect(store.favorites.map(item => item.instrument_id)).toEqual([17, 18])
     expect(store.isFavorite(17)).toBe(true)
-    expect(api.get).toHaveBeenCalledWith('/favorites')
+    expect(api.get).toHaveBeenCalledWith('/favorites', undefined, { priority: 'auto', queueKey: 'favorites:list' })
+  })
+
+  it('promotes queued visible favorites without adding a duplicate list request', async () => {
+    let resolveFavorites!: (value: typeof favorite[]) => void
+    ;(api.get as ReturnType<typeof vi.fn>).mockReturnValueOnce(new Promise(resolve => { resolveFavorites = resolve }))
+    const store = useFavoritesStore()
+
+    const backgroundRead = store.load('low')
+    const foregroundRead = store.load('high')
+
+    expect(api.get).toHaveBeenCalledTimes(1)
+    expect(api.get).toHaveBeenCalledWith('/favorites', undefined, { priority: 'low', queueKey: 'favorites:list' })
+    expect(setQueuedApiRequestPriority).toHaveBeenCalledWith('favorites:list', 'high')
+    resolveFavorites([favorite])
+    await Promise.all([backgroundRead, foregroundRead])
+    expect(store.favorites).toEqual([favorite])
   })
 
   it('adds idempotently and removes only the requested instrument', async () => {

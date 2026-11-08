@@ -285,16 +285,16 @@ test('J12 session boundary isolates test-owned same-origin accounts, expired ref
   const bWorkspaceReads = firstWindowWorkspaceReads.slice(workspaceReadsBeforeB).filter(read => read.owner === 'B')
   expect(bWorkspaceReads.at(-1)?.workspaceId).toBeGreaterThan(0)
   expect(bWorkspaceReads.at(-1)?.workspaceId).not.toBe(workspaceId)
-  await expect.poll(() => noteReadOwners.slice(noteReadsBeforeB)).toContain('B')
-  expect(noteReadOwners.slice(noteReadsBeforeB)).not.toContain('A')
 
   // B starts from a distinct workspace. Its factory layout already contains a
-  // Notes pane, so verify the owner-scoped value after ordinary tab activation
-  // instead of treating a retained factory panel as A's private state.
+  // Notes pane, but that panel is hidden while Results is the saved active tab.
+  // Activate it through the ordinary dock tab before requiring its lazy read.
   await expect(page.locator('.note-tool')).toHaveCount(1)
   await expect(page.getByText('private-note-A', { exact: true })).toHaveCount(0)
   await expect(page.locator('.research-results-tool')).toHaveCount(0)
   await activateDockToolTab(page, 'Notes')
+  await expect.poll(() => noteReadOwners.slice(noteReadsBeforeB)).toContain('B')
+  expect(noteReadOwners.slice(noteReadsBeforeB)).not.toContain('A')
   const notesB = page.getByRole('region', { name: /notes$/i })
   await expect(notesB.getByRole('textbox', { name: 'Instrument note' })).toHaveValue('private-note-B')
   await expect(notesB).not.toContainText('private-note-A')

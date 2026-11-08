@@ -1,16 +1,18 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { ScreenerAlert, ScreenerAlertTriggerType } from '@/types'
-import { api } from '@/lib/api'
+import { api, type ApiRequestPriority } from '@/lib/api'
 
 export const useScreenerAlertsStore = defineStore('screener_alerts', () => {
   const alerts = ref<ScreenerAlert[]>([])
   const loading = ref(false)
 
-  async function loadAlerts() {
+  async function loadAlerts(priority?: ApiRequestPriority) {
     loading.value = true
     try {
-      alerts.value = await api.get<ScreenerAlert[]>('/alerts/screener')
+      alerts.value = await (priority
+        ? api.get<ScreenerAlert[]>('/alerts/screener', undefined, { priority })
+        : api.get<ScreenerAlert[]>('/alerts/screener'))
     } catch (e) {
       console.error('Failed to load screener alerts', e)
     } finally {

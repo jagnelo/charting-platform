@@ -3,8 +3,15 @@ import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query'
 import { createPinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { apiGet, apiPut } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPut: vi.fn() }))
-vi.mock('@/lib/api', () => ({ api: { get: apiGet, put: apiPut } }))
+const { apiGet, apiPut, setPriority } = vi.hoisted(() => ({
+  apiGet: vi.fn(),
+  apiPut: vi.fn(),
+  setPriority: vi.fn(() => true),
+}))
+vi.mock('@/lib/api', () => ({
+  api: { get: apiGet, put: apiPut },
+  setQueuedApiRequestPriority: setPriority,
+}))
 
 import InstrumentNoteTool from '@/components/workstation/InstrumentNoteTool.vue'
 import { beginAuthSessionBoundary, installAuthSessionCleanup } from '@/lib/authSession'
@@ -16,10 +23,14 @@ function deferred<T>() {
   return { promise, resolve, reject }
 }
 
-function mountTool(instrumentId = 7, symbol = 'SPY') {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 60_000 } } })
+function mountTool(
+  instrumentId = 7,
+  symbol = 'SPY',
+  options: { queryClient?: QueryClient; requestPriority?: 'auto' | 'high' } = {},
+) {
+  const queryClient = options.queryClient ?? new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 60_000 } } })
   const wrapper = mount(InstrumentNoteTool, {
-    props: { instrumentId, symbol },
+    props: { instrumentId, symbol, requestPriority: options.requestPriority ?? 'auto' },
     global: { plugins: [[VueQueryPlugin, { queryClient }]] },
   })
   return { wrapper, queryClient }
@@ -29,6 +40,7 @@ describe('InstrumentNoteTool draft lifecycle', () => {
   beforeEach(() => {
     apiGet.mockReset().mockResolvedValue(null)
     apiPut.mockReset()
+    setPriority.mockReset().mockReturnValue(true)
   })
 
   async function waitForLoaded(wrapper: ReturnType<typeof mountTool>['wrapper']) {
@@ -38,6 +50,29 @@ describe('InstrumentNoteTool draft lifecycle', () => {
   async function debounceSave() {
     await new Promise(resolve => setTimeout(resolve, 575))
   }
+
+  it('promotes the existing hidden Notes read when a visible Notes panel joins its pending query', async () => {
+    const pendingRead = deferred<null>()
+    apiGet.mockReturnValue(pendingRead.promise)
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 60_000 } } })
+    const hidden = mountTool(7, 'SPY', { queryClient, requestPriority: 'auto' })
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledTimes(1))
+
+    const visible = mountTool(7, 'SPY', { queryClient, requestPriority: 'high' })
+    await flushPromises()
+
+    // Both panels share one pending queryFn/HTTP request; the visible join
+    // promotes that already-queued request instead of issuing a duplicate.
+    expect(apiGet).toHaveBeenCalledTimes(1)
+    expect(setPriority).toHaveBeenCalledWith('instrument-note:7', 'high')
+
+    pendingRead.resolve(null)
+    await waitForLoaded(hidden.wrapper)
+    await waitForLoaded(visible.wrapper)
+    hidden.wrapper.unmount()
+    visible.wrapper.unmount()
+    queryClient.clear()
+  })
 
   it('flushes the old instrument draft on context switch and fences its late acknowledgement', async () => {
     const save = deferred<{ updated_at: string }>()
@@ -167,4 +202,5 @@ describe('InstrumentNoteTool draft lifecycle', () => {
     wrapper.unmount()
     queryClient.clear()
   })
+
 })

@@ -1111,7 +1111,8 @@ test('Python Library supports create, import, clone, archive, export and filter 
   await expect(cloned.getByRole('button', { name: 'Unarchive asset' })).toHaveAttribute('aria-pressed', 'true')
   expect(archiveRequest).toMatchObject({ archived: true })
 
-  await library.getByRole('searchbox', { name: 'Filter Python assets' }).fill('Imported')
+  // The visible control is a text input (textbox), not type=search/searchbox.
+  await library.getByRole('textbox', { name: 'Filter Python assets' }).fill('Imported')
   await expect(imported).toBeVisible()
   await expect(created).toHaveCount(0)
   await browserDiagnostics.expectNoCriticalIssues()

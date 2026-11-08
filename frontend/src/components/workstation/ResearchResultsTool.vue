@@ -9,10 +9,10 @@
       {{ runsLoadError }}
       <button v-if="!runs.length" type="button" aria-label="Retry loading runs" :disabled="loading" @click="refresh">Retry loading runs</button>
     </p>
-    <p v-else-if="error" class="research-results-tool__error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</p>
-    <p v-else-if="loading && !runs.length" class="research-results-tool__notice" role="status" aria-live="polite" aria-atomic="true">Loading reproducible research runs…</p>
-    <p v-else-if="!runs.length" class="research-results-tool__notice" role="status" aria-live="polite" aria-atomic="true">No persisted studies yet. Run a study in the adjacent Study Lab pane.</p>
-    <div v-else class="research-results-tool__run-browser" :aria-busy="olderRunsLoading ? 'true' : 'false'">
+    <p v-if="!runsLoadError && error" class="research-results-tool__error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</p>
+    <p v-if="!runsLoadError && loading && !runs.length" class="research-results-tool__notice" role="status" aria-live="polite" aria-atomic="true">Loading reproducible research runs…</p>
+    <p v-else-if="!runsLoadError && !runs.length" class="research-results-tool__notice" role="status" aria-live="polite" aria-atomic="true">No persisted studies yet. Run a study in the adjacent Study Lab pane.</p>
+    <div v-else-if="!runsLoadError" class="research-results-tool__run-browser" :aria-busy="olderRunsLoading ? 'true' : 'false'">
       <div class="research-results-tool__runs" role="list" aria-label="Persisted research runs">
         <div
           v-for="run in runs"

@@ -321,6 +321,10 @@ LIVE_PROVIDER_CASES = {
     "eodhd": (
         (
             "test_market_data_providers_live.py",
+            "test_eodhd_free_recent_daily_history",
+        ),
+        (
+            "test_market_data_providers_live.py",
             "test_optional_credentialed_provider_small_read",
         ),
         (
@@ -595,6 +599,7 @@ LIVE_CASE_OPERATIONS = {
         },
     },
     "eodhd": {
+        "test_eodhd_free_recent_daily_history": {"fetch_ohlcv"},
         "test_eodhd_credentialed_delayed_quote": {"get_current_price"},
         # This parameterized case makes three EOD-history requests (daily,
         # weekly, monthly), then one latest-price and one universe-page read.
@@ -1176,7 +1181,12 @@ LIVE_OPERATION_DISPOSITIONS = {
     },
     "massive": {},
     "tiingo": {},
-    "twelve_data": {},
+    "twelve_data": {
+        "get_earliest_timestamp": (
+            "blocked: the endpoint has unit-tested symbol/MIC/timeframe response validation "
+            "but no bounded live qualification case; do not treat it as covered by OHLCV reads"
+        ),
+    },
     "finnhub": {
         "fetch_ohlcv": "expected_entitlement_denial: the observed free-plan key returned HTTP 403 for the stock-candle endpoint",
     },

@@ -218,7 +218,7 @@ describe('MarketMapTool', () => {
     }
   })
 
-  it('does not replay initialization after a user refresh and erase its selection', async () => {
+  it('does not replay initialization after snapshots finish and erase its selection', async () => {
     let releaseSnapshots!: (value: unknown) => void
     const snapshots = new Promise(resolve => { releaseSnapshots = resolve })
     apiGet.mockImplementation((path: string) => path === '/analysis/market-map/snapshots'
@@ -228,8 +228,7 @@ describe('MarketMapTool', () => {
     try {
       await flushPromises()
       expect(apiGet).toHaveBeenCalledWith('/analysis/market-map/snapshots')
-      await wrapper.get('.market-map-tool__run').trigger('click')
-      await flushPromises()
+      await vi.waitFor(() => expect(wrapper.findAll('.market-map-tool__tile')).toHaveLength(2))
       await wrapper.get('.market-map-tool__tile').trigger('click')
       expect(wrapper.get('.market-map-tool__selection-announcement').text()).toBe('1 selected member: NVDA')
 
@@ -240,6 +239,40 @@ describe('MarketMapTool', () => {
       expect(wrapper.get('.market-map-tool__selection-announcement').text()).toBe('1 selected member: NVDA')
     } finally {
       releaseSnapshots([])
+      wrapper.unmount()
+    }
+  })
+
+  it('paints the first selected map while saved snapshots and Python assets are still loading', async () => {
+    const snapshots = deferred<unknown>()
+    const pythonAssets = deferred<unknown>()
+    const personalWatchlists = deferred<unknown>()
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/analysis/market-map/snapshots') return snapshots.promise
+      if (path === '/code/assets') return pythonAssets.promise
+      return Promise.resolve([])
+    })
+    loadWatchlists.mockReturnValue(personalWatchlists.promise)
+
+    const wrapper = mount(MarketMapTool, { props: { configuration: { source_id: 'market-group:sp500' } } })
+    try {
+      await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/analysis/market-map', expect.any(Object)))
+      await vi.waitFor(() => expect(wrapper.findAll('.market-map-tool__tile')).toHaveLength(2))
+
+      expect(apiPost).toHaveBeenCalledWith('/analysis/market-map', expect.objectContaining({
+        source_id: 'market-group:sp500', color_metric: 'return', area_metric: 'market_cap',
+      }))
+      expect(ensurePreparation).toHaveBeenCalledWith(expect.objectContaining({
+        target: { kind: 'market_group', group_key: 'sp500' },
+      }), expect.any(Object))
+      expect(apiGet).toHaveBeenCalledWith('/analysis/market-map/snapshots')
+      expect(apiGet).toHaveBeenCalledWith('/code/assets')
+      expect(loadWatchlists).toHaveBeenCalledTimes(1)
+    } finally {
+      snapshots.resolve([])
+      pythonAssets.resolve([])
+      personalWatchlists.resolve([])
+      await flushPromises()
       wrapper.unmount()
     }
   })

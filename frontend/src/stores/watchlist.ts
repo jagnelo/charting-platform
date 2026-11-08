@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { Watchlist, WatchlistItem, WatchlistSource, WatchlistSourceResolved } from '@/types'
-import { api, setQueuedApiRequestPriority } from '@/lib/api'
+import { api, setQueuedApiRequestPriority, type ApiRequestPriority } from '@/lib/api'
 import { ensureKnownInstrumentSymbol } from '@/lib/instruments'
 
 export interface WatchlistQuote {
@@ -51,6 +51,8 @@ export const useWatchlistStore = defineStore('watchlist', () => {
   // that older list response replace the locally updated membership and cause
   // virtualized rows to disappear while the user is interacting with them.
   let mutationGeneration = 0
+  let watchlistsLoadPromise: Promise<void> | null = null
+  let watchlistSourcesLoadPromise: Promise<void> | null = null
   // A reload can briefly lag a just-committed create. Preserve those local
   // rows until the canonical response includes them.
   const locallyCreatedWatchlistIds = new Set<number>()
@@ -94,12 +96,19 @@ export const useWatchlistStore = defineStore('watchlist', () => {
     return /Failed to fetch|ERR_ABORTED|Authentication required/i.test(message)
   }
 
-  async function loadWatchlists() {
+  async function loadWatchlists(priority: ApiRequestPriority = 'auto') {
+    if (watchlistsLoadPromise) {
+      if (priority === 'high') setQueuedApiRequestPriority('watchlists:list', 'high')
+      return watchlistsLoadPromise
+    }
     loading.value = true
     loadError.value = ''
     const generation = mutationGeneration
-    try {
-      const loaded = (await api.get<Watchlist[]>('/watchlists')) ?? []
+    let request!: Promise<void>
+    request = (async () => { try {
+      const loaded = (await api.get<Watchlist[]>('/watchlists', undefined, {
+        priority, queueKey: 'watchlists:list',
+      })) ?? []
       if (generation === mutationGeneration) {
         const loadedIds = new Set(loaded.map(watchlist => watchlist.id))
         const locallyMissing = watchlists.value.filter(watchlist => locallyCreatedWatchlistIds.has(watchlist.id) && !loadedIds.has(watchlist.id))
@@ -136,18 +145,35 @@ export const useWatchlistStore = defineStore('watchlist', () => {
     } finally {
       loading.value = false
     }
+    })().finally(() => {
+      if (watchlistsLoadPromise === request) watchlistsLoadPromise = null
+    })
+    watchlistsLoadPromise = request
+    return request
   }
 
-  async function loadWatchlistSources() {
+  async function loadWatchlistSources(priority: ApiRequestPriority = 'auto') {
+    if (watchlistSourcesLoadPromise) {
+      if (priority === 'high') setQueuedApiRequestPriority('watchlists:sources', 'high')
+      return watchlistSourcesLoadPromise
+    }
     watchlistSourcesLoading.value = true
     watchlistSourcesError.value = ''
-    try {
-      watchlistSources.value = (await api.get<WatchlistSource[]>('/watchlists/sources')) ?? []
+    let request!: Promise<void>
+    request = (async () => { try {
+      watchlistSources.value = (await api.get<WatchlistSource[]>('/watchlists/sources', undefined, {
+        priority, queueKey: 'watchlists:sources',
+      })) ?? []
     } catch (error) {
       watchlistSourcesError.value = error instanceof Error ? error.message : 'Unable to load watchlist sources'
     } finally {
       watchlistSourcesLoading.value = false
     }
+    })().finally(() => {
+      if (watchlistSourcesLoadPromise === request) watchlistSourcesLoadPromise = null
+    })
+    watchlistSourcesLoadPromise = request
+    return request
   }
 
   async function resolveWatchlistSource(sourceId: string, asOf?: string | null): Promise<WatchlistSourceResolved | null> {

@@ -1,14 +1,20 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { IndicatorPreset, IndicatorConfig } from '@/types'
-import { api } from '@/lib/api'
+import { api, setQueuedApiRequestPriority, type ApiRequestPriority } from '@/lib/api'
 
 export const usePresetsStore = defineStore('presets', () => {
   const presets = ref<IndicatorPreset[]>([])
+  let pendingPresetLoad: Promise<void> | null = null
 
-  async function loadPresets() {
-    try {
-      presets.value = await api.get('/presets')
+  async function loadPresets(priority: ApiRequestPriority = 'auto') {
+    if (pendingPresetLoad) {
+      if (priority === 'high') setQueuedApiRequestPriority('presets:list', 'high')
+      return pendingPresetLoad
+    }
+    let request!: Promise<void>
+    request = (async () => { try {
+      presets.value = await api.get('/presets', undefined, { priority, queueKey: 'presets:list' })
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e ?? '')
       if (/Failed to fetch|ERR_ABORTED|Authentication required/i.test(message)) {
@@ -16,7 +22,11 @@ export const usePresetsStore = defineStore('presets', () => {
         return
       }
       throw e
-    }
+    } })().finally(() => {
+      if (pendingPresetLoad === request) pendingPresetLoad = null
+    })
+    pendingPresetLoad = request
+    return request
   }
 
   async function savePreset(name: string, indicators: IndicatorConfig[], isDefault = false): Promise<IndicatorPreset> {

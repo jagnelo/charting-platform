@@ -59,6 +59,37 @@ describe('useWatchlistStore', () => {
     expect(store.watchlists.some(w => w.id === 2)).toBe(false)
   })
 
+  it('promotes an already queued foreground list read without duplicating it', async () => {
+    const store = useWatchlistStore()
+    let resolveList!: (value: ReturnType<typeof makeWatchlist>[]) => void
+    ;(api.get as ReturnType<typeof vi.fn>).mockReturnValueOnce(new Promise(resolve => { resolveList = resolve }))
+
+    const backgroundRead = store.loadWatchlists('low')
+    const foregroundRead = store.loadWatchlists('high')
+
+    expect(api.get).toHaveBeenCalledTimes(1)
+    expect(api.get).toHaveBeenCalledWith('/watchlists', undefined, { priority: 'low', queueKey: 'watchlists:list' })
+    expect(promoteQueuedRequest).toHaveBeenCalledWith('watchlists:list', 'high')
+    resolveList([makeWatchlist()])
+    await Promise.all([backgroundRead, foregroundRead])
+    expect(store.watchlists).toHaveLength(1)
+  })
+
+  it('promotes the canonical universe list when a hidden Market Map becomes visible', async () => {
+    const store = useWatchlistStore()
+    let resolveSources!: (value: any[]) => void
+    ;(api.get as ReturnType<typeof vi.fn>).mockReturnValueOnce(new Promise(resolve => { resolveSources = resolve }))
+
+    const backgroundRead = store.loadWatchlistSources('low')
+    const foregroundRead = store.loadWatchlistSources('high')
+
+    expect(api.get).toHaveBeenCalledTimes(1)
+    expect(api.get).toHaveBeenCalledWith('/watchlists/sources', undefined, { priority: 'low', queueKey: 'watchlists:sources' })
+    expect(promoteQueuedRequest).toHaveBeenCalledWith('watchlists:sources', 'high')
+    resolveSources([])
+    await Promise.all([backgroundRead, foregroundRead])
+  })
+
   it('loads unified source descriptors and resolves a dated managed universe', async () => {
     const store = useWatchlistStore()
     const source = {
@@ -302,7 +333,9 @@ describe('useWatchlistStore', () => {
       await store.loadWatchlists()
       channels[0]?.onmessage?.({ data: { type: 'watchlists-changed' } } as MessageEvent<{ type: string }>)
       await vi.waitFor(() => expect(store.watchlists[0]?.name).toBe('Reloaded'))
-      expect(api.get).toHaveBeenLastCalledWith('/watchlists')
+      expect(api.get).toHaveBeenLastCalledWith('/watchlists', undefined, {
+        priority: 'auto', queueKey: 'watchlists:list',
+      })
     } finally {
       if (originalChannel === undefined) delete (globalThis as typeof globalThis & { BroadcastChannel?: unknown }).BroadcastChannel
       else Object.defineProperty(globalThis, 'BroadcastChannel', { configurable: true, value: originalChannel })

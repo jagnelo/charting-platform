@@ -2,8 +2,8 @@ import { createPinia, setActivePinia } from 'pinia'
 import { computed } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { apiGet, apiPost, apiPut, apiPatch, apiDelete } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn(), apiPut: vi.fn(), apiPatch: vi.fn(), apiDelete: vi.fn() }))
-vi.mock('@/lib/api', () => ({ api: { get: apiGet, post: apiPost, put: apiPut, patch: apiPatch, delete: apiDelete } }))
+const { apiGet, apiPost, apiPut, apiPatch, apiDelete, promoteQueued } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn(), apiPut: vi.fn(), apiPatch: vi.fn(), apiDelete: vi.fn(), promoteQueued: vi.fn() }))
+vi.mock('@/lib/api', () => ({ api: { get: apiGet, post: apiPost, put: apiPut, patch: apiPatch, delete: apiDelete }, setQueuedApiRequestPriority: promoteQueued }))
 
 function deferred<T>() {
   let resolve!: (value: T) => void
@@ -80,6 +80,23 @@ describe('workspace store layout tabs', () => {
     expect(store.toolCatalogueError).toContain('temporarily unavailable')
   })
 
+  it('promotes an in-flight foreground market-group prerequisite without duplicate GETs', async () => {
+    const pending = deferred<any>()
+    apiGet.mockReturnValueOnce(pending.promise)
+    const store = useWorkspaceStore()
+
+    const backgroundRead = store.loadMarketGroup('us-benchmarks', { priority: 'low' })
+    const foregroundRead = store.loadMarketGroup('us-benchmarks', { priority: 'high' })
+
+    expect(apiGet).toHaveBeenCalledTimes(1)
+    expect(apiGet).toHaveBeenCalledWith('/market-groups/us-benchmarks', undefined, {
+      priority: 'low', queueKey: 'top-down:market-group:us-benchmarks',
+    })
+    expect(promoteQueued).toHaveBeenCalledWith('top-down:market-group:us-benchmarks', 'high')
+    pending.resolve({ stable_key: 'us-benchmarks', members: [], provenance: {} })
+    await Promise.all([backgroundRead, foregroundRead])
+  })
+
   it('deduplicates shared top-down refreshes and records the refresh time', async () => {
     apiGet.mockResolvedValue({})
     const store = useWorkspaceStore()
@@ -89,8 +106,12 @@ describe('workspace store layout tabs', () => {
     await Promise.all([first, second])
 
     expect(apiGet).toHaveBeenCalledTimes(6)
-    expect(apiGet).toHaveBeenCalledWith('/market-groups/us-benchmarks')
-    expect(apiGet).toHaveBeenCalledWith('/market-groups/sp500-sectors')
+    expect(apiGet).toHaveBeenCalledWith('/market-groups/us-benchmarks', undefined, {
+      priority: 'auto', queueKey: 'top-down:market-group:us-benchmarks',
+    })
+    expect(apiGet).toHaveBeenCalledWith('/market-groups/sp500-sectors', undefined, {
+      priority: 'auto', queueKey: 'top-down:market-group:sp500-sectors',
+    })
     expect(apiGet).toHaveBeenCalledWith('/analysis/groups/us-benchmarks/snapshot', { benchmark: 'SPY' })
     expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/snapshot', { benchmark: 'SPY' })
     expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/breadth')
@@ -643,7 +664,9 @@ describe('workspace store layout tabs', () => {
 
     await store.loadMarketGroup('us-benchmarks')
 
-    expect(apiGet).toHaveBeenCalledWith('/market-groups/us-benchmarks/children')
+    expect(apiGet).toHaveBeenCalledWith('/market-groups/us-benchmarks/children', undefined, {
+      priority: 'auto', queueKey: 'top-down:market-group:us-benchmarks:children',
+    })
     expect(store.marketGroups['us-benchmarks']?.provenance.benchmark_families).toEqual([
       { logical_key: 'sp500', name: 'S&P 500' },
     ])
@@ -661,7 +684,9 @@ describe('workspace store layout tabs', () => {
     await store.loadGroupSnapshot('sp400', 'MDY', { timeframe: 'W1' })
     await store.loadBenchmarkFamilyOverview('sp400', { timeframe: 'W1' })
 
-    expect(apiGet).toHaveBeenCalledWith('/market-groups/sp400')
+    expect(apiGet).toHaveBeenCalledWith('/market-groups/sp400', undefined, {
+      priority: 'auto', queueKey: 'top-down:market-group:sp400',
+    })
     expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp400/snapshot', { benchmark: 'MDY', timeframe: 'W1' })
     expect(apiGet).toHaveBeenCalledWith('/analysis/benchmark-families/sp400/overview', { timeframe: 'W1' })
     expect(store.marketGroups.sp400?.stable_key).toBe('sp400')
