@@ -182,7 +182,7 @@ vi.mock('vue-router', async (importOriginal) => {
 
 import WorkstationView from '@/views/WorkstationView.vue'
 import { resolveKnownInstrument } from '@/lib/instruments'
-import { holdingDrilldownRouteQuery } from '@/lib/etfHoldingDrilldown'
+import { holdingDrilldownRouteQuery, holdingDrilldownRouteState } from '@/lib/etfHoldingDrilldown'
 
 function deferred<T>() {
   let resolve!: (value: T) => void
@@ -2498,6 +2498,99 @@ describe('WorkstationView pop-out bindings', () => {
     }
   })
 
+  it('uses a canonical exact result that arrives while Go is waiting for search', async () => {
+    routeState.path = '/chart'
+    routeState.params = {}
+    harness.workspace = reactive(harness.workspace)
+    harness.workspace.publishSymbol.mockImplementation((event: any) => {
+      harness.workspace.linkedSymbol = event.symbol
+    })
+    const search = deferred<Array<{ symbol: string; name: string; exchange: string; type: string; instrument_id: number }>>()
+    apiGet.mockImplementation(async (path: string, params?: Record<string, unknown>) => {
+      if (path === '/instruments/search' && params?.q === 'SPY') return search.promise
+      if (path.startsWith('/coverage/instruments/')) return { status: 'ready', bar_count: 124, missing_slices: [] }
+      return []
+    })
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    try {
+      await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY' })))
+      harness.workspace.publishSymbol.mockClear()
+      const input = wrapper.get('input[aria-label="Active symbol"]')
+      await input.setValue('SPY')
+      await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'SPY', canonical_only: true }))
+      await wrapper.get('.workstation__search > button[type="button"]').trigger('click')
+
+      search.resolve([
+        { symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust', exchange: 'ARCX', type: 'ETF', instrument_id: 2 },
+        { symbol: 'SPYG', name: 'SPDR Portfolio S&P 500 Growth ETF', exchange: 'ARCX', type: 'ETF', instrument_id: 19 },
+        { symbol: 'SPYV', name: 'SPDR Portfolio S&P 500 Value ETF', exchange: 'ARCX', type: 'ETF', instrument_id: 18 },
+      ])
+      await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY', instrumentId: 2 })))
+      expect(harness.workspace.publishSymbol).not.toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPYV' }))
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
+  it('keeps selected holding route provenance through linked-symbol workspace hydration', async () => {
+    const context = {
+      etfSymbol: 'IWM', instrumentId: 8802, canonicalSymbol: 'UNXQ', snapshotId: 8801,
+      compositionDate: '2026-10-27', knownAt: '2026-10-28T12:00:00Z',
+      provenance: 'issuer_current_holdings', sourceProvider: 'fixture-only', holdingRowId: 8803,
+      sourceRowId: 'issuer-row-8803', reportedSymbol: 'UNXQ', reportedName: 'Uncached Example Equity', holdingType: 'equity',
+    }
+    const confirmedIdentity = {
+      status: 'resolved',
+      instrument: { instrument_id: 8802, symbol: 'UNXQ', identity_status: 'resolved', instrument_type: 'Common Stock' },
+    }
+    routeState.path = '/chart/UNXQ'
+    routeState.params = { symbol: 'UNXQ' }
+    routeState.query = { ...holdingDrilldownRouteQuery(context), holding_history_intent: 'selected' }
+    harness.workspace = reactive(harness.workspace)
+    harness.workspace.linkedSymbol = 'SPY'
+    harness.workspace.publishSymbol.mockImplementation((event: any) => {
+      harness.workspace.linkedSymbol = event.symbol
+    })
+    harness.workspace.setConstituentETF.mockImplementation((symbol: string | null) => {
+      harness.workspace.constituentETF = symbol
+    })
+    let finishWorkspaceLoad!: () => void
+    harness.workspace.loadDefault.mockReturnValueOnce(new Promise<void>(resolve => { finishWorkspaceLoad = resolve }))
+    const historyState = { ...(window.history.state ?? {}), ...holdingDrilldownRouteState(context, confirmedIdentity as any) }
+    window.history.replaceState(historyState, '', window.location.href)
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+
+    try {
+      await vi.waitFor(() => expect(harness.workspace.loadDefault).toHaveBeenCalled())
+      harness.workspace.linkedSymbol = 'SPYV'
+      await nextTick()
+      expect(routerReplace).not.toHaveBeenCalledWith(expect.objectContaining({ path: '/chart/SPYV' }))
+      expect(routeState.query).toMatchObject({ ...holdingDrilldownRouteQuery(context), holding_history_intent: 'selected' })
+
+      finishWorkspaceLoad()
+      await vi.waitFor(() => expect(wrapper.get('[data-testid="active-holding-lineage"]').text()).toBe('UNXQ from IWM holdings · 2026-10-27'))
+      expect(dataPreparationPost.mock.calls.some(([request]) => request.target?.kind === 'instrument'
+        && request.target.instrument_id === 8802)).toBe(true)
+      expect(harness.workspace.setConstituentETF).toHaveBeenCalledWith('IWM')
+
+      routerReplace.mockClear()
+      harness.workspace.linkedSymbol = 'SPY'
+      await nextTick()
+      expect(routerReplace).toHaveBeenCalledWith(expect.objectContaining({ path: '/chart/SPY' }))
+      expect(Object.keys(routerReplace.mock.calls[0]![0].query).some(key => key.startsWith('holding_'))).toBe(false)
+    } finally {
+      wrapper.unmount()
+      const nextState = { ...(window.history.state ?? {}) }
+      delete nextState.tcHoldingSelectionHandoff
+      delete nextState.tcHoldingIdentityHandoff
+      window.history.replaceState(nextState, '', window.location.href)
+    }
+  })
+
   it('keeps private basket selection on its supported dashboard route without ticker identity or profile requests', async () => {
     routeState.path = '/chart/SPY'
     routeState.params = { symbol: 'SPY' }
@@ -2661,6 +2754,7 @@ describe('WorkstationView pop-out bindings', () => {
       expect(wrapper.get('[data-testid="active-holding-lineage"]').text()).toBe('UNXQ from IWM dated holdings · 2026-10-27')
       expect(wrapper.get('[data-testid="active-holding-lineage"]').attributes('title')).toContain('snapshot 8801 · row 8803')
       expect(wrapper.get('[data-testid="active-holding-lineage"]').attributes('title')).toContain('issuer-row-8803')
+      expect(wrapper.get('[data-testid="active-holding-lineage"]').attributes('title')).toContain('does not establish current ETF analysis eligibility')
     } finally {
       wrapper.unmount()
     }

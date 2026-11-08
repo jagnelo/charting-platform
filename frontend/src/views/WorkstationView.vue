@@ -469,6 +469,12 @@ const recentSymbolsMenuStyle = ref<Record<string, string>>({})
 const routeSymbol = typeof route.params.symbol === 'string' && route.params.symbol.trim()
   ? decodeURIComponent(route.params.symbol).trim().toUpperCase()
   : 'SPY'
+const initialHoldingRouteContext = (() => {
+  const requestedSymbol = route.params.symbol ?? route.query.symbol
+  if (typeof requestedSymbol !== 'string' || route.query.holding_history_intent !== 'selected') return null
+  return parseETFHoldingDrilldownRouteQuery(route.query as Record<string, unknown>, requestedSymbol)
+})()
+const holdingRouteHydrationPending = ref(initialHoldingRouteContext !== null)
 const symbolDraft = ref(routeSymbol)
 const toolLibraryOpen = ref(false)
 const workspaceMenuOpen = ref(false)
@@ -539,6 +545,7 @@ const selectedHoldingDetails = computed(() => {
     `composition ${context.compositionDate}`,
     `known ${context.knownAt || 'not reported'}`,
     `${context.sourceProvider} / ${context.provenance}`,
+    'This dated context does not establish current ETF analysis eligibility',
   ].filter(Boolean).join(' · ')
 })
 const selectedHoldingCaption = computed(() => {
@@ -2090,7 +2097,12 @@ async function submitSymbolDraft() {
     if (requestId !== searchRequest || symbolDraft.value.trim() !== symbol) return
 
     const navigatedLocal = explicitlyNavigatedCurrentQuery ? searchResults.value[searchIndex.value] : undefined
-    const local = navigatedLocal
+    // A canonical exact result may arrive while Go is waiting for the current
+    // debounced lookup. Use that newly confirmed row before considering any
+    // provisional prefix candidate; only an explicit arrow choice overrides it.
+    const local = navigatedLocal ?? searchResults.value.find(result =>
+      result.symbol.trim().toUpperCase() === symbol.toUpperCase(),
+    )
     if (local) {
       recentSymbolsOpen.value = false
       selectSearchResult(local.symbol, local.instrument_id, local.type)
@@ -3328,7 +3340,12 @@ watch(activeSymbol, symbol => {
   const activeRouteContext = activeHoldingContext.value?.symbol === symbol
     ? activeHoldingContext.value.context
     : null
-  syncChartRouteToSelection(symbol, activeRouteContext?.instrumentId, activeRouteContext)
+  const preservingInitialHoldingRoute = holdingRouteHydrationPending.value
+    && initialHoldingRouteContext?.canonicalSymbol === routeSymbol
+    && initialHoldingRouteContext.canonicalSymbol !== symbol.trim().toUpperCase()
+  if (!preservingInitialHoldingRoute) {
+    syncChartRouteToSelection(symbol, activeRouteContext?.instrumentId, activeRouteContext)
+  }
   const isHistoryNavigation = historyNavigationTarget === symbol
   if (!privateBasketSelection) recentStore.add(symbol, undefined, !isHistoryNavigation)
   if (isHistoryNavigation) historyNavigationTarget = null
@@ -3439,6 +3456,11 @@ onMounted(async () => {
     workspaceStore.publishTimeframe(timeframe, group, 'workstation')
   }
   pendingTimeframeSelections.clear()
+  if (symbolSelectionGeneration !== mountSelectionGeneration) {
+    // A newer explicit selection already synchronized the route while the
+    // workspace loaded, so initial-route protection is no longer needed.
+    holdingRouteHydrationPending.value = false
+  }
   // A user can interact with the shell while the first snapshot is loading.
   // loadDefault hydrates the persisted blue link, so replay the newer explicit
   // shell selection once hydration completes instead of silently reverting it.
@@ -3510,6 +3532,10 @@ onMounted(async () => {
       const holdingHandoff = consumeHoldingSelectionHandoff(routeHoldingContext)
       const selectedHoldingRoute = route.query.holding_history_intent === 'selected'
         && routeHoldingContext !== null && holdingHandoff.selected
+      // The route consumer is now taking over. From this point on, ordinary
+      // linked selections must synchronize their own URL and clear unrelated
+      // holding provenance through the normal identity-checked selection path.
+      holdingRouteHydrationPending.value = false
       if (selectedHoldingRoute && routeHoldingContext) {
         // The one-use same-tab handoff is written only after the holdings view
         // validates the exact current row/identity. A bare replayed query keeps

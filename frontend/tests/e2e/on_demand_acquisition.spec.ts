@@ -1397,7 +1397,11 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
   expect(await automaticD1History.json()).toMatchObject({
     status: 'unavailable',
     has_pending_work: false,
-    dependencies: [{ status: 'unavailable', dataset: 'history', symbol: 'AMD', instrument_id: amdInstrumentId }],
+    dependencies: expect.arrayContaining([
+      expect.objectContaining({ dataset: 'identity', status: 'ready', symbol: 'AMD', instrument_id: amdInstrumentId }),
+      expect.objectContaining({ dataset: 'profile', status: 'ready', symbol: 'AMD', instrument_id: amdInstrumentId }),
+      expect.objectContaining({ dataset: 'history', status: 'unavailable', symbol: 'AMD', instrument_id: amdInstrumentId, reason_code: 'test_fixture_hold' }),
+    ]),
   })
   expect(historyRequests).toHaveLength(1)
   expect(historyRequests[0]).toMatchObject({ target: { kind: 'instrument', instrument_id: amdInstrumentId }, timeframe: 'D1', adjusted: true })
@@ -1412,13 +1416,14 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
   expect(historyUrl.searchParams.get('holding_provenance')).toBe('controlled_fixture')
   expect(Number(historyUrl.searchParams.get('holding_instrument_id'))).toBe(amdInstrumentId)
 
-  const historicalContext = page.locator('.historical-holding-context')
+  const historicalContext = page.getByTestId('active-holding-lineage')
   await expect(historicalContext).toBeVisible()
-  await expect(historicalContext).toContainText('AMD')
-  await expect(historicalContext).toContainText(String(compositionDate))
-  await expect(historicalContext).toContainText(String(knownAt))
-  await expect(historicalContext).toContainText('controlled_fixture')
-  await expect(historicalContext).toContainText('does not establish current ETF analysis eligibility')
+  await expect(historicalContext).toContainText(`AMD from IWM holdings · ${compositionDate}`)
+  const iwmLineageDetails = await historicalContext.getAttribute('title')
+  expect(iwmLineageDetails).toContain(`snapshot ${selectedProfile?.latest_snapshot_id}`)
+  expect(iwmLineageDetails).toContain(`known ${knownAt}`)
+  expect(iwmLineageDetails).toContain('controlled_fixture')
+  expect(iwmLineageDetails).toContain('does not establish current ETF analysis eligibility')
 
   const chartCanvases = page.locator('.chart-body canvas')
   await expect(chartCanvases.first()).toBeVisible()
@@ -1440,29 +1445,28 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
   })
   await page.locator('.tf-select').selectOption('M1')
   await expect(page.locator('.tf-select')).toHaveValue('M1')
-  const [m1LocalBars, m1Coverage] = await Promise.all([m1LocalBarsReady, m1CoverageReady])
+  const [m1History, m1LocalBars, m1Coverage] = await Promise.all([m1HistoryReady, m1LocalBarsReady, m1CoverageReady])
+  expect(m1History.status()).toBe(200)
+  expect(await m1History.json()).toMatchObject({
+    status: 'unavailable',
+    has_pending_work: false,
+    dependencies: expect.arrayContaining([
+      expect.objectContaining({ dataset: 'identity', status: 'ready', symbol: 'AMD', instrument_id: amdInstrumentId }),
+      expect.objectContaining({ dataset: 'profile', status: 'ready', symbol: 'AMD', instrument_id: amdInstrumentId }),
+      expect.objectContaining({ dataset: 'history', status: 'unavailable', symbol: 'AMD', instrument_id: amdInstrumentId, reason_code: 'test_fixture_hold' }),
+    ]),
+  })
   expect(m1LocalBars.status()).toBe(200)
   expect(m1Coverage.status()).toBe(200)
   expect(await m1Coverage.json()).toMatchObject({ symbol: 'AMD', is_fetching: false })
   await expect(page.locator('.chart-root').first()).toHaveAttribute('aria-busy', 'false')
   await expect(chartCanvases.first()).toBeVisible()
   const canvasCountBefore = await chartCanvases.count()
-  const identityBeforeExplicitM1 = identityRequests.length
-  await page.getByTestId('history-load-missing').click()
   await expect(page.getByRole('status').filter({ hasText: 'Some requested data is unavailable. Available results remain usable.' })).toBeVisible()
-  const m1History = await m1HistoryReady
-  expect(m1History.status()).toBe(200)
-  expect(await m1History.json()).toMatchObject({
-    status: 'unavailable',
-    has_pending_work: false,
-    dependencies: [{ status: 'unavailable', dataset: 'history', symbol: 'AMD', instrument_id: amdInstrumentId }],
-  })
-  expect(identityRequests).toHaveLength(identityBeforeExplicitM1 + 1)
-  expect(identityRequests.at(-1)).toMatchObject({ symbol: 'AMD' })
   await expect(historicalContext).toBeVisible()
   await expect(chartCanvases).toHaveCount(canvasCountBefore)
-  expect(identityRequests).toHaveLength(3)
-  expect(identityRequests.map(request => request.symbol)).toEqual(['IWM', 'AMD', 'AMD'])
+  expect(identityRequests).toHaveLength(2)
+  expect(identityRequests.map(request => request.symbol)).toEqual(['IWM', 'AMD'])
   expect(historyRequests).toHaveLength(2)
   expect(historyRequests.map(request => request.timeframe)).toEqual(['D1', 'M1'])
   expect(historyRequests.every(request => ensureInstrumentId(request) === amdInstrumentId)).toBe(true)
@@ -1495,6 +1499,7 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
   } | null = null
   let acquiredFixtureBar: OHLCVBar | null = null
   let successfulHistoryResponseReceived = false
+  let successfulM1HistoryResponseReceived = false
   let localReadbackCount = 0
 
   function fixtureBarAt(ts: string): OHLCVBar {
@@ -1707,6 +1712,7 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
       missing_slices: [],
     }
     successfulHistoryResponseReceived = true
+    if (body.timeframe === 'M1') successfulM1HistoryResponseReceived = true
     await route.fulfill({ status: 200, json: historyPreparation(body, amdInstrumentId, 'AMD', 'partial', acquiredFixtureBar) })
   })
   await page.route('**/api/v1/etf-holdings/IWM/capability', async route => {
@@ -1902,9 +1908,14 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
   expect(historyUrl.searchParams.get('holding_provenance')).toBe('controlled_fixture')
   expect(Number(historyUrl.searchParams.get('holding_instrument_id'))).toBe(amdInstrumentId)
 
-  const historicalContext = page.locator('.historical-holding-context')
+  const historicalContext = page.getByTestId('active-holding-lineage')
   await expect(historicalContext).toBeVisible()
-  await expect(historicalContext).toContainText('does not establish current ETF analysis eligibility')
+  await expect(historicalContext).toHaveText(`AMD from OIH holdings · ${fixtureSnapshot.composition_date}`)
+  const noSnapshotLineageDetails = await historicalContext.getAttribute('title')
+  expect(noSnapshotLineageDetails).toContain(`instrument ${amdInstrumentId} · snapshot ${fixtureSnapshotId} · row ${fixtureHolding.id}`)
+  expect(noSnapshotLineageDetails).toContain(`known ${fixtureSnapshot.known_at}`)
+  expect(noSnapshotLineageDetails).toContain('test-fixture / controlled_fixture')
+  expect(noSnapshotLineageDetails).toContain('does not establish current ETF analysis eligibility')
   await expect(page.locator('.chart-root').first()).toHaveAttribute('aria-busy', 'false')
   const automaticD1History = await automaticD1HistoryReady
   expect(automaticD1History.status()).toBe(200)
@@ -1912,14 +1923,31 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
   expect(automaticD1Result).toMatchObject({
     status: 'partial',
     has_pending_work: false,
-    dependencies: [{ status: 'partial', dataset: 'history', symbol: 'AMD', instrument_id: amdInstrumentId, covered_ranges: [{ is_adjusted: true }] }],
+    dependencies: expect.arrayContaining([
+      expect.objectContaining({ dataset: 'identity', status: 'ready', symbol: 'AMD', instrument_id: amdInstrumentId }),
+      expect.objectContaining({ dataset: 'profile', status: 'ready', symbol: 'AMD', instrument_id: amdInstrumentId }),
+      expect.objectContaining({ dataset: 'history', status: 'partial', symbol: 'AMD', instrument_id: amdInstrumentId, covered_ranges: [{ is_adjusted: true }] }),
+    ]),
   })
   expect(historyRequests).toHaveLength(1)
   expect(ensureInstrumentId(historyRequests[0]!)).toBe(amdInstrumentId)
   expect(historyRequests[0]?.start_at).toBeUndefined()
   expect(historyRequests[0]?.end_at).toBeUndefined()
   expect(identityRequests.map(request => request.symbol)).toEqual(['OIH', 'AMD'])
-  await expect(page.getByRole('status').filter({ hasText: /^Some D1 history for AMD loaded; the rest remains unavailable\.$/ })).toBeVisible()
+  await expect(page.getByRole('status').filter({ hasText: /^Partial D1 price history for AMD remains available\. Additional history is not currently available\.$/ })).toBeVisible()
+  const m1HistoryReady = page.waitForResponse(response => {
+    const url = new URL(response.url())
+    if (response.request().method() !== 'POST' || url.pathname !== '/api/v1/data/ensure') return false
+    const body = response.request().postDataJSON() as DataEnsureRequest
+    return body.target.kind === 'instrument' && ensureInstrumentId(body) === amdInstrumentId
+      && body.timeframe === 'M1' && body.datasets?.includes('history') === true
+  })
+  const localReadbackReady = page.waitForResponse(response => {
+    const url = new URL(response.url())
+    if (!successfulM1HistoryResponseReceived || response.request().method() !== 'GET'
+      || url.pathname !== '/api/v1/ohlcv/local/AMD/M1') return false
+    return response.json().then((rows: OHLCVBar[]) => rows.some(row => row.ts === '2026-01-02T00:01:00.000Z'))
+  })
   const m1LocalBarsReady = page.waitForResponse(response => {
     const url = new URL(response.url())
     return response.request().method() === 'GET'
@@ -1932,31 +1960,31 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
   })
   await page.locator('.tf-select').selectOption('M1')
   await expect(page.locator('.tf-select')).toHaveValue('M1')
-  const [m1LocalBars, m1Coverage] = await Promise.all([m1LocalBarsReady, m1CoverageReady])
+  const [m1History, m1LocalBars, m1Coverage, localReadback] = await Promise.all([m1HistoryReady, m1LocalBarsReady, m1CoverageReady, localReadbackReady])
+  expect(m1History.status()).toBe(200)
+  expect(await m1History.json()).toMatchObject({
+    status: 'partial',
+    has_pending_work: false,
+    dependencies: expect.arrayContaining([
+      expect.objectContaining({ dataset: 'identity', status: 'ready', symbol: 'AMD', instrument_id: amdInstrumentId }),
+      expect.objectContaining({ dataset: 'profile', status: 'ready', symbol: 'AMD', instrument_id: amdInstrumentId }),
+      expect.objectContaining({ dataset: 'history', status: 'partial', symbol: 'AMD', instrument_id: amdInstrumentId, covered_ranges: [{ is_adjusted: true }] }),
+    ]),
+  })
   expect(m1LocalBars.status()).toBe(200)
   expect(m1Coverage.status()).toBe(200)
   expect(await m1Coverage.json()).toMatchObject({ symbol: 'AMD', is_fetching: false })
   await expect(page.locator('.chart-root').first()).toHaveAttribute('aria-busy', 'false')
+  await expect(page.getByRole('status').filter({ hasText: /^Partial M1 price history for AMD remains available\. Additional history is not currently available\.$/ })).toBeVisible()
 
-  const localReadbackReady = page.waitForResponse(response => {
-    const url = new URL(response.url())
-    return successfulHistoryResponseReceived
-      && response.request().method() === 'GET'
-      && url.pathname === '/api/v1/ohlcv/local/AMD/M1'
-  })
-  const identityCountBeforeM1 = identityRequests.length
-  await page.getByTestId('history-load-missing').click()
-  await expect(page.getByRole('status').filter({ hasText: /^Some history loaded;/ })).toBeVisible()
-  const localReadback = await localReadbackReady
   const readbackBars = await localReadback.json() as OHLCVBar[]
   expect(historyRequests).toHaveLength(2)
   expect(historyRequests.map(request => request.timeframe)).toEqual(['D1', 'M1'])
   expect(historyRequests.every(request => ensureInstrumentId(request) === amdInstrumentId)).toBe(true)
   expect(historyRequests.every(request => request.start_at === undefined && request.end_at === undefined)).toBe(true)
   expect(acquiredFixtureBar).not.toBeNull()
-  expect(identityRequests).toHaveLength(identityCountBeforeM1 + 1)
-  expect(identityRequests.map(request => request.symbol)).toEqual(['OIH', 'AMD', 'AMD'])
-  expect(identityRequests.at(-1)).toMatchObject({ symbol: 'AMD' })
+  expect(identityRequests).toHaveLength(2)
+  expect(identityRequests.map(request => request.symbol)).toEqual(['OIH', 'AMD'])
   expect(directHistoryRequests).toEqual([])
   expect(successfulHistoryResponseReceived).toBe(true)
   expect(localReadbackCount).toBeGreaterThan(0)

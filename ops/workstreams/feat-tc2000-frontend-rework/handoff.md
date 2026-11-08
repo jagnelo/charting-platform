@@ -26854,3 +26854,8 @@ The bounded common repair preserves a typed exact ticker draft across a linked m
 Imported the exact Strategy `6595b47a3d56220deda0e925901e4351df06cb1c` and ETF `e9c3f938621e853d38017e9eef8f90ba308efcf2` successors. All 26 Strategy and 10 ETF manifest rows match source SHA256/Git blob IDs; only the six declared changed paths were imported. The current journey matrix reflects the updated Notes control signature without changing journey coverage.
 
 Focused Workstation/instrument-query tests passed 106/106. E2E unbound-reference preflight found no actionable unbound names; existing semantic advisories remain unqualified. Frontend type-check, workstream validator, journey-matrix validator (28 routes/aliases, 21 tools, 38 factory instances), and diff check passed. Root owns exact-source browser qualification; this is not full-platform acceptance.
+
+
+## 2026-11-08 — Confirm fresh versus restored holding captions
+
+Root's latest exact error context confirms fresh OIH selection renders `AMD from OIH holdings · 2026-01-02`; the test already expects that caption. The fresh IWM handoff likewise expects `AMD from IWM holdings`. The `dated holdings` caption is reserved for restored route context, and the separate UNXQ reload assertion remains dated. No caption/product change was needed. Current frontend type-check passes; Root owns browser requalification.
