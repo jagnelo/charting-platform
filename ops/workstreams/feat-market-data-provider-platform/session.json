@@ -708,7 +708,7 @@
   "parent_branch": "staging",
   "pg_profile_result": "/tmp/provider-etv-20261103-r4/artifacts/result.json",
   "pg_profile_result_sha256": "3c98a0a77d8b8f40f923d289a4564645149971929865ae71290eeffb25cc45cc",
-  "plan_hash": "8e445292c538fe3b62ef78219eff57942a3048af9e5d2828094138c2a28ab15d",
+  "plan_hash": "54c629de188dc3cc2bbcc90b86d0346d7160f8b3c7e129c0ff1f648b2e7bf2fa",
   "planning_required": false,
   "planning_state": "ready",
   "platform_usability_goal": {

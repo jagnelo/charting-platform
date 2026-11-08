@@ -15603,6 +15603,12 @@ approved_development_dependency_imports:
   - scripts/run-live-provider-probes.py
   - backend/tests/live/test_market_data_providers_live.py
   - backend/tests/unit/test_live_provider_runner.py
+- source_sha: 09938f32e97b9c21530b96d055380baccbb88c6c
+  manifest_path: ops/workstreams/feat-market-data-provider-platform/development-dependency-imports/etf09938f32-catalogue-backend-development-consumption-contract.json
+  manifest_sha256: bf056a719d213b58c744c0a17581b0cfc7efffd4def82dc8656628c4dc8381bb
+  paths:
+  - backend/app/services/etf_holdings.py
+  - backend/tests/unit/services/test_etf_holdings_catalogue.py
 - source_sha: b0db1656ad8505e2aaa39546d60487015aca00d4
   manifest_path: ops/workstreams/feat-market-data-provider-platform/development-dependency-imports/b0db1656ad8505e2aaa39546d60487015aca00d4.json
   manifest_sha256: 764d1e285eb4909be2a63fbb1b9873f68f5988d4685cacf270ad5662f826c168
