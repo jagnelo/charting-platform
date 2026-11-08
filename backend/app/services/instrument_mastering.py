@@ -259,7 +259,7 @@ async def reconcile_instrument_profile(
         return None
 
     provider_scores = {
-        resolved.provider_name: float(resolved.policy.effective_score)
+        resolved.provider_name: float(resolved.effective_score)
         for resolved in await resolve_provider_chain(db, ProviderCapability.INSTRUMENT_METADATA)
     }
 

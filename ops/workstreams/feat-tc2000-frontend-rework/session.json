@@ -103,8 +103,8 @@
     "status": "pending Root observation after publication"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "The current TC candidate contains Plots click/save recovery, auth abort normalization, direct/blue-linked/private-basket URL coherence, holdings feedback fixture updates, and virtual-pane close retention. Provider 0a1cda84 and Strategy 16a9523e are exact imports. Affected units passed 181/181, vue-tsc passed, and E2E discovery listed 307 tests without running a browser. Root build, critical journeys, exact CI, and full release gates remain pending.",
-  "current_checkpoint_status": "Current TC source is the exact pending successor for the Root-identified common failures: Plots menu interaction, auth restore cancellation, ticker and private-basket URL restore, shared ensure fixture identity, and nested-pane close responsiveness. It includes exact Provider 0a1cda84 and Strategy 16a9523e imports plus updated journey mapping. Full acceptance is not claimed.",
+  "current_candidate_ci_status": "Current working-tree successor based on 2a8dc9e4 includes strict confirmedIdentity reuse for the selected canonical ticker (including supplied-ID conflict rejection), truthful pending/high-priority My Favorites mutations, visible Notes-tab activation in J12, and corrected IGV holdings status matching. Exact Provider b1929300 5-of-78 backend imports and Strategy 2689c2c6 one-of-27 private test import are recorded. Focused confirmation/acquisition, API, favorites, ToolWindow and type checks pass; the full binding module retains one TC-owned visibility-return duplicate-refresh failure that must be repaired before branch release. Root exact-source rebuild/browser rerun and all wider qualification remain pending.",
+  "current_checkpoint_status": "Bounded common critical-smoke follow-up: do not block a resolved exact ticker selection on a redundant canonical GET; reject symbol/status/identity-ID disagreement; retain ordinary J12 tab activation and existing holdings feedback semantics; give favorite writes high browser fetch priority without optimistic server-state changes. Root owns rendered rerun and full release acceptance.",
   "current_exact_ci": {
     "head_sha": null,
     "run_id": null,
@@ -163,19 +163,7 @@
     "tested_backend_source": "6eae00eb8380438da771fed0c42d19587e9520ce",
     "tested_frontend_source": "36e7ad2cb08c769a242773ab2b6be69fcc350774"
   },
-  "dirty_paths": [
-    "frontend/src/App.vue",
-    "frontend/src/components/common/Notification.vue",
-    "frontend/src/components/workstation/RatioUPlot.vue",
-    "frontend/src/lib/api.ts",
-    "frontend/src/main.ts",
-    "frontend/src/stores/alerts.ts",
-    "frontend/src/stores/auth.ts",
-    "frontend/tests/unit/components/test_ratio_uplot.test.ts",
-    "frontend/tests/unit/lib/test_api_client.test.ts",
-    "frontend/src/lib/authSession.ts",
-    "frontend/tests/unit/lib/test_auth_session.test.ts"
-  ],
+  "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -189,7 +177,7 @@
       "charting-stack-feat-tc2000-frontend-rework-f63d60ae-redis-1",
       "charting-stack-feat-tc2000-frontend-rework-f63d60ae-research-runner-1"
     ],
-    "known_bytes": 1357279892,
+    "known_bytes": 1366084292,
     "over_budget": false,
     "projects": [
       "charting-dev-feat-tc2000-frontend-rework-f63d60ae",
@@ -200,7 +188,7 @@
     "unattributed_shared_layers_excluded": true,
     "unique_image_bytes": 0,
     "unknown_components": [],
-    "volume_bytes": 1354211988,
+    "volume_bytes": 1363016388,
     "volume_count": 12,
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
@@ -292,7 +280,7 @@
     "visual_followup": "Full104 remains deferred until F8n and F8m close and the coordinator separately releases capacity."
   },
   "goal_budget_policy": "unbounded_unless_human_authorized",
-  "goal_objective": "Implement the TC-owned frontend scope of the human-approved complete platform-usability release: shared data-preparation client/coordinator and all entrypoint wiring; semantic tool identity, factory/Add-tool catalogue and reversible layout lifecycle; ratio and RRG data/plotted interactions across D1/W1/MN; consistent presentation for every TC-owned route/tool/dialog; and the complete route/action journey matrix. Coordinate shared Provider/ETF/Strategy contracts through Root, preserve current account/model/effort and broader roadmap history, and stop before integration, deployment, live source, or production operations.",
+  "goal_objective": "Advance feat/tc2000-frontend-rework: Implement the TC-owned frontend scope of the human-approved complete platform-usability release: shared data-preparation client/coordinator and all entrypoint wiring; semantic tool identity, factory/Add-tool catalogue and reversible layout lifecycle; ratio and RRG data/plotted interactions across D1/W1/MN; consistent presentation for every TC-owned route/tool/dialog; and the complete route/action journey matrix. Coordinate shared Provider/ETF/Strategy contracts through Root, preserve current account/model/effort and broader roadmap history, and stop before integration, deployment, live source, or production operations.. Acceptance criteria: PU01: Inventory every frontend route, factory panel, addable tool and exposed action; map every supported action to journey coverage and critical visual/user-review evidence, with no unmapped actions.; PU02: Implement one shared authenticated data-preparation client/coordinator against the Provider-owned ensure/request contract; deduplicate, poll, invalidate and fence obsolete intent across all TC-owned entrypoints.; PU03: Every exact resolved selection and downstream chart/analysis action prepares missing data automatically without suggestion fan-out, required fetch buttons, hidden evaluator HTTP, or prior-context data leakage; independent datasets remain useful when another is unavailable.; PU04: Preserve semantic tool identity and useful defaults across factory creation, Add Tool, clone/import, popout, reload and restore; catalogue every implemented factory panel.; PU05: Provide explicit reversible workspace/layout duplicate, rename, delete, reorder, close/recreate, cancel, resize, maximize, reset and recovery actions while preserving account data and other user state.; PU06: Prepare both ratio legs and group members; verify inverse values, adjustment, date alignment and reload behavior with bounded missing-data dependencies.; PU07: Render real finite RRG points, labels, quadrants and tails for D1/W1/MN with correct D1 dependencies and monthly warm-up beyond the former two-year boundary; prove ordinary pointer and keyboard interaction after dock, tab, resize, maximize, clone and restore.; PU08: Apply the shared TC presentation system to every TC-owned exposed page, tool, menu and dialog; verify readable, discoverable, non-overlapping layouts at representative laptop/desktop sizes and scaling.; PU09: Cover the twelve approved J01-J12 journeys across TC-owned scope with genuine successful data paths separate from unavailable-data cases; retain strict functional/oracle semantics and require useful results rather than DOM, tables, spinners or errors alone.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
   "goal_recorded_at": "2026-10-23T05:19:32.501383+00:00",
   "goal_request": {
     "objective": "Implement the TC-owned frontend scope of the human-approved complete platform-usability release: shared data-preparation client/coordinator and all entrypoint wiring; semantic tool identity, factory/Add-tool catalogue and reversible layout lifecycle; ratio and RRG data/plotted interactions across D1/W1/MN; consistent presentation for every TC-owned route/tool/dialog; and the complete route/action journey matrix. Coordinate shared Provider/ETF/Strategy contracts through Root, preserve current account/model/effort and broader roadmap history, and stop before integration, deployment, live source, or production operations."
@@ -300,7 +288,7 @@
   "goal_request_state": "active",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "b4c3c3942f06eafa8984f783be5d0d82f998ed39",
+  "head": "2a8dc9e4c28a9632ffdf8f484ad12a985df70cd3",
   "historical_checkpoint_archive": {
     "acceptance_criteria": [
       {
@@ -475,10 +463,10 @@
   },
   "progress": {
     "completed": [],
+    "current_blocker": "Focused confirmed-identity, acquisition-contract, API-priority, favorites, ToolWindow and type checks pass. The full Workstation bindings module still has one unrelated visibility-return duplicate-refresh failure; Root exact-source browser rerun, full route/action coverage, combined profile, exact CI and release acceptance remain pending.",
+    "current_phase": "Repair the four Root-owned critical-smoke gaps: trust only an exact confirmed canonical identity, activate the visible saved Notes tab in J12, align the IGV holdings detail assertion with status capitalization, and submit My Favorites mutations at high fetch priority with truthful pending state; consume Provider b1929300 and Strategy 2689c2c6.",
+    "next_action": "Commit this bounded repair and exact dependency checkpoint for Root rebuild and critical-journey rerun; preserve all remaining platform-usability criteria and release gates.",
     "total": 9,
-    "current_phase": "Complete the Root-identified common UI failures and preserve exact Provider 0a1cda84 and Strategy 16a9523e imports; affected local unit and type checks now pass.",
-    "current_blocker": "Root exact-source rebuild and critical browser journeys are pending. Full platform usability, exact CI, combined release profile, and genuine source acceptance remain open.",
-    "next_action": "Freeze this coherent checkpoint for Root build and journey qualification; continue only after concrete Root evidence and keep the complete roadmap open.",
     "updated_at": "2026-11-08"
   },
   "push_status": {

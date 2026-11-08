@@ -73,7 +73,7 @@ async function expectSelectionHoldingsDetails(page: Page, symbol: string, detail
   await expect(summary).toBeVisible()
   await expect(summary).toHaveAttribute('aria-label', new RegExp(`Holdings[^]*${symbol}`))
   if (!await details.evaluate(element => (element as HTMLDetailsElement).open)) await summary.click()
-  await expect(notice.locator('.compact-status__detail')).toContainText(`Holdings for ${symbol}`)
+  await expect(notice.locator('.compact-status__detail')).toContainText(new RegExp(`holdings for ${symbol}`, 'i'))
   await expect(notice.locator('.compact-status__detail')).toContainText(detailText)
 }
 
@@ -384,6 +384,10 @@ test('Workstation search resolves an unknown ticker and reports shared history p
   await expect(search).toHaveValue('TCNEW')
   await expect(page).toHaveURL(/\/chart\/TCNEW$/)
   expect(identityRequests).toHaveLength(1)
+  // The confirmed acquisition already carries the canonical identity. The
+  // selection must not wait for a redundant instrument lookup before updating
+  // the active chart and URL.
+  expect(canonicalInstrumentLookups).toEqual([])
   expect(identityRequests[0]).toMatchObject({ symbol: 'TCNEW', provider_candidate: { provider: 'test-fixture', exchange: 'TEST' } })
 
   await expect.poll(() => preparationRequests.length).toBeGreaterThan(0)
@@ -1032,7 +1036,7 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
       covered_ranges: [{ is_adjusted: true }],
     }],
   })
-  expect(canonicalInstrumentLookups).toContainEqual({ symbol: 'TCNEW', canonicalOnly: 'true' })
+  expect(canonicalInstrumentLookups).toEqual([])
   expect(tcnewPreparationRequests.filter(request => request.timeframe === 'M1'
     && request.target.kind === 'instrument'
     && 'instrument_id' in request.target

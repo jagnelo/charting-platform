@@ -1861,7 +1861,8 @@ describe('WorkstationView pop-out bindings', () => {
       request_id: expect.stringMatching(/^[0-9a-f-]{36}$/),
     })
     expect(apiPost.mock.calls[1][1].request_id).not.toBe(apiPost.mock.calls[0][1].request_id)
-    expect(dataPreparationPost.mock.calls.some(([request]) => request.target.instrument_id === 43 && request.datasets.includes('holdings'))).toBe(true)
+    expect(resolveKnownInstrument).not.toHaveBeenCalledWith('OIH', 'Workstation symbol', { canonicalOnly: true })
+    await vi.waitFor(() => expect(dataPreparationPost.mock.calls.some(([request]) => request.target.instrument_id === 43 && request.datasets.includes('holdings'))).toBe(true))
     await flushPromises()
     await vi.waitFor(() => expect(harness.workspace.refreshMarketAnalysis).toHaveBeenCalled())
     wrapper.unmount()

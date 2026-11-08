@@ -1981,9 +1981,9 @@ status: in_progress
 progress:
   completed: []
   total: 9
-  current_phase: "Complete ordinary Plots save/retry responsiveness, auth-boundary cancellation, saved selection URL/provenance, shared ensure fixture identity, and nested-pane close without remounting unrelated tools; consume Provider 0a1cda84 and Strategy 16a9523e exact sources."
-  current_blocker: "Local focused validation is green. Root exact-source build and critical journeys are pending; full route/action, combined profile, exact CI, and release acceptance remain open."
-  next_action: "Freeze this coherent source checkpoint and let Root build and qualify it. Continue only from concrete Root evidence; preserve the complete platform roadmap and all release gates."
+  current_phase: "Repair the four Root-owned critical-smoke gaps: trust only an exact confirmed canonical identity, activate the visible saved Notes tab in J12, align the IGV holdings detail assertion with status capitalization, and submit My Favorites mutations at high fetch priority with truthful pending state; consume Provider b1929300 and Strategy 2689c2c6."
+  current_blocker: "Focused confirmed-identity, acquisition-contract, API-priority, favorites, ToolWindow and type checks pass. One TC-owned Workstation visibility-return test still observes two analysis refreshes where one is required; diagnose and repair this before branch release. Root exact-source browser rerun, full route/action coverage, combined profile, exact CI and release acceptance remain pending."
+  next_action: "Commit this bounded repair and exact dependency checkpoint for Root rebuild and critical-journey rerun; preserve all remaining platform-usability criteria and release gates."
   updated_at: "2026-11-08"
 historical_checkpoint_status_archive: 'Current boundary (2026-10-22): published HEAD is a7c8ecba208ce6c79d8f1a5d7294500122e462e5;
   one test-only change in workstation_performance.spec.ts and the four owned records are pending review. Exact hosted CI39693019337
@@ -5203,10 +5203,125 @@ development_dependency_import_history:
     - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts
     state: superseded_development_import
     superseded_by: 16a9523e24bdb6398ff1e50c4c74585e718d9e19
+  - source_sha: 0a1cda8434ec9f2f103400b7bd7fde3067f8ed42
+    manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/0a1cda8434ec9f2f103400b7bd7fde3067f8ed42.json
+    manifest_sha256: e8a82ce247c5278882a76c9ab4df12fe257b06b39f348be31a8ba93070c46be6
+    paths:
+    - backend/app/config.py
+    - backend/app/main.py
+    - backend/app/providers/alpaca.py
+    - backend/app/providers/massive.py
+    - backend/app/providers/optional_market_data.py
+    - backend/app/routers/analysis.py
+    - backend/app/routers/data_preparation.py
+    - backend/app/routers/instruments.py
+    - backend/app/routers/ohlcv.py
+    - backend/app/routers/providers.py
+    - backend/app/routers/research.py
+    - backend/app/routers/workspaces.py
+    - backend/app/schemas/data_preparation.py
+    - backend/app/services/baskets.py
+    - backend/app/services/bulk_fetch.py
+    - backend/app/services/data_preparation.py
+    - backend/app/services/data_preparation_contracts.py
+    - backend/app/services/derived_timeframes.py
+    - backend/app/services/e2e_seed.py
+    - backend/app/services/etf_holdings_adapters.py
+    - backend/app/services/etf_holdings_preparation.py
+    - backend/app/services/etf_holdings_refresh.py
+    - backend/app/services/evaluator_preflight.py
+    - backend/app/services/exchange_sessions.py
+    - backend/app/services/instrument_events.py
+    - backend/app/services/instrument_mastering.py
+    - backend/app/services/market_data.py
+    - backend/app/services/market_refresh_queue.py
+    - backend/app/services/market_series.py
+    - backend/app/services/ohlcv_coverage.py
+    - backend/app/services/provider_runtime.py
+    - backend/app/services/screener_engine.py
+    - backend/app/services/workstation_tool_catalogue.py
+    - backend/app/tasks/data_tasks.py
+    - backend/app/workers/arq_worker.py
+    - backend/tests/integration/api/test_baskets.py
+    - backend/tests/integration/api/test_workspace_read_consistency_postgres.py
+    - backend/tests/integration/test_data_preparation_queue_postgres.py
+    - backend/tests/unit/conftest.py
+    - backend/tests/unit/providers/test_new_providers.py
+    - backend/tests/unit/providers/test_optional_market_data.py
+    - backend/tests/unit/routers/test_analysis_router.py
+    - backend/tests/unit/routers/test_calendar_router.py
+    - backend/tests/unit/routers/test_data_preparation_router.py
+    - backend/tests/unit/routers/test_instruments_router.py
+    - backend/tests/unit/routers/test_ohlcv_router.py
+    - backend/tests/unit/routers/test_providers_router.py
+    - backend/tests/unit/routers/test_research_router.py
+    - backend/tests/unit/routers/test_workspace_tool_catalogue.py
+    - backend/tests/unit/services/test_data_preparation_contracts.py
+    - backend/tests/unit/services/test_data_preparation_history_planning.py
+    - backend/tests/unit/services/test_data_preparation_service.py
+    - backend/tests/unit/services/test_data_preparation_worker_deeper_default.py
+    - backend/tests/unit/services/test_derived_timeframes.py
+    - backend/tests/unit/services/test_e2e_seed.py
+    - backend/tests/unit/services/test_etf_holdings_adapters.py
+    - backend/tests/unit/services/test_etf_holdings_bootstrap.py
+    - backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py
+    - backend/tests/unit/services/test_etf_holdings_native_qualification.py
+    - backend/tests/unit/services/test_etf_holdings_preparation.py
+    - backend/tests/unit/services/test_etf_holdings_preparation_hook.py
+    - backend/tests/unit/services/test_etf_holdings_provider_bridge.py
+    - backend/tests/unit/services/test_etf_issuer_catalog.py
+    - backend/tests/unit/services/test_evaluator_preflight.py
+    - backend/tests/unit/services/test_exchange_catalog.py
+    - backend/tests/unit/services/test_market_data.py
+    - backend/tests/unit/services/test_market_refresh_queue.py
+    - backend/tests/unit/services/test_market_series_defaults.py
+    - backend/tests/unit/services/test_provider_persistence.py
+    - backend/tests/unit/services/test_provider_quota_contract.py
+    - backend/tests/unit/services/test_provider_quota_coordinator.py
+    - backend/tests/unit/services/test_provider_runtime.py
+    - backend/tests/unit/services/test_workstation_tool_catalogue.py
+    - backend/tests/unit/tasks/test_data_tasks.py
+    - backend/tests/unit/tasks/test_native_usage_prerequisite.py
+    - backend/tests/unit/workers/test_arq_worker.py
+    state: superseded_development_import
+    superseded_by: b19293006ea624a4f0c05a4fd91152ffd650a426
+  - source_sha: 16a9523e24bdb6398ff1e50c4c74585e718d9e19
+    manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/16a9523e24bdb6398ff1e50c4c74585e718d9e19.json
+    manifest_sha256: 1559c88fc511389436451a324161f9b4bf47abb8fc1adaeb1fcc837bc85e8992
+    paths:
+    - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
+    - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
+    - frontend/src/components/dashboard/DashboardInstrumentSearch.vue
+    - frontend/src/components/dashboard/DashboardLineChartWidget.vue
+    - frontend/src/components/dashboard/DashboardQuoteWidget.vue
+    - frontend/src/components/workstation/CodeLibraryTool.vue
+    - frontend/src/components/workstation/PythonSourceEditor.vue
+    - frontend/src/components/workstation/ResearchResultsTool.vue
+    - frontend/src/components/workstation/StudyLabTool.vue
+    - frontend/src/lib/workstation/researchQueryKeys.ts
+    - frontend/src/stores/dashboard.ts
+    - frontend/src/views/DashboardView.vue
+    - frontend/tests/e2e/dashboard_usability_journey.spec.ts
+    - frontend/tests/e2e/helpers.ts
+    - frontend/tests/e2e/strategy_study_journey.spec.ts
+    - frontend/tests/e2e/workstation_lifecycle_journey.spec.ts
+    - frontend/tests/unit/components/test_code_library_tool.test.ts
+    - frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts
+    - frontend/tests/unit/components/test_dashboard_instrument_search.test.ts
+    - frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts
+    - frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts
+    - frontend/tests/unit/components/test_python_source_editor.test.ts
+    - frontend/tests/unit/components/test_research_results_tool.test.ts
+    - frontend/tests/unit/components/test_study_lab_tool.test.ts
+    - frontend/tests/unit/e2e/test_browser_diagnostics.test.ts
+    - frontend/tests/unit/stores/test_dashboard_store.test.ts
+    - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts
+    state: superseded_development_import
+    superseded_by: 2689c2c64996b1588dd764adcef2e7d570b15096
 approved_development_dependency_imports:
-- source_sha: 0a1cda8434ec9f2f103400b7bd7fde3067f8ed42
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/0a1cda8434ec9f2f103400b7bd7fde3067f8ed42.json
-  manifest_sha256: e8a82ce247c5278882a76c9ab4df12fe257b06b39f348be31a8ba93070c46be6
+- source_sha: b19293006ea624a4f0c05a4fd91152ffd650a426
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/b19293006ea624a4f0c05a4fd91152ffd650a426.json
+  manifest_sha256: 97b429b3d99e4f8da78edcc10ed13178a17b482e31a136941f8acff14290457d
   paths:
   - backend/app/config.py
   - backend/app/main.py
@@ -5238,6 +5353,7 @@ approved_development_dependency_imports:
   - backend/app/services/market_refresh_queue.py
   - backend/app/services/market_series.py
   - backend/app/services/ohlcv_coverage.py
+  - backend/app/services/provider_routing.py
   - backend/app/services/provider_runtime.py
   - backend/app/services/screener_engine.py
   - backend/app/services/workstation_tool_catalogue.py
@@ -5279,6 +5395,7 @@ approved_development_dependency_imports:
   - backend/tests/unit/services/test_provider_persistence.py
   - backend/tests/unit/services/test_provider_quota_contract.py
   - backend/tests/unit/services/test_provider_quota_coordinator.py
+  - backend/tests/unit/services/test_provider_routing.py
   - backend/tests/unit/services/test_provider_runtime.py
   - backend/tests/unit/services/test_workstation_tool_catalogue.py
   - backend/tests/unit/tasks/test_data_tasks.py
@@ -5298,9 +5415,9 @@ approved_development_dependency_imports:
   - frontend/tests/unit/components/test_instrument_note_tool.test.ts
   - frontend/tests/unit/views/test_baskets_view.test.ts
   - frontend/tests/unit/views/test_etf_holdings_view.test.ts
-- source_sha: 16a9523e24bdb6398ff1e50c4c74585e718d9e19
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/16a9523e24bdb6398ff1e50c4c74585e718d9e19.json
-  manifest_sha256: 1559c88fc511389436451a324161f9b4bf47abb8fc1adaeb1fcc837bc85e8992
+- source_sha: 2689c2c64996b1588dd764adcef2e7d570b15096
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/2689c2c64996b1588dd764adcef2e7d570b15096.json
+  manifest_sha256: b9589dbc905eb2e80bdbd4f15bb94e8b8aa43256af84eca28124faeb18ff284b
   paths:
   - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
   - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue

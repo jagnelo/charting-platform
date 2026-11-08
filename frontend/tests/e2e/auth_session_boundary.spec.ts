@@ -32,7 +32,11 @@ function activeWorkspaceSnapshotContainsTools(value: unknown, toolTypes: string[
 }
 
 async function activateDockToolTab(page: import('@playwright/test').Page, title: string) {
-  const tab = page.locator(`.lm_tab[title="${title}"]`).last()
+  // GoldenLayout can leave an invisible duplicate tab node mounted in another
+  // stack. Address the visible ordinary tab that the user can actually click.
+  const tabs = page.locator(`.lm_tab[title="${title}"]:visible`)
+  await expect(tabs).toHaveCount(1)
+  const tab = tabs.first()
   await expect(tab).toBeVisible()
   if (!await tab.evaluate(element => element.classList.contains('lm_active'))) await tab.click()
   await expect(tab).toHaveClass(/lm_active/)

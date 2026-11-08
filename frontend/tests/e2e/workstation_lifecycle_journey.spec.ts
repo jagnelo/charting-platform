@@ -757,8 +757,29 @@ test.describe('Workstation lifecycle journeys', () => {
     const chartTool = await activatePanel(page, 'Chart')
     const favoriteStar = chartTool.getByRole('button', { name: 'Add SPY to My Favorites', exact: true })
     await expect(favoriteStar, 'create the empty Favorites prerequisite through the public Chart star action').toBeVisible()
+    const favoriteSavePromise = page.waitForResponse(response => {
+      const request = response.request()
+      const match = new URL(response.url()).pathname.match(/^\/api\/v1\/favorites\/instruments\/(\d+)$/)
+      return request.method() === 'PUT' && Number(match?.[1]) > 0
+    }, { timeout: 5_000 })
     await favoriteStar.click()
-    await expect(chartTool.getByRole('button', { name: 'Remove SPY from My Favorites', exact: true })).toHaveAttribute('aria-pressed', 'true')
+    const favoriteSaveAndVisibleState = await Promise.allSettled([
+      favoriteSavePromise,
+      expect(chartTool.getByRole('button', { name: 'Remove SPY from My Favorites', exact: true }))
+        .toHaveAttribute('aria-pressed', 'true', { timeout: 5_000 }),
+    ])
+    const favoriteSave = favoriteSaveAndVisibleState[0]
+    expect(favoriteSave.status, 'the Favorites write and visible state must both settle within the existing five-second action bound').toBe('fulfilled')
+    if (favoriteSave.status === 'fulfilled') {
+      expect(favoriteSave.value.status()).toBe(200)
+      const requestPath = new URL(favoriteSave.value.url()).pathname
+      const requestInstrumentId = Number(requestPath.match(/\/(\d+)$/)?.[1])
+      const savedFavorite = await favoriteSave.value.json() as { id: number; instrument_id: number; symbol: string }
+      expect(Number.isInteger(savedFavorite.id)).toBe(true)
+      expect(savedFavorite.instrument_id).toBe(requestInstrumentId)
+      expect(savedFavorite.symbol).toBe('SPY')
+    }
+    expect(favoriteSaveAndVisibleState[1].status, 'the Chart star must reflect the acknowledged saved Favorite').toBe('fulfilled')
     for (const item of catalogue.tools) {
       const kind = TOOL_OUTCOMES[item.title]
       expect(kind, `missing useful-result mapping for ${item.title}`).toBeTruthy()
