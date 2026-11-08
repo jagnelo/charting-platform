@@ -165,6 +165,57 @@ describe('EasyScanTool', () => {
     setQueryData.mockRestore()
   })
 
+  it('starts local scan evaluation without waiting for an unrelated saved-screener list refresh', async () => {
+    let finishScreenersInvalidation!: () => void
+    const screenersInvalidation = new Promise<void>(resolve => { finishScreenersInvalidation = resolve })
+    const invalidateQueries = vi.spyOn(QueryClient.prototype, 'invalidateQueries')
+      .mockImplementation(() => screenersInvalidation as any)
+    const refetchQueries = vi.spyOn(QueryClient.prototype, 'refetchQueries').mockResolvedValue([] as any)
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/workspaces/library/conditions') return Promise.resolve([{
+        stable_key: 'fast-local-run', name: 'Fast local run', version: 1,
+        payload: { condition: { type: 'price_threshold', field: 'close', op: 'gt', value: 50 } },
+      }])
+      if (path === '/code/assets') return Promise.resolve([])
+      if (path === '/screeners/44') return Promise.resolve(savedScreener(44, {
+        conditions: { type: 'price_threshold', field: 'close', op: 'gt', value: 50 },
+      }))
+      if (path === '/screeners/44/results') return Promise.resolve([{
+        id: 4401, matched_ids: [11], result_data: { _status: 'completed', _coverage: { evaluated_count: 1, universe_count: 1, excluded: {} } }, error: null,
+      }])
+      return Promise.resolve([])
+    })
+    apiPost.mockImplementation((path: string, body?: any) => {
+      if (path === '/data/ensure') return Promise.resolve(screenerPreparationResponse(body.target.screener_id))
+      if (path === '/screeners/from-condition/fast-local-run') return Promise.resolve({ id: 44 })
+      if (path === '/screeners/44/run') return Promise.resolve({
+        id: 4401, matched_ids: [11], result_data: { _status: 'completed', _coverage: { evaluated_count: 1, universe_count: 1, excluded: {} } }, error: null,
+      })
+      return Promise.resolve({})
+    })
+
+    const wrapper = mount(EasyScanTool)
+    try {
+      await flushPromises()
+      await wrapper.get('select[aria-label="Saved condition"]').setValue('fast-local-run')
+      await wrapper.get('input[aria-label="Scan name"]').setValue('Fast local run')
+      await wrapper.findAll('button').find(button => button.text() === 'Run')!.trigger('click')
+
+      await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/screeners/44/run', {}, expect.objectContaining({ priority: 'high' })))
+      await vi.waitFor(() => expect(wrapper.find('.easy-scan__result').exists()).toBe(true))
+      expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['workstation', 'screeners'] })
+      expect(refetchQueries).not.toHaveBeenCalled()
+
+      finishScreenersInvalidation()
+      await vi.waitFor(() => expect(refetchQueries).toHaveBeenCalledWith({ queryKey: ['workstation', 'screeners'], type: 'all' }))
+      await vi.waitFor(() => expect(wrapper.text()).toContain('1 matches'))
+    } finally {
+      wrapper.unmount()
+      invalidateQueries.mockRestore()
+      refetchQueries.mockRestore()
+    }
+  })
+
   it('runs cached scan coverage immediately while one saved-screener preparation continues', async () => {
     apiGet.mockReset(); apiPost.mockReset(); apiPut.mockReset()
     const ensureResolvers = new Map<number, (value: unknown) => void>()

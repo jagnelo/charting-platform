@@ -300,9 +300,12 @@ async function run() {
     // Market Gauge and other tools share the saved-scan query. Invalidate it
     // immediately so an already-mounted tab sees newly-created/reused scans
     // without requiring a manual refresh or remount.
-    await queryClient.invalidateQueries({ queryKey: ['workstation', 'screeners'] })
-    await queryClient.refetchQueries({ queryKey: ['workstation', 'screeners'], type: 'all' })
-    if (!isCurrentRun()) return
+    // The newly-created scan is already in the shared cache above. Refreshing
+    // other mounted scan selectors is useful, but a slow list request must not
+    // hold the user's Run action or its local evaluation behind it.
+    void queryClient.invalidateQueries({ queryKey: ['workstation', 'screeners'] })
+      .then(() => queryClient.refetchQueries({ queryKey: ['workstation', 'screeners'], type: 'all' }))
+      .catch(() => undefined)
     status.value = 'Evaluating canonical local data…'
     const priorResult = result.value
     const submitted = await api.post<ScanResult>(`/screeners/${scan.id}/run`, {}, { priority: 'high' })

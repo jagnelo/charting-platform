@@ -1498,11 +1498,12 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
     dependencies: [expect.objectContaining({ dataset: 'history', status: 'unavailable', symbol: 'AMD', instrument_id: amdInstrumentId, reason_code: 'test_fixture_hold' })],
   })
   expect(m1LocalBars.status()).toBe(200)
+  expect(await m1LocalBars.json()).toEqual([])
   expect(m1Coverage.status()).toBe(200)
   expect(await m1Coverage.json()).toMatchObject({ symbol: 'AMD', is_fetching: false })
-  await expect(page.locator('.chart-root').first()).toHaveAttribute('aria-busy', 'false')
-  await expect(pricePlot).toBeVisible()
-  await expect(pricePlot).toHaveCount(pricePlotCountBefore)
+  await expect(priceChart).toHaveAttribute('aria-busy', 'false')
+  await expect(priceChart.locator('.sr-only')).toHaveText('M1 chart; no OHLCV bars loaded.')
+  await expect(pricePlot).toHaveCount(0)
   await expect(page.getByRole('status').filter({ hasText: 'Some requested data is unavailable. Available results remain usable.' })).toBeVisible()
   await expect(historicalContext).toBeVisible()
   expect(identityRequests).toHaveLength(1)
@@ -1515,6 +1516,27 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
   expect(historyRequests[0]?.end_at).toBeUndefined()
   expect(historyRequests[1]?.start_at).toBeUndefined()
   expect(historyRequests[1]?.end_at).toBeUndefined()
+  expect(directHistoryRequests).toEqual([])
+
+  // Returning to a previously populated timeframe must read and render that
+  // exact cached series again; the unavailable M1 result cannot masquerade as
+  // stale D1 bars while the active control says M1.
+  const restoredD1ReadReady = page.waitForResponse(response => {
+    const url = new URL(response.url())
+    return response.request().method() === 'GET'
+      && url.pathname === '/api/v1/ohlcv/local/AMD/D1'
+  })
+  await linkedTimeframe.selectOption('D1')
+  await expect(linkedTimeframe).toHaveValue('D1')
+  const restoredD1Read = await restoredD1ReadReady
+  expect(restoredD1Read.status()).toBe(200)
+  const restoredD1Bars = await restoredD1Read.json() as OHLCVBar[]
+  expect(restoredD1Bars).toHaveLength(500)
+  expect(restoredD1Bars.every(bar => bar.is_adjusted === true)).toBe(true)
+  await expect(pricePlot).toBeVisible()
+  await expect(priceChart.locator('.sr-only')).toContainText('D1 chart; 500 bars; adjusted;')
+  await expect(historicalContext).toBeVisible()
+  expect(identityRequests).toHaveLength(1)
   expect(directHistoryRequests).toEqual([])
   await browserDiagnostics.expectNoCriticalIssues()
 })
