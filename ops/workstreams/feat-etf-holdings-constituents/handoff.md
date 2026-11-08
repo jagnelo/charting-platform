@@ -19014,3 +19014,25 @@ The focused Notes unit module passes **8/8**, including pending identity,
 terminal 404, resolved-id save, and late symbol-switch regressions. Frontend
 type-check and the workstream guard pass. No browser, full profile, provider or
 native HTTP, database, Docker, CI, or production operation ran.
+
+## ETF profile catalogue batched reads — 2026-11-08
+
+Root's passive Workstation trace reproduced the five-second ETF profile wait;
+the isolated API read returned 46 profiles including SPY in 235 ms. The owned
+list service also serialized every matching profile through separate latest
+snapshot and adapter-state reads while preloading all historical snapshots.
+It now selects each profile's latest visible snapshot and latest adapter state
+in two ranked batch queries, then builds the same `ETFProfileOut` values as the
+single-profile serializer. Symbol/name filtering, symbol ordering, the 100-row
+limit, fixture visibility, snapshot date/known-at/id ordering, adapter-state
+checked-at/id ordering, capability evaluation, and output shape are preserved.
+
+The focused SQLite regression compares the complete batched output to the
+legacy list-plus-single-profile serializer in normal and E2E fixture-visibility
+modes, and measures **62/61 SELECTs before versus 3 after** for 12 profiles.
+It also checks latest snapshot/state selection and the filtered symbol order.
+The two cases pass; Ruff check and format pass. This proves removal of the
+serializer's per-profile query growth, not that it was the only latency source
+in Root's loaded Workstation run. No browser, native/source HTTP, database
+container, quota, fixture, or production action ran; Root owns real loaded-UI
+confirmation and exact-source qualification.

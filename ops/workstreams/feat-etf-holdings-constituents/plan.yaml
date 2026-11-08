@@ -1713,6 +1713,7 @@ owned_paths:
 - backend/app/services/etf_holdings_capability.py
 - backend/app/services/baskets.py
 - backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py
+- backend/tests/unit/services/test_etf_holdings_catalogue.py
 - backend/tests/unit/services/test_etf_holdings_issuer_route_drift.py
 - backend/tests/unit/services/test_etf_holdings_edgar.py
 - backend/tests/unit/services/test_etf_holdings_provider_bridge.py
