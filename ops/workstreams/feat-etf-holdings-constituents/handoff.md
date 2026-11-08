@@ -18811,3 +18811,21 @@ original strict proof and separate BWET future-source proof remain unchanged.
 Root owns IHI/IYW/IGV derivation and actual native browser execution; no browser
 body, source HTTP, fixture, runtime, database, quota, production, or shared
 product operation was run.
+
+## TC a49a5e05 common-runtime development import — 2026-11-08
+
+Root released source `a49a5e05825b28bf5dbbe5de34e7419133c44f49` under
+`tc-a49a5e05-common-runtime-development-consumption-contract.json` (SHA256
+`2064477a8ad40e41749b66f435ea9007c135b3892dc33acc0d327562d87b90fa`). The
+exact local manifest copy is
+`development-dependency-imports/a49a5e05825b28bf5dbbe5de34e7419133c44f49.json`.
+All99 source rows were verified against Git status, blob and SHA256; all15
+ETF-declared paths passed their old guards and now match source bytes and Git
+executable-bit semantics. The prior8d96 pointer is preserved as history. This
+is shared-runtime development context only; TC retains ownership of the
+transferred on-demand acquisition spec. The native cold-page observer is
+unchanged at SHA256
+`f77d9706ab92d236f765fe8ba451207551c82aaaf97f6597ae1572671294ed48`.
+Root owns the compatible native browser and combined ETF/basket qualification;
+no tests, browser, Source HTTP, fixture, DB, quota, policy, production or
+deployment operation ran during this import.

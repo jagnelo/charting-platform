@@ -52,6 +52,26 @@ function consoleEvent(url = controlledUrl, text = console503) {
 }
 
 describe('BrowserDiagnostics controlled API faults', () => {
+  it('classifies only the exact armed auth-session cancellation and keeps duplicates fatal', async () => {
+    const expectedMessage = 'AbortError: The authenticated session changed while this request was in flight.'
+    const expected = diagnosticHarness()
+    expected.diagnostics.allowExpectedAuthSessionChangedAbortErrors(1)
+    expected.emit('console', consoleEvent('http://frontend/chart', expectedMessage))
+    await expect(expected.diagnostics.expectNoCriticalIssues()).resolves.toBeUndefined()
+    expect(expected.diagnostics.consoleErrors).toEqual([expectedMessage])
+
+    const duplicate = diagnosticHarness()
+    duplicate.diagnostics.allowExpectedAuthSessionChangedAbortErrors(1)
+    duplicate.emit('console', consoleEvent('http://frontend/chart', expectedMessage))
+    duplicate.emit('console', consoleEvent('http://frontend/chart', expectedMessage))
+    await expect(duplicate.diagnostics.expectNoCriticalIssues()).rejects.toThrow('unexpected browser console/page/request failures')
+
+    const unrelated = diagnosticHarness()
+    unrelated.diagnostics.allowExpectedAuthSessionChangedAbortErrors(1)
+    unrelated.emit('console', consoleEvent('http://frontend/chart', 'AbortError: user cancelled a request'))
+    await expect(unrelated.diagnostics.expectNoCriticalIssues()).rejects.toThrow('unexpected browser console/page/request failures')
+  })
+
   it('attributes one exact armed POST response and its matching resource-console entry', async () => {
     const { diagnostics, emit } = diagnosticHarness()
     diagnostics.allowExpectedControlledApiFault(controlledUrl, controlledRequestId, 503)

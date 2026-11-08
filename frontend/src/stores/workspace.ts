@@ -3202,7 +3202,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const startedWithStructuralLocalChange = snapshotHasStructuralLocalChange(payloadAtStart, persistedWorkspace)
     const persist = (async (): Promise<boolean> => {
       try {
-        const saved = await api.put<WorkspaceState>(`/workspaces/${current.id}/snapshot`, payloadAtStart)
+        // Snapshot acknowledgements protect user actions such as adding tools,
+        // renaming layouts, and restoring a session. Let those writes pass
+        // queued dashboard reads in the browser request scheduler.
+        const saved = await api.put<WorkspaceState>(`/workspaces/${current.id}/snapshot`, payloadAtStart, { priority: 'high' })
         if (workspace.value?.id !== current.id) return false
         if (generation !== snapshotGeneration) {
           acknowledgeSupersededSnapshot(saved, current.id, baseRevision)
@@ -3236,7 +3239,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
             const latest = await api.get<WorkspaceState>(`/workspaces/${current.id}`)
             const merged = mergeDisjointWindowChanges(persistedWorkspace, current, latest)
             if (merged) {
-              const saved = await api.put<WorkspaceState>(`/workspaces/${latest.id}/snapshot`, snapshotPayload(merged))
+              const saved = await api.put<WorkspaceState>(`/workspaces/${latest.id}/snapshot`, snapshotPayload(merged), { priority: 'high' })
               if (workspace.value?.id !== current.id) return false
               if (generation !== snapshotGeneration) {
                 acknowledgeSupersededSnapshot(saved, current.id, baseRevision)

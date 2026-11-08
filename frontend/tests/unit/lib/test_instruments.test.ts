@@ -42,9 +42,9 @@ describe('instrument helpers', () => {
   })
 
   it('returns canonical identity alongside the normalized symbol', async () => {
-    vi.mocked(api.get).mockResolvedValue({ id: 42, symbol: 'NVDA' })
+    vi.mocked(api.get).mockResolvedValue({ id: 42, symbol: 'NVDA', instrument_type: 'Exchange Traded Vehicle' })
     await expect(resolveKnownInstrument('nvda', 'Workstation symbol', { canonicalOnly: true }))
-      .resolves.toEqual({ symbol: 'NVDA', id: 42 })
+      .resolves.toEqual({ symbol: 'NVDA', id: 42, instrumentType: 'Exchange Traded Vehicle' })
     expect(api.get).toHaveBeenCalledWith('/instruments/NVDA', { canonical_only: true })
   })
 

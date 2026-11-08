@@ -134,7 +134,7 @@
     "token_budget": null,
     "updated_at_epoch": 1793716359
   },
-  "current_blocker_latest": "The cold-page observer now ignores empty/smaller same-path responses and waits for a successful nonempty finite adjusted/default-adjusted D1 limit-500 primary-chart response. Root owns cold IHI/IYW/IGV browser execution and combined ETF/basket qualification; no browser body has run in this owner checkpoint.",
+  "current_blocker_latest": "TC a49a5e05 is imported across the15 exact ETF-guarded paths after all99 source rows were verified; the cold-page observer now ignores empty/smaller same-path responses. Root owns compatible cold IHI/IYW/IGV browser execution and combined ETF/basket qualification; no browser body has run in this owner checkpoint.",
   "current_checkpoint_acceptance": {
     "checkpoint_id": "platform-usability-etf-holdings-2026-11-06",
     "human_activation": "Complete platform-usability plan explicitly activated; implementation only, no checkpoint accepted yet.",
@@ -928,7 +928,7 @@
     "source_http": 0,
     "status": "accepted_ready_for_integration_closing_tip_CI_pending"
   },
-  "next_action": "Root derives IHI/IYW/IGV from the cold-page observer successor and owns native browser execution; do not run browser/source requests or alter shared product. Preserve full roadmap and all holds.",
+  "next_action": "Root derives IHI/IYW/IGV from the cold-page observer successor against the a49a5e05 common runtime and owns native browser execution; do not run browser/source requests or alter shared product. Preserve full roadmap and all holds.",
   "ordinary_ishares_multitable_catalog_repair_2026_11_04": {
     "captured_response_bytes": 495609,
     "captured_response_path": "/tmp/etf-native-parallel-prequalification-565211-20261104/setup-attempt-003/artifacts/igv-catalog-body-captured-raw.html",
@@ -1070,8 +1070,8 @@
     "status": "Root-delegated bounded software checkpoint accepted; exact final-source CI pending.",
     "validated_implementation_sha": "b6d67ce93104a0a2cf83b1c41f385513b3c230f8"
   },
-  "plan_hash": "72d8ed712c247b94de4d78c93e486552b39dc5614cf13323ea1d1377e350bef7",
-  "plan_sha256": "72d8ed712c247b94de4d78c93e486552b39dc5614cf13323ea1d1377e350bef7",
+  "plan_hash": "318377850256c50007abb0efd3dd2667079c5c261ad6b2bf1f6e76da1d305af1",
+  "plan_sha256": "318377850256c50007abb0efd3dd2667079c5c261ad6b2bf1f6e76da1d305af1",
   "planning_required": false,
   "planning_state": "ready",
   "previous_active_changeset": {
@@ -3482,8 +3482,8 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "Root owns cold IHI/IYW/IGV native browser proof and combined ETF/basket qualification; the full 15 Tier-0/156 Tier-1 and broader ETF/platform roadmaps remain open.",
-    "current_phase": "Strengthened the native observer to skip empty/smaller same-path responses and bind to a successful nonempty finite D1 limit-500 response in the current adjusted/default-adjusted scope. XHB and IGV remain independent cases. Focused discovery only; Root owns native execution.",
+    "current_blocker": "Root owns compatible cold IHI/IYW/IGV native browser proof and combined ETF/basket qualification; the full 15 Tier-0/156 Tier-1 and broader ETF/platform roadmaps remain open.",
+    "current_phase": "Consumed TC a49a5e05 on15 ETF-guarded paths after verifying99 source manifest rows. The native observer skips empty/smaller same-path responses and binds to successful nonempty finite D1 limit-500 data in the adjusted/default-adjusted scope. Focused compatibility checks only; Root owns browser execution.",
     "total": 5
   },
   "provider_release": {
@@ -4281,7 +4281,7 @@
     "verification": "All85 status_from139/SHA256/Git blob/executable-bit rows match the source; exact10 ETF paths passed released old guards and match source.",
     "state": "Root-released development dependency only; full RRG/Results browser qualification and final release gates remain pending."
   },
-  "current_tc_common_runtime_dependency": {
+  "historical_tc_common_runtime_dependency_8d96cf3b": {
     "source": "8d96cf3bd702459c4eef2ced93ec1dfb8db3dc2f",
     "previous_source": "2a8dc9e4c28a9632ffdf8f484ad12a985df70cd3",
     "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-8d96cf3b-common-runtime-development-consumption-contract.json",
@@ -4769,5 +4769,34 @@
     "source": "2a8dc9e4c28a9632ffdf8f484ad12a985df70cd3",
     "state": "Root-released development dependency only; exact CI, combined browser qualification and release remain Root-owned/pending.",
     "verification": "All126 manifest source rows verified; exact58 ETF consumer paths passed old guards, preserved equal bytes, and match released source/blob with executable-bit semantics."
+  },
+  "current_tc_common_runtime_dependency": {
+    "source": "a49a5e05825b28bf5dbbe5de34e7419133c44f49",
+    "previous_source": "8d96cf3bd702459c4eef2ced93ec1dfb8db3dc2f",
+    "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-a49a5e05-common-runtime-development-consumption-contract.json",
+    "manifest_sha256": "2064477a8ad40e41749b66f435ea9007c135b3892dc33acc0d327562d87b90fa",
+    "local_manifest_copy": "ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/a49a5e05825b28bf5dbbe5de34e7419133c44f49.json",
+    "consumer_import_paths_verified": 15,
+    "current_manifest_records_verified": 99,
+    "imported_paths": [
+      "frontend/src/lib/instruments.ts",
+      "frontend/src/stores/chart.ts",
+      "frontend/src/stores/watchlist.ts",
+      "frontend/src/stores/workspace.ts",
+      "frontend/src/types/index.ts",
+      "frontend/src/views/WorkstationView.vue",
+      "frontend/tests/e2e/auth_session_boundary.spec.ts",
+      "frontend/tests/e2e/helpers.ts",
+      "frontend/tests/e2e/on_demand_acquisition.spec.ts",
+      "frontend/tests/unit/e2e/test_browser_diagnostics.test.ts",
+      "frontend/tests/unit/lib/test_instruments.test.ts",
+      "frontend/tests/unit/stores/test_stores.test.ts",
+      "frontend/tests/unit/stores/test_watchlist_store.test.ts",
+      "frontend/tests/unit/stores/test_workspace_store.test.ts",
+      "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts"
+    ],
+    "verification": "All99 source rows match status/Git blob/SHA256; all15 ETF imports passed old guards and match released source with executable-bit semantics.",
+    "scope": "Common frontend runtime development context; TC retains transferred on-demand spec ownership and ETF private-domain paths remain separate.",
+    "state": "Root-released development dependency only; combined browser, exact CI and final release acceptance remain pending."
   }
 }

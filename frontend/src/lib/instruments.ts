@@ -15,6 +15,7 @@ export interface InstrumentInputState {
 export interface ResolvedInstrument {
   symbol: string
   id: number | null
+  instrumentType?: string
 }
 
 export interface CanonicalSymbolBatchResolution {
@@ -114,7 +115,13 @@ export async function resolveKnownInstrument(
       `/instruments/${encodeURIComponent(symbol)}`,
       options.canonicalOnly ? { canonical_only: true } : undefined,
     )
-    return { symbol: instrument.symbol, id: typeof instrument.id === 'number' ? instrument.id : null }
+    return {
+      symbol: instrument.symbol,
+      id: typeof instrument.id === 'number' ? instrument.id : null,
+      ...(typeof instrument.instrument_type === 'string' && instrument.instrument_type.trim()
+        ? { instrumentType: instrument.instrument_type.trim() }
+        : {}),
+    }
   } catch (error) {
     throw buildLookupError(raw, error, feature)
   }

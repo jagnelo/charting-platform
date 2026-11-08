@@ -73,6 +73,8 @@ export class BrowserDiagnostics {
   // documented auth-boundary responses are expected during the redirect only.
   expectedUnauthorizedResponses = 0
   expectedAuthenticationPageErrors = 0
+  private expectedAuthSessionChangedAbortErrors = 0
+  private classifiedAuthSessionChangedAbortErrorIndexes = new Set<number>()
   // A source snapshot clone may intentionally exercise the recoverable
   // duplicate/conflict path. The store keeps the failed canonical ID visible
   // for retry, while Chromium reports the handled 409 as a console error.
@@ -139,6 +141,11 @@ export class BrowserDiagnostics {
     // diagnostic allowance separate from the response budget so one expected
     // page error cannot mask unrelated auth failures.
     this.expectedAuthenticationPageErrors += 1
+  }
+
+  allowExpectedAuthSessionChangedAbortErrors(count = 1) {
+    if (!Number.isSafeInteger(count) || count < 1) throw new Error('Expected auth-session cancellation count must be positive')
+    this.expectedAuthSessionChangedAbortErrors += count
   }
 
   attach(page: Page) {
@@ -306,6 +313,13 @@ export class BrowserDiagnostics {
     let expectedCurrentAnalysisConflictResponses = this.expectedCurrentAnalysisConflictResponses
     let expectedWatchlistLoadErrors = this.expectedWatchlistLoadErrors
     return this.consoleErrors.filter((error, index) => {
+      if (this.classifiedAuthSessionChangedAbortErrorIndexes.has(index)) return false
+      if (error.startsWith('AbortError: The authenticated session changed while this request was in flight.')
+        && this.expectedAuthSessionChangedAbortErrors > 0) {
+        this.expectedAuthSessionChangedAbortErrors -= 1
+        this.classifiedAuthSessionChangedAbortErrorIndexes.add(index)
+        return false
+      }
       if (this.controlledApiFault?.responseObserved
         && this.controlledApiFault.consoleErrorIndex === index
         && this.consoleErrorLocations[index] === this.controlledApiFault.url) return false
