@@ -150,6 +150,19 @@ def test_eodhd_compound_small_read_accounts_for_every_operation_and_repeat():
     }
 
 
+def test_eodhd_recent_daily_case_is_an_isolated_single_history_request():
+    runner = _runner_module()
+
+    case = "test_eodhd_free_recent_daily_history"
+    assert ("test_market_data_providers_live.py", case) in runner.LIVE_PROVIDER_CASES["eodhd"]
+    assert runner.LIVE_CASE_OPERATIONS["eodhd"][case] == {"fetch_ohlcv"}
+    assert case not in runner.LIVE_CASE_OPERATION_MULTIPLIERS.get("eodhd", {})
+
+    selected, operations = runner.parse_live_case_selectors([f"eodhd:{case}"], {"eodhd"})
+    assert operations == {"eodhd": {"fetch_ohlcv"}}
+    assert runner.selected_case_operation_multipliers(selected) == {"eodhd": {"fetch_ohlcv": 1}}
+
+
 def test_finnhub_expected_denial_is_preflighted_without_becoming_capability_evidence(
     monkeypatch,
 ):
@@ -212,7 +225,7 @@ def test_full_matrix_cost_counts_are_derived_from_every_manifest_case():
 
     assert runner.live_matrix_inventory_errors() == []
     assert runner.LIVE_MATRIX_OPERATION_MULTIPLIERS["alpha_vantage"]["fetch_ohlcv"] == 3
-    assert runner.LIVE_MATRIX_OPERATION_MULTIPLIERS["eodhd"]["fetch_ohlcv"] == 3
+    assert runner.LIVE_MATRIX_OPERATION_MULTIPLIERS["eodhd"]["fetch_ohlcv"] == 4
     assert runner.LIVE_MATRIX_OPERATION_MULTIPLIERS["twelve_data"]["fetch_ohlcv"] == 2
     assert runner.LIVE_MATRIX_OPERATION_MULTIPLIERS["alpaca"]["get_instrument_profile"] == 2
     assert runner.LIVE_MATRIX_OPERATION_MULTIPLIERS["coinbase"]["fetch_ohlcv"] == 2
@@ -1437,6 +1450,19 @@ def test_manifest_has_exact_operation_evidence_for_every_provider():
     assert runner.LIVE_EXPECTED_ENTITLEMENT_DENIALS.keys() <= manifest_cases
 
 
+def test_twelve_data_earliest_timestamp_is_explicitly_unqualified():
+    runner = _runner_module()
+
+    operation = "get_earliest_timestamp"
+    disposition = runner.LIVE_OPERATION_DISPOSITIONS["twelve_data"][operation]
+    assert runner.live_operation_disposition_kind(disposition) == "blocked"
+    assert "no bounded live qualification case" in disposition
+    assert operation not in runner.LIVE_REQUIRED_OPERATIONS["twelve_data"]
+    assert runner.LIVE_OPERATION_METHOD_ALIASES.get(operation) is None
+    assert "blocked" not in runner.LIVE_COVERED_DISPOSITION_KINDS
+    assert runner.live_matrix_inventory_errors() == []
+
+
 def test_bounded_manifest_cost_overrides_cover_response_paged_cases():
     """Dynamic adapter estimates must be explicit in the safety preflight."""
 
@@ -1539,7 +1565,7 @@ def test_unexercised_registered_surfaces_have_explicit_live_dispositions():
         "massive": set(),
         "alpha_vantage": set(),
         "tiingo": set(),
-        "twelve_data": set(),
+        "twelve_data": {"get_earliest_timestamp"},
         "finnhub": {"fetch_ohlcv"},
         "marketstack": set(),
         "eodhd": set(),

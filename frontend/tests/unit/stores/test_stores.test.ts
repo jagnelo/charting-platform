@@ -431,7 +431,7 @@ describe('useChartStore', () => {
     expect(api.get).toHaveBeenCalledWith('/ohlcv/local/SPY/D1', expect.objectContaining({
       before: '2026-01-02T00:00:00Z',
       limit: 500,
-    }))
+    }), expect.objectContaining({ priority: 'high' }))
     expect(api.get).not.toHaveBeenCalledWith('/ohlcv/SPY/D1', expect.anything())
   })
 
@@ -1180,11 +1180,11 @@ describe('useChartStore', () => {
     await store.loadBars('SPY', 'D1', 'renko', true, { brick_size: 4 })
     expect(api.get).toHaveBeenCalledWith('/ohlcv/SPY/D1/transformed', expect.objectContaining({
       bar_type: 'renko', brick_size: 4, local_only: true,
-    }))
+    }), expect.objectContaining({ priority: 'high' }))
     await store.loadBars('SPY', 'D1', 'renko', true, { brick_size: 8 })
     expect(api.get).toHaveBeenCalledWith('/ohlcv/SPY/D1/transformed', expect.objectContaining({
       bar_type: 'renko', brick_size: 8, local_only: true,
-    }))
+    }), expect.objectContaining({ priority: 'high' }))
   })
 
   it('late indicator hydration cannot replace a user plot added during loading', async () => {

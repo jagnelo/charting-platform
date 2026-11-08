@@ -1,6 +1,7 @@
-import { flushPromises, mount } from '@vue/test-utils'
+import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import { VueQueryPlugin, QueryClient } from '@tanstack/vue-query'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { dataPreparationCoordinator } from '@/lib/dataPreparation'
 
 const { apiGet, apiPost } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn() }))
 vi.mock('@/lib/api', () => ({ api: { get: apiGet, post: apiPost } }))
@@ -24,13 +25,23 @@ function readyPreparation(screenerId = 7) {
 
 import MarketGaugeTool from '@/components/workstation/MarketGaugeTool.vue'
 
+enableAutoUnmount(afterEach)
+
 function mountTool(queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })) {
   return mount(MarketGaugeTool, { global: { plugins: [[VueQueryPlugin, { queryClient }]] } })
 }
 
 describe('MarketGaugeTool', () => {
-  beforeEach(() => { apiGet.mockReset(); apiPost.mockReset(); apiPost.mockResolvedValue(readyPreparation()) })
-  afterEach(() => Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' }))
+  beforeEach(() => {
+    dataPreparationCoordinator.cancelAll()
+    apiGet.mockReset()
+    apiPost.mockReset()
+    apiPost.mockResolvedValue(readyPreparation())
+  })
+  afterEach(() => {
+    dataPreparationCoordinator.cancelAll()
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' })
+  })
 
   it('loads retained scans, refreshes a selected gauge, and shows freshness lineage', async () => {
     apiGet.mockImplementation((path: string) => {
@@ -149,19 +160,26 @@ describe('MarketGaugeTool', () => {
     apiPost.mockImplementation((path: string, _body?: unknown, options?: { signal?: AbortSignal }) => {
       if (path === '/data/ensure') {
         if (options?.signal) signals.push(options.signal)
-        return new Promise(() => {})
+        return new Promise((_resolve, reject) => {
+          const abort = () => reject(new DOMException('Aborted', 'AbortError'))
+          options?.signal?.addEventListener('abort', abort, { once: true })
+          if (options?.signal?.aborted) abort()
+        })
       }
       return Promise.resolve(readyPreparation())
     })
     const wrapper = mountTool()
-    await flushPromises()
-    await wrapper.find('select').setValue('7')
-    await vi.waitFor(() => expect(apiPost.mock.calls.filter(([path]) => path === '/data/ensure')).toHaveLength(1))
-    await wrapper.find('button').trigger('click')
-    await vi.waitFor(() => expect(apiPost.mock.calls.filter(([path]) => path === '/data/ensure')).toHaveLength(2))
-    expect(signals[0]?.aborted).toBe(true)
-    expect(wrapper.text()).toContain('50.0%')
-    wrapper.unmount()
+    try {
+      await flushPromises()
+      await wrapper.find('select').setValue('7')
+      await vi.waitFor(() => expect(apiPost.mock.calls.filter(([path]) => path === '/data/ensure')).toHaveLength(1))
+      await wrapper.find('button').trigger('click')
+      await vi.waitFor(() => expect(apiPost.mock.calls.filter(([path]) => path === '/data/ensure')).toHaveLength(2))
+      await vi.waitFor(() => expect(signals[0]?.aborted).toBe(true), { timeout: 500 })
+      expect(wrapper.text()).toContain('50.0%')
+    } finally {
+      wrapper.unmount()
+    }
   })
 
   it('refreshes the current gauge on later durable preparation progress', async () => {

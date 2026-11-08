@@ -1987,9 +1987,9 @@ status: in_progress
 progress:
   completed: []
   total: 9
-  current_phase: "Freeze the test-only BWET future-source fixture correction after scoped checks; Root owns the exact-source rerun."
-  current_blocker: "The 9ec4d783/9e2de159 affected run passed catalogue recreation but failed BWET because the fixture returned test_fixture_hold instead of the documented future_dated_source. The test-only correction is frozen locally; Root's exact-source rerun is pending. No product regression was demonstrated; full platform acceptance remains open."
-  next_action: "Root rebuilds and reruns the BWET future-source journey on the committed test-only candidate. Preserve the prior red receipt and all full-platform criteria and release gates as pending."
+  current_phase: "Close the focused frontend-unit and Provider operator/test dependency batch while Root completes the frozen-source browser profile."
+  current_blocker: "The BWET fixture correction is committed as c1171103. Root's full profile on 9ec4d783/c1171103 remains active and currently reports nine findings across J12 drawings, basket member preparation, on-demand lineage/discovery/ETF cases, Market Map initialization, and WatchList readiness; terminal traces are pending, so product/browser sources remain frozen. Root's full frontend-unit run on 9ec4d783 was 1903 passed/5 failed in MarketGaugeTool and test_stores; focused repairs now pass 77/77. Full-unit exact-source requalification and platform acceptance remain pending."
+  next_action: "Freeze this focused unit/operator import batch. After Root's active browser profile is terminal, use its exact traces to triage shared causes and make only evidence-backed repairs; keep full-unit, full-platform, exact-CI and release gates pending."
   updated_at: '2026-11-08'
 historical_checkpoint_status_archive: 'Current boundary (2026-10-22): published HEAD is a7c8ecba208ce6c79d8f1a5d7294500122e462e5;
   one test-only change in workstation_performance.spec.ts and the four owned records are pending review. Exact hosted CI39693019337
@@ -5557,3 +5557,10 @@ approved_development_dependency_imports:
   - frontend/tests/unit/components/test_study_lab_tool.test.ts
   - frontend/tests/unit/stores/test_dashboard_store.test.ts
   - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts
+- source_sha: aed0d62c7e93ee6bd320c6b7a22791bb8d3d8b87
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/aed0d62c7e93ee6bd320c6b7a22791bb8d3d8b87.json
+  manifest_sha256: 4b93054b8d10072c8c9c431717471f6082810ef87cad75db9eedc75ddbba435d
+  paths:
+  - scripts/run-live-provider-probes.py
+  - backend/tests/live/test_market_data_providers_live.py
+  - backend/tests/unit/test_live_provider_runner.py
