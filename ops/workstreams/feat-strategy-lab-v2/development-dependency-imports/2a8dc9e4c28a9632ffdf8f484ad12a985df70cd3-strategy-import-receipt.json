@@ -1,0 +1,280 @@
+{
+  "schema": 1,
+  "dependency": "tc-complete-frontend-development-consumption",
+  "source_commit": "2a8dc9e4c28a9632ffdf8f484ad12a985df70cd3",
+  "root_manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/frontend2a8dc9e4-complete-development-consumption-contract.json",
+  "root_manifest_sha256": "46b99b84e501358e1f3c83780c8b72d7e9e41d107aacbb8e5b56c864f924c521",
+  "consumer": "Strategy",
+  "imported_paths": [
+    "frontend/src/components/chart/UPlotChart.vue",
+    "frontend/src/components/workstation/ChartPlotLibrary.vue",
+    "frontend/src/components/workstation/EasyScanTool.vue",
+    "frontend/src/components/workstation/InstrumentNoteTool.vue",
+    "frontend/src/components/workstation/MarketGaugeTool.vue",
+    "frontend/src/components/workstation/MarketMapTool.vue",
+    "frontend/src/components/workstation/WorkspaceLayoutHost.vue",
+    "frontend/src/components/workstation/WorkstationToolContent.vue",
+    "frontend/src/lib/api.ts",
+    "frontend/src/lib/dataPreparation.ts",
+    "frontend/src/lib/workstation/sourceCapability.ts",
+    "frontend/src/router/index.ts",
+    "frontend/src/stores/workspace.ts",
+    "frontend/src/views/BasketsView.vue",
+    "frontend/src/views/ChartView.vue",
+    "frontend/src/views/ETFHoldingsView.vue",
+    "frontend/src/views/WorkstationView.vue",
+    "frontend/tests/e2e/auth_session_boundary.spec.ts",
+    "frontend/tests/e2e/baskets_journey.spec.ts",
+    "frontend/tests/e2e/etf_holdings_preparation.spec.ts",
+    "frontend/tests/e2e/flows.spec.ts",
+    "frontend/tests/e2e/on_demand_acquisition.spec.ts",
+    "frontend/tests/e2e/sp500_analysis_journey.spec.ts",
+    "frontend/tests/e2e/supporting_features_journey.spec.ts",
+    "frontend/tests/e2e/tc2000_visual.spec.ts",
+    "frontend/tests/unit/components/test_chart_plot_library.test.ts",
+    "frontend/tests/unit/components/test_easy_scan_tool.test.ts",
+    "frontend/tests/unit/components/test_instrument_note_tool.test.ts",
+    "frontend/tests/unit/components/test_market_gauge_tool.test.ts",
+    "frontend/tests/unit/components/test_market_map_tool.test.ts",
+    "frontend/tests/unit/components/test_workspace_layout_host.test.ts",
+    "frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts",
+    "frontend/tests/unit/lib/test_api_client.test.ts",
+    "frontend/tests/unit/lib/test_data_preparation.test.ts",
+    "frontend/tests/unit/lib/workstation_source_capability.test.ts",
+    "frontend/tests/unit/router/test_app_shell.test.ts",
+    "frontend/tests/unit/router/test_application_routes.test.ts",
+    "frontend/tests/unit/stores/test_workspace_store.test.ts",
+    "frontend/tests/unit/views/test_baskets_view.test.ts",
+    "frontend/tests/unit/views/test_chart_view_radar_handoff.test.ts",
+    "frontend/tests/unit/views/test_etf_holdings_view.test.ts",
+    "frontend/tests/unit/views/test_workstation_capabilities.test.ts",
+    "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts"
+  ],
+  "old_guards": {
+    "frontend/src/components/chart/UPlotChart.vue": {
+      "sha256": "8bfc6becc638381bb15a19183d90a821ab4e65dad753cdf3c94c55cf760aba29",
+      "known_source": "da866b2927a24f438bef8d287138553af1ce4bc0",
+      "known_absent": false
+    },
+    "frontend/src/components/workstation/ChartPlotLibrary.vue": {
+      "sha256": "7d0d602ae0c499aa473d8475f435b3855c5f8e28925bea8520b2195ce40d7624",
+      "known_source": "139b350238b5e1c8a170dce5af09a805301d857e",
+      "known_absent": false
+    },
+    "frontend/src/components/workstation/EasyScanTool.vue": {
+      "sha256": "d3ef1b578017cc0833baab2620d19fcea287b6011bf558fb8a31828a21391049",
+      "known_source": "da866b2927a24f438bef8d287138553af1ce4bc0",
+      "known_absent": false
+    },
+    "frontend/src/components/workstation/InstrumentNoteTool.vue": {
+      "sha256": "a7f69dc18bd409706dcbe4d0f8a6c4f05b1dd818b54b39db4f30ec3f9aebc35a",
+      "known_source": "139b350238b5e1c8a170dce5af09a805301d857e",
+      "known_absent": false
+    },
+    "frontend/src/components/workstation/MarketGaugeTool.vue": {
+      "sha256": "a889f9dc62e7a038d3572ac9d3b76f79a8005a9ed6406119cd9796fe798f942d",
+      "known_source": "da866b2927a24f438bef8d287138553af1ce4bc0",
+      "known_absent": false
+    },
+    "frontend/src/components/workstation/MarketMapTool.vue": {
+      "sha256": "0ae5ac9e2c9a1d9321ca7204caf942ca916c21502df87be8ba66a333af322bd9",
+      "known_source": "da866b2927a24f438bef8d287138553af1ce4bc0",
+      "known_absent": false
+    },
+    "frontend/src/components/workstation/WorkspaceLayoutHost.vue": {
+      "sha256": "aea68eb559f551013ddf7d819cc41699ced24a0957bbca08c3e21aff4d15ee8c",
+      "known_source": "da866b2927a24f438bef8d287138553af1ce4bc0",
+      "known_absent": false
+    },
+    "frontend/src/components/workstation/WorkstationToolContent.vue": {
+      "sha256": "5835e778e94c16150e19d7235974aaecd640c39653535f7fedc04087291dcf5b",
+      "known_source": "2666aa559afbff7cff8dff6b50ead357ae1f654f",
+      "known_absent": false
+    },
+    "frontend/src/lib/api.ts": {
+      "sha256": "b657ee72d3e7947508dc4148e3e370c73bddb190bebcb3eef45fb4efa3099519",
+      "known_source": "da866b2927a24f438bef8d287138553af1ce4bc0",
+      "known_absent": false
+    },
+    "frontend/src/lib/dataPreparation.ts": {
+      "sha256": "ee6fae211ecafc7b076f0f6e1264017f4b14aa8d542b259d05a0d6d512beb7c3",
+      "known_source": "da866b2927a24f438bef8d287138553af1ce4bc0",
+      "known_absent": false
+    },
+    "frontend/src/lib/workstation/sourceCapability.ts": {
+      "sha256": "86ab98d41a92df0958aac0c7cfd8f5e0c441d508ceb7218b7e51de2c2458ca4e",
+      "known_source": "139b350238b5e1c8a170dce5af09a805301d857e",
+      "known_absent": false
+    },
+    "frontend/src/router/index.ts": {
+      "sha256": "8779ae2000cadbd8c01bf09bbf62dfea6173fdd08632146bcfb3fc73c8de33ab",
+      "known_source": "da866b2927a24f438bef8d287138553af1ce4bc0",
+      "known_absent": false
+    },
+    "frontend/src/stores/workspace.ts": {
+      "sha256": "ffdc4768cb3e078b73be2167fcee1fe5e223408d4ae964b4f659ad675dc77e6c",
+      "known_source": "da866b2927a24f438bef8d287138553af1ce4bc0",
+      "known_absent": false
+    },
+    "frontend/src/views/BasketsView.vue": {
+      "sha256": "0e1d548193b353ff4509a2932bd7a90465a4f98d989c3f9fcee59376a734bba2",
+      "known_source": "139b350238b5e1c8a170dce5af09a805301d857e",
+      "known_absent": false
+    },
+    "frontend/src/views/ChartView.vue": {
+      "sha256": "985e0147cfc81687c3a26437d934da92eba84354a02644c88e4e076fb7b715c0",
+      "known_source": "da866b2927a24f438bef8d287138553af1ce4bc0",
+      "known_absent": false
+    },
+    "frontend/src/views/ETFHoldingsView.vue": {
+      "sha256": "8e54e02abf5e61c292ca93009e43bf45330b8d8195f42b25979ec78f2de764a7",
+      "known_source": "139b350238b5e1c8a170dce5af09a805301d857e",
+      "known_absent": false
+    },
+    "frontend/src/views/WorkstationView.vue": {
+      "sha256": "32ee9b17c536722df4cebaa79cb4fe6be76c7dccfccd3563642787ceb368a43c",
+      "known_source": "da866b2927a24f438bef8d287138553af1ce4bc0",
+      "known_absent": false
+    },
+    "frontend/tests/e2e/auth_session_boundary.spec.ts": {
+      "sha256": "76113a03a2fc4248401d3f191c9503afc13436d90994c8e7b9c636aed864b8d8",
+      "known_source": "da866b2927a24f438bef8d287138553af1ce4bc0",
+      "known_absent": false
+    },
+    "frontend/tests/e2e/baskets_journey.spec.ts": {
+      "sha256": null,
+      "known_source": "139b350238b5e1c8a170dce5af09a805301d857e",
+      "known_absent": true
+    },
+    "frontend/tests/e2e/etf_holdings_preparation.spec.ts": {
+      "sha256": null,
+      "known_source": "139b350238b5e1c8a170dce5af09a805301d857e",
+      "known_absent": true
+    },
+    "frontend/tests/e2e/flows.spec.ts": {
+      "sha256": "d2c8768ae57699315447c2ae13bb0922d2605080b52ad3c9a0a7816a99523f46",
+      "known_source": "da866b2927a24f438bef8d287138553af1ce4bc0",
+      "known_absent": false
+    },
+    "frontend/tests/e2e/on_demand_acquisition.spec.ts": {
+      "sha256": "2925eae8cfe55ec4cde60d6103de0f4dd97460c67ba9572cd398a3b5ad61ebf7",
+      "known_source": "139b350238b5e1c8a170dce5af09a805301d857e",
+      "known_absent": false
+    },
+    "frontend/tests/e2e/sp500_analysis_journey.spec.ts": {
+      "sha256": null,
+      "known_source": "139b350238b5e1c8a170dce5af09a805301d857e",
+      "known_absent": true
+    },
+    "frontend/tests/e2e/supporting_features_journey.spec.ts": {
+      "sha256": null,
+      "known_source": "139b350238b5e1c8a170dce5af09a805301d857e",
+      "known_absent": true
+    },
+    "frontend/tests/e2e/tc2000_visual.spec.ts": {
+      "sha256": "f4944c55fc684a0a1284fd16fdfe16a071904fb2277a4f6f2a439434df1f763d",
+      "known_source": "da866b2927a24f438bef8d287138553af1ce4bc0",
+      "known_absent": false
+    },
+    "frontend/tests/unit/components/test_chart_plot_library.test.ts": {
+      "sha256": "e1d033f245b390691591e2ffb667617af207bac94791cd031db8ab2c8f24bed1",
+      "known_source": "139b350238b5e1c8a170dce5af09a805301d857e",
+      "known_absent": false
+    },
+    "frontend/tests/unit/components/test_easy_scan_tool.test.ts": {
+      "sha256": "62919fc099c492c23111e3a535ec88ad08f54dc820498d1f7c71b28df9e5ed03",
+      "known_source": "da866b2927a24f438bef8d287138553af1ce4bc0",
+      "known_absent": false
+    },
+    "frontend/tests/unit/components/test_instrument_note_tool.test.ts": {
+      "sha256": null,
+      "known_source": "139b350238b5e1c8a170dce5af09a805301d857e",
+      "known_absent": true
+    },
+    "frontend/tests/unit/components/test_market_gauge_tool.test.ts": {
+      "sha256": "d931c4331fcd6ddf17fe77e2b23947bc5ebb517ea43cd7295a9aa3b881d4d798",
+      "known_source": "da866b2927a24f438bef8d287138553af1ce4bc0",
+      "known_absent": false
+    },
+    "frontend/tests/unit/components/test_market_map_tool.test.ts": {
+      "sha256": "bdc503f5fc97b8fe781eb89947a46992e6893ab5de78a9cfbb5d49e1522831e6",
+      "known_source": "da866b2927a24f438bef8d287138553af1ce4bc0",
+      "known_absent": false
+    },
+    "frontend/tests/unit/components/test_workspace_layout_host.test.ts": {
+      "sha256": "4856b7b0eb6c1d8db3d75876d693a027dadf20e558922dc4bdca67d4eb49da9d",
+      "known_source": "da866b2927a24f438bef8d287138553af1ce4bc0",
+      "known_absent": false
+    },
+    "frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts": {
+      "sha256": "f1bfd32008146cf61dfe506c9565ad4a02a1e0a70c9cd33a4de0a9d91679b646",
+      "known_source": "2666aa559afbff7cff8dff6b50ead357ae1f654f",
+      "known_absent": false
+    },
+    "frontend/tests/unit/lib/test_api_client.test.ts": {
+      "sha256": "5d9400edb9e7d48b9525b3cc7841f54d7d5aa12cd7a7c1d7587f6a1b6e9295f9",
+      "known_source": "da866b2927a24f438bef8d287138553af1ce4bc0",
+      "known_absent": false
+    },
+    "frontend/tests/unit/lib/test_data_preparation.test.ts": {
+      "sha256": "574bacf028a524dae60c6c75dc61296bd8bbde235553ad74cc2d23667fcd8196",
+      "known_source": "da866b2927a24f438bef8d287138553af1ce4bc0",
+      "known_absent": false
+    },
+    "frontend/tests/unit/lib/workstation_source_capability.test.ts": {
+      "sha256": "20c45ad890e9e892394862d47c4f38d3ddad2b1a89e0ef29aa89eca0b4996fb3",
+      "known_source": "139b350238b5e1c8a170dce5af09a805301d857e",
+      "known_absent": false
+    },
+    "frontend/tests/unit/router/test_app_shell.test.ts": {
+      "sha256": "5d1dd149407c4fb5cdaa29233bdd6c89ffee2e5673c9741e8621621a5144e192",
+      "known_source": "da866b2927a24f438bef8d287138553af1ce4bc0",
+      "known_absent": false
+    },
+    "frontend/tests/unit/router/test_application_routes.test.ts": {
+      "sha256": "a62c5bcb51fbb068337e18ff0f836af4a5fe96c26f90649beb8f8770ec26a867",
+      "known_source": "da866b2927a24f438bef8d287138553af1ce4bc0",
+      "known_absent": false
+    },
+    "frontend/tests/unit/stores/test_workspace_store.test.ts": {
+      "sha256": "8333e7882d0f4772a91c84369c228c31be42e35871f989d157d8543df823e0a1",
+      "known_source": "da866b2927a24f438bef8d287138553af1ce4bc0",
+      "known_absent": false
+    },
+    "frontend/tests/unit/views/test_baskets_view.test.ts": {
+      "sha256": "918b4cbee1fe8b829b78f5423719a404521d63a56adb98bb303440c962e7e1a9",
+      "known_source": "139b350238b5e1c8a170dce5af09a805301d857e",
+      "known_absent": false
+    },
+    "frontend/tests/unit/views/test_chart_view_radar_handoff.test.ts": {
+      "sha256": "5b68922c48bc8730ad3d2842a505ba4d6df733b52ee2e284a39ed55312cae1f0",
+      "known_source": "da866b2927a24f438bef8d287138553af1ce4bc0",
+      "known_absent": false
+    },
+    "frontend/tests/unit/views/test_etf_holdings_view.test.ts": {
+      "sha256": "f1176fad6485471676cd0e4edf489ec1f7868d52dc3e59cdbb2a7e71954f7245",
+      "known_source": "139b350238b5e1c8a170dce5af09a805301d857e",
+      "known_absent": false
+    },
+    "frontend/tests/unit/views/test_workstation_capabilities.test.ts": {
+      "sha256": "f31a84d5438be29238f5646941eeb995184f43544f6830baa19528af0f009555",
+      "known_source": "da866b2927a24f438bef8d287138553af1ce4bc0",
+      "known_absent": false
+    },
+    "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts": {
+      "sha256": "5c3ff6d8cfdc948b57d693a0f10dfc6a676f056bb250cfa2e7589c74e932d1c7",
+      "known_source": "da866b2927a24f438bef8d287138553af1ce4bc0",
+      "known_absent": false
+    }
+  },
+  "verified_source_manifest_rows": 126,
+  "verification": {
+    "sha256": true,
+    "git_blob": true,
+    "status_from139": true,
+    "git_executable_mode": true,
+    "consumer_old_guards": true,
+    "consumer_import_exact": true
+  },
+  "qualification": "Exact development consumption only. Root owns the active combined browser/full profile and exact-source/release gates; Strategy did not run browser bodies or producer suites for this import."
+}

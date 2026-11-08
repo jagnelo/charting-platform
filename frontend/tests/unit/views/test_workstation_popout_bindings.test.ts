@@ -1,4 +1,4 @@
-import { defineComponent, h, nextTick } from 'vue'
+import { defineComponent, h, nextTick, reactive } from 'vue'
 import { flushPromises, mount as rawMount, type MountingOptions } from '@vue/test-utils'
 import { VueQueryPlugin, QueryClient } from '@tanstack/vue-query'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -112,6 +112,8 @@ const harness = vi.hoisted(() => {
   return { workspace, recent, drawings, chart, popoutWindow, chartWindow, ratioWindow }
 })
 const routeState = vi.hoisted(() => ({ path: '/popout/benchmark-list', params: { windowKey: 'benchmark-list' }, query: {} as Record<string, string> }))
+const routerPush = vi.hoisted(() => vi.fn())
+const routerReplace = vi.hoisted(() => vi.fn().mockResolvedValue(undefined))
 const apiGet = vi.hoisted(() => vi.fn().mockResolvedValue([]))
 const apiPost = vi.hoisted(() => vi.fn())
 const dataPreparationPost = vi.hoisted(() => vi.fn())
@@ -174,7 +176,7 @@ vi.mock('vue-router', async (importOriginal) => {
   return {
     ...actual,
     useRoute: () => routeState,
-    useRouter: () => ({ resolve: vi.fn(), push: vi.fn() }),
+    useRouter: () => ({ resolve: vi.fn(), push: routerPush, replace: routerReplace }),
   }
 })
 
@@ -227,6 +229,7 @@ const NavigationLinkStub = defineComponent({
       href: props.to,
       onClick: (event: MouseEvent) => {
         event.preventDefault()
+        routerPush(props.to)
         const click = attrs.onClick
         if (Array.isArray(click)) click.forEach(handler => typeof handler === 'function' && handler(event))
         else if (typeof click === 'function') click(event)
@@ -264,8 +267,9 @@ function appendChartPlotTarget(parent: Element, windowKey: string) {
 }
 
 const ToolStub = defineComponent({
-  emits: ['conditionFilterMode', 'pinnedBooleanKeys', 'columnGroups', 'stackedColumnKeys', 'configuration', 'selectProxy', 'selectIndustry', 'compare', 'ratio', 'row-action'],
+  emits: ['conditionFilterMode', 'pinnedBooleanKeys', 'columnGroups', 'stackedColumnKeys', 'configuration', 'selectProxy', 'selectIndustry', 'compare', 'ratio', 'row-action', 'open-study'],
   template: `<div class="tool-stub">
+    <button class="open-study" @click="$emit('open-study', { name: 'Saved XLB study', versionId: 42, source: 'return 1', outputContract: 'scalar', parameterSchema: {}, defaultParameters: { symbol: 'XLB', timeframe: 'W1', benchmark: 'QQQ', adjustment: 'raw', session: 'all', universe_source_id: 'saved-universe', symbols: 'XLB,XLK', start_date: '2025-01-01', end_date: '2025-12-31', as_of: '2025-12-31' } })">Open saved study</button>
     <button class="mode" @click="$emit('conditionFilterMode', 'benchmark-list', 'active')">mode</button>
     <button class="pin" @click="$emit('pinnedBooleanKeys', 'benchmark-list', ['above_ma50'])">pin</button>
     <button class="groups" @click="$emit('columnGroups', 'benchmark-list', { rsi14: 'Momentum' })">groups</button>
@@ -333,7 +337,45 @@ describe('WorkstationView pop-out bindings', () => {
     harness.drawings.setActiveTool.mockClear()
   })
 
-  it('opens shared feature routes from the workstation and closes after selection', async () => {
+  it('preserves a saved Library study symbol and dataset defaults when opening the immutable version', async () => {
+    routeState.path = '/popout/benchmark-list'
+    routeState.params = { windowKey: 'benchmark-list' }
+    harness.workspace.linkedSymbol = 'SPY'
+    harness.workspace.activeTab.active_window_key = 'study-lab-return'
+    harness.workspace.openTool.mockReturnValue({ instance_key: 'study-lab-return', title: 'Study Lab' })
+    const wrapper = mount(WorkstationView, {
+      attachTo: document.body,
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    wrapper.element.insertAdjacentHTML('beforeend', '<div class="workspace-layout-host__virtual-tool" data-tool-key="study-lab-return"></div>')
+    try {
+      await wrapper.get('.open-study').trigger('click')
+      await flushPromises()
+
+      expect(harness.workspace.openTool).toHaveBeenCalledWith(
+        expect.objectContaining({ tool_type: 'study_lab' }),
+        expect.objectContaining({
+          study_asset_version_id: 42,
+          symbol: 'XLB',
+          timeframe: 'W1',
+          benchmark: 'QQQ',
+          adjustment: 'raw',
+          session: 'all',
+          universe_source_id: 'saved-universe',
+          symbols: 'XLB,XLK',
+          start_date: '2025-01-01',
+          end_date: '2025-12-31',
+          as_of: '2025-12-31',
+        }),
+      )
+      expect(harness.workspace.linkedSymbol).toBe('SPY')
+    } finally {
+      wrapper.unmount()
+      wrapper.element.remove()
+    }
+  })
+
+  it('opens shared feature routes through RouterLink navigation', async () => {
     routeState.path = '/chart'
     routeState.params = {}
     const wrapper = mount(WorkstationView, {
@@ -355,7 +397,7 @@ describe('WorkstationView pop-out bindings', () => {
       expect(menu.get('[data-navigation-key="strategy-v2"]').attributes('href')).toBe('/legacy/strategy-lab-v2')
 
       await menu.get('[data-navigation-key="etf"]').trigger('click')
-      expect(wrapper.find('[aria-label="Application navigation"]').exists()).toBe(false)
+      expect(routerPush).toHaveBeenCalledWith('/legacy/etf-holdings')
     } finally {
       wrapper.unmount()
       wrapper.element.remove()
@@ -468,6 +510,38 @@ describe('WorkstationView pop-out bindings', () => {
       expect.objectContaining({ tool_type: 'research_results', title: 'Study Results' }),
       {},
     )
+  })
+
+  it('persists ordinary active-layout selection so reload restores the intended workspace context', async () => {
+    routeState.path = '/chart'
+    routeState.params = {}
+    const topDown = harness.workspace.workspace.tabs[0]
+    const studyTab = {
+      stable_key: 'study-lab',
+      name: 'Study Lab',
+      windows: [{ instance_key: 'results', tool_type: 'research_results', title: 'Study Results', link_group: 'grey', configuration: {} }],
+      active_window_key: 'study',
+      layout_config: null,
+    }
+    harness.workspace.workspace.tabs = [topDown, studyTab]
+    harness.workspace.activeTab = topDown
+    harness.workspace.activeTabKey = topDown.stable_key
+    harness.workspace.saveSnapshot.mockResolvedValue(true)
+    const wrapper = mount(WorkstationView, {
+      attachTo: document.body,
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+
+    await wrapper.get('[data-tab-key="study-lab"]').trigger('click')
+    await flushPromises()
+
+    expect(harness.workspace.activeTabKey).toBe('study-lab')
+    expect(harness.workspace.scheduleSnapshot).toHaveBeenCalled()
+    expect(harness.workspace.saveSnapshot).toHaveBeenCalled()
+    wrapper.unmount()
+    harness.workspace.workspace.tabs = [topDown]
+    harness.workspace.activeTab = topDown
+    harness.workspace.activeTabKey = topDown.stable_key
   })
 
   it('cancels an accepted cold tool command when its workstation unmounts before hydration', async () => {
@@ -2168,8 +2242,8 @@ describe('WorkstationView pop-out bindings', () => {
       await wrapper.get('.workstation__canonical-symbol-options [role="option"]').trigger('mousedown')
       await vi.waitFor(() => expect(dataPreparationPost.mock.calls.some(([request]) => request.datasets.includes('holdings'))).toBe(true))
       const status = outcome === 'held'
-        ? 'Last-known holdings for SAVED remain visible. The data source is temporarily at its request capacity.'
-        : 'Last-known holdings for SAVED remain visible. A reviewed data source could not complete this request.'
+        ? 'Last-known holdings for SAVED remain visible. Holdings for SAVED: The data source is temporarily at its request capacity.'
+        : 'Last-known holdings for SAVED remain visible. Holdings for SAVED: A reviewed data source could not complete this request.'
       await vi.waitFor(() => expect(wrapper.text()).toContain(status))
       expect(wrapper.text()).not.toContain('provider_quota_admission_denied')
       expect(harness.workspace.etfHoldings.SAVED?.snapshot).toBe(savedSnapshot)
@@ -2234,21 +2308,77 @@ describe('WorkstationView pop-out bindings', () => {
     wrapper.unmount()
   })
 
-  it('opens a private basket route through the shared chart store without ticker identity or profile requests', async () => {
-    routeState.path = '/chart/BASKET%3A8'
-    routeState.params = { symbol: 'BASKET:8' }
+  it('keeps a newly selected canonical ticker in the chart URL and removes obsolete holding-route context', async () => {
+    routeState.path = '/chart'
+    routeState.params = {}
+    routeState.query = { holding_history_intent: 'selected', holding_snapshot_id: '77', unrelated: 'keep' }
+    apiGet.mockImplementation(async (path: string, params?: Record<string, unknown>) => {
+      if (path === '/instruments/search' && params?.q === 'XLE') {
+        return [{ symbol: 'XLE', name: 'Energy Select Sector SPDR Fund', exchange: 'ARCX', type: 'ETF', instrument_id: 89 }]
+      }
+      return []
+    })
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY' })))
+    const input = wrapper.get('input[aria-label="Active symbol"]')
+    await input.setValue('XLE')
+    await vi.waitFor(() => expect(wrapper.findAll('[role="option"]').some(option => option.text().includes('XLE'))).toBe(true))
+    await wrapper.findAll('[role="option"]').find(option => option.text().includes('XLE'))!.trigger('mousedown')
+
+    await vi.waitFor(() => expect(routerReplace).toHaveBeenCalledWith(expect.objectContaining({ path: '/chart/XLE' })))
+    const destination = routerReplace.mock.calls.at(-1)?.[0]
+    expect(destination.query).toMatchObject({ unrelated: 'keep' })
+    expect(destination.query).not.toHaveProperty('holding_history_intent')
+    expect(destination.query).not.toHaveProperty('holding_snapshot_id')
+    expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'XLE', instrumentId: 89 }))
+    wrapper.unmount()
+  })
+
+  it('syncs a blue-linked selection to the main chart URL and clears root-route holding context', async () => {
+    routeState.path = '/chart'
+    routeState.params = {}
+    routeState.query = { holding_snapshot_id: '77', holding_row_id: '9', unrelated: 'keep' }
+    harness.workspace = reactive(harness.workspace)
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY' })))
+
+    // A linked pop-out/workspace publication updates the shared selection without
+    // going through the shell combobox handler.
+    harness.workspace.linkedSymbol = 'XLE'
+
+    await vi.waitFor(() => expect(routerReplace).toHaveBeenCalledWith(expect.objectContaining({ path: '/chart/XLE' })))
+    const destination = routerReplace.mock.calls.at(-1)?.[0]
+    expect(destination.query).toMatchObject({ unrelated: 'keep' })
+    expect(Object.keys(destination.query).some(key => key.startsWith('holding_'))).toBe(false)
+    expect(harness.chart.loadBars).toHaveBeenCalledWith('XLE', 'D1', 'candles', true)
+    wrapper.unmount()
+  })
+
+  it('keeps private basket selection on its supported dashboard route without ticker identity or profile requests', async () => {
+    routeState.path = '/chart/SPY'
+    routeState.params = { symbol: 'SPY' }
+    routeState.query = { holding_snapshot_id: '77', holding_row_id: '9' }
+    harness.workspace = reactive(harness.workspace)
     const wrapper = mount(WorkstationView, {
       global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
     })
     try {
+      await vi.waitFor(() => expect(harness.chart.loadBars).toHaveBeenCalledWith('SPY', 'D1', 'candles', true))
+      harness.workspace.linkedSymbol = 'BASKET:8'
       await vi.waitFor(() => expect(harness.chart.loadBars).toHaveBeenCalledWith('BASKET:8', 'D1', 'candles', true))
-      expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'BASKET:8' }))
+      await vi.waitFor(() => expect(routerReplace).toHaveBeenCalledWith(expect.objectContaining({ path: '/chart/BASKET%3A8' })))
+      expect(Object.keys(routerReplace.mock.calls.at(-1)?.[0].query ?? {}).some(key => key.startsWith('holding_'))).toBe(false)
       expect(resolveKnownInstrument).not.toHaveBeenCalledWith('BASKET:8', expect.anything(), expect.anything())
       expect(apiGet).not.toHaveBeenCalledWith('/instruments/BASKET:8', expect.anything())
       expect(harness.workspace.loadTechnical).not.toHaveBeenCalledWith('BASKET:8')
       expect(harness.workspace.loadETFHoldings).not.toHaveBeenCalledWith('BASKET:8')
       expect(harness.workspace.loadETFIndustries).not.toHaveBeenCalledWith('BASKET:8')
-      expect(dataPreparationPost).not.toHaveBeenCalled()
+      expect(dataPreparationPost.mock.calls.some(([request]) => request.target?.kind === 'instrument'
+        && request.target.symbol === 'BASKET:8')).toBe(false)
       expect(harness.recent.add).not.toHaveBeenCalledWith('BASKET:8', expect.anything(), expect.anything())
     } finally {
       wrapper.unmount()
@@ -2411,6 +2541,43 @@ describe('WorkstationView pop-out bindings', () => {
       expect(dataPreparationPost.mock.calls[0]?.[0]).toMatchObject({ target: { kind: 'instrument', symbol: 'SPY' } })
       expect(apiPost).not.toHaveBeenCalled()
       expect(harness.workspace.setConstituentETF).toHaveBeenCalledWith(null)
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
+  it('describes usable partial price history independently from pending instrument metadata', async () => {
+    routeState.path = '/chart/BWET'
+    routeState.params = { symbol: 'BWET' }
+    dataPreparationPost.mockImplementation(async (request: any) => {
+      const progress = readyPreparationResponse(request, dataPreparationPost.mock.calls.length)
+      if (!request.datasets?.includes('history')) return progress
+      progress.status = 'partial'
+      progress.completed = 1
+      progress.total = 3
+      progress.has_pending_work = true
+      const retryAt = '2026-11-06T12:05:00Z'
+      const identity = progress.dependencies.find((dependency: any) => dependency.dataset === 'identity')
+      const profile = progress.dependencies.find((dependency: any) => dependency.dataset === 'profile')
+      const history = progress.dependencies.find((dependency: any) => dependency.dataset === 'history')
+      for (const dependency of [identity, profile]) {
+        dependency.status = 'waiting'
+        dependency.reason_code = 'provider_capacity_deferred'
+        dependency.retry_at = retryAt
+      }
+      history.status = 'partial'
+      history.reason_code = 'history_coverage_partial'
+      return progress
+    })
+
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    try {
+      await flushPromises()
+      expect(wrapper.text()).toContain('Partial D1 price history for BWET remains available.')
+      expect(wrapper.text()).toContain('Instrument identity and profile details are still being checked.')
+      expect(wrapper.text()).not.toContain('Preparing the admitted D1 history for BWET (1/3)')
     } finally {
       wrapper.unmount()
     }

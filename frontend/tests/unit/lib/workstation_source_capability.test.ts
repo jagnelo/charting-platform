@@ -1,12 +1,31 @@
 import { describe, expect, it } from 'vitest'
 import {
   formatSourceFailureClass,
+  initialMarketMapSource,
   sourceAvailability,
   sourceAvailabilitySuffix,
   sourceIsNotCurrent,
 } from '@/lib/workstation/sourceCapability'
 
 describe('watchlist source capability state', () => {
+  it('chooses a populated current Market Map universe, preferring the built-in S&P source', () => {
+    const pendingFirst = {
+      source_id: 'etf-holdings:IBB', source_kind: 'etf_holdings', member_count: 0,
+      provenance: { availability: 'holdings_snapshot_not_loaded' },
+    }
+    const availableFallback = {
+      source_id: 'market-group:sp500-sectors', source_kind: 'market_group', member_count: 11,
+      provenance: { availability: 'available' },
+    }
+    const preferred = {
+      source_id: 'market-group:sp500', source_kind: 'index_membership', member_count: 500,
+      provenance: { availability: 'available' },
+    }
+    expect(initialMarketMapSource([pendingFirst, availableFallback, preferred])).toBe(preferred)
+    expect(initialMarketMapSource([pendingFirst, availableFallback])).toBe(availableFallback)
+    expect(initialMarketMapSource([pendingFirst])).toBeNull()
+  })
+
   it.each([
     ['stale', 'unavailable'],
     ['degraded', 'unavailable'],

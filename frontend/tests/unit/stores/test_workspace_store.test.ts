@@ -180,6 +180,42 @@ describe('workspace store layout tabs', () => {
     vi.useRealTimers()
   })
 
+  it('persists and restores the selected workspace layout tab with a safe legacy fallback', async () => {
+    const workspace = {
+      id: 10, user_id: 3, name: 'Research', is_default: true, position: 0, revision: 4, schema_version: 1,
+      settings: { active_tab_key: 'study-lab' },
+      tabs: [
+        { id: 20, stable_key: 'us-top-down', name: 'US Top Down', position: 0, active_window_key: null, layout_config: {}, windows: [] },
+        { id: 21, stable_key: 'study-lab', name: 'Study Lab', position: 1, active_window_key: 'study-results', layout_config: {}, windows: [
+          { id: 30, instance_key: 'study-results', tool_type: 'research_results', title: 'Study Results', link_group: 'grey', configuration: {}, style: {}, state_schema_version: 1, position: 0 },
+        ] },
+      ],
+    }
+    apiGet.mockResolvedValueOnce(workspace)
+    const store = useWorkspaceStore()
+
+    await store.loadDefault()
+    expect(store.activeTabKey).toBe('study-lab')
+
+    store.activeTabKey = 'us-top-down'
+    apiPut.mockImplementationOnce(async (_path, payload) => ({
+      ...workspace,
+      revision: 5,
+      settings: payload.settings,
+      tabs: payload.tabs,
+    }))
+    await expect(store.saveSnapshot()).resolves.toBe(true)
+    expect(apiPut.mock.calls[0][1].settings.active_tab_key).toBe('us-top-down')
+
+    apiGet.mockResolvedValueOnce({ ...workspace, settings: { active_tab_key: 'deleted-tab' } })
+    await store.loadDefault()
+    expect(store.activeTabKey).toBe('us-top-down')
+
+    apiGet.mockResolvedValueOnce({ ...workspace, settings: {} })
+    await store.loadDefault()
+    expect(store.activeTabKey).toBe('us-top-down')
+  })
+
   it('reports snapshot save progress, failure, and a confirmed retry', async () => {
     const store = useWorkspaceStore()
     store.workspace = {

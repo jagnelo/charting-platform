@@ -24,8 +24,7 @@ function readyPreparation(screenerId = 7) {
 
 import MarketGaugeTool from '@/components/workstation/MarketGaugeTool.vue'
 
-function mountTool() {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+function mountTool(queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })) {
   return mount(MarketGaugeTool, { global: { plugins: [[VueQueryPlugin, { queryClient }]] } })
 }
 
@@ -187,6 +186,105 @@ describe('MarketGaugeTool', () => {
     await vi.waitFor(() => expect(apiGet.mock.calls.filter(([path]) => path === '/analysis/gauges/7').length).toBeGreaterThanOrEqual(2), { timeout: 2_500 })
     expect(wrapper.text()).toContain('2 matches')
     expect(wrapper.text()).toContain('50.0%')
+    wrapper.unmount()
+  })
+
+  it('keeps the last completed gauge while the replacement scan is queued, then refreshes its terminal result', async () => {
+    const previousGauge = {
+      matched_count: 1, evaluated_count: 2, universe_count: 2, percentage: 0.5,
+      run_at: '2026-08-03T10:00:00Z', freshness: 'current', data_provenance: 'canonical_local_database',
+      calculation_version: 'analysis-v1', refreshed_at: '2026-08-03T10:01:00Z',
+      freshness_detail: { requested: 2, current: 2, stale: 0, other: 0 }, exclusions: [],
+    }
+    const completedGauge = { ...previousGauge, matched_count: 2, percentage: 1, run_at: '2026-08-03T10:02:00Z' }
+    let latestResults: any[] = [{
+      id: 10, run_at: previousGauge.run_at, matched_ids: [2], result_data: { _status: 'completed', _python_research_run_id: 15, _coverage: { evaluated_count: 2, universe_count: 2, excluded: [] } },
+    }]
+    let gaugeReads = 0
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/screeners') return Promise.resolve([{ id: 7, name: 'Saved weekly scan' }])
+      if (path === '/screeners/7') return Promise.resolve(savedScan())
+      if (path === '/screeners/7/results') return Promise.resolve(latestResults)
+      if (path.startsWith('/data/requests/')) {
+        latestResults = [{ id: 11, run_at: completedGauge.run_at, matched_ids: [], result_data: { _status: 'queued', _python_research_run_id: 16 } }, ...latestResults]
+        return Promise.resolve({ ...readyPreparation(), status: 'partial', version: 2, has_pending_work: false })
+      }
+      if (path === '/analysis/gauges/7') return Promise.resolve(++gaugeReads === 1 ? previousGauge : completedGauge)
+      return Promise.resolve([])
+    })
+    apiPost.mockImplementation((path: string) => path === '/data/ensure'
+      ? Promise.resolve({ ...readyPreparation(), status: 'queued', completed: 0, total: 1, has_pending_work: true })
+      : Promise.resolve({}))
+
+    const wrapper = mountTool()
+    await flushPromises()
+    await wrapper.find('select').setValue('7')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('50.0%'))
+    await vi.waitFor(() => expect(wrapper.text()).toContain('replacement scan is queued'))
+    expect(wrapper.text()).toContain('1 matches')
+    expect(gaugeReads).toBe(1)
+
+    latestResults = [{
+      id: 11, run_at: completedGauge.run_at, matched_ids: [2, 3], result_data: { _status: 'completed', _python_research_run_id: 16, _coverage: { evaluated_count: 2, universe_count: 2, excluded: [] } },
+    }, ...latestResults.slice(1)]
+    await vi.waitFor(() => expect(wrapper.text()).toContain('100.0%'), { timeout: 2_500 })
+    expect(wrapper.text()).toContain('2 matches')
+    expect(gaugeReads).toBeGreaterThanOrEqual(2)
+    wrapper.unmount()
+  })
+
+  it('drains an older in-flight gauge read before refreshing metrics for the newly completed result', async () => {
+    const previousGauge = {
+      matched_count: 1, evaluated_count: 2, universe_count: 2, percentage: 0.5,
+      run_at: '2026-08-03T10:00:00Z', freshness: 'current', data_provenance: 'canonical_local_database',
+      calculation_version: 'analysis-v1', refreshed_at: '2026-08-03T10:01:00Z',
+      freshness_detail: { requested: 2, current: 2, stale: 0, other: 0 }, exclusions: [],
+    }
+    const completedGauge = { ...previousGauge, matched_count: 2, percentage: 1, run_at: '2026-08-03T10:02:00Z' }
+    const queuedResult = { id: 11, run_at: completedGauge.run_at, result_data: { _status: 'queued' } }
+    const completedResult = { ...queuedResult, matched_ids: [2, 3], result_data: { _status: 'completed' } }
+    let latestResults: any[] = [{ id: 10, run_at: previousGauge.run_at, result_data: { _status: 'completed' } }]
+    let gaugeReads = 0
+    let resolveStaleGauge!: (value: typeof previousGauge) => void
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/screeners') return Promise.resolve([{ id: 7, name: 'Saved weekly scan' }])
+      if (path === '/screeners/7') return Promise.resolve(savedScan())
+      if (path === '/screeners/7/results') return Promise.resolve(latestResults)
+      if (path === '/analysis/gauges/7') {
+        gaugeReads += 1
+        if (gaugeReads === 1) return Promise.resolve(previousGauge)
+        if (gaugeReads === 2) return new Promise(resolve => { resolveStaleGauge = resolve })
+        return Promise.resolve(completedGauge)
+      }
+      return Promise.resolve([])
+    })
+
+    const wrapper = mountTool(queryClient)
+    await flushPromises()
+    await wrapper.find('select').setValue('7')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('50.0%'))
+    expect(gaugeReads).toBe(1)
+
+    // This represents a refresh started while the previously completed result
+    // is still selected; its response is delayed until after the new run ends.
+    const staleRefresh = queryClient.refetchQueries({ queryKey: ['workstation', 'market-gauge', '7'], exact: true })
+    await vi.waitFor(() => expect(gaugeReads).toBe(2))
+    latestResults = [queuedResult, ...latestResults]
+    await queryClient.refetchQueries({ queryKey: ['workstation', 'screener-history', '7'], exact: true })
+    await vi.waitFor(() => expect(wrapper.text()).toContain('replacement scan is queued'))
+    latestResults = [completedResult, ...latestResults.slice(1)]
+    const completedResultRead = queryClient.refetchQueries({ queryKey: ['workstation', 'screener-history', '7'], exact: true })
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Refreshing gauge metrics for the completed scan'))
+    expect(wrapper.text()).toContain('50.0%')
+    expect(wrapper.text()).toContain('1 matches')
+
+    resolveStaleGauge({ ...previousGauge, matched_count: 0, percentage: 0 })
+    await staleRefresh
+    await completedResultRead
+    await vi.waitFor(() => expect(gaugeReads).toBe(3))
+    await vi.waitFor(() => expect(wrapper.text()).toContain('2 matches'))
+    expect(wrapper.text()).toContain('100.0%')
     wrapper.unmount()
   })
 

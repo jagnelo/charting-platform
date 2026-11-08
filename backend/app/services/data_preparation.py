@@ -1941,9 +1941,14 @@ async def record_identity_preparation_outcome(
     # than letting a synchronous attribute read trigger MissingGreenlet, but
     # leave a loaded in-memory update alone (for example a newly recorded hold).
     identity_state = inspect(identity_job, raiseerr=False)
+    # SQLAlchemy keeps the persistent identity separately from loaded column
+    # attributes. Capture the primary key from that identity before any await;
+    # ``id`` itself may be expired after a rollback and reading it can attempt
+    # an implicit async load outside greenlet context.
+    identity = identity_state.identity if identity_state is not None else None
+    identity_job_id = int(identity[0]) if identity else identity_job.id
     if identity_state is not None and "metadata_payload" in identity_state.expired_attributes:
         await db.refresh(identity_job, attribute_names=["metadata_payload"])
-    identity_job_id = identity_job.id
     preparation = (identity_job.metadata_payload or {}).get("data_preparation_child") or {}
     refs = list(preparation.get("parent_refs") or [])
     if parent_job_id is not None:

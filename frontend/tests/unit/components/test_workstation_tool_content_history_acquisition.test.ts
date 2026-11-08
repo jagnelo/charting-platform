@@ -339,7 +339,7 @@ describe('WorkstationToolContent missing chart history entrypoint', () => {
     ensure.mockRestore()
   })
 
-  it('removes chart drawing controls from inactive docked tools and restores them only for the active chart', async () => {
+  it('reserves the drawing rail while keeping inactive chart controls out of keyboard access', async () => {
     const pinia = createPinia()
     setActivePinia(pinia)
     const tool = chartFixture()
@@ -352,17 +352,22 @@ describe('WorkstationToolContent missing chart history entrypoint', () => {
           UPlotChart: EmptyChartStub,
           ChartPlotLibrary: { template: '<div />' },
           ChartTemplateControl: { template: '<div />' },
-          DrawingToolbar: { template: '<div data-test="chart-drawing-toolbar" />' },
+          DrawingToolbar: { template: '<div class="chart-tool__drawing-toolbar" data-test="chart-drawing-toolbar"><button>Trend Line</button></div>' },
           ToolWindow: ToolWindowShell,
         },
       },
     })
 
-    expect(wrapper.find('[data-test="chart-drawing-toolbar"]').exists()).toBe(false)
+    const inactiveRail = wrapper.get('.chart-tool__drawing-toolbar--inactive')
+    expect(inactiveRail.attributes('aria-hidden')).toBe('true')
+    expect(inactiveRail.attributes('inert')).toBe('')
+    expect(inactiveRail.findAll('button')).toHaveLength(0)
     await wrapper.setProps({ activeWindowKey: tool.instance_key })
     expect(wrapper.find('[data-test="chart-drawing-toolbar"]').exists()).toBe(true)
+    expect(wrapper.find('.chart-tool__drawing-toolbar--inactive').exists()).toBe(false)
     await wrapper.setProps({ activeWindowKey: 'another-chart' })
     expect(wrapper.find('[data-test="chart-drawing-toolbar"]').exists()).toBe(false)
+    expect(wrapper.find('.chart-tool__drawing-toolbar--inactive').exists()).toBe(true)
 
     wrapper.unmount()
     queryClient.clear()
@@ -826,7 +831,7 @@ describe('WorkstationToolContent missing chart history entrypoint', () => {
     queryClient.clear()
   })
 
-  it('labels the Industry surface with its retained ETF while a constituent remains the active chart symbol', async () => {
+  it('keeps the Industry surface when a saved generic personal flag collides with its semantic role', async () => {
     const pinia = createPinia()
     setActivePinia(pinia)
     const workspaceStore = useWorkspaceStore(pinia)
@@ -842,7 +847,10 @@ describe('WorkstationToolContent missing chart history entrypoint', () => {
     workspaceStore.linkedSymbol = 'UNXQ'
     const tool: WorkspaceWindowState = {
       id: 32, instance_key: 'industry-list', tool_type: 'watchlist', title: 'Industries',
-      link_group: 'blue', configuration: {}, style: {}, state_schema_version: 1, position: 1,
+      // Older/cloned windows can retain the generic watchlist flag. The
+      // factory's semantic industry role must still win when classifications
+      // are unavailable rather than showing unrelated personal lists.
+      link_group: 'blue', configuration: { personal: true }, style: {}, state_schema_version: 1, position: 1,
     }
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     const wrapper = mount(WorkstationToolContent, {
@@ -858,8 +866,10 @@ describe('WorkstationToolContent missing chart history entrypoint', () => {
     })
     await flushPromises()
 
+    expect(wrapper.find('.personal-watchlist-tool').exists()).toBe(false)
+    expect(wrapper.find('.industry-list').exists()).toBe(false)
+    expect(wrapper.get('.tool-state').text()).toContain('No source-classified industries are available for IGV')
     expect(wrapper.get('.tool-window__symbol').text()).toBe('IGV')
-    expect(wrapper.text()).toContain('No source-classified industries are available for IGV')
     expect(wrapper.text()).toContain('Classification exclusions: holdings without a canonical identity; constituents without source classification')
     expect(wrapper.text()).toContain('controlled-source · dated_holdings_snapshot · 0% classified')
     workspaceStore.setConstituentETF('XHB')
@@ -872,8 +882,9 @@ describe('WorkstationToolContent missing chart history entrypoint', () => {
       },
     }
     await flushPromises()
+    expect(wrapper.find('.personal-watchlist-tool').exists()).toBe(false)
+    expect(wrapper.get('.tool-state').text()).toContain('No source-classified industries are available for XHB')
     expect(wrapper.get('.tool-window__symbol').text()).toBe('XHB')
-    expect(wrapper.text()).toContain('No source-classified industries are available for XHB')
     expect(workspaceStore.linkedSymbol).toBe('UNXQ')
 
     wrapper.unmount()

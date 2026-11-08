@@ -76,7 +76,12 @@ describe('ChartView radar handoff', () => {
 
   afterEach(() => vi.unstubAllGlobals())
 
-  function mountDeferredPresetsChart(delaySymbolLoad = false, initialSymbol = 'SPY', pathPrefix = '/chart') {
+  function mountDeferredPresetsChart(
+    delaySymbolLoad = false,
+    initialSymbol = 'SPY',
+    pathPrefix = '/chart',
+    beforeMount?: (store: ReturnType<typeof useChartStore>) => void,
+  ) {
     const pinia = createPinia()
     setActivePinia(pinia)
     const chartStore = useChartStore()
@@ -122,6 +127,7 @@ describe('ChartView radar handoff', () => {
     vi.spyOn(optionsExposureStore, 'load').mockImplementation(async () => {})
     vi.spyOn(optionsExposureStore, 'reset').mockImplementation(() => {})
     vi.spyOn(radarStore, 'loadChartDetections').mockImplementation(async () => [])
+    beforeMount?.(chartStore)
 
     const wrapper = mount(ChartView, {
       global: {
@@ -274,17 +280,17 @@ describe('ChartView radar handoff', () => {
   })
 
   it('automatically refreshes a cold legacy chart as shared preparation produces usable history', async () => {
-    const { chartStore, releasePresets, wrapper } = mountDeferredPresetsChart(false, 'NVDA', '/legacy/chart')
     const cachedBars: any[] = []
     const newlyPreparedBars = [{ ts: '2026-11-06T14:30:00Z', open: 100, high: 104, low: 99, close: 103, is_adjusted: true }]
-    const refreshLocalBars = vi.spyOn(chartStore, 'refreshLocalBars').mockImplementation(async () => {
-      chartStore.bars = newlyPreparedBars as typeof chartStore.bars
-    })
+    let releaseLocalRefresh!: () => void
+    const localRefreshGate = new Promise<void>(resolve => { releaseLocalRefresh = resolve })
+    let chartStore!: ReturnType<typeof useChartStore>
     let requestWasSubmittedAfterCache = false
     vi.mocked(dataPreparationCoordinator.ensure).mockImplementationOnce(async (request, options) => {
-      requestWasSubmittedAfterCache = chartStore.symbol === 'NVDA' && chartStore.bars.length === cachedBars.length
+      requestWasSubmittedAfterCache = chartStore.symbol === 'NVDA' && chartStore.bars.length === cachedBars.length && chartStore.instrument === null
+      expect(chartStore.timeframe).toBe('D1')
       expect(request).toMatchObject({
-        target: { kind: 'instrument', instrument_id: 1 },
+        target: { kind: 'instrument', symbol: 'NVDA' },
         datasets: ['identity', 'profile', 'history'],
         timeframe: 'D1',
       })
@@ -307,14 +313,26 @@ describe('ChartView radar handoff', () => {
       })
       return readyPreparationResponse({ status: 'partial' })
     })
+    const { releasePresets, releaseSymbolLoad, wrapper } = mountDeferredPresetsChart(true, 'NVDA', '/legacy/chart', store => {
+      chartStore = store
+      vi.spyOn(store, 'refreshLocalBars').mockImplementation(async () => {
+        await localRefreshGate
+        store.bars = newlyPreparedBars as typeof store.bars
+      })
+    })
 
-    await flushPromises()
-    releasePresets()
-    await vi.waitFor(() => expect(refreshLocalBars).toHaveBeenCalledOnce())
-
+    await vi.waitFor(() => expect(chartStore.refreshLocalBars).toHaveBeenCalledOnce())
+    expect(chartStore.instrument).toBeNull()
     expect(requestWasSubmittedAfterCache).toBe(true)
-    expect(chartStore.bars).toEqual(newlyPreparedBars)
-    expect(wrapper.text()).toContain('Preparing admitted D1 history for NVDA')
+    expect(chartStore.bars).toEqual(cachedBars)
+
+    releaseSymbolLoad()
+    releaseLocalRefresh()
+    releasePresets()
+    await flushPromises()
+    await vi.waitFor(() => expect(chartStore.bars).toEqual(newlyPreparedBars))
+
+    expect(wrapper.text()).not.toContain('could not be prepared')
     wrapper.unmount()
   })
 

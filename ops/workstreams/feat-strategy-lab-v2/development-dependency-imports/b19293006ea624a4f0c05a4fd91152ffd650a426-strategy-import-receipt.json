@@ -1,0 +1,97 @@
+{
+  "schema": 1,
+  "dependency": "provider-runtime-development-consumption",
+  "source_commit": "b19293006ea624a4f0c05a4fd91152ffd650a426",
+  "root_manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providerb1929300-runtime-development-consumption-contract.json",
+  "root_manifest_sha256": "97b429b3d99e4f8da78edcc10ed13178a17b482e31a136941f8acff14290457d",
+  "consumer": "Strategy",
+  "imported_paths": [
+    "backend/app/routers/instruments.py",
+    "backend/app/services/data_preparation.py",
+    "backend/app/services/instrument_mastering.py",
+    "backend/app/services/market_data.py",
+    "backend/app/services/provider_routing.py",
+    "backend/app/services/provider_runtime.py",
+    "backend/app/tasks/data_tasks.py",
+    "backend/app/workers/arq_worker.py",
+    "backend/tests/unit/routers/test_instruments_router.py",
+    "backend/tests/unit/services/test_data_preparation_contracts.py",
+    "backend/tests/unit/services/test_provider_persistence.py",
+    "backend/tests/unit/services/test_provider_routing.py",
+    "backend/tests/unit/services/test_provider_runtime.py",
+    "backend/tests/unit/tasks/test_data_tasks.py",
+    "backend/tests/unit/workers/test_arq_worker.py"
+  ],
+  "old_guards": {
+    "backend/app/routers/instruments.py": {
+      "sha256": "946a438135c22bc5ea706f7828c5ef71eb9e0164b6f1cb04dd43bf006e17a052",
+      "known_source": "cc31077c60545e8455d1f064411fbddae7d21fe1"
+    },
+    "backend/app/services/data_preparation.py": {
+      "sha256": "c5b43f639ca0120b5494ff9015f91549c2d07fa11df5e5e78fbe6978d3e273a8",
+      "known_source": "cc31077c60545e8455d1f064411fbddae7d21fe1"
+    },
+    "backend/app/services/instrument_mastering.py": {
+      "sha256": "faf0c8967f688c75d693060cdcf74fa6d19c27a4464b8e33e6193daf1d622eae",
+      "known_source": "0a1cda8434ec9f2f103400b7bd7fde3067f8ed42"
+    },
+    "backend/app/services/market_data.py": {
+      "sha256": "b865a768e692a83268336e63f9091a986e23edfe4d0b261d0553f046a20e223e",
+      "known_source": "cc31077c60545e8455d1f064411fbddae7d21fe1"
+    },
+    "backend/app/services/provider_routing.py": {
+      "sha256": "a03f3ebd0bf5443625015ddbede85d830794c166f8ad8e5f093775990e60276a",
+      "known_source": "0a1cda8434ec9f2f103400b7bd7fde3067f8ed42"
+    },
+    "backend/app/services/provider_runtime.py": {
+      "sha256": "6114bd49cb1441907a9a19bd3755c94c8de5c383ed8a603d07b86f717b90f850",
+      "known_source": "cc31077c60545e8455d1f064411fbddae7d21fe1"
+    },
+    "backend/app/tasks/data_tasks.py": {
+      "sha256": "0cf34021ebf8e16e41a6a1b2d1b32ca555ee0864beab140042f78fbddddd202c",
+      "known_source": "cc31077c60545e8455d1f064411fbddae7d21fe1"
+    },
+    "backend/app/workers/arq_worker.py": {
+      "sha256": "08a681809f7e425eac56ea5cad104bc1e34ba12f0df1d0417c3d41bff51226fd",
+      "known_source": "cc31077c60545e8455d1f064411fbddae7d21fe1"
+    },
+    "backend/tests/unit/routers/test_instruments_router.py": {
+      "sha256": "c81498ceaae717cec70eec698783da8d7933d49a909579f2d4365beba729dbe7",
+      "known_source": "cc31077c60545e8455d1f064411fbddae7d21fe1"
+    },
+    "backend/tests/unit/services/test_data_preparation_contracts.py": {
+      "sha256": "6e81025d0acb4d6ebccd26f835738e6411e7295de58a757b9a607435dc470904",
+      "known_source": "cc31077c60545e8455d1f064411fbddae7d21fe1"
+    },
+    "backend/tests/unit/services/test_provider_persistence.py": {
+      "sha256": "dc5b10caedb8af4a44270a1742fd12f8558ee0c0abfc4643937f09b3fa23c7b8",
+      "known_source": "cc31077c60545e8455d1f064411fbddae7d21fe1"
+    },
+    "backend/tests/unit/services/test_provider_routing.py": {
+      "sha256": "ce1f4f2775dc95b07b99dd7efa7e41d4117033cf5550eca980520c9b324f8372",
+      "known_source": "0a1cda8434ec9f2f103400b7bd7fde3067f8ed42"
+    },
+    "backend/tests/unit/services/test_provider_runtime.py": {
+      "sha256": "d6aa4d332bfa3733894cdf555142fb95666eb797af1de279eac5a81f8879a549",
+      "known_source": "cc31077c60545e8455d1f064411fbddae7d21fe1"
+    },
+    "backend/tests/unit/tasks/test_data_tasks.py": {
+      "sha256": "ff0ca54c8c32727fa99d8d66bcffec96474fe245cbea6231a2226f1dc5f00eec",
+      "known_source": "cc31077c60545e8455d1f064411fbddae7d21fe1"
+    },
+    "backend/tests/unit/workers/test_arq_worker.py": {
+      "sha256": "967b6727bf7c4ce06de5b51e48d5c8aff5a33c4627a658f6d48f8ed6149a632a",
+      "known_source": "cc31077c60545e8455d1f064411fbddae7d21fe1"
+    }
+  },
+  "verified_source_manifest_rows": 78,
+  "verification": {
+    "sha256": true,
+    "git_blob": true,
+    "status_from139": true,
+    "git_executable_mode": true,
+    "consumer_old_guards": true,
+    "consumer_import_exact": true
+  },
+  "qualification": "Exact development consumption only. Root owns the active combined browser/full profile and exact-source/release gates; Strategy did not run browser bodies or producer suites for this import."
+}

@@ -1,19 +1,31 @@
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from types import SimpleNamespace
 
 import pytest
 
 from app.models.data_source import DataSource
-from app.models.market_data_foundation import ProviderQuotaWindow, ProviderWorkloadLease
-from app.models.provider_runtime import ProviderCapability
+from app.models.market_data_foundation import (
+    ProviderQuotaWindow,
+    ProviderRoutingDecision,
+    ProviderWorkloadLease,
+)
+from app.models.provider_runtime import (
+    ProviderCapability,
+    ProviderHealthState,
+    ProviderPolicy,
+)
+from app.services import provider_routing
 from app.services.provider_routing import (
     ProviderRequirements,
     _entitlement_matches,
     reserve_provider_quota,
+    select_provider,
     settle_workload_lease,
 )
 from app.services.provider_runtime import (
     ProviderQuotaUnknownError,
+    ResolvedProvider,
     provider_history_entitlement_matches,
 )
 from tests.unit.conftest import AsyncSessionAdapter
@@ -108,6 +120,57 @@ def test_routing_history_requirement_uses_structured_entitlement_bound():
 
     assert not allowed
     assert reason == "history_depth_exceeded"
+
+
+@pytest.mark.asyncio
+async def test_provider_decision_reports_computed_score_not_stale_persisted_score(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    source = DataSource(name="score-test-provider", is_active=True)
+    db.add(source)
+    db.flush()
+    policy = ProviderPolicy(
+        data_source_id=source.id,
+        capability=ProviderCapability.LATEST_PRICE,
+        effective_score=0,
+    )
+    health = ProviderHealthState(
+        data_source_id=source.id,
+        capability=ProviderCapability.LATEST_PRICE,
+    )
+    resolved = ResolvedProvider(
+        provider_name=source.name,
+        provider=object(),
+        data_source=source,
+        policy=policy,
+        health=health,
+        routing_score=Decimal("73"),
+    )
+    db.add_all([policy, health])
+
+    async def resolve(*_args, **_kwargs):
+        return [resolved]
+
+    async def reserve(*_args, **_kwargs):
+        return []
+
+    monkeypatch.setattr(provider_routing, "resolve_provider_chain", resolve)
+    monkeypatch.setattr(provider_routing, "policy_has_known_quota", lambda _policy: True)
+    monkeypatch.setattr(
+        provider_routing, "provider_contract_operation_cost_known", lambda *_args, **_kwargs: True
+    )
+    monkeypatch.setattr(provider_routing, "reserve_provider_contract", reserve)
+
+    await select_provider(
+        async_db,
+        ProviderRequirements(
+            capability=ProviderCapability.LATEST_PRICE,
+            operation="get_current_price",
+        ),
+        request_key="score-test",
+    )
+
+    decision = db.query(ProviderRoutingDecision).one()
+    assert decision.candidates == [{"provider": source.name, "score": "73"}]
 
 
 @pytest.mark.asyncio
