@@ -2653,7 +2653,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     await expect(holdingLineage).toHaveText(`UNXQ from IGV holdings · ${igvSnapshot.composition_date}`)
     const holdingDetails = await holdingLineage.getAttribute('title')
     expect(await holdingLineage.getAttribute('aria-label')).toBe(holdingDetails)
-    expect(holdingDetails).toContain(`from IGV holdings · instrument ${igvSnapshot.etf_instrument_id} · snapshot ${igvSnapshot.id} · row ${unxqHolding.id}`)
+    expect(holdingDetails).toContain(`from IGV holdings · instrument ${instruments.UNXQ.id} · snapshot ${igvSnapshot.id} · row ${unxqHolding.id}`)
     expect(holdingDetails).toContain(`composition ${igvSnapshot.composition_date}`)
     expect(holdingDetails).toContain(`known ${igvSnapshot.known_at}`)
     expect(holdingDetails).toContain(`${igvSnapshot.source_provider} / ${igvSnapshot.provenance}`)

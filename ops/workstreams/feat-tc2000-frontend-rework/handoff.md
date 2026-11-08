@@ -1,3 +1,11 @@
+# 2026-11-08 — Correct selected-holding lineage instrument expectation
+
+Root's exact de410 run confirmed geometry, ordinary candidate click, identity, and history requests pass. The remaining lineage expectation incorrectly used IGV's fund ID, although `ETFHoldingDrilldownContext.instrumentId` identifies the selected resolved holding. The test now expects UNXQ's canonical instrument ID (`991006`) while retaining fund, snapshot, row, source, known-at, and composition assertions. No product code changed.
+
+TC scope/workstream/journey validators and E2E unbound-reference preflight pass; broader type diagnostics remain pre-existing advisories in this long spec. No browser or broad test ran. Root owns the next exact-source ETF and full-profile qualification.
+
+---
+
 # 2026-11-08 — ETF selection-panel bounds and modern history request assertions
 
 Root's measured prototype for the IGV reported-holding selection showed the candidate at y=542..584 while its selection panel ended at y=510.25. Removing the panel's `max-height: 75%` cap lets the selection details use the available tool body; the test retains full containment, center-hit, and ordinary-click assertions. The lineage assertion now includes the canonical ETF instrument ID shown in the accessible detail.
