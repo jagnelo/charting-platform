@@ -313,6 +313,7 @@ test('Workstation search resolves an unknown ticker and reports shared history p
   const identityRequests: InstrumentRequestBody[] = []
   const preparationRequests: DataEnsureRequest[] = []
   const legacyHistoryRequests: string[] = []
+  const canonicalInstrumentLookups: Array<{ symbol: string; canonicalOnly: string | null }> = []
   const search = page.getByRole('combobox', { name: 'Active symbol' })
   await expect(search).toBeVisible()
   await expect(search).toHaveValue('SPY')
@@ -322,6 +323,11 @@ test('Workstation search resolves an unknown ticker and reports shared history p
   const previousChartProvenance = previousChart.locator('.sr-only').first()
   const previousChartProvenanceText = await previousChartProvenance.innerText()
   expect(previousChartProvenanceText).toMatch(/\d+ bars;/)
+  page.on('request', request => {
+    const url = new URL(request.url())
+    if (request.method() !== 'GET' || url.pathname !== '/api/v1/instruments/TCNEW') return
+    canonicalInstrumentLookups.push({ symbol: url.pathname.split('/').at(-1) ?? '', canonicalOnly: url.searchParams.get('canonical_only') })
+  })
 
   await page.route('**/api/v1/instruments/search**', async route => {
     const url = new URL(route.request().url())
@@ -1879,7 +1885,8 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
   const xhbEnsureStarted = deferred()
   const xhbEnsureGate = deferred()
   const oihEnsureStarted = deferred()
-  const oihEnsureGate = deferred()
+  const oihStatusPollGate = deferred()
+  const oihStatusPollStarted = deferred()
   const oihFailureStarted = deferred()
   const oihFailureGate = deferred()
   const igvEnsureStarted = deferred()
@@ -1896,6 +1903,12 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
   let unxqDiscoveryCount = 0
   const identityRequests: InstrumentRequestBody[] = []
   const locallySearchedSymbols = new Set<FixtureSymbol>()
+  const cancelledPreparationStatusIds: string[] = []
+  page.on('requestfailed', request => {
+    const url = new URL(request.url())
+    if (request.method() !== 'GET' || !/^\/api\/v1\/data\/requests\/[^/]+$/.test(url.pathname)) return
+    cancelledPreparationStatusIds.push(url.pathname.split('/').at(-1) ?? '')
+  })
   const igvSnapshotId = 991203
   const unxqHolding: ETFHolding = {
     id: 991601,
@@ -2124,6 +2137,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     const requestId = new URL(route.request().url()).pathname.split('/').at(-1) ?? ''
     const pending = pendingHoldings.get(requestId)
     if (route.request().method() !== 'GET' || !pending) return route.continue()
+    if (pending.symbol === 'OIH' && pending.terminal === 'ready') oihStatusPollStarted.resolve()
     if (pending.terminal === 'failed') {
       delayedOihFailureUrl = route.request().url()
       await oihFailureGate.promise
@@ -2135,7 +2149,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
       return
     }
     if (pending.symbol === 'XHB') await xhbEnsureGate.promise
-    else if (pending.symbol === 'OIH') await oihEnsureGate.promise
+    else if (pending.symbol === 'OIH') await oihStatusPollGate.promise
     else if (pending.symbol === 'IGV') {
       await igvEnsureGate.promise
       igvSnapshotAvailable = true
@@ -2156,7 +2170,11 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
       })),
     }
     pending.response = response
-    await route.fulfill({ status: 200, json: response })
+    try {
+      await route.fulfill({ status: 200, json: response })
+    } catch (error) {
+      if (pending.symbol !== 'OIH' || pending.terminal !== 'ready' || !route.request().failure()) throw error
+    }
   })
   await page.route('**/api/v1/ohlcv/local/*/*', async route => {
     const parts = new URL(route.request().url()).pathname.split('/')
@@ -2328,7 +2346,10 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     const oihAccepted = await oihHoldingsResponseReady
     expect(oihAccepted.status()).toBe(200)
     expect(await oihAccepted.json()).toMatchObject({ request_id: oihRequestId, status: 'queued', has_pending_work: true })
-    const oihStatusResponseReady = waitForPreparationStatus(oihRequestId)
+    // Require the actual status poll to start while OIH is still current. The
+    // next selection intentionally cancels that observer, so no later response
+    // waiter should assume the canceled request will complete in the browser.
+    await oihStatusPollStarted.promise
     const oihReadsBeforeSwitch = holdingsReads.filter(symbol => symbol === 'OIH').length
 
     const igvHoldingsResponseReady = waitForDatasetEnsure('IGV', 'holdings')
@@ -2352,13 +2373,11 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     expect(holdingsReads.filter(symbol => symbol === 'IGV').length).toBeGreaterThan(0)
     const oihIndustryReadsBeforeLateResponse = industryReads.filter(symbol => symbol === 'OIH').length
 
-    // The prior direct OIH selection resolves only after IGV is current. A late
-    // success may not restore OIH holdings or replace IGV's channel message.
-    oihEnsureGate.resolve()
+    // OIH's controlled server job can finish after IGV is current, but its
+    // obsolete status poll is canceled and cannot publish into IGV's UI.
+    oihStatusPollGate.resolve()
+    await expect.poll(() => cancelledPreparationStatusIds).toContain(oihRequestId)
     expect((await oihHoldingsResponseReady).status()).toBe(200)
-    const oihTerminal = await oihStatusResponseReady
-    expect(oihTerminal.status()).toBe(200)
-    expect(await oihTerminal.json()).toMatchObject({ request_id: oihRequestId, status: 'ready', has_pending_work: false })
     await expect(symbolSearch).toHaveValue('IGV')
     await expectSelectionHoldingsDetails(page, 'IGV', 'Current holdings for IGV are available locally.')
     expect(holdingsReads.filter(symbol => symbol === 'OIH')).toHaveLength(oihReadsBeforeSwitch)
@@ -2590,7 +2609,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     await browserDiagnostics.expectNoCriticalIssues()
   } finally {
     xhbEnsureGate.resolve()
-    oihEnsureGate.resolve()
+    oihStatusPollGate.resolve()
     oihFailureGate.resolve()
     igvEnsureGate.resolve()
     unresolvedDiscoveryGate.resolve()
