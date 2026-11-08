@@ -512,6 +512,39 @@ describe('ETFHoldingsView', () => {
     await flushPromises()
   })
 
+  it('shows loaded ETF profiles while the default profile snapshot lookup is still pending', async () => {
+    const catalogueProfile = { ...profile, latest_snapshot_id: null }
+    let finishProfiles!: (value: unknown) => void
+    let finishSnapshotOptions!: (value: unknown) => void
+    const profilesPending = new Promise(resolve => { finishProfiles = resolve })
+    const snapshotOptionsPending = new Promise(resolve => { finishSnapshotOptions = resolve })
+
+    vi.mocked(api.get).mockImplementation((path: string) => {
+      if (path === '/etf-holdings') return profilesPending as never
+      if (path === '/etf-holdings/SPY/dates') return snapshotOptionsPending as never
+      return Promise.resolve([]) as never
+    })
+
+    const wrapper = mount(ETFHoldingsView)
+    await nextTick()
+    expect(wrapper.text()).toContain('Loading ETFs...')
+
+    finishProfiles([catalogueProfile])
+    await vi.waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith('/etf-holdings/SPY/dates')
+    })
+    await flushPromises()
+
+    expect(wrapper.find('.profile-list .state-line').exists()).toBe(false)
+    expect(wrapper.findAll('button.profile-card').some(card => card.text().includes('SPY'))).toBe(true)
+    expect(wrapper.get('.holdings-main h2').text()).toBe('SPY')
+    expect(wrapper.text()).toContain('No saved snapshot is available yet.')
+
+    finishSnapshotOptions([])
+    await flushPromises()
+    wrapper.unmount()
+  })
+
   it('loads ETF profiles, browses a paged holdings result, and opens a constituent chart', async () => {
     vi.mocked(api.get)
       .mockResolvedValueOnce([profile, overlapProfile])

@@ -19036,3 +19036,10 @@ serializer's per-profile query growth, not that it was the only latency source
 in Root's loaded Workstation run. No browser, native/source HTTP, database
 container, quota, fixture, or production action ran; Root owns real loaded-UI
 confirmation and exact-source qualification.
+
+
+## ETF catalogue readiness independent from default selection — 2026-11-08
+
+Root's real b011/fc220 Workstation case returned `GET /api/v1/etf-holdings` with 200 in about 167 ms, but the ETF pane still showed `Loading ETFs...` and no profile cards while default DIA snapshot work was in progress. The view assigned the catalogue response, then awaited `selectProfile()` before its `finally` cleared the same loading flag that hides the entire profile list. Catalogue readiness is now cleared immediately after the list is assigned; auto-selection and its snapshot/holdings requests continue independently.
+
+A focused unit regression holds the default SPY snapshot-date request open and verifies that the ETF card and selected symbol are already visible. The ETF holdings view module passes **31/31**, and frontend type-check passes. This isolates the consumer-side loading gate from the separately fixed catalogue query growth. Root still owns the real loaded-UI rerun and combined release qualification; this work did not run a browser, database fixture, or source request.

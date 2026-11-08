@@ -931,6 +931,9 @@ async function loadProfiles(search = profileSearch.value.trim(), autoSelectFirst
       && !normalized.some(profile => profile.id === currentSelection.id)
       ? [...normalized, currentSelection]
       : normalized
+    // Catalogue readiness is independent from the default profile's snapshot
+    // and holdings requests. Keep the list usable while that selection settles.
+    if (seq === profileLoadSeq) loadingProfiles.value = false
     if (autoSelectFirst
       && selectionGeneration === fundSelectionGeneration
       && !selectedProfile.value
