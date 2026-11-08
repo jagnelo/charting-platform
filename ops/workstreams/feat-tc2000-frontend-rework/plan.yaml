@@ -330,8 +330,8 @@ on_demand_consumer_implementation: 'Current TC-owned mocked implementation at th
   tree and passed its full required CI40656688915. This feature-branch adoption records ancestry only; its exact branch CI
   is pending Root. Controlled tests are not genuine Provider/issuer proof; target/deployment and the complete roadmap remain
   open.'
-current_blocker: "Root's immutable 8a full66 run is still in progress. The compact RRG/Ratio allocation and label placement repair is locally focused-tested; TC also applied the four diagnosed test-contract corrections (saved Results snapshot barrier, TCNEW option click, settled public-route setup, and M1 fixture acquisition gate). Root owns rendered/full-profile requalification; no browser or runtime was run in TC."
-current_checkpoint_status: "Current candidate combines compact RRG/Ratio plot-space and non-overlapping symbol-label improvements, the four Root/ETF-diagnosed TC-owned browser-test corrections, and the exact ETF bd5129 S&P journey successor. Focused Ratio/RRG modules pass 44/44, frontend type-check passes, and reference-only preflight reports no actionable unbound names. Root's immutable 8a full66 and rendered requalification remain pending; no release or full-platform acceptance is claimed."
+current_blocker: "Root has accepted the TC837 scoped qualification (compact RRG/Ratio render, unit suite, and mapped route/profile captures); its 8a predecessor full66 was 61/66 and the exact5 replay remains Root-owned. Root's review also assigned two ETF-owned content-order corrections. No TC product defect is currently evidenced by those results; exact candidate replays and remaining final gates are pending."
+current_checkpoint_status: "TC837 is frozen with focused compact Ratio/RRG, type, strict scope, workstream, journey-matrix, and reference checks green. Root's scoped qualification passed compact daily/weekly/monthly RRG resize/copy/restore, six visual profiles, 1955 frontend units, and three-profile route captures; the 8a predecessor full66 is 61/66 and its exact5 replay awaits Root. Imported the exact Strategy011e2 lifecycle E2E successor for the known workspace save/delete acknowledgement failure; its 25 other private paths match and remain pinned. ETF bd5129 S&P source remains pinned. No new product bytes were changed in this checkpoint; overall qualification and full roadmap remain open."
 
 ordinary_ticker_latest_update: 'Root accepted the exact combined served profile at backend source 6eae00eb8380438da771fed0c42d19587e9520ce
   / image sha256:6c962aad753959c2ecdd79f0a1d6057d77f2ba6b829ec85b99404b009a42e76a and frontend source 36e7ad2cb08c769a242773ab2b6be69fcc350774
@@ -5568,9 +5568,9 @@ approved_development_dependency_imports:
   - frontend/tests/unit/components/test_instrument_note_tool.test.ts
   - frontend/tests/unit/views/test_baskets_view.test.ts
   - frontend/tests/unit/views/test_etf_holdings_view.test.ts
-- source_sha: 6595b47a3d56220deda0e925901e4351df06cb1c
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/6595b47a3d56220deda0e925901e4351df06cb1c.json
-  manifest_sha256: b5117f2efc2b568b5c9368b3b4af9c6696f3b32823e8d95437571662569f2584
+- source_sha: 011e2fc8b54360dbbe635440c12cce7146ca6b68
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/011e2fc8b54360dbbe635440c12cce7146ca6b68.json
+  manifest_sha256: 9803144aa18391b199d4e6eb20d0a7eb086c3f3de3d53b67e3071ed1d5ef026c
   paths:
   - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
   - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue

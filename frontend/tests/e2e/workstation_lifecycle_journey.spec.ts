@@ -918,8 +918,20 @@ test.describe('Workstation lifecycle journeys', () => {
     expect(sourceConfiguration.members.every(member => member.identity && member.position > 0 && member.count > 0)).toBe(true)
 
     const menu = await openWorkspaceMenu(page)
-    await menu.getByRole('menuitem', { name: 'Duplicate workspace', exact: true }).click()
     const duplicateName = 'US Top Down Copy'
+    const cloneResponsePromise = page.waitForResponse(response => {
+      const request = response.request()
+      const path = new URL(response.url()).pathname
+      return request.method() === 'POST' && /^\/api\/v1\/workspaces\/\d+\/clone$/.test(path)
+    })
+    await menu.getByRole('menuitem', { name: 'Duplicate workspace', exact: true }).click()
+    const cloneResponse = await cloneResponsePromise
+    const sourceWorkspaceMatch = new URL(cloneResponse.url()).pathname.match(/^\/api\/v1\/workspaces\/(\d+)\/clone$/)
+    expect(sourceWorkspaceMatch, 'the duplicate operation must identify its source workspace').not.toBeNull()
+    const sourceWorkspaceId = Number(sourceWorkspaceMatch![1])
+    const clonedWorkspace = await cloneResponse.json() as { id?: number }
+    expect(Number.isInteger(clonedWorkspace.id) && Number(clonedWorkspace.id) > 0, 'the duplicate response must identify the saved workspace').toBe(true)
+    const duplicateWorkspaceId = Number(clonedWorkspace.id)
     await expect(page.locator('.workstation__workspace-name')).toHaveText(duplicateName)
     const duplicateBenchmarks = await assertUsefulTool(page, 'Benchmarks', 'watchlist')
     await assertUsefulWatchlistNumbers(duplicateBenchmarks)
@@ -957,6 +969,11 @@ test.describe('Workstation lifecycle journeys', () => {
       return before.map(pane => pane.getBoundingClientRect().height)
     })).not.toEqual(beforeSize.before)
     await expect(canvas).toBeVisible()
+    const priorSnapshotSave = page.waitForResponse(response => {
+      const request = response.request()
+      const path = new URL(response.url()).pathname
+      return request.method() === 'PUT' && path === `/api/v1/workspaces/${duplicateWorkspaceId}/snapshot` && response.ok()
+    })
     await chart.getByRole('button', { name: 'Maximize tool' }).click()
     await expect(chart).toBeVisible()
     await chart.getByRole('button', { name: 'Restore tool' }).click()
@@ -965,9 +982,28 @@ test.describe('Workstation lifecycle journeys', () => {
     await assertUsefulTool(page, 'Chart', 'chart')
     await page.setViewportSize(originalViewport!)
 
+    await priorSnapshotSave
+    const saveStatus = page.getByRole('status', { name: 'Workspace save status', exact: true })
+    await expect(saveStatus).toHaveAttribute('data-state', 'saved')
+    await expect(saveStatus).toHaveText('Workspace saved')
+
     page.once('dialog', dialog => dialog.accept())
     const deleteMenu = await openWorkspaceMenu(page)
+    const deleteAcknowledgement = page.waitForResponse(response => {
+      const request = response.request()
+      return request.method() === 'DELETE'
+        && new URL(response.url()).pathname === `/api/v1/workspaces/${duplicateWorkspaceId}`
+    })
+    const restoredSourceRead = page.waitForResponse(response => {
+      const request = response.request()
+      return request.method() === 'GET'
+        && new URL(response.url()).pathname === `/api/v1/workspaces/${sourceWorkspaceId}`
+        && response.status() === 200
+    })
     await deleteMenu.getByRole('menuitem', { name: 'Delete workspace', exact: true }).click()
+    const deleteResponse = await deleteAcknowledgement
+    expect(deleteResponse.status(), 'the confirmed duplicate delete must be acknowledged').toBe(204)
+    await restoredSourceRead
     await expect(page.locator('.workstation__workspace-name')).toHaveText('US Top Down')
     await expect((await openWorkspaceMenu(page)).getByRole('option', { name: duplicateName, exact: true })).toHaveCount(0)
     await expect(page.locator('.workstation__workspace-name')).toHaveText(sourceName!.trim())
