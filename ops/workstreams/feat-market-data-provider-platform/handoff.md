@@ -33908,3 +33908,27 @@ Root released the complete 126-path TC `2a8dc9e4c28a9632ffdf8f484ad12a985df70cd3
 Root captured shared provider-health result updates blocking concurrent work while a provider operation remained in an open transaction. Result telemetry and capacity-hold updates now use a short session on the caller's database bind for PostgreSQL; caller-owned request logs/business writes remain uncommitted by this path. First-use rows that are not yet committed are updated in the caller session, and SQLite retains its single-writer path. Same-session resolver checks see unknown-reset disablement and known-retry circuits immediately. The existing worker now claims one bounded job at a time and reselects, allowing newly queued visible work to precede remaining background jobs.
 
 The allocated real PostgreSQL regressions passed 5/5 in 44.91 seconds, covering concurrent outcome updates, caller rollback/isolation, first-use seeding, same-caller hold visibility, and progress during a blocked fallback transport. Focused unit tests passed 89/89 in 4.68 seconds; Ruff 0.4.7 and diff checks passed. No source HTTP or runtime/production quota, policy, ledger, or hold mutation occurred. Root owns the native replay, exact-source CI, and combined release qualification.
+
+
+## 2026-11-08 — release app quota-window locks before provider transport
+
+Root's full 19d trace classified the first Massive profile result as a genuine
+native quota hold with a known retry time (`01:57:01Z`); preserve that hold and
+allowance. The later retry timeout was a separate application defect: PostgreSQL
+`provider_quota_window` row locks remained held in the caller transaction
+through provider transport, blocking other admissions. For persisted clean
+runtime rows on PostgreSQL, app-side quota dimensions now reserve and settle in
+short sessions on the caller's exact bind. First-use uncommitted source/policy/
+window state and SQLite remain caller-owned. The caller transaction and business
+writes are never committed by this path, and quota reservations, settlements,
+failure charging, distinct-identity claims, native coordinator admission, and
+provider holds remain in place.
+
+The allocated real-PostgreSQL transaction module passed 7/7, including a full
+`execute_provider_call` test where a second admitted operation completes while
+the first mock transport is blocked, plus first-use uncommitted state and caller
+rollback isolation. Three existing execute/quota unit regressions passed. Ruff
+0.4.7 check/format, Python compilation, and `git diff --check` passed. No provider
+HTTP, retained runtime/database access, native ledger, policy, or hold mutation
+occurred. Exact-source CI and Root's runtime replay remain pending; all wider
+Provider criteria remain open.
