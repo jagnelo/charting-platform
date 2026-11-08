@@ -2147,7 +2147,9 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
       response.dependencies = response.dependencies.map(dependency => ({
         ...dependency,
         status: queuedTerminal ? 'queued' : outcome,
-        reason_code: !queuedTerminal && outcome === 'unavailable' ? 'test_fixture_hold' : null,
+        reason_code: !queuedTerminal && outcome === 'unavailable'
+          ? symbol === 'BWET' ? 'future_dated_source' : 'test_fixture_hold'
+          : null,
       }))
       if (queuedTerminal) pendingHoldings.set(requestId, { symbol, terminal: queuedTerminal, response })
       await route.fulfill({ status: 200, json: response })
@@ -2450,7 +2452,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     expect(await bwetHoldingsResponse.json()).toMatchObject({
       status: 'unavailable',
       has_pending_work: false,
-      dependencies: [{ dataset: 'holdings', status: 'unavailable' }],
+      dependencies: [{ dataset: 'holdings', status: 'unavailable', reason_code: 'future_dated_source' }],
     })
     expect(identityRequests.filter(request => request.symbol === 'BWET')).toHaveLength(0)
     expect(holdingsEnsureRequests.filter(request => request.symbol === 'BWET').map(request => request.body)).toEqual([

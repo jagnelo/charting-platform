@@ -26724,6 +26724,12 @@ The exact private test imports are ETF55c0e52d4afdf7703fe23fab2fda9e81b2c40bf8 (
 
 Focused evidence: API client 22/22, EasyScan 26/26, WatchList store 25/25, Workstation tool acquisition 15/15, and frontend type-check passed. The two manifests were verified against all 36 declared worktree paths and Git modes. Root owns retained-fixture/browser/native qualification, exact CI, and full platform acceptance; none is claimed complete here.
 
+## 2026-11-08 — Correct BWET future-source journey fixture
+
+Root's exact two-journey run on `9ec4d7833c45cd2fc51916a2378445f7761b425e` / Provider `9e2de1591cb8fc124839309ff4549808b7632844` passed the complete factory recreation case. The selected-ETF case failed at BWET's detailed hold message. The trace shows the test interceptor itself returned an unavailable holdings dependency with `reason_code: test_fixture_hold`, while the journey asserted the typed `future_dated_source` behavior. The UI rendered the generic message that corresponds to that fixture reason; this run does not demonstrate a product regression.
+
+The controlled BWET response now uses `future_dated_source`, and the E2E assertion checks that exact dependency reason before checking the public message. Existing unit and Workstation regressions already verify that this typed reason becomes a plain user-safe future-snapshot explanation while ready history remains usable. No product code, live source, or browser runtime was changed by TC. E2E reference preflight found no actionable unbound names; Playwright discovery lists all seven on-demand cases. Root owns the exact-source rerun and remaining platform qualification; the failed predecessor result remains preserved.
+
 ## 2026-11-08 — Preserve foreground priority and independent ETF holdings
 
 Root's exact timeline showed selected ETF holdings preparation could wait behind unrelated chart/technical hydration. The selection path now starts the holdings cache read independently; when a current holdings capability is known, only that exact holdings cache operation is awaited before publishing current holdings status. Stale/unavailable holdings continue into the shared ensure path without waiting for chart data. Focused Workstation regressions hold chart and technical reads open while checking that holdings work/status proceeds.

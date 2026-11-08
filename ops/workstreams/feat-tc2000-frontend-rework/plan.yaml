@@ -330,8 +330,8 @@ on_demand_consumer_implementation: 'Current TC-owned mocked implementation at th
   tree and passed its full required CI40656688915. This feature-branch adoption records ancestry only; its exact branch CI
   is pending Root. Controlled tests are not genuine Provider/issuer proof; target/deployment and the complete roadmap remain
   open.'
-current_blocker: "Focused checks cover independent selected-ETF holdings work and monotonic priority for shared visible WatchList reads. Root owns retained-fixture browser qualification; full platform acceptance and release gates remain pending."
-current_checkpoint_status: "Current source contains bounded API admission, promotion-only priority for shared queued reads, visible-dock WatchList quote promotion, selected holdings preparation independent of chart/technical hydration, durable EasyScan unmount behavior, and dataset-specific preparation reasons. The exact Provider 9e2de159 dependency is imported and pinned. Focused checks pass; Root's browser/native and full acceptance remain pending."
+current_blocker: "Root's exact 9ec4d783/9e2de159 two-journey run passed factory recreation but the BWET journey showed its controlled response used generic test_fixture_hold instead of the expected future_dated_source. The TC fixture contract is corrected; Root must rebuild and rerun the affected journey. Full platform acceptance and release gates remain pending."
+current_checkpoint_status: "Current source contains bounded API admission, promotion-only priority for shared queued reads, visible-dock WatchList quote promotion, selected holdings preparation independent of chart/technical hydration, durable EasyScan unmount behavior, and dataset-specific preparation reasons. Provider 9e2de159 is pinned. Root's first exact-source two-journey run found a BWET fixture reason mismatch (not a product-code failure) and passed full factory recreation; the fixture is corrected for requalification."
 
 ordinary_ticker_latest_update: 'Root accepted the exact combined served profile at backend source 6eae00eb8380438da771fed0c42d19587e9520ce
   / image sha256:6c962aad753959c2ecdd79f0a1d6057d77f2ba6b829ec85b99404b009a42e76a and frontend source 36e7ad2cb08c769a242773ab2b6be69fcc350774
@@ -1987,9 +1987,9 @@ status: in_progress
 progress:
   completed: []
   total: 9
-  current_phase: "Close the selected-holdings independence and visible WatchList priority repairs with the exact Provider 9e2de159 dependency pinned."
-  current_blocker: "Focused unit tests and type-check pass; final scope/workstream guards and the coherent source commit are pending, followed by Root-owned retained-fixture qualification."
-  next_action: "Run exact import/scope/workstream checks, commit one coherent source checkpoint, and hand it to Root for browser qualification; preserve all remaining platform criteria and release gates."
+  current_phase: "Correct the typed future-dated BWET holdings response in the TC-owned controlled journey fixture and requalify the exact affected case."
+  current_blocker: "The 9ec4d783/9e2de159 run passed the full catalogue recreation journey. BWET's test interceptor returned test_fixture_hold, contradicting the journey's future_dated_source contract; the fixture correction is ready for Root's next exact build/run."
+  next_action: "Run scoped source/workstream checks and freeze the fixture-only correction for Root to rebuild and rerun the selected ETF journey; keep full platform criteria and release gates pending."
   updated_at: '2026-11-08'
 historical_checkpoint_status_archive: 'Current boundary (2026-10-22): published HEAD is a7c8ecba208ce6c79d8f1a5d7294500122e462e5;
   one test-only change in workstation_performance.spec.ts and the four owned records are pending review. Exact hosted CI39693019337
@@ -4265,7 +4265,7 @@ correction_summary:
     recorded.
 
 ordinary_ticker_snapshot_followup_20261105: {"kind": "corrective followup within existing ordinary ticker checkpoint; no roadmap replan", "baseline": "45cc8206602d7823ca29e132d991d88b0bcbbc25", "previous_goal": "Repair exact discovered ticker Enter/Go in Workstation and shared chart SearchBar, and isolate superseded selection errors while preserving exact-local precedence, explicit choices, expressions, identity verification, ambiguity safeguards, picker scopes, stale-query fencing, current ETF context, and genuine workspace conflict recovery.", "Root_acceptance": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/TC-same-snapshot-implementation-root-acceptance.json", "accepted_file_hashes": {"frontend/src/components/workstation/WorkstationToolContent.vue": "3ff06c38e10066f15e4bca78b49833ec109d6e4443a4302106c6acdc1a813db2", "frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts": "b28994b75748976ef4658f74a79379909bb76fad5c7e8077b4e9b45a5e331c7e"}, "local_evidence": "4/4 mounted component tests, type-check and diff checks; prior failing CI retained", "release_state": "Root correct-bundle browser, exact closing-tip CI and combined full profile remain pending", "boundaries": "No self-integration/deployment; no source requests or quota/policy/dataset changes; all old roadmap criteria and accepted archives preserved"}
-next_action: "Freeze this coherent TC candidate after focused type/scope/workstream checks; Root owns retained-fixture and combined qualification. Preserve all remaining full-platform criteria and pending release gates."
+next_action: "Freeze this focused fixture correction after scope/workstream checks; Root owns its exact-source rerun and all remaining combined qualification. Preserve all full-platform criteria and release gates."
 current_exact_ci:
   head_sha: null
   run_id: null
