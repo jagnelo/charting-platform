@@ -225,7 +225,7 @@ def test_full_matrix_cost_counts_are_derived_from_every_manifest_case():
 
     assert runner.live_matrix_inventory_errors() == []
     assert runner.LIVE_MATRIX_OPERATION_MULTIPLIERS["alpha_vantage"]["fetch_ohlcv"] == 3
-    assert runner.LIVE_MATRIX_OPERATION_MULTIPLIERS["eodhd"]["fetch_ohlcv"] == 3
+    assert runner.LIVE_MATRIX_OPERATION_MULTIPLIERS["eodhd"]["fetch_ohlcv"] == 4
     assert runner.LIVE_MATRIX_OPERATION_MULTIPLIERS["twelve_data"]["fetch_ohlcv"] == 2
     assert runner.LIVE_MATRIX_OPERATION_MULTIPLIERS["alpaca"]["get_instrument_profile"] == 2
     assert runner.LIVE_MATRIX_OPERATION_MULTIPLIERS["coinbase"]["fetch_ohlcv"] == 2
@@ -1565,7 +1565,7 @@ def test_unexercised_registered_surfaces_have_explicit_live_dispositions():
         "massive": set(),
         "alpha_vantage": set(),
         "tiingo": set(),
-        "twelve_data": set(),
+        "twelve_data": {"get_earliest_timestamp"},
         "finnhub": {"fetch_ohlcv"},
         "marketstack": set(),
         "eodhd": set(),
