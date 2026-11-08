@@ -4798,6 +4798,10 @@ watch([benchmarkFamilyKey, benchmarkFamilyCapProxy, activeTimeframe], async ([fa
   benchmarkFamilyPreparationAbort?.abort()
   benchmarkFamilyPreparationAbort = null
   benchmarkFamilyPreparationStatus.value = ''
+  // A prior family request may still be in flight when the user switches to
+  // the plain benchmark catalogue. Its finally block is generation-fenced, so
+  // release the foreground busy state for this new context before returning.
+  benchmarkFamilyLoading.value = false
   if (!familyKey) return
   if (!familyAsOf.value) {
     const preparationGeneration = ++benchmarkFamilyPreparationGeneration

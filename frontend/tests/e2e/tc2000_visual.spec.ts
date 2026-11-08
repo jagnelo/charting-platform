@@ -3,7 +3,7 @@
  * the backend manifest validator; the board variant uses the accepted composite board policy
  * and still requires deterministic local geometry and screenshot evidence.
  */
-import type { Page } from '@playwright/test'
+import type { Page, Response } from '@playwright/test'
 import { test, expect } from './helpers'
 
 async function assertSeededBackend(page: Page) {
@@ -45,6 +45,59 @@ async function waitForActiveWindowSnapshotAcknowledgement(page: Page, tabKey: st
       return false
     }
   })
+}
+
+async function waitForWindowConfigurationSnapshotAcknowledgement(
+  page: Page,
+  tabKey: string,
+  windowKey: string,
+  matches: (configuration: Record<string, unknown>) => boolean,
+) {
+  return page.waitForResponse(async response => {
+    const request = response.request()
+    if (request.method() !== 'PUT' || !/\/workspaces\/[^/]+\/snapshot$/.test(new URL(request.url()).pathname)) return false
+    try {
+      const payload = request.postDataJSON() as { tabs?: Array<{ stable_key?: string; windows?: Array<{ instance_key?: string; configuration?: Record<string, unknown> }> }> }
+      const tab = payload.tabs?.find(candidate => candidate.stable_key === tabKey)
+      const window = tab?.windows?.find(candidate => candidate.instance_key === windowKey)
+      return Boolean(window?.configuration && matches(window.configuration))
+    } catch {
+      return false
+    }
+  })
+}
+
+async function waitForNewActiveWindowSnapshotAcknowledgement(page: Page, tabKey: string, previousWindowKey: string) {
+  return page.waitForResponse(async response => {
+    const request = response.request()
+    if (request.method() !== 'PUT' || !/\/workspaces\/[^/]+\/snapshot$/.test(new URL(request.url()).pathname)) return false
+    try {
+      const payload = request.postDataJSON() as { tabs?: Array<{ stable_key?: string; active_window_key?: string | null }> }
+      return payload.tabs?.some(tab => tab.stable_key === tabKey
+        && Boolean(tab.active_window_key)
+        && tab.active_window_key !== previousWindowKey) ?? false
+    } catch {
+      return false
+    }
+  })
+}
+
+async function waitForWorkspaceSnapshotAcknowledgement(page: Page) {
+  return page.waitForResponse(response => response.request().method() === 'PUT'
+    && /\/workspaces\/[^/]+\/snapshot$/.test(new URL(response.url()).pathname))
+}
+
+async function activeWorkspaceTabKey(page: Page) {
+  const key = await page.locator('.workstation__tabs [role="tab"][aria-selected="true"]').getAttribute('data-tab-key')
+  expect(key).toBeTruthy()
+  return key!
+}
+
+async function expectWorkspaceSaveAcknowledged(page: Page, response: Response) {
+  expect(response.status()).toBe(200)
+  const status = page.getByRole('status', { name: 'Workspace save status' })
+  await expect(status).toHaveAttribute('data-state', 'saved')
+  await expect(status).toHaveText('Workspace saved')
 }
 
 async function waitForShellReady(page: Page, readiness: ShellReadiness = 'loaded') {
@@ -100,9 +153,12 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await page.goto('/')
     const reset = page.getByTitle('Reset factory workspace').first()
     if (await reset.count()) {
+      await expect(page.getByRole('status', { name: 'Workspace save status' })).toHaveAttribute('data-state', 'saved')
+      const resetAcknowledgement = waitForWorkspaceSnapshotAcknowledgement(page)
       page.once('dialog', dialog => dialog.accept())
       await reset.click()
       await expect(page.locator('.workstation__layout-state')).toHaveCount(0, { timeout: 15_000 })
+      await expectWorkspaceSaveAcknowledged(page, await resetAcknowledgement)
     }
   })
 
@@ -312,13 +368,21 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
   test('watchlist column editor open state has a deterministic board baseline', async ({ page, loggedIn, browserDiagnostics }) => {
     await page.goto('/')
     await waitForShellReady(page)
+    const benchmarkWindow = page.locator('.tool-window:visible').filter({ has: page.locator('.benchmark-surface') }).first()
+    const benchmarkWindowKey = await benchmarkWindow.getAttribute('data-window-key')
+    const benchmarkTabKey = await activeWorkspaceTabKey(page)
+    expect(benchmarkWindowKey).toBeTruthy()
     const benchmarkSurface = page.locator('.benchmark-surface:visible')
     const familySelector = benchmarkSurface.getByLabel('Benchmark family', { exact: true })
     await expect(benchmarkSurface.getByLabel('Benchmark family readiness')).toHaveCount(0)
+    let familySave = waitForWindowConfigurationSnapshotAcknowledgement(page, benchmarkTabKey, benchmarkWindowKey!, configuration => configuration.benchmark_family_key === 'sp500')
     await familySelector.selectOption({ label: 'S&P 500' })
+    await expectWorkspaceSaveAcknowledged(page, await familySave)
     await expect(benchmarkSurface.getByLabel('Benchmark family readiness'))
       .toContainText('All-family readiness:', { timeout: 15_000 })
+    familySave = waitForWindowConfigurationSnapshotAcknowledgement(page, benchmarkTabKey, benchmarkWindowKey!, configuration => configuration.benchmark_family_key == null)
     await familySelector.selectOption({ label: 'Major US benchmarks' })
+    await expectWorkspaceSaveAcknowledged(page, await familySave)
     await expect(benchmarkSurface.getByLabel('Benchmark family readiness')).toHaveCount(0)
     await waitForShellReady(page)
     const benchmarks = page.getByRole('region', { name: 'Major US benchmarks' })
@@ -349,6 +413,11 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
   test('EasyScan condition editor open state has a deterministic local baseline', async ({ page, loggedIn, browserDiagnostics }) => {
     await page.goto('/')
     await waitForShellReady(page)
+    await expect(page.getByRole('status', { name: 'Workspace save status' })).toHaveAttribute('data-state', 'saved')
+    const tabKey = await activeWorkspaceTabKey(page)
+    const previousWindowKey = await page.locator('.tool-window:visible').first().getAttribute('data-window-key')
+    expect(previousWindowKey).toBeTruthy()
+    const saveAcknowledgement = waitForNewActiveWindowSnapshotAcknowledgement(page, tabKey, previousWindowKey!)
     await page.getByRole('button', { name: 'Add tool', exact: true }).click()
     const toolMenu = page.getByRole('menu', { name: 'Workstation tools' })
     await expect(toolMenu).toBeVisible()
@@ -357,11 +426,20 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     // target the newly foregrounded visible tool rather than a hidden tab body.
     const scan = page.locator('.easy-scan:visible').last()
     await expect(scan).toBeVisible({ timeout: 10_000 })
+    const scanWindowKey = await scan.locator('xpath=ancestor-or-self::*[contains(concat(" ", normalize-space(@class), " "), " tool-window ")]').getAttribute('data-window-key')
+    expect(scanWindowKey).toBeTruthy()
+    const savedLayout = await saveAcknowledgement
+    expect(savedLayout.status()).toBe(200)
+    const savedTab = (savedLayout.request().postDataJSON() as { tabs: Array<{ stable_key: string; active_window_key: string | null }> }).tabs
+      .find(candidate => candidate.stable_key === tabKey)
+    expect(savedTab?.active_window_key).toBe(scanWindowKey)
+    await expectWorkspaceSaveAcknowledged(page, savedLayout)
     await scan.getByRole('button', { name: 'Build technical condition tree', exact: true }).click()
     await expect(scan.getByRole('region', { name: 'Advanced technical condition builder' })).toBeVisible()
     await expect(scan.getByRole('combobox', { name: 'Condition group operator' })).toHaveValue('AND')
     await expect(scan.getByRole('button', { name: '+ Condition', exact: true })).toBeVisible()
     await expect(scan.getByRole('button', { name: '+ Group', exact: true })).toBeVisible()
+    await expect(page.getByRole('status', { name: 'Workspace save status' })).toHaveAttribute('data-state', 'saved')
     await expect(page).toHaveScreenshot('easyscan-condition-editor-open.png', {
       animations: 'disabled',
       caret: 'hide',
@@ -383,9 +461,14 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await menuTrigger.click()
     await expect(menu).toHaveCount(1)
     await expect(menu).toHaveRole('menu')
+    const tabKey = await activeWorkspaceTabKey(page)
+    const windowKey = await tool.getAttribute('data-window-key')
+    expect(windowKey).toBeTruthy()
+    const saveAcknowledgement = waitForActiveWindowSnapshotAcknowledgement(page, tabKey, windowKey!)
     await menu.getByRole('menuitem', { name: 'Maximize' }).click()
     await expect(page.locator('.lm_maximised')).toHaveCount(1)
     await expect(tool).toBeVisible()
+    await expectWorkspaceSaveAcknowledged(page, await saveAcknowledgement)
     await expect(page).toHaveScreenshot('workspace-maximized.png', {
       animations: 'disabled',
       caret: 'hide',
@@ -407,24 +490,24 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await expect(selectedTab).not.toHaveClass(/lm_active/)
     const selectedTabKey = await page.locator('.workstation__tabs [role="tab"][aria-selected="true"]').getAttribute('data-tab-key')
     expect(selectedTabKey).toBeTruthy()
-    const selectedWindowKey = await selectedTab.evaluate(tab => {
+    const selectedTabTitle = await selectedTab.getAttribute('title')
+    expect(selectedTabTitle).toBeTruthy()
+    const stableSelectedTab = page.locator(`.lm_tab:visible[title=${JSON.stringify(selectedTabTitle)}]`)
+    await expect(stableSelectedTab).toHaveCount(1)
+    const selectedWindowKey = await stableSelectedTab.evaluate(tab => {
       const title = tab.querySelector('.lm_title')?.textContent?.trim() || tab.textContent?.trim()
       const matching = Array.from(document.querySelectorAll<HTMLElement>('.tool-window[data-window-key]'))
         .filter(window => window.querySelector('.tool-window__title')?.textContent?.trim() === title)
       return matching.length === 1 ? matching[0].dataset.windowKey ?? null : null
     })
     expect(selectedWindowKey).toBeTruthy()
-    await expect(page.getByRole('status', { name: 'Workspace save status' })).toHaveAttribute('data-state', 'saved')
     const saveAcknowledgement = waitForActiveWindowSnapshotAcknowledgement(page, selectedTabKey!, selectedWindowKey!)
-    await selectedTab.click()
-    await expect(selectedTab).toHaveClass(/lm_active/)
+    await stableSelectedTab.click()
+    await expect(stableSelectedTab).toHaveClass(/lm_active/)
     const selectedWindow = page.locator(`.tool-window[data-window-key="${selectedWindowKey}"]`)
     await expect(selectedWindow).toBeVisible()
     await expect(selectedWindow).toHaveClass(/tool-window--active/)
-    const savedSelection = await saveAcknowledgement
-    expect(savedSelection.status()).toBe(200)
-    await expect(page.getByRole('status', { name: 'Workspace save status' })).toHaveAttribute('data-state', 'saved')
-    await expect(page.getByRole('status', { name: 'Workspace save status' })).toHaveText('Workspace saved')
+    await expectWorkspaceSaveAcknowledged(page, await saveAcknowledgement)
     await expect(page).toHaveScreenshot('workspace-tabbed.png', {
       animations: 'disabled',
       caret: 'hide',
@@ -446,11 +529,18 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await menuTrigger.click()
     await expect(menu).toHaveCount(1)
     await expect(menu).toHaveRole('menu')
+    const tabKey = await activeWorkspaceTabKey(page)
+    const windowKey = await tool.getAttribute('data-window-key')
+    expect(windowKey).toBeTruthy()
+    const maximizeAcknowledgement = waitForActiveWindowSnapshotAcknowledgement(page, tabKey, windowKey!)
     await menu.getByRole('menuitem', { name: 'Maximize' }).click()
     await expect(page.locator('.lm_maximised')).toHaveCount(1)
+    await expectWorkspaceSaveAcknowledged(page, await maximizeAcknowledgement)
+    const restoreAcknowledgement = waitForActiveWindowSnapshotAcknowledgement(page, tabKey, windowKey!)
     await tool.locator('button[title="Maximize"]').click()
     await expect(page.locator('.lm_maximised')).toHaveCount(0)
     await expect(tool).toBeVisible()
+    await expectWorkspaceSaveAcknowledged(page, await restoreAcknowledgement)
     await expect(page).toHaveScreenshot('workspace-restored.png', {
       animations: 'disabled',
       caret: 'hide',
@@ -464,9 +554,21 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await page.goto('/')
     await waitForShellReady(page)
     const sourceTool = page.locator('.tool-window').first()
+    const sourceWindowKey = await sourceTool.getAttribute('data-window-key')
+    const tabKey = await activeWorkspaceTabKey(page)
+    expect(sourceWindowKey).toBeTruthy()
     const expectedSymbols = ['DIA', 'IWM', 'QQQ', 'RSP', 'SPY']
     await expect(sourceTool.locator('.watchlist__row')).toHaveCount(expectedSymbols.length)
     const popupPromise = context.waitForEvent('page')
+    const floatAcknowledgement = page.waitForResponse(async response => {
+      const request = response.request()
+      if (request.method() !== 'PUT' || !/\/workspaces\/[^/]+\/snapshot$/.test(new URL(request.url()).pathname)) return false
+      try {
+        const payload = request.postDataJSON() as { tabs?: Array<{ stable_key?: string; windows?: Array<{ instance_key?: string }> }> }
+        const tab = payload.tabs?.find(candidate => candidate.stable_key === tabKey)
+        return Boolean(tab && !tab.windows?.some(window => window.instance_key === sourceWindowKey))
+      } catch { return false }
+    })
     await sourceTool.locator('button[title="Float"]').click()
     const popup = await popupPromise
     await popup.waitForLoadState('domcontentloaded')
@@ -487,6 +589,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
       const rowText = await popoutRows.allTextContents()
       return rowText.length === expectedSymbols.length && rowText.every(text => text.includes('Current'))
     }, { timeout: 15_000 }).toBe(true)
+    await expectWorkspaceSaveAcknowledged(page, await floatAcknowledgement)
     await expect(popup).toHaveScreenshot('workspace-floating.png', {
       animations: 'disabled',
       caret: 'hide',

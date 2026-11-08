@@ -1441,6 +1441,7 @@ owned_paths:
 - frontend/src/lib/uplot/rendererLifecycle.ts
 - frontend/src/components/chart/ChartPanel.vue
 - frontend/src/components/common/CompactStatusNotice.vue
+- frontend/src/components/common/TechnicalConditionEditor.vue
 - frontend/src/components/chart/LayoutPicker.vue
 - frontend/src/components/chart/InstrumentInfoPanel.vue
 - frontend/src/components/chart/IndicatorPanel.vue
@@ -4633,6 +4634,40 @@ platform_usability_checkpoint_20261106:
       remain pending.
     integration_capture: exact branch HEAD
 development_dependency_import_history:
+  - source_sha: 0875336efeafd2339ed609e7bb1ec781fd5682d5
+    manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/0875336efeafd2339ed609e7bb1ec781fd5682d5.json
+    manifest_sha256: 9823d4b119a37dc87dfaac31a06ed3a1064a7d3d12c530042c284ebe3d8ae72f
+    paths:
+      - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
+      - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
+      - frontend/src/components/dashboard/DashboardInstrumentSearch.vue
+      - frontend/src/components/dashboard/DashboardLineChartWidget.vue
+      - frontend/src/components/dashboard/DashboardQuoteWidget.vue
+      - frontend/src/components/workstation/CodeLibraryTool.vue
+      - frontend/src/components/workstation/PythonSourceEditor.vue
+      - frontend/src/components/workstation/ResearchResultsTool.vue
+      - frontend/src/components/workstation/StudyLabTool.vue
+      - frontend/src/lib/workstation/researchQueryKeys.ts
+      - frontend/src/lib/workstation/researchRunCancellation.ts
+      - frontend/src/stores/dashboard.ts
+      - frontend/src/views/DashboardView.vue
+      - frontend/src/views/StrategyLabView.vue
+      - frontend/tests/e2e/dashboard_usability_journey.spec.ts
+      - frontend/tests/e2e/strategy_study_journey.spec.ts
+      - frontend/tests/e2e/workstation_lifecycle_journey.spec.ts
+      - frontend/tests/unit/components/test_code_library_tool.test.ts
+      - frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts
+      - frontend/tests/unit/components/test_dashboard_instrument_search.test.ts
+      - frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts
+      - frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts
+      - frontend/tests/unit/components/test_python_source_editor.test.ts
+      - frontend/tests/unit/components/test_research_results_tool.test.ts
+      - frontend/tests/unit/components/test_study_lab_tool.test.ts
+      - frontend/tests/unit/stores/test_dashboard_store.test.ts
+      - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts
+      - frontend/tests/unit/views/test_strategy_lab_view.test.ts
+    state: superseded_development_import
+    superseded_by: bd50269c862e577a48063b084ce2ba8d13aaef76
   - source_sha: 55b956f40615f1623a0f7d084b9fc0a355727053
     manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/55b956f40615f1623a0f7d084b9fc0a355727053.json
     manifest_sha256: b23c835ede9b509a7063e6f971e543eca28e77d669b5234e64fb17286704e901
@@ -5916,9 +5951,9 @@ approved_development_dependency_imports:
   - frontend/tests/unit/components/test_instrument_note_tool.test.ts
   - frontend/tests/unit/views/test_baskets_view.test.ts
   - frontend/tests/unit/views/test_etf_holdings_view.test.ts
-- source_sha: 0875336efeafd2339ed609e7bb1ec781fd5682d5
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/0875336efeafd2339ed609e7bb1ec781fd5682d5.json
-  manifest_sha256: 9823d4b119a37dc87dfaac31a06ed3a1064a7d3d12c530042c284ebe3d8ae72f
+- source_sha: bd50269c862e577a48063b084ce2ba8d13aaef76
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/bd50269c862e577a48063b084ce2ba8d13aaef76.json
+  manifest_sha256: aec8ac2a00b5d64d60c278067d88198d119cf6403d66ad0a120533a1cb05c0d0
   paths:
   - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
   - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
@@ -6036,3 +6071,13 @@ strategy_0875336efeafd2339ed609e7bb1ec781fd5682d5_private_successor_20261108:
   previous_private_pin: Strategy 7aa843efeec7b5a37e1ecc52fa5392069cda9326 is archived unchanged in development_dependency_import_history and superseded only in the active pin.
   validation: Exact three old guards passed; frontend type-check passed; reference-only preflight found zero actionable unbound names (four non-actionable E2E type advisories remain outside its qualification mode); discovery listed 116 cases across the two files; strict TC scope, 28-route/action journey matrix, workstream, and staged/unstaged diff checks passed.
   pending: Root owns combined build, actual positive Legacy replay, complete mapped journeys, and full release qualification.
+tc_95ad_benchmark_visual_condition_editor_20261108:
+  assignment: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/root-95ad-benchmark-family-loading-cause.json and root-95ad-EasyScan-critical-visual-review.json
+  state: focused_source_complete; Root_rendered_review_pending
+  changes: Reset benchmark foreground loading on family-context switch before the plain-family early return; late family reads remain generation-fenced. TC visual state now freezes the chosen inactive tab title/window identity and awaits matching workspace snapshot acknowledgements before family, EasyScan, maximize, tab, restore, float and reset captures. Shared TechnicalConditionEditor and ConditionGroupEditor now use workstation tokens, readable labels, flat compact controls and visible keyboard focus; the exact shared editor path is explicitly in TC owned_paths under Root's review authorization.
+  strategy_source: bd50269c862e577a48063b084ce2ba8d13aaef76
+  strategy_manifest: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/bd50269c862e577a48063b084ce2ba8d13aaef76.json
+  strategy_manifest_sha256: aec8ac2a00b5d64d60c278067d88198d119cf6403d66ad0a120533a1cb05c0d0
+  strategy_import: frontend/tests/e2e/strategy_study_journey.spec.ts only; all 28 source blobs, SHA256 values and modes verified, exact old guard matched, and the other 27 consumer files remain identical. The 087 pin is archived in development_dependency_import_history; bd502 is active.
+  validation: Focused WorkstationToolContent and TechnicalConditionEditor units pass; frontend type-check passes; reference-only E2E preflight reports no actionable unbound names; workstream, TC scope, journey matrix and staged/unstaged diff checks pass.
+  pending: Root owns rendered benchmark/EasyScan visual review and combined browser qualification; all complete journey, exact-source CI and release criteria remain open.

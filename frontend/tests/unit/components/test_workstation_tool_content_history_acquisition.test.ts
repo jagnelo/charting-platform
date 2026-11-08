@@ -238,6 +238,77 @@ describe('WorkstationToolContent missing chart history entrypoint', () => {
     queryClient.clear()
   })
 
+  it('clears family busy state when switching to cached plain benchmarks while the old family response is pending', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const workspaceStore = useWorkspaceStore(pinia)
+    const members = ['DIA', 'IWM', 'QQQ', 'RSP', 'SPY'].map((symbol, index) => ({
+      id: index + 1,
+      instrument_id: index + 101,
+      position: index,
+      instrument: { id: index + 101, symbol, name: `${symbol} fund` },
+    }))
+    workspaceStore.marketGroups['us-benchmarks'] = { members, provenance: {} } as never
+    const familyGroup = deferred<any>()
+    const familySnapshot = deferred<any>()
+    const familyOverview = deferred<any>()
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/market-groups/sp500') return familyGroup.promise
+      if (path === '/analysis/groups/sp500/snapshot') return familySnapshot.promise
+      if (path === '/analysis/benchmark-families/sp500/overview') return familyOverview.promise
+      if (path === '/analysis/benchmark-families/readiness') return Promise.resolve({ status: 'ready', families: [], provider_probe_evidence: [] })
+      return Promise.resolve([])
+    })
+    const tool: WorkspaceWindowState = {
+      id: -95,
+      instance_key: 'benchmark-family-switch',
+      tool_type: 'watchlist',
+      title: 'Benchmarks',
+      link_group: 'blue',
+      configuration: { workspace_role: 'benchmark-universe', benchmark_family_key: 'sp500', as_of: '2026-11-07' },
+      style: {},
+      state_schema_version: 1,
+      position: 0,
+    }
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const wrapper = mount(WorkstationToolContent, {
+      props: { tool, activeWindowKey: tool.instance_key },
+      global: {
+        plugins: [pinia, [VueQueryPlugin, { queryClient }]],
+        stubs: {
+          VirtualWatchlistTool: {
+            props: ['label', 'rows', 'loading'],
+            template: '<section :aria-label="label" :aria-busy="loading ? \'true\' : \'false\'"><span v-for="row in rows" :key="row.symbol">{{ row.symbol }}</span></section>',
+          },
+          ToolWindow: ToolWindowShell,
+          UPlotChart: EmptyChartStub,
+          ChartPlotLibrary: true,
+          ChartTemplateControl: true,
+          DrawingToolbar: true,
+        },
+      },
+    })
+
+    await vi.waitFor(() => expect(wrapper.get('.benchmark-surface section[aria-busy]')
+      .attributes('aria-busy')).toBe('true'))
+    await wrapper.setProps({ tool: { ...tool, configuration: { ...tool.configuration, benchmark_family_key: null } } })
+    await flushPromises()
+    const plainList = wrapper.get('[aria-label="Major US benchmarks"]')
+    expect(plainList.attributes('aria-busy')).toBe('false')
+    expect(plainList.text()).toContain('DIA')
+    expect(plainList.text()).toContain('SPY')
+
+    familyGroup.resolve({ members: [], provenance: {} })
+    familySnapshot.resolve({ group_key: 'sp500', rows: [] })
+    familyOverview.resolve({ mappings: [] })
+    await flushPromises()
+    expect(plainList.attributes('aria-busy')).toBe('false')
+    expect(plainList.text()).toContain('SPY')
+
+    wrapper.unmount()
+    queryClient.clear()
+  })
+
   it('keeps both constituent context and missing-snapshot messages in normal flow', async () => {
     const pinia = createPinia()
     setActivePinia(pinia)
