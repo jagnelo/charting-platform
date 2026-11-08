@@ -10,14 +10,17 @@ from app.models.instrument_event import (
     InstrumentEventPageSnapshot,
     InstrumentEventType,
 )
+from app.models.market_data_foundation import MarketRefreshJob
 from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
 from app.providers.base import InstrumentEventPage, InstrumentEventRecord
 from app.providers.errors import ProviderRateLimitError, ProviderResponseError
 from app.services import instrument_events
 from app.services.instrument_events import (
     EVENT_FETCH_VERSION,
+    enqueue_instrument_events_refresh,
     ensure_instrument_events_loaded,
     fetch_and_store_instrument_events,
+    instrument_events_refresh_status,
 )
 from app.services.provider_runtime import (
     ProviderExecutionResult,
@@ -119,6 +122,87 @@ async def test_ensure_instrument_events_loaded_serves_cache_on_provider_failure(
     )
 
     await ensure_instrument_events_loaded(async_db, instrument)
+
+
+@pytest.mark.asyncio
+async def test_stale_calendar_refresh_requeues_one_completed_durable_job(db, instrument):
+    async_db = AsyncSessionAdapter(db)
+    first_now = datetime(2026, 11, 8, 12, tzinfo=UTC)
+
+    assert await enqueue_instrument_events_refresh(async_db, instrument, now=first_now)
+    first = db.query(MarketRefreshJob).one()
+    first_id = first.id
+    first.status = "completed"
+    first.attempts = 3
+    first.finished_at = first_now
+    first.result_summary = {"preparation_status": "unavailable"}
+    db.flush()
+
+    assert not await enqueue_instrument_events_refresh(
+        async_db,
+        instrument,
+        now=first_now + timedelta(minutes=1),
+    )
+
+    assert await enqueue_instrument_events_refresh(
+        async_db,
+        instrument,
+        refresh=True,
+        now=first_now + timedelta(minutes=2),
+    )
+
+    db.expire_all()
+    requeued = db.query(MarketRefreshJob).one()
+    assert requeued.id == first_id
+    assert requeued.status == "queued"
+    assert requeued.attempts == 3
+    assert requeued.finished_at is None
+    assert requeued.result_summary is None
+
+
+@pytest.mark.asyncio
+async def test_manual_calendar_refresh_preserves_a_live_provider_deadline(db, instrument):
+    async_db = AsyncSessionAdapter(db)
+    now = datetime(2026, 11, 8, 12, tzinfo=UTC)
+    retry_at = now + timedelta(minutes=8)
+
+    await enqueue_instrument_events_refresh(async_db, instrument, now=now)
+    job = db.query(MarketRefreshJob).one()
+    job.status = "deferred"
+    job.next_attempt_at = retry_at
+    job.result_summary = {
+        "outcome": "deferred",
+        "preparation_status": "held",
+        "reason_code": "native_quota_wait",
+        "retry_at": retry_at.isoformat(),
+    }
+    job.metadata_payload = {**job.metadata_payload, "defer_reason": "provider_reset"}
+    db.flush()
+
+    assert not await enqueue_instrument_events_refresh(
+        async_db,
+        instrument,
+        now=now + timedelta(minutes=1),
+    )
+    await enqueue_instrument_events_refresh(
+        async_db,
+        instrument,
+        refresh=True,
+        now=now + timedelta(minutes=1),
+    )
+
+    assert job.status == "deferred"
+    assert job.next_attempt_at.replace(tzinfo=UTC) == retry_at
+    status = await instrument_events_refresh_status(
+        async_db,
+        instrument,
+        now=now + timedelta(minutes=1),
+    )
+    assert status["status"] == "deferred"
+    assert status["has_pending_work"] is True
+    assert status["retry_at"] == retry_at
+    assert status["reason_code"] == "provider_reset"
+    assert status["updated_at"] is not None
 
 
 @pytest.mark.asyncio

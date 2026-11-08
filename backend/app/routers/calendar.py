@@ -9,8 +9,9 @@ requested by an operator/user action.
 from __future__ import annotations
 
 from datetime import UTC, date, datetime, time, timedelta
+from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from pydantic import BaseModel, Field, field_serializer
 from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,7 +24,12 @@ from app.models.instrument import Instrument
 from app.models.instrument_event import InstrumentEvent
 from app.models.market_data_foundation import MarketEvent
 from app.models.user import User
-from app.services.instrument_events import ensure_instrument_events_loaded, query_instrument_events
+from app.routers.data_preparation import _wake_refresh_worker
+from app.services.instrument_events import (
+    enqueue_instrument_events_refresh,
+    instrument_events_refresh_status,
+    query_instrument_events,
+)
 
 router = APIRouter(prefix="/calendar", tags=["calendar"])
 
@@ -52,6 +58,29 @@ class CalendarEvent(BaseModel):
     @field_serializer("event_time", "fetched_at")
     def serialize_timestamps(self, value: datetime) -> str:
         return wire_datetime(value) or ""
+
+
+class InstrumentCalendarRefreshStatus(BaseModel):
+    version: Literal[1] = 1
+    status: Literal[
+        "not_requested",
+        "queued",
+        "running",
+        "deferred",
+        "ready",
+        "partial",
+        "held",
+        "unavailable",
+        "stale",
+    ]
+    has_pending_work: bool
+    retry_at: datetime | None = None
+    reason_code: str | None = None
+    updated_at: datetime | None = None
+
+    @field_serializer("retry_at", "updated_at")
+    def serialize_timestamps(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)
 
 
 class MarketCalendarEvent(BaseModel):
@@ -115,14 +144,10 @@ def _event_out(event: InstrumentEvent, symbol: str) -> CalendarEvent:
     )
 
 
-async def _load_instrument(db: AsyncSession, symbol: str) -> Instrument:
+async def _load_existing_instrument(db: AsyncSession, symbol: str) -> Instrument:
     instrument = (
         await db.execute(select(Instrument).where(Instrument.symbol == symbol.upper()))
     ).scalar_one_or_none()
-    if instrument is None:
-        from app.routers.instruments import _create_from_provider
-
-        instrument = await _create_from_provider(symbol.upper(), db)
     if instrument is None:
         raise HTTPException(404, f"Instrument '{symbol}' not found")
     return instrument
@@ -131,10 +156,11 @@ async def _load_instrument(db: AsyncSession, symbol: str) -> Instrument:
 @router.get("/instruments/{symbol}/calendar", response_model=list[CalendarEvent])
 async def get_instrument_calendar(
     symbol: str,
+    background_tasks: BackgroundTasks,
     start: datetime | None = Query(None),
     end: datetime | None = Query(None),
     refresh: bool = Query(
-        False, description="Explicitly refresh source data before returning stored events"
+        False, description="Queue a source refresh before returning the current stored events"
     ),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -142,18 +168,41 @@ async def get_instrument_calendar(
     """
     Return stored economic/corporate events for a symbol.
 
-    First access for an instrument bootstraps from the configured data source and
-    persists the result. Later reads are served from the DB unless refresh=true.
+    Return the local cache immediately and queue missing/stale source work through
+    the durable refresh worker. Explicit refresh also returns the current cache.
     """
-    instrument = await _load_instrument(db, symbol)
-    await ensure_instrument_events_loaded(db, instrument, refresh=refresh)
+    instrument = await _load_existing_instrument(db, symbol)
     events = await query_instrument_events(
         db,
         instrument,
         start=_as_utc(start),
         end=_as_utc(end),
     )
+    # A cache read must not wait for provider resolution or transport. The
+    # existing durable refresh worker owns missing/stale data preparation.
+    refresh_queued = await enqueue_instrument_events_refresh(db, instrument, refresh=refresh)
+    if refresh_queued:
+        # The PostgreSQL job is authoritative. Commit it before scheduling an
+        # optional ARQ wake so the worker can see it immediately. The wake runs
+        # after the cache response has been sent.
+        await db.commit()
+        background_tasks.add_task(_wake_refresh_worker)
     return [_event_out(event, instrument.symbol) for event in events]
+
+
+@router.get(
+    "/instruments/{symbol}/calendar/status",
+    response_model=InstrumentCalendarRefreshStatus,
+)
+async def get_instrument_calendar_refresh_status(
+    symbol: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Expose durable event-cache readiness without changing the list endpoint."""
+
+    instrument = await _load_existing_instrument(db, symbol)
+    return await instrument_events_refresh_status(db, instrument)
 
 
 @router.get("/market-events", response_model=list[MarketCalendarEvent])

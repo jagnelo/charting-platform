@@ -216,6 +216,7 @@ def bind_explicit_provider_acquisition(
     allowed_operations = {
         (ProviderCapability.INSTRUMENT_SEARCH, "search_instruments"),
         (ProviderCapability.INSTRUMENT_METADATA, "get_instrument_profile"),
+        (ProviderCapability.INSTRUMENT_EVENTS, "fetch_instrument_events"),
         # Server-owned quota refresh jobs are queued only from an explicit
         # eligible operation and remain restricted to their configured source.
         (ProviderCapability.ACCOUNT_USAGE, "fetch_account_usage"),

@@ -31,7 +31,7 @@ from app.models.workstation import (
     WorkspaceTab,
     WorkspaceWindow,
 )
-from app.providers.errors import bounded_redact_provider_message
+from app.providers.errors import ProviderNotConfiguredError, bounded_redact_provider_message
 from app.services.derived_timeframes import (
     materialize_derived_timeframes,
     refresh_derived_timeframe_if_needed,
@@ -47,7 +47,11 @@ from app.services.market_refresh_queue import (
     retry_refresh_job,
 )
 from app.services.market_universe import reconcile_us_universe, record_core_daily_coverage
-from app.services.provider_runtime import ProviderNoDataError, bind_explicit_provider_acquisition
+from app.services.provider_runtime import (
+    ProviderNoDataError,
+    ProviderQuotaUnknownError,
+    bind_explicit_provider_acquisition,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -2064,6 +2068,108 @@ async def _enqueue_older_history_chunk(
     return next_job.id
 
 
+async def _process_instrument_events_refresh_job(
+    db: AsyncSession,
+    job: MarketRefreshJob,
+) -> dict:
+    """Run one durable instrument-event page without coupling it to a GET."""
+
+    from app.models.instrument_event import InstrumentEventFetchState
+    from app.services.instrument_events import (
+        EVENT_FETCH_VERSION,
+        fetch_and_store_instrument_events,
+        instrument_events_refresh_request_key,
+    )
+
+    instrument = await db.get(Instrument, job.instrument_id) if job.instrument_id else None
+    if instrument is None:
+        return {"preparation_status": "unavailable", "reason_code": "instrument_not_found"}
+
+    try:
+        with bind_explicit_provider_acquisition(
+            request_id=f"calendar-refresh:{job.id}",
+            operations=frozenset(
+                {
+                    (
+                        ProviderCapability.INSTRUMENT_EVENTS,
+                        "fetch_instrument_events",
+                    )
+                }
+            ),
+            instrument_id=instrument.id,
+        ):
+            inserted = await fetch_and_store_instrument_events(
+                db,
+                instrument,
+                # Runtime policies are seeded at application startup. A cache
+                # refresh must not repeat the full registry seed while holding
+                # the worker transaction.
+                seed_runtime=False,
+            )
+    except ProviderNoDataError:
+        return {
+            "preparation_status": "unavailable",
+            "reason_code": "event_source_unavailable",
+            "instrument_id": instrument.id,
+        }
+    except ProviderNotConfiguredError:
+        return {
+            "preparation_status": "unavailable",
+            "reason_code": "event_provider_not_configured",
+            "instrument_id": instrument.id,
+        }
+    except ProviderQuotaUnknownError:
+        return {
+            "preparation_status": "held",
+            "reason_code": "provider_quota_state_unknown",
+            "instrument_id": instrument.id,
+        }
+
+    state = (
+        await db.execute(
+            select(InstrumentEventFetchState)
+            .where(InstrumentEventFetchState.instrument_id == instrument.id)
+            .order_by(InstrumentEventFetchState.fetched_at.desc())
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    page_incomplete = bool(
+        state is not None and state.fetch_version >= EVENT_FETCH_VERSION and not state.complete
+    )
+    has_continuation = page_incomplete and bool(state.continuation_token)
+    if has_continuation:
+        next_request_key = instrument_events_refresh_request_key(instrument.id, state)
+        if next_request_key != job.request_key:
+            await enqueue_refresh_job(
+                db,
+                request_key=next_request_key,
+                capability=ProviderCapability.INSTRUMENT_EVENTS.value,
+                instrument_id=instrument.id,
+                priority=100,
+                metadata_payload={
+                    "instrument_event_refresh": {
+                        "instrument_id": int(instrument.id),
+                        "requested_at": datetime.now(UTC).isoformat(),
+                    }
+                },
+                preserve_deferred_deadline=True,
+                requeue_completed=True,
+            )
+
+    return {
+        "preparation_status": "partial" if page_incomplete else "ready",
+        "reason_code": "event_page_continuation_pending"
+        if has_continuation
+        else "event_page_incomplete"
+        if page_incomplete
+        else None,
+        "instrument_id": instrument.id,
+        "events_observed": int(state.event_count or 0) if state is not None else inserted,
+        "page_count": int(state.page_count or 0) if state is not None else 0,
+        "source": state.source if state is not None else None,
+    }
+
+
 async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
     """Process queued requests with lease/retry telemetry and bounded fan-out."""
 
@@ -2143,6 +2249,13 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                         "provider_account_usage_refresh"
                     ) or {}
                     result_summary = await _run_native_usage_refresh_job(db, request)
+                    await db.refresh(job)
+                    await complete_refresh_job(db, job, result_summary=result_summary)
+                    completed += 1
+                    await db.commit()
+                    continue
+                if job.capability == ProviderCapability.INSTRUMENT_EVENTS.value:
+                    result_summary = await _process_instrument_events_refresh_job(db, job)
                     await db.refresh(job)
                     await complete_refresh_job(db, job, result_summary=result_summary)
                     completed += 1
