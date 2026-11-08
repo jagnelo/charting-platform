@@ -15787,3 +15787,31 @@ provider_native_expected_prerequisite_deferral_20261107:
   provider_http_runtime_or_quota_ledger_policy_mutation: false
   root_native_replay_and_exact_source_ci: pending Root-owned
   full_platform_roadmaps: remain open
+
+
+provider_native_retry_identity_discovery_redis_20261108:
+  id: provider-native-retry-identity-discovery-redis-20261108
+  status: focused_local_green_root_native_replay_and_exact_ci_pending
+  base_source: cc31077c60545e8455d1f064411fbddae7d21fe1
+  root_findings:
+    - /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/root-native13630-worker-retry-identity-review.json
+    - /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/root-native-cc310-worker-Redis-runtime-review.json
+    - /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/root-native-IGV-discovery-timeout-cc310-review.json
+  implementation:
+    - Preserve the earlier idempotent INTERNAL-identifier repair: repeated normalization deactivates superseded rows without suffixing or truncating their retained values.
+    - After a failed worker transaction, reload the claimed job by captured ID and lease token under row lock, validate its unexpired lease, then persist retry state through the existing queue CAS. Re-read other claimed jobs after rollback the same way.
+    - Read the identity-job primary key from SQLAlchemy's persistent identity when mapped attributes are expired; refresh only required JSON asynchronously.
+    - Discovery uses already seeded provider runtime rows read-only for the initial candidate chain and each ordered provider execution, preserving full merged candidates and source admission.
+    - Set the actual ARQ worker Redis connection timeout to five seconds while retaining the installed finite five retries and one-second retry delay. Job timeouts, leases, quota guards and worker concurrency are unchanged.
+  focused_validation:
+    command: backend/.venv/bin/pytest backend/tests/unit/tasks/test_data_tasks.py backend/tests/unit/workers/test_arq_worker.py backend/tests/unit/services/test_data_preparation_contracts.py backend/tests/unit/services/test_provider_persistence.py backend/tests/unit/services/test_etf_holdings_bootstrap.py backend/tests/unit/services/test_provider_runtime.py::test_execution_can_use_preseeded_chain_without_request_time_reseed backend/tests/unit/routers/test_instruments_router.py::test_discovery_exact_profile_fallback_is_selectable_and_does_not_create_canonical_state -q; pinned Ruff 0.4.7 check and format --check on changed Python files; validate-workstream; git diff --check
+    result: 148 passed in 16.14s; Ruff check/format and diff check passed.
+  evidence:
+    - PostgreSQL's failing identifier was a locally generated duplicate INTERNAL supersession value of length 92 against VARCHAR(80); the original external provider prefix is not identified in retained evidence.
+    - A failed transaction recovery regression proves the worker does not read expired attempts before an async locked reload and retains the original claimed lease token and exception.
+    - Expired identity primary-key regression proves projection uses the persistent ORM identity, not an implicit column load.
+    - IGV resolver regression proves the full eligible serial candidate merge reuses seeded runtime rows without repeating registry reconciliation; no candidates or provider calls are fabricated or suppressed.
+    - Redis timeout is separate from PostgreSQL failure. Installed ARQ default conn_timeout=1 is changed to 5 only in app.workers.arq_worker; conn_retries=5 and conn_retry_delay=1 remain unchanged.
+  provider_http_runtime_database_or_quota_ledger_policy_mutation: false
+  root_native_replay_exact_source_ci_and_combined_release: pending Root-owned
+  full_platform_roadmaps: remain open

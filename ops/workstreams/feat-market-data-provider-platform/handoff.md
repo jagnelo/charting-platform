@@ -33822,3 +33822,43 @@ The separate Redis connection timeout occurred in ARQ `processmain`; current evi
 Root's browser-closed MSFT replay on `9b196304` showed history jobs repeatedly deferred on `RefreshDependencyPending`, while their newly created native-usage job and `wait_for_job_ids` remained absent. The generic exception path had rolled back an expected wait. The worker now treats that exception separately: it locks and validates the current unexpired lease row, commits the prerequisite and wait edge, then persists the actual defer time through the existing retry CAS. Genuine transaction failures retain the rollback/refresh/retry behavior from `9b196304`; native admission and unknown-hold rules are unchanged.
 
 The two affected worker modules passed 65/65, with Ruff check/format and diff validation passing. No native HTTP, runtime, ledger, policy, or quota mutation was performed. Root owns replay on the preserved native runtime and exact-source CI; the full Provider goal remains open.
+
+
+## 2026-11-08 — async retry recovery and IGV discovery latency
+
+The native identifier error was an attempted 92-character locally generated
+`INTERNAL` value against `VARCHAR(80)`, caused by repeatedly adding a
+`__superseded__<row-id>` suffix to a duplicate historical identifier. Existing
+source `9b196304` fixes this without changing the historical value; it does not
+truncate identifiers or infer which external provider supplied the original
+prefix.
+
+The retry handler now reloads the claimed job by its previously captured ID and
+lease token under `FOR UPDATE`, requiring the lease to remain unexpired before
+reading attempts or persisting the retry through the existing queue CAS. It
+uses the same reload after rollback before processing another claimed job.
+Identity outcome projection obtains the primary key from SQLAlchemy's persistent
+identity and asynchronously refreshes only required JSON, avoiding an implicit
+load of an expired `id` attribute. The original error remains the retry cause;
+a secondary retry persistence error stays visible and chained.
+
+The IGV request spends no time reconciling all provider seeds for each ordered
+search candidate. Application startup and the provider operator API seed that
+registry; explicit discovery now reads those rows and passes the same
+read-only-resolver choice through provider execution. All eligible providers
+still run serially and all merged candidates are retained. This preserves quota,
+configuration, exact-identity and provider-result behavior while avoiding the
+repeated registry seed before the first logged transport and between candidates.
+
+The separate Redis timeout came from the actual ARQ worker's installed
+one-second connection timeout; the Root receipt showed a healthy Redis with no
+rejections. The actual `app.workers.arq_worker` now uses a bounded five-second
+connect timeout and retains ARQ's five retries/one-second retry delay. No
+PostgreSQL causality or Redis outage was inferred, and no job/lease/quota policy
+changed.
+
+The focused affected tests passed 148/148 in 16.14 seconds. Ruff 0.4.7 check
+and format, workstream validation, and `git diff --check` passed. No provider
+HTTP, Root runtime/database, quota-ledger, policy, or hold mutation occurred.
+Root owns exact-source native replay and remaining release gates; all Provider
+roadmaps remain open.

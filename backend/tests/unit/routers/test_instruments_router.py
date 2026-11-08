@@ -533,6 +533,7 @@ async def test_discovery_exact_profile_fallback_is_selectable_and_does_not_creat
         assert capability == ProviderCapability.INSTRUMENT_METADATA
         assert operation == "get_instrument_profile"
         assert kwargs["provider_name"] == "massive"
+        assert kwargs["seed_runtime"] is False
         assert kwargs["provider_symbol"] == symbol
         assert kwargs["usage_identity"] == symbol
         assert kwargs["treat_empty_as_failure"] is True

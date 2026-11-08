@@ -1925,6 +1925,11 @@ async def search_provider_instruments_async(
         ProviderCapability.INSTRUMENT_SEARCH,
         operation="search_instruments",
         provider_symbol=query,
+        # Provider runtime policies are seeded at application start and by the
+        # operator API. A request-time whole-registry reconciliation here and
+        # again for every candidate made a cold discovery wait on unrelated
+        # provider rows before its first request-log entry.
+        read_only=True,
     )
     merged: list[dict] = []
     seen: set[tuple[str, ...]] = set()
@@ -1937,6 +1942,7 @@ async def search_provider_instruments_async(
                 provider_symbol=query,
                 usage_identity=query,
                 provider_name=resolved.provider_name,
+                seed_runtime=False,
                 invoke=lambda provider, _provider_symbol: provider.search_instruments(
                     query, limit=10
                 ),
@@ -2013,10 +2019,10 @@ async def search_provider_instruments_async(
                 continue
             seen.add(dedupe_key)
             merged.append(item)
+        provider_results = [
+            item for item in merged if item.get("provider") == execution.provider_name
+        ]
         if source_outcomes is not None:
-            provider_results = [
-                item for item in merged if item.get("provider") == execution.provider_name
-            ]
             source_outcomes.append(
                 {
                     "provider": execution.provider_name,

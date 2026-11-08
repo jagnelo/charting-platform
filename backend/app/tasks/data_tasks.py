@@ -2064,6 +2064,34 @@ async def _enqueue_older_history_chunk(
 async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
     """Process queued requests with lease/retry telemetry and bounded fan-out."""
 
+    async def reload_claimed_job_for_retry(
+        db: AsyncSession,
+        *,
+        job_id: int,
+        lease_token: str | None,
+        now: datetime,
+    ) -> MarketRefreshJob | None:
+        """Reload a still-owned lease after rollback without touching expired ORM fields."""
+
+        if not lease_token:
+            return None
+        with db.no_autoflush:
+            result = await db.execute(
+                select(MarketRefreshJob)
+                .where(
+                    MarketRefreshJob.id == job_id,
+                    MarketRefreshJob.status == "leased",
+                    MarketRefreshJob.lease_token == lease_token,
+                    or_(
+                        MarketRefreshJob.leased_until.is_(None),
+                        MarketRefreshJob.leased_until >= now,
+                    ),
+                )
+                .with_for_update()
+                .execution_options(populate_existing=True)
+            )
+        return result.scalar_one_or_none()
+
     async with AsyncSessionLocal() as db:
         jobs = await claim_refresh_jobs(db, limit=_refresh_queue_batch_limit(limit))
         claimed_leases = {id(job): (job.id, getattr(job, "lease_token", None)) for job in jobs}
@@ -2078,11 +2106,27 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
         next_wakeup_at: datetime | None = None
         previous_job_rollback = False
         for job in jobs:
+            claimed_job_id, claimed_lease_token = claimed_leases[id(job)]
             try:
                 if previous_job_rollback:
                     # A rollback expires every ORM object in this session, not
-                    # only the job whose work failed.
-                    await db.refresh(job)
+                    # only the job whose work failed. Re-read by the immutable
+                    # claim key and lease token rather than reading expired ORM
+                    # columns before the async refresh has run.
+                    recovered_job = await reload_claimed_job_for_retry(
+                        db,
+                        job_id=claimed_job_id,
+                        lease_token=claimed_lease_token,
+                        now=datetime.now(UTC),
+                    )
+                    if recovered_job is None:
+                        logger.info(
+                            "Refresh job %s lease expired or changed after rollback",
+                            claimed_job_id,
+                        )
+                        lease_lost += 1
+                        continue
+                    job = recovered_job
                     previous_job_rollback = False
                 if job.capability == ProviderCapability.ACCOUNT_USAGE.value:
                     request = (job.metadata_payload or {}).get(
@@ -2920,7 +2964,7 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                 # stale execution; the durable queue will expose/reclaim it.
                 logger.info(
                     "Refresh job %s lease no longer owned: %s",
-                    job.id,
+                    claimed_job_id,
                     bounded_redact_provider_message(exc),
                 )
                 lease_lost += 1
@@ -2929,7 +2973,6 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                 # particular, history planning may have just queued a native
                 # usage prerequisite and attached it to this job. Commit that
                 # graph before deferring the leased history child.
-                claimed_job_id, claimed_lease_token = claimed_leases[id(job)]
                 pending_payload = deepcopy(job.metadata_payload or {})
                 now = datetime.now(UTC)
                 with db.no_autoflush:
@@ -2993,9 +3036,13 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                 try:
                     await db.rollback()
                     previous_job_rollback = True
-                    await db.refresh(job)
-                    claimed_job_id, claimed_lease_token = claimed_leases[id(job)]
-                    if job.id != claimed_job_id or job.lease_token != claimed_lease_token:
+                    job = await reload_claimed_job_for_retry(
+                        db,
+                        job_id=claimed_job_id,
+                        lease_token=claimed_lease_token,
+                        now=datetime.now(UTC),
+                    )
+                    if job is None:
                         raise RefreshLeaseLostError(
                             f"refresh job {claimed_job_id} lease is no longer valid"
                         )
@@ -3009,14 +3056,14 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                 except RefreshLeaseLostError as lease_exc:
                     logger.info(
                         "Refresh job %s lease lost during retry: %s",
-                        job.id,
+                        claimed_job_id,
                         bounded_redact_provider_message(lease_exc),
                     )
                     lease_lost += 1
                 except Exception as retry_exc:
                     logger.error(
                         "Could not persist retry for refresh job %s after %s: %s",
-                        getattr(job, "id", "unknown"),
+                        claimed_job_id,
                         type(original_error).__name__,
                         type(retry_exc).__name__,
                     )
