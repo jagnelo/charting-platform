@@ -216,13 +216,20 @@ function createChartStore(storeId: string) {
 
       const encoded = encodeURIComponent(sym)
       const basketId = basketIdFromSymbol(sym)
+      // The active workstation chart is a foreground cache read. Keep it in
+      // the reserved API lane so unrelated analysis panels cannot occupy all
+      // five ordinary HTTP/1.1 slots ahead of visible local candles.
+      const requestOptions = opts.localOnly ? { priority: 'high' as const } : undefined
       const requestKey = JSON.stringify({ sym: sym.toUpperCase(), tf, type, transformParams: opts.transformParams ?? {}, adjusted: true, before: opts.before ?? null, limit: opts.limit ?? PAGE_SIZE, localOnly: Boolean(opts.localOnly), basketId })
       const request = async () => {
         if (basketId == null && opts.localOnly && !SERVER_TRANSFORMED_TYPES.has(type)) {
-          const raw = await api.get<any[]>(`/ohlcv/local/${encoded}/${tf}`, {
+          const params = {
             ...(opts.before ? { before: opts.before } : {}),
             limit: opts.limit ?? PAGE_SIZE,
-          })
+          }
+          const raw = requestOptions
+            ? await api.get<any[]>(`/ohlcv/local/${encoded}/${tf}`, params, requestOptions)
+            : await api.get<any[]>(`/ohlcv/local/${encoded}/${tf}`, params)
           return _mapBars(raw)
         }
         if (basketId != null) {
@@ -232,16 +239,22 @@ function createChartStore(storeId: string) {
           })
           return _mapBars(raw)
         }
-        const raw = SERVER_TRANSFORMED_TYPES.has(type)
-          ? await api.get<any[]>(`/ohlcv/${encoded}/${tf}/transformed`, {
+        const path = SERVER_TRANSFORMED_TYPES.has(type)
+          ? `/ohlcv/${encoded}/${tf}/transformed`
+          : `/ohlcv/${encoded}/${tf}`
+        const query = SERVER_TRANSFORMED_TYPES.has(type)
+          ? {
             ...params,
             ...(opts.localOnly ? { local_only: true } : {}),
             bar_type: type,
-          })
-          : await api.get<any[]>(`/ohlcv/${encoded}/${tf}`, {
+          }
+          : {
             ...params,
             ...(opts.localOnly ? { local_only: true } : {}),
-          })
+          }
+        const raw = requestOptions
+          ? await api.get<any[]>(path, query, requestOptions)
+          : await api.get<any[]>(path, query)
         return _mapBars(raw)
       }
       return dedupeOhlcvRequest(requestKey, request, undefined, {

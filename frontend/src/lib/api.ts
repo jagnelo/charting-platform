@@ -4,7 +4,8 @@ import { assertAuthSessionCurrent, AuthSessionChangedError, beginAuthSessionBoun
  * Authenticated API client with automatic token refresh on 401.
  */
 const BASE = '/api/v1'
-export type ApiRequestOptions = { signal?: AbortSignal; priority?: RequestPriority }
+export type ApiRequestPriority = RequestPriority
+export type ApiRequestOptions = { signal?: AbortSignal; priority?: ApiRequestPriority; queueKey?: string }
 
 // Chromium only admits a small number of same-origin HTTP/1.1 requests at a
 // time. Admit work here so queued background reads cannot occupy every slot
@@ -20,6 +21,7 @@ interface QueuedApiFetch {
   input: RequestInfo | URL
   init: RequestInit
   priority: ApiFetchPriority
+  queueKey?: string
   resolve: (response: AdmittedApiResponse) => void
   reject: (error: unknown) => void
   abortListener?: () => void
@@ -79,11 +81,11 @@ function drainApiFetchQueue(): void {
   }
 }
 
-function admittedApiFetch(input: RequestInfo | URL, init: RequestInit, priority: ApiFetchPriority = 'auto'): Promise<AdmittedApiResponse> {
+function admittedApiFetch(input: RequestInfo | URL, init: RequestInit, priority: ApiFetchPriority = 'auto', queueKey?: string): Promise<AdmittedApiResponse> {
   const signal = init.signal
   if (signal?.aborted) return Promise.reject(apiAbortReason(signal))
   return new Promise((resolve, reject) => {
-    const queued: QueuedApiFetch = { input, init, priority, resolve, reject }
+    const queued: QueuedApiFetch = { input, init, priority, queueKey, resolve, reject }
     if (signal) {
       queued.abortListener = () => {
         const index = queuedApiFetches.indexOf(queued)
@@ -98,6 +100,16 @@ function admittedApiFetch(input: RequestInfo | URL, init: RequestInit, priority:
     queuedApiFetches.push(queued)
     drainApiFetchQueue()
   })
+}
+
+/** Promote an already queued exact request when its docked surface becomes visible. */
+export function setQueuedApiRequestPriority(queueKey: string, priority: ApiRequestPriority): boolean {
+  const queued = queuedApiFetches.find(item => item.queueKey === queueKey)
+  const priorityRank: Record<ApiRequestPriority, number> = { low: 0, auto: 1, high: 2 }
+  if (!queued || priorityRank[priority] <= priorityRank[queued.priority]) return false
+  queued.priority = priority
+  drainApiFetchQueue()
+  return true
 }
 
 export class ApiError extends Error {
@@ -217,7 +229,7 @@ async function request<T>(
 
   let admitted: AdmittedApiResponse | undefined
   try {
-    admitted = await admittedApiFetch(url, opts, options?.priority ?? 'auto')
+    admitted = await admittedApiFetch(url, opts, options?.priority ?? 'auto', options?.queueKey)
     const res = admitted.response
     assertAuthSessionCurrent(session)
 

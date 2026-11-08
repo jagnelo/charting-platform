@@ -31,9 +31,9 @@
   "strategy_consumer": {
     "component": "frontend/src/components/workstation/StudyLabTool.vue",
     "client_path": "frontend/src/lib/dataPreparation.ts",
-    "client_owner": "TC; Root-released coherent305 frontend snapshot; Strategy pins109 foreign paths only, excluding26 private paths.",
-    "client_release_commit": "3055946ceabbfd51e51281f06c3f98f766f0d019",
-    "client_sha256": "35a5a9b010db149ba72d3b2ec01afbdcf1f0b48d11585bc432d6ca4dabb10246",
+    "client_owner": "TC; Root-released coherent9ec4 frontend snapshot consumed by Strategy through110 foreign paths, excluding26 private paths.",
+    "client_release_commit": "9ec4d7833c45cd2fc51916a2378445f7761b425e",
+    "client_sha256": "5d6d46d12bd238921dd8ed254c03b00bb002bfdfd976efa349f282e268a63e44",
     "flow": [
       "The exact TC common-runtime source includes the matching session/auth/API/preparation, router/App shell, chart/stores/workspace, dock/plot and controlled-flow companions. It preserves the released session-bound preparation and candidate/source contracts; Strategy consumes these modules without duplicating provider workers, policy, quota or source acquisition.",
       "Study builds independent selected-symbol/member and benchmark history requests from the captured dataset intent.",
@@ -41,7 +41,7 @@
       "Study awaits all target outcomes before source validation/run dispatch, fences changed intents and aborts only obsolete client subscriptions.",
       "Provider owns durable queueing, worker scheduling, provider policy and series lineage; Strategy does not duplicate or activate these operations."
     ],
-    "qualification_boundary": "TC305 frontend and Provider9e2 seven-path backend overlay are development context only. Root reports native43 three-ETF cases passed in133.93s; TC is fixing two actual priority-coupling defects. Full65, exact-source CI, complete browser/profile and deployment acceptance remain pending.",
+    "qualification_boundary": "TC9ec4 is the exact current development context and includes the shared priority/holdings and lifecycle repairs. Root owns the affected browser checks, full65 profile, exact CI, staging, deployment and acceptance; none is claimed by this Strategy import. Provider9e2 remains a seven-path development overlay.",
     "prior_client_pins": [
       {
         "source": "877df044d2496c5f1be0e86b4dd49503cc6e55db",
@@ -417,10 +417,11 @@
         "active_manifest_entries": 86,
         "superseded_by": "e902e83597661de1e5a636a2d94902b0fe01b747"
       },
-        {"source":"e902e83597661de1e5a636a2d94902b0fe01b747","contract":"/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-e902e835-common-runtime-development-consumption-contract.json","contract_sha256":"a87a59f7c1e76e1c8273e2949b67d676d72a43ee2b691463f82482567c71683f","import_manifest":"ops/workstreams/feat-strategy-lab-v2/development-dependency-imports/e902e83597661de1e5a636a2d94902b0fe01b747.json","active_manifest_entries":86,"superseded_by":"3055946ceabbfd51e51281f06c3f98f766f0d019"}
+        {"source":"e902e83597661de1e5a636a2d94902b0fe01b747","contract":"/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-e902e835-common-runtime-development-consumption-contract.json","contract_sha256":"a87a59f7c1e76e1c8273e2949b67d676d72a43ee2b691463f82482567c71683f","import_manifest":"ops/workstreams/feat-strategy-lab-v2/development-dependency-imports/e902e83597661de1e5a636a2d94902b0fe01b747.json","active_manifest_entries":86,"superseded_by":"3055946ceabbfd51e51281f06c3f98f766f0d019"},
+        {"source":"3055946ceabbfd51e51281f06c3f98f766f0d019","contract":"/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-3055946c-full-frontend-context-development-consumption-contract.json","contract_sha256":"35a5a9b010db149ba72d3b2ec01afbdcf1f0b48d11585bc432d6ca4dabb10246","import_receipt":"ops/workstreams/feat-strategy-lab-v2/development-dependency-imports/3055946ceabbfd51e51281f06c3f98f766f0d019-strategy-import-receipt.json","active_foreign_paths":109,"superseded_by":"9ec4d7833c45cd2fc51916a2378445f7761b425e"}
       ],
-    "client_contract_path": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-3055946c-full-frontend-context-development-consumption-contract.json",
-    "client_contract_sha256": "35a5a9b010db149ba72d3b2ec01afbdcf1f0b48d11585bc432d6ca4dabb10246",
+    "client_contract_path": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-9ec4d783-full-frontend-context-development-consumption-contract.json",
+    "client_contract_sha256": "5d6d46d12bd238921dd8ed254c03b00bb002bfdfd976efa349f282e268a63e44",
     "client_files": [
       {
         "path": "frontend/package-lock.json",
@@ -539,14 +540,14 @@
       {
         "path": "frontend/src/components/workstation/WorkstationToolContent.vue",
         "status_from139": "M",
-        "git_blob": "1b927930a5bdcb47a25d35833baf8c65e5469415",
-        "sha256": "fc192f544c275c207159e95d98acb640dc645e4260e202a622ebfc8fd00c8a96"
+        "git_blob": "c8283c58c9832a1602ca4a22bb9d63adc91dd056",
+        "sha256": "b10861e25720421bbe14e743b563339e42b25ef6b364e28bac3524f5109fdfa3"
       },
       {
         "path": "frontend/src/lib/api.ts",
         "status_from139": "M",
-        "git_blob": "870fcee024a0c65f44d15ae63df9d1bbc54b0305",
-        "sha256": "a997773afacd5b37d73aeb9f5c36002064f077c5d28698cf956a726f8b48bec5"
+        "git_blob": "aa749a81b53b384fafc34f90dfa05368fdaf3fd3",
+        "sha256": "ebfd5376104af10e856463810c96b55abb53f39a96c0a645ddaa5121cf85a46f"
       },
       {
         "path": "frontend/src/lib/authSession.ts",
@@ -557,8 +558,8 @@
       {
         "path": "frontend/src/lib/dataPreparation.ts",
         "status_from139": "A",
-        "git_blob": "c85fda9d924f9d603b8c323c5d3199886b440102",
-        "sha256": "91c3d341d6e352661d66fd205a6593417721ae418c5474ed7e7667a39b11b7f3"
+        "git_blob": "5ed2c2cb2e2555bccdb5ab8f6da1d8c8b119f885",
+        "sha256": "32394c869a8f7c7e694646b4eb724240f65058faf246169910c7fd9625694dca"
       },
       {
         "path": "frontend/src/lib/etfHoldingDrilldown.ts",
@@ -575,8 +576,8 @@
       {
         "path": "frontend/src/lib/onDemandAcquisition.ts",
         "status_from139": "M",
-        "git_blob": "839ca04bf100ea4f64d4fc14d66af0657bb4b21f",
-        "sha256": "4df7657b2ce9183085e31781f9a5883930a9087cd03dcc7d86cdd421c78accdc"
+        "git_blob": "6b27a99d57411a694955f466ba035564c26f9063",
+        "sha256": "2bca93846fbd57095e25d9951d7da52a4a9207494a685e2c2b34d09f33356f5b"
       },
       {
         "path": "frontend/src/lib/workstation/benchmarkFamilySources.ts",
@@ -641,8 +642,8 @@
       {
         "path": "frontend/src/stores/chart.ts",
         "status_from139": "M",
-        "git_blob": "ef9d6f83fee64de30630c42e7cbdd6c779fb080e",
-        "sha256": "75c8651532902bc72899ae2e6b4549d94423be4860029196e6d43351addd3c1a"
+        "git_blob": "b5f5252cfdecfc63d80ffd32f9d78de59f6ea4fd",
+        "sha256": "fad83ac0ecffbf08802c7e1d581d6f67fe5a49895e12599334dab12545e51bb7"
       },
       {
         "path": "frontend/src/stores/favorites.ts",
@@ -683,14 +684,14 @@
       {
         "path": "frontend/src/stores/watchlist.ts",
         "status_from139": "M",
-        "git_blob": "53d1537ce7329dbe176628b5d20cd2ee442160d2",
-        "sha256": "6042fe5cb4a97f897711def44ca32a23736cd8fa54cb3f9f760c49c712754d8e"
+        "git_blob": "4e5ffc927c41464a7f882571de1e572ae3fdbf50",
+        "sha256": "c066f82755a9e2ae4284349a4d8314fb42c694fbb12fb840cfdadd070d0b9f6e"
       },
       {
         "path": "frontend/src/stores/workspace.ts",
         "status_from139": "M",
-        "git_blob": "108623a9ce2e4b169f686107a099e27b464f30ec",
-        "sha256": "1e002e102bd8488b0f30648d8f89373b65431200dfa9b8ebdcb7c2f16f6329c5"
+        "git_blob": "137a828c399be2e6f604b63169b1bb9231998b09",
+        "sha256": "4b3ce1ddc1a54302c2cc6be1e8a8d4e2e5466ce65de4305eee17fb124147b128"
       },
       {
         "path": "frontend/src/types/index.ts",
@@ -731,8 +732,8 @@
       {
         "path": "frontend/src/views/WorkstationView.vue",
         "status_from139": "M",
-        "git_blob": "1f2b66e7649be4ffe00b3cd45cc8186d9ecddd3d",
-        "sha256": "dda5a3d0e04ca221e9acfdf56d37fe39a3d1a34feb7601cabb84583c38bef9a3"
+        "git_blob": "8580a71aeaf370a70ca8767717447508df13fa00",
+        "sha256": "a4c06bcf33f1ab1e7913ba2c5bc54998062738f0b3efa4fe3442918c2c68782d"
       },
       {
         "path": "frontend/tests/e2e/auth_session_boundary.spec.ts",
@@ -861,6 +862,12 @@
         "sha256": "0eb2411d97fda6dbef09f6b8880461a3665c45a699d141bcad312f6df66c0965"
       },
       {
+        "path": "frontend/tests/unit/components/test_workstation_tool_content_tag_columns_runtime.test.ts",
+        "status_from139": "M",
+        "git_blob": "aeaba2bdfb097b0ce65c0ed1ef7b784748480127",
+        "sha256": "9478d77f345baa621716e2e4c963114fc24a0a07c5bd420ce0c54b33478eadb7"
+      },
+      {
         "path": "frontend/tests/unit/e2e/test_browser_diagnostics.test.ts",
         "status_from139": "M",
         "git_blob": "d981d5a034f2e4489e203152266f069a821402e2",
@@ -869,8 +876,8 @@
       {
         "path": "frontend/tests/unit/lib/test_api_client.test.ts",
         "status_from139": "M",
-        "git_blob": "b0a387d4f43260c7dbf696bd4d42fd1d5b6d2d46",
-        "sha256": "e327fc8c03af594d2e49c426e7128016b19d9adb6006cb98250f4b8180482835"
+        "git_blob": "1c981a13ab0f20f8c2a0d6eb88a9952eccb590b4",
+        "sha256": "ea1d77d63bbedb68d247d5f62a4a4bdf0324f240a0acaa6db0637ea927dd34d1"
       },
       {
         "path": "frontend/tests/unit/lib/test_auth_session.test.ts",
@@ -971,8 +978,8 @@
       {
         "path": "frontend/tests/unit/stores/test_watchlist_store.test.ts",
         "status_from139": "M",
-        "git_blob": "29c2dee8fc9e5cd7f246ea9156cc734bc839b05d",
-        "sha256": "52c64592314feb59e9c1e232180df8a9736051792212e84ad6f19953cab793cc"
+        "git_blob": "a705942a492c6b439d91cabb2a3dfcd5a49dadcb",
+        "sha256": "a77ad6f8db60b06dca76c3c10ef1737d48457000dd3bc195e5fdb29f564fc013"
       },
       {
         "path": "frontend/tests/unit/stores/test_workspace_store.test.ts",
@@ -1013,8 +1020,8 @@
       {
         "path": "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts",
         "status_from139": "M",
-        "git_blob": "5ab2770ec8d66f91ce4d8d3b7f6178e6d13873e4",
-        "sha256": "4ce1e46b5ae2d8cf120b429af53f0fb31596b59424c85ec1445f70a559a41f0d"
+        "git_blob": "8a93baccb4461b122ad6a92cfedc57bab9d5a95f",
+        "sha256": "cdd2abef8f1cfaea526b1c92e9bbbc117edd47a6c43fc1e785a1df98886b4dc8"
       },
       {
         "path": "frontend/src/components/workstation/InstrumentNoteTool.vue",
@@ -1080,8 +1087,11 @@
     "foreign_context_paths": ["frontend/package-lock.json", "frontend/package.json", "frontend/src/App.vue", "frontend/src/components/chart/ChartPanel.vue", "frontend/src/components/chart/HistoryAcquisitionControl.vue", "frontend/src/components/chart/UPlotChart.vue", "frontend/src/components/common/CompactStatusNotice.vue", "frontend/src/components/common/Notification.vue", "frontend/src/components/common/SearchBar.vue", "frontend/src/components/radar/RadarDetailPreviewChart.vue", "frontend/src/components/workstation/ChartPlotLibrary.vue", "frontend/src/components/workstation/EasyScanTool.vue", "frontend/src/components/workstation/InstrumentNoteTool.vue", "frontend/src/components/workstation/MarketGaugeTool.vue", "frontend/src/components/workstation/MarketMapTool.vue", "frontend/src/components/workstation/RatioUPlot.vue", "frontend/src/components/workstation/RelativeRotationTool.vue", "frontend/src/components/workstation/ToolWindow.vue", "frontend/src/components/workstation/VirtualWatchlistTool.vue", "frontend/src/components/workstation/WorkspaceLayoutHost.vue", "frontend/src/components/workstation/WorkstationToolContent.vue", "frontend/src/lib/api.ts", "frontend/src/lib/authSession.ts", "frontend/src/lib/dataPreparation.ts", "frontend/src/lib/etfHoldingDrilldown.ts", "frontend/src/lib/instruments.ts", "frontend/src/lib/onDemandAcquisition.ts", "frontend/src/lib/workstation/benchmarkFamilySources.ts", "frontend/src/lib/workstation/instrumentCalendar.ts", "frontend/src/lib/workstation/marketMap.ts", "frontend/src/lib/workstation/ohlcvRequests.ts", "frontend/src/lib/workstation/sourceCapability.ts", "frontend/src/lib/workstation/toolActivation.ts", "frontend/src/main.ts", "frontend/src/router/index.ts", "frontend/src/stores/alerts.ts", "frontend/src/stores/auth.ts", "frontend/src/stores/chart.ts", "frontend/src/stores/favorites.ts", "frontend/src/stores/layout.ts", "frontend/src/stores/panelLinks.ts", "frontend/src/stores/radar.ts", "frontend/src/stores/recentInstruments.ts", "frontend/src/stores/userSettings.ts", "frontend/src/stores/watchlist.ts", "frontend/src/stores/workspace.ts", "frontend/src/types/index.ts", "frontend/src/views/AlertsView.vue", "frontend/src/views/BasketsView.vue", "frontend/src/views/ChartView.vue", "frontend/src/views/ETFHoldingsView.vue", "frontend/src/views/ScreenerView.vue", "frontend/src/views/SettingsView.vue", "frontend/src/views/WatchlistView.vue", "frontend/src/views/WorkstationView.vue", "frontend/tests/e2e/auth_session_boundary.spec.ts", "frontend/tests/e2e/baskets_journey.spec.ts", "frontend/tests/e2e/etf_holdings_preparation.spec.ts", "frontend/tests/e2e/flows.spec.ts", "frontend/tests/e2e/helpers.ts", "frontend/tests/e2e/on_demand_acquisition.spec.ts", "frontend/tests/e2e/sp500_analysis_journey.spec.ts", "frontend/tests/e2e/supporting_features_journey.spec.ts", "frontend/tests/e2e/tc2000_visual.spec.ts", "frontend/tests/e2e/tc_secondary_routes_journey.spec.ts", "frontend/tests/unit/components/test_chart_panel_lifecycle.test.ts", "frontend/tests/unit/components/test_chart_plot_library.test.ts", "frontend/tests/unit/components/test_compact_status_notice.test.ts", "frontend/tests/unit/components/test_easy_scan_tool.test.ts", "frontend/tests/unit/components/test_history_acquisition_control.test.ts", "frontend/tests/unit/components/test_instrument_note_tool.test.ts", "frontend/tests/unit/components/test_market_gauge_tool.test.ts", "frontend/tests/unit/components/test_market_map_tool.test.ts", "frontend/tests/unit/components/test_radar_detail_preview_chart.test.ts", "frontend/tests/unit/components/test_ratio_uplot.test.ts", "frontend/tests/unit/components/test_relative_rotation_tool.test.ts", "frontend/tests/unit/components/test_search_bar.test.ts", "frontend/tests/unit/components/test_tool_window.test.ts", "frontend/tests/unit/components/test_uplot_chart_context.test.ts", "frontend/tests/unit/components/test_workspace_layout_host.test.ts", "frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts", "frontend/tests/unit/e2e/test_browser_diagnostics.test.ts", "frontend/tests/unit/lib/test_api_client.test.ts", "frontend/tests/unit/lib/test_auth_session.test.ts", "frontend/tests/unit/lib/test_benchmark_family_sources.test.ts", "frontend/tests/unit/lib/test_data_preparation.test.ts", "frontend/tests/unit/lib/test_instrument_calendar.test.ts", "frontend/tests/unit/lib/test_instruments.test.ts", "frontend/tests/unit/lib/test_market_map.test.ts", "frontend/tests/unit/lib/test_on_demand_acquisition.test.ts", "frontend/tests/unit/lib/test_tool_activation.test.ts", "frontend/tests/unit/lib/workstation_ohlcv_requests.test.ts", "frontend/tests/unit/lib/workstation_source_capability.test.ts", "frontend/tests/unit/router/test_app_shell.test.ts", "frontend/tests/unit/router/test_application_routes.test.ts", "frontend/tests/unit/setup.ts", "frontend/tests/unit/stores/test_drawings_store.test.ts", "frontend/tests/unit/stores/test_favorites_store.test.ts", "frontend/tests/unit/stores/test_stores.test.ts", "frontend/tests/unit/stores/test_watchlist_store.test.ts", "frontend/tests/unit/stores/test_workspace_store.test.ts", "frontend/tests/unit/views/test_alerts_view_creation_path.test.ts", "frontend/tests/unit/views/test_baskets_view.test.ts", "frontend/tests/unit/views/test_chart_view_radar_handoff.test.ts", "frontend/tests/unit/views/test_etf_holdings_view.test.ts", "frontend/tests/unit/views/test_screener_view_accessibility.test.ts", "frontend/tests/unit/views/test_settings_view.test.ts", "frontend/tests/unit/views/test_workstation_capabilities.test.ts", "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts"],
     "owned_private_paths_excluded": ["frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue", "frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue", "frontend/src/components/dashboard/DashboardInstrumentSearch.vue", "frontend/src/components/dashboard/DashboardLineChartWidget.vue", "frontend/src/components/dashboard/DashboardQuoteWidget.vue", "frontend/src/components/workstation/CodeLibraryTool.vue", "frontend/src/components/workstation/PythonSourceEditor.vue", "frontend/src/components/workstation/ResearchResultsTool.vue", "frontend/src/components/workstation/StudyLabTool.vue", "frontend/src/lib/workstation/researchQueryKeys.ts", "frontend/src/lib/workstation/researchRunCancellation.ts", "frontend/src/stores/dashboard.ts", "frontend/src/views/DashboardView.vue", "frontend/tests/e2e/dashboard_usability_journey.spec.ts", "frontend/tests/e2e/strategy_study_journey.spec.ts", "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts", "frontend/tests/unit/components/test_code_library_tool.test.ts", "frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts", "frontend/tests/unit/components/test_dashboard_instrument_search.test.ts", "frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts", "frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts", "frontend/tests/unit/components/test_python_source_editor.test.ts", "frontend/tests/unit/components/test_research_results_tool.test.ts", "frontend/tests/unit/components/test_study_lab_tool.test.ts", "frontend/tests/unit/stores/test_dashboard_store.test.ts", "frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts"],
     "backend_context_overlay": {"source_commit":"9e2de1591cb8fc124839309ff4549808b7632844","contract":"/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider9e2de159-runtime-development-consumption-contract.json","contract_sha256":"f8b7724293e20dee3f3dbe739c28a4bd5dc19e6991685c67211f035a8fc23672","source_manifest_rows":79,"import_paths":["backend/app/services/derived_timeframes.py", "backend/app/services/market_series.py", "backend/app/services/provider_runtime.py", "backend/app/tasks/data_tasks.py", "backend/tests/integration/test_provider_runtime_transactions_postgres.py", "backend/tests/unit/services/test_data_preparation_worker_deeper_default.py", "backend/tests/unit/services/test_derived_timeframes.py"],"old_guards_passed":7,"all_source_rows_sha256_git_blob_status_and_executable_mode_verified":true,"qualification":"development overlay only; broad Provider runtime source pin unchanged"},
-    "client_scope": "Exact coherent135-row TC frontend snapshot. Strategy foreign pin is exactly109 non-private paths; only21 declared deltas were imported through old guards. The26 Strategy-owned private paths are explicitly excluded from foreign pinning.",
-    "client_import_verification": {"source_manifest_rows": 135, "foreign_context_paths": 109, "consumer_import_paths": ["frontend/src/components/workstation/EasyScanTool.vue", "frontend/src/components/workstation/WorkstationToolContent.vue", "frontend/src/lib/api.ts", "frontend/src/lib/instruments.ts", "frontend/src/stores/chart.ts", "frontend/src/stores/watchlist.ts", "frontend/src/stores/workspace.ts", "frontend/src/types/index.ts", "frontend/src/views/WorkstationView.vue", "frontend/tests/e2e/auth_session_boundary.spec.ts", "frontend/tests/e2e/helpers.ts", "frontend/tests/e2e/on_demand_acquisition.spec.ts", "frontend/tests/unit/components/test_easy_scan_tool.test.ts", "frontend/tests/unit/e2e/test_browser_diagnostics.test.ts", "frontend/tests/unit/lib/test_api_client.test.ts", "frontend/tests/unit/lib/test_instruments.test.ts", "frontend/tests/unit/stores/test_stores.test.ts", "frontend/tests/unit/stores/test_watchlist_store.test.ts", "frontend/tests/unit/stores/test_workspace_store.test.ts", "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts", "frontend/tests/unit/views/test_etf_holdings_view.test.ts"], "old_guards_passed": 21, "all_source_rows_sha256_git_blob_status_and_executable_mode_verified": true, "owned_private_paths_excluded": 26, "verified_at": "2026-11-08", "qualification": "development context only"}
+    "foreign_context_paths": ["frontend/package-lock.json", "frontend/package.json", "frontend/src/App.vue", "frontend/src/components/chart/ChartPanel.vue", "frontend/src/components/chart/HistoryAcquisitionControl.vue", "frontend/src/components/chart/UPlotChart.vue", "frontend/src/components/common/CompactStatusNotice.vue", "frontend/src/components/common/Notification.vue", "frontend/src/components/common/SearchBar.vue", "frontend/src/components/radar/RadarDetailPreviewChart.vue", "frontend/src/components/workstation/ChartPlotLibrary.vue", "frontend/src/components/workstation/EasyScanTool.vue", "frontend/src/components/workstation/InstrumentNoteTool.vue", "frontend/src/components/workstation/MarketGaugeTool.vue", "frontend/src/components/workstation/MarketMapTool.vue", "frontend/src/components/workstation/RatioUPlot.vue", "frontend/src/components/workstation/RelativeRotationTool.vue", "frontend/src/components/workstation/ToolWindow.vue", "frontend/src/components/workstation/VirtualWatchlistTool.vue", "frontend/src/components/workstation/WorkspaceLayoutHost.vue", "frontend/src/components/workstation/WorkstationToolContent.vue", "frontend/src/lib/api.ts", "frontend/src/lib/authSession.ts", "frontend/src/lib/dataPreparation.ts", "frontend/src/lib/etfHoldingDrilldown.ts", "frontend/src/lib/instruments.ts", "frontend/src/lib/onDemandAcquisition.ts", "frontend/src/lib/workstation/benchmarkFamilySources.ts", "frontend/src/lib/workstation/instrumentCalendar.ts", "frontend/src/lib/workstation/marketMap.ts", "frontend/src/lib/workstation/ohlcvRequests.ts", "frontend/src/lib/workstation/sourceCapability.ts", "frontend/src/lib/workstation/toolActivation.ts", "frontend/src/main.ts", "frontend/src/router/index.ts", "frontend/src/stores/alerts.ts", "frontend/src/stores/auth.ts", "frontend/src/stores/chart.ts", "frontend/src/stores/favorites.ts", "frontend/src/stores/layout.ts", "frontend/src/stores/panelLinks.ts", "frontend/src/stores/radar.ts", "frontend/src/stores/recentInstruments.ts", "frontend/src/stores/userSettings.ts", "frontend/src/stores/watchlist.ts", "frontend/src/stores/workspace.ts", "frontend/src/types/index.ts", "frontend/src/views/AlertsView.vue", "frontend/src/views/BasketsView.vue", "frontend/src/views/ChartView.vue", "frontend/src/views/ETFHoldingsView.vue", "frontend/src/views/ScreenerView.vue", "frontend/src/views/SettingsView.vue", "frontend/src/views/WatchlistView.vue", "frontend/src/views/WorkstationView.vue", "frontend/tests/e2e/auth_session_boundary.spec.ts", "frontend/tests/e2e/baskets_journey.spec.ts", "frontend/tests/e2e/etf_holdings_preparation.spec.ts", "frontend/tests/e2e/flows.spec.ts", "frontend/tests/e2e/helpers.ts", "frontend/tests/e2e/on_demand_acquisition.spec.ts", "frontend/tests/e2e/sp500_analysis_journey.spec.ts", "frontend/tests/e2e/supporting_features_journey.spec.ts", "frontend/tests/e2e/tc2000_visual.spec.ts", "frontend/tests/e2e/tc_secondary_routes_journey.spec.ts", "frontend/tests/unit/components/test_chart_panel_lifecycle.test.ts", "frontend/tests/unit/components/test_chart_plot_library.test.ts", "frontend/tests/unit/components/test_compact_status_notice.test.ts", "frontend/tests/unit/components/test_easy_scan_tool.test.ts", "frontend/tests/unit/components/test_history_acquisition_control.test.ts", "frontend/tests/unit/components/test_instrument_note_tool.test.ts", "frontend/tests/unit/components/test_market_gauge_tool.test.ts", "frontend/tests/unit/components/test_market_map_tool.test.ts", "frontend/tests/unit/components/test_radar_detail_preview_chart.test.ts", "frontend/tests/unit/components/test_ratio_uplot.test.ts", "frontend/tests/unit/components/test_relative_rotation_tool.test.ts", "frontend/tests/unit/components/test_search_bar.test.ts", "frontend/tests/unit/components/test_tool_window.test.ts", "frontend/tests/unit/components/test_uplot_chart_context.test.ts", "frontend/tests/unit/components/test_workspace_layout_host.test.ts", "frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts", "frontend/tests/unit/components/test_workstation_tool_content_tag_columns_runtime.test.ts", "frontend/tests/unit/e2e/test_browser_diagnostics.test.ts", "frontend/tests/unit/lib/test_api_client.test.ts", "frontend/tests/unit/lib/test_auth_session.test.ts", "frontend/tests/unit/lib/test_benchmark_family_sources.test.ts", "frontend/tests/unit/lib/test_data_preparation.test.ts", "frontend/tests/unit/lib/test_instrument_calendar.test.ts", "frontend/tests/unit/lib/test_instruments.test.ts", "frontend/tests/unit/lib/test_market_map.test.ts", "frontend/tests/unit/lib/test_on_demand_acquisition.test.ts", "frontend/tests/unit/lib/test_tool_activation.test.ts", "frontend/tests/unit/lib/workstation_ohlcv_requests.test.ts", "frontend/tests/unit/lib/workstation_source_capability.test.ts", "frontend/tests/unit/router/test_app_shell.test.ts", "frontend/tests/unit/router/test_application_routes.test.ts", "frontend/tests/unit/setup.ts", "frontend/tests/unit/stores/test_drawings_store.test.ts", "frontend/tests/unit/stores/test_favorites_store.test.ts", "frontend/tests/unit/stores/test_stores.test.ts", "frontend/tests/unit/stores/test_watchlist_store.test.ts", "frontend/tests/unit/stores/test_workspace_store.test.ts", "frontend/tests/unit/views/test_alerts_view_creation_path.test.ts", "frontend/tests/unit/views/test_baskets_view.test.ts", "frontend/tests/unit/views/test_chart_view_radar_handoff.test.ts", "frontend/tests/unit/views/test_etf_holdings_view.test.ts", "frontend/tests/unit/views/test_screener_view_accessibility.test.ts", "frontend/tests/unit/views/test_settings_view.test.ts", "frontend/tests/unit/views/test_workstation_capabilities.test.ts", "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts"],
+    "owned_private_paths_excluded": ["frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue", "frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue", "frontend/src/components/dashboard/DashboardInstrumentSearch.vue", "frontend/src/components/dashboard/DashboardLineChartWidget.vue", "frontend/src/components/dashboard/DashboardQuoteWidget.vue", "frontend/src/components/workstation/CodeLibraryTool.vue", "frontend/src/components/workstation/PythonSourceEditor.vue", "frontend/src/components/workstation/ResearchResultsTool.vue", "frontend/src/components/workstation/StudyLabTool.vue", "frontend/src/lib/workstation/researchQueryKeys.ts", "frontend/src/lib/workstation/researchRunCancellation.ts", "frontend/src/stores/dashboard.ts", "frontend/src/views/DashboardView.vue", "frontend/tests/e2e/dashboard_usability_journey.spec.ts", "frontend/tests/e2e/strategy_study_journey.spec.ts", "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts", "frontend/tests/unit/components/test_code_library_tool.test.ts", "frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts", "frontend/tests/unit/components/test_dashboard_instrument_search.test.ts", "frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts", "frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts", "frontend/tests/unit/components/test_python_source_editor.test.ts", "frontend/tests/unit/components/test_research_results_tool.test.ts", "frontend/tests/unit/components/test_study_lab_tool.test.ts", "frontend/tests/unit/stores/test_dashboard_store.test.ts", "frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts"],
+    "common_runtime_contract": {"path":"/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-9ec4d783-common-runtime-development-consumption-contract.json","sha256":"c0575b6c280c9d9318983c31153266702829b6050a26697de2400aeea8a465ef","consumer_import_paths":["frontend/src/components/workstation/WorkstationToolContent.vue", "frontend/src/lib/api.ts", "frontend/src/lib/dataPreparation.ts", "frontend/src/lib/onDemandAcquisition.ts", "frontend/src/stores/chart.ts", "frontend/src/stores/watchlist.ts", "frontend/src/stores/workspace.ts", "frontend/src/views/WorkstationView.vue", "frontend/tests/unit/components/test_workstation_tool_content_tag_columns_runtime.test.ts", "frontend/tests/unit/lib/test_api_client.test.ts", "frontend/tests/unit/stores/test_watchlist_store.test.ts", "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts"],"old_guards_passed":12},
+    "client_scope": "Exact coherent136-row TC frontend context. Strategy foreign pin is110 paths; only12 declared consumer deltas were imported through old guards. The26 Strategy-owned private paths are excluded and were byte-identical before this import.",
+    "client_import_verification": {"source_manifest_rows": 136, "foreign_context_paths": 110, "consumer_import_paths": ["frontend/src/components/workstation/WorkstationToolContent.vue", "frontend/src/lib/api.ts", "frontend/src/lib/dataPreparation.ts", "frontend/src/lib/onDemandAcquisition.ts", "frontend/src/stores/chart.ts", "frontend/src/stores/watchlist.ts", "frontend/src/stores/workspace.ts", "frontend/src/views/WorkstationView.vue", "frontend/tests/unit/components/test_workstation_tool_content_tag_columns_runtime.test.ts", "frontend/tests/unit/lib/test_api_client.test.ts", "frontend/tests/unit/stores/test_watchlist_store.test.ts", "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts"], "old_guards_passed": 12, "all_source_rows_sha256_git_blob_status_and_executable_mode_verified": true, "owned_private_paths_excluded": 26, "verified_at": "2026-11-08", "qualification": "development context only"}
   },
   "imported_files":   [
     {

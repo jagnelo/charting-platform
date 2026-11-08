@@ -20306,3 +20306,8 @@ On source `88b70230f03cab3f45b2817033892e4c9e1ea9f5`, the existing Strategy comp
 ## 2026-11-08 — Root-released 305 / 9e2 development context
 
 Imported the Strategy consumer's21 declared TC305 frontend deltas and7 Provider9e2 backend paths after their exact old guards passed. Rechecked the complete135-row frontend and79-row backend manifests for SHA256, Git blob, status, and executable-bit mode. The current frontend foreign pin contains109 non-private paths;26 Strategy-owned private paths remain excluded from foreign pinning and were not overwritten. Prior TC pins remain archived. Root reports43 native ETF cases passed in133.93s; TC still owns two priority-coupling defects in305. This is development context only: full65, exact-source CI, complete browser/profile, deployment, and the remaining Strategy roadmap are open. No test/browser, Docker, live-source, or push/CI action was performed for this reconciliation.
+
+
+## 2026-11-08 — TC9ec4 shared context consumed
+
+Imported only the12 Strategy-declared paths from exact TC source9ec4d7833c45cd2fc51916a2378445f7761b425e after all12 old guards matched. All136 rows in the coherent full-context manifest were verified; the110 active foreign paths exclude the26 Strategy-private paths, which remained byte-identical and untouched. The prior305 frontend and9e2 backend pins remain in history; Provider9e2 stays a seven-path overlay. Root's affected browser journeys, full65, exact CI and release acceptance remain pending. No browser, suite, Docker or live-source action was run here.

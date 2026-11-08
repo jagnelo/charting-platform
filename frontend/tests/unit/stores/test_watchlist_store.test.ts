@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
+const setQueuedApiRequestPriority = vi.hoisted(() => vi.fn())
 vi.mock('@/lib/api', () => ({
   api: {
     get: vi.fn(),
@@ -8,9 +9,10 @@ vi.mock('@/lib/api', () => ({
     patch: vi.fn(),
     delete: vi.fn(),
   },
+  setQueuedApiRequestPriority,
 }))
 
-import { api } from '@/lib/api'
+import { api, setQueuedApiRequestPriority as promoteQueuedRequest } from '@/lib/api'
 import { useWatchlistStore } from '@/stores/watchlist'
 
 function makeWatchlist() {
@@ -421,8 +423,52 @@ describe('useWatchlistStore', () => {
     const store = useWatchlistStore()
     await store.fetchPrices(['spy'], false, true, 'high')
 
-    expect(api.get).toHaveBeenCalledWith('/ohlcv/local/SPY/D1', { limit: 31 }, { priority: 'high' })
+    expect(api.get).toHaveBeenCalledWith('/ohlcv/local/SPY/D1', { limit: 31 }, {
+      priority: 'high', queueKey: 'watchlist-price:local:SPY',
+    })
     expect(store.priceMap.SPY.close).toBe(11)
+  })
+
+  it('promotes a shared queued local quote when a visible watchlist joins the read', async () => {
+    const store = useWatchlistStore()
+    let resolveBars!: (bars: Array<{ open: number; high: number; low: number; close: number; volume: number }>) => void
+    ;(api.get as ReturnType<typeof vi.fn>).mockReturnValueOnce(new Promise<Array<{ open: number; high: number; low: number; close: number; volume: number }>>(resolve => {
+      resolveBars = resolve
+    }))
+
+    const lowPriority = store.fetchPrices(['SPY'], false, true, 'low')
+    const visiblePriority = store.fetchPrices(['SPY'], false, true, 'high')
+
+    expect(api.get).toHaveBeenCalledTimes(1)
+    expect(promoteQueuedRequest).toHaveBeenCalledWith('watchlist-price:local:SPY', 'high')
+    resolveBars([
+      { open: 99, high: 101, low: 98, close: 100, volume: 1000 },
+      { open: 100, high: 103, low: 99, close: 102, volume: 1200 },
+    ])
+    await Promise.all([lowPriority, visiblePriority])
+    expect(store.priceMap.SPY.close).toBe(102)
+  })
+
+  it('does not demote a visible shared quote when a hidden watchlist joins', async () => {
+    const store = useWatchlistStore()
+    let resolveBars!: (bars: Array<{ open: number; high: number; low: number; close: number; volume: number }>) => void
+    ;(api.get as ReturnType<typeof vi.fn>).mockReturnValueOnce(new Promise<Array<{ open: number; high: number; low: number; close: number; volume: number }>>(resolve => {
+      resolveBars = resolve
+    }))
+
+    const visible = store.fetchPrices(['SPY'], false, true, 'high')
+    const hidden = store.fetchPrices(['SPY'], false, true, 'low')
+
+    expect(api.get).toHaveBeenCalledTimes(1)
+    expect(api.get).toHaveBeenCalledWith('/ohlcv/local/SPY/D1', { limit: 31 }, {
+      priority: 'high', queueKey: 'watchlist-price:local:SPY',
+    })
+    expect(promoteQueuedRequest).not.toHaveBeenCalled()
+    resolveBars([
+      { open: 99, high: 101, low: 98, close: 100, volume: 1000 },
+      { open: 100, high: 103, low: 99, close: 102, volume: 1200 },
+    ])
+    await Promise.all([visible, hidden])
   })
 
   it('shares one local quote read across overlapping watchlist hydration triggers', async () => {

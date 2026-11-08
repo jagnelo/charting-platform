@@ -1,0 +1,30 @@
+{
+  "authority": "Root released exact TC9ec4 development consumption; no product acceptance",
+  "source": "9ec4d7833c45cd2fc51916a2378445f7761b425e",
+  "common_contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-9ec4d783-common-runtime-development-consumption-contract.json",
+  "common_contract_sha256": "c0575b6c280c9d9318983c31153266702829b6050a26697de2400aeea8a465ef",
+  "full_context_manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-9ec4d783-full-frontend-context-development-consumption-contract.json",
+  "full_context_sha256": "5d6d46d12bd238921dd8ed254c03b00bb002bfdfd976efa349f282e268a63e44",
+  "entry_fragment": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-9ec4d783-common-entry-feat-strategy-lab-v2.yaml",
+  "scope": "Only Strategy consumer import_paths were written; full context foreign pin excludes26 private Strategy paths.",
+  "consumer": "Strategy",
+  "import_paths": [
+    "frontend/src/components/workstation/WorkstationToolContent.vue",
+    "frontend/src/lib/api.ts",
+    "frontend/src/lib/dataPreparation.ts",
+    "frontend/src/lib/onDemandAcquisition.ts",
+    "frontend/src/stores/chart.ts",
+    "frontend/src/stores/watchlist.ts",
+    "frontend/src/stores/workspace.ts",
+    "frontend/src/views/WorkstationView.vue",
+    "frontend/tests/unit/components/test_workstation_tool_content_tag_columns_runtime.test.ts",
+    "frontend/tests/unit/lib/test_api_client.test.ts",
+    "frontend/tests/unit/stores/test_watchlist_store.test.ts",
+    "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts"
+  ],
+  "old_guards_verified": 12,
+  "full_context_rows_verified": 136,
+  "foreign_context_paths": 110,
+  "owned_private_paths_excluded": 26,
+  "qualification": "development context only; Root owns profile/CI/release acceptance"
+}

@@ -2048,7 +2048,7 @@ describe('WorkstationView pop-out bindings', () => {
       await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'CURR', instrumentId: 81 })))
       expect(dataPreparationPost.mock.calls.some(([request]) => request.target.instrument_id === 81 && request.datasets.includes('holdings'))).toBe(false)
       expect(apiGet).not.toHaveBeenCalledWith('/etf-holdings/CURR/capability')
-      expect(harness.workspace.loadETFHoldings).toHaveBeenCalledWith('CURR')
+      expect(harness.workspace.loadETFHoldings).toHaveBeenCalledWith('CURR', 'high')
       expect(harness.workspace.etfHoldings.CURR?.snapshot).toBe(oldSnapshot)
       expect(harness.workspace.constituentETF).toBeNull()
     } finally {
@@ -2536,7 +2536,7 @@ describe('WorkstationView pop-out bindings', () => {
       global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
     })
     try {
-      await vi.waitFor(() => expect(harness.workspace.loadETFHoldings).toHaveBeenCalledWith('SPY'))
+      await vi.waitFor(() => expect(harness.workspace.loadETFHoldings).toHaveBeenCalledWith('SPY', 'high'))
       expect(harness.workspace.loadETFIndustries).toHaveBeenCalledWith('SPY')
       await vi.waitFor(() => expect(dataPreparationPost).toHaveBeenCalledTimes(1))
       expect(dataPreparationPost.mock.calls[0]?.[0]).toMatchObject({ target: { kind: 'instrument', symbol: 'SPY' } })
@@ -2631,6 +2631,105 @@ describe('WorkstationView pop-out bindings', () => {
     }
   })
 
+  it('starts selected ETF holdings preparation while independent local chart and technical reads are still pending', async () => {
+    routeState.path = '/chart/BWET'
+    routeState.params = { symbol: 'BWET' }
+    apiGet.mockImplementation(async (path: string) => {
+      if (path === '/instruments/search') return [{ symbol: 'BWET', type: 'ETF', instrument_id: 77 }]
+      return []
+    })
+    let finishChart!: () => void
+    let finishTechnical!: () => void
+    const chartPending = new Promise<void>(resolve => { finishChart = resolve })
+    const technicalPending = new Promise<void>(resolve => { finishTechnical = resolve })
+    let chartSettled = false
+    let technicalSettled = false
+    harness.chart.loadBars.mockImplementation(async (symbol: string) => {
+      harness.chart.symbol = symbol
+      await chartPending
+      chartSettled = true
+    })
+    harness.workspace.loadTechnical = vi.fn(async () => {
+      await technicalPending
+      technicalSettled = true
+    })
+
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    try {
+      await vi.waitFor(() => expect(dataPreparationPost.mock.calls.some(([request]) =>
+        request.target?.kind === 'instrument' && request.target.instrument_id === 77 && request.datasets?.includes('holdings'),
+      )).toBe(true))
+      const holdingsEnsure = dataPreparationPost.mock.calls.find(([request]) => request.datasets?.includes('holdings'))
+      expect(holdingsEnsure?.[0]).toMatchObject({ target: { kind: 'instrument', instrument_id: 77 }, datasets: ['holdings'] })
+      expect(holdingsEnsure?.[1]).toMatchObject({ priority: 'high' })
+      expect(chartSettled).toBe(false)
+      expect(technicalSettled).toBe(false)
+
+      finishChart()
+      finishTechnical()
+      await flushPromises()
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
+  it('publishes current saved ETF holdings while chart and technical hydration remain pending', async () => {
+    routeState.path = '/chart/BWET'
+    routeState.params = { symbol: 'BWET' }
+    apiGet.mockImplementation(async (path: string) => {
+      if (path === '/instruments/search') return [{ symbol: 'BWET', type: 'ETF', instrument_id: 77 }]
+      if (path === '/etf-holdings/BWET/capability') {
+        return { availability: 'current', identity_verified: true, usable_for_current_analysis: true }
+      }
+      return []
+    })
+    let finishChart!: () => void
+    let finishTechnical!: () => void
+    let finishHoldings!: () => void
+    const chartPending = new Promise<void>(resolve => { finishChart = resolve })
+    const technicalPending = new Promise<void>(resolve => { finishTechnical = resolve })
+    const holdingsPending = new Promise<void>(resolve => { finishHoldings = resolve })
+    let chartSettled = false
+    let technicalSettled = false
+    harness.chart.loadBars.mockImplementation(async (symbol: string) => {
+      harness.chart.symbol = symbol
+      await chartPending
+      chartSettled = true
+    })
+    harness.workspace.loadTechnical = vi.fn(async () => {
+      await technicalPending
+      technicalSettled = true
+    })
+    harness.workspace.loadETFHoldings = vi.fn(async (symbol: string) => {
+      await holdingsPending
+      harness.workspace.etfHoldings[symbol] = { snapshot: { id: 700, etf_symbol: symbol } }
+      return { snapshot: { id: 700, etf_symbol: symbol } }
+    })
+
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    try {
+      await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith(
+        '/etf-holdings/BWET/capability', undefined, { priority: 'high' },
+      ))
+      expect(harness.workspace.loadETFHoldings).toHaveBeenCalledWith('BWET', 'high')
+      finishHoldings()
+      await vi.waitFor(() => expect(wrapper.text()).toContain('Current holdings for BWET are available locally.'))
+      expect(chartSettled).toBe(false)
+      expect(technicalSettled).toBe(false)
+      expect(dataPreparationPost.mock.calls.some(([request]) => request.datasets?.includes('holdings'))).toBe(false)
+
+      finishChart()
+      finishTechnical()
+      await flushPromises()
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
   it('shows newly prepared history on a cold canonical chart without another click or reload', async () => {
     routeState.path = '/chart/NVDA'
     routeState.params = { symbol: 'NVDA' }
@@ -2666,6 +2765,7 @@ describe('WorkstationView pop-out bindings', () => {
       expect(request).toMatchObject({ target: { kind: 'instrument', instrument_id: 77001 } })
       expect(request).not.toHaveProperty('start_at')
       expect(request).not.toHaveProperty('end_at')
+      expect(dataPreparationPost.mock.calls[0]?.[1]).toMatchObject({ priority: 'high' })
       await vi.waitFor(() => expect(harness.chart.refreshLocalBars).toHaveBeenCalled())
       expect(harness.chart.bars).toHaveLength(1)
       expect(harness.chart.bars[0]).toMatchObject({ close: 101 })

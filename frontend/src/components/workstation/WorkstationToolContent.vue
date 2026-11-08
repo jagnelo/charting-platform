@@ -1,5 +1,5 @@
 <template>
-<ToolWindow :window-key="tool.instance_key" :title="tool.title || tool.tool_type" :symbol="toolHeaderSymbol" :link-group="localLinkGroup" :timeframe-link-group="timeframeLinkGroup" :timeframe="tool.tool_type === 'chart' ? activeTimeframe : ''" :active="isActiveToolWindow" :maximized="maximizedState?.value ?? false" :maximizing="maximizingState?.value ?? false" :scrollable-body="tool.instance_key === 'relative-rotation' || tool.tool_type === 'relative_rotation'" :favorite-available="tool.tool_type === 'chart' && favoriteStore.loaded && chartStore.instrument?.id != null" :favorite-active="favoriteStore.isFavorite(chartStore.instrument?.id)" :favorite-pending="favoriteStore.isPending(chartStore.instrument?.id)" @toggle-favorite="toggleChartFavorite" @pointerdown.capture="emit('activate')" @float="emit('float', tool.instance_key)" @maximize="emit('maximize', tool.instance_key)" @close="emit('close', tool.instance_key)" @update:link-group="handleLinkGroupChange" @update:timeframe-link-group="setTimeframeLinkGroup" @update:timeframe="setTimeframe">
+<ToolWindow ref="toolWindowRef" :window-key="tool.instance_key" :title="tool.title || tool.tool_type" :symbol="toolHeaderSymbol" :link-group="localLinkGroup" :timeframe-link-group="timeframeLinkGroup" :timeframe="tool.tool_type === 'chart' ? activeTimeframe : ''" :active="isActiveToolWindow" :maximized="maximizedState?.value ?? false" :maximizing="maximizingState?.value ?? false" :scrollable-body="tool.instance_key === 'relative-rotation' || tool.tool_type === 'relative_rotation'" :favorite-available="tool.tool_type === 'chart' && favoriteStore.loaded && chartStore.instrument?.id != null" :favorite-active="favoriteStore.isFavorite(chartStore.instrument?.id)" :favorite-pending="favoriteStore.isPending(chartStore.instrument?.id)" @toggle-favorite="toggleChartFavorite" @pointerdown.capture="emit('activate')" @float="emit('float', tool.instance_key)" @maximize="emit('maximize', tool.instance_key)" @close="emit('close', tool.instance_key)" @update:link-group="handleLinkGroupChange" @update:timeframe-link-group="setTimeframeLinkGroup" @update:timeframe="setTimeframe">
     <span v-if="personalWatchlistError" class="workstation-tool-content__mutation-error" role="alert" aria-live="assertive">{{ personalWatchlistError }}</span>
     <small v-if="isIndustryTool && industryProfilePreparation?.message" class="industry-list__load-state" role="status" aria-live="polite">{{ industryProfilePreparation.message }}</small>
     <div v-if="isBenchmarkUniverse" class="benchmark-surface">
@@ -1351,9 +1351,63 @@ const isActiveToolWindow = computed(() => {
 const watchlistStore = useWatchlistStore()
 const favoriteStore = useFavoritesStore()
 const isFavoritesTool = computed(() => props.tool.configuration.favorites === true)
-function fetchWorkstationWatchlistPrices(symbols: string[]) {
-  return watchlistStore.fetchPrices(symbols, false, true, isActiveToolWindow.value ? 'high' : 'low')
+const toolWindowRef = ref<{ $el?: HTMLElement } | null>(null)
+const workstationToolVisible = ref(false)
+let workstationToolVisibilityObserver: MutationObserver | null = null
+function isWorkstationToolVisible(): boolean {
+  const root = toolWindowRef.value?.$el
+  if (!(root instanceof HTMLElement) || !root.isConnected) return false
+  let current: HTMLElement | null = root
+  while (current) {
+    const style = window.getComputedStyle(current)
+    if (style.display === 'none' || style.visibility === 'hidden' || style.visibility === 'collapse') return false
+    current = current.parentElement
+  }
+  return root.getClientRects().length > 0
 }
+function currentWorkstationWatchlistSymbols(): string[] {
+  const rows = isFavoritesTool.value
+    ? favoriteRows.value
+    : [
+      ...personalWatchlistRows.value,
+      ...flaggedWatchlistRows.value,
+      ...comboWatchlistRows.value,
+      ...activeBenchmarkRows.value,
+      ...sectorRows.value,
+      ...factoryWatchlistRows.value,
+      ...proxyRows.value,
+      ...canonicalConstituentRows.value,
+    ]
+  return [...new Set(rows.map(row => row.symbol).filter(symbol => symbol && !symbol.startsWith('#')))]
+}
+function fetchWorkstationWatchlistPrices(symbols: string[], priority: 'high' | 'low' = workstationToolVisible.value ? 'high' : 'low') {
+  return watchlistStore.fetchPrices(symbols, false, true, priority)
+}
+function syncWorkstationToolVisibility() {
+  const visible = isWorkstationToolVisible()
+  if (visible === workstationToolVisible.value) return
+  workstationToolVisible.value = visible
+  if (!isPersonalWatchlistTool.value) return
+  const symbols = currentWorkstationWatchlistSymbols()
+  if (symbols.length) void fetchWorkstationWatchlistPrices(symbols, visible ? 'high' : 'low')
+}
+function observeWorkstationToolVisibility() {
+  const root = toolWindowRef.value?.$el
+  if (!(root instanceof HTMLElement)) return
+  workstationToolVisibilityObserver?.disconnect()
+  workstationToolVisibilityObserver = new MutationObserver(syncWorkstationToolVisibility)
+  let current: HTMLElement | null = root
+  while (current) {
+    workstationToolVisibilityObserver.observe(current, { attributes: true, attributeFilter: ['class', 'style'] })
+    if (current.classList.contains('workspace-layout-host')) break
+    current = current.parentElement
+  }
+  syncWorkstationToolVisibility()
+}
+onBeforeUnmount(() => {
+  workstationToolVisibilityObserver?.disconnect()
+  workstationToolVisibilityObserver = null
+})
 async function toggleChartFavorite() {
   const instrumentId = chartStore.instrument?.id
   if (props.tool.tool_type === 'chart' && instrumentId != null) await favoriteStore.toggle(instrumentId)
@@ -1896,6 +1950,7 @@ function handlePersonalRowAction(action: 'chart' | 'compare' | 'ratio' | 'note' 
 }
 
 onMounted(async () => {
+  observeWorkstationToolVisibility()
   void loadBreadthPythonSeriesAssets()
   // Sector membership is already a local curated catalogue. Load it directly
   // for the visible list so a slow snapshot/breadth refresh cannot leave the
