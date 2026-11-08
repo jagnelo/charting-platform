@@ -616,6 +616,12 @@ test('legacy Strategy Lab creates, edits, reloads, and safely deletes a supporte
   const entryLogicToggle = entryLogic.getByRole('button', { name: 'Entry logic', exact: true })
   if (await entryLogicToggle.getAttribute('aria-expanded') !== 'true') await entryLogicToggle.click()
   await entryLogic.getByRole('button', { name: /Add technical condition/ }).click()
+  const rsiCondition = entryLogic.getByRole('group', { name: 'Condition 1 rule', exact: true })
+  await rsiCondition.getByLabel('Condition type', { exact: true }).selectOption('indicator_threshold')
+  await rsiCondition.getByLabel('Indicator', { exact: true }).selectOption('rsi')
+  await rsiCondition.getByLabel('Period', { exact: true }).fill('14')
+  await rsiCondition.getByLabel('Relationship', { exact: true }).selectOption('gt')
+  await rsiCondition.getByLabel('Value', { exact: true }).fill('50')
   await entryLogic.getByPlaceholder('What changed in this revision?').fill('Add a supported RSI entry rule for the retained local history window.')
   const publishRevisionPromise = page.waitForResponse(response => response.request().method() === 'POST'
     && new URL(response.url()).pathname === `/api/v1/strategy-lab/definitions/${created.id}/versions`)
@@ -671,21 +677,47 @@ test('legacy Strategy Lab creates, edits, reloads, and safely deletes a supporte
   const localResult = persistedRunRead.body.result_summary as {
     result_kind?: string
     timeframe?: string
-    equity_curve?: unknown[]
+    equity_curve?: Array<{ equity?: unknown }>
     universe?: { resolved_symbols?: string[] }
-    coverage?: { requested_date_from?: string; requested_date_to?: string }
+    coverage?: {
+      requested_date_from?: string
+      requested_date_to?: string
+      simulatable_symbols?: string[]
+      simulatable_instrument_count?: number
+      total_bars?: number
+    }
     performance?: { initial_capital?: number; ending_capital?: number; trade_count?: number }
   }
   expect(localResult.result_kind).toBe('rules_backtest')
   expect(localResult.timeframe).toBe('D1')
   expect(localResult.universe?.resolved_symbols).toContain('SPY')
+  expect(localResult.coverage?.simulatable_symbols).toContain('SPY')
+  expect(localResult.coverage?.simulatable_instrument_count).toBeGreaterThan(0)
+  expect(localResult.coverage?.total_bars).toBeGreaterThan(0)
   expect(localResult.coverage?.requested_date_from).toMatch(/^2024-01-01T00:00:00/)
   expect(localResult.coverage?.requested_date_to).toMatch(/^2025-12-29T23:59:59/)
-  expect(localResult.equity_curve?.length).toBeGreaterThan(0)
+  expect(localResult.equity_curve?.length).toBeGreaterThan(1)
+  expect(localResult.equity_curve?.every(point => typeof point.equity === 'number' && Number.isFinite(point.equity))).toBe(true)
   expect(Number.isFinite(localResult.performance?.initial_capital)).toBe(true)
   expect(Number.isFinite(localResult.performance?.ending_capital)).toBe(true)
   expect(Number.isInteger(localResult.performance?.trade_count)).toBe(true)
+  expect(localResult.performance?.trade_count).toBeGreaterThan(0)
   expect(persistedRunRead.body.artifact_manifest).toMatchObject({ result_kind: 'rules_backtest' })
+
+  const researchRunsPanel = page.locator('.panel').filter({
+    has: page.getByRole('button', { name: 'Research runs', exact: true }),
+  }).first()
+  await expect(researchRunsPanel.getByRole('button', { name: 'Research runs', exact: true }))
+    .toHaveAttribute('aria-expanded', 'true')
+  await expect(researchRunsPanel.getByRole('button', { name: /^Run history/ }))
+    .toHaveAttribute('aria-expanded', 'true')
+  await expect(researchRunsPanel.locator('.run-item[aria-pressed="true"]')).toHaveCount(1)
+  const resultsPanel = page.locator('.panel.panel--results')
+  await expect(resultsPanel.getByRole('button', { name: 'Results', exact: true }))
+    .toHaveAttribute('aria-expanded', 'true')
+  await expect(resultsPanel.locator('.run-detail')).toBeVisible()
+  await expect(resultsPanel.getByText('Realized return', { exact: true })).toBeVisible()
+
   const exportPromise = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Export', exact: true }).click()
   await page.getByRole('menuitem', { name: 'Export summary', exact: true }).click()
