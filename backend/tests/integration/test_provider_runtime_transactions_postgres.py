@@ -374,6 +374,277 @@ async def test_first_use_uncommitted_runtime_rows_remain_owned_by_caller(
         assert await verify.scalar(select(DataSource).where(DataSource.name == source_name)) is None
 
 
+def _transaction_test_quota_contract():
+    return {
+        "reset": "calendar_day_utc",
+        "operation_costs": {"fetch_ohlcv": 1},
+        "dimensions": [
+            {
+                "name": "requests_per_day",
+                "limit": 5,
+                "window_seconds": 86400,
+                "unit": "requests",
+                "scope": "api_key",
+                "source": "test-fixture:provider-runtime-transaction",
+                "reset": "calendar_day_utc",
+            }
+        ],
+    }
+
+
+def _configure_isolated_test_coordinator(monkeypatch, tmp_path, provider_name, policy, now):
+    from app.services import provider_quota_coordinator
+
+    ledger_url = f"sqlite:///{tmp_path / 'provider-quota-test.sqlite3'}"
+    monkeypatch.setattr(provider_quota_coordinator, "_engine_url", lambda: ledger_url)
+    engine = provider_quota_coordinator._engine_for(ledger_url)
+    provider_quota_coordinator.reconcile_provider_quota_baseline(
+        provider_name=provider_name,
+        capability="price_history",
+        policy=policy,
+        dimension_name="requests_per_day",
+        used_units=0,
+        observed_at=now,
+        evidence_reference="test-fixture:provider-runtime-transaction:2026-11-08",
+        source="operator_owner_attestation",
+        now=now,
+    )
+    baseline = provider_quota_coordinator.provider_quota_baseline_status(
+        provider_name=provider_name,
+        capability="price_history",
+        policy=policy,
+        dimension_name="requests_per_day",
+        now=now,
+    )
+    assert baseline["status"] == "verified", baseline
+    return engine
+
+
+@pytest.mark.asyncio
+async def test_execute_provider_call_commits_quota_before_slow_mock_transport(
+    provider_runtime_sessions, tmp_path, monkeypatch
+):
+    """A slow call must not retain shared PostgreSQL quota-window row locks."""
+
+    from app.config import settings
+    from app.models.asset_class import AssetClass
+    from app.models.data_source import DataSource
+    from app.models.market_data_foundation import ProviderQuotaWindow
+    from app.models.provider_runtime import (
+        ProviderCapability,
+        ProviderHealthState,
+        ProviderPolicy,
+        ProviderRequestLog,
+    )
+    from app.providers.telemetry import observe_response
+    from app.services import provider_runtime
+    from app.services.provider_quota_coordinator import _reservations, _windows
+
+    monkeypatch.setattr(settings, "PROVIDER_REQUEST_DRIVEN_ONLY", False)
+    source = DataSource(
+        name=f"quota-tx-{uuid4().hex[:12]}",
+        base_url="https://provider.example.invalid",
+        is_active=True,
+        config={"usage_tracking": {"operation_costs": {"fetch_ohlcv": 1}}},
+    )
+    policy = ProviderPolicy(
+        capability=ProviderCapability.PRICE_HISTORY,
+        is_enabled=True,
+        quota_scope="fixture-account",
+        quota_source="test-fixture:provider-runtime-transaction",
+        quota_verified_at=datetime.now(UTC),
+        max_concurrency=2,
+        quota_contract=_transaction_test_quota_contract(),
+    )
+    health = ProviderHealthState(capability=ProviderCapability.PRICE_HISTORY)
+    async with provider_runtime_sessions() as setup:
+        setup.add(source)
+        await setup.flush()
+        policy.data_source_id = source.id
+        health.data_source_id = source.id
+        setup.add_all([policy, health])
+        await setup.commit()
+        source_id = source.id
+
+    now = datetime.now(UTC)
+    coordinator_engine = _configure_isolated_test_coordinator(
+        monkeypatch, tmp_path, source.name, policy, now
+    )
+
+    async def resolve_for_session(db, _capability, **_kwargs):
+        local_source = await db.get(DataSource, source_id)
+        local_policy = (
+            await db.execute(
+                select(ProviderPolicy).where(ProviderPolicy.data_source_id == source_id)
+            )
+        ).scalar_one()
+        local_health = (
+            await db.execute(
+                select(ProviderHealthState).where(
+                    ProviderHealthState.data_source_id == source_id,
+                    ProviderHealthState.capability == ProviderCapability.PRICE_HISTORY,
+                )
+            )
+        ).scalar_one()
+        return [_resolved_provider(local_source, local_policy, local_health)]
+
+    monkeypatch.setattr(provider_runtime, "resolve_provider_chain", resolve_for_session)
+    original_reserve = provider_runtime._reserve_provider_contract_for_call
+
+    async def require_application_reservation(*args, **kwargs):
+        reservation = await original_reserve(*args, **kwargs)
+        assert reservation is not None, "application quota-window reservation was denied"
+        return reservation
+
+    monkeypatch.setattr(
+        provider_runtime, "_reserve_provider_contract_for_call", require_application_reservation
+    )
+    slow_started = threading.Event()
+    release_slow = threading.Event()
+    slow_finished = threading.Event()
+
+    def invoke(_provider, symbol):
+        observe_response(SimpleNamespace(content=b"mocked-provider-response", headers={}))
+        if symbol == "SLOW":
+            slow_started.set()
+            if not release_slow.wait(timeout=10):
+                raise TimeoutError("test did not release slow mocked transport")
+            slow_finished.set()
+        return [symbol]
+
+    async def call(symbol):
+        async with provider_runtime_sessions() as session:
+            session.add(AssetClass(name=f"rolled-back-{uuid4().hex[:12]}"))
+            result = await provider_runtime.execute_provider_call(
+                session,
+                ProviderCapability.PRICE_HISTORY,
+                "fetch_ohlcv:D1",
+                provider_symbol=symbol,
+                usage_identity=symbol,
+                invoke=invoke,
+                response_items=len,
+                seed_runtime=False,
+            )
+            assert result.result == [symbol]
+            await session.rollback()
+
+    slow_call = asyncio.create_task(call("SLOW"))
+    try:
+        assert await asyncio.wait_for(asyncio.to_thread(slow_started.wait, 5), timeout=6)
+        # This is a full admitted execute_provider_call using the same real
+        # PostgreSQL quota window while the first mocked transport is blocked.
+        # It must finish without waiting for the first caller transaction.
+        await asyncio.wait_for(call("FAST"), timeout=5)
+        assert not slow_finished.is_set()
+    finally:
+        release_slow.set()
+        await asyncio.wait_for(slow_call, timeout=10)
+
+    async with provider_runtime_sessions() as verify:
+        window = await verify.scalar(select(ProviderQuotaWindow))
+        assert window is not None
+        assert window.reserved_units == 0
+        assert window.consumed_units == 2
+        assert await verify.scalar(select(func.count()).select_from(AssetClass)) == 0
+        assert await verify.scalar(select(func.count()).select_from(ProviderRequestLog)) == 0
+
+    with coordinator_engine.connect() as connection:
+        ledger_windows = connection.execute(select(_windows)).mappings().all()
+        ledger_reservations = connection.execute(select(_reservations)).mappings().all()
+    assert len(ledger_windows) == 1
+    assert ledger_windows[0]["reserved_units"] == 0
+    assert ledger_windows[0]["consumed_units"] == 2
+    assert len(ledger_reservations) == 2
+    assert {row["state"] for row in ledger_reservations} == {"settled"}
+    coordinator_engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_execute_provider_call_first_use_keeps_uncommitted_source_in_caller_transaction(
+    provider_runtime_sessions, tmp_path, monkeypatch
+):
+    """The short-session path falls back when first-use seed rows are uncommitted."""
+
+    from app.config import settings
+    from app.models.data_source import DataSource
+    from app.models.market_data_foundation import ProviderQuotaWindow
+    from app.models.provider_runtime import (
+        ProviderCapability,
+        ProviderHealthState,
+        ProviderPolicy,
+        ProviderRequestLog,
+    )
+    from app.providers.telemetry import observe_response
+    from app.services import provider_runtime
+    from app.services.provider_quota_coordinator import _reservations
+
+    monkeypatch.setattr(settings, "PROVIDER_REQUEST_DRIVEN_ONLY", False)
+    source_name = f"first-use-{uuid4().hex[:10]}"
+    source = DataSource(
+        name=source_name,
+        base_url="https://provider.example.invalid",
+        is_active=True,
+        config={"usage_tracking": {"operation_costs": {"fetch_ohlcv": 1}}},
+    )
+    policy = ProviderPolicy(
+        capability=ProviderCapability.PRICE_HISTORY,
+        is_enabled=True,
+        quota_scope="fixture-first-use-account",
+        quota_source="test-fixture:provider-runtime-transaction",
+        quota_verified_at=datetime.now(UTC),
+        max_concurrency=1,
+        quota_contract=_transaction_test_quota_contract(),
+    )
+    health = ProviderHealthState(capability=ProviderCapability.PRICE_HISTORY)
+    async with provider_runtime_sessions() as session:
+        session.add(source)
+        await session.flush()
+        policy.data_source_id = source.id
+        health.data_source_id = source.id
+        session.add_all([policy, health])
+        await session.flush()
+        resolved = _resolved_provider(source, policy, health)
+
+        now = datetime.now(UTC)
+        coordinator_engine = _configure_isolated_test_coordinator(
+            monkeypatch, tmp_path, source.name, policy, now
+        )
+
+        async def resolve_uncommitted(_db, _capability, **_kwargs):
+            return [resolved]
+
+        monkeypatch.setattr(provider_runtime, "resolve_provider_chain", resolve_uncommitted)
+
+        def invoke(_provider, _symbol):
+            observe_response(SimpleNamespace(content=b"first-use-response", headers={}))
+            return ["OK"]
+
+        result = await provider_runtime.execute_provider_call(
+            session,
+            ProviderCapability.PRICE_HISTORY,
+            "fetch_ohlcv:D1",
+            provider_symbol="FIRST",
+            usage_identity="FIRST",
+            invoke=invoke,
+            response_items=len,
+            seed_runtime=False,
+        )
+        assert result.result == ["OK"]
+        assert await session.scalar(select(ProviderQuotaWindow)) is not None
+        assert await session.scalar(select(ProviderRequestLog)) is not None
+        await session.rollback()
+
+    async with provider_runtime_sessions() as verify:
+        assert await verify.scalar(select(DataSource).where(DataSource.name == source_name)) is None
+        assert await verify.scalar(select(ProviderQuotaWindow)) is None
+        assert await verify.scalar(select(ProviderRequestLog)) is None
+    with coordinator_engine.connect() as connection:
+        ledger_reservations = connection.execute(select(_reservations)).mappings().all()
+    assert len(ledger_reservations) == 1
+    assert ledger_reservations[0]["state"] == "settled"
+    coordinator_engine.dispose()
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("known_reset", [False, True])
 async def test_capacity_hold_updates_same_caller_resolver_without_dirtying_stale_rows(

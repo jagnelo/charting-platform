@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { api } from '@/lib/api'
+import { api, setQueuedApiRequestPriority, type ApiRequestPriority } from '@/lib/api'
 import { isEditorTarget as isWorkstationEditorTarget } from '@/lib/workstation/keyboard'
 import { normaliseGoldenLayoutConfig } from '@/lib/workstation/layout'
 import type { LinkGroup } from '@/stores/dashboardLinks'
@@ -1203,6 +1203,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   let marketRefreshPromise: Promise<void> | null = null
   const analysisGenerations = new Map<string, number>()
   const marketGroupLoads = new Map<string, Promise<MarketGroupState | null>>()
+  const etfHoldingsLoads = new Map<string, Promise<ETFHoldingsPageState | null>>()
   // The shell's shared refresh can overlap the identical reads started by an
   // active analysis panel. Join same-query requests before allocating a new
   // generation so the duplicate cannot invalidate useful in-flight data.
@@ -1612,6 +1613,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     recentActiveWindowOverrides.clear()
     recentClosedWindowOverrides.clear()
     analysisGenerations.clear()
+    etfHoldingsLoads.clear()
     disconnect()
   }
 
@@ -2907,54 +2909,69 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     return marketRefreshPromise
   }
 
-  async function loadETFHoldings(symbol: string) {
+  async function loadETFHoldings(symbol: string, priority?: ApiRequestPriority) {
     const normalized = symbol.trim().toUpperCase()
     if (!normalized) return null
+    const queueKey = `selected-etf-holdings:${normalized}`
+    const pending = etfHoldingsLoads.get(normalized)
+    if (pending) {
+      if (priority === 'high') setQueuedApiRequestPriority(queueKey, 'high')
+      return pending
+    }
     const requestKey = 'top-down:holdings'
     const generation = beginAnalysisRequest(requestKey)
     if (!documentIsVisible()) return null
-    try {
-      const page = await api.get<ETFHoldingsPageState>(`/etf-holdings/${encodeURIComponent(normalized)}/holdings`, {
-        limit: 500,
-        sort: 'weight',
-        direction: 'desc',
-        point_in_time: true,
-      })
-      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
-      etfHoldings.value = { ...etfHoldings.value, [normalized]: page }
-      const sameETF = constituentETF.value === normalized
-      // Passive hydration may complete after the user has selected a different
-      // direct symbol. Only bind this result when the selection context is
-      // unset or still names this ETF; clearConstituentETF invalidates any
-      // older in-flight request at the selection boundary.
-      if (constituentETF.value == null || sameETF) constituentETF.value = normalized
-      // Repeated concurrent hydration for the same ETF is expected (initial
-      // shell load, linked-symbol watcher, and an explicit selection can all
-      // request it). It must not erase an industry/proxy selection the user has
-      // already made while those duplicate responses are arriving.
-      // An older request for another ETF may finish after the user has already
-      // selected an industry. It must not erase that visible drill-down state;
-      // a new sector selection clears it synchronously at the symbol boundary.
-      if (!sameETF && !selectedIndustry.value) {
-        selectedIndustry.value = null
-        selectedIndustryProxy.value = null
-      }
-      void loadETFConstituentSnapshot(normalized)
-      return page
-    } catch (cause: any) {
-      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
-      if (cause?.status === 404) {
-        // A missing current read must not erase a retained last-known snapshot.
-        // Empty first use is represented as null; refresh failure preserves the
-        // exact prior page and its provenance for the selected fund.
-        if (!etfHoldings.value[normalized]) {
-          etfHoldings.value = { ...etfHoldings.value, [normalized]: null }
+    let request!: Promise<ETFHoldingsPageState | null>
+    request = (async () => {
+      try {
+        const path = `/etf-holdings/${encodeURIComponent(normalized)}/holdings`
+        const params = {
+          limit: 500,
+          sort: 'weight',
+          direction: 'desc',
+          point_in_time: true,
         }
+        const page = await api.get<ETFHoldingsPageState>(path, params, {
+          priority: priority ?? 'auto',
+          queueKey,
+        })
+        if (!isCurrentAnalysisRequest(requestKey, generation)) return null
+        etfHoldings.value = { ...etfHoldings.value, [normalized]: page }
+        const sameETF = constituentETF.value === normalized
+        // Passive hydration may complete after the user has selected a different
+        // direct symbol. Only bind this result when the selection context is
+        // unset or still names this ETF; clearConstituentETF invalidates any
+        // older in-flight request at the selection boundary.
+        if (constituentETF.value == null || sameETF) constituentETF.value = normalized
+        // Repeated concurrent hydration for the same ETF is expected (initial
+        // shell load, linked-symbol watcher, and an explicit selection can all
+        // join this request. It must not erase an industry/proxy selection the
+        // user has already made while those duplicate responses are arriving.
+        if (!sameETF && !selectedIndustry.value) {
+          selectedIndustry.value = null
+          selectedIndustryProxy.value = null
+        }
+        void loadETFConstituentSnapshot(normalized)
+        return page
+      } catch (cause: any) {
+        if (!isCurrentAnalysisRequest(requestKey, generation)) return null
+        if (cause?.status === 404) {
+          // A missing current read must not erase a retained last-known snapshot.
+          // Empty first use is represented as null; refresh failure preserves the
+          // exact prior page and its provenance for the selected fund.
+          if (!etfHoldings.value[normalized]) {
+            etfHoldings.value = { ...etfHoldings.value, [normalized]: null }
+          }
+          return null
+        }
+        error.value = cause?.message ?? `Unable to load ETF holdings for ${normalized}`
         return null
+      } finally {
+        if (etfHoldingsLoads.get(normalized) === request) etfHoldingsLoads.delete(normalized)
       }
-      error.value = cause?.message ?? `Unable to load ETF holdings for ${normalized}`
-      return null
-    }
+    })()
+    etfHoldingsLoads.set(normalized, request)
+    return request
   }
 
   async function loadETFConstituentSnapshot(symbol: string, benchmark?: string) {
@@ -3143,14 +3160,17 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     clearIndustrySelection()
   }
 
-  async function loadTechnical(symbol: string) {
+  async function loadTechnical(symbol: string, priority?: ApiRequestPriority) {
     const normalized = symbol.trim().toUpperCase()
     if (!normalized) return null
     const requestKey = 'top-down:technical'
     const generation = beginAnalysisRequest(requestKey)
     if (!documentIsVisible()) return null
     try {
-      const snapshot = await api.get<TechnicalSnapshotState>(`/analysis/instruments/${encodeURIComponent(normalized)}/technical`)
+      const path = `/analysis/instruments/${encodeURIComponent(normalized)}/technical`
+      const snapshot = await (priority
+        ? api.get<TechnicalSnapshotState>(path, undefined, { priority })
+        : api.get<TechnicalSnapshotState>(path))
       if (!isCurrentAnalysisRequest(requestKey, generation)) return null
       technicals.value = { ...technicals.value, [normalized]: snapshot }
       return snapshot

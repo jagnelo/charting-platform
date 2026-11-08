@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { Watchlist, WatchlistItem, WatchlistSource, WatchlistSourceResolved } from '@/types'
-import { api } from '@/lib/api'
+import { api, setQueuedApiRequestPriority } from '@/lib/api'
 import { ensureKnownInstrumentSymbol } from '@/lib/instruments'
 
 export interface WatchlistQuote {
@@ -505,16 +505,23 @@ export const useWatchlistStore = defineStore('watchlist', () => {
     let nextIndex = 0
     async function fetchPrice(symbol: string) {
       const key = `${localOnly ? 'local' : 'provider'}:${symbol}`
+      const queueKey = `watchlist-price:${key}`
       const existing = pendingWatchlistPrices.get(key)
-      if (existing) return existing
+      if (existing) {
+        // A visible consumer can promote the shared request, but a later
+        // hidden/secondary panel must never demote foreground work.
+        if (priority === 'high') setQueuedApiRequestPriority(queueKey, 'high')
+        return existing
+      }
       if (!force && priceMap.value[symbol]) return
 
       const generation = watchlistPriceGeneration
       const pending = (async () => {
         try {
           const path = localOnly ? `/ohlcv/local/${symbol}/D1` : `/ohlcv/${symbol}/D1`
+          const requestOptions = priority ? { priority, queueKey } : undefined
           const bars: Array<{ open: number; high: number; low: number; close: number; volume?: number }> = priority
-            ? await api.get(path, { limit: 31 }, { priority })
+            ? await api.get(path, { limit: 31 }, requestOptions)
             : await api.get(path, { limit: 31 })
           if (generation !== watchlistPriceGeneration) return
           if (bars.length >= 2) {

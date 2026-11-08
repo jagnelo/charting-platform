@@ -6174,7 +6174,7 @@
     {
       "source": "frontend/src/components/workstation/WorkstationToolContent.vue",
       "control_count": 117,
-      "signature_sha256": "3475a949015e7be32daedf48f8c53c19ab201473a15066a5cfadfe91e28eeedf",
+      "signature_sha256": "34c748a51f6feca132ea0be0dfc0651d7ecc1cbb99a9d3a8748988d9b113ac2e",
       "journeys": [
         "TC04",
         "TC06",
