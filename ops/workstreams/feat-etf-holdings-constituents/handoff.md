@@ -18994,3 +18994,23 @@ from a terminal missing identity. No shared file was changed here. The exact
 e750 imports remain in the already committed context adoption; this correction
 is a descendant and does not rewrite those imported files. Playwright discovery
 lists all four supporting-feature cases; no browser or full profile was run.
+
+## Notes pending canonical-identity state — 2026-11-08
+
+After the full66 trace review, the owned `InstrumentNoteTool` now joins the
+existing `fetchCanonicalInstrument` QueryClient request when the parent has not
+yet supplied an instrument id. It displays `Resolving canonical instrument…`
+and keeps editing disabled while that lookup is pending; only an actual 404
+shows `No canonical instrument`, while other failures remain explicit errors.
+The resolved response is bound to the requested symbol and current auth/load
+generation before the note read is allowed. The resolved id also drives note
+editing/saving, and late identity results cannot replace a newer symbol's note
+context. Existing draft, autosave, auth-epoch, and late-acknowledgement guards
+remain intact. The shared helper's foreground-priority plumbing remains a
+TC-owned follow-up; this component joins the deduplicated query but does not
+change that helper.
+
+The focused Notes unit module passes **8/8**, including pending identity,
+terminal 404, resolved-id save, and late symbol-switch regressions. Frontend
+type-check and the workstream guard pass. No browser, full profile, provider or
+native HTTP, database, Docker, CI, or production operation ran.
