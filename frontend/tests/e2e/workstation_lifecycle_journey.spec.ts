@@ -375,12 +375,22 @@ async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUT
   } else if (kind === 'coverage') {
     const coverage = tool.locator('.coverage-summary')
     await expect(coverage).toBeVisible({ timeout: 20_000 })
-    const publicActiveSymbol = page.getByRole('combobox', { name: 'Active symbol', exact: true })
-    await expect(publicActiveSymbol).toBeVisible()
-    const activeSymbol = (await publicActiveSymbol.inputValue()).trim().toUpperCase()
-    expect(activeSymbol).toMatch(/^[A-Z0-9._-]+$/)
-    await expect(coverage).toHaveAttribute('aria-label', `${activeSymbol} coverage`)
-    const canonicalCoverageRead = await authenticatedJson(page, `/api/v1/coverage/instruments/${encodeURIComponent(activeSymbol)}`)
+    const panelSymbol = tool.locator('.tool-window__symbol')
+    await expect(panelSymbol).toBeVisible()
+    const linkGroup = tool.getByRole('combobox', { name: 'Coverage symbol link group', exact: true })
+    await expect(linkGroup).toBeVisible()
+    if (await linkGroup.inputValue() === 'blue') {
+      // The shell search box is an editable draft until its ordinary Go action
+      // commits the selection. Compare this linked panel with the visible
+      // committed workspace symbol, not that transient input value.
+      const committedSymbol = (await page.locator('.workstation__footer > span').first().innerText()).trim().toUpperCase()
+      expect(committedSymbol).toMatch(/^[A-Z0-9._-]+$/)
+      await expect(panelSymbol).toHaveText(committedSymbol)
+    }
+    const linkedSymbol = (await panelSymbol.innerText()).trim().toUpperCase()
+    expect(linkedSymbol).toMatch(/^[A-Z0-9._-]+$/)
+    await expect(coverage).toHaveAttribute('aria-label', `${linkedSymbol} coverage`)
+    const canonicalCoverageRead = await authenticatedJson(page, `/api/v1/coverage/instruments/${encodeURIComponent(linkedSymbol)}`)
     expect(canonicalCoverageRead.status).toBe(200)
     const canonicalCoverage = canonicalCoverageRead.body as {
       local_coverage?: Record<string, { oldest?: string | null; newest?: string | null; bar_count?: number }>
@@ -390,11 +400,11 @@ async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUT
     expect(canonicalDaily?.newest).toBeTruthy()
     expect(Number.isInteger(canonicalDaily?.bar_count)).toBe(true)
     expect(canonicalDaily!.bar_count).toBeGreaterThan(0)
-    await expect(coverage.getByText('Canonical instrument', { exact: true }).locator('..').locator('strong')).toHaveText(activeSymbol)
+    await expect(coverage.getByText('Canonical instrument', { exact: true }).locator('..').locator('strong')).toHaveText(linkedSymbol)
     const dailyGrid = coverage.locator('.coverage-summary__grid')
     await expect(dailyGrid).toBeVisible({ timeout: 20_000 })
     const dailyBarCount = Number((await dailyGrid.locator('b').first().innerText()).replaceAll(',', ''))
-    expect(dailyBarCount, 'coverage must report the exact canonical local daily bar count for the current active symbol').toBe(canonicalDaily!.bar_count)
+    expect(dailyBarCount, 'coverage must report the exact canonical local daily bar count for its committed linked symbol').toBe(canonicalDaily!.bar_count)
     await expect(coverage.locator('.coverage-summary__note')).toContainText('Local canonical data only')
   } else if (kind === 'notes') {
     const note = tool.getByRole('textbox', { name: 'Instrument note' })
@@ -537,17 +547,20 @@ async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUT
     const tile = tiles.locator('.market-map-tool__tile').first()
     await expect(tile).toBeVisible()
     const activeSymbol = page.getByRole('combobox', { name: 'Active symbol', exact: true })
-    const startingSymbol = (await activeSymbol.inputValue()).trim().toUpperCase()
+    const committedSymbol = page.locator('.workstation__footer > span').first()
+    const startingSymbol = (await committedSymbol.innerText()).trim().toUpperCase()
     expect(startingSymbol).toBe('SPY')
     const tileSymbol = (await tile.getAttribute('title'))?.split(' · ', 1)[0]?.trim().toUpperCase()
     expect(tileSymbol).toMatch(/^[A-Z0-9._-]+$/)
     await tile.click()
     await expect(tile).toHaveAttribute('aria-pressed', 'true')
     await expect(activeSymbol).toHaveValue(tileSymbol!)
+    await expect(committedSymbol).toHaveText(tileSymbol!)
     if (tileSymbol !== startingSymbol) {
       await activeSymbol.fill(startingSymbol)
       await page.getByRole('button', { name: 'Go', exact: true }).click()
       await expect(activeSymbol).toHaveValue(startingSymbol)
+      await expect(committedSymbol).toHaveText(startingSymbol)
     }
   } else if (kind === 'study') {
     await tool.getByLabel('Factory study').selectOption('positive_streak')
@@ -757,8 +770,29 @@ test.describe('Workstation lifecycle journeys', () => {
     const chartTool = await activatePanel(page, 'Chart')
     const favoriteStar = chartTool.getByRole('button', { name: 'Add SPY to My Favorites', exact: true })
     await expect(favoriteStar, 'create the empty Favorites prerequisite through the public Chart star action').toBeVisible()
+    const favoriteSavePromise = page.waitForResponse(response => {
+      const request = response.request()
+      const match = new URL(response.url()).pathname.match(/^\/api\/v1\/favorites\/instruments\/(\d+)$/)
+      return request.method() === 'PUT' && Number(match?.[1]) > 0
+    }, { timeout: 5_000 })
     await favoriteStar.click()
-    await expect(chartTool.getByRole('button', { name: 'Remove SPY from My Favorites', exact: true })).toHaveAttribute('aria-pressed', 'true')
+    const favoriteSaveAndVisibleState = await Promise.allSettled([
+      favoriteSavePromise,
+      expect(chartTool.getByRole('button', { name: 'Remove SPY from My Favorites', exact: true }))
+        .toHaveAttribute('aria-pressed', 'true', { timeout: 5_000 }),
+    ])
+    const favoriteSave = favoriteSaveAndVisibleState[0]
+    expect(favoriteSave.status, 'the Favorites write and visible state must both settle within the existing five-second action bound').toBe('fulfilled')
+    if (favoriteSave.status === 'fulfilled') {
+      expect(favoriteSave.value.status()).toBe(200)
+      const requestPath = new URL(favoriteSave.value.url()).pathname
+      const requestInstrumentId = Number(requestPath.match(/\/(\d+)$/)?.[1])
+      const savedFavorite = await favoriteSave.value.json() as { id: number; instrument_id: number; symbol: string }
+      expect(Number.isInteger(savedFavorite.id)).toBe(true)
+      expect(savedFavorite.instrument_id).toBe(requestInstrumentId)
+      expect(savedFavorite.symbol).toBe('SPY')
+    }
+    expect(favoriteSaveAndVisibleState[1].status, 'the Chart star must reflect the acknowledged saved Favorite').toBe('fulfilled')
     for (const item of catalogue.tools) {
       const kind = TOOL_OUTCOMES[item.title]
       expect(kind, `missing useful-result mapping for ${item.title}`).toBeTruthy()

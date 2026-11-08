@@ -201,6 +201,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
 import { researchRunQueryKey, researchRunsQueryKey } from '@/lib/workstation/researchQueryKeys'
+import { readTerminalRunAfterCancelConflict } from '@/lib/workstation/researchRunCancellation'
 import { normalizeStructuredNumericSeries } from '@/lib/workstation/numericSeries'
 import { normalizeStudyDashboardPanels } from '@/lib/workstation/studyArtifacts'
 import { studyArtifactCapability } from '@/lib/workstation/studyArtifactCapabilities'
@@ -1129,11 +1130,12 @@ async function rerun(run: ResearchRunSummary, snapshot: boolean) {
   }
 }
 async function cancel(run: ResearchRunSummary) {
+  const runId = run.id
   const generation = mutationGeneration
   canceling.value = true
   error.value = ''
   try {
-    const canceled = await api.post<ResearchRunSummary>(`/research/runs/${run.id}/cancel`, {})
+    const canceled = await api.post<ResearchRunSummary>(`/research/runs/${runId}/cancel`, {})
     publishAcceptedRunMutation({ ...run, ...canceled, status: canceled.status ?? 'canceled' })
     if (!mounted || generation !== mutationGeneration) return
     const nextRuns = runs.value.map(item => item.id === run.id ? { ...item, ...canceled, status: canceled.status ?? 'canceled' } : item)
@@ -1143,7 +1145,30 @@ async function cancel(run: ResearchRunSummary) {
     await runsQuery.refetch()
     queryClient.setQueryData<ResearchRunSummary[]>(runsQueryKey, current => (current ?? []).map(item => item.id === run.id ? { ...item, ...canceled, status: canceled.status ?? 'canceled' } : item))
   } catch (cause: any) {
-    if (mounted && generation === mutationGeneration) error.value = `Unable to cancel run #${run.id}: ${cause?.message ?? 'Request failed'}`
+    try {
+      const terminal = await readTerminalRunAfterCancelConflict(cause, runId, () => api.get<ResearchRunSummary>(`/research/runs/${runId}`))
+      if (terminal) {
+        const cachedDetail = queryClient.getQueryData<ResearchRunSummary>(researchRunQueryKey(runId))
+        const selectedDetail = selectedRun.value?.id === runId ? selectedRun.value : null
+        const current = mergeRunSummaryWithDetail(terminal, selectedDetail ?? cachedDetail)
+        queryClient.setQueryData(researchRunQueryKey(runId), current)
+        queryClient.setQueryData<ResearchRunSummary[]>(runsQueryKey, existing =>
+          mergeResearchRuns([current], existing ?? []).slice(0, RESEARCH_RUN_FETCH_SIZE),
+        )
+        if (mounted && generation === mutationGeneration) {
+          runs.value = mergeResearchRuns([current], runs.value)
+          if (selectedRun.value?.id === runId) selectedRun.value = current
+          error.value = ''
+        }
+        return
+      }
+    } catch (refreshCause: any) {
+      if (mounted && generation === mutationGeneration) {
+        error.value = `Unable to confirm run #${runId} after the cancel request: ${refreshCause?.message ?? 'run status refresh failed'}`
+      }
+      return
+    }
+    if (mounted && generation === mutationGeneration) error.value = `Unable to cancel run #${runId}: ${cause?.message ?? 'Request failed'}`
   } finally {
     if (mounted && generation === mutationGeneration) canceling.value = false
   }
