@@ -18765,3 +18765,29 @@ Root released Provider source `19d34d0b3e875b29b276ee80e471311586e6023f` for exa
 ## TC 8d96 common-runtime development dependency — 2026-11-08
 
 Root released TC source `8d96cf3bd702459c4eef2ced93ec1dfb8db3dc2f` for exact development consumption. The local manifest is `ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/8d96cf3bd702459c4eef2ced93ec1dfb8db3dc2f.json` (SHA256 `2959432285dd2d58271261d539b4e30700bb38f2bf4b7b84727887a91078d4a1`). All95 source rows were verified; only the15 ETF-declared paths were imported after every7ac old guard passed, and destinations match released bytes and Git executable-bit semantics. The prior2a8 current pin is preserved as historical. This release transfers `on_demand_acquisition.spec.ts` to TC ownership; private ETF-domain and basket paths were untouched. Root's four-case combined result remains red and under TC diagnosis; this import is not product or browser acceptance. No tests, browser, fixture, Source HTTP, DB, quota, policy, ledger, or production operation was run. Root owns the corrected combined profile, exact CI and release acceptance.
+
+## Native per-fund chart proof successor — 2026-11-08
+
+Root assigned a test-only strengthening through
+`ETF-native-per-fund-proof-preparation-assignment.json`. In
+`native-selected-etf-journey-successor.spec.ts`, the helper now observes the
+page-originated selected-symbol D1 response before selection, validates its
+symbol/timeframe/status and finite bars, cross-checks every returned OHLC row
+against the authenticated persisted read, and binds the rendered chart to the
+single active visible chart tool at D1. Price-canvas paint and the tooltip's
+date-bound OHLC checks now use that actual page response. Existing bounds,
+source/provenance and exact-value assertions remain unchanged.
+
+The former serial BWET/XHB/IGV flow is split into independent XHB and IGV test
+cases, so an XHB chart failure cannot suppress IGV's current-snapshot and
+drilldown evidence. The IGV case retains source-bound holding selection,
+lineage, constituent chart, return-to-IGV and reload/snapshot assertions. The
+separate genuine BWET future-source boundary spec and the original strict proof
+are unchanged. Correct focused Playwright discovery lists two cases. An
+initial discovery attempt against `frontend/playwright.config.ts` correctly
+found no tests because the assigned spec is outside that config's testDir; the
+focused ops-directory config then discovered both cases. No browser body,
+source HTTP, fixture, runtime, shared product, database, policy, quota, ledger,
+production or sibling-worktree operation ran. Root owns IHI/IYW/IGV derivation
+and actual native execution. Successor spec SHA256
+`fbbde53011b6ba9c7e9339924dce6277eeb31ca3578841a3fcb96bf383ec469b`.

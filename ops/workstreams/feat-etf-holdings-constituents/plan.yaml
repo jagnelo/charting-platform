@@ -5728,8 +5728,8 @@ acceptance_criteria:
 progress:
   completed: []
   total: 5
-  current_phase: Root-released Provider 22c31cd3 (67/67 manifest rows) and TC 2666aa55 (86/86 rows) are consumed under exact ETF path guards. Provider adds source-specific unknown-depth history planning and a scoped earliest-history witness; outbound HTTP remains disabled and account-specific use is unresolved. TC’s latest-marker layering fix is imported with the strict ETF oracle unchanged. Root reports21 focused TC regressions green. Root owns the full RRG D1/W1/MN and lifecycle, Results, exact CI, native-use review and final release gates.
-  current_blocker: R53 on predecessor TC c9 exposed latest markers being painted before later historical circles; TC 2666aa55 fixes that product layering, and the strict ETF 3x3 latest-center oracle is unchanged. Root owns the normal full RRG D1/W1/MN and lifecycle run on a compiled combined candidate, plus Strategy Results, exact CI, and release gates. Preserve prior failed receipts, all roadmaps, genuine-source holds, and the R52 D1-only scope.
+  current_phase: Strengthened the ETF-owned native selected-fund proof to bind chart readiness to the page-originated selected-symbol D1 response, visible active chart tool/timeframe, and independent XHB/IGV test cases. BWET future-source proof remains separate and unchanged. Cheap Playwright discovery only; Root owns genuine per-fund execution and release qualification.
+  current_blocker: "The native chart journey is not yet accepted: Root owns exact-source IHI/IYW/IGV variants and actual native browser execution, including the primary price-chart visibility outcome. Preserve all earlier failures, full roadmaps, genuine-source holds, and final combined/CI/release gates."
 previous_provider_b0eae597_development_import:
   source: b0eae5974801e320b3da858d7e1a33829b206430
   previous_source: 5cdc5ee06e26b191d889212b8cd1554d28abbc8f
@@ -7189,6 +7189,15 @@ provider_runtime_dependency_historical_ad114d20:
   verification: All74 manifest rows match the released source tree/status/blob/SHA256/executable semantics; all22 ETF-declared import paths passed old guards and match exact source. The non-imported ETF-owned test_etf_holdings_preparation_hook.py remains byte-identical to 3969 and was preserved.
   validation: Four focused offline tests passed, covering held-child recovery/coalescing, typed retry preservation, unknown hold behavior, and future-source typed failure. Provider's broader runtime checks and all release gates remain Root/Provider-owned.
   state: Root-authorized development dependency only; no native request/replay, quota/policy change, production mutation, integration, or deployment is implied. Root owns XHB diagnosis and combined qualification.
+
+native_selected_etf_page_chart_and_independent_fund_proof_2026_11_08:
+  authority: Root assignment ETF-native-per-fund-proof-preparation-assignment.json; test-only implementation in the ETF-owned successor spec.
+  source: ops/workstreams/feat-etf-holdings-constituents/native-selected-etf-journey-successor.spec.ts
+  source_sha256: fbbde53011b6ba9c7e9339924dce6277eeb31ca3578841a3fcb96bf383ec469b
+  contract: Observe the selected symbol's actual page-originated D1 OHLCV response before selection, require its bars to match the authenticated persisted read, and bind paint plus date/OHLC tooltip assertions to the visible active chart tool at D1. Run XHB current-holdings proof independently from IGV current-holdings, drilldown, return, and reload proof.
+  preserved: Existing automatic selection/acquisition, exact identity, current snapshot, completeness, source/date/known-at provenance, constituent-row binding, actual canvas paint, date-bound numeric tooltip, IGV lineage/drilldown/return/reload. BWET's authentic future_dated_source boundary spec is unchanged.
+  validation: Correct focused Playwright discovery lists two cases; browser bodies are not run in this owner turn. Root derives IHI/IYW/IGV and owns the actual native execution.
+  non_actions: No browser, HTTP, source/provider request, fixture, runtime, shared-product, database, policy, quota, ledger, production, or sibling-worktree change.
 
 native_xhb_current_rows_proof_successor_2026_11_07:
   authority: Root assigned a test-only successor after root-native-XHB-current-rows-proof-contract-review.json.

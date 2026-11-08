@@ -928,7 +928,7 @@
     "source_http": 0,
     "status": "accepted_ready_for_integration_closing_tip_CI_pending"
   },
-  "next_action": "Root observes exact closing-tip CI; do not integrate/promote/deploy from this feature session. Preserve full roadmap and all holds.",
+  "next_action": "Root derives the IHI/IYW/IGV native proof from the frozen ETF per-fund successor and owns actual browser execution; do not run browser/source requests or alter shared product. Preserve full roadmap and all holds.",
   "ordinary_ishares_multitable_catalog_repair_2026_11_04": {
     "captured_response_bytes": 495609,
     "captured_response_path": "/tmp/etf-native-parallel-prequalification-565211-20261104/setup-attempt-003/artifacts/igv-catalog-body-captured-raw.html",
@@ -1070,8 +1070,8 @@
     "status": "Root-delegated bounded software checkpoint accepted; exact final-source CI pending.",
     "validated_implementation_sha": "b6d67ce93104a0a2cf83b1c41f385513b3c230f8"
   },
-  "plan_hash": "b7e93fa0737bac92dfac9c7e9b740db37d892106a2bda407773365ab883d6d3a",
-  "plan_sha256": "b7e93fa0737bac92dfac9c7e9b740db37d892106a2bda407773365ab883d6d3a",
+  "plan_hash": "0622487b7ab482cd975fb0966abd49d4b422babf28a0c4e1b2a09f101168b466",
+  "plan_sha256": "0622487b7ab482cd975fb0966abd49d4b422babf28a0c4e1b2a09f101168b466",
   "planning_required": false,
   "planning_state": "ready",
   "previous_active_changeset": {
@@ -3482,8 +3482,8 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "Root combined seeded-backend browser qualification and final release gates remain pending; the full 15 Tier-0/156 Tier-1 and broader ETF/platform roadmaps remain open.",
-    "current_phase": "Consumed TC8d96 common-runtime release: all95 source rows and15 ETF imports verified under7ac guards; prior2a8 pin archived. Root owns combined browser, exact CI and release qualification.",
+    "current_blocker": "Root owns the actual IHI/IYW/IGV native browser proof, including visible primary price-chart behavior; the full 15 Tier-0/156 Tier-1 and broader ETF/platform roadmaps remain open.",
+    "current_phase": "Strengthened ETF-native proof with an exact page-originated D1 response bound to the active visible chart/timeframe and separate XHB/IGV cases. Focused Playwright discovery only; Root owns the native browser run.",
     "total": 5
   },
   "provider_release": {

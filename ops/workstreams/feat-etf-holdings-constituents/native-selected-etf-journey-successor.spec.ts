@@ -26,6 +26,7 @@ type FundEvidence = {
   provenance: string; sourceProvider: string; sourceIdentifier: string | null; completeness: string; rowCount: number
   rowTypes: Array<{ holdingType: string; rowType: string; count: number }>
 }
+type SelectedETF = { listing: Listing; preparation: Preparation; chartBars: Promise<Response> }
 
 async function json<T>(request: APIRequestContext, path: string, token: string, params?: Record<string, string | number>): Promise<T> {
   const response = await request.get(path, { headers: { Authorization: `Bearer ${token}` }, ...(params ? { params } : {}) })
@@ -44,7 +45,18 @@ function selectedEnsure(request: Request, symbol: string, instrumentId: number):
   } catch { return false }
 }
 
-async function chooseETF(page: Page, symbol: string): Promise<{ listing: Listing; preparation: Preparation }> {
+function observeSelectedD1Bars(page: Page, symbol: string): Promise<Response> {
+  // Keep the existing canonical acquisition bound for cold selections; do not
+  // make chart readiness depend on a shorter independent network timeout.
+  return page.waitForResponse(response => {
+    const request = response.request()
+    const url = new URL(response.url())
+    return request.method() === 'GET'
+      && url.pathname === `/api/v1/ohlcv/local/${symbol}/D1`
+  }, { timeout: 120_000 })
+}
+
+async function chooseETF(page: Page, symbol: string): Promise<SelectedETF> {
   const input = page.getByRole('combobox', { name: 'Active symbol' })
   const searchPromise = page.waitForResponse(response => {
     const url = new URL(response.url())
@@ -69,12 +81,13 @@ async function chooseETF(page: Page, symbol: string): Promise<{ listing: Listing
   if (exact.length === 1) {
     const listing = exact[0]!
     const ensureRequest = page.waitForRequest(request => selectedEnsure(request, symbol, listing.instrument_id))
+    const chartBars = observeSelectedD1Bars(page, symbol)
     await page.getByRole('option', { name: new RegExp(`^${symbol}\\b`) }).click()
     await expect(input).toHaveValue(symbol)
     const request = await ensureRequest
     const response = await page.waitForResponse(item => item.request() === request)
     const preparation = await preparationFromResponse(response, symbol, request, test.info())
-    return { listing, preparation }
+    return { listing, preparation, chartBars }
   }
 
   // A first-use ticker is absent from the canonical local catalogue. Follow
@@ -181,6 +194,7 @@ async function chooseETF(page: Page, symbol: string): Promise<{ listing: Listing
         return true
       }
     }, { timeout: 120_000 })
+    const chartBars = observeSelectedD1Bars(page, symbol)
     await listingButton.click()
     const acquiredResponse = await acquisitionPromise
     expect(acquiredResponse.status(), `${symbol} normal canonical acquisition`).toBe(200)
@@ -219,7 +233,7 @@ async function chooseETF(page: Page, symbol: string): Promise<{ listing: Listing
       }, null, 2)),
       contentType: 'application/json',
     })
-    return { listing, preparation }
+    return { listing, preparation, chartBars }
   } finally {
     page.off('request', captureEnsureRequest)
     page.off('response', captureEnsureResponse)
@@ -261,20 +275,27 @@ async function preparationFromResponse(response: import('@playwright/test').Resp
   return evidence
 }
 
-async function reselectKnownETF(page: Page, listing: Listing): Promise<Preparation> {
+async function reselectKnownETF(page: Page, listing: Listing): Promise<SelectedETF> {
   const input = page.getByRole('combobox', { name: 'Active symbol' })
   const ensureRequest = page.waitForRequest(request => selectedEnsure(request, listing.symbol, listing.instrument_id))
   await input.fill(listing.symbol)
   const option = page.getByRole('option', { name: new RegExp(`^${listing.symbol}\\b`) })
   await expect(option).toBeVisible()
+  const chartBars = observeSelectedD1Bars(page, listing.symbol)
   await option.click()
   await expect(input).toHaveValue(listing.symbol)
   const request = await ensureRequest
   const response = await page.waitForResponse(item => item.request() === request)
-  return preparationFromResponse(response, listing.symbol, request, test.info())
+  return { listing, preparation: await preparationFromResponse(response, listing.symbol, request, test.info()), chartBars }
 }
 
-async function assertSelectedBars(page: Page, request: APIRequestContext, symbol: string, token: string): Promise<Bar[]> {
+async function assertSelectedBars(
+  page: Page,
+  request: APIRequestContext,
+  symbol: string,
+  token: string,
+  pageBarsResponse: Promise<Response>,
+): Promise<Bar[]> {
   await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue(symbol)
   await expect.poll(async () => {
     const response = await request.get(`/api/v1/ohlcv/local/${symbol}/D1`, {
@@ -285,9 +306,39 @@ async function assertSelectedBars(page: Page, request: APIRequestContext, symbol
   const bars = await json<Bar[]>(request, `/api/v1/ohlcv/local/${symbol}/D1`, token, { limit: 500, adjusted: 'true' })
   expect(bars.every(bar => Number.isFinite(Date.parse(bar.ts)) && [bar.open, bar.high, bar.low, bar.close].every(Number.isFinite))).toBeTruthy()
 
-  const chart = page.getByRole('region', { name: 'Chart workspace' }).first()
+  const selectedResponse = await pageBarsResponse
+  const selectedURL = new URL(selectedResponse.url())
+  expect(selectedResponse.status(), `${symbol} page-originated D1 bars response`).toBe(200)
+  expect(selectedURL.pathname).toBe(`/api/v1/ohlcv/local/${symbol}/D1`)
+  const adjusted = selectedURL.searchParams.get('adjusted')?.trim().toLowerCase() ?? null
+  expect(adjusted === null || adjusted === 'true').toBeTruthy()
+  const selectedBars = await selectedResponse.json() as Bar[]
+  expect(selectedBars.length, `${symbol} page-originated chart response must contain bars`).toBeGreaterThan(1)
+  expect(selectedBars.every(bar => Number.isFinite(Date.parse(bar.ts))
+    && [bar.open, bar.high, bar.low, bar.close].every(Number.isFinite))).toBeTruthy()
+  const persistedByTimestamp = new Map(bars.map(bar => [Date.parse(bar.ts), bar]))
+  const pagePersistenceMismatches: string[] = []
+  for (const selectedBar of selectedBars) {
+    const persisted = persistedByTimestamp.get(Date.parse(selectedBar.ts))
+    if (!persisted) {
+      pagePersistenceMismatches.push(`${selectedBar.ts}: timestamp absent from persisted API read`)
+    } else if ([selectedBar.open, selectedBar.high, selectedBar.low, selectedBar.close]
+      .some((value, index) => value !== [persisted.open, persisted.high, persisted.low, persisted.close][index])) {
+      pagePersistenceMismatches.push(`${selectedBar.ts}: OHLC differs from persisted API read`)
+    }
+  }
+  expect(pagePersistenceMismatches, `${symbol} every page-originated bar matches persisted selected-fund history`)
+    .toEqual([])
+
+  const activeChartTool = page.locator('.tool-window--active:visible').filter({ has: page.locator('.chart-tool') })
+  await expect(activeChartTool, `${symbol} visible primary price chart tool`).toHaveCount(1)
+  await expect(activeChartTool.locator('.tool-window__symbol')).toHaveText(symbol)
+  await expect(activeChartTool.locator('.tool-window__timeframe')).toHaveValue('D1')
+  const chart = activeChartTool.getByRole('region', { name: 'Chart workspace' })
+  await expect(chart).toBeVisible()
   await expect(chart).toHaveAttribute('aria-busy', 'false')
-  const plot = chart.locator('.uplot').first()
+  const plot = chart.locator('.uplot')
+  await expect(plot).toHaveCount(1)
   await expect(plot).toBeVisible()
   await expect.poll(() => plot.locator('canvas:not(.drawing-canvas)').first().evaluate(canvas => {
     const element = canvas as HTMLCanvasElement
@@ -312,11 +363,11 @@ async function assertSelectedBars(page: Page, request: APIRequestContext, symbol
   const tooltip = chart.locator('.ohlcv-info')
   await expect(tooltip).toBeVisible()
   const tooltipDate = (await tooltip.locator('.tt-date').innerText()).trim()
-  const persistedDates = await page.evaluate(timestamps => timestamps.map(ts => {
+  const selectedDates = await page.evaluate(timestamps => timestamps.map(ts => {
     const value = new Date(ts)
     return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`
-  }), bars.map(bar => bar.ts))
-  const dateMatches = bars.filter((_bar, index) => persistedDates[index] === tooltipDate)
+  }), selectedBars.map(bar => bar.ts))
+  const dateMatches = selectedBars.filter((_bar, index) => selectedDates[index] === tooltipDate)
   expect(dateMatches, `${symbol} tooltip date should identify one persisted selected-symbol D1 bar`).toHaveLength(1)
   const bar = dateMatches[0]!
   const tooltipOhlc = Object.fromEntries(await Promise.all(([
@@ -456,11 +507,12 @@ async function selectVisibleResolvedHolding(page: Page, symbol: string, snapshot
   }
   expect(holding, 'A visible Workstation row must be a resolved equity in this snapshot').toBeTruthy()
   expect(selectedRowId).toBeTruthy()
+  const chartBars = observeSelectedD1Bars(page, holding!.constituent_symbol!)
   await page.locator(`[id="${selectedRowId}"]`).click()
-  return holding!
+  return { holding: holding!, chartBars }
 }
 
-test('genuine BWET to XHB to IGV selection retains current holdings provenance on Workstation', async ({
+test('genuine XHB selection shows its own current holdings and selected price chart', async ({
   page, request, loggedIn, browserDiagnostics,
 }, testInfo) => {
   test.setTimeout(480_000)
@@ -469,80 +521,86 @@ test('genuine BWET to XHB to IGV selection retains current holdings provenance o
   await expect(page.locator('.workspace-layout-host')).toBeVisible()
   const token = await page.evaluate(() => localStorage.getItem('access_token'))
   expect(token).toBeTruthy()
-  const evidence: Preparation[] = []
-  const fundEvidence: FundEvidence[] = []
-  let igv: Awaited<ReturnType<typeof currentHoldings>> | null = null
-  let igvListing: Listing | null = null
-
-  for (const symbol of ['BWET', 'XHB', 'IGV']) {
-    const { listing, preparation } = await chooseETF(page, symbol)
-    evidence.push(preparation)
-    await assertSelectedBars(page, request, symbol, token!)
-    const fund = await currentHoldings(request, symbol, listing.instrument_id, token!)
-    fundEvidence.push({
-      symbol, instrumentId: listing.instrument_id, snapshotId: fund.snapshot.id,
-      compositionDate: fund.snapshot.composition_date, knownAt: fund.snapshot.known_at,
-      provenance: fund.snapshot.provenance, sourceProvider: fund.snapshot.source_provider,
-      sourceIdentifier: fund.snapshot.source_identifier, completeness: fund.snapshot.completeness_status,
-      rowCount: fund.snapshot.row_count, rowTypes: holdingRowTypes(fund.holdings),
-    })
-    await assertVisibleFundRows(page, symbol, fund.snapshot.id, fund.holdings)
-    if (symbol !== 'BWET') await expect(page.getByTestId('active-holding-lineage')).toHaveCount(0)
-    if (symbol === 'BWET') {
-      expect(fund.snapshot.source_provider.toLowerCase()).toBe('amplify')
-      expect(fund.holdings.every(row => row.holding_type.trim() && row.row_type.trim())).toBeTruthy()
-      expect(fund.holdings.some(row => row.holding_type.trim().toLowerCase() === 'future'
-        && row.row_type.trim().toLowerCase() === 'derivative' && !row.is_resolved
-        && !row.constituent_instrument_id && row.reported_symbol?.trim())).toBeTruthy()
-      expect(fund.holdings.some(row => row.holding_type.trim().toLowerCase() === 'cash')).toBeTruthy()
-    }
-    if (symbol === 'IGV') {
-      igv = fund
-      igvListing = listing
-    }
+  const { listing, preparation, chartBars } = await chooseETF(page, 'XHB')
+  await assertSelectedBars(page, request, 'XHB', token!, chartBars)
+  const fund = await currentHoldings(request, 'XHB', listing.instrument_id, token!)
+  const evidence: FundEvidence = {
+    symbol: 'XHB', instrumentId: listing.instrument_id, snapshotId: fund.snapshot.id,
+    compositionDate: fund.snapshot.composition_date, knownAt: fund.snapshot.known_at,
+    provenance: fund.snapshot.provenance, sourceProvider: fund.snapshot.source_provider,
+    sourceIdentifier: fund.snapshot.source_identifier, completeness: fund.snapshot.completeness_status,
+    rowCount: fund.snapshot.row_count, rowTypes: holdingRowTypes(fund.holdings),
   }
+  await assertVisibleFundRows(page, 'XHB', fund.snapshot.id, fund.holdings)
+  await expect(page.getByTestId('active-holding-lineage')).toHaveCount(0)
+  await testInfo.attach('native-xhb-selection-evidence.json', {
+    body: Buffer.from(JSON.stringify({ preparation, fund: evidence }, null, 2)),
+    contentType: 'application/json',
+  })
+  await browserDiagnostics.expectNoCriticalIssues()
+})
 
-  expect(igv).toBeTruthy()
-  const row = await selectVisibleResolvedHolding(page, 'IGV', igv!.snapshot.id, igv!.holdings)
+test('genuine IGV selection preserves holdings drilldown and independent return/reload', async ({
+  page, request, loggedIn, browserDiagnostics,
+}, testInfo) => {
+  test.setTimeout(480_000)
+  expect(loggedIn).toBeUndefined()
+  await page.goto('/chart')
+  await expect(page.locator('.workspace-layout-host')).toBeVisible()
+  const token = await page.evaluate(() => localStorage.getItem('access_token'))
+  expect(token).toBeTruthy()
+
+  const { listing, preparation, chartBars } = await chooseETF(page, 'IGV')
+  await assertSelectedBars(page, request, 'IGV', token!, chartBars)
+  const igv = await currentHoldings(request, 'IGV', listing.instrument_id, token!)
+  const fundEvidence: FundEvidence = {
+    symbol: 'IGV', instrumentId: listing.instrument_id, snapshotId: igv.snapshot.id,
+    compositionDate: igv.snapshot.composition_date, knownAt: igv.snapshot.known_at,
+    provenance: igv.snapshot.provenance, sourceProvider: igv.snapshot.source_provider,
+    sourceIdentifier: igv.snapshot.source_identifier, completeness: igv.snapshot.completeness_status,
+    rowCount: igv.snapshot.row_count, rowTypes: holdingRowTypes(igv.holdings),
+  }
+  await assertVisibleFundRows(page, 'IGV', igv.snapshot.id, igv.holdings)
+  await expect(page.getByTestId('active-holding-lineage')).toHaveCount(0)
+
+  const { holding: row, chartBars: drilldownChartBars } = await selectVisibleResolvedHolding(page, 'IGV', igv.snapshot.id, igv.holdings)
   const lineage = page.getByTestId('active-holding-lineage')
   await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue(row.constituent_symbol!)
   await expect(page).toHaveURL(/\/chart(?:\/|[?#]|$)/)
   await expect(page).not.toHaveURL(/\/legacy\/chart/)
   await expect(lineage).toContainText('from IGV holdings')
   const details = await lineage.getAttribute('aria-label')
-  for (const proof of [`snapshot ${igv!.snapshot.id}`, `row ${row.id}`, `instrument ${row.constituent_instrument_id}`,
-    `composition ${igv!.snapshot.composition_date}`, `known ${igv!.snapshot.known_at}`,
-    `${igv!.snapshot.source_provider} / ${igv!.snapshot.provenance}`]) expect(details).toContain(proof)
+  for (const proof of [`snapshot ${igv.snapshot.id}`, `row ${row.id}`, `instrument ${row.constituent_instrument_id}`,
+    `composition ${igv.snapshot.composition_date}`, `known ${igv.snapshot.known_at}`,
+    `${igv.snapshot.source_provider} / ${igv.snapshot.provenance}`]) expect(details).toContain(proof)
   if (row.reported_symbol) expect(details).toContain(`reported ${row.reported_symbol}`)
   if (row.source_row_id) expect(details).toContain(`source row ${row.source_row_id}`)
-  await assertSelectedBars(page, request, row.constituent_symbol!, token!)
+  await assertSelectedBars(page, request, row.constituent_symbol!, token!, drilldownChartBars)
   await page.screenshot({ path: testInfo.outputPath('native-selected-igv-holding.png') })
 
-  expect(igvListing).toBeTruthy()
-  const reopenPreparation = await reselectKnownETF(page, igvListing!)
-  expect([200, 202]).toContain(reopenPreparation.httpStatus)
-  await assertSelectedBars(page, request, 'IGV', token!)
-  const reopenedFund = await currentHoldings(request, 'IGV', igvListing!.instrument_id, token!)
-  expect(reopenedFund.snapshot.id).toBe(igv!.snapshot.id)
+  const reopened = await reselectKnownETF(page, listing)
+  expect([200, 202]).toContain(reopened.preparation.httpStatus)
+  await assertSelectedBars(page, request, 'IGV', token!, reopened.chartBars)
+  const reopenedFund = await currentHoldings(request, 'IGV', listing.instrument_id, token!)
+  expect(reopenedFund.snapshot.id).toBe(igv.snapshot.id)
   await expect(page.getByTestId('active-holding-lineage')).toHaveCount(0)
   await assertVisibleFundRows(page, 'IGV', reopenedFund.snapshot.id, reopenedFund.holdings)
 
+  const reloadChartBars = observeSelectedD1Bars(page, 'IGV')
   await page.reload()
   await expect(page.locator('.workspace-layout-host')).toBeVisible()
   await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue('IGV')
   await expect(page.getByTestId('active-holding-lineage')).toHaveCount(0)
-  await assertSelectedBars(page, request, 'IGV', token!)
-  const reloadedFund = await currentHoldings(request, 'IGV', igvListing!.instrument_id, token!)
-  expect(reloadedFund.snapshot.id).toBe(igv!.snapshot.id)
+  await assertSelectedBars(page, request, 'IGV', token!, reloadChartBars)
+  const reloadedFund = await currentHoldings(request, 'IGV', listing.instrument_id, token!)
+  expect(reloadedFund.snapshot.id).toBe(igv.snapshot.id)
   await assertVisibleFundRows(page, 'IGV', reloadedFund.snapshot.id, reloadedFund.holdings)
 
-  expect(evidence.map(item => item.symbol)).toEqual(['BWET', 'XHB', 'IGV'])
-  expect(evidence.every(item => [200, 202].includes(item.httpStatus) && item.requestId && item.status)).toBeTruthy()
   await testInfo.attach('native-selection-public-evidence.json', {
-    body: Buffer.from(JSON.stringify({ preparations: evidence, funds: fundEvidence, drilldown: {
+    body: Buffer.from(JSON.stringify({ preparation, fund: fundEvidence, drilldown: {
       symbol: row.constituent_symbol, rowId: row.id, instrumentId: row.constituent_instrument_id,
-      parentSnapshotId: igv!.snapshot.id,
-    }, contextReopen: reopenPreparation }, null, 2)),
+      parentSnapshotId: igv.snapshot.id,
+    }, contextReopen: reopened.preparation }, null, 2)),
     contentType: 'application/json',
   })
   await browserDiagnostics.expectNoCriticalIssues()
