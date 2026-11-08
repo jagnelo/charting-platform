@@ -5,7 +5,7 @@
       <strong :id="titleId" class="tool-window__title">{{ title }}</strong>
       <span v-if="symbol" class="tool-window__symbol">{{ symbol }}</span>
       <div class="tool-window__actions">
-        <button v-if="favoriteAvailable" type="button" :aria-label="favoriteActive ? `Remove ${symbol} from My Favorites` : `Add ${symbol} to My Favorites`" :aria-pressed="favoriteActive" :title="favoriteActive ? 'Remove from My Favorites' : 'Add to My Favorites'" @click.stop="emit('toggleFavorite')">{{ favoriteActive ? '★' : '☆' }}</button>
+        <button v-if="favoriteAvailable" type="button" :disabled="favoritePending" :aria-busy="favoritePending ? 'true' : undefined" :aria-label="favoritePending ? `${favoriteActive ? 'Removing' : 'Adding'} ${symbol} ${favoriteActive ? 'from' : 'to'} My Favorites` : favoriteActive ? `Remove ${symbol} from My Favorites` : `Add ${symbol} to My Favorites`" :aria-pressed="favoriteActive" :title="favoritePending ? `${favoriteActive ? 'Removing' : 'Adding'} ${symbol} ${favoriteActive ? 'from' : 'to'} My Favorites…` : favoriteActive ? 'Remove from My Favorites' : 'Add to My Favorites'" @click.stop="emit('toggleFavorite')">{{ favoritePending ? '…' : favoriteActive ? '★' : '☆' }}</button>
         <span v-if="timeframe" class="tool-window__link-swatch" :style="{ background: dashboardLinkGroupColor(timeframeLinkGroup) }" :title="`${dashboardLinkGroupLabel(timeframeLinkGroup)} timeframe link`" aria-hidden="true" />
         <select v-if="timeframe" :value="timeframeLinkGroup" class="tool-window__timeframe-link" :aria-label="title + ' timeframe link group'" @change="emit('update:timeframeLinkGroup', ($event.target as HTMLSelectElement).value as LinkGroup)">
           <option v-for="group in groups" :key="group" :value="group">{{ dashboardLinkGroupLabel(group) }}</option>
@@ -60,6 +60,7 @@ const props = withDefaults(defineProps<{
   maximizing?: boolean
   favoriteAvailable?: boolean
   favoriteActive?: boolean
+  favoritePending?: boolean
   scrollableBody?: boolean
 }>(), {
   symbol: '',
@@ -71,6 +72,7 @@ const props = withDefaults(defineProps<{
   maximizing: false,
   favoriteAvailable: false,
   favoriteActive: false,
+  favoritePending: false,
   scrollableBody: false,
 })
 

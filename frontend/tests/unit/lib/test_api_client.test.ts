@@ -67,6 +67,19 @@ describe('api.get', () => {
     )
   })
 
+  it('forwards explicit fetch priority to keep user actions responsive during background loading', async () => {
+    setTokens('tok', 'ref')
+    mockFetchOk({ id: 17 })
+    const { api } = await import('@/lib/api')
+
+    await api.put('/favorites/instruments/17', {}, { priority: 'high' })
+
+    expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/favorites/instruments/17'), expect.objectContaining({
+      method: 'PUT',
+      priority: 'high',
+    }))
+  })
+
   it('appends query params to URL', async () => {
     setTokens('tok', 'ref')
     mockFetchOk([])

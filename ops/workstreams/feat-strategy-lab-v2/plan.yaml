@@ -1430,18 +1430,19 @@ dependencies:
     `frontend/src/lib/dataPreparation.ts` from TC commit
     `877df044d2496c5f1be0e86b4dd49503cc6e55db` (SHA256
     `c1157a680c5a461647b82b18bd9923c53d36a401dd3397c2361e91b125d43a0d`), preserved as prior
-    shared-client history. The active complete frontend development context is
-    exact TC source `2a8dc9e4c28a9632ffdf8f484ad12a985df70cd3` under
+    shared-client history. The complete TC source `2a8dc9e4c28a9632ffdf8f484ad12a985df70cd3`
+    remains an earlier consumed frontend baseline under
     `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/frontend2a8dc9e4-complete-development-consumption-contract.json`
-    (manifest SHA256 `46b99b84e501358e1f3c83780c8b72d7e9e41d107aacbb8e5b56c864f924c521`). Strategy
-    imported only its 43 consumer-declared paths and verified all 126 manifest rows; the exact local
-    manifest and import receipt are
-    `development-dependency-imports/2a8dc9e4c28a9632ffdf8f484ad12a985df70cd3-complete-frontend.json`
-    and `development-dependency-imports/2a8dc9e4c28a9632ffdf8f484ad12a985df70cd3-strategy-import-receipt.json`.
-    The 2a8 candidate's critical run is terminal6/10 with four unrelated failures; the Strategy
-    Study journey passed and the catalogue Favorites request remained untransmitted at five seconds.
-    Earlier common pins and qualification remain historical; this is development context, not full
-    application/browser qualification or release acceptance.
+    (manifest SHA256 `46b99b84e501358e1f3c83780c8b72d7e9e41d107aacbb8e5b56c864f924c521`); its 43
+    declared paths and 126-row manifest remain archived. The current shared-runtime development
+    source is exact TC `8d96cf3bd702459c4eef2ced93ec1dfb8db3dc2f` under
+    `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-8d96cf3b-common-runtime-development-consumption-contract.json`
+    (manifest SHA256 `2959432285dd2d58271261d539b4e30700bb38f2bf4b7b84727887a91078d4a1`). Strategy
+    imported only its 15 declared paths and verified all 95 manifest rows; the exact local manifest
+    and import receipt are `development-dependency-imports/8d96cf3bd702459c4eef2ced93ec1dfb8db3dc2f.json`
+    and `development-dependency-imports/8d96cf3bd702459c4eef2ced93ec1dfb8db3dc2f-strategy-import-receipt.json`.
+    TC still reports three common proof issues under repair; this is development context, not browser
+    qualification or release acceptance. Root owns the next combined browser and exact-source gates.
     Provider DTOs are at `3d10`; the exact backend preparation runtime is imported under the
     explicit development releases and local manifests above. Combined end-to-end proof remains
     Root-owned and pending.
@@ -2584,3 +2585,22 @@ approved_development_dependency_imports:
   - backend/tests/unit/tasks/test_data_tasks.py
   - backend/tests/unit/tasks/test_native_usage_prerequisite.py
   - backend/tests/unit/workers/test_arq_worker.py
+- source_sha: 8d96cf3bd702459c4eef2ced93ec1dfb8db3dc2f
+  manifest_path: ops/workstreams/feat-strategy-lab-v2/development-dependency-imports/8d96cf3bd702459c4eef2ced93ec1dfb8db3dc2f.json
+  manifest_sha256: 2959432285dd2d58271261d539b4e30700bb38f2bf4b7b84727887a91078d4a1
+  paths:
+  - frontend/src/components/workstation/ToolWindow.vue
+  - frontend/src/components/workstation/WorkstationToolContent.vue
+  - frontend/src/lib/api.ts
+  - frontend/src/lib/dataPreparation.ts
+  - frontend/src/lib/onDemandAcquisition.ts
+  - frontend/src/stores/favorites.ts
+  - frontend/src/views/WorkstationView.vue
+  - frontend/tests/e2e/auth_session_boundary.spec.ts
+  - frontend/tests/e2e/on_demand_acquisition.spec.ts
+  - frontend/tests/unit/components/test_tool_window.test.ts
+  - frontend/tests/unit/lib/test_api_client.test.ts
+  - frontend/tests/unit/lib/test_data_preparation.test.ts
+  - frontend/tests/unit/lib/test_on_demand_acquisition.test.ts
+  - frontend/tests/unit/stores/test_favorites_store.test.ts
+  - frontend/tests/unit/views/test_workstation_popout_bindings.test.ts

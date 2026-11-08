@@ -4,6 +4,22 @@ import { describe, expect, it, vi } from 'vitest'
 import ToolWindow from '@/components/workstation/ToolWindow.vue'
 
 describe('ToolWindow', () => {
+  it('keeps favorite state server-confirmed while exposing an in-flight toggle', async () => {
+    const wrapper = mount(ToolWindow, {
+      props: { title: 'Chart', symbol: 'SPY', favoriteAvailable: true, favoriteActive: false, favoritePending: true },
+    })
+    const favorite = wrapper.get('button[aria-busy="true"]')
+
+    expect(favorite.attributes('disabled')).toBeDefined()
+    expect(favorite.attributes('aria-pressed')).toBe('false')
+    expect(favorite.attributes('aria-label')).toBe('Adding SPY to My Favorites')
+    expect(favorite.attributes('title')).toBe('Adding SPY to My Favorites…')
+
+    await wrapper.setProps({ favoritePending: false, favoriteActive: true })
+    expect(wrapper.get('button[aria-pressed="true"]').attributes('aria-label')).toBe('Remove SPY from My Favorites')
+    wrapper.unmount()
+  })
+
   it('uses the host supplied maximize state for virtual tools and closes menus when inactive', async () => {
     const wrapper = mount(ToolWindow, { props: { title: 'Relative Rotation', active: true, maximized: false } })
     const toggle = wrapper.get('button[aria-label="Maximize tool"]')

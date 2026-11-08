@@ -4,7 +4,7 @@ import { assertAuthSessionCurrent, AuthSessionChangedError, beginAuthSessionBoun
  * Authenticated API client with automatic token refresh on 401.
  */
 const BASE = '/api/v1'
-export type ApiRequestOptions = { signal?: AbortSignal }
+export type ApiRequestOptions = { signal?: AbortSignal; priority?: RequestPriority }
 
 export class ApiError extends Error {
   readonly status: number
@@ -116,6 +116,7 @@ async function request<T>(
   if (session.signal.aborted) abortForSession()
   if (options?.signal?.aborted) abortForCaller()
   const opts: RequestInit = { method, headers, signal: controller.signal }
+  if (options?.priority) opts.priority = options.priority
   if (body !== undefined) opts.body = JSON.stringify(body)
 
   try {
