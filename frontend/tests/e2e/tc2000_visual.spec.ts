@@ -22,19 +22,25 @@ async function waitForSelectionPreparationToSettle(page: Page) {
   // A terminal ready, waiting, unavailable, or failed notice is valid visual
   // state. Only the shared "preparing" summary is still changing as queued
   // identity/history work completes, so do not capture that intermediate UI.
+  // Requiring both data domains prevents the initial empty toolbar from being
+  // mistaken for settled preparation before Workstation mounts its notices.
   await expect.poll(async () => {
     const current = await summaries.allTextContents()
-    return current.every(summary => !/\bpreparing\b/i.test(summary.trim()))
-  }, { timeout: 15_000 }).toBe(true)
+    return {
+      history: current.some(summary => /^History\b/i.test(summary.trim())),
+      holdings: current.some(summary => /^Holdings\b/i.test(summary.trim())),
+      settled: current.every(summary => !/\bpreparing\b/i.test(summary.trim())),
+    }
+  }, { timeout: 15_000 }).toEqual({ history: true, holdings: true, settled: true })
 }
 
-async function waitForActiveWindowSnapshotAcknowledgement(page: Page, windowKey: string) {
+async function waitForActiveWindowSnapshotAcknowledgement(page: Page, tabKey: string, windowKey: string) {
   return page.waitForResponse(async response => {
     const request = response.request()
     if (request.method() !== 'PUT' || !/\/workspaces\/[^/]+\/snapshot$/.test(new URL(request.url()).pathname)) return false
     try {
-      const payload = request.postDataJSON() as { tabs?: Array<{ active_window_key?: string | null }> }
-      return payload.tabs?.some(tab => tab.active_window_key === windowKey) ?? false
+      const payload = request.postDataJSON() as { tabs?: Array<{ stable_key?: string; active_window_key?: string | null }> }
+      return payload.tabs?.some(tab => tab.stable_key === tabKey && tab.active_window_key === windowKey) ?? false
     } catch {
       return false
     }
@@ -218,8 +224,10 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
       await expect(inactiveRail).toHaveAttribute('inert', '')
       await expect(inactiveRail.locator('button')).toHaveCount(0)
       const chartWindowKey = await chartWindow.getAttribute('data-window-key')
+      const activeWorkspaceTabKey = await page.locator('.workstation__tabs [role="tab"][aria-selected="true"]').getAttribute('data-tab-key')
       expect(chartWindowKey).toBeTruthy()
-      const saveAcknowledgement = waitForActiveWindowSnapshotAcknowledgement(page, chartWindowKey!)
+      expect(activeWorkspaceTabKey).toBeTruthy()
+      const saveAcknowledgement = waitForActiveWindowSnapshotAcknowledgement(page, activeWorkspaceTabKey!, chartWindowKey!)
       await chartWindow.locator('.tool-window__title').click()
       drawingToolbar = chartWindow.locator('.chart-tool__drawing-toolbar:not(.chart-tool__drawing-toolbar--inactive)')
       const savedSelection = await saveAcknowledgement
@@ -390,22 +398,29 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
   test('workspace tabbed state has a deterministic board baseline', async ({ page, loggedIn, browserDiagnostics }) => {
     await page.goto('/')
     await waitForShellReady(page)
-    const tabs = page.locator('.lm_tab:visible')
-    await expect.poll(() => tabs.count(), { timeout: 10_000 }).toBeGreaterThan(1)
-    const selectedTab = tabs.nth(1)
+    // The former tabs.nth(1) could be active already when multiple stacks are
+    // present. The visual state now uses the first genuinely inactive public
+    // tab, so the captured destination can differ from that ineffective case.
+    const inactiveTabs = page.locator('.lm_tab:visible:not(.lm_active)')
+    await expect.poll(() => inactiveTabs.count(), { timeout: 10_000 }).toBeGreaterThan(0)
+    const selectedTab = inactiveTabs.first()
     await expect(selectedTab).not.toHaveClass(/lm_active/)
+    const selectedTabKey = await page.locator('.workstation__tabs [role="tab"][aria-selected="true"]').getAttribute('data-tab-key')
+    expect(selectedTabKey).toBeTruthy()
     const selectedWindowKey = await selectedTab.evaluate(tab => {
       const title = tab.querySelector('.lm_title')?.textContent?.trim() || tab.textContent?.trim()
       const matching = Array.from(document.querySelectorAll<HTMLElement>('.tool-window[data-window-key]'))
-        .filter(window => window.getClientRects().length > 0
-          && window.querySelector('.tool-window__title')?.textContent?.trim() === title)
+        .filter(window => window.querySelector('.tool-window__title')?.textContent?.trim() === title)
       return matching.length === 1 ? matching[0].dataset.windowKey ?? null : null
     })
     expect(selectedWindowKey).toBeTruthy()
     await expect(page.getByRole('status', { name: 'Workspace save status' })).toHaveAttribute('data-state', 'saved')
-    const saveAcknowledgement = waitForActiveWindowSnapshotAcknowledgement(page, selectedWindowKey!)
+    const saveAcknowledgement = waitForActiveWindowSnapshotAcknowledgement(page, selectedTabKey!, selectedWindowKey!)
     await selectedTab.click()
     await expect(selectedTab).toHaveClass(/lm_active/)
+    const selectedWindow = page.locator(`.tool-window[data-window-key="${selectedWindowKey}"]`)
+    await expect(selectedWindow).toBeVisible()
+    await expect(selectedWindow).toHaveClass(/tool-window--active/)
     const savedSelection = await saveAcknowledgement
     expect(savedSelection.status()).toBe(200)
     await expect(page.getByRole('status', { name: 'Workspace save status' })).toHaveAttribute('data-state', 'saved')
