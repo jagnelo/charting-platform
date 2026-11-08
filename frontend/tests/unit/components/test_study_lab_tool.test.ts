@@ -228,7 +228,7 @@ describe('StudyLabTool', () => {
       global: { plugins: [[VueQueryPlugin, { queryClient: new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } }) }]] },
     })
     expect(wrapper.get('[aria-label="Study symbol"]').element).toHaveProperty('value', 'SPY')
-    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/research/runs/88'))
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/research/runs/88', undefined, expect.objectContaining({ priority: 'high' })))
 
     // The host can deliver the persisted workspace draft after the virtual
     // tool mounts and starts loading its saved run. Apply that full snapshot
@@ -361,7 +361,7 @@ describe('StudyLabTool', () => {
     expect(wrapper.text()).toContain('Study source changed since validation. Validate the current source before running.')
     await run.trigger('click')
     expect(apiPost).not.toHaveBeenCalledWith('/code/assets', expect.anything())
-    expect(apiPost).not.toHaveBeenCalledWith('/research/runs', expect.anything())
+    expect(apiPost.mock.calls.some(([path]) => path === '/research/runs')).toBe(false)
 
     await validate.trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
@@ -389,7 +389,7 @@ describe('StudyLabTool', () => {
     })
 
     await wrapper.get('button[aria-label="Validate study"]').trigger('click')
-    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/code/validate', expect.anything()))
+    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/code/validate', expect.anything(), expect.objectContaining({ priority: 'high' })))
 
     expect(ensurePreparation).toHaveBeenNthCalledWith(1, {
       target: { kind: 'instrument', symbol: 'SPY' },
@@ -431,18 +431,18 @@ describe('StudyLabTool', () => {
       { kind: 'instrument', symbol: 'XLK' },
       { kind: 'instrument', symbol: 'QQQ' },
     ])
-    expect(apiPost).not.toHaveBeenCalledWith('/code/validate', expect.anything())
+    expect(apiPost.mock.calls.some(([path]) => path === '/code/validate')).toBe(false)
     await vi.waitFor(() => expect(wrapper.get('[aria-label="Study data preparation outcomes"]').text()).toContain('XLK: Requested data is ready.'))
     await vi.waitFor(() => expect(wrapper.get('[aria-label="Study data preparation outcomes"]').text()).toContain('QQQ: Requested data is ready.'))
 
     heldPrimary.resolve({ status: 'unavailable' })
     await flushPromises()
-    expect(apiPost).not.toHaveBeenCalledWith('/code/validate', expect.anything())
+    expect(apiPost.mock.calls.some(([path]) => path === '/code/validate')).toBe(false)
     expect(wrapper.get('[aria-label="Study data preparation outcomes"]').text()).toContain('SPY: Requested data is unavailable.')
     expect(wrapper.get('[aria-label="Study data preparation outcomes"]').text()).toContain('XLK: Requested data is ready.')
     expect(wrapper.get('[aria-label="Study data preparation outcomes"]').text()).toContain('QQQ: Requested data is ready.')
     expect(wrapper.get('[aria-label="Study data preparation"]').text()).toContain('Some selected Study data is not ready')
-    expect(apiPost).not.toHaveBeenCalledWith('/research/runs', expect.anything())
+    expect(apiPost.mock.calls.some(([path]) => path === '/research/runs')).toBe(false)
     wrapper.unmount()
   })
 
@@ -466,8 +466,8 @@ describe('StudyLabTool', () => {
     expect(signals.every(signal => signal.aborted)).toBe(true)
     heldPrimary.resolve({ status: 'unavailable' })
     await flushPromises()
-    expect(apiPost).not.toHaveBeenCalledWith('/code/validate', expect.anything())
-    expect(apiPost).not.toHaveBeenCalledWith('/research/runs', expect.anything())
+    expect(apiPost.mock.calls.some(([path]) => path === '/code/validate')).toBe(false)
+    expect(apiPost.mock.calls.some(([path]) => path === '/research/runs')).toBe(false)
     expect(apiPost).not.toHaveBeenCalledWith(expect.stringContaining('/cancel'), expect.anything())
   })
 
@@ -488,14 +488,14 @@ describe('StudyLabTool', () => {
     await vi.waitFor(() => expect(ensurePreparation).toHaveBeenCalledTimes(3))
     await vi.waitFor(() => expect(wrapper.get('[aria-label="Study data preparation outcomes"]').text()).toContain('QQQ: Requested data is ready.'))
     await flushPromises()
-    expect(apiPost).not.toHaveBeenCalledWith('/code/validate', expect.anything())
+    expect(apiPost.mock.calls.some(([path]) => path === '/code/validate')).toBe(false)
 
     const outcomes = wrapper.get('[aria-label="Study data preparation outcomes"]').text()
     expect(outcomes).toContain('SPY: Preparation request timed out.')
     expect(outcomes).toContain('XLK: Requested data is ready.')
     expect(outcomes).toContain('QQQ: Requested data is ready.')
     expect(wrapper.get('[aria-label="Study data preparation"]').text()).toContain('Some selected Study data is not ready')
-    expect(apiPost).not.toHaveBeenCalledWith('/research/runs', expect.anything())
+    expect(apiPost.mock.calls.some(([path]) => path === '/research/runs')).toBe(false)
     wrapper.unmount()
   })
 
@@ -521,8 +521,8 @@ describe('StudyLabTool', () => {
 
     heldPrimary.resolve({ status: 'ready' })
     await flushPromises()
-    expect(apiPost).not.toHaveBeenCalledWith('/code/validate', expect.anything())
-    expect(apiPost).not.toHaveBeenCalledWith('/research/runs', expect.anything())
+    expect(apiPost.mock.calls.some(([path]) => path === '/code/validate')).toBe(false)
+    expect(apiPost.mock.calls.some(([path]) => path === '/research/runs')).toBe(false)
     expect(apiPost).not.toHaveBeenCalledWith(expect.stringContaining('/cancel'), expect.anything())
     wrapper.unmount()
   })
@@ -542,7 +542,7 @@ describe('StudyLabTool', () => {
     const wrapper = mountTool({ activeSymbol: 'SPY', configuration: { universe_source_id: 'watchlist:7', as_of: '2024-02-15T15:30:00Z' } })
 
     await wrapper.get('button[aria-label="Validate study"]').trigger('click')
-    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/code/validate', expect.anything()))
+    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/code/validate', expect.anything(), expect.objectContaining({ priority: 'high' })))
 
     expect(resolveWatchlistSource).toHaveBeenCalledWith('watchlist:7', '2024-02-15T15:30:00.000Z')
     expect(ensurePreparation).toHaveBeenNthCalledWith(1, expect.objectContaining({ target: { kind: 'instrument', instrument_id: 7 } }), expect.anything())
@@ -568,7 +568,7 @@ describe('StudyLabTool', () => {
 
     expect(wrapper.text()).toContain('Run #77')
     expect(apiPost).not.toHaveBeenCalledWith('/code/assets', expect.anything())
-    expect(apiPost).not.toHaveBeenCalledWith('/research/runs', expect.anything())
+    expect(apiPost.mock.calls.some(([path]) => path === '/research/runs')).toBe(false)
     wrapper.unmount()
   })
 
@@ -583,8 +583,8 @@ describe('StudyLabTool', () => {
     await wrapper.get('button[aria-label="Validate study"]').trigger('click')
     await vi.waitFor(() => expect(wrapper.get('[aria-label="Study data preparation"]').text()).toContain('Some selected Study data is not ready'))
 
-    expect(apiPost).not.toHaveBeenCalledWith('/code/validate', expect.anything())
-    expect(apiPost).not.toHaveBeenCalledWith('/research/runs', expect.anything())
+    expect(apiPost.mock.calls.some(([path]) => path === '/code/validate')).toBe(false)
+    expect(apiPost.mock.calls.some(([path]) => path === '/research/runs')).toBe(false)
     expect(wrapper.text()).toContain('Run #77')
     expect(wrapper.text()).toContain('saved scalar result: 4')
     wrapper.unmount()
@@ -604,7 +604,7 @@ describe('StudyLabTool', () => {
     expect(options.signal.aborted).toBe(true)
     pending.resolve({ status: 'ready' })
     await flushPromises()
-    expect(apiPost).not.toHaveBeenCalledWith('/code/validate', expect.anything())
+    expect(apiPost.mock.calls.some(([path]) => path === '/code/validate')).toBe(false)
     wrapper.unmount()
   })
 
@@ -706,7 +706,7 @@ describe('StudyLabTool', () => {
     expect(run.attributes('disabled')).toBeDefined()
     expect(wrapper.text()).toContain('Study source changed since validation. Validate the current source before running.')
     expect(apiPost).not.toHaveBeenCalledWith('/code/assets', expect.anything())
-    expect(apiPost).not.toHaveBeenCalledWith('/research/runs', expect.anything())
+    expect(apiPost.mock.calls.some(([path]) => path === '/research/runs')).toBe(false)
     wrapper.unmount()
   })
 
@@ -741,7 +741,7 @@ describe('StudyLabTool', () => {
     const summaryId = wrapper.find('[aria-label="event_count metric"]').attributes('aria-describedby')
     expect(summaryId).toMatch(/-study-artifact-1-summary$/)
     expect(wrapper.find(`#${summaryId}`).text()).toContain('event_count scalar result: 4.')
-    expect(apiGet).toHaveBeenCalledWith('/research/runs/77')
+    expect(apiGet).toHaveBeenCalledWith('/research/runs/77', undefined, expect.objectContaining({ priority: 'high' }))
   })
 
   it('distinguishes a saved deferred evaluation from a completed Study result', async () => {
@@ -995,7 +995,7 @@ describe('StudyLabTool', () => {
     apiGet.mockResolvedValue(undefined)
     const wrapper = mountTool({ activeSymbol: 'SPY', configuration: { study_run_id: 77 } }, queryClient)
     await vi.waitFor(() => expect(wrapper.text()).toContain('Run #77'))
-    expect(apiGet).not.toHaveBeenCalledWith('/research/runs/77')
+    expect(apiGet.mock.calls.some(([path]) => path === '/research/runs/77')).toBe(false)
     wrapper.unmount()
   })
 
@@ -1043,7 +1043,7 @@ describe('StudyLabTool', () => {
     await wrapper.get('[aria-label="Cancel study run"]').trigger('click')
     await vi.waitFor(() => expect(wrapper.get('[aria-label="Study run status: Completed"]').exists()).toBe(true))
 
-    expect(apiPost).toHaveBeenCalledWith('/research/runs/102/cancel', {})
+    expect(apiPost).toHaveBeenCalledWith('/research/runs/102/cancel', {}, expect.objectContaining({ priority: 'high' }))
     expect(apiGet.mock.calls.filter(([path]) => path === '/research/runs/102').length).toBeGreaterThan(readsBeforeCancel)
     expect(wrapper.text()).not.toContain('Study canceled.')
     expect(wrapper.find('[role="alert"]').exists()).toBe(false)
@@ -1214,7 +1214,7 @@ describe('StudyLabTool', () => {
     await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
     await wrapper.findAll('button')[1].trigger('click')
     expect(wrapper.text()).toContain('requires a declared comma-separated universe')
-    expect(apiPost).not.toHaveBeenCalledWith('/research/runs', expect.anything())
+    expect(apiPost.mock.calls.some(([path]) => path === '/research/runs')).toBe(false)
   })
 
   it('validates, starts an immutable isolated study run, and renders artifacts', async () => {
@@ -1259,7 +1259,7 @@ describe('StudyLabTool', () => {
       code_version_id: 42,
       run_config: { symbol: 'SPY', parameters: {}, timeframe: 'W1', benchmark: 'QQQ', adjustment: 'raw', session: 'all', start_date: '2024-01-01', end_date: '2024-02-01' },
       dataset_manifest: expect.objectContaining({ timeframe: 'W1', benchmark: 'QQQ', adjustment: 'raw', session: 'all', start_date: '2024-01-01', end_date: '2024-02-01' }),
-    }))
+    }), expect.objectContaining({ priority: 'high' }))
     expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
       initial_version: expect.objectContaining({ output_contract: 'study' }),
     }))
@@ -1399,7 +1399,7 @@ describe('StudyLabTool', () => {
     expect(wrapper.findAll('button').some(button => button.text() === 'Save signal: signals')).toBe(true)
     await wrapper.findAll('button').find(button => button.text() === 'Save signal: signals')!.trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Saved event artifact “signals” as a reusable Strategy Lab signal.'))
-    expect(apiGet).toHaveBeenCalledWith('/code/assets')
+    expect(apiGet).toHaveBeenCalledWith('/code/assets', undefined, expect.objectContaining({ priority: 'high' }))
     expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
       kind: 'signal',
       initial_version: expect.objectContaining({
@@ -1577,7 +1577,7 @@ describe('StudyLabTool', () => {
     expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
       initial_version: expect.objectContaining({ parameter_schema: { properties: { lookback: { type: 'integer', default: 20, minimum: 1 } } }, default_parameters: { lookback: 30 } }),
     }))
-    expect(apiPost).toHaveBeenCalledWith('/research/runs', expect.objectContaining({ run_config: expect.objectContaining({ symbols: ['SPY', 'XLK'], parameters: { lookback: 30 } }) }))
+    expect(apiPost).toHaveBeenCalledWith('/research/runs', expect.objectContaining({ run_config: expect.objectContaining({ symbols: ['SPY', 'XLK'], parameters: { lookback: 30 } }) }), expect.objectContaining({ priority: 'high' }))
   })
 
   it('reuses an opened immutable Study definition version without creating a duplicate asset', async () => {
@@ -1614,7 +1614,7 @@ describe('StudyLabTool', () => {
         universe_source_id: 'explicit:4,2',
         parameters: { condition: { kind: 'above_moving_average' }, source_id: 'explicit:4,2' },
       }),
-    }))
+    }), expect.objectContaining({ priority: 'high' }))
   })
 
   it('preserves a durable active run when its Study Lab pane is closed', async () => {
@@ -1632,7 +1632,7 @@ describe('StudyLabTool', () => {
     await wrapper.findAll('button').find(button => button.text() === 'Run')!.trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Run #101'))
     wrapper.unmount()
-    expect(apiPost).not.toHaveBeenCalledWith('/research/runs/101/cancel', {})
+    expect(apiPost.mock.calls.some(([requestPath]) => requestPath === '/research/runs/101/cancel')).toBe(false)
   })
 
   it('keeps a late-created run durable and publishes it to the open Results surface after Study Lab closes', async () => {
@@ -1661,13 +1661,13 @@ describe('StudyLabTool', () => {
     await wrapper.find('button').trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
     await wrapper.findAll('button').find(button => button.text() === 'Run')!.trigger('click')
-    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/research/runs', expect.anything()))
+    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/research/runs', expect.anything(), expect.objectContaining({ priority: 'high' })))
     wrapper.unmount()
 
     resolveRun(createdRun)
     await vi.waitFor(() => expect(results.find('[aria-label="Run 202, queued, 0 artifacts"]').exists()).toBe(true))
     expect(queryClient.getQueryData(['workstation', 'research-run', 202])).toMatchObject(createdRun)
-    expect(apiPost).not.toHaveBeenCalledWith('/research/runs/202/cancel', {})
+    expect(apiPost.mock.calls.some(([requestPath]) => requestPath === '/research/runs/202/cancel')).toBe(false)
     results.unmount()
   })
 
@@ -2256,13 +2256,13 @@ describe('StudyLabTool', () => {
     expect(rerunSnapshot).toBeDefined()
     await rerunSnapshot!.trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Run #91'))
-    expect(apiPost).toHaveBeenCalledWith('/research/runs/90/rerun?snapshot=true', {})
+    expect(apiPost).toHaveBeenCalledWith('/research/runs/90/rerun?snapshot=true', {}, expect.objectContaining({ priority: 'high' }))
     expect(queryClient.getQueryData(['workstation', 'research-run', 91])).toMatchObject({ id: 91 })
     let rerunLatest = wrapper.findAll('button').find(button => button.text() === 'Rerun latest')
     await vi.waitFor(() => { rerunLatest = wrapper.findAll('button').find(button => button.text() === 'Rerun latest'); expect(rerunLatest).toBeDefined() })
     await rerunLatest!.trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Run #92'))
-    expect(apiPost).toHaveBeenCalledWith('/research/runs/91/rerun?snapshot=false', {})
+    expect(apiPost).toHaveBeenCalledWith('/research/runs/91/rerun?snapshot=false', {}, expect.objectContaining({ priority: 'high' }))
   })
 
   it('publishes a late durable Study rerun to Results after the Study Lab tool unmounts', async () => {
