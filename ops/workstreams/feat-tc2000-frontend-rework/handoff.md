@@ -26820,3 +26820,10 @@ Focused `test_api_client.test.ts` passes 27/27; frontend `vue-tsc --noEmit` pass
 Root's exact 985 terminal review showed the ETF switch journey had a stale test-only accessible-name expectation (`Constituents symbols`). The current UI correctly names the listbox with the fund and snapshot context. Updated the locator within the Constituents group and asserted the current `IGV holdings … symbols` name, preserving the UNXQ, futures/cash, identity, lineage, and selection assertions. No product code or runtime behavior changed.
 
 Reference-only preflight reported no actionable unbound names; Playwright discovery listed all seven on-demand cases without launching a browser. TC scope, workstream, journey-matrix, and diff checks pass. Root's Auth diagnostic remains separate and pending; no browser/runtime/native/provider operation was run here. Root owns exact-source requalification and full acceptance.
+
+
+## 2026-11-08 — Keep the exact holding candidate inside its selection panel
+
+Root's normal `cd3f1a42` geometry diagnostic measured the UNXQ candidate at `(8,542)-(272,584)` while its selection panel ended at `y=510.25`; the candidate center hit a native `select`, although the candidate and tool body were visible. The constituent grid had implicitly placed the selection panel into the short first track while forcing the watchlist track to a 160px minimum. Made the grid placement explicit (empty context, scrollable watchlist, provenance, selection) and reduced the watchlist minimum to 80px so the picker can use the available body height. The existing strict containment, center-hit, ordinary-click, and provenance assertions are unchanged. No browser ran in TC; Root owns geometric requalification and the full profile.
+
+Frontend `vue-tsc --noEmit`, TC scope guard, workstream validator, journey-matrix validator, and `git diff --check` pass. Full route/action acceptance, exact-source browser profile, CI, and release remain pending.

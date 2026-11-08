@@ -5030,10 +5030,11 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 .industry-list__proxies { display: grid; gap: 3px; padding: 6px 7px; border-bottom: 1px solid #20282f; color: #8998a3; }
 .industry-list__proxy-table { height: 170px; border: 1px solid #34434e; }
 .constituent-tool { display: flex; flex-direction: column; align-items: stretch; box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%; height: 100%; min-height: 0; overflow: auto; background: #11161b; }
-.constituent-tool:not(.constituent-tool--factory) { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(160px, 1fr) auto auto; align-content: start; }
+.constituent-tool:not(.constituent-tool--factory) { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(80px, 1fr) auto auto; align-content: start; }
 .constituent-tool--factory { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
-.constituent-tool:not(.constituent-tool--factory) :deep(.watchlist) { grid-row: 2; width: 100%; min-width: 0; max-width: 100%; height: 100%; min-height: 160px; }
-.constituent-tool__selection { box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%; max-height: 75%; overflow: auto; padding: 4px 6px; border-top: 1px solid #28343c; background: #11161b; }
+.constituent-tool:not(.constituent-tool--factory) :deep(.watchlist) { grid-row: 2; width: 100%; min-width: 0; max-width: 100%; height: 100%; min-height: 80px; }
+.constituent-tool__provenance { grid-row: 3; }
+.constituent-tool__selection { grid-row: 4; box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%; min-height: 0; max-height: 75%; overflow: auto; padding: 4px 6px; border-top: 1px solid #28343c; background: #11161b; }
 .constituent-tool__selection :deep(.search-bar) { width: 100%; }
 .constituent-tool__selection :deep(.search-results) { position: static; max-height: 96px; }
 .constituent-tool__provenance { display: block; overflow: hidden; padding: 3px 7px; border-top: 1px solid #28343c; background: #121920; color: #d5ae72; font: 9px "Segoe UI", Arial, sans-serif; text-overflow: ellipsis; white-space: nowrap; }
