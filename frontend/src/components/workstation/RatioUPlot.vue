@@ -387,13 +387,17 @@ function seriesData(): uPlot.AlignedData {
 
 function draw() {
   if (!host.value || !hasPoints.value) return
+  const width = host.value.clientWidth
+  const height = host.value.clientHeight
+  // Golden Layout can briefly report a zero-sized inactive pane. Wait for the
+  // host's ResizeObserver instead of creating an oversized chart that clips
+  // its axes when the pane is revealed.
+  if (width <= 0 || height <= 0) return
   if (chart && chartHostElement !== host.value) {
     chart.destroy()
     chart = null
     chartHostElement = null
   }
-  const width = Math.max(180, host.value.clientWidth)
-  const height = Math.max(90, host.value.clientHeight)
   const data = seriesData()
   if (chart && chart.series.length !== series.value.length + 1) {
     chart.destroy()
@@ -490,7 +494,7 @@ onBeforeUnmount(() => {
 .ratio-chart__chip { padding: 1px 4px; color: #d8b36b; }
 .ratio-chart__chip:disabled { cursor: default; opacity: .65; }
 .ratio-chart__legend span { color: #8296a4; }
-.ratio-chart__host { min-height: 0; }
+.ratio-chart__host { width: 100%; min-width: 0; min-height: 0; }
 .ratio-chart__state { display: grid; place-items: center; color: #8fa0aa; font: 11px "Segoe UI", Arial, sans-serif; }
 .ratio-chart__state--error { color: #ec8f8f; }
 .ratio-chart__warning { padding: 3px 7px; color: #d0ae6d; font: 9px "Segoe UI", Arial, sans-serif; }

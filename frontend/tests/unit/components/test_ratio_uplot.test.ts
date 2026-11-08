@@ -13,11 +13,25 @@ class ResizeObserverMock {
   disconnect() {}
 }
 vi.stubGlobal('ResizeObserver', ResizeObserverMock)
+const clientWidthDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'clientWidth')
+const clientHeightDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'clientHeight')
 
 describe('RatioUPlot', () => {
-  afterEach(() => Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' }))
+  afterEach(() => {
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' })
+    if (clientWidthDescriptor) Object.defineProperty(HTMLElement.prototype, 'clientWidth', clientWidthDescriptor)
+    if (clientHeightDescriptor) Object.defineProperty(HTMLElement.prototype, 'clientHeight', clientHeightDescriptor)
+  })
 
   beforeEach(() => {
+    Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
+      configurable: true,
+      get(this: HTMLElement) { return this.classList.contains('ratio-chart__host') ? 420 : clientWidthDescriptor?.get?.call(this) ?? 0 },
+    })
+    Object.defineProperty(HTMLElement.prototype, 'clientHeight', {
+      configurable: true,
+      get(this: HTMLElement) { return this.classList.contains('ratio-chart__host') ? 64 : clientHeightDescriptor?.get?.call(this) ?? 0 },
+    })
     vi.mocked(api.get).mockReset()
     vi.mocked(api.post).mockReset().mockResolvedValue({
       request_id: 'ratio-ready', status: 'ready', created_at: '2026-11-06T12:00:00Z', updated_at: '2026-11-06T12:00:00Z',
@@ -83,6 +97,7 @@ describe('RatioUPlot', () => {
 
     await vi.waitFor(() => expect(vi.mocked(uPlot)).toHaveBeenCalled())
     const data = vi.mocked(uPlot).mock.calls.at(-1)?.[1]
+    expect(vi.mocked(uPlot).mock.calls.at(-1)?.[0]).toEqual(expect.objectContaining({ width: 420, height: 64 }))
     expect(data?.[0]).toEqual([Date.parse('2026-01-03T00:00:00Z') / 1000])
     expect(data?.[1]).toEqual([1.3])
     expect(data?.[2]).toEqual([1.0])

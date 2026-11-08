@@ -5588,3 +5588,13 @@ approved_development_dependency_imports:
   - scripts/run-live-provider-probes.py
   - backend/tests/live/test_market_data_providers_live.py
   - backend/tests/unit/test_live_provider_runner.py
+
+rendered_dock_tab_and_plot_bounds_followup_20261108:
+  root_review: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/root-dbb-rendered-critical-review-followup.json
+  source: dbb0d739834960fef174f86d9679d1800338e79e
+  status: focused_checks_green; Root_rendered_requalification_pending
+  scope: TC-owned GoldenLayout tab labels and chart plot bounds only; Radar status and all existing ratios remain unchanged.
+  changes: GoldenLayout retains its native tab sizing and overflow dropdown, with no forced right offset or scroll override; dock labels stay on one line. Primary uPlot keeps a 120px price plane where room allows and shrinks only to the chart root's actual available height. Ratio uPlot uses its measured host width/height and waits while the pane is zero-sized.
+  validation: Focused workspace-layout, ratio-uPlot and chart-context modules pass 43/43; frontend type-check, TC scope/self-tests, workstream validation, journey matrix, and diff check pass.
+  pending: Root actual rendered review of dock-tab bounds/dropdown access and visible Chart/Relative Strength axes at the exact 1024x640 CSS DPR1.25 and other approved profiles; full platform, CI, and release gates remain pending.
+  integration_capture: exact branch HEAD

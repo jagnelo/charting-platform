@@ -26954,4 +26954,10 @@ The measured 1024 CSS px Workstation clipping is addressed with a compact two-ro
 
 Focused unit validation: WorkstationToolContent history/acquisition 16/16, chart store 68/68, Radar detail preview 2/2 (86/86 total); frontend `vue-tsc --noEmit` passes. TC scope guard and self-tests, workstream validation, journey matrix (28 routes/aliases, 21 Add tools, 38 factory instances, 9 journeys), and `git diff --check` pass. No browser/runtime/full suite ran in TC. Root owns viewport screenshots, rendered benchmark admission recheck, the remaining full profile, exact CI, and release acceptance; this checkpoint does not claim those results.
 
+## 2026-11-08 — Keep dock labels and chart axes within the rendered pane
+
+Root's rendered review of the exact `dbb0d739` screenshots confirmed lower GoldenLayout dock labels wrapped inside the fixed-height tab header at 1024×640 CSS px / DPR 1.25. The tab strip no longer overrides GoldenLayout's native placement, sizing, or overflow dropdown, and tab labels do not wrap. The chart geometry review also found the primary uPlot wrapper's unconditional 120px minimum and RatioUPlot's 120×90px constructor floors could exceed the visible pane and crop axes. The primary plot retains its 120px preferred/ minimum plane when room exists but can shrink to its chart root's actual available height; ratio plots use measured host dimensions and wait for a zero-sized inactive pane to become visible before creating a plot. Radar's previously accepted status flow is unchanged.
+
+Focused workspace layout, ratio plot, and chart-context modules pass 43/43, including a compact ratio-host measurement assertion. Frontend type-check and strict TC scope/self-tests, workstream, journey-matrix, and diff checks pass. Root's actual rendered requalification is pending; no browser/runtime operation ran in TC and this is not visual or full-platform acceptance.
+
 ---

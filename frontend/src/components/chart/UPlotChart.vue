@@ -3676,11 +3676,11 @@ defineExpose({ jumpToTs })
 
 .uplot-wrapper {
   position: relative;
-  /* A newly added indicator must not squeeze the price plot to a line in a
-     short dock. Keep a usable price plane and let the chart panes scroll. */
-  flex: 1 0 120px;
+  /* Retain the usable price plane for normal/indicator layouts, but let it
+     shrink to the chart root's actual available height in compact docks. */
+  flex: 1 1 120px;
   min-width: 0;
-  min-height: 120px;
+  min-height: min(120px, 100%);
   overflow: hidden;
   touch-action: none;
   overscroll-behavior: none;
