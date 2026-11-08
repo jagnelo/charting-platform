@@ -18,7 +18,7 @@ describe('instrument query contract', () => {
     ])
     expect(first).toEqual(second)
     expect(apiGet).toHaveBeenCalledTimes(1)
-    expect(apiGet).toHaveBeenCalledWith('/instruments/XLK', { canonical_only: true })
+    expect(apiGet).toHaveBeenCalledWith('/instruments/XLK', { canonical_only: true }, { priority: 'high' })
   })
 
   it('refetches after the shared instrument cache is invalidated', async () => {

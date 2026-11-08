@@ -474,8 +474,7 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
   let resolved = false
   let historyCompleted = false
   let localReadCount = 0
-  const optionsExposureReads: string[] = []
-  const optionsExpirationReads: string[] = []
+  const optionsPanelRequests: string[] = []
   const calendarReads: Array<{ symbol: string; start: string; end: string }> = []
   const discoveryRequests: DiscoveryRequest[] = []
   const identityRequests: InstrumentRequestBody[] = []
@@ -486,6 +485,11 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
   let releaseHistoryResponse!: () => void
   const historyRequestArrived = new Promise<void>(resolve => { signalHistoryRequest = resolve })
   const historyResponseGate = new Promise<void>(resolve => { releaseHistoryResponse = resolve })
+  const recordOptionsPanelRequest = (request: Request) => {
+    const pathname = new URL(request.url()).pathname
+    if (/\/options\/exposure(?:\/expirations)?$/.test(pathname)) optionsPanelRequests.push(pathname)
+  }
+  page.on('request', recordOptionsPanelRequest)
   const bar: OHLCVBar = {
     ts: '2026-10-29T00:00:00Z', open: 24, high: 26, low: 23, close: 25,
     volume: 12000, is_adjusted: true, is_derived: false,
@@ -597,14 +601,18 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
     }
     await route.fulfill({ status: 200, json: resolvedIdentity(body, instrumentId, 'Common Stock') })
   })
-  await page.route('**/api/v1/instruments/UNXQ', async route => {
+  await page.route(url => url.pathname === '/api/v1/instruments/UNXQ', async route => {
+    const request = route.request()
+    const url = new URL(request.url())
+    if (request.method() !== 'GET') return route.continue()
     if (!resolved) {
       await route.fulfill({ status: 404, json: { detail: 'No pre-existing instrument in this controlled fixture.' } })
       return
     }
     await route.fulfill({ status: 200, json: {
-      id: instrumentId, symbol, name: holding.reported_name, currency: 'USD',
-      is_active: true, is_synthetic: false, stats: { week52_high: 30 },
+      id: instrumentId, instrument_id: instrumentId, symbol, identity_status: 'resolved',
+      name: holding.reported_name, currency: 'USD', is_active: true, is_synthetic: false,
+      stats: { week52_high: 30 },
     } })
   })
   await page.route('**/api/v1/instrument-indicators/779004**', route => route.fulfill({ status: 200, json: { indicators: [] } }))
@@ -618,25 +626,6 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
   await page.route('**/api/v1/coverage/instruments/UNXQ/ohlcv**', async route => {
     const url = new URL(route.request().url())
     await route.fulfill({ status: 200, json: missingCoverage(url) })
-  })
-  await page.route('**/api/v1/instruments/UNXQ/options/exposure', async route => {
-    const url = new URL(route.request().url())
-    expect(route.request().method()).toBe('GET')
-    expect(url.pathname).toBe('/api/v1/instruments/UNXQ/options/exposure')
-    optionsExposureReads.push(url.pathname)
-    await route.fulfill({ status: 200, json: {
-      symbol, spot: null, expirations: [], active_expirations: [], computed_at: '2026-10-27T00:00:00Z',
-      ladder: [], key_levels: { call_wall: null, put_wall: null, gamma_flip: null, max_pain: null },
-      pcr_oi: null, pcr_volume: null, implied_move_pct: null, total_gex: 0, total_net_dex: 0,
-    } satisfies OptionsExposureResponse })
-  })
-  await page.route('**/api/v1/instruments/UNXQ/options/exposure/expirations', async route => {
-    const url = new URL(route.request().url())
-    expect(route.request().method()).toBe('GET')
-    expect(url.pathname).toBe('/api/v1/instruments/UNXQ/options/exposure/expirations')
-    optionsExpirationReads.push(url.pathname)
-    const noExpirations: ExpirationSummary[] = []
-    await route.fulfill({ status: 200, json: noExpirations })
   })
   await page.route('**/api/v1/data/ensure', async route => {
     const body = route.request().postDataJSON() as DataEnsureRequest
@@ -683,8 +672,13 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
   expect(identityRequests).toHaveLength(0)
   const historyResponseReady = page.waitForResponse(response => {
     const url = new URL(response.url())
-    return response.request().method() === 'POST'
-      && url.pathname === '/api/v1/data/ensure'
+    if (response.request().method() !== 'POST' || url.pathname !== '/api/v1/data/ensure') return false
+    const body = response.request().postDataJSON() as DataEnsureRequest
+    return body.target.kind === 'instrument'
+      && body.target.instrument_id === instrumentId
+      && body.datasets?.includes('history') === true
+      && body.timeframe === 'D1'
+      && body.adjusted === true
   })
   await page.getByRole('option', { name: /Use UNXQ · XNYS/ }).click()
   await expect(page).toHaveURL(/\/chart\/UNXQ\?/)
@@ -730,7 +724,9 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
   expect(lineageDetails).toContain(holding.source_row_id)
   expect(lineageDetails).toContain(holding.reported_name)
 
-  await expect(page.getByRole('status').filter({ hasText: 'Loaded 1 local D1 bars for UNXQ.' })).toBeVisible()
+  await expect(page.getByRole('status').filter({
+    hasText: /^Partial D1 price history for UNXQ remains available\. Additional history is not currently available\.$/,
+  })).toBeVisible()
   expect(historyRequests).toHaveLength(1)
   expect(historyRequests[0]?.timeframe).toBe('D1')
   await expect.poll(() => localReadCount).toBeGreaterThan(1)
@@ -766,21 +762,55 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
       body: await response.json(),
     }
   })
+  const canonicalIdentityAfterReloadReady = page.waitForResponse(response => {
+    const request = response.request()
+    const url = new URL(request.url())
+    return request.frame() === mainFrame
+      && (requestDocumentEpoch.get(request) ?? 0) > documentEpochBeforeReload
+      && request.method() === 'GET'
+      && url.pathname === `/api/v1/instruments/${symbol}`
+      && url.searchParams.get('canonical_only') === 'true'
+  })
+  const historyEnsureAfterReloadReady = page.waitForResponse(response => {
+    const request = response.request()
+    const url = new URL(request.url())
+    if (request.frame() !== mainFrame
+      || (requestDocumentEpoch.get(request) ?? 0) <= documentEpochBeforeReload
+      || request.method() !== 'POST'
+      || url.pathname !== '/api/v1/data/ensure') return false
+    const body = request.postDataJSON() as DataEnsureRequest
+    return body.target.kind === 'instrument'
+      && body.target.instrument_id === instrumentId
+      && body.datasets?.includes('history') === true
+      && body.timeframe === 'D1'
+      && body.adjusted === true
+  })
   await page.reload()
   const calendarResponseAfterReload = await calendarResponseAfterReloadReady
+  const canonicalIdentityAfterReload = await canonicalIdentityAfterReloadReady
+  const historyEnsureAfterReload = await historyEnsureAfterReloadReady
   page.off('framenavigated', recordMainFrameNavigation)
   page.off('request', recordMainFrameRequest)
+  page.off('request', recordOptionsPanelRequest)
   expect(calendarResponseAfterReload.method).toBe('GET')
   expect(calendarResponseAfterReload.pathname).toBe(`/api/v1/calendar/instruments/${symbol}/calendar`)
   expect(calendarResponseAfterReload.status).toBe(200)
   expect(calendarResponseAfterReload.body).toEqual(noInstrumentCalendarEvents)
+  expect(canonicalIdentityAfterReload.status()).toBe(200)
+  expect(await canonicalIdentityAfterReload.json()).toMatchObject({
+    id: instrumentId,
+    instrument_id: instrumentId,
+    symbol,
+    identity_status: 'resolved',
+  })
   await expect(page).toHaveURL(/\/chart\/UNXQ\?/)
   await expect(page.getByTestId('active-holding-lineage')).toHaveText(`UNXQ from ${profile.symbol} dated holdings · ${snapshot.composition_date}`)
   await expect.poll(() => localReadCount).toBeGreaterThan(readsBeforeReload)
   expect(localReadBars.at(-1)).toEqual([bar])
-  expect(historyRequests).toHaveLength(1)
-  expect(optionsExposureReads.length).toBeGreaterThan(0)
-  expect(optionsExpirationReads.length).toBeGreaterThan(0)
+  expect(historyEnsureAfterReload.status()).toBe(200)
+  expect(historyRequests).toHaveLength(2)
+  expect(historyRequests[1]).toEqual(historyRequests[0])
+  expect(optionsPanelRequests).toEqual([])
   await expect.poll(() => calendarReads.length).toBeGreaterThan(calendarReadsBeforeReload)
   expect(calendarReads.at(-1)).toMatchObject({ symbol, start: bar.ts })
   expect(calendarReads.every(read => read.symbol === symbol)).toBe(true)
@@ -1087,7 +1117,7 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
       instrument_id: fixtureInstrumentId,
       symbol: 'TCNEW',
       dataset: 'history',
-      covered_ranges: [{ is_adjusted: true }],
+      covered_ranges: expect.arrayContaining([expect.objectContaining({ is_adjusted: true })]),
     }],
   })
   expect(tcnewPreparationRequests.filter(request => request.timeframe === 'M1'
@@ -1292,17 +1322,26 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
     return response.request().method() === 'GET'
       && url.pathname === '/api/v1/etf-holdings/IWM/holdings'
   })
-  const iwmIdentityResponseReady = page.waitForResponse(response => {
+  const iwmAutomaticHoldingsEnsureReady = page.waitForResponse(response => {
     const url = new URL(response.url())
-    return response.request().method() === 'POST'
-      && url.pathname.replace(/\/+$/, '') === '/api/v1/instruments/acquire'
-  }, { timeout: 10_000 })
-  const firstIwmIssuerResponseReady = page.waitForResponse(response => {
-    const url = new URL(response.url())
-    return response.request().method() === 'POST' && url.pathname === '/api/v1/etf-holdings/IWM/acquire'
-  }, { timeout: 10_000 })
+    if (response.request().method() !== 'POST' || url.pathname !== '/api/v1/data/ensure') return false
+    const body = response.request().postDataJSON() as DataEnsureRequest
+    return body.target.kind === 'instrument' && body.target.symbol === 'IWM'
+      && body.datasets?.includes('holdings') === true
+  })
   await page.locator('.profile-card').filter({ hasText: 'IWM' }).first().click()
   const originalPage = await (await holdingsReady).json() as ETFHoldingsPage
+  const iwmAutomaticHoldingsEnsure = await iwmAutomaticHoldingsEnsureReady
+  expect(iwmAutomaticHoldingsEnsure.status()).toBe(202)
+  expect(iwmAutomaticHoldingsEnsure.request().postDataJSON()).toMatchObject({
+    target: { kind: 'instrument', symbol: 'IWM' },
+    datasets: ['holdings'],
+  })
+  expect(await iwmAutomaticHoldingsEnsure.json()).toMatchObject({
+    status: 'waiting',
+    has_pending_work: false,
+    dependencies: [{ dataset: 'holdings', status: 'waiting', reason_code: 'canonical_etf_instrument_required' }],
+  })
   const amdRow = originalPage.holdings.find(row => (row.constituent_symbol || row.reported_symbol) === 'AMD' && row.is_resolved)
   amdInstrumentId = Number(amdRow?.constituent_instrument_id ?? 0)
   expect(amdInstrumentId, 'history identity uses the actual selected constituent ID').toBeGreaterThan(0)
@@ -1322,8 +1361,20 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
   const originalRowCount = await rowLocator.count()
   expect(originalRowCount).toBeGreaterThan(0)
 
-  // The first deliberate stale-profile selection above is itself the approved
-  // refresh intent; identity is confirmed once before its issuer request.
+  // Selecting the saved profile starts the current shared holdings check. A
+  // provider refresh remains a separate explicit action and must follow exact
+  // canonical identity confirmation.
+  await expect(page.getByTestId('etf-request-issuer')).toBeEnabled()
+  const iwmIdentityResponseReady = page.waitForResponse(response => {
+    const url = new URL(response.url())
+    return response.request().method() === 'POST'
+      && url.pathname.replace(/\/+$/, '') === '/api/v1/instruments/acquire'
+  })
+  const firstIwmIssuerResponseReady = page.waitForResponse(response => {
+    const url = new URL(response.url())
+    return response.request().method() === 'POST' && url.pathname === '/api/v1/etf-holdings/IWM/acquire'
+  })
+  await page.getByTestId('etf-request-issuer').click()
   const iwmIdentityResponse = await iwmIdentityResponseReady
   expect(iwmIdentityResponse.status()).toBe(200)
   expect(await iwmIdentityResponse.json()).toMatchObject({ status: 'resolved', instrument: { symbol: 'IWM', identity_status: 'resolved' } })
@@ -1362,9 +1413,13 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
   })
   const automaticD1HistoryReady = page.waitForResponse(response => {
     const url = new URL(response.url())
-    return response.request().method() === 'POST'
-      && url.pathname === '/api/v1/data/ensure'
-      && (response.request().postDataJSON() as DataEnsureRequest).timeframe === 'D1'
+    if (response.request().method() !== 'POST' || url.pathname !== '/api/v1/data/ensure') return false
+    const body = response.request().postDataJSON() as DataEnsureRequest
+    return body.target.kind === 'instrument'
+      && body.target.instrument_id === amdInstrumentId
+      && body.datasets?.includes('history') === true
+      && body.timeframe === 'D1'
+      && body.adjusted === true
   })
   await page.locator('button.holding-row').filter({ hasText: 'AMD' }).click()
   await page.getByRole('button', { name: 'View history' }).click()
@@ -1375,12 +1430,16 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
   expect(await automaticD1History.json()).toMatchObject({
     status: 'unavailable',
     has_pending_work: false,
-    dependencies: [{ status: 'unavailable', dataset: 'history', symbol: 'AMD', instrument_id: amdInstrumentId }],
+    dependencies: expect.arrayContaining([
+      expect.objectContaining({ dataset: 'identity', status: 'ready', symbol: 'AMD', instrument_id: amdInstrumentId }),
+      expect.objectContaining({ dataset: 'profile', status: 'ready', symbol: 'AMD', instrument_id: amdInstrumentId }),
+      expect.objectContaining({ dataset: 'history', status: 'unavailable', symbol: 'AMD', instrument_id: amdInstrumentId, reason_code: 'test_fixture_hold' }),
+    ]),
   })
   expect(historyRequests).toHaveLength(1)
   expect(historyRequests[0]).toMatchObject({ target: { kind: 'instrument', instrument_id: amdInstrumentId }, timeframe: 'D1', adjusted: true })
-  expect(identityRequests).toHaveLength(2)
-  expect(identityRequests[1]).toMatchObject({ symbol: 'AMD' })
+  expect(identityRequests).toHaveLength(1)
+  expect(identityRequests.map(request => request.symbol)).toEqual(['IWM'])
   await expect(page.getByRole('status').filter({ hasText: 'Some requested data is unavailable. Available results remain usable.' })).toBeVisible()
   const historyUrl = new URL(page.url())
   expect(historyUrl.pathname).toBe('/chart/AMD')
@@ -1390,21 +1449,30 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
   expect(historyUrl.searchParams.get('holding_provenance')).toBe('controlled_fixture')
   expect(Number(historyUrl.searchParams.get('holding_instrument_id'))).toBe(amdInstrumentId)
 
-  const historicalContext = page.locator('.historical-holding-context')
+  const historicalContext = page.getByTestId('active-holding-lineage')
   await expect(historicalContext).toBeVisible()
-  await expect(historicalContext).toContainText('AMD')
-  await expect(historicalContext).toContainText(String(compositionDate))
-  await expect(historicalContext).toContainText(String(knownAt))
-  await expect(historicalContext).toContainText('controlled_fixture')
-  await expect(historicalContext).toContainText('does not establish current ETF analysis eligibility')
+  await expect(historicalContext).toContainText(`AMD from IWM holdings · ${compositionDate}`)
+  const iwmLineageDetails = await historicalContext.getAttribute('title')
+  expect(iwmLineageDetails).toContain(`snapshot ${selectedProfile?.latest_snapshot_id}`)
+  expect(iwmLineageDetails).toContain(`known ${knownAt}`)
+  expect(iwmLineageDetails).toContain('controlled_fixture')
+  expect(iwmLineageDetails).toContain('does not establish current ETF analysis eligibility')
 
-  const chartCanvases = page.locator('.chart-body canvas')
-  await expect(chartCanvases.first()).toBeVisible()
+  const priceChart = page.locator('.chart-tool:visible').getByRole('region', { name: 'Chart workspace' }).first()
+  const pricePlot = priceChart.locator('.uplot')
+  await expect(pricePlot).toBeVisible()
+  const pricePlotCountBefore = await pricePlot.count()
+  expect(pricePlotCountBefore).toBe(1)
+  await expect(priceChart.locator('.sr-only')).toContainText('D1 chart; 500 bars; adjusted;')
   const m1HistoryReady = page.waitForResponse(response => {
     const url = new URL(response.url())
-    return response.request().method() === 'POST'
-      && url.pathname === '/api/v1/data/ensure'
-      && (response.request().postDataJSON() as DataEnsureRequest).timeframe === 'M1'
+    if (response.request().method() !== 'POST' || url.pathname !== '/api/v1/data/ensure') return false
+    const body = response.request().postDataJSON() as DataEnsureRequest
+    return body.target.kind === 'instrument'
+      && body.target.instrument_id === amdInstrumentId
+      && body.datasets?.includes('history') === true
+      && body.timeframe === 'M1'
+      && body.adjusted === true
   })
   const m1LocalBarsReady = page.waitForResponse(response => {
     const url = new URL(response.url())
@@ -1416,38 +1484,59 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
     return response.request().method() === 'GET'
       && url.pathname === '/api/v1/instruments/AMD/data-coverage'
   })
-  await page.locator('.tf-select').selectOption('M1')
-  await expect(page.locator('.tf-select')).toHaveValue('M1')
-  const [m1LocalBars, m1Coverage] = await Promise.all([m1LocalBarsReady, m1CoverageReady])
-  expect(m1LocalBars.status()).toBe(200)
-  expect(m1Coverage.status()).toBe(200)
-  expect(await m1Coverage.json()).toMatchObject({ symbol: 'AMD', is_fetching: false })
-  await expect(page.locator('.chart-root').first()).toHaveAttribute('aria-busy', 'false')
-  await expect(chartCanvases.first()).toBeVisible()
-  const canvasCountBefore = await chartCanvases.count()
-  const identityBeforeExplicitM1 = identityRequests.length
-  await page.getByTestId('history-load-missing').click()
-  await expect(page.getByRole('status').filter({ hasText: 'Some requested data is unavailable. Available results remain usable.' })).toBeVisible()
-  const m1History = await m1HistoryReady
+  const linkedTimeframe = page.getByLabel('Linked timeframe')
+  await expect(linkedTimeframe).toBeVisible()
+  await linkedTimeframe.selectOption('M1')
+  await expect(linkedTimeframe).toHaveValue('M1')
+  const [m1History, m1LocalBars, m1Coverage] = await Promise.all([m1HistoryReady, m1LocalBarsReady, m1CoverageReady])
   expect(m1History.status()).toBe(200)
-  expect(await m1History.json()).toMatchObject({
+  const m1HistoryResponse = await m1History.json() as DataEnsureResponse
+  expect(m1HistoryResponse.dependencies.map(dependency => dependency.dataset)).toEqual(['history'])
+  expect(m1HistoryResponse).toMatchObject({
     status: 'unavailable',
     has_pending_work: false,
-    dependencies: [{ status: 'unavailable', dataset: 'history', symbol: 'AMD', instrument_id: amdInstrumentId }],
+    dependencies: [expect.objectContaining({ dataset: 'history', status: 'unavailable', symbol: 'AMD', instrument_id: amdInstrumentId, reason_code: 'test_fixture_hold' })],
   })
-  expect(identityRequests).toHaveLength(identityBeforeExplicitM1 + 1)
-  expect(identityRequests.at(-1)).toMatchObject({ symbol: 'AMD' })
+  expect(m1LocalBars.status()).toBe(200)
+  expect(await m1LocalBars.json()).toEqual([])
+  expect(m1Coverage.status()).toBe(200)
+  expect(await m1Coverage.json()).toMatchObject({ symbol: 'AMD', is_fetching: false })
+  await expect(priceChart).toHaveAttribute('aria-busy', 'false')
+  await expect(priceChart.locator('.sr-only')).toHaveText('M1 chart; no OHLCV bars loaded.')
+  await expect(pricePlot).toHaveCount(0)
+  await expect(page.getByRole('status').filter({ hasText: 'Some requested data is unavailable. Available results remain usable.' })).toBeVisible()
   await expect(historicalContext).toBeVisible()
-  await expect(chartCanvases).toHaveCount(canvasCountBefore)
-  expect(identityRequests).toHaveLength(3)
-  expect(identityRequests.map(request => request.symbol)).toEqual(['IWM', 'AMD', 'AMD'])
+  expect(identityRequests).toHaveLength(1)
+  expect(identityRequests.map(request => request.symbol)).toEqual(['IWM'])
   expect(historyRequests).toHaveLength(2)
   expect(historyRequests.map(request => request.timeframe)).toEqual(['D1', 'M1'])
   expect(historyRequests.every(request => ensureInstrumentId(request) === amdInstrumentId)).toBe(true)
+  expect(historyRequests[1]).toMatchObject({ datasets: ['history'], timeframe: 'M1', adjusted: true })
   expect(historyRequests[0]?.start_at).toBeUndefined()
   expect(historyRequests[0]?.end_at).toBeUndefined()
   expect(historyRequests[1]?.start_at).toBeUndefined()
   expect(historyRequests[1]?.end_at).toBeUndefined()
+  expect(directHistoryRequests).toEqual([])
+
+  // Returning to a previously populated timeframe must read and render that
+  // exact cached series again; the unavailable M1 result cannot masquerade as
+  // stale D1 bars while the active control says M1.
+  const restoredD1ReadReady = page.waitForResponse(response => {
+    const url = new URL(response.url())
+    return response.request().method() === 'GET'
+      && url.pathname === '/api/v1/ohlcv/local/AMD/D1'
+  })
+  await linkedTimeframe.selectOption('D1')
+  await expect(linkedTimeframe).toHaveValue('D1')
+  const restoredD1Read = await restoredD1ReadReady
+  expect(restoredD1Read.status()).toBe(200)
+  const restoredD1Bars = await restoredD1Read.json() as OHLCVBar[]
+  expect(restoredD1Bars).toHaveLength(500)
+  expect(restoredD1Bars.every(bar => bar.is_adjusted === true)).toBe(true)
+  await expect(pricePlot).toBeVisible()
+  await expect(priceChart.locator('.sr-only')).toContainText('D1 chart; 500 bars; adjusted;')
+  await expect(historicalContext).toBeVisible()
+  expect(identityRequests).toHaveLength(1)
   expect(directHistoryRequests).toEqual([])
   await browserDiagnostics.expectNoCriticalIssues()
 })
@@ -1473,6 +1562,7 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
   } | null = null
   let acquiredFixtureBar: OHLCVBar | null = null
   let successfulHistoryResponseReceived = false
+  let successfulM1HistoryResponseReceived = false
   let localReadbackCount = 0
 
   function fixtureBarAt(ts: string): OHLCVBar {
@@ -1685,6 +1775,7 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
       missing_slices: [],
     }
     successfulHistoryResponseReceived = true
+    if (body.timeframe === 'M1') successfulM1HistoryResponseReceived = true
     await route.fulfill({ status: 200, json: historyPreparation(body, amdInstrumentId, 'AMD', 'partial', acquiredFixtureBar) })
   })
   await page.route('**/api/v1/etf-holdings/IWM/capability', async route => {
@@ -1768,16 +1859,66 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
 
   const oihOption = page.getByRole('option', { name: /^OIH\b/ })
   await expect(oihOption).toBeVisible()
+  const oihCanonicalEnsureReady = page.waitForResponse(response => {
+    const url = new URL(response.url())
+    if (response.request().method() !== 'POST' || url.pathname !== '/api/v1/data/ensure') return false
+    const body = response.request().postDataJSON() as DataEnsureRequest
+    return body.target.kind === 'instrument'
+      && body.target.instrument_id === fixtureInstrumentId
+      && body.datasets?.includes('identity') === true
+      && body.datasets.includes('profile')
+      && body.datasets.includes('history')
+      && body.datasets.includes('holdings')
+      && body.timeframe === 'D1'
+      && body.adjusted === true
+  })
+  const oihAutomaticHoldingsEnsureReady = page.waitForResponse(response => {
+    const url = new URL(response.url())
+    if (response.request().method() !== 'POST' || url.pathname !== '/api/v1/data/ensure') return false
+    const body = response.request().postDataJSON() as DataEnsureRequest
+    return body.target.kind === 'instrument' && body.target.symbol === 'OIH'
+      && body.datasets?.includes('holdings') === true
+  })
+  await oihOption.click()
+  const oihCanonicalEnsure = await oihCanonicalEnsureReady
+  expect(oihCanonicalEnsure.status()).toBe(202)
+  expect(oihCanonicalEnsure.request().postDataJSON()).toMatchObject({
+    target: { kind: 'instrument', instrument_id: fixtureInstrumentId },
+    datasets: ['identity', 'profile', 'history', 'holdings'],
+    timeframe: 'D1',
+    adjusted: true,
+  })
+  expect((oihCanonicalEnsure.request().postDataJSON() as DataEnsureRequest).start_at).toBeUndefined()
+  expect((oihCanonicalEnsure.request().postDataJSON() as DataEnsureRequest).end_at).toBeUndefined()
+  const oihAutomaticHoldingsEnsure = await oihAutomaticHoldingsEnsureReady
+  expect(oihAutomaticHoldingsEnsure.status()).toBe(202)
+  expect(oihAutomaticHoldingsEnsure.request().postDataJSON()).toMatchObject({
+    target: { kind: 'instrument', symbol: 'OIH' },
+    datasets: ['holdings'],
+  })
+  expect(await oihAutomaticHoldingsEnsure.json()).toMatchObject({
+    status: 'waiting',
+    has_pending_work: false,
+    dependencies: [{ dataset: 'holdings', status: 'waiting', reason_code: 'canonical_etf_instrument_required' }],
+  })
+  expect(identityRequests).toHaveLength(0)
+  expect(issuerRequests).toHaveLength(0)
+  await expect(page.getByTestId('etf-preparation-status')).toBeVisible()
+  await expect(page.getByTestId('etf-request-issuer')).toBeEnabled()
+
+  // Automatic preparation is handled by the shared coordinator. The explicit
+  // “Load latest holdings” action is where this controlled fixture confirms the
+  // canonical identity and materializes its labeled test-only snapshot.
   const oihIdentityReady = page.waitForResponse(response => {
     const url = new URL(response.url())
     return response.request().method() === 'POST' && url.pathname.replace(/\/+$/, '') === '/api/v1/instruments/acquire'
-  }, { timeout: 10_000 })
+  })
   const firstUseIssuerReady = page.waitForResponse(response => {
     const url = new URL(response.url())
     return response.request().method() === 'POST'
       && url.pathname === '/api/v1/etf-holdings/OIH/acquire'
   }, { timeout: 10_000 })
-  await oihOption.click()
+  await page.getByTestId('etf-request-issuer').click()
   const oihIdentityResponse = await oihIdentityReady
   expect(oihIdentityResponse.status()).toBe(200)
   expect(await oihIdentityResponse.json()).toMatchObject({ status: 'resolved', instrument: { symbol: 'OIH', instrument_id: fixtureInstrumentId } })
@@ -1817,9 +1958,13 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
   })
   const automaticD1HistoryReady = page.waitForResponse(response => {
     const url = new URL(response.url())
-    return response.request().method() === 'POST'
-      && url.pathname === '/api/v1/data/ensure'
-      && (response.request().postDataJSON() as DataEnsureRequest).timeframe === 'D1'
+    if (response.request().method() !== 'POST' || url.pathname !== '/api/v1/data/ensure') return false
+    const body = response.request().postDataJSON() as DataEnsureRequest
+    return body.target.kind === 'instrument'
+      && body.target.instrument_id === amdInstrumentId
+      && body.datasets?.includes('history') === true
+      && body.timeframe === 'D1'
+      && body.adjusted === true
   })
   await holdingButton.click()
   await page.getByRole('button', { name: 'View history' }).click()
@@ -1833,9 +1978,14 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
   expect(historyUrl.searchParams.get('holding_provenance')).toBe('controlled_fixture')
   expect(Number(historyUrl.searchParams.get('holding_instrument_id'))).toBe(amdInstrumentId)
 
-  const historicalContext = page.locator('.historical-holding-context')
+  const historicalContext = page.getByTestId('active-holding-lineage')
   await expect(historicalContext).toBeVisible()
-  await expect(historicalContext).toContainText('does not establish current ETF analysis eligibility')
+  await expect(historicalContext).toHaveText(`AMD from OIH holdings · ${fixtureSnapshot.composition_date}`)
+  const noSnapshotLineageDetails = await historicalContext.getAttribute('title')
+  expect(noSnapshotLineageDetails).toContain(`instrument ${amdInstrumentId} · snapshot ${fixtureSnapshotId} · row ${fixtureHolding.id}`)
+  expect(noSnapshotLineageDetails).toContain(`known ${fixtureSnapshot.known_at}`)
+  expect(noSnapshotLineageDetails).toContain('test-fixture / controlled_fixture')
+  expect(noSnapshotLineageDetails).toContain('does not establish current ETF analysis eligibility')
   await expect(page.locator('.chart-root').first()).toHaveAttribute('aria-busy', 'false')
   const automaticD1History = await automaticD1HistoryReady
   expect(automaticD1History.status()).toBe(200)
@@ -1843,14 +1993,31 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
   expect(automaticD1Result).toMatchObject({
     status: 'partial',
     has_pending_work: false,
-    dependencies: [{ status: 'partial', dataset: 'history', symbol: 'AMD', instrument_id: amdInstrumentId, covered_ranges: [{ is_adjusted: true }] }],
+    dependencies: expect.arrayContaining([
+      expect.objectContaining({ dataset: 'identity', status: 'ready', symbol: 'AMD', instrument_id: amdInstrumentId }),
+      expect.objectContaining({ dataset: 'profile', status: 'ready', symbol: 'AMD', instrument_id: amdInstrumentId }),
+      expect.objectContaining({ dataset: 'history', status: 'partial', symbol: 'AMD', instrument_id: amdInstrumentId, covered_ranges: expect.arrayContaining([expect.objectContaining({ is_adjusted: true })]) }),
+    ]),
   })
   expect(historyRequests).toHaveLength(1)
   expect(ensureInstrumentId(historyRequests[0]!)).toBe(amdInstrumentId)
   expect(historyRequests[0]?.start_at).toBeUndefined()
   expect(historyRequests[0]?.end_at).toBeUndefined()
-  expect(identityRequests.map(request => request.symbol)).toEqual(['OIH', 'AMD'])
-  await expect(page.getByRole('status').filter({ hasText: /^Some D1 history for AMD loaded; the rest remains unavailable\.$/ })).toBeVisible()
+  expect(identityRequests.map(request => request.symbol)).toEqual(['OIH'])
+  await expect(page.getByRole('status').filter({ hasText: /^Partial D1 price history for AMD remains available\. Additional history is not currently available\.$/ })).toBeVisible()
+  const m1HistoryReady = page.waitForResponse(response => {
+    const url = new URL(response.url())
+    if (response.request().method() !== 'POST' || url.pathname !== '/api/v1/data/ensure') return false
+    const body = response.request().postDataJSON() as DataEnsureRequest
+    return body.target.kind === 'instrument' && ensureInstrumentId(body) === amdInstrumentId
+      && body.timeframe === 'M1' && body.datasets?.includes('history') === true && body.adjusted === true
+  })
+  const localReadbackReady = page.waitForResponse(response => {
+    const url = new URL(response.url())
+    if (!successfulM1HistoryResponseReceived || response.request().method() !== 'GET'
+      || url.pathname !== '/api/v1/ohlcv/local/AMD/M1') return false
+    return response.json().then((rows: OHLCVBar[]) => rows.some(row => row.ts === '2026-01-02T00:01:00.000Z'))
+  })
   const m1LocalBarsReady = page.waitForResponse(response => {
     const url = new URL(response.url())
     return response.request().method() === 'GET'
@@ -1861,33 +2028,34 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
     return response.request().method() === 'GET'
       && url.pathname === '/api/v1/instruments/AMD/data-coverage'
   })
-  await page.locator('.tf-select').selectOption('M1')
-  await expect(page.locator('.tf-select')).toHaveValue('M1')
-  const [m1LocalBars, m1Coverage] = await Promise.all([m1LocalBarsReady, m1CoverageReady])
+  const linkedTimeframe = page.getByLabel('Linked timeframe')
+  await expect(linkedTimeframe).toBeVisible()
+  await linkedTimeframe.selectOption('M1')
+  await expect(linkedTimeframe).toHaveValue('M1')
+  const [m1History, m1LocalBars, m1Coverage, localReadback] = await Promise.all([m1HistoryReady, m1LocalBarsReady, m1CoverageReady, localReadbackReady])
+  expect(m1History.status()).toBe(200)
+  const m1HistoryResponse = await m1History.json() as DataEnsureResponse
+  expect(m1HistoryResponse.dependencies.map(dependency => dependency.dataset)).toEqual(['history'])
+  expect(m1HistoryResponse).toMatchObject({
+    status: 'partial',
+    has_pending_work: false,
+    dependencies: [expect.objectContaining({ dataset: 'history', status: 'partial', symbol: 'AMD', instrument_id: amdInstrumentId, covered_ranges: expect.arrayContaining([expect.objectContaining({ is_adjusted: true })]) })],
+  })
   expect(m1LocalBars.status()).toBe(200)
   expect(m1Coverage.status()).toBe(200)
   expect(await m1Coverage.json()).toMatchObject({ symbol: 'AMD', is_fetching: false })
   await expect(page.locator('.chart-root').first()).toHaveAttribute('aria-busy', 'false')
+  await expect(page.getByRole('status').filter({ hasText: /^Partial M1 price history for AMD remains available\. Additional history is not currently available\.$/ })).toBeVisible()
 
-  const localReadbackReady = page.waitForResponse(response => {
-    const url = new URL(response.url())
-    return successfulHistoryResponseReceived
-      && response.request().method() === 'GET'
-      && url.pathname === '/api/v1/ohlcv/local/AMD/M1'
-  })
-  const identityCountBeforeM1 = identityRequests.length
-  await page.getByTestId('history-load-missing').click()
-  await expect(page.getByRole('status').filter({ hasText: /^Some history loaded;/ })).toBeVisible()
-  const localReadback = await localReadbackReady
   const readbackBars = await localReadback.json() as OHLCVBar[]
   expect(historyRequests).toHaveLength(2)
   expect(historyRequests.map(request => request.timeframe)).toEqual(['D1', 'M1'])
   expect(historyRequests.every(request => ensureInstrumentId(request) === amdInstrumentId)).toBe(true)
+  expect(historyRequests[1]).toMatchObject({ datasets: ['history'], timeframe: 'M1', adjusted: true })
   expect(historyRequests.every(request => request.start_at === undefined && request.end_at === undefined)).toBe(true)
   expect(acquiredFixtureBar).not.toBeNull()
-  expect(identityRequests).toHaveLength(identityCountBeforeM1 + 1)
-  expect(identityRequests.map(request => request.symbol)).toEqual(['OIH', 'AMD', 'AMD'])
-  expect(identityRequests.at(-1)).toMatchObject({ symbol: 'AMD' })
+  expect(identityRequests).toHaveLength(1)
+  expect(identityRequests.map(request => request.symbol)).toEqual(['OIH'])
   expect(directHistoryRequests).toEqual([])
   expect(successfulHistoryResponseReceived).toBe(true)
   expect(localReadbackCount).toBeGreaterThan(0)
@@ -2783,7 +2951,14 @@ test('ordinary Workstation, Chart, and reported-holding selection use the real s
   expect((chartPreparation.request().postDataJSON() as DataEnsureRequest).start_at).toBeUndefined()
   expect((chartPreparation.request().postDataJSON() as DataEnsureRequest).end_at).toBeUndefined()
 
-  await page.getByRole('link', { name: 'ETF Holdings' }).click()
+  const applicationNavigationTrigger = page.getByRole('button', { name: 'Open application navigation' })
+  await expect(applicationNavigationTrigger).toBeVisible()
+  await applicationNavigationTrigger.click()
+  const applicationNavigation = page.getByRole('menu', { name: 'Application navigation' })
+  await expect(applicationNavigation).toBeVisible()
+  await applicationNavigation.getByRole('menuitem', { name: 'ETF Holdings', exact: true }).click()
+  await expect(page).toHaveURL(/\/legacy\/etf-holdings$/)
+  await expect(page.locator('.holdings-view')).toBeVisible()
   const spyProfile = page.locator('.profile-card').filter({ hasText: /\bSPY\b/ }).first()
   await expect(spyProfile).toBeVisible()
   const spyHoldingsResponse = page.waitForResponse(response => {

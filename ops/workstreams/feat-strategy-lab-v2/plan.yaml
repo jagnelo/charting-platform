@@ -1416,8 +1416,11 @@ dependencies:
     Strategy imported only its eight declared paths and verified all 79 source rows;
     this is development context, not full qualification or product acceptance. The
     prior b192 import and its receipt remain archived. Root owns PostgreSQL/native,
-    combined browser, and exact-source CI qualification. Do not duplicate providers
-    or provider runtime policy.
+    combined browser, and exact-source CI qualification. Do not duplicate providers or provider runtime policy. Strategy also consumes the exact scope-compatible
+    ETF catalogue alias from Provider source `fc220242ff9ff8be603c632dc80350a90708bec7` under Root manifest
+    `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providerfc220242-runtime-scope-compatible-development-consumption-contract.json`
+    (SHA256 `b8412e6902c6a1bc343885c4d9200a75a8ea748049b6a61e9fc25688087d59b1`), importing only its two
+    guarded catalogue paths. This is context only, not Provider runtime or release acceptance.
   - >-
     feat/etf-holdings-constituents owns ETF holdings adapters and point-in-time
     holdings history. Consume its staged membership and known-at contracts; do
@@ -1434,15 +1437,22 @@ dependencies:
     remains an earlier consumed frontend baseline under
     `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/frontend2a8dc9e4-complete-development-consumption-contract.json`
     (manifest SHA256 `46b99b84e501358e1f3c83780c8b72d7e9e41d107aacbb8e5b56c864f924c521`); its 43
-    declared paths and 126-row manifest remain archived. The current shared-runtime development
+    declared paths and 126-row manifest remain archived. The prior shared-runtime development
     source is exact TC `8d96cf3bd702459c4eef2ced93ec1dfb8db3dc2f` under
     `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-8d96cf3b-common-runtime-development-consumption-contract.json`
     (manifest SHA256 `2959432285dd2d58271261d539b4e30700bb38f2bf4b7b84727887a91078d4a1`). Strategy
     imported only its 15 declared paths and verified all 95 manifest rows; the exact local manifest
     and import receipt are `development-dependency-imports/8d96cf3bd702459c4eef2ced93ec1dfb8db3dc2f.json`
     and `development-dependency-imports/8d96cf3bd702459c4eef2ced93ec1dfb8db3dc2f-strategy-import-receipt.json`.
-    TC still reports three common proof issues under repair; this is development context, not browser
-    qualification or release acceptance. Root owns the next combined browser and exact-source gates.
+    That prior source remains historical. The current complete TC frontend context is exact source
+    `db4b1f55f78b1d907aab9d062da9470b5e3cc109` under the Root full-context manifest
+    `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-db4b1f55-full-frontend-context-development-consumption-contract.json`
+    (SHA256 `af29da7d2aef12e1778bcd14fb219dab0a009739ad41f9e376e8a4531c8a7ba6`). Strategy imported
+    only its 34 declared paths after all 34 old guards passed; all 150 source rows and all 124 foreign
+    paths were verified, while the 26 Strategy-private paths remained excluded and byte-identical. The
+    exact local manifest is `development-dependency-imports/db4b1f55f78b1d907aab9d062da9470b5e3cc109-full-frontend-context.json`;
+    earlier e750, 8d96, 2a8, and shared-client manifests remain archived. This is development context
+    only, not browser, exact-CI, or release acceptance. Root owns combined qualification and release gates.
     Provider DTOs are at `3d10`; the exact backend preparation runtime is imported under the
     explicit development releases and local manifests above. Combined end-to-end proof remains
     Root-owned and pending.
@@ -2366,129 +2376,44 @@ approved_development_dependency_imports:
   old_guards_verified: 7
   qualification: Root-released Provider backend context overlay for Strategy development only; preserves broad Provider
     runtime pin and does not qualify runtime/release.
-- source_sha: e7500fb2905ed217c96d3ac8b32a19d719ee9564
-  manifest_path: ops/workstreams/feat-strategy-lab-v2/development-dependency-imports/tc-e7500fb2-full-frontend-context-development-consumption-contract.json
-  manifest_sha256: 25c3af6616112f4f9f3fdff6de06fbd7cda7abe0adfd7a74cb8e95eb11d3af7e
+- source_sha: db4b1f55f78b1d907aab9d062da9470b5e3cc109
+  manifest_path: ops/workstreams/feat-strategy-lab-v2/development-dependency-imports/db4b1f55f78b1d907aab9d062da9470b5e3cc109-full-frontend-context.json
+  manifest_sha256: af29da7d2aef12e1778bcd14fb219dab0a009739ad41f9e376e8a4531c8a7ba6
   paths:
-  - frontend/package-lock.json
-  - frontend/package.json
-  - frontend/src/App.vue
-  - frontend/src/components/chart/ChartPanel.vue
-  - frontend/src/components/chart/HistoryAcquisitionControl.vue
   - frontend/src/components/chart/UPlotChart.vue
-  - frontend/src/components/common/CompactStatusNotice.vue
-  - frontend/src/components/common/Notification.vue
-  - frontend/src/components/common/SearchBar.vue
   - frontend/src/components/radar/RadarDetailPreviewChart.vue
-  - frontend/src/components/workstation/ChartPlotLibrary.vue
+  - frontend/src/components/workstation/CoverageSummaryTool.vue
   - frontend/src/components/workstation/EasyScanTool.vue
-  - frontend/src/components/workstation/InstrumentAlertsTool.vue
-  - frontend/src/components/workstation/InstrumentNoteTool.vue
-  - frontend/src/components/workstation/MarketGaugeTool.vue
-  - frontend/src/components/workstation/MarketMapTool.vue
   - frontend/src/components/workstation/RatioUPlot.vue
-  - frontend/src/components/workstation/RelativeRotationTool.vue
   - frontend/src/components/workstation/ToolWindow.vue
-  - frontend/src/components/workstation/VirtualWatchlistTool.vue
   - frontend/src/components/workstation/WorkspaceLayoutHost.vue
   - frontend/src/components/workstation/WorkstationToolContent.vue
   - frontend/src/lib/api.ts
-  - frontend/src/lib/authSession.ts
-  - frontend/src/lib/dataPreparation.ts
-  - frontend/src/lib/etfHoldingDrilldown.ts
-  - frontend/src/lib/instruments.ts
-  - frontend/src/lib/onDemandAcquisition.ts
-  - frontend/src/lib/workstation/benchmarkFamilySources.ts
   - frontend/src/lib/workstation/instrumentCalendar.ts
-  - frontend/src/lib/workstation/libraryQueries.ts
-  - frontend/src/lib/workstation/marketMap.ts
-  - frontend/src/lib/workstation/ohlcvRequests.ts
-  - frontend/src/lib/workstation/sourceCapability.ts
-  - frontend/src/lib/workstation/toolActivation.ts
-  - frontend/src/main.ts
-  - frontend/src/router/index.ts
-  - frontend/src/stores/alerts.ts
-  - frontend/src/stores/auth.ts
+  - frontend/src/lib/workstation/instrumentQueries.ts
   - frontend/src/stores/chart.ts
-  - frontend/src/stores/drawings.ts
-  - frontend/src/stores/favorites.ts
-  - frontend/src/stores/layout.ts
-  - frontend/src/stores/panelLinks.ts
-  - frontend/src/stores/presets.ts
-  - frontend/src/stores/radar.ts
-  - frontend/src/stores/recentInstruments.ts
-  - frontend/src/stores/screener_alerts.ts
-  - frontend/src/stores/userSettings.ts
-  - frontend/src/stores/watchlist.ts
   - frontend/src/stores/workspace.ts
-  - frontend/src/types/index.ts
-  - frontend/src/views/AlertsView.vue
-  - frontend/src/views/BasketsView.vue
-  - frontend/src/views/ChartView.vue
-  - frontend/src/views/ETFHoldingsView.vue
-  - frontend/src/views/ScreenerView.vue
-  - frontend/src/views/SettingsView.vue
   - frontend/src/views/WatchlistView.vue
   - frontend/src/views/WorkstationView.vue
-  - frontend/tests/e2e/auth_session_boundary.spec.ts
-  - frontend/tests/e2e/baskets_journey.spec.ts
-  - frontend/tests/e2e/etf_holdings_preparation.spec.ts
-  - frontend/tests/e2e/flows.spec.ts
-  - frontend/tests/e2e/helpers.ts
   - frontend/tests/e2e/on_demand_acquisition.spec.ts
+  - frontend/tests/unit/components/test_coverage_summary_tool.test.ts
+  - frontend/tests/unit/components/test_easy_scan_tool.test.ts
+  - frontend/tests/unit/components/test_linked_instrument_tool_races.test.ts
+  - frontend/tests/unit/components/test_ratio_uplot.test.ts
+  - frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts
+  - frontend/tests/unit/lib/test_api_client.test.ts
+  - frontend/tests/unit/lib/test_instrument_calendar.test.ts
+  - frontend/tests/unit/lib/test_instrument_queries.test.ts
+  - frontend/tests/unit/stores/test_stores.test.ts
+  - frontend/tests/unit/stores/test_workspace_store.test.ts
+  - frontend/tests/unit/views/test_watchlist_view_bootstrap.test.ts
+  - frontend/tests/unit/views/test_workstation_popout_bindings.test.ts
+  - frontend/src/components/workstation/InstrumentNoteTool.vue
+  - frontend/src/views/ETFHoldingsView.vue
   - frontend/tests/e2e/sp500_analysis_journey.spec.ts
   - frontend/tests/e2e/supporting_features_journey.spec.ts
-  - frontend/tests/e2e/tc2000_visual.spec.ts
-  - frontend/tests/e2e/tc_secondary_routes_journey.spec.ts
-  - frontend/tests/unit/components/test_chart_panel_lifecycle.test.ts
-  - frontend/tests/unit/components/test_chart_plot_library.test.ts
-  - frontend/tests/unit/components/test_compact_status_notice.test.ts
-  - frontend/tests/unit/components/test_easy_scan_tool.test.ts
-  - frontend/tests/unit/components/test_etf_holding_resolution_action.test.ts
-  - frontend/tests/unit/components/test_history_acquisition_control.test.ts
   - frontend/tests/unit/components/test_instrument_note_tool.test.ts
-  - frontend/tests/unit/components/test_linked_instrument_tool_races.test.ts
-  - frontend/tests/unit/components/test_market_gauge_tool.test.ts
-  - frontend/tests/unit/components/test_market_map_tool.test.ts
-  - frontend/tests/unit/components/test_radar_detail_preview_chart.test.ts
-  - frontend/tests/unit/components/test_ratio_uplot.test.ts
-  - frontend/tests/unit/components/test_relative_rotation_tool.test.ts
-  - frontend/tests/unit/components/test_search_bar.test.ts
-  - frontend/tests/unit/components/test_tool_window.test.ts
-  - frontend/tests/unit/components/test_uplot_chart_context.test.ts
-  - frontend/tests/unit/components/test_virtual_watchlist_tool.test.ts
-  - frontend/tests/unit/components/test_workspace_layout_host.test.ts
-  - frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts
-  - frontend/tests/unit/components/test_workstation_tool_content_tag_columns_runtime.test.ts
-  - frontend/tests/unit/e2e/test_browser_diagnostics.test.ts
-  - frontend/tests/unit/lib/test_api_client.test.ts
-  - frontend/tests/unit/lib/test_auth_session.test.ts
-  - frontend/tests/unit/lib/test_benchmark_family_sources.test.ts
-  - frontend/tests/unit/lib/test_data_preparation.test.ts
-  - frontend/tests/unit/lib/test_instrument_calendar.test.ts
-  - frontend/tests/unit/lib/test_instruments.test.ts
-  - frontend/tests/unit/lib/test_market_map.test.ts
-  - frontend/tests/unit/lib/test_on_demand_acquisition.test.ts
-  - frontend/tests/unit/lib/test_tool_activation.test.ts
-  - frontend/tests/unit/lib/workstation_ohlcv_requests.test.ts
-  - frontend/tests/unit/lib/workstation_source_capability.test.ts
-  - frontend/tests/unit/router/test_app_shell.test.ts
-  - frontend/tests/unit/router/test_application_routes.test.ts
-  - frontend/tests/unit/setup.ts
-  - frontend/tests/unit/stores/test_drawings_store.test.ts
-  - frontend/tests/unit/stores/test_favorites_store.test.ts
-  - frontend/tests/unit/stores/test_stores.test.ts
-  - frontend/tests/unit/stores/test_user_settings.test.ts
-  - frontend/tests/unit/stores/test_watchlist_store.test.ts
-  - frontend/tests/unit/stores/test_workspace_store.test.ts
-  - frontend/tests/unit/views/test_alerts_view_creation_path.test.ts
-  - frontend/tests/unit/views/test_baskets_view.test.ts
-  - frontend/tests/unit/views/test_chart_view_radar_handoff.test.ts
   - frontend/tests/unit/views/test_etf_holdings_view.test.ts
-  - frontend/tests/unit/views/test_screener_view_accessibility.test.ts
-  - frontend/tests/unit/views/test_settings_view.test.ts
-  - frontend/tests/unit/views/test_workstation_capabilities.test.ts
-  - frontend/tests/unit/views/test_workstation_popout_bindings.test.ts
 - source_sha: aed0d62c7e93ee6bd320c6b7a22791bb8d3d8b87
   manifest_path: ops/workstreams/feat-strategy-lab-v2/development-dependency-imports/provider-aed0d62c-operator-test-context-development-consumption-contract.json
   manifest_sha256: f90d3067d20e0d7a09d907ef947add918d70c1a758b8097056a4c1bf2f916e7c
@@ -2496,3 +2421,10 @@ approved_development_dependency_imports:
   - scripts/run-live-provider-probes.py
   - backend/tests/live/test_market_data_providers_live.py
   - backend/tests/unit/test_live_provider_runner.py
+
+- source_sha: fc220242ff9ff8be603c632dc80350a90708bec7
+  manifest_path: ops/workstreams/feat-strategy-lab-v2/development-dependency-imports/providerfc220242-runtime-scope-compatible-development-consumption-contract.json
+  manifest_sha256: b8412e6902c6a1bc343885c4d9200a75a8ea748049b6a61e9fc25688087d59b1
+  paths:
+  - backend/app/services/etf_holdings.py
+  - backend/tests/unit/services/test_etf_holdings_catalogue.py

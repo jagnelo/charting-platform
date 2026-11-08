@@ -44,10 +44,14 @@ function usesNonInteractiveCapacity(queued: Pick<QueuedApiFetch, 'input' | 'init
 
   // Preserve the caller's high scheduling priority, but keep expensive
   // analysis, universe and candle reads from occupying the interactive slot
-  // alongside the five ordinary same-origin requests. Instrument lookups and
-  // small local quote batches plus interactive Notes/Results reads stay
-  // eligible for that reserved slot.
+  // alongside the five ordinary same-origin requests. Non-canonical chart
+  // metadata and saved-indicator hydration also use this bounded lane: both
+  // can arrive in bursts during workspace startup, while local bars and the
+  // user's next visible pane remain independently usable. Canonical identity
+  // lookup and search stay eligible for the interactive slot.
   if (method !== 'GET') return false
+  if (/^\/api\/v1\/instruments\/[^/]+$/.test(pathname) && !url.searchParams.has('canonical_only')) return true
+  if (/^\/api\/v1\/instrument-indicators\/[^/]+$/.test(pathname)) return true
   if (pathname.startsWith(`${BASE}/ohlcv/local/`)) {
     // Watchlist quote refreshes request a short 31-bar window; keep those
     // visible cached-row reads interactive while bounding full chart history.

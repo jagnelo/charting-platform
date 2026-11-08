@@ -55,16 +55,29 @@ test('supporting notes — save, edit, reload, and return without leaking betwee
   const reloadedNote = page.getByRole('region', { name: 'SPY notes' })
   await expect(reloadedNote.getByRole('textbox', { name: 'Instrument note' })).toHaveValue(editedDraft, { timeout: 15_000 })
 
-  const qqqInstrumentResponse = page.waitForResponse(response => {
+  const qqqIdentityResponse = page.waitForResponse(response => {
     const url = new URL(response.url())
     return response.request().method() === 'GET'
       && url.pathname === '/api/v1/instruments/QQQ'
-      && response.ok()
+      && url.searchParams.get('canonical_only') === 'true'
+  })
+  const qqqNoteRead = page.waitForResponse(response => {
+    const url = new URL(response.url())
+    return response.request().method() === 'GET'
+      && /^\/api\/v1\/notes\/instruments\/\d+$/.test(url.pathname)
+      && Number(url.pathname.split('/').at(-1)) !== instrumentId
   })
   await page.goto('/chart/QQQ')
-  const qqqInstrument = await qqqInstrumentResponse.then(response => response.json() as Promise<{ id: number; symbol: string }>)
+  const qqqIdentity = await qqqIdentityResponse
+  expect(qqqIdentity.status()).toBe(200)
+  const qqqInstrument = await qqqIdentity.json() as { id: number; symbol: string }
   expect(qqqInstrument.symbol).toBe('QQQ')
-  expect(qqqInstrument.id).toBeGreaterThan(0)
+  expect(Number.isInteger(qqqInstrument.id) && qqqInstrument.id > 0).toBe(true)
+  expect(qqqInstrument.id).not.toBe(instrumentId)
+  const qqqReadResponse = await qqqNoteRead
+  expect(qqqReadResponse.status()).toBe(200)
+  expect(new URL(qqqReadResponse.url()).pathname).toBe(`/api/v1/notes/instruments/${qqqInstrument.id}`)
+  expect(await qqqReadResponse.json()).toBeNull()
   const qqqNote = page.getByRole('region', { name: 'QQQ notes' })
   await expect(qqqNote.getByRole('textbox', { name: 'Instrument note' })).toHaveValue('', { timeout: 15_000 })
   await expect(qqqNote.locator('.note-tool__status')).toHaveText('QQQ · No note', { timeout: 15_000 })

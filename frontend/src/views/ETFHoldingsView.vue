@@ -884,6 +884,7 @@ const pageEnd = computed(() => {
 })
 
 let profileLoadSeq = 0
+let profileLoadController: AbortController | null = null
 let snapshotOptionsLoadSeq = 0
 let holdingsLoadSeq = 0
 let diffLoadSeq = 0
@@ -906,6 +907,9 @@ const canCompareOverlapFamily = computed(() =>
 )
 
 async function loadProfiles(search = profileSearch.value.trim(), autoSelectFirst = !selectedProfile.value) {
+  profileLoadController?.abort()
+  const controller = new AbortController()
+  profileLoadController = controller
   const seq = ++profileLoadSeq
   const selectionGeneration = fundSelectionGeneration
   loadingProfiles.value = true
@@ -913,6 +917,11 @@ async function loadProfiles(search = profileSearch.value.trim(), autoSelectFirst
   try {
     const loaded = await api.get<ETFProfile[]>('/etf-holdings', {
       q: search || undefined,
+    }, {
+      // This visible catalogue gates the ETF page itself. Keep it in the
+      // interactive lane while background chart preparation fills the rest.
+      priority: 'high',
+      signal: controller.signal,
     })
     const normalized = Array.isArray(loaded) ? loaded : []
     if (seq !== profileLoadSeq) return
@@ -922,12 +931,22 @@ async function loadProfiles(search = profileSearch.value.trim(), autoSelectFirst
       && !normalized.some(profile => profile.id === currentSelection.id)
       ? [...normalized, currentSelection]
       : normalized
+    // Catalogue readiness is independent from the default profile's snapshot
+    // and holdings requests. Keep the list usable while that selection settles.
+    if (seq === profileLoadSeq) loadingProfiles.value = false
     if (autoSelectFirst
       && selectionGeneration === fundSelectionGeneration
       && !selectedProfile.value
       && !pendingFund.value
       && normalized.length) {
-      await selectProfile(normalized[0])
+      const defaultProfile = normalized[0]
+      void selectProfile(defaultProfile).catch(error => {
+        if (selectedProfile.value?.id !== defaultProfile.id
+          || pendingFund.value?.symbol !== defaultProfile.symbol) return
+        loadError.value = error instanceof Error
+          ? error.message
+          : `Could not load saved details for ${defaultProfile.symbol}.`
+      })
     }
     return normalized
   } catch (error) {
@@ -936,6 +955,7 @@ async function loadProfiles(search = profileSearch.value.trim(), autoSelectFirst
     profiles.value = []
     return []
   } finally {
+    if (profileLoadController === controller) profileLoadController = null
     if (seq === profileLoadSeq) loadingProfiles.value = false
   }
 }
@@ -1698,6 +1718,9 @@ function openHoldingChart(
 
 onMounted(loadProfiles)
 onBeforeUnmount(() => {
+  profileLoadSeq += 1
+  profileLoadController?.abort()
+  profileLoadController = null
   // Detach this view from any in-flight shared preparation and invalidate all
   // of its pending consumer callbacks. The durable server-side job continues.
   fundSelectionGeneration += 1

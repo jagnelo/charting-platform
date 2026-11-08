@@ -4,12 +4,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { defineComponent, h } from 'vue'
 
-const { apiGet, apiPost, apiPatch, apiDelete, apiPut } = vi.hoisted(() => ({
+const { apiGet, apiPost, apiPatch, apiDelete, apiPut, promoteQueued } = vi.hoisted(() => ({
   apiGet: vi.fn(),
   apiPost: vi.fn(),
   apiPatch: vi.fn(),
   apiDelete: vi.fn(),
   apiPut: vi.fn(),
+  promoteQueued: vi.fn(),
 }))
 
 vi.mock('@/lib/api', () => ({
@@ -20,6 +21,7 @@ vi.mock('@/lib/api', () => ({
     delete: apiDelete,
     put: apiPut,
   },
+  setQueuedApiRequestPriority: promoteQueued,
 }))
 
 import WorkstationToolContent from '@/components/workstation/WorkstationToolContent.vue'
@@ -175,6 +177,64 @@ describe('WorkstationToolContent missing chart history entrypoint', () => {
     await flushPromises()
     expect(apiGet.mock.calls.filter(([path]) => path === '/analysis/benchmark-families/readiness')).toHaveLength(1)
     remounted.unmount()
+    queryClient.clear()
+  })
+
+  it('promotes a queued benchmark universe read when its semantic list becomes visible', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const workspaceStore = useWorkspaceStore(pinia)
+    const rootGroup = deferred<any>()
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/market-groups/us-benchmarks') return rootGroup.promise
+      if (path === '/market-groups/sp500') return Promise.resolve({ members: [], provenance: {} })
+      if (path === '/analysis/benchmark-families/sp500/overview') return Promise.resolve({ mappings: [] })
+      if (path === '/analysis/benchmark-families/readiness') return Promise.resolve({ status: 'ready', families: [], provider_probe_evidence: [] })
+      return Promise.resolve([])
+    })
+    const shellRead = workspaceStore.loadMarketGroup('us-benchmarks', { priority: 'auto' })
+    const tool: WorkspaceWindowState = {
+      id: -33,
+      instance_key: 'benchmark-list-visible-clone',
+      tool_type: 'watchlist',
+      title: 'Benchmarks',
+      link_group: 'blue',
+      configuration: { workspace_role: 'benchmark-universe' },
+      style: {},
+      state_schema_version: 1,
+      position: 0,
+    }
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const rectSpy = vi.spyOn(HTMLElement.prototype, 'getClientRects').mockImplementation(function () {
+      return this.classList.contains('tool-window-shell') ? [{} as DOMRect] as DOMRectList : [] as unknown as DOMRectList
+    })
+    const wrapper = mount(WorkstationToolContent, {
+      props: { tool, activeWindowKey: tool.instance_key },
+      attachTo: document.body,
+      global: {
+        plugins: [pinia, [VueQueryPlugin, { queryClient }]],
+        stubs: {
+          VirtualWatchlistTool: true,
+          ToolWindow: ToolWindowShell,
+          UPlotChart: EmptyChartStub,
+          ChartPlotLibrary: true,
+          ChartTemplateControl: true,
+          DrawingToolbar: true,
+        },
+      },
+    })
+
+    await flushPromises()
+
+    expect(apiGet.mock.calls.filter(([path]) => path === '/market-groups/us-benchmarks')).toHaveLength(1)
+    expect(promoteQueued).toHaveBeenCalledWith('top-down:market-group:us-benchmarks', 'high')
+    rootGroup.resolve({ members: [], provenance: { benchmark_families: [] } })
+    await shellRead
+    await flushPromises()
+    expect(workspaceStore.marketGroups['us-benchmarks']).toBeDefined()
+
+    wrapper.unmount()
+    rectSpy.mockRestore()
     queryClient.clear()
   })
 
@@ -502,6 +562,7 @@ describe('WorkstationToolContent missing chart history entrypoint', () => {
     workspaceStore.linkedSymbol = 'SPY'
     workspaceStore.linkedTimeframe = 'D1'
     const tool = mountedChartTool('workstation-explicit-weekly-history')
+    tool.configuration = { timeframe_link_group: 'red' }
     workspaceStore.workspace = {
       id: 1, user_id: 1, name: 'Test', is_default: true, position: 0, revision: 1, schema_version: 1, settings: { linked_timeframe: 'D1' },
       tabs: [{ id: 1, stable_key: 'main', name: 'Main', position: 0, layout_config: {}, active_window_key: tool.instance_key, windows: [tool] }],

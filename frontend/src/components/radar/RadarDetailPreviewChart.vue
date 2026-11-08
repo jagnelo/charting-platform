@@ -5,17 +5,18 @@
       <p v-if="preparationMessage" class="radar-preview__preparation" role="status" aria-live="polite">{{ preparationMessage }}</p>
       <div v-if="store.isLoading" class="radar-preview-state">Loading {{ detection.instrument_symbol }}…</div>
       <div v-else-if="store.error" class="radar-preview-state radar-preview-state--error">{{ store.error }}</div>
-      <UPlotChart
-        v-else-if="store.symbol"
-        :chart-type="'candles'"
-        :show-indicators="false"
-        :show-overlays="true"
-        :enable-overlay-interactions="false"
-        :enable-keyboard="false"
-        :show-controls="false"
-        :overlay-indicators="previewIndicators"
-        :overlay-drawings="previewDrawings"
-      />
+      <div v-else-if="store.symbol" class="radar-preview__chart">
+        <UPlotChart
+          :chart-type="'candles'"
+          :show-indicators="false"
+          :show-overlays="true"
+          :enable-overlay-interactions="false"
+          :enable-keyboard="false"
+          :show-controls="false"
+          :overlay-indicators="previewIndicators"
+          :overlay-drawings="previewDrawings"
+        />
+      </div>
     </template>
   </div>
 </template>
@@ -159,6 +160,8 @@ onBeforeUnmount(() => {
 <style scoped>
 .radar-preview {
   position: relative;
+  display: flex;
+  flex-direction: column;
   height: 280px;
   min-height: 280px;
   border: 1px solid #1a1a1a;
@@ -167,7 +170,13 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
-.radar-preview :deep(.chart-root) {
+.radar-preview__chart {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.radar-preview__chart :deep(.chart-root) {
   height: 100%;
 }
 
@@ -178,7 +187,8 @@ onBeforeUnmount(() => {
 }
 
 .radar-preview-state {
-  height: 100%;
+  flex: 1 1 0;
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -193,16 +203,14 @@ onBeforeUnmount(() => {
 }
 
 .radar-preview__preparation {
-  position: absolute;
-  z-index: 2;
-  max-width: calc(100% - 12px);
-  margin: 4px 6px;
+  flex: 0 0 auto;
+  max-width: 100%;
+  margin: 0;
   padding: 3px 5px;
   border: 1px solid var(--tc-border);
   border-radius: var(--tc-radius);
   background: color-mix(in srgb, var(--tc-panel-bg) 92%, transparent);
   color: var(--tc-text-muted);
   font: 10px/1.25 var(--tc-font-family);
-  pointer-events: none;
 }
 </style>

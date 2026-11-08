@@ -50,42 +50,19 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "current_blocker": "The exact e750 full66 profile is terminal red at 57/66 with nine failures. Strategy Results cancel/rerun list visibility and the Python Library filter role are corrected; the remaining Strategy factory SPY restore exposes a shared Workstation search/selection race owned by TC. Root owns the next combined rerun and all final acceptance.",
+  "current_blocker": "Root owns combined qualification on the DB4/FC220 runtime. The Results admission delay found in 52de is shared TC lifecycle and has no private patch; await new exact Strategy-owned findings or compatible shared evidence.",
   "current_execution_checkpoint": {
     "authority": "Human-activated platform-usability plan; existing session-local goal aligned in place by Root, no objective/accounting reset.",
     "full_roadmap_preserved": true,
-    "heavy_profile": "No Strategy browser/full-profile run occurred during this context import. Root owns affected journeys, full65, exact CI and release acceptance; pending.",
+    "heavy_profile": "Root owns combined qualification on the imported DB4/FC220 context; Strategy did not run a browser/full profile for this context import. Exact-source and release acceptance remain pending.",
     "id": "strategy-study-usability-2026-11-06",
-    "next_action": "Commit the bounded exact 9ec4 shared-context import after cheap scope/workstream/hash/diff checks; resume Strategy-owned repairs only from new Root evidence.",
+    "next_action": "Wait for Root-owned combined qualification results; repair only new Strategy-owned Study/Results/Library failures, without duplicating shared TC work or launching a second profile.",
     "status": "in_progress"
   },
-  "dirty_paths": [
-    "frontend/src/components/workstation/ResearchResultsTool.vue",
-    "frontend/tests/unit/components/test_research_results_tool.test.ts",
-    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
-    "ops/workstreams/feat-strategy-lab-v2/session.json",
-    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
-  ],
+  "dirty_paths": [],
   "docker": {
-    "accounting_complete": true,
-    "available": true,
-    "build_cache_bytes": null,
-    "container_count": 0,
-    "containers": [],
-    "known_bytes": 0,
-    "over_budget": false,
-    "projects": [
-      "charting-dev-feat-strategy-lab-v2-7794d9e5",
-      "charting-stack-feat-strategy-lab-v2-7794d9e5"
-    ],
-    "testcontainer_sessions": [],
-    "threshold_bytes": 5000000000,
-    "unattributed_shared_layers_excluded": true,
-    "unique_image_bytes": 0,
-    "unknown_components": [],
-    "volume_bytes": 0,
-    "volume_count": 0,
-    "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
   },
   "docker_ready": {
     "ready": false,
@@ -116,14 +93,14 @@
     }
   ],
   "goal_unavailable_reason": null,
-  "head": "f1c4c0aa6dae80e4415880d45b633ba3b9ccef98",
+  "head": "6595b47a3d56220deda0e925901e4351df06cb1c",
   "implementation_sha": "55851d2b953ce38de5afe59ba90b613ffde08f87",
-  "last_checkpoint": "Prepared e750 full-frontend context import and focused Strategy Results/Library correction; full66 terminal remains red and shared SPY navigation is handed to TC.",
+  "last_checkpoint": "Imported the Root-authorized DB4 full frontend context plus the exact FC220 two-path ETF catalogue alias; all scope/hash checks pass; Root combined qualification remains pending.",
   "last_human_progress_update": "2026-11-08T06:57:41.615941+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Freeze one coherent Strategy private Results/Library repair plus e750 context checkpoint for Root review; retain the exact-SPY assertion and await TC’s shared search fix before Root’s next full profile.",
+  "next_action": "Wait for Root-owned combined qualification results; repair only new Strategy-owned Study/Results/Library failures, without duplicating shared TC work or launching a second profile.",
   "parent_branch": "staging",
-  "plan_hash": "93d561578b91ab77a7e4ef757952ab6ac53240d9e54ca7392d5d14b4a847aa40",
+  "plan_hash": "715718f951a514d94b54df691b6d7d770fb7d07c788146d5ebb05f136c16869d",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -263,7 +240,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for Strategy Lab v2 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-11-08T09:20:00Z",
+  "updated_at": "2026-11-08T14:57:28Z",
   "validation_tier": "full_integration",
   "workstream": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2",
   "workstream_files": [
