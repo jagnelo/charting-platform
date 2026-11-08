@@ -1092,7 +1092,9 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
     if (matchesCoveredBar) acquiredLocalRows = rows
     return matchesCoveredBar
   }, { timeout: 15_000 })
-  await page.getByRole('button', { name: /Use TCNEW · TEST/ }).click()
+  const tcnewCandidate = page.getByRole('option', { name: /^Use TCNEW · TEST\b/ })
+  await expect(tcnewCandidate).toBeVisible()
+  await tcnewCandidate.click()
   const candidateResolve = await candidateResolveReady
   expect(candidateResolve.status()).toBe(200)
   await expect(search).toHaveValue('TCNEW')
@@ -1787,7 +1789,7 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
     } satisfies ETFHoldingsCapability })
   })
   await page.route('**/api/v1/ohlcv/local/AMD/M1*', async route => {
-    if (!successfulHistoryResponseReceived) return route.continue()
+    if (!successfulM1HistoryResponseReceived) return route.continue()
     localReadbackCount += 1
     await route.fulfill({ status: 200, json: acquiredFixtureBar ? [acquiredFixtureBar] : [] })
   })

@@ -835,16 +835,16 @@ async function installRotationCanvasAudit(page: Page): Promise<void> {
       let sampleBounds: { left: number; top: number; width: number; height: number } | undefined
       let beforePixels: Uint8ClampedArray | undefined
       if (isTailStroke) {
-        const rect = this.canvas.getBoundingClientRect()
-        const ratioX = rect.width > 0 ? this.canvas.width / rect.width : 1
-        const ratioY = rect.height > 0 ? this.canvas.height / rect.height : 1
         const sampleFractions = [0.15, 0.325, 0.5, 0.675, 0.85]
         const centers = points.slice(1).flatMap((point, index) => sampleFractions.map((fraction, sampleIndex) => ({
           segmentIndex: index,
           sampleIndex,
           fraction,
-          x: Math.round((points[index].x + (point.x - points[index].x) * fraction) * ratioX),
-          y: Math.round((points[index].y + (point.y - points[index].y) * fraction) * ratioY),
+          // RelativeRotationTool records valToPos(..., true) directly from
+          // uPlot's identity-transform canvas context. These coordinates
+          // already address backing pixels, including at DPR > 1.
+          x: Math.round(points[index].x + (point.x - points[index].x) * fraction),
+          y: Math.round(points[index].y + (point.y - points[index].y) * fraction),
         })))
         const left = Math.max(0, Math.min(...centers.map(center => center.x - 1)))
         const top = Math.max(0, Math.min(...centers.map(center => center.y - 1)))

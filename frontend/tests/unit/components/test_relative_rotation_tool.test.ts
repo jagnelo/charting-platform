@@ -128,15 +128,15 @@ describe('RelativeRotationTool', () => {
 
     const [options] = vi.mocked(uPlot).mock.calls.at(-1)!
     expect(options.legend).toEqual({ show: false })
-    expect(options.padding).toEqual([4, 8, 4, 8])
-    expect(options.axes?.[0]).toMatchObject({ label: 'Relative trend', size: 18, labelSize: 16, labelGap: 2 })
-    expect(options.axes?.[1]).toMatchObject({ label: 'Relative momentum', labelSize: 16, labelGap: 2 })
+    expect(options.padding).toEqual([2, 4, 2, 4])
+    expect(options.axes?.[0]).toMatchObject({ label: 'Relative trend', size: 14, gap: 1, labelSize: 10, labelGap: 1 })
+    expect(options.axes?.[1]).toMatchObject({ label: 'Relative momentum', labelSize: 10, labelGap: 1 })
     const formatPercent = options.axes?.[0].values as (chart: any, values: number[]) => string[]
     expect(formatPercent({}, [-0.1, 0.1])).toEqual(['-10.0%', '10.0%'])
     const measuredWidth = options.axes?.[1].size as (chart: any, values: string[] | null, axisIndex: number, cycle: number) => number
     const measureText = vi.fn((value: string) => ({ width: value.length * 6 }))
-    expect(measuredWidth({ ctx: { measureText } }, null, 1, 0)).toBe(8)
-    expect(measuredWidth({ ctx: { measureText } }, ['0.0%', '-120.0%'], 1, 0)).toBe(50)
+    expect(measuredWidth({ ctx: { measureText } }, null, 1, 0)).toBe(6)
+    expect(measuredWidth({ ctx: { measureText } }, ['0.0%', '-120.0%'], 1, 0)).toBe(48)
     expect(measureText).toHaveBeenCalledWith('-120.0%')
     expect(wrapper.get('.rotation-tool__plot').attributes('aria-label')).toBe('Relative rotation trend and momentum plane')
     wrapper.unmount()
@@ -178,6 +178,10 @@ describe('RelativeRotationTool', () => {
 
     expect(chart.ctx.fillRect).toHaveBeenCalledTimes(2)
     expect(chart.ctx.fillText.mock.calls.slice(-2).map(([label]) => label)).toEqual(['XLK', 'XLY'])
+    const [firstLabel, secondLabel] = chart.ctx.fillRect.mock.calls
+    const overlapWidth = Math.max(0, Math.min(firstLabel[0] + firstLabel[2], secondLabel[0] + secondLabel[2]) - Math.max(firstLabel[0], secondLabel[0]))
+    const overlapHeight = Math.max(0, Math.min(firstLabel[1] + firstLabel[3], secondLabel[1] + secondLabel[3]) - Math.max(firstLabel[1], secondLabel[1]))
+    expect(overlapWidth * overlapHeight, 'crowded labels occupy separate visible space').toBe(0)
     expect(Math.min(...chart.ctx.arc.mock.invocationCallOrder)).toBeGreaterThan(Math.max(...chart.ctx.fillRect.mock.invocationCallOrder))
     expect(chart.ctx.arc).toHaveBeenCalledTimes(2)
     wrapper.unmount()

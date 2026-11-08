@@ -207,7 +207,13 @@ test('J12 session boundary isolates test-owned same-origin accounts, expired ref
   await activateDockToolTab(page, 'Notes')
   await expect(page.getByRole('region', { name: /notes$/i }).getByRole('textbox', { name: 'Instrument note' }))
     .toHaveValue('private-note-A')
+  const persistedResultsReactivation = page.waitForResponse(response => response.request().method() === 'PUT'
+    && new URL(response.url()).pathname === `/api/v1/workspaces/${workspaceId}/snapshot`
+    && activeWorkspaceSnapshotContainsTools(response.request().postDataJSON(), ['notes', 'research_results'], 'research_results'))
   await activateDockToolTab(page, 'Study Results')
+  const resultsReactivationSnapshot = await persistedResultsReactivation
+  expect(resultsReactivationSnapshot.ok()).toBe(true)
+  expect(activeWorkspaceSnapshotContainsTools(await resultsReactivationSnapshot.json(), ['notes', 'research_results'], 'research_results')).toBe(true)
   await expect(restoredResultsA).toContainText('Run #91501')
 
   // A second same-origin window holds its own A session cache. Cross-window

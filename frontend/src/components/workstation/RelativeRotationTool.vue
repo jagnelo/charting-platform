@@ -254,6 +254,7 @@ function drawPlot() {
   }).filter(point => Number.isFinite(point.trend) && Number.isFinite(point.momentum))
   hovered.value = null
   const width = Math.max(160, plotHost.value.clientWidth), height = Math.max(64, plotHost.value.clientHeight)
+  const compactPlot = height < 160
   // uPlot's aligned-data x array must be ascending even though this tool draws
   // the ratio points itself as an XY scatter plot. Keep the hidden y-series
   // paired with its x value, and use the same full finite domain for the
@@ -279,16 +280,17 @@ function drawPlot() {
     const pixelRatio = chart.ctx.canvas.width / chart.width || 1
     const zeroX = chart.valToPos(0, 'x', true)
     const zeroY = chart.valToPos(0, 'y', true)
+    const compactDataPlane = plotHeight / pixelRatio < 72
     ctx.save()
     ctx.strokeStyle = '#53636e'
     ctx.lineWidth = pixelRatio
     ctx.setLineDash([3 * pixelRatio, 3 * pixelRatio])
     if (Number.isFinite(zeroX)) { ctx.beginPath(); ctx.moveTo(zeroX, top); ctx.lineTo(zeroX, top + plotHeight); ctx.stroke() }
     if (Number.isFinite(zeroY)) { ctx.beginPath(); ctx.moveTo(left, zeroY); ctx.lineTo(left + plotWidth, zeroY); ctx.stroke() }
-    ctx.font = `${10 * pixelRatio}px Segoe UI`
+    ctx.font = `${(compactDataPlane ? 8 : 10) * pixelRatio}px Segoe UI`
     ctx.fillStyle = '#7fca9e'
     if (Number.isFinite(zeroX) && Number.isFinite(zeroY)) {
-      ctx.fillText('Leading', Math.min(left + plotWidth - 54 * pixelRatio, zeroX + 6 * pixelRatio), Math.max(top + 12 * pixelRatio, zeroY - 8 * pixelRatio))
+      ctx.fillText('Leading', Math.min(left + plotWidth - 54 * pixelRatio, zeroX + 6 * pixelRatio), Math.max(top + 10 * pixelRatio, zeroY - 8 * pixelRatio))
       ctx.fillStyle = '#d2b675'
       ctx.fillText('Weakening', Math.min(left + plotWidth - 66 * pixelRatio, zeroX + 6 * pixelRatio), Math.min(top + plotHeight - 6 * pixelRatio, zeroY + 18 * pixelRatio))
       ctx.fillStyle = '#83bce0'
@@ -319,17 +321,59 @@ function drawPlot() {
       .map(point => ({ point, x: chart.valToPos(point.trend, 'x', true), y: chart.valToPos(point.momentum, 'y', true) }))
       .filter(entry => Number.isFinite(entry.x) && Number.isFinite(entry.y))
       .sort((left, right) => left.y - right.y)
-    const labelRows: number[] = []
-    ctx.font = `${9 * pixelRatio}px Segoe UI`
+    const labelRects: Array<{ left: number; top: number; right: number; bottom: number }> = []
+    const labelFontSize = (compactDataPlane ? 8 : 9) * pixelRatio
+    const labelPadding = 2 * pixelRatio
+    const labelGap = 4 * pixelRatio
+    ctx.font = `${labelFontSize}px Segoe UI`
     for (const { point, x, y } of latestLabels) {
-      let labelY = y
-      while (labelRows.some(previous => Math.abs(previous - labelY) < 12 * pixelRatio)) labelY += 12 * pixelRatio
-      labelRows.push(labelY)
-      const labelWidth = Math.max(24, point.symbol.length * 6) * pixelRatio
-      const labelX = Math.min(left + plotWidth - labelWidth, x + 6 * pixelRatio)
-      labelY = Math.min(top + plotHeight - 3 * pixelRatio, Math.max(top + 10 * pixelRatio, labelY))
+      const labelWidth = Math.max(24 * pixelRatio, ctx.measureText?.(point.symbol).width ?? point.symbol.length * labelFontSize * 0.66)
+      const minLabelLeft = left + labelPadding
+      const maxLabelLeft = Math.max(minLabelLeft, left + plotWidth - labelWidth - labelPadding)
+      const minBaseline = top + labelFontSize + labelPadding
+      const maxBaseline = Math.max(minBaseline, top + plotHeight - labelPadding)
+      const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
+      const candidates = [
+        { left: x + labelGap, baseline: y - labelGap },
+        { left: x + labelGap, baseline: y + labelFontSize + labelGap },
+        { left: x - labelWidth - labelGap, baseline: y - labelGap },
+        { left: x - labelWidth - labelGap, baseline: y + labelFontSize + labelGap },
+        { left: x - labelWidth / 2, baseline: y - labelFontSize - labelGap },
+        { left: x - labelWidth / 2, baseline: y + labelFontSize + labelGap },
+      ].map(candidate => {
+        const labelLeft = clamp(candidate.left, minLabelLeft, maxLabelLeft)
+        const labelBaseline = clamp(candidate.baseline, minBaseline, maxBaseline)
+        return {
+          left: labelLeft,
+          baseline: labelBaseline,
+          rect: {
+            left: labelLeft - labelPadding,
+            top: labelBaseline - labelFontSize - labelPadding,
+            right: labelLeft + labelWidth + labelPadding,
+            bottom: labelBaseline + labelPadding,
+          },
+        }
+      })
+      const markerRadius = 4.5 * pixelRatio
+      const placed = candidates.map(candidate => {
+        const overlapArea = labelRects.reduce((area, previous) => {
+          const overlapWidth = Math.max(0, Math.min(candidate.rect.right, previous.right) - Math.max(candidate.rect.left, previous.left))
+          const overlapHeight = Math.max(0, Math.min(candidate.rect.bottom, previous.bottom) - Math.max(candidate.rect.top, previous.top))
+          return area + overlapWidth * overlapHeight
+        }, 0)
+        const markerOverlap = latestLabels.reduce((count, marker) => {
+          if (marker.point === point) return count
+          const markerRect = { left: marker.x - markerRadius, top: marker.y - markerRadius, right: marker.x + markerRadius, bottom: marker.y + markerRadius }
+          return count + Number(candidate.rect.left < markerRect.right && candidate.rect.right > markerRect.left
+            && candidate.rect.top < markerRect.bottom && candidate.rect.bottom > markerRect.top)
+        }, 0)
+        const distance = Math.hypot(candidate.left - x, candidate.baseline - y)
+        return { ...candidate, cost: overlapArea * 100 + markerOverlap * 200 + distance * 0.01 }
+      }).sort((first, second) => first.cost - second.cost)[0]
+      const { left: labelX, baseline: labelY, rect: labelRect } = placed
+      labelRects.push(labelRect)
       ctx.fillStyle = '#0d1318'
-      ctx.fillRect(labelX - 2 * pixelRatio, labelY - 9 * pixelRatio, labelWidth + 4 * pixelRatio, 12 * pixelRatio)
+      ctx.fillRect(labelRect.left, labelRect.top, labelRect.right - labelRect.left, labelRect.bottom - labelRect.top)
       ctx.fillStyle = point.color
       ctx.fillText(point.symbol, labelX, labelY)
     }
@@ -353,7 +397,7 @@ function drawPlot() {
     legend: { show: false },
     // Keep the full axis labels while using measured tick-value widths and
     // compact reservations so short panes retain a useful XY data plane.
-    padding: [4, 8, 4, 8],
+    padding: compactPlot ? [2, 4, 2, 4] : [4, 8, 4, 8],
     cursor: { drag: { x: true, y: true } },
     scales: {
       x: { time: false, auto: true, range: () => numericRange(points.map(point => point.trend)) },
@@ -363,28 +407,28 @@ function drawPlot() {
       {
         label: 'Relative trend',
         stroke: '#9aabb6',
-        size: 18,
-        gap: 2,
-        labelSize: 16,
-        labelGap: 2,
+        size: compactPlot ? 14 : 18,
+        gap: compactPlot ? 1 : 2,
+        labelSize: compactPlot ? 10 : 16,
+        labelGap: compactPlot ? 1 : 2,
         grid: { stroke: '#26313a', width: 1 },
-        ticks: { stroke: '#40505a', width: 1, size: 3 },
+        ticks: { stroke: '#40505a', width: 1, size: compactPlot ? 2 : 3 },
         values: (_u, values) => values.map(value => `${(value * 100).toFixed(1)}%`),
-        font: '10px Segoe UI',
-        labelFont: '10px Segoe UI',
+        font: compactPlot ? '9px Segoe UI' : '10px Segoe UI',
+        labelFont: compactPlot ? '9px Segoe UI' : '10px Segoe UI',
       },
       {
         label: 'Relative momentum',
         stroke: '#9aabb6',
-        size: (_u, values) => Math.ceil(Math.max(0, ...(values ?? []).map(value => _u.ctx.measureText(value).width)) + 8),
+        size: (_u, values) => Math.ceil(Math.max(0, ...(values ?? []).map(value => _u.ctx.measureText(value).width)) + (compactPlot ? 6 : 8)),
         gap: 2,
-        labelSize: 16,
-        labelGap: 2,
+        labelSize: compactPlot ? 10 : 16,
+        labelGap: compactPlot ? 1 : 2,
         grid: { stroke: '#26313a', width: 1 },
-        ticks: { stroke: '#40505a', width: 1, size: 3 },
+        ticks: { stroke: '#40505a', width: 1, size: compactPlot ? 2 : 3 },
         values: (_u, values) => values.map(value => `${(value * 100).toFixed(1)}%`),
-        font: '10px Segoe UI',
-        labelFont: '10px Segoe UI',
+        font: compactPlot ? '9px Segoe UI' : '10px Segoe UI',
+        labelFont: compactPlot ? '9px Segoe UI' : '10px Segoe UI',
       },
     ],
     series: [{}, { show: false }],

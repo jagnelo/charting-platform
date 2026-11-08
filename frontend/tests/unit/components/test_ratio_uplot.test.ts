@@ -114,12 +114,12 @@ describe('RatioUPlot', () => {
     await vi.waitFor(() => expect(vi.mocked(uPlot)).toHaveBeenCalled())
     const [options] = vi.mocked(uPlot).mock.calls.at(-1)!
     expect(options.legend).toEqual({ show: false })
-    expect(options.padding).toEqual([4, 8, 4, 8])
-    expect(options.axes?.[0]).toMatchObject({ size: 18, gap: 2 })
+    expect(options.padding).toEqual([2, 4, 2, 4])
+    expect(options.axes?.[0]).toMatchObject({ size: 14, gap: 1 })
     const measuredWidth = options.axes?.[1].size as (chart: any, values: string[] | null, axisIndex: number, cycle: number) => number
     const measureText = vi.fn((value: string) => ({ width: value.length * 6 }))
-    expect(measuredWidth({ ctx: { measureText } }, null, 1, 0)).toBe(8)
-    expect(measuredWidth({ ctx: { measureText } }, ['1.00', '100.00'], 1, 0)).toBe(44)
+    expect(measuredWidth({ ctx: { measureText } }, null, 1, 0)).toBe(6)
+    expect(measuredWidth({ ctx: { measureText } }, ['1.00', '100.00'], 1, 0)).toBe(42)
     expect(measureText).toHaveBeenCalledWith('100.00')
   })
 

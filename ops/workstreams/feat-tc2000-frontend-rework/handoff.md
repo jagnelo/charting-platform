@@ -26973,3 +26973,10 @@ Root's exact c681 replay rendered the compact RRG at 1093×614 CSS px / DPR1.25 
 Focused RatioUPlot and RelativeRotationTool modules pass 44/44, including null and populated axis-size callbacks, retained percentage labels, the hidden duplicate legend, compact padding and unchanged short-host sizing behavior. Frontend type-check passes. Root owns the next rendered 100px/data-plane and Ratio/RRG screenshot review; no browser, full suite or runtime operation ran in TC. All broader route/action, journey, full-suite, exact CI, native and release criteria remain open.
 
 ---
+
+
+## 2026-11-08 — Compact RRG labels and diagnosed journey setup repairs
+
+The compact RRG now uses smaller measured axes/padding and places latest-symbol labels in available non-overlapping plot space; RatioUPlot uses compact measured axes in short panes. Root/ETF diagnoses were applied to the TC-owned tests: wait for saved Results reactivation to be acknowledged before opening the second session, click the TCNEW candidate by its actual option role, settle `/chart/SPY` before the ordinary public-navigation menu action, and gate the no-snapshot fixture's M1 bar on M1 acquisition rather than its earlier D1 response. ETF's exact bd5129 successor was consumed for the single S&P E2E path; its other nine private paths remain byte-identical.
+
+Focused RatioUPlot/RelativeRotationTool modules pass 44/44, frontend type-check passes, and reference-only preflight for the four affected E2E files reports no actionable unbound names. Root's immutable 8a full66 and rendered compact-profile qualification remain pending; TC ran no browser or runtime.

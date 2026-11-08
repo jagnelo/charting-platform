@@ -330,8 +330,8 @@ on_demand_consumer_implementation: 'Current TC-owned mocked implementation at th
   tree and passed its full required CI40656688915. This feature-branch adoption records ancestry only; its exact branch CI
   is pending Root. Controlled tests are not genuine Provider/issuer proof; target/deployment and the complete roadmap remain
   open.'
-current_blocker: "Root b011329a frontend4 run is terminal 1 passed / 3 failed. Factory recreation/useful defaults passed. The UNXQ lineage miss was caused by the fixture wildcard not matching canonical-only query strings; the TC-owned spec now handles the exact pathname/GET, retains pre-resolution 404, returns the resolved canonical ID/status afterward, and checks the canonical reload response plus full lineage. IWM/OIH journeys use the current accessible chart plot and Linked timeframe controls while preserving bar/readback, adjusted-history, held-reason, identity, and provenance assertions. The exact ETF 09938f32 backend files are not imported because the immutable producer manifest fails the existing strict scope release-state/authority contract; the source and validator are unchanged pending a compatible Root artifact. Root owns the three-case requalification, full66, and final platform gates."
-current_checkpoint_status: "Successor to frozen eb8a286f: visible benchmark-list admission, responsive Workstation/tool headers and dock tabs, Radar status flow, and preserving the loaded chart range during same-scope refresh. Focused frontend modules pass 86/86; vue-tsc, TC scope, workstream, journey matrix and diff checks pass. Root's passive diagnostic confirms the Benchmarks endpoint eventually returns 200/5 rows but starts at 15.848s at AUTO priority; a visible-role consumer now promotes the existing deduplicated request. No browser ran in TC; Root owns rendered review and full qualification."
+current_blocker: "Root's immutable 8a full66 run is still in progress. The compact RRG/Ratio allocation and label placement repair is locally focused-tested; TC also applied the four diagnosed test-contract corrections (saved Results snapshot barrier, TCNEW option click, settled public-route setup, and M1 fixture acquisition gate). Root owns rendered/full-profile requalification; no browser or runtime was run in TC."
+current_checkpoint_status: "Current candidate combines compact RRG/Ratio plot-space and non-overlapping symbol-label improvements, the four Root/ETF-diagnosed TC-owned browser-test corrections, and the exact ETF bd5129 S&P journey successor. Focused Ratio/RRG modules pass 44/44, frontend type-check passes, and reference-only preflight reports no actionable unbound names. Root's immutable 8a full66 and rendered requalification remain pending; no release or full-platform acceptance is claimed."
 
 ordinary_ticker_latest_update: 'Root accepted the exact combined served profile at backend source 6eae00eb8380438da771fed0c42d19587e9520ce
   / image sha256:6c962aad753959c2ecdd79f0a1d6057d77f2ba6b829ec85b99404b009a42e76a and frontend source 36e7ad2cb08c769a242773ab2b6be69fcc350774
@@ -5554,9 +5554,9 @@ approved_development_dependency_imports:
   - backend/tests/unit/workers/test_arq_worker.py
   - backend/app/services/etf_holdings.py
   - backend/tests/unit/services/test_etf_holdings_catalogue.py
-- source_sha: 646fe8d8e60acce32afcedf94de023c86b2d69fd
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/646fe8d8e60acce32afcedf94de023c86b2d69fd.json
-  manifest_sha256: 6278c41718149bd4360ef1e3a97a5fcb9513d452fe1e16f14426307b7b407d6a
+- source_sha: bd5129cea81774a5799768e4027e3118a9255d45
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/bd5129cea81774a5799768e4027e3118a9255d45.json
+  manifest_sha256: 3d78aaeca91920f077e0ae280d7cd74adde4d67764c4cab84e851118fa1ae3c1
   paths:
   - frontend/src/components/workstation/InstrumentNoteTool.vue
   - frontend/src/views/BasketsView.vue
