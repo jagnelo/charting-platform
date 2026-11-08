@@ -1,5 +1,28 @@
 # feat/market-data-provider-platform
 
+## 2026-11-08 — refresh current derived defaults after an older D1 chunk
+
+Root's review of `bd6de08da` found that its worker refresh guard compared the
+latest selected D1 timestamp with the current job end. That incorrectly skipped
+W1/MN repair for older chunks when the selected daily series already extended
+through 2026. The retained IHI jobs were queued older chunks, and the D1 cache
+already had current rows; no new latest bar or coarse-timeframe request is
+required to reconcile its derived defaults.
+
+The D1 worker now checks the full selected D1 signature after any nonempty D1
+job and refreshes stale W1/MN without truncating at that job's end. Derived
+series/default selection therefore follows the current canonical D1 source,
+while older coverage gaps stay partial and old provider rows remain preserved.
+Explicit point-in-time materialization still uses its existing `end` bound.
+
+The focused older-chunk worker case uses cached data only: its chunk ends in
+2021 while the selected Alpaca D1 cache extends to 2026. The worker updates both
+W1/MN defaults from that full current series. Worker and derivation modules
+passed 15/15; Ruff 0.4.7 check/format, compilation, and diff checks passed. No
+provider HTTP or runtime/database/quota/policy/hold changes occurred. Root's
+native replay and exact-source CI remain pending; the full Provider goal stays
+in progress.
+
 ## 2026-11-08 — unattended derived W1/MN follows the selected D1 source
 
 Root's browser-closed retained-copy readback showed that all eleven sector D1

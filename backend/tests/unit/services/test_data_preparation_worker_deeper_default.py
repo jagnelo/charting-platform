@@ -32,10 +32,13 @@ class _WorkerSessionContext:
         return None
 
 
-@pytest.mark.parametrize("retained_alternate", [False, True])
+@pytest.mark.parametrize(
+    ("retained_alternate", "older_chunk"),
+    [(False, False), (True, False), (True, True)],
+)
 @pytest.mark.asyncio
 async def test_worker_persists_first_alternate_series_returns_bars_and_queues_older_chunk(
-    db, instrument, monkeypatch, retained_alternate
+    db, instrument, monkeypatch, retained_alternate, older_chunk
 ):
     """The actual worker keeps useful deeper bars visible and queues older work."""
     massive = DataSource(name="massive")
@@ -190,13 +193,15 @@ async def test_worker_persists_first_alternate_series_returns_bars_and_queues_ol
         "adjusted": True,
         "derive_coarse_timeframes": False,
     }
+    chunk_start = requested_start if older_chunk else planned_start
+    chunk_end = planned_start if older_chunk else end
     job = MarketRefreshJob(
-        request_key="worker-deeper-default-initial",
+        request_key=f"worker-deeper-default-{chunk_start.date()}",
         instrument_id=instrument.id,
         capability="price_history",
         timeframe=Timeframe.D1.value,
-        start_at=planned_start,
-        end_at=end,
+        start_at=chunk_start,
+        end_at=chunk_end,
         priority=10,
         status="queued",
         attempts=0,
@@ -305,17 +310,20 @@ async def test_worker_persists_first_alternate_series_returns_bars_and_queues_ol
         worker_db, *, job, instrument, timeframe, preparation, priority, redis
     ):
         preparation["source_provider"] = "alpaca"
+        request_start = requested_start if older_chunk else planned_start
+        request_end = planned_start if older_chunk else end
         fetched = await market_data.fetch_ohlcv(
             worker_db,
             instrument,
             timeframe,
-            planned_start,
-            end=end,
+            request_start,
+            end=request_end,
             adjusted=True,
             source_provider="alpaca",
+            allow_provider_fetch=not older_chunk,
         )
         return (
-            (planned_start, end, requested_start, end, "alpaca", None),
+            (request_start, request_end, requested_start, end, "alpaca", None),
             preparation,
             None,
             None,
@@ -395,6 +403,8 @@ async def test_worker_persists_first_alternate_series_returns_bars_and_queues_ol
     )
     assert default_read
     assert {bar.market_series_id for bar in default_read} == {alpaca_series.id}
+    if older_chunk:
+        assert job.end_at < max(bar.ts for bar in default_read)
     if retained_alternate:
         assert min(bar.ts.date() for bar in default_read) == date(2018, 11, 1)
     else:
@@ -495,16 +505,24 @@ async def test_worker_persists_first_alternate_series_returns_bars_and_queues_ol
         assert coverage.status.value == "partial"
         assert coverage.missing_slices
 
-    continuation = db.execute(
-        select(MarketRefreshJob).where(
-            MarketRefreshJob.id != job.id,
-            MarketRefreshJob.capability == "price_history",
+    continuations = (
+        db.execute(
+            select(MarketRefreshJob).where(
+                MarketRefreshJob.id != job.id,
+                MarketRefreshJob.capability == "price_history",
+            )
         )
-    ).scalar_one()
-    continuation_prep = continuation.metadata_payload["data_preparation_child"]
-    assert continuation.status == "queued"
-    assert continuation_prep["chunk"] is True
-    assert continuation_prep["source_provider"] == "alpaca"
-    assert continuation_prep["range_start"] == requested_start.isoformat()
-    assert continuation.start_at.replace(tzinfo=UTC) < planned_start
-    assert continuation.end_at.replace(tzinfo=UTC) < planned_start
+        .scalars()
+        .all()
+    )
+    if older_chunk:
+        assert continuations == []
+    else:
+        continuation = continuations[0]
+        continuation_prep = continuation.metadata_payload["data_preparation_child"]
+        assert continuation.status == "queued"
+        assert continuation_prep["chunk"] is True
+        assert continuation_prep["source_provider"] == "alpaca"
+        assert continuation_prep["range_start"] == requested_start.isoformat()
+        assert continuation.start_at.replace(tzinfo=UTC) < planned_start
+        assert continuation.end_at.replace(tzinfo=UTC) < planned_start
