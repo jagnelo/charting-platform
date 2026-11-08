@@ -18,7 +18,7 @@ from nautilus_trader.indicators import (
 )
 from nautilus_trader.model.data import Bar, BarType
 from nautilus_trader.model.enums import AccountType, OmsType, OrderSide, TimeInForce
-from nautilus_trader.model.events import PositionClosed
+from nautilus_trader.model.events import PositionClosed, PositionOpened
 from nautilus_trader.model.identifiers import InstrumentId
 from nautilus_trader.model.objects import Money
 from nautilus_trader.test_kit.providers import TestInstrumentProvider
@@ -278,6 +278,12 @@ class StrategyLabNautilusStrategy(Strategy):
         if self.active_position_id == position_id:
             self.active_position_id = None
 
+    def on_position_opened(self, event: PositionOpened) -> None:
+        # A final-bar fill has no later on_bar call to materialize its plan.
+        # Initialize from the actual open event while the submitted signal plan
+        # is still available, using the fill timestamp for the holding clock.
+        self._sync_active_position(int(event.ts_event))
+
     def _register_tree_indicators(self, node: dict[str, Any] | None) -> None:
         if not node:
             return
@@ -407,11 +413,19 @@ class StrategyLabNautilusStrategy(Strategy):
         plan_direction = str(pending_plan.get("side") or self.config.direction)
         if pending_plan:
             stop_price = float(pending_plan.get("stop_price") or 0.0)
-            target_price = float(pending_plan.get("target_price") or 0.0)
+            target_value = pending_plan.get("target_price")
+            target_price = float(target_value or 0.0)
             planned_entry = float(pending_plan.get("entry_price") or entry_price)
-            if stop_price <= 0 or target_price <= 0:
+            if stop_price <= 0:
                 pending_plan = {}
             else:
+                if target_value is None and self.config.take_profit_rr > 0:
+                    target_distance = abs(entry_price - stop_price) * self.config.take_profit_rr
+                    target_price = (
+                        entry_price + target_distance
+                        if plan_direction == "long"
+                        else entry_price - target_distance
+                    )
                 self.position_plans[position_id] = {
                     "entry_price": planned_entry,
                     "stop_price": stop_price,

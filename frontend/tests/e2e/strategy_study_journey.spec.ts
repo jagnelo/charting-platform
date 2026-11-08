@@ -721,7 +721,7 @@ test('legacy Strategy Lab creates, edits, reloads, and safely deletes a supporte
   }).first()
   await expect(researchRunsPanel.getByRole('button', { name: 'Research runs', exact: true }))
     .toHaveAttribute('aria-expanded', 'true')
-  await expect(researchRunsPanel.getByRole('button', { name: /^Run history/ }))
+  await expect(researchRunsPanel.getByRole('button', { name: /Run history \d+ batches?/ }))
     .toHaveAttribute('aria-expanded', 'true')
   await expect(researchRunsPanel.locator('.run-item[aria-pressed="true"]')).toHaveCount(1)
   const resultsPanel = page.locator('.panel.panel--results')
