@@ -60,12 +60,8 @@
     "status": "in_progress"
   },
   "dirty_paths": [
-    "frontend/src/components/workstation/CodeLibraryTool.vue",
     "frontend/src/components/workstation/ResearchResultsTool.vue",
-    "frontend/src/components/workstation/StudyLabTool.vue",
-    "frontend/tests/unit/components/test_code_library_tool.test.ts",
     "frontend/tests/unit/components/test_research_results_tool.test.ts",
-    "frontend/tests/unit/components/test_study_lab_tool.test.ts",
     "ops/workstreams/feat-strategy-lab-v2/handoff.md",
     "ops/workstreams/feat-strategy-lab-v2/session.json",
     "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
@@ -120,10 +116,10 @@
     }
   ],
   "goal_unavailable_reason": null,
-  "head": "3a857c36f8228f059c3ba0a6096ec4324a9b0d1b",
+  "head": "f1c4c0aa6dae80e4415880d45b633ba3b9ccef98",
   "implementation_sha": "55851d2b953ce38de5afe59ba90b613ffde08f87",
-  "last_checkpoint": "2026-11-08T05:48:09.341846+00:00",
-  "last_human_progress_update": "2026-11-08T05:45:08.195384+00:00",
+  "last_checkpoint": "2026-11-08T06:58:02.757265+00:00",
+  "last_human_progress_update": "2026-11-08T06:57:41.615941+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Freeze this private checkpoint for Root\u2019s 26-path contract; wait for the next exact-source profile and address only concrete Strategy-owned failures.",
   "parent_branch": "staging",
@@ -156,11 +152,11 @@
       "SU3",
       "SU4"
     ],
-    "current_blocker": "The exact 9ec4 full profile remains red; Root owns the next complete profile and shared-runtime qualification. Focused foreground-priority fixes pass locally, but browser behavior is pending.",
-    "current_phase": "strategy-study-usability-2026-11-06",
-    "next_action": "Freeze this private checkpoint for Root's 26-path contract; wait for the next exact-source profile and address only concrete Strategy-owned failures.",
+    "current_blocker": "Root owns the next combined browser qualification; the focused Results fix is unit-verified, but profile acceptance remains pending.",
+    "current_phase": "strategy-results-artifact-filter-preservation",
+    "next_action": "Freeze this private Results pagination/detail repair for Root\u2019s private26 successor and combined browser qualification; preserve all remaining Strategy criteria and holds.",
     "total": 9,
-    "updated_at": "2026-11-08T05:45:08.195360+00:00"
+    "updated_at": "2026-11-08T06:57:41.615922+00:00"
   },
   "remote": "b555268b8237d1c50e34b39320b4cb18a8bd9a03",
   "remote_sha": "b555268b8237d1c50e34b39320b4cb18a8bd9a03",

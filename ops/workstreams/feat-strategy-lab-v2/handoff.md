@@ -20318,3 +20318,10 @@ Imported the Strategy consumer's21 declared TC305 frontend deltas and7 Provider9
 ## 2026-11-08 — TC9ec4 shared context consumed
 
 Imported only the12 Strategy-declared paths from exact TC source9ec4d7833c45cd2fc51916a2378445f7761b425e after all12 old guards matched. All136 rows in the coherent full-context manifest were verified; the110 active foreign paths exclude the26 Strategy-private paths, which remained byte-identical and untouched. The prior305 frontend and9e2 backend pins remain in history; Provider9e2 stays a seven-path overlay. Root's affected browser journeys, full65, exact CI and release acceptance remain pending. No browser, suite, Docker or live-source action was run here.
+
+
+### 2026-11-08 — preserve typed Results artifacts through pagination
+
+Root's focused Strategy Results journey on frontend `245fc873` failed while locating the occurrences filter. The archived DOM showed run 8000 selected with its list summary, then “No structured artifacts have been produced yet.” The exact detail response was HTTP 200 and contained the expected three typed artifacts, including the `events` artifact named `occurrences` with SPY/AAPL rows. The lifecycle loaded an older page and reselected the same compact summary; the Results component had replaced its full selected-run detail with that summary, whose `artifacts` array was empty. This is a Strategy-owned Results state bug, not a payload or public selector mismatch.
+
+Results now retains the richest same-run detail available from the selected state or query cache when selecting a row, reconciling a refreshed list, loading older runs, or resolving a terminal-cancel conflict. A focused component regression proves the occurrences symbol/type filters and their rows remain available after pagination and reselection, then exercises the actual SPY/member-entered filter. The complete Research Results unit module passes 75/75. No browser, shared component/client, backend, fixture, native or provider action ran. Root owns the next combined browser qualification; full profile, exact CI, release acceptance, the remaining Strategy scope and all original roadmap criteria remain open.
