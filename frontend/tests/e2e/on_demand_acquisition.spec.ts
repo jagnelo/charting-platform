@@ -1935,6 +1935,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
   const oihStatusPollGate = deferred()
   const oihStatusPollStarted = deferred()
   const oihFailureStarted = deferred()
+  const oihFailurePollStarted = deferred()
   const oihFailureGate = deferred()
   const igvEnsureStarted = deferred()
   const igvEnsureGate = deferred()
@@ -2194,6 +2195,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     if (pending.symbol === 'OIH' && pending.terminal === 'ready') oihStatusPollStarted.resolve()
     if (pending.terminal === 'failed') {
       delayedOihFailureUrl = route.request().url()
+      oihFailurePollStarted.resolve()
       await oihFailureGate.promise
       await route.fulfill({
         status: 503,
@@ -2491,6 +2493,10 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     expect(failedOihAccepted.status()).toBe(200)
     expect(await failedOihAccepted.json()).toMatchObject({ request_id: delayedOihFailureRequestId, status: 'queued', has_pending_work: true })
     expect(delayedOihFailureRequestId).toMatch(/^[0-9a-f-]{36}$/i)
+    // Ensure acceptance creates the durable job, but the status URL is only
+    // observed when its first GET poll reaches this route. Keep that response
+    // held until after switching context so the late failure remains real.
+    await oihFailurePollStarted.promise
     expect(delayedOihFailureUrl).toBeTruthy()
     browserDiagnostics.allowExpectedControlledApiResponseFault(
       delayedOihFailureUrl!,
