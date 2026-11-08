@@ -1945,6 +1945,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
   let xhbEnsureCount = 0
   let delayedOihFailureUrl: string | null = null
   let delayedOihFailureRequestId: string | null = null
+  let delayedOihFailureRouteReleased = false
   const pendingHoldings = new Map<string, { symbol: FixtureSymbol; terminal: 'ready' | 'unavailable' | 'failed'; response: DataEnsureResponse }>()
   const holdingsReasonOverrides = new Map<number, string>()
   let igvSnapshotAvailable = false
@@ -2202,6 +2203,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
         headers: { 'x-controlled-response-id': requestId },
         json: { request_id: requestId, detail: 'Controlled fixture error; no source request was made.' },
       })
+      delayedOihFailureRouteReleased = true
       return
     }
     if (pending.symbol === 'XHB') await xhbEnsureGate.promise
@@ -2486,31 +2488,27 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     await expect(igvContextWidget).toHaveAccessibleName('No point-in-time ETF holdings snapshot symbols')
     await expect(priorIgvHolding).toHaveCount(0)
 
+    const delayedOihFailureEnsureReady = waitForDatasetEnsure('OIH', 'holdings')
     await chooseETF('OIH')
     await oihFailureStarted.promise
-    const delayedOihFailureResponseReady = waitForPreparationStatus(delayedOihFailureRequestId!)
-    const failedOihAccepted = await waitForDatasetEnsure('OIH', 'holdings')
+    const failedOihAccepted = await delayedOihFailureEnsureReady
     expect(failedOihAccepted.status()).toBe(200)
     expect(await failedOihAccepted.json()).toMatchObject({ request_id: delayedOihFailureRequestId, status: 'queued', has_pending_work: true })
     expect(delayedOihFailureRequestId).toMatch(/^[0-9a-f-]{36}$/i)
-    // Ensure acceptance creates the durable job, but the status URL is only
-    // observed when its first GET poll reaches this route. Keep that response
-    // held until after switching context so the late failure remains real.
+    // Ensure acceptance creates the durable job. Hold its first status GET in
+    // the route until the selection changes; the browser should abort that
+    // stale observer, while the fixture still releases its controlled 503.
     await oihFailurePollStarted.promise
     expect(delayedOihFailureUrl).toBeTruthy()
-    browserDiagnostics.allowExpectedControlledApiResponseFault(
-      delayedOihFailureUrl!,
-      'GET',
-      delayedOihFailureRequestId!,
-      503,
-    )
+    expect(new URL(delayedOihFailureUrl!).pathname).toBe(`/api/v1/data/requests/${delayedOihFailureRequestId}`)
     const xhbAfterFailureSelectionReady = waitForDatasetEnsure('XHB', 'holdings')
     await chooseETF('XHB')
     expect((await xhbAfterFailureSelectionReady).status()).toBe(200)
     await expectSelectionHoldingsDetails(page, 'XHB', 'Some requested data is unavailable.')
+    await expect.poll(() => cancelledPreparationStatusIds.includes(delayedOihFailureRequestId!)).toBe(true)
     oihFailureGate.resolve()
     igvEnsureGate.resolve()
-    expect((await delayedOihFailureResponseReady).status()).toBe(503)
+    await expect.poll(() => delayedOihFailureRouteReleased).toBe(true)
     await expectSelectionHoldingsDetails(page, 'XHB', 'Some requested data is unavailable.')
     await expect(page.locator('.workstation__selection-acquisition--error')).toHaveCount(0)
 

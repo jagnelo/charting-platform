@@ -308,6 +308,10 @@ test('supporting settings — discover preferences, manage an isolated preset, a
 
   await page.goto('/legacy/chart/SPY')
   await expect(page.locator('.chart-view')).toBeVisible({ timeout: 15_000 })
+  // The chart shell can mount while its instrument is still loading. The
+  // IndicatorPanel resets section disclosure when that instrument first
+  // arrives, so wait for the actual SPY context before opening a section.
+  await expect(page.getByRole('region', { name: 'SPY instrument report' })).toBeVisible({ timeout: 15_000 })
   const indicatorPanelToggle = page.getByRole('button', { name: /indicator panel$/i })
   await expect(indicatorPanelToggle).toBeVisible()
   if (await indicatorPanelToggle.getAttribute('aria-expanded') === 'false') {
