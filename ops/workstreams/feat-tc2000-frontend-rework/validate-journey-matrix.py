@@ -42,6 +42,35 @@ ALLOWED_CASE_EXECUTION_STATES = {
     "root_run_failed",
 }
 ALLOWED_REVIEW_SLOT_STATES = {"pending_root_receipt", "reviewed"}
+PRIVATE_CONTROL_SOURCE_OWNERS = {
+    "frontend/src/views/BasketsView.vue": "feat-etf-holdings-constituents",
+    "frontend/src/views/ETFHoldingsView.vue": "feat-etf-holdings-constituents",
+    "frontend/src/components/workstation/InstrumentNoteTool.vue": "feat-etf-holdings-constituents",
+    "frontend/src/views/StrategyLabView.vue": "feat-strategy-lab-v2",
+    "frontend/src/views/StrategyLabV2View.vue": "feat-strategy-lab-v2",
+    "frontend/src/views/StudyLabView.vue": "feat-strategy-lab-v2",
+    "frontend/src/components/workstation/CodeLibraryTool.vue": "feat-strategy-lab-v2",
+    "frontend/src/components/workstation/ResearchResultsTool.vue": "feat-strategy-lab-v2",
+    "frontend/src/components/workstation/StudyLabTool.vue": "feat-strategy-lab-v2",
+    "frontend/src/components/workstation/PythonSourceEditor.vue": "feat-strategy-lab-v2",
+    "frontend/src/views/DashboardView.vue": "feat-strategy-lab-v2",
+    "frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue": "feat-strategy-lab-v2",
+    "frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue": "feat-strategy-lab-v2",
+    "frontend/src/components/dashboard/DashboardInstrumentSearch.vue": "feat-strategy-lab-v2",
+    "frontend/src/components/dashboard/DashboardLineChartWidget.vue": "feat-strategy-lab-v2",
+    "frontend/src/components/dashboard/DashboardQuoteWidget.vue": "feat-strategy-lab-v2",
+}
+
+
+def _private_control_owner(relative: str) -> str | None:
+    exact = PRIVATE_CONTROL_SOURCE_OWNERS.get(relative)
+    if exact:
+        return exact
+    if relative.startswith("frontend/src/components/etf/"):
+        return "feat-etf-holdings-constituents"
+    if relative.startswith("frontend/src/components/strategy/"):
+        return "feat-strategy-lab-v2"
+    return None
 
 
 def _declared_test_titles(source: str) -> set[str]:
@@ -57,24 +86,12 @@ def _declared_test_titles_for_path(path: str) -> set[str]:
 
 
 def _control_surfaces(root: Path = ROOT) -> list[dict[str, Any]]:
-    excluded = {
-        "frontend/src/views/BasketsView.vue",
-        "frontend/src/views/ETFHoldingsView.vue",
-        "frontend/src/views/StrategyLabView.vue",
-        "frontend/src/views/StrategyLabV2View.vue",
-        "frontend/src/views/StudyLabView.vue",
-        "frontend/src/components/workstation/CodeLibraryTool.vue",
-        "frontend/src/components/workstation/ResearchResultsTool.vue",
-        "frontend/src/components/workstation/StudyLabTool.vue",
-    }
     roots = [root / "frontend/src/views", root / "frontend/src/components"]
     surfaces: list[dict[str, Any]] = []
     pattern = re.compile(r"<([a-z][\w.-]*)\b([^>]*)>", re.IGNORECASE)
     for source_root in roots:
         for path in sorted(source_root.rglob("*.vue")):
             relative = path.relative_to(root).as_posix()
-            if relative in excluded or "/components/etf/" in relative or "/components/strategy/" in relative:
-                continue
             text = path.read_text()
             template = _outer_sfc_template(text)
             if template is None:
@@ -103,12 +120,16 @@ def _control_surfaces(root: Path = ROOT) -> list[dict[str, Any]]:
                 journeys = ["TC06", "TC07"]
             elif "/components/workstation/" in relative or relative.endswith("ChartView.vue"):
                 journeys = ["TC04", "TC06", "TC08"]
-            surfaces.append({
+            surface = {
                 "source": relative,
                 "control_count": len(controls),
                 "signature_sha256": hashlib.sha256(normalized.encode()).hexdigest(),
                 "journeys": journeys,
-            })
+            }
+            source_owner = _private_control_owner(relative)
+            if source_owner:
+                surface["source_owner"] = source_owner
+            surfaces.append(surface)
     return surfaces
 
 
@@ -377,6 +398,7 @@ def validate(data: dict[str, Any]) -> list[str]:
         errors.append("journey case inventory must be a non-empty list")
         cases = []
     case_by_id: dict[str, dict[str, Any]] = {}
+    case_type_counts = {"e2e": 0, "unit": 0}
     for case in cases:
         if not isinstance(case, dict):
             errors.append("journey case row must be an object")
@@ -399,6 +421,12 @@ def validate(data: dict[str, Any]) -> list[str]:
         if not isinstance(test_path, str) or not test_path or not isinstance(test_name, str) or not test_name:
             errors.append(f"journey case {case_id} must name an exact test path and title")
         else:
+            if "/tests/e2e/" in test_path:
+                case_type_counts["e2e"] += 1
+            elif "/tests/unit/" in test_path:
+                case_type_counts["unit"] += 1
+            else:
+                errors.append(f"journey case {case_id} must distinguish an E2E or unit-only test mapping")
             resolved = (ROOT / test_path).resolve()
             try:
                 resolved.relative_to(ROOT)
@@ -615,6 +643,16 @@ def validate(data: dict[str, Any]) -> list[str]:
     control_error = _control_mapping_error(data.get("control_surfaces", []), actual_controls)
     if control_error:
         errors.append(control_error)
+    matrix_controls_by_source = {
+        row.get("source"): row for row in data.get("control_surfaces", []) if isinstance(row, dict)
+    }
+    for surface in actual_controls:
+        source_owner = surface.get("source_owner")
+        if not source_owner:
+            continue
+        matrix_row = matrix_controls_by_source.get(surface["source"])
+        if matrix_row is None or matrix_row.get("source_owner") != source_owner:
+            errors.append(f"control surface {surface['source']} has an incorrect or missing private source owner")
     control_sources = {row["source"] for row in actual_controls}
     for label, rows in (("shell action", data.get("shell_actions", [])), ("action", data.get("actions", []))):
         for row in rows:
@@ -733,6 +771,14 @@ def validate(data: dict[str, Any]) -> list[str]:
         errors.append("factory layout count summary is stale")
     if counts.get("factory_instances") != sum(len(layout["panels"]) for layout in actual_layouts.values()):
         errors.append("factory instance count summary is stale")
+    if counts.get("journey_cases") != len(cases):
+        errors.append("journey case count summary is stale")
+    if counts.get("e2e_case_mappings") != case_type_counts["e2e"]:
+        errors.append("E2E journey-case mapping count summary is stale")
+    if counts.get("unit_only_case_mappings") != case_type_counts["unit"]:
+        errors.append("unit-only journey-case mapping count summary is stale")
+    if counts.get("control_surfaces") != len(actual_controls):
+        errors.append("control-surface count summary is stale")
     return errors
 
 
@@ -766,6 +812,25 @@ def self_test(data: dict[str, Any]) -> None:
             "Nested.vue" in (_control_mapping_error([], actual) or ""),
             "an unmapped control after a nested template was not rejected",
         )
+    for path in (
+        "frontend/src/views/ETFHoldingsView.vue",
+        "frontend/src/components/strategy/StrategyRuleTreeEditor.vue",
+    ):
+        with tempfile.TemporaryDirectory(prefix="tc-private-control-inventory-") as temporary:
+            root = Path(temporary)
+            private_view = root / path
+            private_view.parent.mkdir(parents=True)
+            private_view.write_text('<template><button @click="choose">Choose</button></template>')
+            baseline = _control_surfaces(root)
+            _require(len(baseline) == 1, f"private control surface was excluded from scanning: {path}")
+            _require(baseline[0].get("source_owner") == _private_control_owner(path), f"private owner was not classified: {path}")
+            _require(_control_mapping_error([], baseline) is not None, f"unmapped private surface was accepted: {path}")
+            private_view.write_text('<template><button @click="choose">Choose</button><button @click="remove">Remove</button></template>')
+            changed = _control_surfaces(root)
+            _require(
+                _control_mapping_error(baseline, changed) is not None,
+                f"an added private control was accepted without a refreshed signature: {path}",
+            )
     errors = validate(data)
     _require(not errors, "valid journey inventory failed: " + "; ".join(errors))
     mutated = json.loads(json.dumps(data))
@@ -796,8 +861,28 @@ def self_test(data: dict[str, Any]) -> None:
     mutated["control_surfaces"].pop()
     _require(any("exposed control mapping mismatch" in error for error in validate(mutated)), "unmapped exposed control surface was accepted")
     mutated = json.loads(json.dumps(data))
+    private_row = next(row for row in mutated["control_surfaces"] if row.get("source_owner") == "feat-etf-holdings-constituents")
+    private_row["case_refs"] = []
+    _require(any("missing specific test-case mappings" in error for error in validate(mutated)), "private control without a case crosswalk was accepted")
+    mutated = json.loads(json.dumps(data))
+    private_row = next(row for row in mutated["control_surfaces"] if row.get("source_owner") == "feat-strategy-lab-v2")
+    private_row.pop("source_owner")
+    _require(any("incorrect or missing private source owner" in error for error in validate(mutated)), "private control without its owner pin was accepted")
+    mutated = json.loads(json.dumps(data))
     mutated["control_surfaces"][0]["signature_sha256"] = "0" * 64
     _require(any("exposed control mapping mismatch" in error for error in validate(mutated)), "changed exposed control surface was accepted")
+    mutated = json.loads(json.dumps(data))
+    mutated["counts"]["journey_cases"] += 1
+    _require(any("journey case count summary is stale" in error for error in validate(mutated)), "stale journey-case count was accepted")
+    mutated = json.loads(json.dumps(data))
+    mutated["counts"]["e2e_case_mappings"] += 1
+    _require(any("E2E journey-case mapping count summary is stale" in error for error in validate(mutated)), "stale E2E mapping count was accepted")
+    mutated = json.loads(json.dumps(data))
+    mutated["counts"]["unit_only_case_mappings"] += 1
+    _require(any("unit-only journey-case mapping count summary is stale" in error for error in validate(mutated)), "stale unit-only mapping count was accepted")
+    mutated = json.loads(json.dumps(data))
+    mutated["counts"]["control_surfaces"] += 1
+    _require(any("control-surface count summary is stale" in error for error in validate(mutated)), "stale control-surface count was accepted")
     mutated = json.loads(json.dumps(data))
     mutated["actions"][0]["control_surface_refs"] = []
     _require(any("lacks a current control-surface mapping" in error for error in validate(mutated)), "unconnected action surface was accepted")

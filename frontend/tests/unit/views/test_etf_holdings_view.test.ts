@@ -1774,6 +1774,45 @@ describe('ETFHoldingsView', () => {
     wrapper.unmount()
   })
 
+  it('distinguishes a displayed saved snapshot from a capability check that found no current-eligible snapshot', async () => {
+    const capabilityWithoutCurrentSnapshot = {
+      ...profile.holdings_capability,
+      availability: 'unavailable',
+      identity_verified: false,
+      usable_for_current_analysis: false,
+      reason: 'No holdings snapshot has ever been stored for this ETF.',
+    }
+    const selectedProfile = {
+      ...profile,
+      holdings_capability: capabilityWithoutCurrentSnapshot,
+    }
+    vi.mocked(api.get).mockImplementation(async (path: string) => {
+      if (path === '/etf-holdings') return [selectedProfile]
+      if (path === '/etf-holdings/SPY/capability') return capabilityWithoutCurrentSnapshot
+      if (path === '/etf-holdings/SPY/dates') return dates
+      if (path === '/etf-holdings/SPY/holdings') return holdingsPage()
+      if (path === '/etf-holdings/SPY/diff') return diffPayload()
+      if (path === '/etf-holdings/SPY/weight-evolution') return weightEvolutionPayload()
+      if (path === '/etf-holdings/SPY/transitions') return transitionTimelinePayload()
+      return []
+    })
+
+    const wrapper = mount(ETFHoldingsView)
+    await vi.waitFor(() => expect(wrapper.get('.holdings-table').text()).toContain('MSFT'))
+
+    expect(wrapper.get('[data-testid="etf-selected-snapshot-kind"]').text()).toBe('Latest stored snapshot')
+    expect(wrapper.get('[data-testid="etf-snapshot-known-at"]').attributes('datetime'))
+      .toBe('2026-06-07T04:15:00Z')
+    expect(wrapper.get('.notice--capability').text()).toContain('Current holdings are not verified.')
+    expect(wrapper.get('.notice--capability').text())
+      .toContain('The current-analysis check did not find an eligible snapshot.')
+    expect(wrapper.get('[data-testid="etf-selected-snapshot-currentness"]').text())
+      .toContain('not verified as current')
+    expect(wrapper.text()).not.toContain('No holdings snapshot has ever been stored for this ETF.')
+    expect(wrapper.find('.panel-meta').text()).toContain('Profile current eligibility: unavailable')
+    wrapper.unmount()
+  })
+
   it('resolves a newly selected fund and starts one generic holdings check', async () => {
     vi.mocked(api.get).mockImplementation(async (path: string) => {
       if (path === '/etf-holdings') return [profile]

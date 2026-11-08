@@ -134,7 +134,7 @@
           role="status"
         >
           <strong>Current holdings are not verified.</strong>
-          {{ selectedCapability.reason }}
+          {{ selectedCapabilityReason }}
           <span v-if="selectedCapability.composition_date">
             Last composition: {{ selectedCapability.composition_date }}.
           </span>
@@ -144,7 +144,12 @@
           <span v-if="selectedCapability.symbol_audit?.next_action" class="capability-next-action">
             Next source-review action: {{ selectedCapability.symbol_audit.next_action }}
           </span>
-          Historical snapshots remain available, but this data must not be treated as current.
+          <span v-if="page" data-testid="etf-selected-snapshot-currentness">
+            The displayed saved snapshot remains available for historical review and is not verified as current.
+          </span>
+          <span v-else>
+            Historical snapshots remain available, but this data must not be treated as current.
+          </span>
         </div>
 
         <div v-if="selectedProfile" class="toolbar">
@@ -811,6 +816,13 @@ const loadingOverlap = ref(false)
 const loadError = ref('')
 
 const selectedCapability = computed(() => selectedProfile.value?.holdings_capability ?? null)
+const selectedCapabilityReason = computed(() => {
+  const reason = selectedCapability.value?.reason ?? ''
+  if (page.value && /^No holdings snapshot has (?:ever )?been stored for this ETF\.?$/i.test(reason.trim())) {
+    return 'The current-analysis check did not find an eligible snapshot. The selected saved snapshot is available for review.'
+  }
+  return reason
+})
 const currentHoldingsAvailable = computed(() =>
   selectedCapability.value?.usable_for_current_analysis === true
   && selectedCapability.value.availability === 'current'
@@ -819,7 +831,8 @@ const currentHoldingsAvailable = computed(() =>
 const selectedSnapshotKind = computed(() => {
   const snapshot = page.value?.snapshot
   const latestSnapshotId = selectedProfile.value?.latest_snapshot_id
-  if (!snapshot || latestSnapshotId == null) return 'Snapshot status unknown'
+  if (!snapshot) return 'No saved snapshot selected'
+  if (latestSnapshotId == null) return 'Saved snapshot · current status unverified'
   return String(snapshot.id) === String(latestSnapshotId)
     ? 'Latest stored snapshot'
     : 'Historical snapshot'
@@ -2712,15 +2725,34 @@ button.holding-row:hover { background: color-mix(in srgb, var(--tc-accent) 6%, v
 .holdings-view :is(button, input, select, textarea, a):focus-visible { outline: 2px solid var(--tc-accent); outline-offset: 2px; }
 @media (max-width: 1100px) {
   .holdings-view {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
   }
   .holdings-sidebar {
     min-width: 0;
-    max-height: 280px;
-    border-right: 0;
-    border-bottom: 1px solid #171717;
+    max-height: 100%;
+    overflow: auto;
+    border-right: 1px solid #171717;
+    border-bottom: 0;
+    padding: 8px;
+    gap: 8px;
   }
-  .toolbar,
+  .holdings-main {
+    min-width: 0;
+    padding: 8px;
+  }
+  .workspace-panel {
+    gap: 8px;
+    padding: 10px;
+  }
+  .panel-title-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+  .toolbar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
   .holdings-browser {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -2745,10 +2777,12 @@ button.holding-row:hover { background: color-mix(in srgb, var(--tc-accent) 6%, v
     display: none;
   }
   .holding-row {
-    grid-template-columns: 95px minmax(160px, 1fr) 90px;
+    min-width: 760px;
+    grid-template-columns: 100px minmax(180px, 1fr) 90px 110px 100px 100px;
   }
-  .holding-row span:nth-child(n + 4) {
-    display: none;
+  .holdings-table {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
   }
 }
 @media (max-width: 600px) {
@@ -2760,6 +2794,15 @@ button.holding-row:hover { background: color-mix(in srgb, var(--tc-accent) 6%, v
   .holdings-table,
   .holding-detail {
     min-width: 0;
+  }
+  .holdings-view {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .holdings-sidebar {
+    max-height: 180px;
+    overflow: auto;
+    border-right: 0;
+    border-bottom: 1px solid #171717;
   }
   .holdings-main {
     padding: 10px;
@@ -2808,6 +2851,10 @@ button.holding-row:hover { background: color-mix(in srgb, var(--tc-accent) 6%, v
     max-width: 100%;
     overflow-x: auto;
     overscroll-behavior-x: contain;
+  }
+  .holding-row {
+    min-width: 760px;
+    grid-template-columns: 100px minmax(180px, 1fr) 90px 110px 100px 100px;
   }
 }
 </style>

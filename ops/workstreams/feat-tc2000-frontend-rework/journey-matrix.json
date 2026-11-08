@@ -31,10 +31,10 @@
       "qualification": "Exact Provider 591bdfd9 development import is present and all 73 manifest rows are verified; Root-owned exact CI and combined qualification remain pending."
     },
     "etf_domain_runtime_import": {
-      "source_commit": "fb378d7aa45e2741ad78475f84a9c0c7e8c78166",
-      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/fb378d7aa45e2741ad78475f84a9c0c7e8c78166.json",
-      "manifest_sha256": "84d132b9b6c4ebd4edb0ee10443b71df1aabda72f88585df5ab56f44578a6967",
-      "qualification": "Exact ETF fb378d7a development import is present and all ten manifest rows are hash-verified; browser execution and release acceptance remain Root-owned and pending."
+      "source_commit": "aae3665b6a8512ea9c5d53d9d6397da7407005ee",
+      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/aae3665b6a8512ea9c5d53d9d6397da7407005ee.json",
+      "manifest_sha256": "62eb537f65c1b33a8290e30b329b762ec771e6bdf6b49e983b8bfe5e905e4a45",
+      "qualification": "Exact ETF aae3665b development successor is imported; all ten manifest rows are verified, and Root rendered browser qualification remains pending."
     },
     "strategy_runtime_import": {
       "source_commit": "bc98876bf78673e4d2c223e0f4796d783b6a9b98",
@@ -138,9 +138,11 @@
     "owned_actions": 12,
     "etf_actions": 16,
     "strategy_actions": 48,
-    "journey_cases": 69,
+    "journey_cases": 88,
     "critical_review_slots": 9,
-    "control_surfaces": 57
+    "control_surfaces": 77,
+    "e2e_case_mappings": 62,
+    "unit_only_case_mappings": 26
   },
   "routes": [
     {
@@ -5064,14 +5066,16 @@
       "control_count": 61,
       "signature_sha256": "8d19b9a3de47eb9e714ee4978ca71b997d47d735077150b58b6d33da057ae26c",
       "journeys": [
+        "TC01",
         "TC09"
       ],
       "evidence_status": "source_mapped_browser_pending",
       "evidence": [
-        "frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts",
-        "frontend/tests/e2e/dashboard_usability_journey.spec.ts"
+        "frontend/src/views/DashboardView.vue",
+        "frontend/tests/e2e/dashboard_usability_journey.spec.ts",
+        "frontend/tests/e2e/auth_session_boundary.spec.ts"
       ],
-      "pending_reason": "Strategy8dfeed adds the explicit Cancel control for rejected widget-config saves; its focused unit and authored recovery journey are mapped, but current-source browser execution remains pending.",
+      "pending_reason": "Source and exact case mappings are recorded; Root rendered execution and critical review remain pending.",
       "source_owner": "feat-strategy-lab-v2",
       "source_pin": {
         "source_commit": "8dfeed8d9092bbf90e54f283afe1d96e71c23511",
@@ -5084,7 +5088,8 @@
         "TC09"
       ],
       "case_refs": [
-        "TC09-dashboard"
+        "TC09-dashboard",
+        "TC01-session-boundary"
       ]
     },
     {
@@ -5599,15 +5604,17 @@
       ],
       "evidence_status": "source_mapped_browser_pending",
       "evidence": [
-        "frontend/src/components/dashboard/DashboardInstrumentSearch.vue"
+        "frontend/src/components/dashboard/DashboardInstrumentSearch.vue",
+        "frontend/tests/e2e/dashboard_usability_journey.spec.ts"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "pending_reason": "Source and exact case mappings are recorded; Root rendered execution and critical review remain pending.",
       "journey_ids": [
         "TC02"
       ],
       "case_refs": [
         "TC02-dashboard-search"
-      ]
+      ],
+      "source_owner": "feat-strategy-lab-v2"
     },
     {
       "source": "frontend/src/components/dashboard/DashboardNotesWidget.vue",
@@ -5945,21 +5952,21 @@
       "control_count": 1,
       "signature_sha256": "c3ccfde77e77218f1436f138feca61f83776aa24ee79a23562ead52474c9171a",
       "journeys": [
-        "TC04",
-        "TC06",
-        "TC08"
+        "TC09"
       ],
       "evidence_status": "source_mapped_browser_pending",
       "evidence": [
-        "frontend/src/components/workstation/InstrumentNoteTool.vue"
+        "frontend/src/components/workstation/InstrumentNoteTool.vue",
+        "frontend/tests/e2e/supporting_features_journey.spec.ts"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "pending_reason": "Source and exact case mappings are recorded; Root rendered execution and critical review remain pending.",
       "journey_ids": [
         "TC09"
       ],
       "case_refs": [
         "TC09-notes"
-      ]
+      ],
+      "source_owner": "feat-etf-holdings-constituents"
     },
     {
       "source": "frontend/src/components/workstation/MarketGaugeTool.vue",
@@ -6010,21 +6017,21 @@
       "control_count": 3,
       "signature_sha256": "f434d43af3996770da77af38d1db00183ca42829d2881dce3cb678da04ecd8dc",
       "journeys": [
-        "TC04",
-        "TC06",
         "TC08"
       ],
       "evidence_status": "source_mapped_browser_pending",
       "evidence": [
-        "frontend/src/components/workstation/PythonSourceEditor.vue"
+        "frontend/src/components/workstation/PythonSourceEditor.vue",
+        "frontend/tests/e2e/strategy_study_journey.spec.ts"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "pending_reason": "Source and exact case mappings are recorded; Root rendered execution and critical review remain pending.",
       "journey_ids": [
-        "TC09"
+        "TC08"
       ],
       "case_refs": [
-        "TC09-shell-menu"
-      ]
+        "TC08-library"
+      ],
+      "source_owner": "feat-strategy-lab-v2"
     },
     {
       "source": "frontend/src/components/workstation/RatioUPlot.vue",
@@ -6213,6 +6220,464 @@
         "TC03-status-disclosure"
       ],
       "critical_review_slot": "TC03-critical-review"
+    },
+    {
+      "source": "frontend/src/views/BasketsView.vue",
+      "control_count": 20,
+      "signature_sha256": "a572a5d45198dd18cfd47a2c0e51673ca1fad38695a2707d1f0de9f516fa8293",
+      "journeys": [
+        "TC04",
+        "TC07",
+        "TC09"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/views/BasketsView.vue",
+        "frontend/tests/e2e/baskets_journey.spec.ts"
+      ],
+      "pending_reason": "Source and exact case mappings are recorded; Root rendered execution and critical review remain pending.",
+      "journey_ids": [
+        "TC04",
+        "TC07",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC04-basket-lifecycle",
+        "TC04-basket-preparation",
+        "TC04-basket-snapshot"
+      ],
+      "source_owner": "feat-etf-holdings-constituents"
+    },
+    {
+      "source": "frontend/src/views/ETFHoldingsView.vue",
+      "control_count": 25,
+      "signature_sha256": "bfb615f45f82d722e0cb7bd92b2dc95cc6549471abd1b6e965d5ee00db6e4572",
+      "journeys": [
+        "TC04",
+        "TC09"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/views/ETFHoldingsView.vue",
+        "frontend/tests/e2e/etf_holdings_preparation.spec.ts",
+        "frontend/tests/e2e/on_demand_acquisition.spec.ts",
+        "frontend/tests/unit/views/test_etf_holdings_view.test.ts",
+        "frontend/tests/unit/components/test_etf_holdings_panel.test.ts"
+      ],
+      "pending_reason": "Source and exact case mappings are recorded; Root rendered execution and critical review remain pending.",
+      "journey_ids": [
+        "TC04",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC04-fund-selection",
+        "TC04-uncached-fund",
+        "TC04-old-snapshot",
+        "TC04-held-snapshot",
+        "TC04-no-snapshot-etf-history",
+        "TC04-etf-comparison-unit",
+        "TC04-etf-holdings-panel-unit"
+      ],
+      "source_owner": "feat-etf-holdings-constituents"
+    },
+    {
+      "source": "frontend/src/components/etf/ETFHoldingResolutionAction.vue",
+      "control_count": 2,
+      "signature_sha256": "04ebadb12023293f59dec4807a2a7a503ff140c2ef5679fd6359b3b82f8d7bc8",
+      "journeys": [
+        "TC04"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/etf/ETFHoldingResolutionAction.vue",
+        "frontend/tests/e2e/on_demand_acquisition.spec.ts"
+      ],
+      "pending_reason": "Source and exact case mappings are recorded; Root rendered execution and critical review remain pending.",
+      "journey_ids": [
+        "TC04"
+      ],
+      "case_refs": [
+        "TC04-held-snapshot",
+        "TC04-etf-unresolved",
+        "TC04-no-snapshot-etf-history"
+      ],
+      "source_owner": "feat-etf-holdings-constituents"
+    },
+    {
+      "source": "frontend/src/components/etf/ETFHoldingsPanel.vue",
+      "control_count": 8,
+      "signature_sha256": "c4ed26de71eca731b4d7cd25eeb783b3ef699b9c17aa095d7cfeada224026c5e",
+      "journeys": [
+        "TC04"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/etf/ETFHoldingsPanel.vue",
+        "frontend/tests/unit/components/test_etf_holdings_panel.test.ts",
+        "frontend/tests/e2e/etf_holdings_preparation.spec.ts"
+      ],
+      "pending_reason": "Source and exact case mappings are recorded; Root rendered execution and critical review remain pending.",
+      "journey_ids": [
+        "TC04"
+      ],
+      "case_refs": [
+        "TC04-etf-holdings-panel-unit",
+        "TC04-fund-selection",
+        "TC04-held-snapshot"
+      ],
+      "source_owner": "feat-etf-holdings-constituents"
+    },
+    {
+      "source": "frontend/src/views/StrategyLabView.vue",
+      "control_count": 123,
+      "signature_sha256": "29943b46135423a6b9e4ef18ddbc85fc8aee97f94bd270475ef4c664d34c08c6",
+      "journeys": [
+        "TC09"
+      ],
+      "evidence_status": "focused_units_browser_pending",
+      "evidence": [
+        "frontend/src/views/StrategyLabView.vue",
+        "frontend/tests/unit/views/test_strategy_lab_view.test.ts"
+      ],
+      "pending_reason": "Source and exact case mappings are recorded; Root rendered execution and critical review remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-strategy-builder-unit",
+        "TC09-strategy-edit-unit",
+        "TC09-strategy-run-unit",
+        "TC09-strategy-walkforward-unit",
+        "TC09-strategy-history-unit",
+        "TC09-strategy-coverage-unit",
+        "TC09-sweep-value-input-unit"
+      ],
+      "source_owner": "feat-strategy-lab-v2"
+    },
+    {
+      "source": "frontend/src/views/StrategyLabV2View.vue",
+      "control_count": 9,
+      "signature_sha256": "2c92a9310c98e623a77d81d24eccf3ec6b0a486d1dd04b94e78fc35e172ec926",
+      "journeys": [
+        "TC09"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/views/StrategyLabV2View.vue",
+        "frontend/tests/e2e/tc_secondary_routes_journey.spec.ts",
+        "frontend/tests/unit/views/test_strategy_lab_v2_view.test.ts"
+      ],
+      "pending_reason": "Source and exact case mappings are recorded; Root rendered execution and critical review remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-strategy-v2-browser",
+        "TC09-strategy-v2-detail-unit"
+      ],
+      "source_owner": "feat-strategy-lab-v2"
+    },
+    {
+      "source": "frontend/src/views/StudyLabView.vue",
+      "control_count": 7,
+      "signature_sha256": "e9ee21801c7e3e186bdd831659bcc78129785692733fbf2088a7315005c80a78",
+      "journeys": [
+        "TC08"
+      ],
+      "evidence_status": "focused_units_browser_pending",
+      "evidence": [
+        "frontend/src/views/StudyLabView.vue",
+        "frontend/tests/unit/views/test_study_lab_view_accessibility.test.ts"
+      ],
+      "pending_reason": "Source and exact case mappings are recorded; Root rendered execution and critical review remain pending.",
+      "journey_ids": [
+        "TC08"
+      ],
+      "case_refs": [
+        "TC08-study-lab-view-accessibility-unit"
+      ],
+      "source_owner": "feat-strategy-lab-v2"
+    },
+    {
+      "source": "frontend/src/components/workstation/CodeLibraryTool.vue",
+      "control_count": 21,
+      "signature_sha256": "332826b4a2736015d2a99936548ba7ccac52a893725f50b0cfd5046fd8af3dc9",
+      "journeys": [
+        "TC08",
+        "TC09"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/workstation/CodeLibraryTool.vue",
+        "frontend/tests/e2e/strategy_study_journey.spec.ts"
+      ],
+      "pending_reason": "Source and exact case mappings are recorded; Root rendered execution and critical review remain pending.",
+      "journey_ids": [
+        "TC08",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC08-library"
+      ],
+      "source_owner": "feat-strategy-lab-v2"
+    },
+    {
+      "source": "frontend/src/components/workstation/ResearchResultsTool.vue",
+      "control_count": 59,
+      "signature_sha256": "6d09a738a3d68e0ccbb3ec8392947daccdff23404c5147ba995c34bd989fb61f",
+      "journeys": [
+        "TC08"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/workstation/ResearchResultsTool.vue",
+        "frontend/tests/e2e/strategy_study_journey.spec.ts"
+      ],
+      "pending_reason": "Source and exact case mappings are recorded; Root rendered execution and critical review remain pending.",
+      "journey_ids": [
+        "TC08"
+      ],
+      "case_refs": [
+        "TC08-results",
+        "TC08-results-retry",
+        "TC08-results-cancel-recovery",
+        "TC08-results-explicit-retry"
+      ],
+      "source_owner": "feat-strategy-lab-v2"
+    },
+    {
+      "source": "frontend/src/components/workstation/StudyLabTool.vue",
+      "control_count": 63,
+      "signature_sha256": "adabb5dc322a1efbb05d1ebffef1218abe74f41772d4c38b011d838c2f84aa95",
+      "journeys": [
+        "TC08"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/workstation/StudyLabTool.vue",
+        "frontend/tests/e2e/strategy_study_journey.spec.ts"
+      ],
+      "pending_reason": "Source and exact case mappings are recorded; Root rendered execution and critical review remain pending.",
+      "journey_ids": [
+        "TC08"
+      ],
+      "case_refs": [
+        "TC08-study-saved-context",
+        "TC08-study-run",
+        "TC08-study-targets",
+        "TC08-study-recovery"
+      ],
+      "source_owner": "feat-strategy-lab-v2"
+    },
+    {
+      "source": "frontend/src/components/strategy/DistributionBars.vue",
+      "control_count": 1,
+      "signature_sha256": "cfc8357f79467523725dd1131696be98c55552d195bce5cc03420c83472c78d7",
+      "journeys": [
+        "TC09"
+      ],
+      "evidence_status": "focused_units_browser_pending",
+      "evidence": [
+        "frontend/src/components/strategy/DistributionBars.vue",
+        "frontend/tests/unit/components/test_distribution_bars.test.ts"
+      ],
+      "pending_reason": "Source and exact case mappings are recorded; Root rendered execution and critical review remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-distribution-bars-unit"
+      ],
+      "source_owner": "feat-strategy-lab-v2"
+    },
+    {
+      "source": "frontend/src/components/strategy/OptimizationLeaderboard.vue",
+      "control_count": 1,
+      "signature_sha256": "33ed477bef1ca8914356d726047c62ee1dfdfe8dcee732d7e7c4d81b25c67b50",
+      "journeys": [
+        "TC09"
+      ],
+      "evidence_status": "focused_units_browser_pending",
+      "evidence": [
+        "frontend/src/components/strategy/OptimizationLeaderboard.vue",
+        "frontend/tests/unit/components/test_optimization_leaderboard.test.ts"
+      ],
+      "pending_reason": "Source and exact case mappings are recorded; Root rendered execution and critical review remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-optimization-leaderboard-unit"
+      ],
+      "source_owner": "feat-strategy-lab-v2"
+    },
+    {
+      "source": "frontend/src/components/strategy/ReturnsHeatmap.vue",
+      "control_count": 1,
+      "signature_sha256": "15ac0f8f6a0306f21cd0a958875a12261698fd1daa123ae748b3cd10edd2f297",
+      "journeys": [
+        "TC09"
+      ],
+      "evidence_status": "focused_units_browser_pending",
+      "evidence": [
+        "frontend/src/components/strategy/ReturnsHeatmap.vue",
+        "frontend/tests/unit/components/test_returns_heatmap.test.ts"
+      ],
+      "pending_reason": "Source and exact case mappings are recorded; Root rendered execution and critical review remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-returns-heatmap-unit"
+      ],
+      "source_owner": "feat-strategy-lab-v2"
+    },
+    {
+      "source": "frontend/src/components/strategy/SignalReplayBreakdown.vue",
+      "control_count": 1,
+      "signature_sha256": "a40896da346d48894cf4c13327418956142e1cb87f26f253a07d9f492a30a8b0",
+      "journeys": [
+        "TC09"
+      ],
+      "evidence_status": "focused_units_browser_pending",
+      "evidence": [
+        "frontend/src/components/strategy/SignalReplayBreakdown.vue",
+        "frontend/tests/unit/components/test_signal_replay_breakdown.test.ts"
+      ],
+      "pending_reason": "Source and exact case mappings are recorded; Root rendered execution and critical review remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-signal-replay-breakdown-unit"
+      ],
+      "source_owner": "feat-strategy-lab-v2"
+    },
+    {
+      "source": "frontend/src/components/strategy/StrategyCoveragePanel.vue",
+      "control_count": 1,
+      "signature_sha256": "0e35bd5bc0146f2f9e3acc67872810bd3a71e4b0ad9e2672410f6c41d8592fb8",
+      "journeys": [
+        "TC09"
+      ],
+      "evidence_status": "focused_units_browser_pending",
+      "evidence": [
+        "frontend/src/components/strategy/StrategyCoveragePanel.vue",
+        "frontend/tests/unit/components/test_strategy_coverage_panel.test.ts"
+      ],
+      "pending_reason": "Source and exact case mappings are recorded; Root rendered execution and critical review remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-strategy-coverage-panel-unit"
+      ],
+      "source_owner": "feat-strategy-lab-v2"
+    },
+    {
+      "source": "frontend/src/components/strategy/StrategyResultChart.vue",
+      "control_count": 3,
+      "signature_sha256": "2de98d06514376906812d38becc47e198ebf265778afc926173b2a1edcff321a",
+      "journeys": [
+        "TC09"
+      ],
+      "evidence_status": "focused_units_browser_pending",
+      "evidence": [
+        "frontend/src/components/strategy/StrategyResultChart.vue",
+        "frontend/tests/unit/components/test_strategy_result_chart.test.ts"
+      ],
+      "pending_reason": "Source and exact case mappings are recorded; Root rendered execution and critical review remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-strategy-result-chart-unit"
+      ],
+      "source_owner": "feat-strategy-lab-v2"
+    },
+    {
+      "source": "frontend/src/components/strategy/StrategyRuleTreeEditor.vue",
+      "control_count": 11,
+      "signature_sha256": "cde47e64756d2c7ef7920a1b713f9850e621aa17a41f2e5041a0880a13d0abe7",
+      "journeys": [
+        "TC09"
+      ],
+      "evidence_status": "focused_units_browser_pending",
+      "evidence": [
+        "frontend/src/components/strategy/StrategyRuleTreeEditor.vue",
+        "frontend/tests/unit/components/test_strategy_rule_tree_editor.test.ts"
+      ],
+      "pending_reason": "Source and exact case mappings are recorded; Root rendered execution and critical review remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-strategy-rule-tree-editor-unit"
+      ],
+      "source_owner": "feat-strategy-lab-v2"
+    },
+    {
+      "source": "frontend/src/components/strategy/SweepValueInput.vue",
+      "control_count": 7,
+      "signature_sha256": "5e3508100372123ba742731ecfc6fd1bc81a53cb1add1d063daa340fc7edae31",
+      "journeys": [
+        "TC09"
+      ],
+      "evidence_status": "focused_units_browser_pending",
+      "evidence": [
+        "frontend/src/components/strategy/SweepValueInput.vue",
+        "frontend/tests/unit/views/test_strategy_lab_view.test.ts"
+      ],
+      "pending_reason": "Source and exact case mappings are recorded; Root rendered execution and critical review remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-sweep-value-input-unit"
+      ],
+      "source_owner": "feat-strategy-lab-v2"
+    },
+    {
+      "source": "frontend/src/components/strategy/SymbolPerformanceBars.vue",
+      "control_count": 1,
+      "signature_sha256": "f9366b01b2b271022d2d0e9d873fa7148faa69c2672b2100f58921a4a44ac644",
+      "journeys": [
+        "TC09"
+      ],
+      "evidence_status": "focused_units_browser_pending",
+      "evidence": [
+        "frontend/src/components/strategy/SymbolPerformanceBars.vue",
+        "frontend/tests/unit/components/test_symbol_performance_bars.test.ts"
+      ],
+      "pending_reason": "Source and exact case mappings are recorded; Root rendered execution and critical review remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-symbol-performance-bars-unit"
+      ],
+      "source_owner": "feat-strategy-lab-v2"
+    },
+    {
+      "source": "frontend/src/components/strategy/WalkForwardSegments.vue",
+      "control_count": 1,
+      "signature_sha256": "a53c047316fd11ee7f0b458dfa9c109df94491973aec2eed00985cecb8954cc0",
+      "journeys": [
+        "TC09"
+      ],
+      "evidence_status": "focused_units_browser_pending",
+      "evidence": [
+        "frontend/src/components/strategy/WalkForwardSegments.vue",
+        "frontend/tests/unit/components/test_walk_forward_segments.test.ts"
+      ],
+      "pending_reason": "Source and exact case mappings are recorded; Root rendered execution and critical review remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-walk-forward-segments-unit"
+      ],
+      "source_owner": "feat-strategy-lab-v2"
     }
   ],
   "journey_cases": [
@@ -6964,6 +7429,156 @@
       "test_name": "Results creates no rerun after a controlled failure and the explicit retry queues one snapshot",
       "execution_status": "authored_pending_root_run",
       "critical_review_slot": "TC08-critical-review"
+    },
+    {
+      "id": "TC04-etf-holdings-panel-unit",
+      "journey_ids": [
+        "TC04"
+      ],
+      "test_path": "frontend/tests/unit/components/test_etf_holdings_panel.test.ts",
+      "test_name": "offers the selected unresolved reported security as an explicit row-originated action",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC04-critical-review"
+    },
+    {
+      "id": "TC08-study-lab-view-accessibility-unit",
+      "journey_ids": [
+        "TC08"
+      ],
+      "test_path": "frontend/tests/unit/views/test_study_lab_view_accessibility.test.ts",
+      "test_name": "names lifecycle controls and scopes its study controls",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC08-critical-review"
+    },
+    {
+      "id": "TC09-distribution-bars-unit",
+      "journey_ids": [
+        "TC09"
+      ],
+      "test_path": "frontend/tests/unit/components/test_distribution_bars.test.ts",
+      "test_name": "renders an R outcome map with trade dots and hover detail",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC09-critical-review"
+    },
+    {
+      "id": "TC09-excursion-bars-unit",
+      "journey_ids": [
+        "TC09"
+      ],
+      "test_path": "frontend/tests/unit/components/test_excursion_bars.test.ts",
+      "test_name": "renders MAE/MFE summary and uses uPlot for the numerical surface",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC09-critical-review"
+    },
+    {
+      "id": "TC09-optimization-leaderboard-unit",
+      "journey_ids": [
+        "TC09"
+      ],
+      "test_path": "frontend/tests/unit/components/test_optimization_leaderboard.test.ts",
+      "test_name": "renders ranked optimization rows and a detail state",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC09-critical-review"
+    },
+    {
+      "id": "TC09-paper-forward-monitor-unit",
+      "journey_ids": [
+        "TC09"
+      ],
+      "test_path": "frontend/tests/unit/components/test_paper_forward_monitor_panel.test.ts",
+      "test_name": "renders monitor summary and recent snapshots",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC09-critical-review"
+    },
+    {
+      "id": "TC09-returns-heatmap-unit",
+      "journey_ids": [
+        "TC09"
+      ],
+      "test_path": "frontend/tests/unit/components/test_returns_heatmap.test.ts",
+      "test_name": "shows execution details for a return cell on click",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC09-critical-review"
+    },
+    {
+      "id": "TC09-run-comparison-table-unit",
+      "journey_ids": [
+        "TC09"
+      ],
+      "test_path": "frontend/tests/unit/components/test_run_comparison_table.test.ts",
+      "test_name": "renders comparison rows and lead/lag counts",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC09-critical-review"
+    },
+    {
+      "id": "TC09-signal-replay-breakdown-unit",
+      "journey_ids": [
+        "TC09"
+      ],
+      "test_path": "frontend/tests/unit/components/test_signal_replay_breakdown.test.ts",
+      "test_name": "renders replay summary chips and setup breakdown rows",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC09-critical-review"
+    },
+    {
+      "id": "TC09-strategy-coverage-panel-unit",
+      "journey_ids": [
+        "TC09"
+      ],
+      "test_path": "frontend/tests/unit/components/test_strategy_coverage_panel.test.ts",
+      "test_name": "shows only requested-range coverage issues in the timeline",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC09-critical-review"
+    },
+    {
+      "id": "TC09-strategy-result-chart-unit",
+      "journey_ids": [
+        "TC09"
+      ],
+      "test_path": "frontend/tests/unit/components/test_strategy_result_chart.test.ts",
+      "test_name": "renders numerical data through uPlot and preserves dense hover details",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC09-critical-review"
+    },
+    {
+      "id": "TC09-strategy-rule-tree-editor-unit",
+      "journey_ids": [
+        "TC09"
+      ],
+      "test_path": "frontend/tests/unit/components/test_strategy_rule_tree_editor.test.ts",
+      "test_name": "emits add/remove actions for group nodes",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC09-critical-review"
+    },
+    {
+      "id": "TC09-sweep-value-input-unit",
+      "journey_ids": [
+        "TC09"
+      ],
+      "test_path": "frontend/tests/unit/views/test_strategy_lab_view.test.ts",
+      "test_name": "persists and hydrates sweep-capable input modes for saved versions",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC09-critical-review"
+    },
+    {
+      "id": "TC09-symbol-performance-bars-unit",
+      "journey_ids": [
+        "TC09"
+      ],
+      "test_path": "frontend/tests/unit/components/test_symbol_performance_bars.test.ts",
+      "test_name": "renders a symbol P&L outcome map and tooltip on hover",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC09-critical-review"
+    },
+    {
+      "id": "TC09-walk-forward-segments-unit",
+      "journey_ids": [
+        "TC09"
+      ],
+      "test_path": "frontend/tests/unit/components/test_walk_forward_segments.test.ts",
+      "test_name": "renders segment summaries and details",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC09-critical-review"
     }
   ],
   "critical_review_slots": [
