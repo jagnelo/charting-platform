@@ -1,4 +1,4 @@
-from datetime import UTC, date, datetime, time
+from datetime import UTC, date, datetime, time, timedelta
 
 import pytest
 from sqlalchemy import select
@@ -9,6 +9,7 @@ from app.models.data_source import DataSource
 from app.models.market_data_foundation import MarketRefreshJob, MarketSeries, MarketSeriesDefault
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.services import market_data
+from app.services.derived_timeframes import derived_timeframe_needs_refresh
 from app.services.market_data import _default_series_bar_condition
 from app.services.ohlcv_coverage import _xnys_session_days
 from app.tasks import data_tasks
@@ -84,6 +85,59 @@ async def test_worker_persists_first_alternate_series_returns_bars_and_queues_ol
         selection_reason="first_canonical",
     )
     db.add(default)
+
+    coarse_provider_rows = {}
+    for coarse_timeframe, row_count, anchor in (
+        (Timeframe.W1, 104, date(2024, 10, 28)),
+        (Timeframe.MN, 25, date(2024, 10, 1)),
+    ):
+        coarse_series = MarketSeries(
+            instrument_id=instrument.id,
+            data_source_id=massive.id,
+            feed_scope="provider_native",
+            session_code="regular",
+            timeframe=coarse_timeframe.value,
+            adjustment_basis="split_adjusted",
+            adjustment_version="massive-split-adjusted",
+            is_canonical=True,
+            is_active=True,
+        )
+        db.add(coarse_series)
+        db.flush()
+        db.add(
+            MarketSeriesDefault(
+                instrument_id=instrument.id,
+                timeframe=coarse_timeframe.value,
+                is_adjusted=True,
+                market_series_id=coarse_series.id,
+                selection_reason="first_canonical",
+            )
+        )
+        provider_rows = []
+        for offset in range(row_count):
+            period_date = anchor + timedelta(
+                days=offset * (7 if coarse_timeframe is Timeframe.W1 else 30)
+            )
+            row = OHLCVBar(
+                instrument_id=instrument.id,
+                data_source_id=massive.id,
+                market_series_id=coarse_series.id,
+                timeframe=coarse_timeframe,
+                ts=datetime.combine(period_date, time.min, tzinfo=UTC),
+                open=100,
+                high=102,
+                low=99,
+                close=101,
+                volume=1000,
+                is_adjusted=True,
+                adjustment_basis="split_adjusted",
+                adjustment_version="massive-split-adjusted",
+                session="regular",
+                scope_key=f"series:{coarse_series.id}:regular",
+            )
+            provider_rows.append(row)
+        db.add_all(provider_rows)
+        coarse_provider_rows[coarse_timeframe] = (coarse_series, provider_rows)
 
     retained_alpaca_series = None
     if retained_alternate:
@@ -297,7 +351,7 @@ async def test_worker_persists_first_alternate_series_returns_bars_and_queues_ol
     result = await data_tasks.process_refresh_jobs({})
 
     assert result["claimed"] == 1
-    assert result["completed"] == 1
+    assert result["completed"] == 1, result
     summary = completed_summaries[0]
     assert summary["bars_observed"] > 0
     if retained_alternate:
@@ -307,12 +361,21 @@ async def test_worker_persists_first_alternate_series_returns_bars_and_queues_ol
     assert summary["range_coverage_status"] == "partial"
     assert summary["default_series_selected"] is True
 
-    stored_default = db.execute(select(MarketSeriesDefault)).scalar_one()
+    stored_default = db.execute(
+        select(MarketSeriesDefault).where(
+            MarketSeriesDefault.instrument_id == instrument.id,
+            MarketSeriesDefault.timeframe == Timeframe.D1.value,
+            MarketSeriesDefault.is_adjusted.is_(True),
+        )
+    ).scalar_one()
     assert stored_default.market_series_id != massive_series.id
     alpaca_series = (
         retained_alpaca_series
         or db.execute(
-            select(MarketSeries).where(MarketSeries.data_source_id == alpaca.id)
+            select(MarketSeries).where(
+                MarketSeries.data_source_id == alpaca.id,
+                MarketSeries.timeframe == Timeframe.D1.value,
+            )
         ).scalar_one()
     )
     assert stored_default.market_series_id == alpaca_series.id
@@ -338,6 +401,78 @@ async def test_worker_persists_first_alternate_series_returns_bars_and_queues_ol
         expected_first_bar = min(_xnys_session_days(planned_start.date(), end.date()))
         assert min(bar.ts.date() for bar in default_read) == expected_first_bar
     assert max(bar.ts.date() for bar in default_read) == date(2026, 10, 30)
+
+    # A D1 source switch also refreshes the derived defaults in the same worker
+    # pass, without replacing the older provider-supplied coarse observations.
+    for coarse_timeframe, (old_series, original_rows) in coarse_provider_rows.items():
+        coarse_default = db.execute(
+            select(MarketSeriesDefault).where(
+                MarketSeriesDefault.instrument_id == instrument.id,
+                MarketSeriesDefault.timeframe == coarse_timeframe.value,
+                MarketSeriesDefault.is_adjusted.is_(True),
+            )
+        ).scalar_one()
+        derived_series = db.get(MarketSeries, coarse_default.market_series_id)
+        assert derived_series is not None
+        assert derived_series.id != old_series.id
+        assert derived_series.is_canonical is True
+        assert derived_series.data_source_id == alpaca.id
+        assert derived_series.adjustment_basis == "split_adjusted"
+        assert derived_series.adjustment_version == "alpaca-split-adjusted"
+        visible_coarse_rows = (
+            db.execute(
+                select(OHLCVBar).where(
+                    OHLCVBar.instrument_id == instrument.id,
+                    OHLCVBar.timeframe == coarse_timeframe,
+                    OHLCVBar.is_adjusted.is_(True),
+                    _default_series_bar_condition(instrument.id, coarse_timeframe, True),
+                )
+            )
+            .scalars()
+            .all()
+        )
+        assert visible_coarse_rows
+        assert all(row.is_derived is True for row in visible_coarse_rows)
+        assert {row.market_series_id for row in visible_coarse_rows} == {derived_series.id}
+        assert {row.data_source_id for row in visible_coarse_rows} == {alpaca.id}
+        retained_provider_rows = (
+            db.execute(select(OHLCVBar).where(OHLCVBar.market_series_id == old_series.id))
+            .scalars()
+            .all()
+        )
+        assert len(retained_provider_rows) == len(original_rows)
+        assert all(row.data_source_id == massive.id for row in retained_provider_rows)
+        assert all(
+            row.adjustment_version == "massive-split-adjusted" for row in retained_provider_rows
+        )
+        if retained_alternate:
+            from app.services.ohlcv_coverage import assess_ohlcv_coverage
+
+            coarse_coverage = assess_ohlcv_coverage(
+                visible_coarse_rows,
+                coarse_timeframe,
+                min(row.ts for row in visible_coarse_rows),
+                max(row.ts for row in visible_coarse_rows),
+                calendar="XNYS",
+            )
+            assert coarse_coverage.status.value == "partial"
+        else:
+            from app.services.ohlcv_coverage import assess_ohlcv_coverage
+
+            coarse_coverage = assess_ohlcv_coverage(
+                visible_coarse_rows,
+                coarse_timeframe,
+                min(row.ts for row in visible_coarse_rows),
+                max(row.ts for row in visible_coarse_rows),
+                calendar="XNYS",
+            )
+            assert coarse_coverage.status.value == "ready"
+        assert not await derived_timeframe_needs_refresh(
+            AsyncSessionAdapter(db),
+            instrument.id,
+            coarse_timeframe,
+            adjusted=True,
+        )
 
     # Original Massive observations remain stored and keep their source lineage.
     retained_massive = (

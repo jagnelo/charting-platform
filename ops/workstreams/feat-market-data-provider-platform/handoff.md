@@ -1,5 +1,33 @@
 # feat/market-data-provider-platform
 
+## 2026-11-08 — unattended derived W1/MN follows the selected D1 source
+
+Root's browser-closed retained-copy readback showed that all eleven sector D1
+defaults had advanced to Alpaca while their W1/MN defaults still pointed to the
+older Massive series. The source path explains the mismatch: the D1 worker's
+optional coarse materialization ran before its daily default selection, and
+ordinary D1 jobs did not refresh coarse data unless a W1/MN dependency set a
+special flag. The retained receipt contains no W1/MN job state, so this finding
+does not assume queued work was pending.
+
+The worker now checks the selected daily series after D1 processing and lazily
+refreshes W1/MN when that source reaches the job's end. Historical point-in-time
+jobs that stop before newer selected D1 observations leave current defaults
+alone. Derived series carry the selected D1 source and adjustment lineage; a
+complete range or its latest genuinely complete suffix may become the default.
+An older gap remains visible as partial, provider-supplied rows are retained,
+and no feeds are spliced. The derived signature records its output series so
+preserved old derived rows do not trigger repeated rebuilds.
+
+Focused worker and derivation modules passed 14/14. The worker regression starts
+with Massive W1/MN defaults and verifies automatic coherent Alpaca-derived
+defaults after a D1 job, with both complete and older-gap cases, original
+Massive observations retained, and no stale refresh remaining. Ruff 0.4.7
+check/format and `git diff --check` passed. No provider HTTP, runtime, database,
+quota, policy, or hold mutation occurred. Exact-source CI and Root's retained
+runtime/browser requalification remain pending; the wider Provider roadmap is
+still in progress.
+
 ## 2026-11-07 — source-specific history-bound witness guard and TC context
 
 The unknown-depth history repair now limits a provider witness to the exact

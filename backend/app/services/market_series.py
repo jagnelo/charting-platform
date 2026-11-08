@@ -211,6 +211,7 @@ async def select_default_series_for_complete_range(
     market_series_id: int,
     start: datetime,
     end: datetime,
+    prefer_selected_series: bool = False,
 ) -> bool:
     """Select a canonical provider series after its requested range is complete.
 
@@ -274,7 +275,8 @@ async def select_default_series_for_complete_range(
         else None
     )
     if (
-        default is not None
+        not prefer_selected_series
+        and default is not None
         and default.market_series_id != market_series_id
         and current_series is not None
         and current_series.is_active
@@ -336,6 +338,8 @@ async def select_default_series_for_latest_contiguous_suffix(
     market_series_id: int,
     requested_start: datetime,
     end: datetime,
+    is_derived: bool = False,
+    prefer_selected_series: bool = False,
 ) -> bool:
     """Select one coherent alternate when its latest contiguous suffix is useful.
 
@@ -387,7 +391,7 @@ async def select_default_series_for_latest_contiguous_suffix(
                     OHLCVBar.market_series_id == market_series_id,
                     OHLCVBar.timeframe == Timeframe(timeframe),
                     OHLCVBar.is_adjusted.is_(adjusted),
-                    OHLCVBar.is_derived.is_(False),
+                    OHLCVBar.is_derived.is_(is_derived),
                     OHLCVBar.ts >= requested_start,
                     OHLCVBar.ts <= end,
                 )
@@ -447,6 +451,7 @@ async def select_default_series_for_latest_contiguous_suffix(
         market_series_id=market_series_id,
         start=suffix_start,
         end=end,
+        prefer_selected_series=prefer_selected_series,
     )
 
 

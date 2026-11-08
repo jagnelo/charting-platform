@@ -10,7 +10,7 @@ from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -32,8 +32,11 @@ from app.models.workstation import (
     WorkspaceWindow,
 )
 from app.providers.errors import bounded_redact_provider_message
-from app.services.derived_timeframes import materialize_derived_timeframes
-from app.services.market_data import fetch_ohlcv
+from app.services.derived_timeframes import (
+    materialize_derived_timeframes,
+    refresh_derived_timeframe_if_needed,
+)
+from app.services.market_data import _default_series_bar_condition, fetch_ohlcv
 from app.services.market_data_monitoring import build_shadow_report
 from app.services.market_refresh_queue import (
     RefreshLeaseLostError,
@@ -2724,14 +2727,6 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                             retry_at=datetime.now(UTC) + timedelta(seconds=20)
                         )
                     if bars is not None:
-                        if timeframe is Timeframe.D1 and preparation.get(
-                            "derive_coarse_timeframes"
-                        ):
-                            await materialize_derived_timeframes(
-                                db,
-                                instrument.id,
-                                adjusted=bool(preparation.get("adjusted", True)),
-                            )
                         next_job_id = None
                         if (
                             bars
@@ -2861,6 +2856,32 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                             adjusted=bool(preparation.get("adjusted", True)),
                             redis=ctx.get("redis"),
                         )
+                if timeframe is Timeframe.D1 and bars:
+                    adjusted = bool(preparation.get("adjusted", True))
+                    latest_selected_d1 = await db.scalar(
+                        select(func.max(OHLCVBar.ts)).where(
+                            OHLCVBar.instrument_id == instrument.id,
+                            OHLCVBar.timeframe == Timeframe.D1,
+                            OHLCVBar.is_adjusted.is_(adjusted),
+                            _default_series_bar_condition(instrument.id, Timeframe.D1, adjusted),
+                        )
+                    )
+                    job_end = job.end_at
+                    if job_end is not None and job_end.tzinfo is None:
+                        job_end = job_end.replace(tzinfo=UTC)
+                    if latest_selected_d1 is not None and latest_selected_d1.tzinfo is None:
+                        latest_selected_d1 = latest_selected_d1.replace(tzinfo=UTC)
+                    if latest_selected_d1 is not None and (
+                        job_end is None or latest_selected_d1 <= job_end
+                    ):
+                        for coarse_timeframe in (Timeframe.W1, Timeframe.MN):
+                            await refresh_derived_timeframe_if_needed(
+                                db,
+                                instrument.id,
+                                coarse_timeframe,
+                                adjusted=adjusted,
+                            )
+
                 result_start = min((bar.ts for bar in bars), default=None)
                 result_end = max((bar.ts for bar in bars), default=None)
                 coverage_scopes = sorted(
