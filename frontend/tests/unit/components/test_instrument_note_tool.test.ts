@@ -81,7 +81,7 @@ describe('InstrumentNoteTool draft lifecycle', () => {
     const { wrapper, queryClient } = mountTool(null, 'QQQ')
 
     await vi.waitFor(() => expect(apiGet).toHaveBeenCalledTimes(1))
-    expect(apiGet).toHaveBeenNthCalledWith(1, '/instruments/QQQ', { canonical_only: true })
+    expect(apiGet).toHaveBeenNthCalledWith(1, '/instruments/QQQ', { canonical_only: true }, { priority: 'high' })
     expect(wrapper.get('.note-tool__status').text()).toBe('QQQ · Resolving canonical instrument…')
     expect(wrapper.get('textarea').element.disabled).toBe(true)
 
@@ -108,7 +108,7 @@ describe('InstrumentNoteTool draft lifecycle', () => {
 
     await vi.waitFor(() => expect(wrapper.get('.note-tool__status').text()).toBe('UNKNOWN · No canonical instrument'))
     expect(apiGet).toHaveBeenCalledTimes(1)
-    expect(apiGet).toHaveBeenCalledWith('/instruments/UNKNOWN', { canonical_only: true })
+    expect(apiGet).toHaveBeenCalledWith('/instruments/UNKNOWN', { canonical_only: true }, { priority: 'high' })
     expect(wrapper.get('textarea').element.disabled).toBe(true)
     wrapper.unmount()
     queryClient.clear()
