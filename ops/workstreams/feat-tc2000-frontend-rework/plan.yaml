@@ -330,8 +330,8 @@ on_demand_consumer_implementation: 'Current TC-owned mocked implementation at th
   tree and passed its full required CI40656688915. This feature-branch adoption records ancestry only; its exact branch CI
   is pending Root. Controlled tests are not genuine Provider/issuer proof; target/deployment and the complete roadmap remain
   open.'
-current_blocker: "Root has accepted the TC837 scoped qualification (compact RRG/Ratio render, unit suite, and mapped route/profile captures); its 8a predecessor full66 was 61/66 and the exact5 replay remains Root-owned. Root's review also assigned two ETF-owned content-order corrections. No TC product defect is currently evidenced by those results; exact candidate replays and remaining final gates are pending."
-current_checkpoint_status: "TC837 is frozen with focused compact Ratio/RRG, type, strict scope, workstream, journey-matrix, and reference checks green. Root's scoped qualification passed compact daily/weekly/monthly RRG resize/copy/restore, six visual profiles, 1955 frontend units, and three-profile route captures; the 8a predecessor full66 is 61/66 and its exact5 replay awaits Root. Imported the exact Strategy011e2 lifecycle E2E successor for the known workspace save/delete acknowledgement failure; its 25 other private paths match and remain pinned. ETF bd5129 S&P source remains pinned. No new product bytes were changed in this checkpoint; overall qualification and full roadmap remain open."
+current_blocker: "Root exact5 on ca4e57f6 ended 3 passed / 2 failed. Root proved the TCNEW failure is a delayed /workspaces/default hydration overwriting the already accepted TCNEW selection; the Workstation race now has a focused deferred-load regression. The second-window Results GET remains a separate unproven dispatch/admission issue; API queue logging is opt-in and temporary for Root’s bounded two-case observation. Root owns browser replay and remaining final gates."
+current_checkpoint_status: "Provisional diagnostic candidate from ca4e57f6: a delayed default-workspace response no longer overwrites a newer verified symbol selection; the focused WorkstationView module passes 109/109, API client passes 28/28, and frontend type-check passes. Imported ETF017’s six exact consumer paths; all ten manifest blobs, SHA256 values, and Git modes verify, and bd5129 is superseded only in the active pin while retained in history. TCNEW E2E uses its actual button role. api.ts has opt-in redacted queue observations for Root’s bounded Results dispatch diagnosis; remove them after measurement. Strict scope/workstream/matrix/reference/diff checks pass. Root’s two-case and full journey qualification remain pending; the full roadmap remains open."
 
 ordinary_ticker_latest_update: 'Root accepted the exact combined served profile at backend source 6eae00eb8380438da771fed0c42d19587e9520ce
   / image sha256:6c962aad753959c2ecdd79f0a1d6057d77f2ba6b829ec85b99404b009a42e76a and frontend source 36e7ad2cb08c769a242773ab2b6be69fcc350774
@@ -5467,6 +5467,22 @@ development_dependency_import_history:
     - frontend/tests/unit/views/test_etf_holdings_view.test.ts
     state: superseded_development_import
     superseded_by: 646fe8d8e60acce32afcedf94de023c86b2d69fd
+  - source_sha: bd5129cea81774a5799768e4027e3118a9255d45
+    manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/bd5129cea81774a5799768e4027e3118a9255d45.json
+    manifest_sha256: 3d78aaeca91920f077e0ae280d7cd74adde4d67764c4cab84e851118fa1ae3c1
+    paths:
+      - frontend/src/components/workstation/InstrumentNoteTool.vue
+      - frontend/src/views/BasketsView.vue
+      - frontend/src/views/ETFHoldingsView.vue
+      - frontend/tests/e2e/baskets_journey.spec.ts
+      - frontend/tests/e2e/etf_holdings_preparation.spec.ts
+      - frontend/tests/e2e/sp500_analysis_journey.spec.ts
+      - frontend/tests/e2e/supporting_features_journey.spec.ts
+      - frontend/tests/unit/components/test_instrument_note_tool.test.ts
+      - frontend/tests/unit/views/test_baskets_view.test.ts
+      - frontend/tests/unit/views/test_etf_holdings_view.test.ts
+    state: superseded_development_import
+    superseded_by: 017b9f73c84b6384adff6e69429afb1e91f1221a
 
 approved_development_dependency_imports:
 - source_sha: fc220242ff9ff8be603c632dc80350a90708bec7
@@ -5554,9 +5570,9 @@ approved_development_dependency_imports:
   - backend/tests/unit/workers/test_arq_worker.py
   - backend/app/services/etf_holdings.py
   - backend/tests/unit/services/test_etf_holdings_catalogue.py
-- source_sha: bd5129cea81774a5799768e4027e3118a9255d45
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/bd5129cea81774a5799768e4027e3118a9255d45.json
-  manifest_sha256: 3d78aaeca91920f077e0ae280d7cd74adde4d67764c4cab84e851118fa1ae3c1
+- source_sha: 017b9f73c84b6384adff6e69429afb1e91f1221a
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/017b9f73c84b6384adff6e69429afb1e91f1221a.json
+  manifest_sha256: 7445fea2b34c47135a4a797358b11d3574870ab89f3a9b80c087c2125d02a02c
   paths:
   - frontend/src/components/workstation/InstrumentNoteTool.vue
   - frontend/src/views/BasketsView.vue
@@ -5624,4 +5640,15 @@ etf_sp500_compact_overflow_journey_successor_20261108:
   previous_private_pin: ETF 52b8e74999a3e4ae8feedb551bc6ef5a2eb95b3b was retained unchanged in development_dependency_import_history and superseded only in the active pin.
   validation: ETF old-byte guard and all source blobs, hashes and modes verified; S&P E2E reference preflight has no actionable unbound names; strict scope, workstream, journey-matrix and diff checks pass.
   pending: Root updated compact-profile and full66 browser qualification. This import is exact development consumption, not runtime or release acceptance.
+  integration_capture: exact branch HEAD
+
+
+etf017b9f73_and_initial_workspace_selection_race_20261108:
+  source: 017b9f73c84b6384adff6e69429afb1e91f1221a
+  manifest: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/017b9f73c84b6384adff6e69429afb1e91f1221a.json
+  manifest_sha256: 7445fea2b34c47135a4a797358b11d3574870ab89f3a9b80c087c2125d02a02c
+  imported_consumer_delta: Six guarded ETF paths; the complete ten-path source manifest matches by Git blob, SHA256, and Git mode. The previous ETF bd5129 active pin is archived unchanged.
+  tc_change: A verified symbol selection made during initial workspace loading is retained across the delayed default-workspace response; stale persisted blue-link hydration cannot replace the selected route, chart, or draft. A focused deferred-load test covers the overwrite and final selection.
+  validation: WorkstationView focused module 109/109; API client 28/28; frontend type-check passes; E2E reference-only preflight has no actionable unbound names; strict scope, workstream, journey-matrix, and diff checks pass. Temporary opt-in API queue phase logging does not change admission behavior.
+  pending: Provisional source checkpoint commit; Root exact2 browser diagnostic and full journey qualification. Remove temporary API logging after its diagnostic. No browser/runtime/release acceptance is claimed.
   integration_capture: exact branch HEAD

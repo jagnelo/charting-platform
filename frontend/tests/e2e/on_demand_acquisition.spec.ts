@@ -1092,7 +1092,7 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
     if (matchesCoveredBar) acquiredLocalRows = rows
     return matchesCoveredBar
   }, { timeout: 15_000 })
-  const tcnewCandidate = page.getByRole('option', { name: /^Use TCNEW · TEST\b/ })
+  const tcnewCandidate = page.getByRole('button', { name: /^Use TCNEW · TEST\b/ })
   await expect(tcnewCandidate).toBeVisible()
   await tcnewCandidate.click()
   const candidateResolve = await candidateResolveReady

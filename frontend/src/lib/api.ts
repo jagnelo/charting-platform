@@ -32,6 +32,41 @@ let activeApiFetches = 0
 let activeNonInteractiveApiFetches = 0
 let activeLowApiFetches = 0
 
+type ApiQueueDiagnosticWindow = Window & { __tcApiQueueDiagnostics?: boolean }
+
+function apiPathname(input: RequestInfo | URL): string {
+  const raw = typeof input === 'string'
+    ? input
+    : input instanceof URL ? input.href : input.url
+  return new URL(raw, window.location.href).pathname
+}
+
+function apiPathClass(pathname: string): string {
+  if (pathname.startsWith(`${BASE}/ohlcv/local/`)) return 'local-ohlcv'
+  if (pathname.startsWith(`${BASE}/data/`)) return 'data-preparation'
+  if (pathname.startsWith(`${BASE}/research/`)) return 'research'
+  if (pathname.startsWith(`${BASE}/analysis/`)) return 'analysis'
+  if (pathname.startsWith(`${BASE}/market-groups/`)) return 'market-groups'
+  if (pathname.startsWith(`${BASE}/instruments/`)) return 'instruments'
+  if (pathname.startsWith(`${BASE}/notes/`)) return 'notes'
+  return pathname.startsWith(`${BASE}/`) ? 'other-api' : 'non-api'
+}
+
+function observeApiQueue(phase: 'enqueue' | 'admit' | 'release' | 'abort-queued', request: QueuedApiFetch): void {
+  if (typeof window === 'undefined' || !(window as ApiQueueDiagnosticWindow).__tcApiQueueDiagnostics) return
+  const pathname = apiPathname(request.input)
+  console.info('TC_API_QUEUE_DIAGNOSTIC', JSON.stringify({
+    phase,
+    pathname,
+    method: (request.init.method ?? 'GET').toUpperCase(),
+    priority: request.priority,
+    active: activeApiFetches,
+    activeNonInteractive: activeNonInteractiveApiFetches,
+    activeLow: activeLowApiFetches,
+    queuedPathClasses: queuedApiFetches.map(item => apiPathClass(apiPathname(item.input))),
+  }))
+}
+
 function usesNonInteractiveCapacity(queued: Pick<QueuedApiFetch, 'input' | 'init' | 'priority'>): boolean {
   if (queued.priority !== 'high') return true
   const method = (queued.init.method ?? 'GET').toUpperCase()
@@ -96,6 +131,7 @@ function drainApiFetchQueue(): void {
     activeApiFetches += 1
     if (usesNonInteractive) activeNonInteractiveApiFetches += 1
     if (queued.priority === 'low') activeLowApiFetches += 1
+    observeApiQueue('admit', queued)
     let released = false
     const release = () => {
       if (released) return
@@ -103,6 +139,7 @@ function drainApiFetchQueue(): void {
       activeApiFetches -= 1
       if (usesNonInteractive) activeNonInteractiveApiFetches -= 1
       if (queued.priority === 'low') activeLowApiFetches -= 1
+      observeApiQueue('release', queued)
       drainApiFetchQueue()
     }
     void Promise.resolve().then(() => fetch(queued.input, queued.init)).then(
@@ -125,6 +162,7 @@ function admittedApiFetch(input: RequestInfo | URL, init: RequestInit, priority:
         const index = queuedApiFetches.indexOf(queued)
         if (index < 0) return
         queuedApiFetches.splice(index, 1)
+        observeApiQueue('abort-queued', queued)
         signal.removeEventListener('abort', queued.abortListener!)
         reject(apiAbortReason(signal))
         drainApiFetchQueue()
@@ -132,6 +170,7 @@ function admittedApiFetch(input: RequestInfo | URL, init: RequestInit, priority:
       signal.addEventListener('abort', queued.abortListener, { once: true })
     }
     queuedApiFetches.push(queued)
+    observeApiQueue('enqueue', queued)
     drainApiFetchQueue()
   })
 }
