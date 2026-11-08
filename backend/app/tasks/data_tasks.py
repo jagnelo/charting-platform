@@ -2580,6 +2580,21 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                     raise ValueError(f"instrument {job.instrument_id} no longer exists")
                 timeframe = Timeframe(job.timeframe)
                 preparation = (job.metadata_payload or {}).get("data_preparation_child") or {}
+
+                async def refresh_cached_coarse_from_daily() -> None:
+                    """Reconcile W1/MN from the current D1 cache without transport."""
+
+                    if timeframe is not Timeframe.D1 or preparation.get("derived_only"):
+                        return
+                    adjusted = bool(preparation.get("adjusted", True))
+                    for coarse_timeframe in (Timeframe.W1, Timeframe.MN):
+                        await refresh_derived_timeframe_if_needed(
+                            db,
+                            instrument.id,
+                            coarse_timeframe,
+                            adjusted=adjusted,
+                        )
+
                 wait_for_ids = [int(value) for value in preparation.get("wait_for_job_ids", [])]
                 if wait_for_ids:
                     prerequisites = list(
@@ -2594,6 +2609,7 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                     if len(prerequisites) != len(set(wait_for_ids)) or any(
                         prerequisite.status != "completed" for prerequisite in prerequisites
                     ):
+                        await refresh_cached_coarse_from_daily()
                         raise RefreshDependencyPending(
                             retry_at=datetime.now(UTC) + timedelta(seconds=20)
                         )
@@ -2648,6 +2664,7 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                         plan_reason,
                     ) = chunk_plan
                     if native_hold_after_fallbacks:
+                        await refresh_cached_coarse_from_daily()
                         await complete_refresh_job(
                             db,
                             job,
@@ -2663,6 +2680,7 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                         await db.commit()
                         continue
                     if plan_reason:
+                        await refresh_cached_coarse_from_daily()
                         await complete_refresh_job(
                             db,
                             job,
@@ -2677,6 +2695,7 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                         await db.commit()
                         continue
                     if usage_hold is not None:
+                        await refresh_cached_coarse_from_daily()
                         await complete_refresh_job(
                             db,
                             job,
@@ -2709,6 +2728,7 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                         payload["data_preparation_child"] = preparation
                         job.metadata_payload = payload
                         if usage_job.status == "completed":
+                            await refresh_cached_coarse_from_daily()
                             await complete_refresh_job(
                                 db,
                                 job,
@@ -2723,6 +2743,7 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                             completed += 1
                             await db.commit()
                             continue
+                        await refresh_cached_coarse_from_daily()
                         raise RefreshDependencyPending(
                             retry_at=datetime.now(UTC) + timedelta(seconds=20)
                         )
@@ -2856,15 +2877,7 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                             adjusted=bool(preparation.get("adjusted", True)),
                             redis=ctx.get("redis"),
                         )
-                if timeframe is Timeframe.D1 and bars:
-                    adjusted = bool(preparation.get("adjusted", True))
-                    for coarse_timeframe in (Timeframe.W1, Timeframe.MN):
-                        await refresh_derived_timeframe_if_needed(
-                            db,
-                            instrument.id,
-                            coarse_timeframe,
-                            adjusted=adjusted,
-                        )
+                await refresh_cached_coarse_from_daily()
 
                 result_start = min((bar.ts for bar in bars), default=None)
                 result_end = max((bar.ts for bar in bars), default=None)

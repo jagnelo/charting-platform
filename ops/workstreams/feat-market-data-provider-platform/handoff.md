@@ -1,5 +1,24 @@
 # feat/market-data-provider-platform
 
+## 2026-11-08 — refresh cached coarse defaults on held or empty D1 work
+
+The retained upgrade path can already have a deeper selected Alpaca D1 series
+while W1/MN still point to old Massive rows. A later D1 continuation may be
+held before transport or return no bars. Those worker branches previously
+completed/paused before the post-fetch derived refresh, leaving useful cached
+daily data unreconciled.
+
+The D1 worker now checks stale W1/MN from the full selected D1 cache before
+native-hold, planner-hold, usage-hold, and prerequisite-wait exits. It also
+runs the same cache-only check after normal D1 work even when the chunk returns
+no bars. Explicit point-in-time derivation remains unchanged. A focused worker
+case starts with retained Alpaca D1 selected, old Massive W1/MN selected, and
+an older chunk held with `native_usage_bootstrap_not_admitted`; derived defaults
+follow Alpaca while the hold, older coverage gap, Massive observations, and
+lineage remain intact. No provider HTTP or runtime/database/quota/policy/hold
+mutation occurred. The worker/derivation modules pass 16 tests; exact-source CI
+and Root native replay remain pending, and the full Provider goal remains open.
+
 ## 2026-11-08 — refresh current derived defaults after an older D1 chunk
 
 Root's review of `bd6de08da` found that its worker refresh guard compared the

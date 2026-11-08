@@ -33,12 +33,17 @@ class _WorkerSessionContext:
 
 
 @pytest.mark.parametrize(
-    ("retained_alternate", "older_chunk"),
-    [(False, False), (True, False), (True, True)],
+    ("retained_alternate", "older_chunk", "held_chunk"),
+    [
+        (False, False, False),
+        (True, False, False),
+        (True, True, False),
+        (True, True, True),
+    ],
 )
 @pytest.mark.asyncio
 async def test_worker_persists_first_alternate_series_returns_bars_and_queues_older_chunk(
-    db, instrument, monkeypatch, retained_alternate, older_chunk
+    db, instrument, monkeypatch, retained_alternate, older_chunk, held_chunk
 ):
     """The actual worker keeps useful deeper bars visible and queues older work."""
     massive = DataSource(name="massive")
@@ -181,6 +186,10 @@ async def test_worker_persists_first_alternate_series_returns_bars_and_queues_ol
                     scope_key=f"series:{retained_alpaca_series.id}:regular",
                 )
             )
+        if held_chunk:
+            # This is the retained upgrade state: current D1 is already the
+            # deeper Alpaca series while W1/MN still select old Massive rows.
+            default.market_series_id = retained_alpaca_series.id
 
     requested_start = datetime(2016, 1, 1, tzinfo=UTC)
     planned_start = datetime(2021, 5, 17, tzinfo=UTC)
@@ -312,6 +321,15 @@ async def test_worker_persists_first_alternate_series_returns_bars_and_queues_ol
         preparation["source_provider"] = "alpaca"
         request_start = requested_start if older_chunk else planned_start
         request_end = planned_start if older_chunk else end
+        if held_chunk:
+            return (
+                (request_start, request_end, requested_start, end, "alpaca", None),
+                preparation,
+                None,
+                None,
+                "native_usage_bootstrap_not_admitted",
+                None,
+            )
         fetched = await market_data.fetch_ohlcv(
             worker_db,
             instrument,
@@ -361,13 +379,19 @@ async def test_worker_persists_first_alternate_series_returns_bars_and_queues_ol
     assert result["claimed"] == 1
     assert result["completed"] == 1, result
     summary = completed_summaries[0]
-    assert summary["bars_observed"] > 0
+    if held_chunk:
+        assert summary["preparation_status"] == "held"
+        assert summary["reason_code"] == "native_usage_bootstrap_not_admitted"
+        assert summary["retry_at"] is None
+    else:
+        assert summary["bars_observed"] > 0
     if retained_alternate:
         assert created_provider_bars == []
         assert retained_alpaca_series is not None
-    assert summary["data_status"] == "partial"
-    assert summary["range_coverage_status"] == "partial"
-    assert summary["default_series_selected"] is True
+    if not held_chunk:
+        assert summary["data_status"] == "partial"
+        assert summary["range_coverage_status"] == "partial"
+        assert summary["default_series_selected"] is True
 
     stored_default = db.execute(
         select(MarketSeriesDefault).where(
@@ -515,7 +539,7 @@ async def test_worker_persists_first_alternate_series_returns_bars_and_queues_ol
         .scalars()
         .all()
     )
-    if older_chunk:
+    if held_chunk or older_chunk:
         assert continuations == []
     else:
         continuation = continuations[0]
