@@ -777,6 +777,9 @@ describe('ResearchResultsTool', () => {
 
     expect(wrapper.get('[aria-label="Research run 14 details"]').exists()).toBe(true)
     expect(wrapper.get('[role="alert"]').text()).toContain('Unable to cancel run #13: cancel endpoint unavailable')
+    expect(wrapper.find('.research-results-tool__run-browser').exists()).toBe(true)
+    expect(wrapper.get('button[aria-label="Run 13, running, 0 artifacts"]').exists()).toBe(true)
+    expect(wrapper.get('button[aria-label="Run 14, running, 0 artifacts"]').exists()).toBe(true)
     wrapper.unmount()
   })
 
@@ -796,6 +799,9 @@ describe('ResearchResultsTool', () => {
 
     expect(wrapper.get('[aria-label="Research run 16 details"]').exists()).toBe(true)
     expect(wrapper.get('[role="alert"]').text()).toContain('Unable to queue rerun for run #15: rerun endpoint unavailable')
+    expect(wrapper.find('.research-results-tool__run-browser').exists()).toBe(true)
+    expect(wrapper.get('button[aria-label="Run 15, completed, 0 artifacts"]').exists()).toBe(true)
+    expect(wrapper.get('button[aria-label="Run 16, completed, 0 artifacts"]').exists()).toBe(true)
     wrapper.unmount()
   })
 

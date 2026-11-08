@@ -1,10 +1,15 @@
 import { QueryClient } from '@tanstack/vue-query'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+const { promoteQueued } = vi.hoisted(() => ({ promoteQueued: vi.fn() }))
+vi.mock('@/lib/api', () => ({ setQueuedApiRequestPriority: promoteQueued }))
 
 import { fetchInstrumentCalendar } from '@/lib/workstation/instrumentCalendar'
 
 describe('instrument calendar query sharing', () => {
   let queryClient: QueryClient | null = null
+
+  beforeEach(() => promoteQueued.mockReset())
 
   afterEach(() => {
     queryClient?.clear()
@@ -37,5 +42,26 @@ describe('instrument calendar query sharing', () => {
     await fetchInstrumentCalendar(queryClient, 'SPY', 'start-b', 'end-a', load)
 
     expect(load).toHaveBeenCalledTimes(3)
+  })
+
+  it('promotes an in-flight hidden-chart calendar read when its chart becomes visible without duplicating the GET', async () => {
+    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 300_000 } } })
+    let resolve!: (value: string[]) => void
+    const load = vi.fn(() => new Promise<string[]>(done => { resolve = done }))
+    const queueKey = 'chart-calendar:SPY:2024-01-01:2026-11-07'
+
+    const hiddenRead = fetchInstrumentCalendar(
+      queryClient, 'SPY', '2024-01-01', '2026-11-07', load,
+      { priority: 'auto', queueKey },
+    )
+    const visibleJoin = fetchInstrumentCalendar(
+      queryClient, 'SPY', '2024-01-01', '2026-11-07', load,
+      { priority: 'high', queueKey },
+    )
+
+    expect(promoteQueued).toHaveBeenCalledWith(queueKey, 'high')
+    expect(load).toHaveBeenCalledOnce()
+    resolve(['event'])
+    await expect(Promise.all([hiddenRead, visibleJoin])).resolves.toEqual([['event'], ['event']])
   })
 })

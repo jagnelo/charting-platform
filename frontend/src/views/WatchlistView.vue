@@ -5,7 +5,7 @@
     <div class="wl-sidebar">
       <div class="wls-header">
         <span class="wls-title">Watchlists</span>
-        <button class="wls-new-btn" :aria-expanded="showCreateForm" @click="showCreateForm = !showCreateForm">+ New</button>
+        <button class="wls-new-btn" :aria-expanded="showCreateForm" @click="toggleCreateForm">+ New</button>
       </div>
 
       <Transition name="slide-down">
@@ -185,6 +185,8 @@ const router = useRouter()
 const store  = useWatchlistStore()
 
 const activeId       = ref<number | null>(null)
+let activeSelectionIntent = 0
+let createFormGeneration = 0
 const showCreateForm = ref(false)
 const newName        = ref('')
 const createInput    = ref<HTMLInputElement | null>(null)
@@ -206,20 +208,37 @@ async function onWlReorder() {
 }
 
 function setActive(id: number) {
+  activeSelectionIntent += 1
   activeId.value = id
   const syms = (store.watchlists.find(w => w.id === id)?.items ?? [])
     .map(i => i.symbol).filter(Boolean) as string[]
   store.fetchPrices(syms)
 }
 
+function toggleCreateForm() {
+  createFormGeneration += 1
+  showCreateForm.value = !showCreateForm.value
+}
+
 async function submitCreate() {
-  if (!newName.value.trim()) return
-  const wl = await store.createWatchlist(newName.value.trim())
-  if (wl) activeId.value = wl.id
-  cancelCreate()
+  const name = newName.value.trim()
+  if (!name) return
+  const selectionIntentAtSubmit = activeSelectionIntent
+  const formGenerationAtSubmit = createFormGeneration
+  const wl = await store.createWatchlist(name)
+  if (wl) {
+    if (activeSelectionIntent === selectionIntentAtSubmit) {
+      activeSelectionIntent += 1
+      activeId.value = wl.id
+    }
+  }
+  if (createFormGeneration === formGenerationAtSubmit && showCreateForm.value && newName.value.trim() === name) {
+    cancelCreate()
+  }
 }
 
 function cancelCreate() {
+  createFormGeneration += 1
   showCreateForm.value = false
   newName.value = ''
 }
@@ -304,14 +323,23 @@ async function confirmSidebarDelete() {
   const id = sidebarDeleteTargetId.value
   await store.deleteWatchlist(id)
   sidebarDeleteTargetId.value = null
-  if (activeId.value === id) activeId.value = store.watchlists[0]?.id ?? null
+  if (activeId.value === id) {
+    activeSelectionIntent += 1
+    activeId.value = store.watchlists[0]?.id ?? null
+  }
 }
 
 // ── Sidebar copy / lock / unlock ────────────────────────────────────────────
 async function doSidebarCopy(id: number) {
   closeSidebarMenu()
+  const selectionIntentAtCopyStart = activeSelectionIntent
   const copy = await store.copyWatchlist(id)
-  if (copy) activeId.value = copy.id
+  if (copy) {
+    if (activeSelectionIntent === selectionIntentAtCopyStart) {
+      activeSelectionIntent += 1
+      activeId.value = copy.id
+    }
+  }
 }
 
 async function doSidebarLock(id: number) {
@@ -344,10 +372,16 @@ function fmtPct(v: number) {
 }
 
 onMounted(async () => {
+  const selectionIntentAtLoadStart = activeSelectionIntent
   await store.loadWatchlists()
-  if (store.watchlists.length) {
-    activeId.value = store.watchlists[0].id
-    const syms = store.watchlists[0].items.map(i => i.symbol).filter(Boolean) as string[]
+  const selectedStillExists = activeId.value !== null
+    && store.watchlists.some(watchlist => watchlist.id === activeId.value)
+  if (activeSelectionIntent !== selectionIntentAtLoadStart && selectedStillExists) return
+  if (activeId.value !== null && !selectedStillExists) activeId.value = null
+  if (activeId.value === null && store.watchlists.length) {
+    const first = store.watchlists[0]
+    activeId.value = first.id
+    const syms = first.items.map(i => i.symbol).filter(Boolean) as string[]
     store.fetchPrices(syms)
   }
 })

@@ -49,7 +49,11 @@ describe('linked instrument tool stale-response guards', () => {
     const note = deferred<{ content: string; updated_at: string } | null>()
     apiGet.mockReturnValue(note.promise)
     const wrapper = mountNote({ props: { instrumentId: 1, symbol: 'SPY' } })
-    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/notes/instruments/1'))
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/notes/instruments/1', undefined, {
+      priority: 'auto',
+      queueKey: 'instrument-note:1',
+      signal: expect.any(AbortSignal),
+    }))
     wrapper.unmount()
 
     note.resolve({ content: 'late note', updated_at: '2026-08-03T00:00:00Z' })

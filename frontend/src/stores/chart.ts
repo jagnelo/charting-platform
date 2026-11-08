@@ -97,7 +97,15 @@ function createChartStore(storeId: string) {
     let _saveTimer:     ReturnType<typeof setTimeout>  | null = null
     let _coveragePoller: ReturnType<typeof setInterval> | null = null
     let _loadGeneration = 0
-    let inFlightLoad: { key: string; promise: Promise<void> } | null = null
+    let localBarsPublicationGeneration = 0
+    type LocalBarsResult = { mapped: OHLCVBar[] | null; error: unknown | null }
+    type InFlightChartLoad = {
+      key: string
+      promise: Promise<void>
+      generation: number
+      localBarsPromise?: Promise<LocalBarsResult>
+    }
+    let inFlightLoad: InFlightChartLoad | null = null
     let olderHistoryAbortController: AbortController | null = null
     let basketPreparationController: AbortController | null = null
     let basketPreparationKey: string | null = null
@@ -393,13 +401,23 @@ function createChartStore(storeId: string) {
       })()
     }
 
-    async function performLoadBars(sym: string, tf: Timeframe, nextBarType: ChartBarType, localOnly: boolean, normalizedTransformParams: ChartTransformParams, forceFresh = false) {
+    async function performLoadBars(
+      sym: string,
+      tf: Timeframe,
+      nextBarType: ChartBarType,
+      localOnly: boolean,
+      normalizedTransformParams: ChartTransformParams,
+      forceFresh = false,
+      activeLoad?: InFlightChartLoad,
+    ) {
       if (!sym || !tf) return
       olderHistoryAbortController?.abort()
       olderHistoryAbortController = null
       isLoadingMore.value = false
       cancelPendingIndicatorSave()
       const generation = ++_loadGeneration
+      const localBarsGeneration = ++localBarsPublicationGeneration
+      if (activeLoad) activeLoad.generation = generation
       const basketId = basketIdFromSymbol(sym)
       const requestedBasketPreparationKey = basketId !== null && localOnly ? `${basketId}:${tf}` : null
       if (basketPreparationKey && basketPreparationKey !== requestedBasketPreparationKey) {
@@ -413,6 +431,7 @@ function createChartStore(storeId: string) {
       const transformKey = JSON.stringify(normalizedTransformParams)
       const requestScopeKey = chartLoadScopeKey(sym, tf, nextBarType, localOnly, normalizedTransformParams)
       const isCurrent = () => generation === _loadGeneration && symbol.value === sym && timeframe.value === tf && barType.value === nextBarType && localOnlyMode.value === Boolean(localOnly) && JSON.stringify(transformParams.value) === transformKey
+      const isCurrentLocalRead = () => isCurrent() && localBarsGeneration === localBarsPublicationGeneration
       const sameSelection = symbol.value === sym && timeframe.value === tf && barType.value === nextBarType && JSON.stringify(transformParams.value) === transformKey
       // A deliberate chart reload is the explicit way to retry a completed
       // older-history request that made no local progress.
@@ -493,9 +512,10 @@ function createChartStore(storeId: string) {
             error => ({ mapped: null, error }),
           )
         : null
+      if (activeLoad && localBarsPromise) activeLoad.localBarsPromise = localBarsPromise
 
       const publishLocalBars = (mapped: OHLCVBar[]) => {
-        if (!isCurrent()) return false
+        if (!isCurrentLocalRead()) return false
         bars.value = mapped
         renderedLoadScopeKey = requestScopeKey
         hasReachedStart.value = mapped.length === 0
@@ -570,13 +590,14 @@ function createChartStore(storeId: string) {
           && !indicatorStacksEqual(indicators.value, loadedIndicatorsBeforeRefresh)) {
           indicators.value = loadedIndicatorsBeforeRefresh
         }
-        bars.value = mapped
-        renderedLoadScopeKey = requestScopeKey
-        if (mapped.length) hasReachedStart.value = false
-        // A short initial page can mean either "brand-new listing" or "cache is
-        // currently incomplete". Let the older-page path make that decision so
-        // partial caches can self-repair when the user scrolls left.
-        if (!mapped.length) hasReachedStart.value = true
+        if (isCurrentLocalRead()) {
+          bars.value = mapped
+          renderedLoadScopeKey = requestScopeKey
+          // A short initial page can mean either "brand-new listing" or "cache is
+          // currently incomplete". Let the older-page path make that decision so
+          // partial caches can self-repair when the user scrolls left.
+          hasReachedStart.value = !mapped.length
+        }
         if (!refreshesRenderedSelection) {
           // Chart data and its OHLCV pointer are usable independently of saved
           // plot hydration. Do not keep a ready local chart blank while the
@@ -613,12 +634,13 @@ function createChartStore(storeId: string) {
 
     function startLoadBars(sym: string, tf: Timeframe, nextBarType: ChartBarType, localOnly: boolean, normalizedTransformParams: ChartTransformParams, forceFresh = false): Promise<void> {
       const requestKey = chartLoadScopeKey(sym, tf, nextBarType, localOnly, normalizedTransformParams)
-      let promise: Promise<void>
-      promise = performLoadBars(sym, tf, nextBarType, localOnly, normalizedTransformParams, forceFresh)
+      const entry: InFlightChartLoad = { key: requestKey, promise: Promise.resolve(), generation: _loadGeneration + 1 }
+      inFlightLoad = entry
+      const promise = performLoadBars(sym, tf, nextBarType, localOnly, normalizedTransformParams, forceFresh, entry)
         .finally(() => {
-          if (inFlightLoad?.promise === promise) inFlightLoad = null
+          if (inFlightLoad === entry) inFlightLoad = null
         })
-      inFlightLoad = { key: requestKey, promise }
+      entry.promise = promise
       return promise
     }
 
@@ -643,21 +665,59 @@ function createChartStore(storeId: string) {
       const normalizedTransformParams = Object.fromEntries(Object.entries(transformParams.value).filter(([, value]) => typeof value === 'number' && Number.isFinite(value))) as ChartTransformParams
       if (!sym || !tf) return
       const requestKey = chartLoadScopeKey(sym, tf, nextBarType, true, normalizedTransformParams)
-
-      // A successful history action can finish while the initial chart load is
-      // still awaiting instrument indicators. Coalescing the refresh into that
-      // pending load would leave its earlier, empty local response on screen.
-      // Wait for that exact selection to settle, then bypass the short-lived
-      // OHLCV response cache for a fresh local read.
-      while (inFlightLoad?.key === requestKey) {
-        const pending = inFlightLoad.promise
-        await pending.catch(() => undefined)
-        if (symbol.value !== sym || timeframe.value !== tf || barType.value !== nextBarType
-          || JSON.stringify(transformParams.value) !== JSON.stringify(normalizedTransformParams)) return
+      if (!localOnlyMode.value) {
+        await startLoadBars(sym, tf, nextBarType, true, normalizedTransformParams, true)
+        return
       }
-      if (symbol.value !== sym || timeframe.value !== tf || barType.value !== nextBarType
-        || JSON.stringify(transformParams.value) !== JSON.stringify(normalizedTransformParams)) return
-      await startLoadBars(sym, tf, nextBarType, true, normalizedTransformParams, true)
+      // An explicit refresh remains the user's retry gesture for the current
+      // older-history cursor, just as it was when refresh restarted the whole
+      // chart hydration.
+      noProgressHistoryCursor = null
+
+      const generation = _loadGeneration
+      const localScopeKey = chartLoadScopeKey(sym, tf, nextBarType, true, normalizedTransformParams)
+      const preserveCurrentBars = renderedLoadScopeKey === localScopeKey && bars.value.length > 0
+      const isCurrentSelection = () => generation === _loadGeneration
+        && symbol.value === sym && timeframe.value === tf && barType.value === nextBarType
+        && localOnlyMode.value
+        && JSON.stringify(transformParams.value) === JSON.stringify(normalizedTransformParams)
+      const initialLocalRead = inFlightLoad?.key === requestKey
+        && inFlightLoad.generation === generation
+        ? inFlightLoad.localBarsPromise
+        : undefined
+      // Wait only for the exact initial OHLCV read, not for its unrelated
+      // indicator and instrument-statistics tail. An ensure progress update
+      // can arrive after that first read returned empty; start the fresh local
+      // read as soon as it is safe to avoid duplicating the pending request.
+      if (initialLocalRead) await initialLocalRead.catch(() => undefined)
+      if (!isCurrentSelection()) return
+
+      const publicationGeneration = ++localBarsPublicationGeneration
+      const mapped = await fetchBarsPage(sym, tf, {
+        type: nextBarType,
+        localOnly: true,
+        transformParams: normalizedTransformParams,
+        fresh: true,
+      })
+      if (!isCurrentSelection() || publicationGeneration !== localBarsPublicationGeneration) return
+      if (!mapped.length && preserveCurrentBars) {
+        // A progress-triggered cache read can briefly race the database writer.
+        // Keep the already-rendered bars for this exact chart scope, but let a
+        // later successful read replace them. A different timeframe or
+        // transform has a different key and starts with no stale bars to keep.
+        isLoading.value = false
+        return
+      }
+      const refreshedBars = preserveCurrentBars
+        ? [...new Map([...bars.value, ...mapped].map(bar => [bar.ts, bar])).values()]
+          .sort((left, right) => Date.parse(left.ts) - Date.parse(right.ts))
+        : mapped
+      bars.value = refreshedBars
+      renderedLoadScopeKey = localScopeKey
+      // A refresh of the latest page must not forget that the user already
+      // loaded the older range (or reached its confirmed beginning).
+      if (!preserveCurrentBars) hasReachedStart.value = !mapped.length
+      isLoading.value = false
     }
 
     async function loadMoreBars() {

@@ -185,6 +185,44 @@ describe('api.get', () => {
     await Promise.all([...dataReads, queuedAnalysis, results, notes, identity])
   })
 
+  it('keeps chart metadata hydration behind the reserved slot for a visible user read', async () => {
+    setTokens('tok', 'ref')
+    const deferredResponses: Array<{ resolve: (response: unknown) => void }> = []
+    ;(global.fetch as ReturnType<typeof vi.fn>).mockImplementation(() => new Promise(resolve => {
+      deferredResponses.push({ resolve })
+    }))
+    const { api } = await import('@/lib/api')
+    const response = () => ({ ok: true, status: 200, json: () => Promise.resolve({}), text: () => Promise.resolve('') })
+    const dataReads = Array.from({ length: 5 }, (_, index) => api.get(`/analysis/startup-${index}`, undefined, { priority: 'high' }))
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(5))
+
+    const chartMetadata = api.get('/instruments/SPY', undefined, { priority: 'high' })
+    const savedIndicators = api.get('/instrument-indicators/2', undefined, { priority: 'high' })
+    await Promise.resolve()
+    expect(fetch).toHaveBeenCalledTimes(5)
+
+    const visibleResults = api.get('/research/runs?limit=26&include_artifacts=false', undefined, { priority: 'high' })
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(6))
+    expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[5]?.[0])).toContain('/research/runs?limit=26')
+    expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[5]?.[0])).not.toContain('/instruments/SPY')
+
+    deferredResponses[5]!.resolve(response())
+    await visibleResults
+    deferredResponses[0]!.resolve(response())
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(7))
+    expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[6]?.[0])).toContain('/instruments/SPY')
+
+    deferredResponses[6]!.resolve(response())
+    await chartMetadata
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(8))
+    expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[7]?.[0])).toContain('/instrument-indicators/2')
+    deferredResponses[7]!.resolve(response())
+    await savedIndicators
+
+    for (let index = 1; index < 6; index += 1) deferredResponses[index]!.resolve(response())
+    await Promise.all(dataReads)
+  })
+
   it('admits default user mutations through the reserved slot while preparations are active', async () => {
     setTokens('tok', 'ref')
     const deferredResponses: Array<{ resolve: (response: unknown) => void }> = []

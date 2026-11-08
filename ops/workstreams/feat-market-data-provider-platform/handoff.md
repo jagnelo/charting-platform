@@ -34126,3 +34126,10 @@ This is development context only. Root's full browser profile, exact-tip CI, com
 Root released ETF backend source `09938f32e97b9c21530b96d055380baccbb88c6c` for Provider development consumption. Verified the contract SHA-256, both source Git blobs/modes, and both Provider old guards. Imported only `backend/app/services/etf_holdings.py` and its focused catalogue query-equivalence unit test; retained the exact contract manifest at `ops/workstreams/feat-market-data-provider-platform/development-dependency-imports/etf09938f32-catalogue-backend-development-consumption-contract.json`. The existing 9e2 runtime (79 paths), aed0 operator context (3 paths), and prior ETF basket/Strategy pins remain intact. No conflicting active path pin required replacement.
 
 Owner evidence reports 2/2 SQLite query-count/output-equivalence cases; this Provider worktree did not rerun those tests. The additional two backend paths take the current combined runtime context from 79 to 81 unique paths. This is development consumption only; exact CI, combined acceptance, and Root release gates remain pending.
+
+
+## 2026-11-08 — consume TC DB4 final frontend context
+
+Root released TC source `db4b1f55f78b1d907aab9d062da9470b5e3cc109` for exact Provider development consumption. Verified all 150 manifest rows against source Git blobs, SHA-256 values, and modes; all 37 Provider old guards matched; imported only the 37 declared Provider paths. All 150 foreign context paths now match the released source. The exact contract is retained at `ops/workstreams/feat-market-data-provider-platform/development-dependency-imports/db4b1f55f78b1d907aab9d062da9470b5e3cc109-full-frontend-context.json`.
+
+The previous e750 frontend context remains archived in its existing manifest and handoff history. Backend fc220 (81 paths), operator aed0 (3 paths), and existing ETF/Strategy pins were preserved. No browser, Docker, native/provider HTTP, full suite, CI, production, quota, or policy operation was performed. This is development context only; Root owns combined qualification and release.

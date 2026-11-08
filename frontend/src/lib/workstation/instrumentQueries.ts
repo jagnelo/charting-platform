@@ -10,7 +10,11 @@ export function fetchCanonicalInstrument(queryClient: QueryClient, symbol: strin
   const normalized = symbol.trim().toUpperCase()
   return queryClient.fetchQuery<CanonicalInstrument>({
     queryKey: [...INSTRUMENT_QUERY_ROOT, normalized],
-    queryFn: () => api.get<CanonicalInstrument>(`/instruments/${encodeURIComponent(normalized)}`, { canonical_only: true }),
+    queryFn: () => api.get<CanonicalInstrument>(
+      `/instruments/${encodeURIComponent(normalized)}`,
+      { canonical_only: true },
+      { priority: 'high' },
+    ),
     staleTime: 30_000,
   })
 }

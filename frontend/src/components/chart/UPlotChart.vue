@@ -192,7 +192,7 @@
 import { ref, watch, onMounted, onUnmounted, nextTick, computed, reactive, inject, useId } from 'vue'
 import uPlot from 'uplot'
 import 'uplot/dist/uPlot.min.css'
-import { api } from '@/lib/api'
+import { api, setQueuedApiRequestPriority, type ApiRequestPriority } from '@/lib/api'
 import { fetchInstrumentCalendar } from '@/lib/workstation/instrumentCalendar'
 import { usePanelStore }        from '@/stores/chart'
 import { useLayoutStore }       from '@/stores/layout'
@@ -1060,7 +1060,15 @@ async function loadInstrumentEvents() {
     ? new Date(lastTs + 370 * 86_400_000).toISOString()
     : bars[bars.length - 1].ts
   const key = `${symbol}:${start}:${end}`
-  if (key === eventRangeKey) return
+  const queueKey = `chart-calendar:${key}`
+  const rootRect = rootRef.value?.getBoundingClientRect()
+  const hasVisibleChartSurface = chartSurfaceVisible.value && chartDocumentVisible.value
+    && Boolean(rootRect && rootRect.width > 0 && rootRect.height > 0)
+  const priority: ApiRequestPriority = hasVisibleChartSurface ? 'high' : 'auto'
+  if (key === eventRangeKey) {
+    if (priority === 'high') setQueuedApiRequestPriority(queueKey, 'high')
+    return
+  }
   eventRangeKey = key
   const seq = ++eventLoadSeq
   try {
@@ -1072,7 +1080,9 @@ async function loadInstrumentEvents() {
       api.get<InstrumentEvent[]>(
         `/calendar/instruments/${encodeURIComponent(symbol)}/calendar`,
         { start, end },
+        { priority, queueKey },
       ),
+      { priority, queueKey },
     )
     if (seq === eventLoadSeq && symbol === chartStore.symbol) {
       instrumentEvents.value = loaded
@@ -3539,6 +3549,9 @@ watch([() => chartStore.symbol, () => chartStore.timeframe, () => chartStore.bar
 })
 watch(() => chartStore.instrument?.id, () => { if (!chartStore.instrument?.is_synthetic) loadInstrumentEvents() })
 watch(() => chartStore.instrument?.id, () => { if (!chartStore.instrument?.is_synthetic) loadAlertFiringEvents() })
+watch([chartSurfaceVisible, chartDocumentVisible], ([visible, documentVisible]) => {
+  if (visible && documentVisible && !chartStore.instrument?.is_synthetic) loadInstrumentEvents()
+})
 watch([visibleComparisonSeries, visiblePythonSeries], () => { if (uplot) updateData(); else initChart() }, { deep: true })
 watchIndicatorStack(() => visibleActiveIndicators.value, () => initChart())
 watch(effectiveChartType, async (type) => {
@@ -3663,11 +3676,11 @@ defineExpose({ jumpToTs })
 
 .uplot-wrapper {
   position: relative;
-  /* A newly added indicator must not squeeze the price plot to a line in a
-     short dock. Keep a usable price plane and let the chart panes scroll. */
-  flex: 1 0 120px;
+  /* Retain the usable price plane for normal/indicator layouts, but let it
+     shrink to the chart root's actual available height in compact docks. */
+  flex: 1 1 120px;
   min-width: 0;
-  min-height: 120px;
+  min-height: min(120px, 100%);
   overflow: hidden;
   touch-action: none;
   overscroll-behavior: none;

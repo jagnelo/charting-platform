@@ -1,7 +1,7 @@
 <template>
   <section class="note-tool" role="region" :aria-label="`${symbol} notes`" :aria-busy="loading">
     <div class="note-tool__status" :role="statusRole" :aria-live="statusRole === 'alert' ? 'assertive' : 'polite'" aria-atomic="true">{{ symbol }} · {{ status }}</div>
-    <textarea v-model="content" :disabled="!instrumentId || loading" :placeholder="instrumentId ? 'Write a symbol note…' : 'Select a canonical instrument.'" aria-label="Instrument note" />
+    <textarea v-model="content" :disabled="!activeInstrumentId || loading" :placeholder="activeInstrumentId ? 'Write a symbol note…' : 'Select a canonical instrument.'" aria-label="Instrument note" />
   </section>
 </template>
 
@@ -10,6 +10,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
 import { api, setQueuedApiRequestPriority, type ApiRequestPriority } from '@/lib/api'
 import { assertAuthSessionCurrent, captureAuthSession, type AuthSessionSnapshot } from '@/lib/authSession'
+import { fetchCanonicalInstrument } from '@/lib/workstation/instrumentQueries'
 
 const props = withDefaults(defineProps<{ instrumentId: number | null | undefined; symbol: string; requestPriority?: ApiRequestPriority }>(), {
   requestPriority: 'auto',
@@ -19,6 +20,12 @@ const content = ref('')
 const loading = ref(false)
 const status = ref('No note')
 const statusRole = computed(() => /unable|error|failed|unavailable/i.test(status.value) ? 'alert' : 'status')
+const resolvedIdentity = ref<{ symbol: string; instrumentId: number } | null>(null)
+const activeInstrumentId = computed(() => {
+  if (props.instrumentId != null) return props.instrumentId
+  const symbol = props.symbol.trim().toUpperCase()
+  return resolvedIdentity.value?.symbol === symbol ? resolvedIdentity.value.instrumentId : null
+})
 type NoteCacheValue = { content: string; updated_at: string; pending?: boolean }
 type PendingSave = { instrumentId: number; content: string; revision: number; authSession: AuthSessionSnapshot }
 let saveTimer: ReturnType<typeof setTimeout> | null = null
@@ -52,7 +59,7 @@ function flushPendingSave(): Promise<void> {
       content: draft.content,
       updated_at: note.updated_at,
     })
-    if (mounted && props.instrumentId === draft.instrumentId && loadedId === draft.instrumentId && content.value === draft.content) {
+    if (mounted && activeInstrumentId.value === draft.instrumentId && loadedId === draft.instrumentId && content.value === draft.content) {
       status.value = `Saved ${new Date(note.updated_at).toLocaleString()}`
     }
   }).catch((cause: any) => {
@@ -62,7 +69,7 @@ function flushPendingSave(): Promise<void> {
       return
     }
     if (latestRevisionByInstrument.get(draft.instrumentId) === draft.revision
-      && mounted && props.instrumentId === draft.instrumentId && loadedId === draft.instrumentId) {
+      && mounted && activeInstrumentId.value === draft.instrumentId && loadedId === draft.instrumentId) {
       status.value = cause?.message ?? 'Unable to save note'
     }
   }).finally(() => {
@@ -79,15 +86,30 @@ async function load() {
   hydrating = true
   content.value = ''
   hydrating = false
-  if (!props.instrumentId) {
-    loading.value = false
-    status.value = 'No canonical instrument'
-    return
-  }
   loading.value = true
-  status.value = 'Loading…'
+  const expectedSymbol = props.symbol.trim().toUpperCase()
+  let instrumentId = props.instrumentId ?? (
+    resolvedIdentity.value?.symbol === expectedSymbol ? resolvedIdentity.value.instrumentId : null
+  )
+  const authSession = captureAuthSession()
   try {
-    const instrumentId = props.instrumentId
+    if (instrumentId == null) {
+      if (!expectedSymbol) {
+        loading.value = false
+        status.value = 'No canonical instrument'
+        return
+      }
+      status.value = 'Resolving canonical instrument…'
+      const instrument = await fetchCanonicalInstrument(queryClient, expectedSymbol)
+      assertAuthSessionCurrent(authSession)
+      if (!mounted || generation !== loadGeneration || props.symbol.trim().toUpperCase() !== expectedSymbol) return
+      if (instrument.symbol.trim().toUpperCase() !== expectedSymbol || !Number.isSafeInteger(instrument.id) || instrument.id <= 0) {
+        throw new Error('Canonical instrument lookup returned a mismatched identity')
+      }
+      resolvedIdentity.value = { symbol: expectedSymbol, instrumentId: instrument.id }
+      instrumentId = instrument.id
+    }
+    status.value = 'Loading…'
     const key = noteKey(instrumentId)
     const cached = queryClient.getQueryData<NoteCacheValue>(key)
     if (cached?.pending) {
@@ -114,30 +136,40 @@ async function load() {
       ),
       staleTime: 30_000,
     })
-    if (!mounted || generation !== loadGeneration || props.instrumentId !== instrumentId) return
+    assertAuthSessionCurrent(authSession)
+    if (!mounted || generation !== loadGeneration || props.symbol.trim().toUpperCase() !== expectedSymbol) return
     hydrating = true
     content.value = note?.content ?? ''
     hydrating = false
     loadedId = instrumentId
     status.value = note ? `Saved ${new Date(note.updated_at).toLocaleString()}` : 'No note'
   } catch (cause: any) {
-    if (mounted && generation === loadGeneration) status.value = cause?.message ?? 'Unable to load note'
+    try {
+      assertAuthSessionCurrent(authSession)
+    } catch {
+      return
+    }
+    if (mounted && generation === loadGeneration) {
+      status.value = cause?.status === 404
+        ? 'No canonical instrument'
+        : `Unable to resolve canonical instrument${cause?.message ? `: ${cause.message}` : ''}`
+    }
   } finally {
     if (mounted && generation === loadGeneration) loading.value = false
   }
 }
 
-watch(() => props.instrumentId, () => { void load() }, { immediate: true })
+watch(() => [props.instrumentId, props.symbol] as const, () => { void load() }, { immediate: true })
 watch(() => props.requestPriority, priority => {
   if (priority === 'high' && props.instrumentId) {
     setQueuedApiRequestPriority(`instrument-note:${props.instrumentId}`, 'high')
   }
 })
 watch(content, () => {
-  if (hydrating || !props.instrumentId || loadedId !== props.instrumentId || loading.value) return
+  const instrumentId = activeInstrumentId.value
+  if (hydrating || instrumentId == null || loadedId !== instrumentId || loading.value) return
   if (saveTimer) clearTimeout(saveTimer)
   status.value = 'Saving…'
-  const instrumentId = props.instrumentId
   const draft: PendingSave = {
     instrumentId,
     content: content.value,

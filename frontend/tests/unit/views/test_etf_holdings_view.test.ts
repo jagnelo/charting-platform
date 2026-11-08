@@ -489,6 +489,135 @@ describe('ETFHoldingsView', () => {
     routerPush.mockReset()
   })
 
+  it('loads the visible ETF catalogue in the interactive lane and cancels it on exit', async () => {
+    let finishProfiles!: (value: unknown) => void
+    vi.mocked(api.get).mockImplementation(() => new Promise(resolve => {
+      finishProfiles = resolve
+    }) as never)
+
+    const wrapper = mount(ETFHoldingsView)
+    await nextTick()
+    expect(wrapper.text()).toContain('Loading ETFs...')
+
+    const listCall = vi.mocked(api.get).mock.calls.find(([path]) => path === '/etf-holdings')
+    expect(listCall).toBeDefined()
+    expect(listCall?.[1]).toEqual({ q: undefined })
+    expect(listCall?.[2]?.priority).toBe('high')
+    expect(listCall?.[2]?.signal).toBeInstanceOf(AbortSignal)
+
+    const signal = listCall?.[2]?.signal
+    wrapper.unmount()
+    expect(signal?.aborted).toBe(true)
+    finishProfiles([])
+    await flushPromises()
+  })
+
+  it('shows loaded ETF profiles while the default profile snapshot lookup is still pending', async () => {
+    const catalogueProfile = { ...profile, latest_snapshot_id: null }
+    let finishProfiles!: (value: unknown) => void
+    let finishSnapshotOptions!: (value: unknown) => void
+    const profilesPending = new Promise(resolve => { finishProfiles = resolve })
+    const snapshotOptionsPending = new Promise(resolve => { finishSnapshotOptions = resolve })
+
+    vi.mocked(api.get).mockImplementation((path: string) => {
+      if (path === '/etf-holdings') return profilesPending as never
+      if (path === '/etf-holdings/SPY/dates') return snapshotOptionsPending as never
+      return Promise.resolve([]) as never
+    })
+
+    const wrapper = mount(ETFHoldingsView)
+    await nextTick()
+    expect(wrapper.text()).toContain('Loading ETFs...')
+
+    finishProfiles([catalogueProfile])
+    await vi.waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith('/etf-holdings/SPY/dates')
+    })
+    await flushPromises()
+
+    expect(wrapper.find('.profile-list .state-line').exists()).toBe(false)
+    expect(wrapper.findAll('button.profile-card').some(card => card.text().includes('SPY'))).toBe(true)
+    expect(wrapper.get('.holdings-main h2').text()).toBe('SPY')
+    expect(wrapper.text()).toContain('No saved snapshot is available yet.')
+
+    finishSnapshotOptions([])
+    await flushPromises()
+    wrapper.unmount()
+  })
+
+  it('keeps another fund selectable while default details are pending and ignores the late response', async () => {
+    const diaProfile = {
+      ...overlapProfile,
+      id: 3,
+      instrument_id: 12,
+      symbol: 'DIA',
+      name: 'SPDR Dow Jones Industrial Average ETF Trust',
+      latest_snapshot_id: 88,
+    }
+    let finishDiaDates!: (value: unknown) => void
+    const diaDatesPending = new Promise(resolve => { finishDiaDates = resolve })
+
+    vi.mocked(api.get).mockImplementation((path: string) => {
+      if (path === '/etf-holdings') return Promise.resolve([diaProfile, profile]) as never
+      if (path === '/etf-holdings/DIA/dates') return diaDatesPending as never
+      if (path === '/etf-holdings/SPY/capability') return Promise.resolve(profile.holdings_capability) as never
+      if (path === '/etf-holdings/SPY/dates') return Promise.resolve(dates) as never
+      if (path === '/etf-holdings/SPY/holdings') return Promise.resolve(holdingsPage()) as never
+      if (path === '/etf-holdings/SPY/diff') return Promise.resolve(diffPayload()) as never
+      if (path === '/etf-holdings/SPY/weight-evolution') return Promise.resolve(weightEvolutionPayload()) as never
+      if (path === '/etf-holdings/SPY/transitions') return Promise.resolve(transitionTimelinePayload()) as never
+      return Promise.resolve([]) as never
+    })
+
+    const wrapper = mount(ETFHoldingsView)
+    await vi.waitFor(() => expect(api.get).toHaveBeenCalledWith('/etf-holdings/DIA/dates'))
+
+    expect(wrapper.findAll('button.profile-card')).toHaveLength(2)
+    const spyCard = wrapper.findAll('button.profile-card').find(card => card.text().includes('SPY'))
+    expect(spyCard).toBeDefined()
+    await spyCard!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.get('.holdings-main h2').text()).toBe('SPY'))
+    await vi.waitFor(() => expect(wrapper.text()).toContain('MSFT'))
+
+    finishDiaDates([dates[0]])
+    await flushPromises()
+
+    expect(wrapper.get('.holdings-main h2').text()).toBe('SPY')
+    expect(wrapper.get('[data-testid="etf-snapshot-lineage"]').text()).toContain('SPY')
+    expect(wrapper.text()).toContain('MSFT')
+    expect(wrapper.find('.profile-card--active').text()).toContain('SPY')
+    wrapper.unmount()
+  })
+
+  it('keeps the catalogue visible and reports default-profile detail failure separately', async () => {
+    const diaProfile = {
+      ...overlapProfile,
+      id: 3,
+      instrument_id: 12,
+      symbol: 'DIA',
+      name: 'SPDR Dow Jones Industrial Average ETF Trust',
+      latest_snapshot_id: 88,
+    }
+    vi.mocked(api.get).mockImplementation((path: string) => {
+      if (path === '/etf-holdings') return Promise.resolve([diaProfile, profile]) as never
+      if (path === '/etf-holdings/DIA/dates') return Promise.reject(new Error('snapshot dates unavailable')) as never
+      if (path === '/etf-holdings/DIA/weight-evolution') return Promise.resolve(weightEvolutionPayload()) as never
+      if (path === '/etf-holdings/DIA/transitions') return Promise.resolve(transitionTimelinePayload()) as never
+      return Promise.resolve([]) as never
+    })
+
+    const wrapper = mount(ETFHoldingsView)
+    await vi.waitFor(() => expect(wrapper.get('.notice--error').text()).toContain(
+      'Saved snapshot dates for DIA could not be loaded.',
+    ))
+
+    expect(wrapper.find('.profile-list .state-line').exists()).toBe(false)
+    expect(wrapper.findAll('button.profile-card')).toHaveLength(2)
+    expect(wrapper.findAll('button.profile-card').some(card => card.text().includes('SPY'))).toBe(true)
+    expect(wrapper.get('.holdings-main h2').text()).toBe('DIA')
+    wrapper.unmount()
+  })
+
   it('loads ETF profiles, browses a paged holdings result, and opens a constituent chart', async () => {
     vi.mocked(api.get)
       .mockResolvedValueOnce([profile, overlapProfile])
@@ -512,7 +641,12 @@ describe('ETFHoldingsView', () => {
       expect(wrapper.text()).toContain('MSFT')
     })
 
-    expect(api.get).toHaveBeenNthCalledWith(1, '/etf-holdings', { q: undefined })
+    expect(api.get).toHaveBeenNthCalledWith(
+      1,
+      '/etf-holdings',
+      { q: undefined },
+      expect.objectContaining({ priority: 'high', signal: expect.any(AbortSignal) }),
+    )
     expect(api.get).toHaveBeenNthCalledWith(2, '/etf-holdings/SPY/dates')
     expect(api.get).toHaveBeenNthCalledWith(3, '/etf-holdings/SPY/holdings', {
       snapshot_id: '55',
@@ -739,7 +873,11 @@ describe('ETFHoldingsView', () => {
     })
 
     const wrapper = mount(ETFHoldingsView)
-    await vi.waitFor(() => expect(api.get).toHaveBeenCalledWith('/etf-holdings', { q: undefined }))
+    await vi.waitFor(() => expect(api.get).toHaveBeenCalledWith(
+      '/etf-holdings',
+      { q: undefined },
+      expect.objectContaining({ priority: 'high', signal: expect.any(AbortSignal) }),
+    ))
     await wrapper.findComponent({ name: 'SearchBar' }).vm.$emit('select', 'OIH', {
       symbol: 'OIH', name: 'Oil Services ETF', exchange: 'NYSE Arca', type: 'ETF',
     })
@@ -1266,7 +1404,11 @@ describe('ETFHoldingsView', () => {
     await flushPromises()
 
     expect(api.post).not.toHaveBeenCalled()
-    expect(api.get).toHaveBeenCalledWith('/etf-holdings', { q: undefined })
+    expect(api.get).toHaveBeenCalledWith(
+      '/etf-holdings',
+      { q: undefined },
+      expect.objectContaining({ priority: 'high', signal: expect.any(AbortSignal) }),
+    )
     await vi.waitFor(() => {
       expect(api.get).toHaveBeenCalledWith('/etf-holdings/QQQ/dates')
     })

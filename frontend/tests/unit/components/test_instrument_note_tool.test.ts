@@ -74,6 +74,66 @@ describe('InstrumentNoteTool draft lifecycle', () => {
     queryClient.clear()
   })
 
+  it('shows identity resolution while the selected symbol lookup is pending, then loads that symbol note', async () => {
+    const identity = deferred<{ id: number; symbol: string }>()
+    const note = deferred<null>()
+    apiGet.mockReturnValueOnce(identity.promise).mockReturnValueOnce(note.promise)
+    const { wrapper, queryClient } = mountTool(null, 'QQQ')
+
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledTimes(1))
+    expect(apiGet).toHaveBeenNthCalledWith(1, '/instruments/QQQ', { canonical_only: true }, { priority: 'high' })
+    expect(wrapper.get('.note-tool__status').text()).toBe('QQQ · Resolving canonical instrument…')
+    expect(wrapper.get('textarea').element.disabled).toBe(true)
+
+    identity.resolve({ id: 4, symbol: 'QQQ' })
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledTimes(2))
+    expect(apiGet.mock.calls[1]?.[0]).toBe('/notes/instruments/4')
+    expect(wrapper.get('.note-tool__status').text()).toBe('QQQ · Loading…')
+
+    note.resolve(null)
+    await vi.waitFor(() => expect(wrapper.get('.note-tool__status').text()).toBe('QQQ · No note'))
+    expect(wrapper.get('textarea').element.disabled).toBe(false)
+    apiPut.mockResolvedValue({ updated_at: '2026-11-08T09:00:00Z' })
+    await wrapper.get('textarea').setValue('QQQ note saved against resolved identity')
+    await debounceSave()
+    await vi.waitFor(() => expect(wrapper.get('.note-tool__status').text()).toContain('Saved '))
+    expect(apiPut).toHaveBeenCalledWith('/notes/instruments/4', { content: 'QQQ note saved against resolved identity' })
+    wrapper.unmount()
+    queryClient.clear()
+  })
+
+  it('reports a missing canonical identity only after the lookup returns not found', async () => {
+    apiGet.mockRejectedValueOnce({ status: 404, message: 'not found' })
+    const { wrapper, queryClient } = mountTool(null, 'UNKNOWN')
+
+    await vi.waitFor(() => expect(wrapper.get('.note-tool__status').text()).toBe('UNKNOWN · No canonical instrument'))
+    expect(apiGet).toHaveBeenCalledTimes(1)
+    expect(apiGet).toHaveBeenCalledWith('/instruments/UNKNOWN', { canonical_only: true }, { priority: 'high' })
+    expect(wrapper.get('textarea').element.disabled).toBe(true)
+    wrapper.unmount()
+    queryClient.clear()
+  })
+
+  it('keeps a late identity result from an earlier symbol out of the current Notes context', async () => {
+    const qqqIdentity = deferred<{ id: number; symbol: string }>()
+    apiGet.mockReturnValueOnce(qqqIdentity.promise).mockResolvedValueOnce(null)
+    const { wrapper, queryClient } = mountTool(null, 'QQQ')
+
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledTimes(1))
+    expect(wrapper.get('.note-tool__status').text()).toBe('QQQ · Resolving canonical instrument…')
+    await wrapper.setProps({ instrumentId: 7, symbol: 'SPY' })
+    await vi.waitFor(() => expect(wrapper.get('.note-tool__status').text()).toBe('SPY · No note'))
+
+    qqqIdentity.resolve({ id: 4, symbol: 'QQQ' })
+    await flushPromises()
+    expect(apiGet).toHaveBeenCalledTimes(2)
+    expect(apiGet.mock.calls[1]?.[0]).toBe('/notes/instruments/7')
+    expect(wrapper.get('.note-tool__status').text()).toBe('SPY · No note')
+    expect(wrapper.get('textarea').element.disabled).toBe(false)
+    wrapper.unmount()
+    queryClient.clear()
+  })
+
   it('flushes the old instrument draft on context switch and fences its late acknowledgement', async () => {
     const save = deferred<{ updated_at: string }>()
     apiPut.mockReturnValue(save.promise)
