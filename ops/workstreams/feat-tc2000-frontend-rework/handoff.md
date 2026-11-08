@@ -26966,4 +26966,10 @@ Root released ETF source `646fe8d8e60acce32afcedf94de023c86b2d69fd` with manifes
 
 The S&P journey reference-only preflight reports no actionable unbound names or other semantic advisories; it reports the existing missing Node ambient type as an unqualified diagnostic. Journey matrix and diff checks pass. Root's compact rendered profile and full66 requalification remain pending; this is exact development consumption, not browser or release acceptance.
 
+## 2026-11-08 — Reclaim compact Ratio and RRG plot area
+
+Root's exact c681 replay rendered the compact RRG at 1093×614 CSS px / DPR1.25 with a 90px canvas against the unchanged 100px requirement. Its decoded DOM measured a 143px ToolWindow, 116px body, 26px RRG header and 90px plot shell; all 11 actual markers and tails were present and the canvas stayed inside every clipping ancestor. The compressed data plane was not a data or clipping failure. RatioUPlot and RelativeRotationTool now hide the redundant uPlot HTML legend, use measured y-axis tick-label widths, allocate explicit compact tick/label sizes and tighter internal padding while retaining the complete labels/values. At short viewport heights, RRG settings/rows/status controls use reduced vertical chrome so the existing plot shell gains room; persisted dock proportions are untouched. The axis-size callbacks handle uPlot's initial null-label sizing pass before later measured labels.
+
+Focused RatioUPlot and RelativeRotationTool modules pass 44/44, including null and populated axis-size callbacks, retained percentage labels, the hidden duplicate legend, compact padding and unchanged short-host sizing behavior. Frontend type-check passes. Root owns the next rendered 100px/data-plane and Ratio/RRG screenshot review; no browser, full suite or runtime operation ran in TC. All broader route/action, journey, full-suite, exact CI, native and release criteria remain open.
+
 ---

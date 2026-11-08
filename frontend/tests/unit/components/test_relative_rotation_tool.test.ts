@@ -118,6 +118,30 @@ describe('RelativeRotationTool', () => {
     wrapper.unmount()
   })
 
+  it('reserves a compact XY data plane while keeping accurate RRG axes', async () => {
+    vi.mocked(api.get).mockResolvedValue({ freshness: 'current', rows: [{
+      instrument_id: 1, symbol: 'XLK', state: 'leading', trend: 0.1, momentum: 0.2, coverage: 1,
+      tail: [], history: [{ timestamp: '2026-01-01', trend: 0.1, momentum: 0.2 }],
+    }] })
+    const wrapper = mountTool()
+    await vi.waitFor(() => expect(uPlot).toHaveBeenCalledTimes(1))
+
+    const [options] = vi.mocked(uPlot).mock.calls.at(-1)!
+    expect(options.legend).toEqual({ show: false })
+    expect(options.padding).toEqual([4, 8, 4, 8])
+    expect(options.axes?.[0]).toMatchObject({ label: 'Relative trend', size: 18, labelSize: 16, labelGap: 2 })
+    expect(options.axes?.[1]).toMatchObject({ label: 'Relative momentum', labelSize: 16, labelGap: 2 })
+    const formatPercent = options.axes?.[0].values as (chart: any, values: number[]) => string[]
+    expect(formatPercent({}, [-0.1, 0.1])).toEqual(['-10.0%', '10.0%'])
+    const measuredWidth = options.axes?.[1].size as (chart: any, values: string[] | null, axisIndex: number, cycle: number) => number
+    const measureText = vi.fn((value: string) => ({ width: value.length * 6 }))
+    expect(measuredWidth({ ctx: { measureText } }, null, 1, 0)).toBe(8)
+    expect(measuredWidth({ ctx: { measureText } }, ['0.0%', '-120.0%'], 1, 0)).toBe(50)
+    expect(measureText).toHaveBeenCalledWith('-120.0%')
+    expect(wrapper.get('.rotation-tool__plot').attributes('aria-label')).toBe('Relative rotation trend and momentum plane')
+    wrapper.unmount()
+  })
+
   it('sizes the RRG canvas to a short dock host instead of imposing a taller minimum', async () => {
     vi.mocked(api.get).mockResolvedValue({ freshness: 'current', rows: [{
       instrument_id: 1, symbol: 'XLK', state: 'leading', trend: 0.1, momentum: 0.2, coverage: 1,

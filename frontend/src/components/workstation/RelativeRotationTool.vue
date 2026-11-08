@@ -345,13 +345,51 @@ function drawPlot() {
       ctx.fillStyle = point.color; ctx.beginPath(); ctx.arc(x, y, 3.5 * pixelRatio, 0, Math.PI * 2); ctx.fill()
     }
   }] } }
-  plot = new uPlot({ width, height, cursor: { drag: { x: true, y: true } }, scales: {
-    x: { time: false, auto: true, range: () => numericRange(points.map(point => point.trend)) },
-    y: { auto: true, range: () => numericRange(points.map(point => point.momentum)) },
-  }, axes: [
-    { label: 'Relative trend', stroke: '#9aabb6', grid: { stroke: '#26313a', width: 1 }, values: (_u, values) => values.map(value => `${(value * 100).toFixed(1)}%`), font: '10px Segoe UI' },
-    { label: 'Relative momentum', stroke: '#9aabb6', grid: { stroke: '#26313a', width: 1 }, values: (_u, values) => values.map(value => `${(value * 100).toFixed(1)}%`), font: '10px Segoe UI' },
-  ], series: [{}, { show: false }], plugins: [markerPlugin] }, data, plotHost.value)
+  plot = new uPlot({
+    width,
+    height,
+    // The tool has its own Settings, Rows, and status controls. Do not spend
+    // part of a compact dock's height on uPlot's second legend row.
+    legend: { show: false },
+    // Keep the full axis labels while using measured tick-value widths and
+    // compact reservations so short panes retain a useful XY data plane.
+    padding: [4, 8, 4, 8],
+    cursor: { drag: { x: true, y: true } },
+    scales: {
+      x: { time: false, auto: true, range: () => numericRange(points.map(point => point.trend)) },
+      y: { auto: true, range: () => numericRange(points.map(point => point.momentum)) },
+    },
+    axes: [
+      {
+        label: 'Relative trend',
+        stroke: '#9aabb6',
+        size: 18,
+        gap: 2,
+        labelSize: 16,
+        labelGap: 2,
+        grid: { stroke: '#26313a', width: 1 },
+        ticks: { stroke: '#40505a', width: 1, size: 3 },
+        values: (_u, values) => values.map(value => `${(value * 100).toFixed(1)}%`),
+        font: '10px Segoe UI',
+        labelFont: '10px Segoe UI',
+      },
+      {
+        label: 'Relative momentum',
+        stroke: '#9aabb6',
+        size: (_u, values) => Math.ceil(Math.max(0, ...(values ?? []).map(value => _u.ctx.measureText(value).width)) + 8),
+        gap: 2,
+        labelSize: 16,
+        labelGap: 2,
+        grid: { stroke: '#26313a', width: 1 },
+        ticks: { stroke: '#40505a', width: 1, size: 3 },
+        values: (_u, values) => values.map(value => `${(value * 100).toFixed(1)}%`),
+        font: '10px Segoe UI',
+        labelFont: '10px Segoe UI',
+      },
+    ],
+    series: [{}, { show: false }],
+    plugins: [markerPlugin],
+  }, data, plotHost.value)
 }
 function publishConfiguration() {
   emit('configuration', { ...(props.configuration ?? {}), group_key: groupKey.value, benchmark: benchmark.value.toUpperCase(), timeframe: timeframe.value, sampling: sampling.value, lookback: lookback.value, tail_length: tailLength.value, history_length: historyLength.value, as_of: asOf.value || null, adjusted: adjusted.value })
@@ -525,4 +563,9 @@ onBeforeUnmount(() => {
 .rotation-tool__sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .rotation-tool__tooltip{position:absolute;z-index:2;display:grid;gap:2px;min-width:190px;padding:5px 7px;border:1px solid #526674;background:#172027;color:#dce6ed;box-shadow:0 3px 12px #0008;pointer-events:none}.rotation-tool__tooltip span{color:#9aabb6}
 .rotation-tool__table{height:100%;overflow:auto;overscroll-behavior:contain}.rotation-tool__head,.rotation-tool__row{display:grid;grid-template-columns:54px 78px 58px 68px 76px 66px 76px 76px 104px 58px 72px 42px;align-items:center;gap:5px;padding:5px 7px;min-width:720px}.rotation-tool__head{position:sticky;top:0;background:#20282f;color:#9baab5;font-weight:600;text-transform:uppercase}.rotation-tool__head button{border:0;background:transparent;color:inherit;font:inherit;text-align:left;padding:0;cursor:pointer}.rotation-tool__head button:hover{color:#e4eef3}.rotation-tool__row{width:100%;border:0;border-bottom:1px solid #20282f;background:transparent;color:inherit;text-align:left;cursor:pointer}.rotation-tool__row:hover{background:#1d4057}.rotation-tool__state-leading{color:#61c58c}.rotation-tool__state-weakening{color:#e7bc68}.rotation-tool__state-improving{color:#6dbbe6}.rotation-tool__state-lagging{color:#df8181}
+@media (max-height: 680px) {
+  .rotation-tool__header { padding-block: 0; }
+  .rotation-tool__settings>summary,.rotation-tool__rows-disclosure>summary { padding-block: 1px; }
+  .rotation-tool__status :deep(summary) { padding-block: 1px; }
+}
 </style>
