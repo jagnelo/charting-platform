@@ -1,5 +1,5 @@
 import { test, expect } from './helpers'
-import type { Frame, Page, Request } from '@playwright/test'
+import type { Frame, Locator, Page, Request } from '@playwright/test'
 import type {
   ETFHolding,
   ETFHoldingsDate,
@@ -94,6 +94,15 @@ async function expectSelectionHistoryDetails(page: Page, detailText: string) {
   await expect(notice.getByRole('status')).toHaveText(detailText)
   if (!await details.evaluate(element => (element as HTMLDetailsElement).open)) await summary.click()
   await expect(notice.locator('.compact-status__detail')).toHaveText(detailText)
+}
+
+async function chartProvenanceTarget(chart: Locator): Promise<Locator> {
+  const describedBy = await chart.getAttribute('aria-describedby')
+  const provenanceId = describedBy?.split(/\s+/).find(id => id.endsWith('-provenance'))
+  if (!provenanceId) throw new Error('Chart workspace must describe its chart provenance node.')
+  const provenance = chart.page().locator(`[id=${JSON.stringify(provenanceId)}]`)
+  await expect(provenance).toHaveCount(1)
+  return provenance
 }
 
 function resolvedIdentity(request: InstrumentRequestBody, instrumentId: number, instrumentType = 'ETF'): InstrumentAcquireResponse {
@@ -344,7 +353,7 @@ test('Workstation search resolves an unknown ticker and reports shared history p
   const previousChart = page.locator('.chart-tool:visible').getByRole('region', { name: 'Chart workspace' }).first()
   await expect(previousChart).toBeVisible()
   await expect(previousChart).toHaveAttribute('aria-busy', 'false')
-  const previousChartProvenance = previousChart.locator('.sr-only').first()
+  const previousChartProvenance = await chartProvenanceTarget(previousChart)
   const previousChartProvenanceText = await previousChartProvenance.innerText()
   expect(previousChartProvenanceText).toMatch(/\d+ bars;/)
   page.on('request', request => {
@@ -463,8 +472,9 @@ test('Workstation search resolves an unknown ticker and reports shared history p
   expect(selectedPreparation).not.toHaveProperty('end_at')
   const selectedChart = page.locator('.chart-tool:visible').getByRole('region', { name: 'Chart workspace' }).first()
   await expect(selectedChart).toBeVisible()
-  await expect(selectedChart.locator('.sr-only')).toContainText('chart; no OHLCV bars loaded.')
-  expect(await selectedChart.locator('.sr-only').innerText()).not.toBe(previousChartProvenanceText)
+  const selectedChartProvenance = await chartProvenanceTarget(selectedChart)
+  await expect(selectedChartProvenance).toContainText('chart; no OHLCV bars loaded.')
+  expect(await selectedChartProvenance.innerText()).not.toBe(previousChartProvenanceText)
   await expect(search).toHaveValue('TCNEW')
   await expectSelectionHistoryDetails(page, 'Some requested data is unavailable. Available results remain usable.')
   expect(legacyHistoryRequests).toEqual([])
@@ -1173,7 +1183,7 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
   await expect(page.getByTestId('workstation-history-acquisition')).toHaveCount(0)
   const visibleChart = page.locator('.chart-tool:visible .chart-root')
   await expect(visibleChart).toHaveAttribute('aria-busy', 'false', { timeout: 10_000 })
-  await expect(visibleChart.locator('.sr-only')).toContainText('M1 chart; 1 bars')
+  await expect(await chartProvenanceTarget(visibleChart)).toContainText('M1 chart; 1 bars')
   await expect.poll(() => calendarRequests.length).toBeGreaterThan(0)
   expect(calendarRequests.every(symbol => symbol === 'TCNEW')).toBe(true)
 
@@ -1507,7 +1517,7 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
   await expect(pricePlot).toBeVisible()
   const pricePlotCountBefore = await pricePlot.count()
   expect(pricePlotCountBefore).toBe(1)
-  await expect(priceChart.locator('.sr-only')).toContainText('D1 chart; 500 bars; adjusted;')
+  await expect(await chartProvenanceTarget(priceChart)).toContainText('D1 chart; 500 bars; adjusted;')
   const m1HistoryReady = page.waitForResponse(response => {
     const url = new URL(response.url())
     if (response.request().method() !== 'POST' || url.pathname !== '/api/v1/data/ensure') return false
@@ -1546,7 +1556,7 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
   expect(m1Coverage.status()).toBe(200)
   expect(await m1Coverage.json()).toMatchObject({ symbol: 'AMD', is_fetching: false })
   await expect(priceChart).toHaveAttribute('aria-busy', 'false')
-  await expect(priceChart.locator('.sr-only')).toHaveText('M1 chart; no OHLCV bars loaded.')
+  await expect(await chartProvenanceTarget(priceChart)).toHaveText('M1 chart; no OHLCV bars loaded.')
   await expect(pricePlot).toHaveCount(0)
   await expect(page.getByRole('status').filter({ hasText: 'Some requested data is unavailable. Available results remain usable.' })).toBeVisible()
   await expect(historicalContext).toBeVisible()
@@ -1578,7 +1588,7 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
   expect(restoredD1Bars).toHaveLength(500)
   expect(restoredD1Bars.every(bar => bar.is_adjusted === true)).toBe(true)
   await expect(pricePlot).toBeVisible()
-  await expect(priceChart.locator('.sr-only')).toContainText('D1 chart; 500 bars; adjusted;')
+  await expect(await chartProvenanceTarget(priceChart)).toContainText('D1 chart; 500 bars; adjusted;')
   await expect(historicalContext).toBeVisible()
   expect(identityRequests).toHaveLength(1)
   expect(directHistoryRequests).toEqual([])
