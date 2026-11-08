@@ -683,8 +683,13 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
   expect(identityRequests).toHaveLength(0)
   const historyResponseReady = page.waitForResponse(response => {
     const url = new URL(response.url())
-    return response.request().method() === 'POST'
-      && url.pathname === '/api/v1/data/ensure'
+    if (response.request().method() !== 'POST' || url.pathname !== '/api/v1/data/ensure') return false
+    const body = response.request().postDataJSON() as DataEnsureRequest
+    return body.target.kind === 'instrument'
+      && body.target.instrument_id === instrumentId
+      && body.datasets?.includes('history') === true
+      && body.timeframe === 'D1'
+      && body.adjusted === true
   })
   await page.getByRole('option', { name: /Use UNXQ · XNYS/ }).click()
   await expect(page).toHaveURL(/\/chart\/UNXQ\?/)
@@ -1089,7 +1094,7 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
       instrument_id: fixtureInstrumentId,
       symbol: 'TCNEW',
       dataset: 'history',
-      covered_ranges: [{ is_adjusted: true }],
+      covered_ranges: expect.arrayContaining([expect.objectContaining({ is_adjusted: true })]),
     }],
   })
   expect(tcnewPreparationRequests.filter(request => request.timeframe === 'M1'
@@ -1298,7 +1303,8 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
     const url = new URL(response.url())
     if (response.request().method() !== 'POST' || url.pathname !== '/api/v1/data/ensure') return false
     const body = response.request().postDataJSON() as DataEnsureRequest
-    return body.target.kind === 'instrument' && body.target.symbol === 'IWM' && body.datasets?.includes('holdings') === true
+    return body.target.kind === 'instrument' && body.target.symbol === 'IWM'
+      && body.datasets?.includes('holdings') === true && body.timeframe === 'D1'
   })
   await page.locator('.profile-card').filter({ hasText: 'IWM' }).first().click()
   const originalPage = await (await holdingsReady).json() as ETFHoldingsPage
@@ -1384,9 +1390,13 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
   })
   const automaticD1HistoryReady = page.waitForResponse(response => {
     const url = new URL(response.url())
-    return response.request().method() === 'POST'
-      && url.pathname === '/api/v1/data/ensure'
-      && (response.request().postDataJSON() as DataEnsureRequest).timeframe === 'D1'
+    if (response.request().method() !== 'POST' || url.pathname !== '/api/v1/data/ensure') return false
+    const body = response.request().postDataJSON() as DataEnsureRequest
+    return body.target.kind === 'instrument'
+      && body.target.instrument_id === amdInstrumentId
+      && body.datasets?.includes('history') === true
+      && body.timeframe === 'D1'
+      && body.adjusted === true
   })
   await page.locator('button.holding-row').filter({ hasText: 'AMD' }).click()
   await page.getByRole('button', { name: 'View history' }).click()
@@ -1405,8 +1415,8 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
   })
   expect(historyRequests).toHaveLength(1)
   expect(historyRequests[0]).toMatchObject({ target: { kind: 'instrument', instrument_id: amdInstrumentId }, timeframe: 'D1', adjusted: true })
-  expect(identityRequests).toHaveLength(2)
-  expect(identityRequests[1]).toMatchObject({ symbol: 'AMD' })
+  expect(identityRequests).toHaveLength(1)
+  expect(identityRequests.map(request => request.symbol)).toEqual(['IWM'])
   await expect(page.getByRole('status').filter({ hasText: 'Some requested data is unavailable. Available results remain usable.' })).toBeVisible()
   const historyUrl = new URL(page.url())
   expect(historyUrl.pathname).toBe('/chart/AMD')
@@ -1429,9 +1439,13 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
   await expect(chartCanvases.first()).toBeVisible()
   const m1HistoryReady = page.waitForResponse(response => {
     const url = new URL(response.url())
-    return response.request().method() === 'POST'
-      && url.pathname === '/api/v1/data/ensure'
-      && (response.request().postDataJSON() as DataEnsureRequest).timeframe === 'M1'
+    if (response.request().method() !== 'POST' || url.pathname !== '/api/v1/data/ensure') return false
+    const body = response.request().postDataJSON() as DataEnsureRequest
+    return body.target.kind === 'instrument'
+      && body.target.instrument_id === amdInstrumentId
+      && body.datasets?.includes('history') === true
+      && body.timeframe === 'M1'
+      && body.adjusted === true
   })
   const m1LocalBarsReady = page.waitForResponse(response => {
     const url = new URL(response.url())
@@ -1465,8 +1479,8 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
   await expect(page.getByRole('status').filter({ hasText: 'Some requested data is unavailable. Available results remain usable.' })).toBeVisible()
   await expect(historicalContext).toBeVisible()
   await expect(chartCanvases).toHaveCount(canvasCountBefore)
-  expect(identityRequests).toHaveLength(2)
-  expect(identityRequests.map(request => request.symbol)).toEqual(['IWM', 'AMD'])
+  expect(identityRequests).toHaveLength(1)
+  expect(identityRequests.map(request => request.symbol)).toEqual(['IWM'])
   expect(historyRequests).toHaveLength(2)
   expect(historyRequests.map(request => request.timeframe)).toEqual(['D1', 'M1'])
   expect(historyRequests.every(request => ensureInstrumentId(request) === amdInstrumentId)).toBe(true)
@@ -1806,12 +1820,15 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
       && body.datasets.includes('profile')
       && body.datasets.includes('history')
       && body.datasets.includes('holdings')
+      && body.timeframe === 'D1'
+      && body.adjusted === true
   })
   const oihAutomaticHoldingsEnsureReady = page.waitForResponse(response => {
     const url = new URL(response.url())
     if (response.request().method() !== 'POST' || url.pathname !== '/api/v1/data/ensure') return false
     const body = response.request().postDataJSON() as DataEnsureRequest
-    return body.target.kind === 'instrument' && body.target.symbol === 'OIH' && body.datasets?.includes('holdings') === true
+    return body.target.kind === 'instrument' && body.target.symbol === 'OIH'
+      && body.datasets?.includes('holdings') === true && body.timeframe === 'D1'
   })
   await oihOption.click()
   const oihCanonicalEnsure = await oihCanonicalEnsureReady
@@ -1892,9 +1909,13 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
   })
   const automaticD1HistoryReady = page.waitForResponse(response => {
     const url = new URL(response.url())
-    return response.request().method() === 'POST'
-      && url.pathname === '/api/v1/data/ensure'
-      && (response.request().postDataJSON() as DataEnsureRequest).timeframe === 'D1'
+    if (response.request().method() !== 'POST' || url.pathname !== '/api/v1/data/ensure') return false
+    const body = response.request().postDataJSON() as DataEnsureRequest
+    return body.target.kind === 'instrument'
+      && body.target.instrument_id === amdInstrumentId
+      && body.datasets?.includes('history') === true
+      && body.timeframe === 'D1'
+      && body.adjusted === true
   })
   await holdingButton.click()
   await page.getByRole('button', { name: 'View history' }).click()
@@ -1926,21 +1947,21 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
     dependencies: expect.arrayContaining([
       expect.objectContaining({ dataset: 'identity', status: 'ready', symbol: 'AMD', instrument_id: amdInstrumentId }),
       expect.objectContaining({ dataset: 'profile', status: 'ready', symbol: 'AMD', instrument_id: amdInstrumentId }),
-      expect.objectContaining({ dataset: 'history', status: 'partial', symbol: 'AMD', instrument_id: amdInstrumentId, covered_ranges: [{ is_adjusted: true }] }),
+      expect.objectContaining({ dataset: 'history', status: 'partial', symbol: 'AMD', instrument_id: amdInstrumentId, covered_ranges: expect.arrayContaining([expect.objectContaining({ is_adjusted: true })]) }),
     ]),
   })
   expect(historyRequests).toHaveLength(1)
   expect(ensureInstrumentId(historyRequests[0]!)).toBe(amdInstrumentId)
   expect(historyRequests[0]?.start_at).toBeUndefined()
   expect(historyRequests[0]?.end_at).toBeUndefined()
-  expect(identityRequests.map(request => request.symbol)).toEqual(['OIH', 'AMD'])
+  expect(identityRequests.map(request => request.symbol)).toEqual(['OIH'])
   await expect(page.getByRole('status').filter({ hasText: /^Partial D1 price history for AMD remains available\. Additional history is not currently available\.$/ })).toBeVisible()
   const m1HistoryReady = page.waitForResponse(response => {
     const url = new URL(response.url())
     if (response.request().method() !== 'POST' || url.pathname !== '/api/v1/data/ensure') return false
     const body = response.request().postDataJSON() as DataEnsureRequest
     return body.target.kind === 'instrument' && ensureInstrumentId(body) === amdInstrumentId
-      && body.timeframe === 'M1' && body.datasets?.includes('history') === true
+      && body.timeframe === 'M1' && body.datasets?.includes('history') === true && body.adjusted === true
   })
   const localReadbackReady = page.waitForResponse(response => {
     const url = new URL(response.url())
@@ -1968,7 +1989,7 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
     dependencies: expect.arrayContaining([
       expect.objectContaining({ dataset: 'identity', status: 'ready', symbol: 'AMD', instrument_id: amdInstrumentId }),
       expect.objectContaining({ dataset: 'profile', status: 'ready', symbol: 'AMD', instrument_id: amdInstrumentId }),
-      expect.objectContaining({ dataset: 'history', status: 'partial', symbol: 'AMD', instrument_id: amdInstrumentId, covered_ranges: [{ is_adjusted: true }] }),
+      expect.objectContaining({ dataset: 'history', status: 'partial', symbol: 'AMD', instrument_id: amdInstrumentId, covered_ranges: expect.arrayContaining([expect.objectContaining({ is_adjusted: true })]) }),
     ]),
   })
   expect(m1LocalBars.status()).toBe(200)
@@ -1983,8 +2004,8 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
   expect(historyRequests.every(request => ensureInstrumentId(request) === amdInstrumentId)).toBe(true)
   expect(historyRequests.every(request => request.start_at === undefined && request.end_at === undefined)).toBe(true)
   expect(acquiredFixtureBar).not.toBeNull()
-  expect(identityRequests).toHaveLength(2)
-  expect(identityRequests.map(request => request.symbol)).toEqual(['OIH', 'AMD'])
+  expect(identityRequests).toHaveLength(1)
+  expect(identityRequests.map(request => request.symbol)).toEqual(['OIH'])
   expect(directHistoryRequests).toEqual([])
   expect(successfulHistoryResponseReceived).toBe(true)
   expect(localReadbackCount).toBeGreaterThan(0)

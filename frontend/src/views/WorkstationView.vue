@@ -1874,7 +1874,11 @@ function scheduleSymbolSearch(value: string) {
     try {
       const results = await queryClient.fetchQuery<Array<{ symbol: string; name: string; exchange: string; type: string }>>({
         queryKey: ['workstation', 'instrument-search', query.toUpperCase()],
-      queryFn: () => api.get<Array<{ symbol: string; name: string; exchange: string; type: string; instrument_id?: number | null }>>('/instruments/search', { q: query, canonical_only: true }),
+      queryFn: () => api.get<Array<{ symbol: string; name: string; exchange: string; type: string; instrument_id?: number | null }>>(
+        '/instruments/search',
+        { q: query, canonical_only: true },
+        { priority: 'high' },
+      ),
         staleTime: 30_000,
       })
       if (!componentMounted || requestId !== searchRequest || symbolDraft.value.trim() !== query) return

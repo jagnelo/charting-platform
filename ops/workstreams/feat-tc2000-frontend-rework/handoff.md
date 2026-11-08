@@ -26859,3 +26859,10 @@ Focused Workstation/instrument-query tests passed 106/106. E2E unbound-reference
 ## 2026-11-08 — Confirm fresh versus restored holding captions
 
 Root's latest exact error context confirms fresh OIH selection renders `AMD from OIH holdings · 2026-01-02`; the test already expects that caption. The fresh IWM handoff likewise expects `AMD from IWM holdings`. The `dated holdings` caption is reserved for restored route context, and the separate UNXQ reload assertion remains dated. No caption/product change was needed. Current frontend type-check passes; Root owns browser requalification.
+
+
+## 2026-11-08 — Prioritize visible canonical ticker search and tighten ensure witnesses
+
+Root's remaining-five run on `1930aff0829c62b4c1379347db6ac930e47e3f0d` was 1 passed / 4 failed. Its exact review identified three TC on-demand test-contract issues: the UNXQ history waiter could consume an unrelated SPY 202 response; confirmed AMD identity from selected holdings must be reused without a second `/instruments/acquire`; and nested `covered_ranges` assertions need partial matching for legitimate lineage/source metadata. The UNXQ, IWM, and OIH response waiters now match the intended target, dataset, timeframe, and adjustment contract; identity counts require only the explicit IWM/OIH acquisition; history assertions retain adjusted coverage, local readback, held/partial reason, selected identity and dated lineage.
+
+Root's passive factory diagnostic then proved visible SPY canonical search waited 5.36 seconds in the client queue before its 96.81ms HTTP response. `scheduleSymbolSearch` now submits this existing deduplicated canonical query with `priority: high`; its query key, cache and selection semantics are unchanged. The focused Go-while-search-is-pending regression still selects exact SPY over SPYG/SPYV, and all unit expectations for canonical search now assert the foreground priority. Root owns exact-source browser requalification; no browser, native, provider HTTP or production operation was run in TC.

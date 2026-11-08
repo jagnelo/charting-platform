@@ -473,7 +473,7 @@ describe('WorkstationView pop-out bindings', () => {
 
       const input = wrapper.get('[aria-label="Active symbol"]')
       await input.setValue('QQQ')
-      await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'QQQ', canonical_only: true }))
+      await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'QQQ', canonical_only: true }, { priority: 'high' }))
       await vi.waitFor(() => expect(wrapper.get('.workstation__canonical-symbol-options').text()).toContain('QQQ'))
       expect(apiPost).not.toHaveBeenCalled()
 
@@ -884,7 +884,7 @@ describe('WorkstationView pop-out bindings', () => {
     await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY' })))
     const input = wrapper.get('input[aria-label="Active symbol"]')
     await input.setValue('xl')
-    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'xl', canonical_only: true }))
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'xl', canonical_only: true }, { priority: 'high' }))
     await vi.waitFor(() => expect(wrapper.find('[role="listbox"]').exists()).toBe(true))
     const listbox = wrapper.get('[role="listbox"]')
     const resultsId = listbox.attributes('id')
@@ -1738,7 +1738,7 @@ describe('WorkstationView pop-out bindings', () => {
     // The user can deliberately re-edit/paste the same ticker after route
     // hydration. A ref watcher alone would not run because the value is equal.
     await input.trigger('input')
-    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'SPY', canonical_only: true }))
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'SPY', canonical_only: true }, { priority: 'high' }))
     await vi.waitFor(() => expect(wrapper.findAll('[role="option"]').some(option => option.text().includes('SPY'))).toBe(true))
     expect(input.attributes('aria-expanded')).toBe('true')
     expect(apiPost).not.toHaveBeenCalled()
@@ -1768,7 +1768,7 @@ describe('WorkstationView pop-out bindings', () => {
     ;(input.element as HTMLInputElement).value = 'NVDA'
     await input.trigger('input')
 
-    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'NVDA', canonical_only: true }))
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'NVDA', canonical_only: true }, { priority: 'high' }))
     await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/instruments/discover', expect.objectContaining({ query: 'NVDA' }), expect.objectContaining({ priority: 'high', signal: expect.any(AbortSignal) })))
     await vi.waitFor(() => expect(wrapper.text()).toContain('No matching ticker is available for “NVDA”'))
     expect(apiPost).toHaveBeenCalledTimes(1)
@@ -1852,7 +1852,7 @@ describe('WorkstationView pop-out bindings', () => {
     const input = wrapper.get('input[aria-label="Active symbol"]')
     await input.setValue('OIH')
     await vi.waitFor(() => expect(wrapper.find('.workstation__source-actions button').exists()).toBe(true))
-    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'OIH', canonical_only: true }))
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'OIH', canonical_only: true }, { priority: 'high' }))
     expect(wrapper.get('[role="listbox"]').element.contains(wrapper.get('.workstation__source-actions').element)).toBe(false)
     expect(apiPost).toHaveBeenNthCalledWith(1, '/instruments/discover', {
       query: 'OIH', types: [], limit: 10, request_id: expect.stringMatching(/^[0-9a-f-]{36}$/),
@@ -2274,7 +2274,7 @@ describe('WorkstationView pop-out bindings', () => {
     const input = wrapper.get('input[aria-label="Active symbol"]')
     await input.setValue('OIH')
     await vi.waitFor(() => expect(wrapper.find('.workstation__source-actions button').exists()).toBe(true))
-    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'OIH', canonical_only: true }))
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'OIH', canonical_only: true }, { priority: 'high' }))
     const action = wrapper.find('.workstation__source-actions button')
     expect((action.element as HTMLButtonElement).tabIndex).toBe(0)
     await input.trigger('focusout', { relatedTarget: action.element })
@@ -2392,7 +2392,7 @@ describe('WorkstationView pop-out bindings', () => {
       const input = wrapper.get('input[aria-label="Active symbol"]')
       ;(input.element as HTMLInputElement).focus()
       await input.setValue('SPY')
-      await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'SPY', canonical_only: true }))
+      await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'SPY', canonical_only: true }, { priority: 'high' }))
 
       // Clicking Go moves focus off the input before its click handler. A late
       // map/link publication in that boundary must not replace the user's draft.
@@ -2444,7 +2444,7 @@ describe('WorkstationView pop-out bindings', () => {
       harness.workspace.publishSymbol.mockClear()
       const input = wrapper.get('input[aria-label="Active symbol"]')
       await input.setValue('SPYV')
-      await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'SPYV', canonical_only: true }))
+      await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'SPYV', canonical_only: true }, { priority: 'high' }))
       const go = wrapper.get('.workstation__search > button[type="button"]')
       await go.trigger('click')
 
@@ -2452,7 +2452,7 @@ describe('WorkstationView pop-out bindings', () => {
       // exact query can submit and supersede its pending result.
       await go.trigger('click')
       await input.setValue('SPY')
-      await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'SPY', canonical_only: true }))
+      await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'SPY', canonical_only: true }, { priority: 'high' }))
       await go.trigger('click')
       await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY', instrumentId: 2 })))
 
@@ -2519,7 +2519,7 @@ describe('WorkstationView pop-out bindings', () => {
       harness.workspace.publishSymbol.mockClear()
       const input = wrapper.get('input[aria-label="Active symbol"]')
       await input.setValue('SPY')
-      await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'SPY', canonical_only: true }))
+      await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'SPY', canonical_only: true }, { priority: 'high' }))
       await wrapper.get('.workstation__search > button[type="button"]').trigger('click')
 
       search.resolve([
@@ -3083,7 +3083,7 @@ describe('WorkstationView pop-out bindings', () => {
     await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY' })))
     const input = wrapper.get('input[aria-label="Active symbol"]')
     await input.setValue('xlk')
-    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'xlk', canonical_only: true }))
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'xlk', canonical_only: true }, { priority: 'high' }))
     await vi.waitFor(() => expect(wrapper.find('[role="listbox"]').exists()).toBe(true))
     await input.trigger('keydown', { key: 'Escape' })
     expect(wrapper.find('[role="listbox"]').exists()).toBe(false)
@@ -3150,7 +3150,7 @@ describe('WorkstationView pop-out bindings', () => {
     await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY' })))
     const input = wrapper.get('input[aria-label="Active symbol"]')
     await input.setValue('xlk')
-    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'xlk', canonical_only: true }))
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'xlk', canonical_only: true }, { priority: 'high' }))
     await vi.waitFor(() => expect(wrapper.find('[role="listbox"]').exists()).toBe(true))
     await wrapper.find('.workstation__tabs').trigger('pointerdown')
     expect(wrapper.find('[role="listbox"]').exists()).toBe(false)
