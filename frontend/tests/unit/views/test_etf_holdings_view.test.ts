@@ -489,6 +489,29 @@ describe('ETFHoldingsView', () => {
     routerPush.mockReset()
   })
 
+  it('loads the visible ETF catalogue in the interactive lane and cancels it on exit', async () => {
+    let finishProfiles!: (value: unknown) => void
+    vi.mocked(api.get).mockImplementation(() => new Promise(resolve => {
+      finishProfiles = resolve
+    }) as never)
+
+    const wrapper = mount(ETFHoldingsView)
+    await nextTick()
+    expect(wrapper.text()).toContain('Loading ETFs...')
+
+    const listCall = vi.mocked(api.get).mock.calls.find(([path]) => path === '/etf-holdings')
+    expect(listCall).toBeDefined()
+    expect(listCall?.[1]).toEqual({ q: undefined })
+    expect(listCall?.[2]?.priority).toBe('high')
+    expect(listCall?.[2]?.signal).toBeInstanceOf(AbortSignal)
+
+    const signal = listCall?.[2]?.signal
+    wrapper.unmount()
+    expect(signal?.aborted).toBe(true)
+    finishProfiles([])
+    await flushPromises()
+  })
+
   it('loads ETF profiles, browses a paged holdings result, and opens a constituent chart', async () => {
     vi.mocked(api.get)
       .mockResolvedValueOnce([profile, overlapProfile])
@@ -512,7 +535,12 @@ describe('ETFHoldingsView', () => {
       expect(wrapper.text()).toContain('MSFT')
     })
 
-    expect(api.get).toHaveBeenNthCalledWith(1, '/etf-holdings', { q: undefined })
+    expect(api.get).toHaveBeenNthCalledWith(
+      1,
+      '/etf-holdings',
+      { q: undefined },
+      expect.objectContaining({ priority: 'high', signal: expect.any(AbortSignal) }),
+    )
     expect(api.get).toHaveBeenNthCalledWith(2, '/etf-holdings/SPY/dates')
     expect(api.get).toHaveBeenNthCalledWith(3, '/etf-holdings/SPY/holdings', {
       snapshot_id: '55',
@@ -739,7 +767,11 @@ describe('ETFHoldingsView', () => {
     })
 
     const wrapper = mount(ETFHoldingsView)
-    await vi.waitFor(() => expect(api.get).toHaveBeenCalledWith('/etf-holdings', { q: undefined }))
+    await vi.waitFor(() => expect(api.get).toHaveBeenCalledWith(
+      '/etf-holdings',
+      { q: undefined },
+      expect.objectContaining({ priority: 'high', signal: expect.any(AbortSignal) }),
+    ))
     await wrapper.findComponent({ name: 'SearchBar' }).vm.$emit('select', 'OIH', {
       symbol: 'OIH', name: 'Oil Services ETF', exchange: 'NYSE Arca', type: 'ETF',
     })
@@ -1266,7 +1298,11 @@ describe('ETFHoldingsView', () => {
     await flushPromises()
 
     expect(api.post).not.toHaveBeenCalled()
-    expect(api.get).toHaveBeenCalledWith('/etf-holdings', { q: undefined })
+    expect(api.get).toHaveBeenCalledWith(
+      '/etf-holdings',
+      { q: undefined },
+      expect.objectContaining({ priority: 'high', signal: expect.any(AbortSignal) }),
+    )
     await vi.waitFor(() => {
       expect(api.get).toHaveBeenCalledWith('/etf-holdings/QQQ/dates')
     })
