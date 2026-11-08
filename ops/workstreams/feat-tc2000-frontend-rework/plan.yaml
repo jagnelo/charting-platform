@@ -1830,9 +1830,9 @@ shared_path_exceptions:
 - path: frontend/tests/e2e/auth_session_boundary.spec.ts
   reason: Exact deterministic test-owned account boundary and expired-refresh browser journey; no real human account switching.
 - path: frontend/tests/e2e/helpers.ts
-  reason: "TC-owned shared browser diagnostics only: retain the exact request-attributed 503 behavior and add a single explicitly armed exact auth-session AbortError classification; unrelated or excess errors remain fatal, covered by test_browser_diagnostics.test.ts."
+  reason: "TC-owned shared browser diagnostics only: retain exact request-attributed 503 behavior; classify one explicitly armed auth-session AbortError; and classify only GET 404 for a positive study/reference artifact pair as its documented missing-read outcome. Unrelated methods/paths and 503/504 remain fatal, covered by test_browser_diagnostics.test.ts."
 - path: frontend/tests/unit/e2e/test_browser_diagnostics.test.ts
-  reason: "TC-owned focused regression for the exact shared diagnostic seam; the armed auth-session cancellation is count-bounded and leaves unrelated or excess errors fatal."
+  reason: "TC-owned focused regression for the exact shared diagnostic seam; the auth-session cancellation is count-bounded and the missing-artifact allowance is limited to the exact GET route shape, leaving unrelated methods/paths and 503/504 fatal."
 - path: frontend/src/lib/instruments.ts
   reason: "TC shared frontend identity resolver exposes canonical instrument_type from its existing canonical metadata read so Workstation can correct a coarse picker hint without a duplicate acquire request."
 - path: frontend/src/stores/drawings.ts
@@ -4062,11 +4062,12 @@ prior_frontend_consumer_adaptations_4de:
 - path: frontend/tests/e2e/helpers.ts
   source_sha: 4de1365cec4bc5897c2a76d16a0004853d747f9c
   accepted_blob: 0acf9b94424a8cecafe59d3c7a447cdd0554e4d7
-  delta: Keep the exact armed controlled-API-fault attribution for the existing OIH failure test. Also classify only the explicitly
-    armed count of exact authenticated-session-change AbortErrors; unarmed, mismatched, duplicate, and unrelated errors remain fatal.
-  rationale: The existing 2026-11-04 OIH disposition remains intact. Root's 2026-11-08 ownership transfer authorizes only these two
-    shared diagnostic files for the same-origin session-boundary journey; the matching unit regression proves the allowance is
-    count-bounded and unrelated or excess AbortErrors remain critical. No broad console suppression is introduced.
+  delta: Keep exact armed controlled-API-fault attribution for the OIH case; classify only the explicitly armed count of exact
+    authenticated-session-change AbortErrors; and classify GET 404 only for /api/v1/strategy-lab/v2/study-artifact-references/
+    {positiveStudyId}/{positiveReferenceId} as the documented missing-read outcome.
+  rationale: The existing OIH disposition remains intact. Root's shared-helper ownership transfer authorizes these two diagnostic
+    files; focused tests prove the auth allowance is count-bounded, only the exact positive-ID GET route is classified, and
+    unrelated methods/paths plus 503/504 responses remain critical. No broad console suppression is introduced.
 prior_accepted_typed_enter_checkpoint_archive:
   goal: 'Repair ordinary typed-ticker Enter behavior in Workstation and shared chart SearchBar: submit the exact typed ticker
     or its exact local match instead of implicitly selecting a fuzzy prefix, while deliberate arrow navigation and suggestion
@@ -5783,3 +5784,13 @@ ui_candidate_coalesced_d5_f7_2bf_20261108:
   etf_imported_paths: BasketsView, ETFHoldingsView, and their two view unit files; all 10 manifest rows verified.
   validation: Exact old guards passed; journey-matrix validation confirms current control signatures, case counts and mappings remain valid.
   pending: Root affected UI browser qualification; Provider Calendar dependency and all final route, CI, and release criteria remain open.
+
+shared_instrument_calendar_readiness_v1_20261108:
+  assignment: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/root-shared-Calendar-readiness-v1-contract.json
+  state: approved_minimal_shared_Calendar_cache_readiness_v1_implementation_contract
+  backend_owner: Provider
+  provider_source: 09754d35e7161b7cffacd4121e6cdd0b3909d0d5; Root review/build pending; no backend bytes imported into TC in this checkpoint.
+  frontend_scope: Extend the existing shared instrument-calendar Vue Query/cache path and UPlotChart consumer; status observations are symbol, canonical instrument, and auth-session scoped, visible/document-visible only, and use the existing bounded API queue.
+  behavior: Preserve cached events immediately; show truthful compact queued/deferred/held/unavailable/ready status; poll status only while visible; honor an actual retry_at; invalidate and refetch the exact calendar range on ready/partial completion or newer updated_at; retain events on refresh failure and reject stale symbol/instrument/session results.
+  validation: Focused calendar and browser-diagnostics unit modules pass 22/22; frontend type-check passes; E2E reference-only preflight has no actionable unbound names; journey matrix and strict scope/workstream/diff checks pass.
+  pending: The queued-to-ready no-reload journey case is authored in the existing TC-owned TCNEW flow but was not browser-run here. Root owns combined backend/frontend build and rendered qualification; provider genuine-service and all full-suite/release gates remain open.

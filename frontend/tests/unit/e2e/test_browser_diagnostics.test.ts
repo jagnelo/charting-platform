@@ -5,6 +5,7 @@ const controlledUrl = 'http://frontend/api/v1/etf-holdings/OIH/acquire'
 const controlledRequestId = '17814d8d-f8e4-4128-9d5c-1786aaf47b0d'
 const controlledResponseId = 'd64ee80b-27ea-4d70-89cc-31f6395b71e8'
 const console503 = 'Failed to load resource: the server responded with a status of 503 (Service Unavailable)'
+const console404 = 'Failed to load resource: the server responded with a status of 404 (Not Found)'
 
 function diagnosticHarness() {
   const listeners = new Map<string, Array<(event: unknown) => void>>()
@@ -47,11 +48,54 @@ function responseHeaderEvent(
   }
 }
 
+function apiResponse(url: string, method: string, status: number) {
+  return {
+    url: () => url,
+    status: () => status,
+    request: () => ({ method: () => method, postDataJSON: () => null }),
+  }
+}
+
 function consoleEvent(url = controlledUrl, text = console503) {
   return { type: () => 'error', text: () => text, location: () => ({ url }) }
 }
 
 describe('BrowserDiagnostics controlled API faults', () => {
+  it('classifies only GETs for a positive study/reference pair as missing artifact reads', async () => {
+    const expected = diagnosticHarness()
+    const expectedUrl = 'http://frontend/api/v1/strategy-lab/v2/study-artifact-references/41/999'
+    expected.emit('response', apiResponse(expectedUrl, 'GET', 404))
+    expected.emit('console', consoleEvent(expectedUrl, console404))
+    await expect(expected.diagnostics.expectNoCriticalIssues()).resolves.toBeUndefined()
+    expect(expected.diagnostics.expectedUnavailableApi404s).toBe(1)
+
+    for (const [url, method] of [
+      ['http://frontend/api/v1/strategy-lab/v2/study-artifact-references/0/999', 'GET'],
+      ['http://frontend/api/v1/strategy-lab/v2/study-artifact-references/41/999/extra', 'GET'],
+      [expectedUrl, 'POST'],
+    ]) {
+      const unexpected = diagnosticHarness()
+      unexpected.emit('response', apiResponse(url, method, 404))
+      unexpected.emit('console', consoleEvent(url, console404))
+      await expect(unexpected.diagnostics.expectNoCriticalIssues()).rejects.toThrow('unexpected browser console/page/request failures')
+      expect(unexpected.diagnostics.unexpectedApi404Paths).toEqual([new URL(url).pathname])
+    }
+  })
+
+  it('keeps missing-reference 503 and 504 responses fatal', async () => {
+    const url = 'http://frontend/api/v1/strategy-lab/v2/study-artifact-references/41/999'
+    const failureTexts = [
+      console503,
+      'Failed to load resource: the server responded with a status of 504 (Gateway Timeout)',
+    ]
+    for (const [index, failureText] of failureTexts.entries()) {
+      const { diagnostics, emit } = diagnosticHarness()
+      emit('response', apiResponse(url, 'GET', index === 0 ? 503 : 504))
+      emit('console', consoleEvent(url, failureText))
+      await expect(diagnostics.expectNoCriticalIssues()).rejects.toThrow('unexpected browser console/page/request failures')
+    }
+  })
+
   it('classifies only the exact armed auth-session cancellation and keeps duplicates fatal', async () => {
     const expectedMessage = 'AbortError: The authenticated session changed while this request was in flight.'
     const expected = diagnosticHarness()

@@ -57,6 +57,14 @@ type InstrumentCalendarEvent = {
   source: string
   is_estimate: boolean
 }
+type InstrumentCalendarStatus = {
+  version: 1
+  status: 'not_requested' | 'queued' | 'running' | 'deferred' | 'ready' | 'partial' | 'held' | 'unavailable' | 'stale'
+  has_pending_work: boolean
+  retry_at: string | null
+  reason_code: string | null
+  updated_at: string | null
+}
 
 const fixtureOutcome = {
   provider: 'test-fixture',
@@ -833,6 +841,9 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
   const canonicalSearchRequests: string[] = []
   const localBarReadbacks: Array<{ symbol: string; timeframe: string; rows: OHLCVBar[]; afterAcquisition: boolean }> = []
   const calendarRequests: string[] = []
+  const calendarEventResponses: InstrumentCalendarEvent[][] = []
+  let calendarStatusReady = false
+  let calendarStatusReads = 0
   page.on('request', request => {
     const url = new URL(request.url())
     const path = url.pathname
@@ -845,6 +856,14 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
   // UPlotChart reads the instrument calendar when local bars become available.
   // TCNEW exists only in this page's controlled fixture, so return the API's
   // real empty-list response instead of allowing the backend to bootstrap it.
+  await page.route(url => new URL(url).pathname === '/api/v1/calendar/instruments/TCNEW/calendar/status', async route => {
+    expect(route.request().method()).toBe('GET')
+    calendarStatusReads += 1
+    const status: InstrumentCalendarStatus = calendarStatusReady
+      ? { version: 1, status: 'ready', has_pending_work: false, retry_at: null, reason_code: null, updated_at: '2026-11-08T12:00:02Z' }
+      : { version: 1, status: 'queued', has_pending_work: true, retry_at: null, reason_code: null, updated_at: '2026-11-08T12:00:01Z' }
+    await route.fulfill({ status: 200, json: status })
+  })
   await page.route(url => new URL(url).pathname === '/api/v1/calendar/instruments/TCNEW/calendar', async route => {
     const request = route.request()
     expect(request.method()).toBe('GET')
@@ -853,7 +872,13 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
     const symbol = decodeURIComponent(match?.[1] ?? '')
     expect(symbol, 'the synthetic identity must scope calendar reads to TCNEW').toBe('TCNEW')
     calendarRequests.push(symbol)
-    await route.fulfill({ status: 200, json: [] })
+    const events: InstrumentCalendarEvent[] = calendarStatusReady ? [{
+      id: 901, date: '2026-11-06', event_time: '2026-11-06T15:00:00Z', fetched_at: '2026-11-08T12:00:02Z',
+      event_type: 'earnings', symbol: 'TCNEW', title: 'Controlled earnings event', time_hint: 'after_close',
+      source: 'test-fixture', is_estimate: false,
+    }] : []
+    calendarEventResponses.push(events)
+    await route.fulfill({ status: 200, json: events })
   })
 
   await page.route('**/api/v1/instruments/search**', async route => {
@@ -1151,6 +1176,14 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
   await expect(visibleChart.locator('.sr-only')).toContainText('M1 chart; 1 bars')
   await expect.poll(() => calendarRequests.length).toBeGreaterThan(0)
   expect(calendarRequests.every(symbol => symbol === 'TCNEW')).toBe(true)
+
+  await expect(page.getByTestId('instrument-calendar-status')).toContainText('Preparing calendar events')
+  calendarStatusReady = true
+  await expect(page.getByTestId('instrument-calendar-status')).toHaveText('Calendar ready · 1 event', { timeout: 10_000 })
+  expect(calendarStatusReads).toBeGreaterThan(1)
+  expect(calendarEventResponses.at(-1)).toEqual([expect.objectContaining({
+    id: 901, symbol: 'TCNEW', title: 'Controlled earnings event',
+  })])
   expect(tcnewPreparationRequests.filter(request => request.timeframe === 'M1'
     && request.target.kind === 'instrument'
     && 'instrument_id' in request.target

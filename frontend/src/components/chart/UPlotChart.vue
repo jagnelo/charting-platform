@@ -1,6 +1,9 @@
 <template>
   <div class="chart-root" ref="rootRef" tabindex="0" role="region" aria-label="Chart workspace" :aria-describedby="`${chartControlId}-provenance`" :aria-busy="chartStore.isLoading || (chartStore.bars.length > 0 && !chartReady) ? 'true' : 'false'" :data-linked-timestamp="props.linkedTimestamp || undefined" :data-date-pointer-mode="datePointerMode" @keydown="handleDatePointerKeydown" @keydown.esc="handleChartEscape">
     <span :id="`${chartControlId}-provenance`" class="sr-only">{{ chartAriaLabel }}</span>
+    <div v-if="calendarStatusMessage" class="calendar-status" role="status" aria-live="polite" data-testid="instrument-calendar-status">
+      {{ calendarStatusMessage }}
+    </div>
 
     <!-- Main price chart -->
     <div class="uplot-wrapper" ref="wrapperRef"
@@ -193,7 +196,16 @@ import { ref, watch, onMounted, onUnmounted, nextTick, computed, reactive, injec
 import uPlot from 'uplot'
 import 'uplot/dist/uPlot.min.css'
 import { api, setQueuedApiRequestPriority, type ApiRequestPriority } from '@/lib/api'
-import { fetchInstrumentCalendar } from '@/lib/workstation/instrumentCalendar'
+import {
+  fetchInstrumentCalendar,
+  invalidateInstrumentCalendar,
+  instrumentCalendarStatusQueryKey,
+  instrumentCalendarStatusRefetchInterval,
+  isCurrentInstrumentCalendarContext,
+  shouldRefreshInstrumentCalendar,
+  type InstrumentCalendarStatus,
+} from '@/lib/workstation/instrumentCalendar'
+import { assertAuthSessionCurrent, authSessionEpochView, captureAuthSession } from '@/lib/authSession'
 import { usePanelStore }        from '@/stores/chart'
 import { useLayoutStore }       from '@/stores/layout'
 import { useDrawingsStore }     from '@/stores/drawings'
@@ -541,6 +553,11 @@ const eventPopover = ref<{ event: InstrumentEvent; x: number; y: number } | null
 let eventMarkers: Array<{ event: InstrumentEvent; x: number; y: number; r: number }> = []
 let eventLoadSeq = 0
 let eventRangeKey = ''
+let eventLoadPromise: Promise<void> | null = null
+let eventLoadPromiseKey = ''
+let forcedEventReloadKey: string | null = null
+let calendarStatusProgressScope = ''
+let calendarStatusProgress: InstrumentCalendarStatus | null = null
 
 const fmt    = (v: number) => v != null ? v.toFixed(4) : '—'
 const fmtVol = (v: number) => v >= 1e9 ? `${(v/1e9).toFixed(1)}B` : v >= 1e6 ? `${(v/1e6).toFixed(1)}M` : v >= 1e3 ? `${(v/1e3).toFixed(0)}K` : String(Math.round(v))
@@ -1045,7 +1062,7 @@ async function loadAlertFiringEvents() {
   }
 }
 
-async function loadInstrumentEvents() {
+async function loadInstrumentEvents(forceRefresh = false): Promise<void> {
   const symbol = chartStore.symbol
   const bars = chartStore.bars
   const instrument = chartStore.instrument
@@ -1060,36 +1077,70 @@ async function loadInstrumentEvents() {
     ? new Date(lastTs + 370 * 86_400_000).toISOString()
     : bars[bars.length - 1].ts
   const key = `${symbol}:${start}:${end}`
+  const instrumentId = instrument.id
+  const sessionEpoch = captureAuthSession().epoch
+  if (eventLoadPromise && eventLoadPromiseKey === key) {
+    if (forceRefresh) forcedEventReloadKey = key
+    await eventLoadPromise
+    if (forceRefresh && forcedEventReloadKey === key
+      && isCurrentInstrumentCalendarContext(symbol, chartStore.symbol, sessionEpoch, captureAuthSession().epoch, instrumentId, chartStore.instrument?.id)) {
+      forcedEventReloadKey = null
+      await loadInstrumentEvents(true)
+    }
+    return
+  }
   const queueKey = `chart-calendar:${key}`
   const rootRect = rootRef.value?.getBoundingClientRect()
   const hasVisibleChartSurface = chartSurfaceVisible.value && chartDocumentVisible.value
     && Boolean(rootRect && rootRect.width > 0 && rootRect.height > 0)
   const priority: ApiRequestPriority = hasVisibleChartSurface ? 'high' : 'auto'
-  if (key === eventRangeKey) {
+  if (key === eventRangeKey && !forceRefresh) {
     if (priority === 'high') setQueuedApiRequestPriority(queueKey, 'high')
     return
   }
   eventRangeKey = key
   const seq = ++eventLoadSeq
-  try {
+  const read = (async () => {
+    try {
     // Dock layout edits can recreate virtual tool roots even though the chart
     // query is unchanged. Share the exact date-range read through the existing
     // authenticated Vue Query cache so those remounts do not fan out duplicate
     // calendar/enrichment requests.
-    const loaded = await fetchInstrumentCalendar<InstrumentEvent[]>(queryClient, symbol, start, end, () =>
+    if (forceRefresh) await invalidateInstrumentCalendar(queryClient, symbol, start, end)
+    const loaded = await fetchInstrumentCalendar<InstrumentEvent[]>(queryClient, symbol, start, end, signal =>
       api.get<InstrumentEvent[]>(
         `/calendar/instruments/${encodeURIComponent(symbol)}/calendar`,
         { start, end },
-        { priority, queueKey },
+        { signal, priority, queueKey },
       ),
-      { priority, queueKey },
+      { priority, queueKey, refresh: forceRefresh },
     )
-    if (seq === eventLoadSeq && symbol === chartStore.symbol) {
+    if (seq === eventLoadSeq && isCurrentInstrumentCalendarContext(
+      symbol, chartStore.symbol, sessionEpoch, captureAuthSession().epoch, instrumentId, chartStore.instrument?.id,
+    )) {
       instrumentEvents.value = loaded
       redrawVisuals()
     }
-  } catch {
-    if (seq === eventLoadSeq && symbol === chartStore.symbol) instrumentEvents.value = []
+    } catch {
+      // A refresh must never erase already-rendered events when the status/list
+      // read is temporarily unavailable. Initial failures remain explicit.
+      if (!forceRefresh && seq === eventLoadSeq
+        && isCurrentInstrumentCalendarContext(
+          symbol, chartStore.symbol, sessionEpoch, captureAuthSession().epoch, instrumentId, chartStore.instrument?.id,
+        )) {
+        instrumentEvents.value = []
+      }
+    }
+  })()
+  eventLoadPromise = read
+  eventLoadPromiseKey = key
+  try {
+    await read
+  } finally {
+    if (eventLoadPromise === read) {
+      eventLoadPromise = null
+      eventLoadPromiseKey = ''
+    }
   }
 }
 
@@ -1229,6 +1280,7 @@ const TF_POLL_MS: Record<string, number> = {
 }
 const chartSurfaceVisible = ref(true)
 const chartDocumentVisible = ref(typeof document === 'undefined' || document.visibilityState !== 'hidden')
+const calendarAuthSessionEpoch = authSessionEpochView()
 let chartVisibilityObserver: IntersectionObserver | null = null
 const chartReady = ref(false)
 function updateChartDocumentVisibility() {
@@ -1237,6 +1289,70 @@ function updateChartDocumentVisibility() {
 function livePollingAllowed() {
   return chartReady.value && chartSurfaceVisible.value && chartDocumentVisible.value
 }
+function calendarStatusObservationAllowed() {
+  const rect = rootRef.value?.getBoundingClientRect()
+  return livePollingAllowed() && Boolean(rect && rect.width > 0 && rect.height > 0)
+}
+
+const instrumentCalendarStatusQuery = useQuery({
+  queryKey: computed(() => instrumentCalendarStatusQueryKey(
+    chartStore.symbol, calendarAuthSessionEpoch.value, chartStore.instrument?.id,
+  )),
+  queryFn: async ({ signal, queryKey }) => {
+    const [, , symbol, instrumentId, sessionEpoch] = queryKey as ReturnType<typeof instrumentCalendarStatusQueryKey>
+    const session = captureAuthSession()
+    if (session.epoch !== sessionEpoch) throw new Error('The authenticated session changed before calendar status loading.')
+    const status = await api.get<InstrumentCalendarStatus>(
+      `/calendar/instruments/${encodeURIComponent(symbol)}/calendar/status`,
+      undefined,
+      { signal, priority: 'high', foreground: true, queueKey: `chart-calendar-status:${symbol}` },
+    )
+    assertAuthSessionCurrent(session)
+    if (!isCurrentInstrumentCalendarContext(
+      symbol, chartStore.symbol, session.epoch, captureAuthSession().epoch, instrumentId, chartStore.instrument?.id,
+    )) throw new Error('The selected instrument changed while calendar status was loading.')
+    if (!status) throw new Error('Calendar status response was empty.')
+    return status
+  },
+  enabled: computed(() => Boolean(chartStore.symbol && chartStore.bars.length && chartStore.instrument
+    && chartStore.instrument.symbol === chartStore.symbol && !chartStore.instrument.is_synthetic
+    && calendarStatusObservationAllowed())),
+  retry: false,
+  staleTime: 0,
+  refetchOnWindowFocus: true,
+  refetchIntervalInBackground: false,
+  refetchInterval: query => instrumentCalendarStatusRefetchInterval(query.state.data),
+})
+
+const calendarStatusMessage = computed(() => {
+  const status = instrumentCalendarStatusQuery.data.value
+  if (instrumentCalendarStatusQuery.error.value) return 'Calendar status could not be checked; available events remain visible.'
+  if (!status) return ''
+  if (status.status === 'deferred') {
+    const retryAt = status.retry_at ? Date.parse(status.retry_at) : Number.NaN
+    if (Number.isFinite(retryAt) && retryAt > Date.now()) {
+      return `Calendar update is waiting until ${new Date(retryAt).toLocaleTimeString()}.`
+    }
+    return status.retry_at
+      ? 'Calendar retry is due; checking for progress.'
+      : 'Calendar update is waiting for its next scheduled attempt.'
+  }
+  if (status.status === 'held') return 'Calendar data is temporarily held; available events remain visible.'
+  if (status.status === 'unavailable') return 'Calendar data is currently unavailable; available events remain visible.'
+  if (status.status === 'stale') return 'Calendar data may be out of date; available events remain visible.'
+  if (status.has_pending_work || status.status === 'queued' || status.status === 'running') {
+    return instrumentEvents.value.length
+      ? 'Updating calendar events; available events remain visible.'
+      : 'Preparing calendar events…'
+  }
+  if (status.status === 'partial' && status.has_pending_work) return 'Updating calendar events; available events remain visible.'
+  if (status.status === 'ready') {
+    const count = instrumentEvents.value.length
+    return count ? `Calendar ready · ${count} ${count === 1 ? 'event' : 'events'}` : 'Calendar ready · no events in this range'
+  }
+  if (status.status === 'partial') return `Calendar partially available · ${instrumentEvents.value.length} events`
+  return ''
+})
 
 function mergeLatestBars(mapped: OHLCVBar[]) {
   if (!mapped.length) return
@@ -3549,6 +3665,19 @@ watch([() => chartStore.symbol, () => chartStore.timeframe, () => chartStore.bar
 })
 watch(() => chartStore.instrument?.id, () => { if (!chartStore.instrument?.is_synthetic) loadInstrumentEvents() })
 watch(() => chartStore.instrument?.id, () => { if (!chartStore.instrument?.is_synthetic) loadAlertFiringEvents() })
+watch(() => instrumentCalendarStatusQuery.data.value, status => {
+  const symbol = chartStore.symbol
+  const sessionEpoch = calendarAuthSessionEpoch.value
+  if (!status || !chartStore.symbol || !chartStore.bars.length || !chartStore.instrument
+    || chartStore.instrument.symbol !== symbol || chartStore.instrument.is_synthetic
+    || !calendarStatusObservationAllowed()
+    || !isCurrentInstrumentCalendarContext(symbol, chartStore.symbol, sessionEpoch, captureAuthSession().epoch)) return
+  const scope = `${symbol.trim().toUpperCase()}:${chartStore.instrument.id}:${sessionEpoch}`
+  const previous = calendarStatusProgressScope === scope ? calendarStatusProgress : null
+  calendarStatusProgressScope = scope
+  calendarStatusProgress = status
+  if (shouldRefreshInstrumentCalendar(previous, status)) void loadInstrumentEvents(true)
+})
 watch([chartSurfaceVisible, chartDocumentVisible], ([visible, documentVisible]) => {
   if (visible && documentVisible && !chartStore.instrument?.is_synthetic) loadInstrumentEvents()
 })
@@ -3672,6 +3801,23 @@ defineExpose({ jumpToTs })
   overscroll-behavior: none;
   user-select: none;
   -webkit-user-select: none;
+}
+
+.calendar-status {
+  position: absolute;
+  z-index: 18;
+  top: 7px;
+  right: 10px;
+  max-width: min(42%, 360px);
+  padding: 3px 6px;
+  border: 1px solid rgba(125, 145, 165, 0.22);
+  border-radius: 3px;
+  background: rgba(8, 8, 8, 0.78);
+  color: #929ba5;
+  font-size: 10px;
+  line-height: 1.35;
+  text-align: right;
+  pointer-events: none;
 }
 
 .uplot-wrapper {
