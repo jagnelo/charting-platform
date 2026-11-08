@@ -17,6 +17,30 @@ async function assertSeededBackend(page: Page) {
 
 type ShellReadiness = 'loaded' | 'expected-chart-loading'
 
+async function waitForSelectionPreparationToSettle(page: Page) {
+  const summaries = page.locator('.workstation__selection-acquisition .compact-status__summary')
+  // A terminal ready, waiting, unavailable, or failed notice is valid visual
+  // state. Only the shared "preparing" summary is still changing as queued
+  // identity/history work completes, so do not capture that intermediate UI.
+  await expect.poll(async () => {
+    const current = await summaries.allTextContents()
+    return current.every(summary => !/\bpreparing\b/i.test(summary.trim()))
+  }, { timeout: 15_000 }).toBe(true)
+}
+
+async function waitForActiveWindowSnapshotAcknowledgement(page: Page, windowKey: string) {
+  return page.waitForResponse(async response => {
+    const request = response.request()
+    if (request.method() !== 'PUT' || !/\/workspaces\/[^/]+\/snapshot$/.test(new URL(request.url()).pathname)) return false
+    try {
+      const payload = request.postDataJSON() as { tabs?: Array<{ active_window_key?: string | null }> }
+      return payload.tabs?.some(tab => tab.active_window_key === windowKey) ?? false
+    } catch {
+      return false
+    }
+  })
+}
+
 async function waitForShellReady(page: Page, readiness: ShellReadiness = 'loaded') {
   await expect(page.locator('.workstation')).toBeVisible()
   await expect(page.locator('.workstation__layout-state')).toHaveCount(0)
@@ -123,6 +147,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     } else {
       await page.waitForTimeout(250)
     }
+    await waitForSelectionPreparationToSettle(page)
     await expect(page.locator('.chart-tool .tool-state')).toHaveCount(0, { timeout: 15_000 })
     const overlapIssues = await page.evaluate(() => {
       const rect = (element: Element | null) => {
@@ -180,6 +205,34 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
       maxDiffPixelRatio: 0.005,
       scale: 'css',
     })
+
+    // An inactive Chart keeps the 40px rail but removes its controls from both
+    // sight and keyboard focus. Verify the ordinary header-click path still
+    // exposes the drawing tools in the current factory workstation.
+    const chartWindow = page.locator('.tool-window:visible').filter({ has: page.locator('.chart-tool') }).first()
+    await expect(chartWindow).toBeVisible()
+    let drawingToolbar = chartWindow.locator('.chart-tool__drawing-toolbar:not(.chart-tool__drawing-toolbar--inactive)')
+    if (await drawingToolbar.count() === 0) {
+      const inactiveRail = chartWindow.locator('.chart-tool__drawing-toolbar--inactive')
+      await expect(inactiveRail).toHaveAttribute('aria-hidden', 'true')
+      await expect(inactiveRail).toHaveAttribute('inert', '')
+      await expect(inactiveRail.locator('button')).toHaveCount(0)
+      const chartWindowKey = await chartWindow.getAttribute('data-window-key')
+      expect(chartWindowKey).toBeTruthy()
+      const saveAcknowledgement = waitForActiveWindowSnapshotAcknowledgement(page, chartWindowKey!)
+      await chartWindow.locator('.tool-window__title').click()
+      drawingToolbar = chartWindow.locator('.chart-tool__drawing-toolbar:not(.chart-tool__drawing-toolbar--inactive)')
+      const savedSelection = await saveAcknowledgement
+      expect(savedSelection.status()).toBe(200)
+      await expect(page.getByRole('status', { name: 'Workspace save status' })).toHaveAttribute('data-state', 'saved')
+    }
+    await expect(drawingToolbar).toBeVisible()
+    const lines = drawingToolbar.getByRole('button', { name: 'Lines', exact: true })
+    await expect(lines).toBeVisible()
+    await lines.click()
+    await expect(drawingToolbar.getByRole('menuitem', { name: 'Trend Line', exact: true })).toBeVisible()
+    await lines.click()
+    await expect(drawingToolbar.getByRole('menu', { name: 'Lines drawing tools' })).toHaveCount(0)
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -203,6 +256,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
   test('workspace tool menu open state has a deterministic local baseline', async ({ page, loggedIn, browserDiagnostics }) => {
     await page.goto('/')
     await waitForShellReady(page)
+    await waitForSelectionPreparationToSettle(page)
     const tool = page.locator('.tool-window').filter({ has: page.locator('[title="Tool menu"]') }).first()
     await expect(tool).toBeVisible()
     const toolKey = await tool.getAttribute('data-window-key')
@@ -261,6 +315,15 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await waitForShellReady(page)
     const benchmarks = page.getByRole('region', { name: 'Major US benchmarks' })
     await expect(benchmarks).toBeVisible()
+    await expect(benchmarks).toHaveAttribute('aria-busy', 'false', { timeout: 15_000 })
+    await expect(benchmarks.getByText('Loading family legs…', { exact: true })).toHaveCount(0)
+    await expect(benchmarks.locator('.watchlist__loading-status')).toHaveCount(0)
+    const expectedBenchmarkSymbols = ['DIA', 'IWM', 'QQQ', 'RSP', 'SPY']
+    const benchmarkRows = benchmarks.locator('.watchlist__row')
+    await expect(benchmarkRows).toHaveCount(expectedBenchmarkSymbols.length)
+    await expect.poll(async () => benchmarkRows.evaluateAll(rows => rows.map(row =>
+      row.getAttribute('aria-label')?.trim().split(/\s+/)[0] ?? '',
+    ))).toEqual(expectedBenchmarkSymbols)
     await benchmarks.getByRole('button', { name: 'Columns', exact: true }).click()
     const editor = benchmarks.locator('.watchlist__column-menu')
     await expect(editor).toBeVisible()
@@ -330,8 +393,23 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     const tabs = page.locator('.lm_tab:visible')
     await expect.poll(() => tabs.count(), { timeout: 10_000 }).toBeGreaterThan(1)
     const selectedTab = tabs.nth(1)
+    await expect(selectedTab).not.toHaveClass(/lm_active/)
+    const selectedWindowKey = await selectedTab.evaluate(tab => {
+      const title = tab.querySelector('.lm_title')?.textContent?.trim() || tab.textContent?.trim()
+      const matching = Array.from(document.querySelectorAll<HTMLElement>('.tool-window[data-window-key]'))
+        .filter(window => window.getClientRects().length > 0
+          && window.querySelector('.tool-window__title')?.textContent?.trim() === title)
+      return matching.length === 1 ? matching[0].dataset.windowKey ?? null : null
+    })
+    expect(selectedWindowKey).toBeTruthy()
+    await expect(page.getByRole('status', { name: 'Workspace save status' })).toHaveAttribute('data-state', 'saved')
+    const saveAcknowledgement = waitForActiveWindowSnapshotAcknowledgement(page, selectedWindowKey!)
     await selectedTab.click()
     await expect(selectedTab).toHaveClass(/lm_active/)
+    const savedSelection = await saveAcknowledgement
+    expect(savedSelection.status()).toBe(200)
+    await expect(page.getByRole('status', { name: 'Workspace save status' })).toHaveAttribute('data-state', 'saved')
+    await expect(page.getByRole('status', { name: 'Workspace save status' })).toHaveText('Workspace saved')
     await expect(page).toHaveScreenshot('workspace-tabbed.png', {
       animations: 'disabled',
       caret: 'hide',
