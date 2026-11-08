@@ -5,7 +5,7 @@ import { assertAuthSessionCurrent, AuthSessionChangedError, beginAuthSessionBoun
  */
 const BASE = '/api/v1'
 export type ApiRequestPriority = RequestPriority
-export type ApiRequestOptions = { signal?: AbortSignal; priority?: ApiRequestPriority; queueKey?: string }
+export type ApiRequestOptions = { signal?: AbortSignal; priority?: ApiRequestPriority; queueKey?: string; foreground?: boolean }
 
 // Chromium only admits a small number of same-origin HTTP/1.1 requests at a
 // time. Admit work here so preparation creation and other non-interactive work
@@ -21,6 +21,7 @@ interface QueuedApiFetch {
   input: RequestInfo | URL
   init: RequestInit
   priority: ApiFetchPriority
+  foreground: boolean
   queueKey?: string
   resolve: (response: AdmittedApiResponse) => void
   reject: (error: unknown) => void
@@ -32,42 +33,8 @@ let activeApiFetches = 0
 let activeNonInteractiveApiFetches = 0
 let activeLowApiFetches = 0
 
-type ApiQueueDiagnosticWindow = Window & { __tcApiQueueDiagnostics?: boolean }
-
-function apiPathname(input: RequestInfo | URL): string {
-  const raw = typeof input === 'string'
-    ? input
-    : input instanceof URL ? input.href : input.url
-  return new URL(raw, window.location.href).pathname
-}
-
-function apiPathClass(pathname: string): string {
-  if (pathname.startsWith(`${BASE}/ohlcv/local/`)) return 'local-ohlcv'
-  if (pathname.startsWith(`${BASE}/data/`)) return 'data-preparation'
-  if (pathname.startsWith(`${BASE}/research/`)) return 'research'
-  if (pathname.startsWith(`${BASE}/analysis/`)) return 'analysis'
-  if (pathname.startsWith(`${BASE}/market-groups/`)) return 'market-groups'
-  if (pathname.startsWith(`${BASE}/instruments/`)) return 'instruments'
-  if (pathname.startsWith(`${BASE}/notes/`)) return 'notes'
-  return pathname.startsWith(`${BASE}/`) ? 'other-api' : 'non-api'
-}
-
-function observeApiQueue(phase: 'enqueue' | 'admit' | 'release' | 'abort-queued', request: QueuedApiFetch): void {
-  if (typeof window === 'undefined' || !(window as ApiQueueDiagnosticWindow).__tcApiQueueDiagnostics) return
-  const pathname = apiPathname(request.input)
-  console.info('TC_API_QUEUE_DIAGNOSTIC', JSON.stringify({
-    phase,
-    pathname,
-    method: (request.init.method ?? 'GET').toUpperCase(),
-    priority: request.priority,
-    active: activeApiFetches,
-    activeNonInteractive: activeNonInteractiveApiFetches,
-    activeLow: activeLowApiFetches,
-    queuedPathClasses: queuedApiFetches.map(item => apiPathClass(apiPathname(item.input))),
-  }))
-}
-
-function usesNonInteractiveCapacity(queued: Pick<QueuedApiFetch, 'input' | 'init' | 'priority'>): boolean {
+function usesNonInteractiveCapacity(queued: Pick<QueuedApiFetch, 'input' | 'init' | 'priority' | 'foreground'>): boolean {
+  if (queued.foreground) return false
   if (queued.priority !== 'high') return true
   const method = (queued.init.method ?? 'GET').toUpperCase()
   const input = typeof queued.input === 'string'
@@ -104,6 +71,13 @@ function apiAbortReason(signal: AbortSignal): unknown {
 }
 
 function nextAdmissibleFetchIndex(): number {
+  // Foreground is a scheduling intent separate from the durable/logical
+  // priority. A visible user action therefore precedes high-priority startup
+  // fanout that was queued earlier, while still using the same bounded slots.
+  const foregroundIndex = queuedApiFetches.findIndex(item => item.foreground && item.priority === 'high'
+    && (!usesNonInteractiveCapacity(item) || activeNonInteractiveApiFetches < API_NON_INTERACTIVE_LIMIT))
+  if (foregroundIndex !== -1) return foregroundIndex
+
   const priorityOrder: ApiFetchPriority[] = ['high', 'auto', 'low']
   for (const priority of priorityOrder) {
     if (priority === 'auto' && activeNonInteractiveApiFetches >= API_NON_INTERACTIVE_LIMIT) continue
@@ -131,7 +105,6 @@ function drainApiFetchQueue(): void {
     activeApiFetches += 1
     if (usesNonInteractive) activeNonInteractiveApiFetches += 1
     if (queued.priority === 'low') activeLowApiFetches += 1
-    observeApiQueue('admit', queued)
     let released = false
     const release = () => {
       if (released) return
@@ -139,7 +112,6 @@ function drainApiFetchQueue(): void {
       activeApiFetches -= 1
       if (usesNonInteractive) activeNonInteractiveApiFetches -= 1
       if (queued.priority === 'low') activeLowApiFetches -= 1
-      observeApiQueue('release', queued)
       drainApiFetchQueue()
     }
     void Promise.resolve().then(() => fetch(queued.input, queued.init)).then(
@@ -152,17 +124,22 @@ function drainApiFetchQueue(): void {
   }
 }
 
-function admittedApiFetch(input: RequestInfo | URL, init: RequestInit, priority: ApiFetchPriority = 'auto', queueKey?: string): Promise<AdmittedApiResponse> {
+function admittedApiFetch(
+  input: RequestInfo | URL,
+  init: RequestInit,
+  priority: ApiFetchPriority = 'auto',
+  queueKey?: string,
+  foreground = false,
+): Promise<AdmittedApiResponse> {
   const signal = init.signal
   if (signal?.aborted) return Promise.reject(apiAbortReason(signal))
   return new Promise((resolve, reject) => {
-    const queued: QueuedApiFetch = { input, init, priority, queueKey, resolve, reject }
+    const queued: QueuedApiFetch = { input, init, priority, foreground: foreground && priority === 'high', queueKey, resolve, reject }
     if (signal) {
       queued.abortListener = () => {
         const index = queuedApiFetches.indexOf(queued)
         if (index < 0) return
         queuedApiFetches.splice(index, 1)
-        observeApiQueue('abort-queued', queued)
         signal.removeEventListener('abort', queued.abortListener!)
         reject(apiAbortReason(signal))
         drainApiFetchQueue()
@@ -170,7 +147,6 @@ function admittedApiFetch(input: RequestInfo | URL, init: RequestInit, priority:
       signal.addEventListener('abort', queued.abortListener, { once: true })
     }
     queuedApiFetches.push(queued)
-    observeApiQueue('enqueue', queued)
     drainApiFetchQueue()
   })
 }
@@ -306,7 +282,7 @@ async function request<T>(
 
   let admitted: AdmittedApiResponse | undefined
   try {
-    admitted = await admittedApiFetch(url, opts, requestPriority, options?.queueKey)
+    admitted = await admittedApiFetch(url, opts, requestPriority, options?.queueKey, options?.foreground)
     const res = admitted.response
     assertAuthSessionCurrent(session)
 
