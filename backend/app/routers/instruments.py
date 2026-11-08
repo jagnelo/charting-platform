@@ -1735,7 +1735,10 @@ async def acquire_instrument_history(
     instrument = (
         await db.execute(
             select(Instrument)
-            .options(selectinload(Instrument.listings).selectinload(InstrumentListing.exchange))
+            .options(
+                selectinload(Instrument.listings).selectinload(InstrumentListing.exchange),
+                selectinload(Instrument.equity_detail),
+            )
             .where(Instrument.id == instrument_id, Instrument.is_synthetic.is_(False))
         )
     ).scalar_one_or_none()

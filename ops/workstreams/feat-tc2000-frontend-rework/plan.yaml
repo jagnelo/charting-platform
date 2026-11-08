@@ -5654,10 +5654,98 @@ development_dependency_import_history:
     state: superseded_development_import
     superseded_by: 8ef8fe8bd83e34eea7afe6b6c02fdce31a1047bc
 
+  - source_sha: fc220242ff9ff8be603c632dc80350a90708bec7
+    manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/fc220242ff9ff8be603c632dc80350a90708bec7.json
+    manifest_sha256: b8412e6902c6a1bc343885c4d9200a75a8ea748049b6a61e9fc25688087d59b1
+    paths:
+    - backend/app/config.py
+    - backend/app/main.py
+    - backend/app/providers/alpaca.py
+    - backend/app/providers/massive.py
+    - backend/app/providers/optional_market_data.py
+    - backend/app/routers/analysis.py
+    - backend/app/routers/data_preparation.py
+    - backend/app/routers/instruments.py
+    - backend/app/routers/ohlcv.py
+    - backend/app/routers/providers.py
+    - backend/app/routers/research.py
+    - backend/app/routers/workspaces.py
+    - backend/app/schemas/data_preparation.py
+    - backend/app/services/baskets.py
+    - backend/app/services/bulk_fetch.py
+    - backend/app/services/data_preparation.py
+    - backend/app/services/data_preparation_contracts.py
+    - backend/app/services/derived_timeframes.py
+    - backend/app/services/e2e_seed.py
+    - backend/app/services/etf_holdings_adapters.py
+    - backend/app/services/etf_holdings_preparation.py
+    - backend/app/services/etf_holdings_refresh.py
+    - backend/app/services/evaluator_preflight.py
+    - backend/app/services/exchange_sessions.py
+    - backend/app/services/instrument_events.py
+    - backend/app/services/instrument_mastering.py
+    - backend/app/services/market_data.py
+    - backend/app/services/market_refresh_queue.py
+    - backend/app/services/market_series.py
+    - backend/app/services/ohlcv_coverage.py
+    - backend/app/services/provider_routing.py
+    - backend/app/services/provider_runtime.py
+    - backend/app/services/screener_engine.py
+    - backend/app/services/workstation_tool_catalogue.py
+    - backend/app/tasks/data_tasks.py
+    - backend/app/workers/arq_worker.py
+    - backend/tests/integration/api/test_baskets.py
+    - backend/tests/integration/api/test_workspace_read_consistency_postgres.py
+    - backend/tests/integration/test_data_preparation_queue_postgres.py
+    - backend/tests/integration/test_provider_runtime_transactions_postgres.py
+    - backend/tests/unit/conftest.py
+    - backend/tests/unit/providers/test_new_providers.py
+    - backend/tests/unit/providers/test_optional_market_data.py
+    - backend/tests/unit/routers/test_analysis_router.py
+    - backend/tests/unit/routers/test_calendar_router.py
+    - backend/tests/unit/routers/test_data_preparation_router.py
+    - backend/tests/unit/routers/test_instruments_router.py
+    - backend/tests/unit/routers/test_ohlcv_router.py
+    - backend/tests/unit/routers/test_providers_router.py
+    - backend/tests/unit/routers/test_research_router.py
+    - backend/tests/unit/routers/test_workspace_tool_catalogue.py
+    - backend/tests/unit/services/test_data_preparation_contracts.py
+    - backend/tests/unit/services/test_data_preparation_history_planning.py
+    - backend/tests/unit/services/test_data_preparation_service.py
+    - backend/tests/unit/services/test_data_preparation_worker_deeper_default.py
+    - backend/tests/unit/services/test_derived_timeframes.py
+    - backend/tests/unit/services/test_e2e_seed.py
+    - backend/tests/unit/services/test_etf_holdings_adapters.py
+    - backend/tests/unit/services/test_etf_holdings_bootstrap.py
+    - backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py
+    - backend/tests/unit/services/test_etf_holdings_native_qualification.py
+    - backend/tests/unit/services/test_etf_holdings_preparation.py
+    - backend/tests/unit/services/test_etf_holdings_preparation_hook.py
+    - backend/tests/unit/services/test_etf_holdings_provider_bridge.py
+    - backend/tests/unit/services/test_etf_issuer_catalog.py
+    - backend/tests/unit/services/test_evaluator_preflight.py
+    - backend/tests/unit/services/test_exchange_catalog.py
+    - backend/tests/unit/services/test_market_data.py
+    - backend/tests/unit/services/test_market_refresh_queue.py
+    - backend/tests/unit/services/test_market_series_defaults.py
+    - backend/tests/unit/services/test_provider_persistence.py
+    - backend/tests/unit/services/test_provider_quota_contract.py
+    - backend/tests/unit/services/test_provider_quota_coordinator.py
+    - backend/tests/unit/services/test_provider_routing.py
+    - backend/tests/unit/services/test_provider_runtime.py
+    - backend/tests/unit/services/test_workstation_tool_catalogue.py
+    - backend/tests/unit/tasks/test_data_tasks.py
+    - backend/tests/unit/tasks/test_native_usage_prerequisite.py
+    - backend/tests/unit/workers/test_arq_worker.py
+    - backend/app/services/etf_holdings.py
+    - backend/tests/unit/services/test_etf_holdings_catalogue.py
+    state: superseded_development_import
+    superseded_by: 4b9f53bca2097501e7c2843cb2f92567c8f74ea5
+
 approved_development_dependency_imports:
-- source_sha: fc220242ff9ff8be603c632dc80350a90708bec7
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/fc220242ff9ff8be603c632dc80350a90708bec7.json
-  manifest_sha256: b8412e6902c6a1bc343885c4d9200a75a8ea748049b6a61e9fc25688087d59b1
+- source_sha: 4b9f53bca2097501e7c2843cb2f92567c8f74ea5
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/4b9f53bca2097501e7c2843cb2f92567c8f74ea5.json
+  manifest_sha256: 2957b74824051e0bf95ccbdbe8bdc67acfe6a0e6cf0a50ac981ed8788fd09ce4
   paths:
   - backend/app/config.py
   - backend/app/main.py
@@ -5665,6 +5753,7 @@ approved_development_dependency_imports:
   - backend/app/providers/massive.py
   - backend/app/providers/optional_market_data.py
   - backend/app/routers/analysis.py
+  - backend/app/routers/calendar.py
   - backend/app/routers/data_preparation.py
   - backend/app/routers/instruments.py
   - backend/app/routers/ohlcv.py
@@ -5678,6 +5767,7 @@ approved_development_dependency_imports:
   - backend/app/services/data_preparation_contracts.py
   - backend/app/services/derived_timeframes.py
   - backend/app/services/e2e_seed.py
+  - backend/app/services/etf_holdings.py
   - backend/app/services/etf_holdings_adapters.py
   - backend/app/services/etf_holdings_preparation.py
   - backend/app/services/etf_holdings_refresh.py
@@ -5692,6 +5782,7 @@ approved_development_dependency_imports:
   - backend/app/services/provider_routing.py
   - backend/app/services/provider_runtime.py
   - backend/app/services/screener_engine.py
+  - backend/app/services/strategy_lab.py
   - backend/app/services/workstation_tool_catalogue.py
   - backend/app/tasks/data_tasks.py
   - backend/app/workers/arq_worker.py
@@ -5718,6 +5809,7 @@ approved_development_dependency_imports:
   - backend/tests/unit/services/test_e2e_seed.py
   - backend/tests/unit/services/test_etf_holdings_adapters.py
   - backend/tests/unit/services/test_etf_holdings_bootstrap.py
+  - backend/tests/unit/services/test_etf_holdings_catalogue.py
   - backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py
   - backend/tests/unit/services/test_etf_holdings_native_qualification.py
   - backend/tests/unit/services/test_etf_holdings_preparation.py
@@ -5726,6 +5818,7 @@ approved_development_dependency_imports:
   - backend/tests/unit/services/test_etf_issuer_catalog.py
   - backend/tests/unit/services/test_evaluator_preflight.py
   - backend/tests/unit/services/test_exchange_catalog.py
+  - backend/tests/unit/services/test_instrument_events.py
   - backend/tests/unit/services/test_market_data.py
   - backend/tests/unit/services/test_market_refresh_queue.py
   - backend/tests/unit/services/test_market_series_defaults.py
@@ -5734,12 +5827,11 @@ approved_development_dependency_imports:
   - backend/tests/unit/services/test_provider_quota_coordinator.py
   - backend/tests/unit/services/test_provider_routing.py
   - backend/tests/unit/services/test_provider_runtime.py
+  - backend/tests/unit/services/test_strategy_lab_service.py
   - backend/tests/unit/services/test_workstation_tool_catalogue.py
   - backend/tests/unit/tasks/test_data_tasks.py
   - backend/tests/unit/tasks/test_native_usage_prerequisite.py
   - backend/tests/unit/workers/test_arq_worker.py
-  - backend/app/services/etf_holdings.py
-  - backend/tests/unit/services/test_etf_holdings_catalogue.py
 - source_sha: 2bf4dad5bf9495af0b646238ee531e168f0d173a
   manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/2bf4dad5bf9495af0b646238ee531e168f0d173a.json
   manifest_sha256: fa43b44d58c2ca5416f823ad8114e2467240b1d879d044723dbc64266001e1c0

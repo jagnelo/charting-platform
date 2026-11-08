@@ -27079,3 +27079,8 @@ The imported changes add the measured narrow Study control containment and prese
 ## 2026-11-08 — Import Strategy 8ef8fe8bd83e34eea7afe6b6c02fdce31a1047bc Study containment successor
 
 Imported only the two guarded TC paths (`StudyLabTool.vue` and `workstation_lifecycle_journey.spec.ts`) from Strategy source `8ef8fe8bd83e34eea7afe6b6c02fdce31a1047bc`. The full 28-path manifest is archived at `ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/8ef8fe8bd83e34eea7afe6b6c02fdce31a1047bc.json` (SHA256 `b66336da67e8f3e4cfe5144ec0aa9d0b4d23a0352c0ed0e9ebeee9a62f04b149`). All 28 source blobs, SHA256 values, and Git modes were checked; both old guards matched and the other 26 paths were byte/mode-identical. The a85 pin is retained in import history and 8ef is the active Strategy 28-path pin. No producer tests or browser were run in TC; Root owns combined rendered qualification.
+
+
+## 2026-11-08 — Import Provider 4b9f53bca2097501e7c2843cb2f92567c8f74ea5 Calendar and data-preparation successor
+
+Imported only the 17 guarded TC consumer paths from Provider source `4b9f53bca2097501e7c2843cb2f92567c8f74ea5`. The full 85-path manifest is archived at `ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/4b9f53bca2097501e7c2843cb2f92567c8f74ea5.json` (SHA256 `2957b74824051e0bf95ccbdbe8bdc67acfe6a0e6cf0a50ac981ed8788fd09ce4`). All 85 source blobs and SHA256 values were verified; all 17 old guards matched; the other 68 paths were byte-identical with matching Git modes. The prior fc220 Provider pin is retained in import history and 4b9 is active. Provider tests/image and exact Root review are producer/development evidence, not final acceptance; Root owns the combined browser and release qualification.
