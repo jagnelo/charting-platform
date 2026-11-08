@@ -300,11 +300,23 @@ def test_nautilus_backtest_keeps_each_closed_position_across_reentries():
     assert len(result.trades) == 2
     assert result.trades[0].entry_at != result.trades[1].entry_at
     assert all(trade.exit_at > trade.entry_at for trade in result.trades)
+    # The signal and market entry fill on bars 1 and 8. max_bars_in_trade
+    # counts the two subsequent observed bars (2/3 and 9/10), and the close
+    # order fills on the second observed bar (3/10).
+    # This pins the actual execution timing, not just the reported hold count.
+    expected_entry_indices = (1, 8)
+    expected_exit_indices = (3, 10)
+    assert [
+        datetime.fromisoformat(trade.entry_at.replace("Z", "+00:00")) for trade in result.trades
+    ] == [bars[index].ts for index in expected_entry_indices]
+    assert [
+        datetime.fromisoformat(trade.exit_at.replace("Z", "+00:00")) for trade in result.trades
+    ] == [bars[index].ts for index in expected_exit_indices]
     assert all(trade.pnl != 0 for trade in result.trades)
     assert [trade.exit_reason for trade in result.trades] == ["time_exit", "time_exit"]
-    # The reported hold includes the entry and exit bars; the two-bar limit
-    # must not be advanced again by the post-action sync on the same timestamp.
-    assert [trade.bars_held for trade in result.trades] == [4, 4]
+    # Reported holding includes the entry bar and the two later observed bars.
+    assert [trade.bars_held for trade in result.trades] == [3, 3]
+    assert [trade.target_price for trade in result.trades] == [0.0, 0.0]
     assert [round(trade.stop_price, 1) for trade in result.trades] == [99.0, 105.8]
     assert all(
         abs(
@@ -315,6 +327,65 @@ def test_nautilus_backtest_keeps_each_closed_position_across_reentries():
         for trade in result.trades
     )
     assert len({point["equity"] for point in result.equity_curve}) > 1
+
+
+def test_nautilus_backtest_initializes_final_bar_open_position_plan():
+    instrument = Instrument(
+        id=1,
+        instrument_type_id=1,
+        symbol="AAPL",
+        name="Apple Inc.",
+        currency="USD",
+        is_active=True,
+    )
+    start = datetime(2024, 1, 1, tzinfo=UTC)
+    bars = [
+        _bar(start, 98.0, 99.0, 97.0, 98.0),
+        _bar(start + timedelta(days=1), 99.0, 100.0, 98.0, 99.0),
+        _bar(start + timedelta(days=2), 100.0, 101.0, 99.0, 100.0),
+    ]
+
+    for target_price in (0.0, 104.0):
+        result = run_single_instrument_nautilus_backtest(
+            instrument=instrument,
+            bars=bars,
+            timeframe=Timeframe.D1,
+            direction="long",
+            entry_logic="all",
+            conditions=[],
+            condition_tree=None,
+            stop_loss_pct=2.0,
+            take_profit_rr=2.0,
+            max_bars_in_trade=0,
+            capital_base=100000.0,
+            risk_per_trade_pct=0.5,
+            slippage_bps=0.0,
+            commission_per_trade=0.0,
+            close_open_positions_at_end=False,
+            signal_events=[
+                {
+                    "signal_at": bars[-1].ts,
+                    "side": "long",
+                    "entry_price": 100.0,
+                    "stop_price": 98.0,
+                    "target_price": target_price,
+                }
+            ],
+        )
+
+        assert result.trades == []
+        assert len(result.open_positions) == 1
+        position = result.open_positions[0]
+        assert position.instrument_symbol == "AAPL"
+        assert position.entry_at == _nanos_to_iso(int(bars[-1].ts.timestamp() * 1_000_000_000))
+        assert position.entry_price == 100.0
+        assert position.stop_price == 98.0
+        assert position.target_price == target_price
+        assert position.bars_held == 1
+        observed_risk_pct = (
+            abs(position.entry_price - position.stop_price) * position.quantity / 100000.0 * 100.0
+        )
+        assert round(observed_risk_pct, 3) == 0.5
 
 
 def test_nautilus_backtest_supports_nested_condition_trees():

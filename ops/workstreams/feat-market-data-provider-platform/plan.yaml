@@ -15495,9 +15495,9 @@ approved_development_dependency_imports:
   - backend/app/routers/research.py
   - backend/tests/unit/routers/test_research_router.py
 
-- source_sha: 0875336efeafd2339ed609e7bb1ec781fd5682d5
-  manifest_path: ops/workstreams/feat-market-data-provider-platform/development-dependency-imports/strategy0875336efeafd2339ed609e7bb1ec781fd5682d5.json
-  manifest_sha256: bdfbd122d2ed21699d184560537a085a80d3f468238ae1ea7d045ccf263f92ad
+- source_sha: bd50269c862e577a48063b084ce2ba8d13aaef76
+  manifest_path: ops/workstreams/feat-market-data-provider-platform/development-dependency-imports/strategybd50269c862e577a48063b084ce2ba8d13aaef76.json
+  manifest_sha256: dfba258392b2a85dbdc62bf55073a7ac3e6185489891e1cfc3cc27e36cc6e717
   paths:
   - backend/app/services/strategy_lab_nautilus.py
   - backend/tests/unit/services/test_strategy_lab_nautilus.py
