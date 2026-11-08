@@ -34,11 +34,30 @@ let activeLowApiFetches = 0
 
 function usesNonInteractiveCapacity(queued: Pick<QueuedApiFetch, 'input' | 'init' | 'priority'>): boolean {
   if (queued.priority !== 'high') return true
-  if ((queued.init.method ?? 'GET').toUpperCase() !== 'POST') return false
+  const method = (queued.init.method ?? 'GET').toUpperCase()
   const input = typeof queued.input === 'string'
     ? queued.input
     : queued.input instanceof URL ? queued.input.href : queued.input.url
-  return new URL(input, window.location.href).pathname === `${BASE}/data/ensure`
+  const url = new URL(input, window.location.href)
+  const pathname = url.pathname
+  if (method === 'POST') return pathname === `${BASE}/data/ensure`
+
+  // Preserve the caller's high scheduling priority, but keep expensive
+  // analysis, universe and candle reads from occupying the interactive slot
+  // alongside the five ordinary same-origin requests. Instrument lookups and
+  // small local quote batches plus interactive Notes/Results reads stay
+  // eligible for that reserved slot.
+  if (method !== 'GET') return false
+  if (pathname.startsWith(`${BASE}/ohlcv/local/`)) {
+    // Watchlist quote refreshes request a short 31-bar window; keep those
+    // visible cached-row reads interactive while bounding full chart history.
+    const limit = Number(url.searchParams.get('limit'))
+    return Number.isFinite(limit) && limit >= 100
+  }
+  return pathname.startsWith(`${BASE}/analysis/`)
+    || pathname.startsWith(`${BASE}/ohlcv/`)
+    || pathname.startsWith(`${BASE}/market-groups/`)
+    || /^\/api\/v1\/baskets\/\d+\/ohlcv\//.test(pathname)
 }
 
 function apiAbortReason(signal: AbortSignal): unknown {

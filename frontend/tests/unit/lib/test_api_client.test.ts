@@ -139,6 +139,52 @@ describe('api.get', () => {
     await Promise.all([...preparations, foreground])
   })
 
+  it('bounds high-priority analysis and market-data reads while admitting Notes, Results, and canonical identity lookups', async () => {
+    setTokens('tok', 'ref')
+    const deferredResponses: Array<{ resolve: (response: unknown) => void }> = []
+    ;(global.fetch as ReturnType<typeof vi.fn>).mockImplementation(() => new Promise(resolve => {
+      deferredResponses.push({ resolve })
+    }))
+    const { api } = await import('@/lib/api')
+    const response = () => ({ ok: true, status: 200, json: () => Promise.resolve({}), text: () => Promise.resolve('') })
+    const dataReads = [
+      api.get('/analysis/groups/sp500-sectors/snapshot', undefined, { priority: 'high' }),
+      api.get('/ohlcv/local/SPY/D1', { limit: 500 }, { priority: 'high' }),
+      api.get('/market-groups/us-benchmarks', undefined, { priority: 'high' }),
+      api.get('/baskets/17/ohlcv/D1', { limit: 500 }, { priority: 'high' }),
+      api.get('/analysis/benchmark-families/readiness', undefined, { priority: 'high' }),
+    ]
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(5))
+    const queuedAnalysis = api.get('/analysis/groups/us-benchmarks/snapshot', undefined, { priority: 'high' })
+    const results = api.get('/research/runs', undefined, { priority: 'high' })
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(6))
+    expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[5]?.[0])).toContain('/research/runs')
+    expect((fetch as ReturnType<typeof vi.fn>).mock.calls[5]?.[1]).toEqual(expect.objectContaining({ priority: 'high' }))
+
+    const notes = api.get('/notes/instruments/17', undefined, { priority: 'high' })
+    const identity = api.get('/instruments/TCNEW', { canonical_only: true }, { priority: 'high' })
+    deferredResponses[5]!.resolve(response())
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(7))
+    expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[6]?.[0])).toContain('/notes/instruments/17')
+    deferredResponses[6]!.resolve(response())
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(8))
+    expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[7]?.[0])).toContain('/instruments/TCNEW?canonical_only=true')
+    deferredResponses[7]!.resolve(response())
+
+    // Releasing a bounded data read opens capacity for the next queued data
+    // request after interactive reads have used the reserved slot.
+    deferredResponses[0]!.resolve(response())
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(9))
+    expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[8]?.[0])).toContain('/analysis/groups/us-benchmarks/snapshot')
+
+    for (let index = 1; index < 9; index += 1) {
+      await vi.waitFor(() => expect(deferredResponses.length).toBeGreaterThan(index))
+      deferredResponses[index]!.resolve(response())
+      await new Promise(resolve => setTimeout(resolve, 0))
+    }
+    await Promise.all([...dataReads, queuedAnalysis, results, notes, identity])
+  })
+
   it('admits default user mutations through the reserved slot while preparations are active', async () => {
     setTokens('tok', 'ref')
     const deferredResponses: Array<{ resolve: (response: unknown) => void }> = []
