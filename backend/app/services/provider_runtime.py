@@ -1084,6 +1084,21 @@ class ProviderExecutionResult:
     request_log_id: int | None = None
 
 
+@dataclass(frozen=True, slots=True)
+class _ProviderQuotaContractReservation:
+    """Caller-local windows or independently committed window IDs.
+
+    The normal PostgreSQL path commits the application quota reservation
+    before provider I/O and reacquires those rows only to settle it. A local
+    window list is retained for first-use seeding, where the DataSource row is
+    not yet visible outside the caller's transaction, and for non-PostgreSQL
+    test/runtime binds.
+    """
+
+    local_windows: tuple[Any, ...] | None
+    window_ids: tuple[int, ...] = ()
+
+
 def provider_entitlement_admission(
     entitlement: ProviderEntitlement,
     *,
@@ -3050,6 +3065,200 @@ def _independent_telemetry_session_factory(db: AsyncSession):
     )
 
 
+def _sync_provider_quota_window_identity_map(db: AsyncSession, windows: list[Any]) -> None:
+    """Keep already-loaded quota counters current without making them dirty."""
+
+    from app.models.market_data_foundation import ProviderQuotaWindow
+
+    snapshots = {
+        int(window.id): {
+            name: getattr(window, name)
+            for name in ("limit_units", "reserved_units", "consumed_units", "cost_cents")
+        }
+        for window in windows
+    }
+    for instance in db.identity_map.values():
+        if isinstance(instance, ProviderQuotaWindow) and instance.id in snapshots:
+            for name, value in snapshots[instance.id].items():
+                set_committed_value(instance, name, value)
+
+
+def _provider_quota_reservation_requires_caller_transaction(
+    db: AsyncSession, resolved: ResolvedProvider
+) -> bool:
+    """Keep uncommitted runtime/config state in its caller-owned transaction."""
+
+    from app.models.market_data_foundation import ProviderQuotaWindow
+
+    if resolved.data_source in db.new or resolved.policy in db.new:
+        return True
+    if any(isinstance(instance, ProviderQuotaWindow) for instance in db.new):
+        return True
+    if db.is_modified(resolved.data_source) or db.is_modified(resolved.policy):
+        return True
+    return any(
+        isinstance(instance, ProviderQuotaWindow) and db.is_modified(instance)
+        for instance in db.identity_map.values()
+    )
+
+
+async def _reserve_provider_contract_for_call(
+    db: AsyncSession,
+    *,
+    resolved: ResolvedProvider,
+    capability: str,
+    units: int,
+    dimension_units: dict[str, int],
+    usage_identity: str | None,
+    now: datetime,
+    denial_details: dict[str, Any],
+) -> _ProviderQuotaContractReservation | None:
+    """Commit shared PostgreSQL window reservations before external transport.
+
+    ProviderQuotaWindow is the legacy application-side account window. Its
+    row locks must not remain in the request's broader business transaction
+    while a provider or fallback is running. Use the caller's bind and a short
+    same-database transaction for persisted sources. First-use runtime seeding
+    stays caller-owned because the FK target may still be uncommitted.
+    """
+
+    from app.services.provider_routing import reserve_provider_contract
+
+    factory = _independent_telemetry_session_factory(db)
+    if (
+        factory is None
+        or db.bind is None
+        or db.bind.dialect.name != "postgresql"
+        or _provider_quota_reservation_requires_caller_transaction(db, resolved)
+    ):
+        windows = await reserve_provider_contract(
+            db,
+            resolved=resolved,
+            capability=capability,
+            units=units,
+            dimension_units=dimension_units,
+            usage_identity=usage_identity,
+            now=now,
+            denial_details=denial_details,
+        )
+        return (
+            _ProviderQuotaContractReservation(local_windows=tuple(windows))
+            if windows is not None
+            else None
+        )
+
+    persisted_windows: list[Any] | None = None
+    use_caller_transaction = False
+    async with factory() as quota_db:
+        async with quota_db.begin():
+            source = await quota_db.get(DataSource, resolved.data_source.id)
+            if source is None:
+                use_caller_transaction = True
+            else:
+                persisted_windows = await reserve_provider_contract(
+                    quota_db,
+                    resolved=resolved,
+                    capability=capability,
+                    units=units,
+                    dimension_units=dimension_units,
+                    usage_identity=usage_identity,
+                    now=now,
+                    denial_details=denial_details,
+                )
+    if use_caller_transaction:
+        windows = await reserve_provider_contract(
+            db,
+            resolved=resolved,
+            capability=capability,
+            units=units,
+            dimension_units=dimension_units,
+            usage_identity=usage_identity,
+            now=now,
+            denial_details=denial_details,
+        )
+        return (
+            _ProviderQuotaContractReservation(local_windows=tuple(windows))
+            if windows is not None
+            else None
+        )
+    if persisted_windows is None:
+        return None
+    _sync_provider_quota_window_identity_map(db, persisted_windows)
+    return _ProviderQuotaContractReservation(
+        local_windows=None,
+        window_ids=tuple(int(window.id) for window in persisted_windows),
+    )
+
+
+async def _settle_provider_contract_for_call(
+    db: AsyncSession,
+    reservation: _ProviderQuotaContractReservation,
+    *,
+    units: int,
+    success: bool = True,
+    reserved_dimension_units: dict[str, int] | None = None,
+    consumed_dimension_units: dict[str, int] | None = None,
+    observed_dimension_totals: dict[str, int] | None = None,
+    consume_on_failure_dimensions: set[str] | None = None,
+    release_only_dimensions: set[str] | None = None,
+) -> None:
+    """Settle policy windows in a short transaction when they were committed independently."""
+
+    from app.models.market_data_foundation import ProviderQuotaWindow
+    from app.services.provider_routing import settle_provider_contract
+
+    if reservation.local_windows is not None:
+        settle_provider_contract(
+            list(reservation.local_windows),
+            units=units,
+            success=success,
+            reserved_dimension_units=reserved_dimension_units,
+            consumed_dimension_units=consumed_dimension_units,
+            observed_dimension_totals=observed_dimension_totals,
+            consume_on_failure_dimensions=consume_on_failure_dimensions,
+            release_only_dimensions=release_only_dimensions,
+        )
+        return
+    if not reservation.window_ids:
+        return
+
+    factory = _independent_telemetry_session_factory(db)
+    if factory is None or db.bind is None or db.bind.dialect.name != "postgresql":
+        raise ProviderQuotaUnknownError("provider quota settlement lost its PostgreSQL caller bind")
+    settled_windows: list[Any] = []
+    async with factory() as quota_db:
+        async with quota_db.begin():
+            settled_windows = list(
+                (
+                    await quota_db.execute(
+                        select(ProviderQuotaWindow)
+                        .where(ProviderQuotaWindow.id.in_(reservation.window_ids))
+                        .order_by(ProviderQuotaWindow.id)
+                        .with_for_update()
+                        .execution_options(populate_existing=True)
+                    )
+                )
+                .scalars()
+                .all()
+            )
+            if {int(window.id) for window in settled_windows} != set(reservation.window_ids):
+                raise ProviderQuotaUnknownError(
+                    "provider quota settlement could not find every reserved window"
+                )
+            settle_provider_contract(
+                settled_windows,
+                units=units,
+                success=success,
+                reserved_dimension_units=reserved_dimension_units,
+                consumed_dimension_units=consumed_dimension_units,
+                observed_dimension_totals=observed_dimension_totals,
+                consume_on_failure_dimensions=consume_on_failure_dimensions,
+                release_only_dimensions=release_only_dimensions,
+            )
+            await quota_db.flush()
+    _sync_provider_quota_window_identity_map(db, settled_windows)
+
+
 async def _apply_provider_capacity_hold_in_session(
     db: AsyncSession,
     *,
@@ -4290,11 +4499,6 @@ async def execute_provider_call(
         # from multiplying a provider/IP/key allowance in process-local
         # buckets.  The import is intentionally lazy because provider_routing
         # imports the resolver for its candidate selection.
-        from app.services.provider_routing import (
-            reserve_provider_contract,
-            settle_provider_contract,
-        )
-
         operation_units = _positive_integer_cost(usage_units)
         if operation_units is None:
             raise ProviderQuotaUnknownError(
@@ -4304,7 +4508,7 @@ async def execute_provider_call(
         await semaphore.acquire()
         try:
             admission_details: dict[str, Any] = {}
-            reservations = await reserve_provider_contract(
+            reservations = await _reserve_provider_contract_for_call(
                 db,
                 resolved=resolved,
                 capability=capability.value,
@@ -4336,7 +4540,8 @@ async def execute_provider_call(
                 denial_details=coordinator_denial,
             )
         except BaseException:
-            settle_provider_contract(
+            await _settle_provider_contract_for_call(
+                db,
                 reservations,
                 units=operation_units,
                 success=False,
@@ -4347,7 +4552,8 @@ async def execute_provider_call(
             semaphore.release()
             raise
         if coordinator_reservation is None:
-            settle_provider_contract(
+            await _settle_provider_contract_for_call(
+                db,
                 reservations,
                 units=operation_units,
                 success=False,
@@ -4364,7 +4570,8 @@ async def execute_provider_call(
         ):
             bucket = _get_bucket(resolved.policy, resolved.provider_name)
             if not bucket.try_acquire(operation_units):
-                settle_provider_contract(
+                await _settle_provider_contract_for_call(
+                    db,
                     reservations,
                     units=operation_units,
                     success=False,
@@ -4412,7 +4619,8 @@ async def execute_provider_call(
             if request_log_id_callback is not None:
                 request_log_id_callback(log_row.id)
         except BaseException:
-            settle_provider_contract(
+            await _settle_provider_contract_for_call(
+                db,
                 reservations,
                 units=operation_units,
                 success=False,
@@ -4435,7 +4643,8 @@ async def execute_provider_call(
                 capture_response_payloads=capture_response_payloads
             )
         except BaseException:
-            settle_provider_contract(
+            await _settle_provider_contract_for_call(
+                db,
                 reservations,
                 units=operation_units,
                 success=False,
@@ -4506,7 +4715,8 @@ async def execute_provider_call(
                 latency_ms=latency_ms,
                 response_items=count,
             )
-            settle_provider_contract(
+            await _settle_provider_contract_for_call(
+                db,
                 reservations,
                 units=operation_units,
                 success=True,
@@ -4613,7 +4823,8 @@ async def execute_provider_call(
                 reserved_dimension_units=dimension_units,
                 consumed_dimension_units=settled_dimension_units,
             )
-            settle_provider_contract(
+            await _settle_provider_contract_for_call(
+                db,
                 reservations,
                 units=operation_units,
                 success=False,

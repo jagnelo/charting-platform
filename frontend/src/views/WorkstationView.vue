@@ -387,7 +387,7 @@ import {
 import { isSharedNavigationItemActive, sharedShellNavigation } from '@/router'
 import CompactStatusNotice from '@/components/common/CompactStatusNotice.vue'
 import type { Timeframe } from '@/types'
-import { dataPreparationCoordinator, historyPreparationStatusMessage, instrumentHistoryPreparationRequest, PreparationProgressRefreshQueue, preparationMessageSummary, preparationStatusMessage, type DataEnsureResponse } from '@/lib/dataPreparation'
+import { dataPreparationCoordinator, historyPreparationStatusMessage, instrumentHistoryPreparationRequest, PreparationProgressRefreshQueue, preparationMessageSummary, preparationStatusMessage, type DataEnsureResponse, type PreparationDataset, type PreparationStatus } from '@/lib/dataPreparation'
 
 const BLOCKED_POPOUT_ERROR = 'Browser blocked the pop-out. The tool remains docked.'
 const CHART_TIMEFRAME_ORDER: readonly Timeframe[] = ['M1', 'M5', 'M15', 'M30', 'H1', 'H2', 'H4', 'H12', 'D1', 'W1', 'MN']
@@ -403,6 +403,28 @@ const DIRECT_CHART_PERIOD_SHORTCUTS: Readonly<Record<string, Timeframe>> = {
   '5': 'W1',
 }
 const STANDARD_CHART_STYLES = ['hlc', 'ohlc', 'candles', 'line'] as const
+
+/** Prefer the selected instrument's requested dataset outcome over an aggregate
+ * partial status that may be caused by an unrelated dependency. */
+function selectedDatasetPreparationResponse(
+  response: DataEnsureResponse,
+  dataset: PreparationDataset,
+  instrumentId: number,
+  symbol: string,
+): DataEnsureResponse {
+  const normalizedSymbol = symbol.trim().toUpperCase()
+  const dependencies = response.dependencies.filter(dependency => dependency.dataset === dataset
+    && dependency.instrument_id === instrumentId
+    && (dependency.symbol === null || dependency.symbol.trim().toUpperCase() === normalizedSymbol))
+  if (!dependencies.length) return response
+
+  const statusOrder: PreparationStatus[] = ['failed', 'unavailable', 'waiting', 'partial', 'running', 'queued', 'ready']
+  const status = statusOrder.find(candidate => dependencies.some(dependency => dependency.status === candidate)) ?? response.status
+  const completed = dependencies.filter(dependency => dependency.status === 'ready').length
+  const hasPendingWork = dependencies.some(dependency => ['queued', 'running', 'partial', 'waiting'].includes(dependency.status))
+  return { ...response, status, completed, total: dependencies.length, has_pending_work: hasPendingWork, dependencies }
+}
+
 const route = useRoute()
 const router = useRouter()
 const chartStore = useChartStore()
@@ -1346,6 +1368,7 @@ async function selectSymbol(
   const acquisitionController = new AbortController()
   selectedAcquisitionAbortController = acquisitionController
   const generation = ++symbolSelectionGeneration
+  let resolvedInstrumentType = confirmedIdentity?.instrument?.instrument_type?.trim() || instrumentType
   if (!preserveETFContext) {
     const requestedSymbol = requested.toUpperCase()
     const sectorSymbols = new Set(
@@ -1402,6 +1425,7 @@ async function selectSymbol(
     // queued request. Trust only the matching resolved symbol and positive ID.
     symbol = confirmedInstrument.symbol.trim().toUpperCase()
     resolvedInstrumentId = confirmedInstrument.instrument_id
+    resolvedInstrumentType = confirmedInstrument.instrument_type?.trim() || resolvedInstrumentType
   } else if (knownWorkstationSymbols.has(requested.toUpperCase())) {
     // These symbols are already canonical members of a loaded workstation
     // universe. Publish them synchronously so an in-flight initial request
@@ -1414,6 +1438,10 @@ async function selectSymbol(
       const resolved = await resolveKnownInstrument(requested, 'Workstation symbol', { canonicalOnly: true })
       symbol = resolved.symbol
       resolvedInstrumentId = resolved.id
+      // The local picker may have an older or coarse security classification.
+      // Use the canonical metadata returned by this already-needed lookup to
+      // update dataset-specific panels without re-acquiring the identity.
+      resolvedInstrumentType = resolved.instrumentType || resolvedInstrumentType
     } catch (cause: any) {
       if (generation !== symbolSelectionGeneration) return
       if (allowNavigationFallback && navigationFallbacks.has(requested.toUpperCase())) {
@@ -1470,7 +1498,7 @@ async function selectSymbol(
     (workspaceStore.marketGroups['sp500-sectors']?.members ?? [])
       .map(member => member.instrument.symbol.trim().toUpperCase()),
   )
-  const selectedType = confirmedIdentity?.instrument?.instrument_type ?? instrumentType
+  const selectedType = resolvedInstrumentType
   const isETF = sectorSymbols.has(symbol) || isEligibleETFHoldingsInstrumentType(selectedType)
   if (!preserveETFContext) {
     if (isETF) workspaceStore.setConstituentETF(symbol)
@@ -1503,7 +1531,7 @@ async function selectSymbol(
   try {
     const localDataReady = loadSymbolData(symbol, comparisonETF, false, preserveETFContext)
     const selectedAcquisition = acquisitionIntent
-      ? acquireSelectedTickerData(symbol, generation, localDataReady, confirmedIdentity, acquisitionController.signal, canonicalInstrumentId)
+      ? acquireSelectedTickerData(symbol, generation, localDataReady, confirmedIdentity, acquisitionController.signal, canonicalInstrumentId, resolvedInstrumentType)
       : Promise.resolve()
     await Promise.all([localDataReady, selectedAcquisition])
     if (generation !== symbolSelectionGeneration) return
@@ -1531,6 +1559,7 @@ async function acquireSelectedTickerData(
   confirmedIdentity?: InstrumentAcquireResponse,
   signal?: AbortSignal,
   knownInstrumentId?: number | null,
+  resolvedInstrumentType = '',
 ) {
   const timeframe = chartStore.timeframe
   const normalizedSymbol = symbol.trim().toUpperCase()
@@ -1567,7 +1596,7 @@ async function acquireSelectedTickerData(
   if (confirmedIdentity?.status === 'resolved' && confirmedIdentity.instrument?.symbol.trim().toUpperCase() === normalizedSymbol) {
     finishIdentity(confirmedIdentity)
   } else if (targetInstrumentId !== null) {
-    finishIdentity(makeResolvedIdentity(targetInstrumentId, confirmedIdentity?.instrument?.instrument_type ?? ''))
+      finishIdentity(makeResolvedIdentity(targetInstrumentId, confirmedIdentity?.instrument?.instrument_type ?? resolvedInstrumentType))
   }
 
   const refreshQueue = new PreparationProgressRefreshQueue()
@@ -1706,16 +1735,17 @@ async function acquireSelectedTickerData(
         signal,
         onProgress: progress => {
           if (!isCurrent()) return
-          const dependency = progress.response.dependencies.find(item => item.dataset === 'holdings'
+          const datasetProgress = selectedDatasetPreparationResponse(progress.response, 'holdings', instrumentId, symbol)
+          const dependency = datasetProgress.dependencies.find(item => item.dataset === 'holdings'
             && item.instrument_id === instrumentId)
           if (dependency && (dependency.status === 'ready' || dependency.covered_ranges.length > 0)) {
             void holdingsRefreshQueue.request(progress.response, refreshHoldings)
           }
-          if (progress.response.status === 'waiting' || progress.response.status === 'unavailable'
-            || progress.response.status === 'failed') {
-            selectionHoldingsMessage.value = `Holdings for ${symbol}: ${preparationStatusMessage(progress.response)}`
-          } else if (progress.response.has_pending_work !== false) {
-            selectionHoldingsMessage.value = `Preparing holdings for ${symbol} (${progress.completed}/${progress.total})…`
+          if (datasetProgress.status === 'waiting' || datasetProgress.status === 'unavailable'
+            || datasetProgress.status === 'failed') {
+            selectionHoldingsMessage.value = `Holdings for ${symbol}: ${preparationStatusMessage(datasetProgress)}`
+          } else if (datasetProgress.has_pending_work !== false) {
+            selectionHoldingsMessage.value = `Preparing holdings for ${symbol} (${datasetProgress.completed}/${datasetProgress.total})…`
           }
         },
       })
@@ -1724,11 +1754,12 @@ async function acquireSelectedTickerData(
       if (!isCurrent()) return
       const page = workspaceStore.etfHoldings[normalizedSymbol]
       const finalSnapshot = page?.snapshot
-      if (holdingsResult.status === 'ready' && finalSnapshot) {
+      const selectedHoldingsResult = selectedDatasetPreparationResponse(holdingsResult, 'holdings', instrumentId, symbol)
+      if (selectedHoldingsResult.status === 'ready' && finalSnapshot) {
         selectionHoldingsMessage.value = `Current holdings for ${symbol} are available locally.`
-      } else if (holdingsResult.status === 'partial' || holdingsResult.status === 'waiting'
-        || holdingsResult.status === 'unavailable' || holdingsResult.status === 'failed') {
-        const detail = `Holdings for ${symbol}: ${preparationStatusMessage(holdingsResult)}`
+      } else if (selectedHoldingsResult.status === 'partial' || selectedHoldingsResult.status === 'waiting'
+        || selectedHoldingsResult.status === 'unavailable' || selectedHoldingsResult.status === 'failed') {
+        const detail = `Holdings for ${symbol}: ${preparationStatusMessage(selectedHoldingsResult)}`
         selectionHoldingsMessage.value = finalSnapshot
           ? `Last-known holdings for ${symbol} remain visible. ${detail}`
           : detail

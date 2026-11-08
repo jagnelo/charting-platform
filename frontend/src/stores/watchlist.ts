@@ -22,6 +22,8 @@ export interface WatchlistQuote {
 // one in-flight request.
 const pendingWatchlistCreates = new Map<string, Promise<Watchlist | null>>()
 const pendingWatchlistItems = new Map<string, Promise<WatchlistItem | null>>()
+const pendingWatchlistPrices = new Map<string, Promise<void>>()
+let watchlistPriceGeneration = 0
 
 // Keep dense watchlists from opening one browser connection per symbol. The
 // workstation can contain thousands of rows, while the quote endpoint remains
@@ -496,19 +498,25 @@ export const useWatchlistStore = defineStore('watchlist', () => {
     }
   }
 
-  async function fetchPrices(symbols: string[], force = false, localOnly = false) {
+  async function fetchPrices(symbols: string[], force = false, localOnly = false, priority?: 'high' | 'low' | 'auto') {
     const unique = [...new Set(symbols.map(s => s?.toUpperCase()).filter(Boolean))]
     const toFetch = unique.filter(s => force || !priceMap.value[s])
     if (!toFetch.length) return
     let nextIndex = 0
-    async function fetchNext() {
-      while (nextIndex < toFetch.length) {
-        const symbol = toFetch[nextIndex++]
+    async function fetchPrice(symbol: string) {
+      const key = `${localOnly ? 'local' : 'provider'}:${symbol}`
+      const existing = pendingWatchlistPrices.get(key)
+      if (existing) return existing
+      if (!force && priceMap.value[symbol]) return
+
+      const generation = watchlistPriceGeneration
+      const pending = (async () => {
         try {
-          const bars: Array<{ open: number; high: number; low: number; close: number; volume?: number }> = await api.get(
-            localOnly ? `/ohlcv/local/${symbol}/D1` : `/ohlcv/${symbol}/D1`,
-            { limit: 31 },
-          )
+          const path = localOnly ? `/ohlcv/local/${symbol}/D1` : `/ohlcv/${symbol}/D1`
+          const bars: Array<{ open: number; high: number; low: number; close: number; volume?: number }> = priority
+            ? await api.get(path, { limit: 31 }, { priority })
+            : await api.get(path, { limit: 31 })
+          if (generation !== watchlistPriceGeneration) return
           if (bars.length >= 2) {
             const last = bars[bars.length - 1]
             const prev = bars[bars.length - 2]
@@ -548,6 +556,18 @@ export const useWatchlistStore = defineStore('watchlist', () => {
             }
           }
         } catch { /* no bars */ }
+      })()
+      pendingWatchlistPrices.set(key, pending)
+      try {
+        await pending
+      } finally {
+        if (pendingWatchlistPrices.get(key) === pending) pendingWatchlistPrices.delete(key)
+      }
+    }
+    async function fetchNext() {
+      while (nextIndex < toFetch.length) {
+        const symbol = toFetch[nextIndex++]
+        await fetchPrice(symbol)
         }
     }
     await Promise.all(Array.from({ length: Math.min(EAGER_QUOTE_CONCURRENCY, toFetch.length) }, fetchNext))
@@ -563,8 +583,14 @@ export const useWatchlistStore = defineStore('watchlist', () => {
 
   function resetForAuthSessionBoundary() {
     mutationGeneration += 1
+    watchlistPriceGeneration += 1
+    watchlists.value = []
+    priceMap.value = {}
+    flashMap.value = {}
+    focusRequest.value = null
     pendingWatchlistCreates.clear()
     pendingWatchlistItems.clear()
+    pendingWatchlistPrices.clear()
     locallyCreatedWatchlistIds.clear()
     locallyAddedItems.clear()
     locallyRemovedItemIds.clear()

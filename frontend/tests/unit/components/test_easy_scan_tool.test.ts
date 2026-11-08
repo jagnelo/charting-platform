@@ -260,7 +260,7 @@ describe('EasyScanTool', () => {
     await vi.waitFor(() => expect(requestSignal).toBeDefined())
 
     wrapper.unmount()
-    expect(requestSignal?.aborted).toBe(true)
+    await vi.waitFor(() => expect(requestSignal?.aborted).toBe(true), { timeout: 1_000 })
     expect(apiPost).toHaveBeenCalledWith('/screeners/41/run', {})
   })
 
@@ -352,7 +352,7 @@ describe('EasyScanTool', () => {
     expect(apiPost).toHaveBeenCalledWith('/research/runs/99/cancel', {})
   })
 
-  it('cancels a queued Python scan when the EasyScan tool is destroyed', async () => {
+  it('keeps a queued Python research run alive when the EasyScan tool is unmounted', async () => {
     apiGet.mockImplementation((path: string) => {
       if (path === '/workspaces/library/conditions') return Promise.resolve([])
       if (path === '/code/assets') return Promise.resolve([{ kind: 'condition', name: 'Queued teardown', versions: [{ id: 44, version_number: 1, output_contract: 'boolean' }] }])
@@ -375,7 +375,36 @@ describe('EasyScanTool', () => {
     await wrapper.findAll('button').find(button => button.text() === 'Run')!.trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Cancel'))
     wrapper.unmount()
-    expect(apiPost).toHaveBeenCalledWith('/research/runs/100/cancel', {})
+    expect(apiPost).not.toHaveBeenCalledWith('/research/runs/100/cancel', {})
+  })
+
+  it('does not cancel a Python run when the tool unmounts after completed results are visible', async () => {
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/workspaces/library/conditions') return Promise.resolve([])
+      if (path === '/code/assets') return Promise.resolve([{ kind: 'condition', name: 'Completed', versions: [{ id: 45, version_number: 1, output_contract: 'boolean' }] }])
+      if (path === '/screeners/14') return Promise.resolve(savedScreener(14, { conditions: { type: 'python_condition', code_version_id: 45 } }))
+      if (path === '/screeners/14/results') return Promise.resolve([])
+      return Promise.resolve([])
+    })
+    apiPost.mockImplementation((path: string, body?: any) => {
+      if (path === '/data/ensure') return Promise.resolve(screenerPreparationResponse(body.target.screener_id))
+      if (path === '/screeners/from-python-condition/45') return Promise.resolve({ id: 14 })
+      if (path === '/screeners/14/run') return Promise.resolve({
+        matched_ids: [99], result_data: { _status: 'completed', _python_research_run_id: 74, _coverage: { evaluated_count: 1, universe_count: 1, excluded: {} } }, error: null,
+      })
+      return Promise.resolve({})
+    })
+
+    const wrapper = mount(EasyScanTool)
+    await flushPromises()
+    await wrapper.get('select[aria-label="Python condition"]').setValue('45')
+    await wrapper.get('input[aria-label="Scan name"]').setValue('Completed scan')
+    await wrapper.findAll('button').find(button => button.text() === 'Run')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.get('.easy-scan__state').text()).toContain('Scan completed.'))
+    expect(wrapper.text()).toContain('1 matches')
+
+    wrapper.unmount()
+    expect(apiPost).not.toHaveBeenCalledWith('/research/runs/74/cancel', {})
   })
 
   it('saves an advanced technical condition tree through the shared condition contract', async () => {
@@ -547,7 +576,7 @@ describe('EasyScanTool', () => {
     wrapper.unmount()
   })
 
-  it('cancels and fences a queued visual-condition run when the tool is unmounted', async () => {
+  it('keeps a queued visual-condition run alive while fencing its unmounted observer', async () => {
     let resolvePoll!: (value: unknown) => void
     const pendingPoll = new Promise(resolve => { resolvePoll = resolve })
     apiGet.mockImplementation((path: string, options?: { limit?: number }) => {
@@ -576,7 +605,7 @@ describe('EasyScanTool', () => {
     wrapper.unmount()
     resolvePoll([{ matched_ids: [99], result_data: { _status: 'completed', _python_research_run_id: 73 }, error: null }])
     await flushPromises()
-    expect(apiPost).toHaveBeenCalledWith('/research/runs/73/cancel', {})
+    expect(apiPost).not.toHaveBeenCalledWith('/research/runs/73/cancel', {})
     expect(apiPost.mock.calls.filter(([path]) => path === '/screeners/7/run')).toHaveLength(1)
   })
 

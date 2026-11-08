@@ -413,6 +413,57 @@ describe('useWatchlistStore', () => {
     expect(store.priceMap.SPY.close).toBe(11)
   })
 
+  it('forwards the active Workstation quote priority to the shared API admission layer', async () => {
+    ;(api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce([
+      { open: 10, high: 11, low: 9, close: 10, volume: 100 },
+      { open: 10, high: 12, low: 9, close: 11, volume: 120 },
+    ])
+    const store = useWatchlistStore()
+    await store.fetchPrices(['spy'], false, true, 'high')
+
+    expect(api.get).toHaveBeenCalledWith('/ohlcv/local/SPY/D1', { limit: 31 }, { priority: 'high' })
+    expect(store.priceMap.SPY.close).toBe(11)
+  })
+
+  it('shares one local quote read across overlapping watchlist hydration triggers', async () => {
+    const store = useWatchlistStore()
+    let resolveBars!: (bars: Array<{ open: number; high: number; low: number; close: number; volume: number }>) => void
+    ;(api.get as ReturnType<typeof vi.fn>).mockReturnValueOnce(new Promise<Array<{ open: number; high: number; low: number; close: number; volume: number }>>(resolve => {
+      resolveBars = resolve
+    }))
+
+    const firstLoad = store.fetchPrices(['SPY'], false, true)
+    const secondLoad = store.fetchPrices(['SPY'], false, true)
+    expect(api.get).toHaveBeenCalledTimes(1)
+    expect(api.get).toHaveBeenCalledWith('/ohlcv/local/SPY/D1', { limit: 31 })
+
+    resolveBars([
+      { open: 99, high: 101, low: 98, close: 100, volume: 1000 },
+      { open: 100, high: 103, low: 99, close: 102, volume: 1200 },
+    ])
+    await Promise.all([firstLoad, secondLoad])
+    expect(store.priceMap.SPY).toMatchObject({ close: 102, prevClose: 100, pct: 0.02 })
+  })
+
+  it('does not publish an old-session quote response after the auth context resets', async () => {
+    const store = useWatchlistStore()
+    store.priceMap.SPY = { close: 98, prevClose: 97, pct: 1 / 97, updatedAt: 1 }
+    let resolveBars!: (bars: Array<{ open: number; high: number; low: number; close: number; volume: number }>) => void
+    ;(api.get as ReturnType<typeof vi.fn>).mockReturnValueOnce(new Promise<Array<{ open: number; high: number; low: number; close: number; volume: number }>>(resolve => {
+      resolveBars = resolve
+    }))
+
+    const pending = store.fetchPrices(['SPY'], false, true)
+    store.resetForAuthSessionBoundary()
+    expect(store.priceMap.SPY).toBeUndefined()
+    resolveBars([
+      { open: 99, high: 101, low: 98, close: 100, volume: 1000 },
+      { open: 100, high: 103, low: 99, close: 102, volume: 1200 },
+    ])
+    await pending
+    expect(store.priceMap.SPY).toBeUndefined()
+  })
+
   it('propagates local-only mode when adding a workstation watchlist symbol', async () => {
     ;(api.get as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce({ id: 7, symbol: 'SPY' })

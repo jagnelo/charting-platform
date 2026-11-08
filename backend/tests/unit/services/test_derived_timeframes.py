@@ -133,6 +133,13 @@ async def test_materialize_derived_timeframes_persists_lineage_and_preserves_pro
         )
         .one()
     )
+    derived_weekly_series = db.execute(
+        select(MarketSeries).where(
+            MarketSeries.instrument_id == instrument.id,
+            MarketSeries.timeframe == Timeframe.W1.value,
+            MarketSeries.feed_scope == "derived-d1-legacy",
+        )
+    ).scalar_one()
     assert weekly_state.status.value == "fresh"
     assert weekly_state.version == 1
     assert weekly_state.extra_data == {
@@ -151,6 +158,7 @@ async def test_materialize_derived_timeframes_persists_lineage_and_preserves_pro
             "source_watermarks": [],
         },
         "source_market_series_id": None,
+        "derived_market_series_id": derived_weekly_series.id,
         "adjustment_provenance": {
             "mode": "split_adjusted",
             "source_kind": "derived_from_canonical_d1",

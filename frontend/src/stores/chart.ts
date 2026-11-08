@@ -485,7 +485,16 @@ function createChartStore(storeId: string) {
       }
       if (localBarsPromise) {
         void localBarsPromise.then(result => {
-          if (!refreshesRenderedSelection && !result.error) publishLocalBars(result.mapped ?? [])
+          if (!result.error && (result.mapped?.length || !refreshesRenderedSelection)) {
+            // Publish newly available local OHLCV as soon as its own read
+            // completes. A cold-cache progress refresh is forceFresh, but its
+            // bars are still independent of a slower canonical metadata read;
+            // waiting for fetchInstrument below can leave a useful chart blank
+            // while the durable history worker has already filled the cache.
+            // Preserve an existing rendered chart when a refresh still returns
+            // no rows.
+            publishLocalBars(result.mapped ?? [])
+          }
         })
       }
 

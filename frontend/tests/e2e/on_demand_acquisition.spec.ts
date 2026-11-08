@@ -77,6 +77,17 @@ async function expectSelectionHoldingsDetails(page: Page, symbol: string, detail
   await expect(notice.locator('.compact-status__detail')).toContainText(detailText)
 }
 
+async function expectSelectionHistoryDetails(page: Page, detailText: string) {
+  const notice = page.locator('.workstation__selection-acquisition')
+    .filter({ has: page.locator('summary[aria-label^="History"]') }).last()
+  const summary = notice.locator('summary')
+  const details = notice.locator('details')
+  await expect(summary).toBeVisible()
+  await expect(notice.getByRole('status')).toHaveText(detailText)
+  if (!await details.evaluate(element => (element as HTMLDetailsElement).open)) await summary.click()
+  await expect(notice.locator('.compact-status__detail')).toHaveText(detailText)
+}
+
 function resolvedIdentity(request: InstrumentRequestBody, instrumentId: number, instrumentType = 'ETF'): InstrumentAcquireResponse {
   return {
     request_id: request.request_id,
@@ -314,6 +325,11 @@ test('Workstation search resolves an unknown ticker and reports shared history p
   const preparationRequests: DataEnsureRequest[] = []
   const legacyHistoryRequests: string[] = []
   const canonicalInstrumentLookups: Array<{ symbol: string; canonicalOnly: string | null }> = []
+  let releaseCanonicalLookup!: () => void
+  let notifyCanonicalLookupStarted!: () => void
+  let canonicalLookupWasDelayed = false
+  const canonicalLookupGate = new Promise<void>(resolve => { releaseCanonicalLookup = resolve })
+  const canonicalLookupStarted = new Promise<void>(resolve => { notifyCanonicalLookupStarted = resolve })
   const search = page.getByRole('combobox', { name: 'Active symbol' })
   await expect(search).toBeVisible()
   await expect(search).toHaveValue('SPY')
@@ -355,11 +371,28 @@ test('Workstation search resolves an unknown ticker and reports shared history p
     canonicalInstrumentResolved = true
     await route.fulfill({ status: 200, json: resolvedIdentity(body, fixtureInstrumentId, 'Common Stock') })
   })
+  await page.route(url => url.pathname === '/api/v1/instruments/TCNEW'
+    && url.searchParams.get('canonical_only') === 'true', async route => {
+    if (route.request().method() !== 'GET') return route.continue()
+    if (!canonicalLookupWasDelayed) {
+      canonicalLookupWasDelayed = true
+      notifyCanonicalLookupStarted()
+      await canonicalLookupGate
+    }
+    await route.fulfill({ status: 200, json: {
+      id: fixtureInstrumentId,
+      symbol: 'TCNEW',
+      name: 'Unknown ticker (controlled test fixture)',
+      currency: 'USD',
+      is_active: true,
+      stats: { week52_high: 12 },
+    } })
+  })
   await page.route('**/api/v1/data/ensure', async route => {
     const request = route.request().postDataJSON() as DataEnsureRequest
     const isTCNEW = request.target.kind === 'instrument' && (
       ('instrument_id' in request.target && request.target.instrument_id === fixtureInstrumentId)
-      || ('symbol' in request.target && request.target.symbol.toUpperCase() === 'TCNEW')
+      || ('symbol' in request.target && request.target.symbol?.toUpperCase() === 'TCNEW')
     )
     if (!isTCNEW) return route.continue()
     preparationRequests.push(request)
@@ -383,17 +416,30 @@ test('Workstation search resolves an unknown ticker and reports shared history p
   expect(discoveryRequests).toHaveLength(1)
   const resolveReady = page.waitForResponse(response => response.request().method() === 'POST'
     && new URL(response.url()).pathname === '/api/v1/instruments/acquire')
+  const preparationStarted = page.waitForRequest(request => request.method() === 'POST'
+    && new URL(request.url()).pathname === '/api/v1/data/ensure'
+    && (() => {
+      const body = request.postDataJSON() as DataEnsureRequest
+      return body.target.kind === 'instrument'
+        && (('instrument_id' in body.target && body.target.instrument_id === fixtureInstrumentId)
+          || ('symbol' in body.target && body.target.symbol?.toUpperCase() === 'TCNEW'))
+    })())
   await page.getByRole('button', { name: /Use TCNEW · TEST/ }).click()
   const identityResponse = await resolveReady
   expect(identityResponse.status()).toBe(200)
   expect(await identityResponse.json()).toMatchObject({ instrument: { instrument_id: fixtureInstrumentId, symbol: 'TCNEW', identity_status: 'resolved' } })
+  // Stop the independent metadata read before checking that selection has
+  // already updated the active chart and URL.
+  await canonicalLookupStarted
   await expect(search).toHaveValue('TCNEW')
   await expect(page).toHaveURL(/\/chart\/TCNEW$/)
   expect(identityRequests).toHaveLength(1)
-  // The confirmed acquisition already carries the canonical identity. The
-  // selection must not wait for a redundant instrument lookup before updating
-  // the active chart and URL.
-  expect(canonicalInstrumentLookups).toEqual([])
+  // Hold one independent canonical metadata lookup open. Selection and the
+  // governed history request must still proceed from the confirmed identity.
+  await preparationStarted
+  expect(canonicalLookupWasDelayed).toBe(true)
+  expect(canonicalInstrumentLookups).toContainEqual({ symbol: 'TCNEW', canonicalOnly: 'true' })
+  releaseCanonicalLookup()
   expect(identityRequests[0]).toMatchObject({ symbol: 'TCNEW', provider_candidate: { provider: 'test-fixture', exchange: 'TEST' } })
 
   await expect.poll(() => preparationRequests.length).toBeGreaterThan(0)
@@ -412,7 +458,7 @@ test('Workstation search resolves an unknown ticker and reports shared history p
   await expect(selectedChart.locator('.sr-only')).toContainText('chart; no OHLCV bars loaded.')
   expect(await selectedChart.locator('.sr-only').innerText()).not.toBe(previousChartProvenanceText)
   await expect(search).toHaveValue('TCNEW')
-  await expect(page.locator('.workstation__selection-acquisition').filter({ hasText: 'No reviewed data source can provide this request.' })).toBeVisible()
+  await expectSelectionHistoryDetails(page, 'Some requested data is unavailable. Available results remain usable.')
   expect(legacyHistoryRequests).toEqual([])
   await browserDiagnostics.expectNoCriticalIssues()
 })
@@ -747,7 +793,6 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
   const legacyHistoryRequests: string[] = []
   const directOhlcvWrites: string[] = []
   const canonicalSearchRequests: string[] = []
-  const canonicalInstrumentLookups: Array<{ symbol: string; canonicalOnly: string | null }> = []
   const localBarReadbacks: Array<{ symbol: string; timeframe: string; rows: OHLCVBar[]; afterAcquisition: boolean }> = []
   const calendarRequests: string[] = []
   page.on('request', request => {
@@ -800,11 +845,6 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
 
   await page.route('**/api/v1/instruments/TCNEW**', async route => {
     if (route.request().method() !== 'GET') return route.continue()
-    const lookupUrl = new URL(route.request().url())
-    canonicalInstrumentLookups.push({
-      symbol: lookupUrl.pathname.split('/').at(-1) ?? '',
-      canonicalOnly: lookupUrl.searchParams.get('canonical_only'),
-    })
     if (!canonicalInstrumentResolved) {
       await route.fulfill({ status: 404, json: { detail: 'Not present before explicit fixture resolution.' } })
       return
@@ -876,7 +916,7 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
     const target = body.target
     const isTCNEWTarget = target.kind === 'instrument' && (
       'instrument_id' in target && target.instrument_id === fixtureInstrumentId
-      || 'symbol' in target && target.symbol.trim().toUpperCase() === 'TCNEW'
+      || 'symbol' in target && target.symbol?.trim().toUpperCase() === 'TCNEW'
     )
     if (!isTCNEWTarget) {
       await route.continue()
@@ -1042,7 +1082,6 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
       covered_ranges: [{ is_adjusted: true }],
     }],
   })
-  expect(canonicalInstrumentLookups).toEqual([])
   expect(tcnewPreparationRequests.filter(request => request.timeframe === 'M1'
     && request.target.kind === 'instrument'
     && 'instrument_id' in request.target
@@ -2006,6 +2045,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
       id: instruments[symbol].id,
       symbol,
       name: instruments[symbol].name,
+      instrument_type: symbol === 'BWET' ? 'Exchange Traded Vehicle' : 'ETF',
       currency: 'USD',
       is_active: true,
     } })
@@ -2386,26 +2426,23 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     // A locally misclassified Stock hint must not preserve the prior IGV
     // constituents after canonical identity confirms this selected ticker as ETV.
     const igvContextGroup = page.getByRole('group', { name: 'Constituents' })
-    const igvContextWidget = igvContextGroup.getByRole('listbox', { name: 'Constituents symbols' })
+    const igvContextWidget = igvContextGroup.getByRole('listbox').first()
+    await expect(igvContextWidget).toHaveAccessibleName(/^IGV holdings .* symbols$/)
     const priorIgvHolding = igvContextWidget.getByRole('option', { name: /UNXQ Unlisted Example Software Corp/ })
     await expect(igvContextGroup).toContainText('IGV')
     await expect(priorIgvHolding).toBeVisible()
-    const bwetIdentityResponseReady = page.waitForResponse(response => {
+    const bwetCanonicalMetadataReady = page.waitForResponse(response => {
       const url = new URL(response.url())
-      return response.request().method() === 'POST' && url.pathname === '/api/v1/instruments/acquire'
-        && (response.request().postDataJSON() as InstrumentRequestBody).symbol === 'BWET'
+      return response.request().method() === 'GET' && url.pathname === '/api/v1/instruments/BWET'
+        && url.searchParams.get('canonical_only') === 'true'
     })
     const bwetHistoryResponseReady = waitForDatasetEnsure('BWET', 'history')
     const bwetHoldingsResponseReady = waitForDatasetEnsure('BWET', 'holdings')
     await chooseETF('BWET')
-    expect(await (await bwetIdentityResponseReady).json()).toMatchObject({
-      status: 'resolved',
-      instrument: {
-        instrument_id: instruments.BWET.id,
-        symbol: 'BWET',
-        identity_status: 'resolved',
-        instrument_type: 'Exchange Traded Vehicle',
-      },
+    expect(await (await bwetCanonicalMetadataReady).json()).toMatchObject({
+      id: instruments.BWET.id,
+      symbol: 'BWET',
+      instrument_type: 'Exchange Traded Vehicle',
     })
     expect((await bwetHistoryResponseReady).status()).toBe(200)
     const bwetHoldingsResponse = await bwetHoldingsResponseReady
@@ -2415,7 +2452,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
       has_pending_work: false,
       dependencies: [{ dataset: 'holdings', status: 'unavailable' }],
     })
-    expect(identityRequests.filter(request => request.symbol === 'BWET')).toHaveLength(1)
+    expect(identityRequests.filter(request => request.symbol === 'BWET')).toHaveLength(0)
     expect(holdingsEnsureRequests.filter(request => request.symbol === 'BWET').map(request => request.body)).toEqual([
       expect.objectContaining({ target: { kind: 'instrument', instrument_id: instruments.BWET.id }, datasets: ['holdings'] }),
     ])
@@ -2425,6 +2462,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     await expectSelectionHoldingsDetails(page, 'BWET', 'Current holdings are unavailable because the latest source snapshot is dated in the future.')
     await expect(igvContextGroup).toContainText('BWET')
     await expect(igvContextWidget).toBeVisible()
+    await expect(igvContextWidget).toHaveAccessibleName(/^BWET holdings .* symbols$/)
     await expect(priorIgvHolding).toHaveCount(0)
 
     await chooseETF('OIH')
@@ -2638,12 +2676,28 @@ test('ordinary Workstation, Chart, and reported-holding selection use the real s
       && url.pathname === '/api/v1/instruments/search'
       && url.searchParams.get('q')?.toUpperCase() === symbol
   })
-  const waitForBars = (symbol: string) => page.waitForResponse(response => {
-    const url = new URL(response.url())
-    return response.request().method() === 'GET'
-      && new RegExp(`/api/v1/ohlcv/(?:local/)?${symbol}/D1$`).test(url.pathname)
-      && response.status() === 200
-  })
+  const observedPrimaryBars = new WeakMap<object, OHLCVBar[]>()
+  const waitForBars = async (symbol: string): Promise<OHLCVBar[]> => {
+    const response = await page.waitForResponse(async candidate => {
+      const url = new URL(candidate.url())
+      if (candidate.request().method() !== 'GET'
+        || !new RegExp(`/api/v1/ohlcv/(?:local/)?${symbol}/D1$`).test(url.pathname)
+        || url.searchParams.get('limit') !== '500'
+        || (url.searchParams.has('adjusted') && url.searchParams.get('adjusted') !== 'true')
+        || candidate.status() !== 200) return false
+
+      let bars: unknown
+      try { bars = await candidate.json() } catch { return false }
+      if (!Array.isArray(bars) || bars.length === 0) return false
+      const finiteAdjustedBars = bars.every((bar: Partial<OHLCVBar>) => typeof bar.ts === 'string' && bar.ts.length > 0
+        && bar.is_adjusted === true
+        && [bar.open, bar.high, bar.low, bar.close].every(value => typeof value === 'number' && Number.isFinite(value)))
+      if (!finiteAdjustedBars) return false
+      observedPrimaryBars.set(candidate, bars as OHLCVBar[])
+      return true
+    })
+    return observedPrimaryBars.get(response)!
+  }
 
   await page.goto('/chart')
   await expect(page.locator('.workstation')).toBeVisible()
@@ -2666,7 +2720,7 @@ test('ordinary Workstation, Chart, and reported-holding selection use the real s
   await workstationResults.getByRole('option', { name: /AMD/ }).first().click()
   await expect(workstationSearch).toHaveValue('AMD')
   const workstationBars = await workstationBarsResponse
-  expect(await workstationBars.json()).not.toHaveLength(0)
+  expect(workstationBars).not.toHaveLength(0)
   const workstationPreparation = await workstationPreparationResponse
   expect(workstationPreparation.ok()).toBe(true)
   expect((workstationPreparation.request().postDataJSON() as DataEnsureRequest).start_at).toBeUndefined()
@@ -2692,7 +2746,7 @@ test('ordinary Workstation, Chart, and reported-holding selection use the real s
   await chartResults.getByRole('option', { name: /NVDA/ }).first().click()
   await expect(chartSearch).toHaveValue('NVDA')
   const chartBars = await chartBarsResponse
-  expect(await chartBars.json()).not.toHaveLength(0)
+  expect(chartBars).not.toHaveLength(0)
   const chartPreparation = await chartPreparationResponse
   expect(chartPreparation.ok()).toBe(true)
   expect((chartPreparation.request().postDataJSON() as DataEnsureRequest).start_at).toBeUndefined()
@@ -2749,6 +2803,6 @@ test('ordinary Workstation, Chart, and reported-holding selection use the real s
   expect(holdingChartUrl.searchParams.get('holding_known_at')).toBe(spyPage.snapshot.known_at)
   expect(holdingChartUrl.searchParams.get('holding_provenance')).toBe(spyPage.snapshot.provenance)
   expect(holdingChartUrl.searchParams.get('holding_instrument_id')).toBe(String(reportedNvda!.constituent_instrument_id))
-  expect(await (await chartBarsAfterDrilldown).json()).not.toHaveLength(0)
+  expect(await chartBarsAfterDrilldown).not.toHaveLength(0)
   await browserDiagnostics.expectNoCriticalIssues()
 })

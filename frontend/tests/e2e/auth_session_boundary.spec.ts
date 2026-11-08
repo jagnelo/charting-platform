@@ -262,6 +262,7 @@ test('J12 session boundary isolates test-owned same-origin accounts, expired ref
   // Direct navigation to the public login route in another window is also an
   // account boundary. No explicit Sign out event is sent before B replaces
   // the shared browser tokens.
+  browserDiagnostics.allowExpectedAuthSessionChangedAbortErrors(1)
   const workspaceReadsBeforeB = firstWindowWorkspaceReads.length
   const noteReadsBeforeB = noteReadOwners.length
   await secondWindow.goto('/login')
@@ -309,6 +310,7 @@ test('J12 session boundary isolates test-owned same-origin accounts, expired ref
   releaseLateAResearch()
   await expect(resultsB).toContainText('Run #91502')
   await expect(resultsB).not.toContainText('Run #91501')
+  await activateDockToolTab(page, 'Notes')
   await expect(notesB.getByRole('textbox', { name: 'Instrument note' })).toHaveValue('private-note-B')
   await expect.poll(() => drawingReadOwners.filter(owner => owner === 'B').length).toBeGreaterThan(0)
   await expect.poll(() => drawingReadOwners).toContain('B')
