@@ -48,6 +48,9 @@ class _Session:
     async def rollback(self):
         self.rollbacks += 1
 
+    async def refresh(self, _job):
+        return None
+
 
 class _SessionContext:
     def __init__(self, session):
@@ -114,6 +117,69 @@ async def test_core_refresh_scheduler_uses_shared_workstation_maintenance_planne
 
     assert result == {"mode": "shared_preparation_queue", "queued": 4}
     assert queued == [({"redis": "unused"}, True)]
+
+
+@pytest.mark.asyncio
+async def test_refresh_worker_reselects_before_claiming_next_job(monkeypatch):
+    session = _Session([])
+    background_jobs = [
+        SimpleNamespace(
+            id=101 + index,
+            capability=data_tasks.ProviderCapability.ACCOUNT_USAGE.value,
+            priority=100,
+            status="queued",
+            attempts=0,
+            lease_token=None,
+            metadata_payload={"provider_account_usage_refresh": {"provider_name": "fmp"}},
+        )
+        for index in range(2)
+    ]
+    visible_job = SimpleNamespace(
+        id=200,
+        capability=data_tasks.ProviderCapability.ACCOUNT_USAGE.value,
+        priority=10,
+        status="pending",
+        attempts=0,
+        lease_token=None,
+        metadata_payload={"provider_account_usage_refresh": {"provider_name": "alpaca"}},
+    )
+    processed = []
+    claim_count = 0
+
+    async def claim(_db, *, limit):
+        nonlocal claim_count
+        claim_count += 1
+        assert limit == 1
+        available = [job for job in [*background_jobs, visible_job] if job.status == "queued"]
+        if not available:
+            return []
+        job = min(available, key=lambda item: (item.priority, item.id))
+        job.status = "leased"
+        job.lease_token = f"lease-{job.id}"
+        return [job]
+
+    async def run_native_usage(_db, request):
+        provider_name = request["provider_name"]
+        processed.append(provider_name)
+        if provider_name == "fmp":
+            visible_job.status = "queued"
+        return {"status": "refreshed", "providers": [provider_name]}
+
+    async def complete(_db, job, *, result_summary):
+        job.status = "completed"
+        job.result_summary = result_summary
+
+    monkeypatch.setattr(data_tasks, "AsyncSessionLocal", lambda: _SessionContext(session))
+    monkeypatch.setattr(data_tasks, "claim_refresh_jobs", claim)
+    monkeypatch.setattr(data_tasks, "_run_native_usage_refresh_job", run_native_usage)
+    monkeypatch.setattr(data_tasks, "complete_refresh_job", complete)
+
+    result = await data_tasks.process_refresh_jobs({}, limit=2)
+
+    assert result["claimed"] == 2
+    assert processed == ["fmp", "alpaca"]
+    assert background_jobs[1].status == "queued"
+    assert claim_count == 2
 
 
 @pytest.mark.asyncio
@@ -232,7 +298,7 @@ async def test_refresh_worker_rolls_back_before_refreshing_and_retrying_failed_j
         retried_job.next_attempt_at = datetime(2026, 11, 7, 12, tzinfo=UTC)
 
     monkeypatch.setattr(data_tasks, "AsyncSessionLocal", lambda: session)
-    monkeypatch.setattr(data_tasks, "claim_refresh_jobs", AsyncMock(return_value=[job]))
+    monkeypatch.setattr(data_tasks, "claim_refresh_jobs", AsyncMock(side_effect=[[job], []]))
     monkeypatch.setattr(
         data_tasks,
         "_run_native_usage_refresh_job",
@@ -316,7 +382,9 @@ async def test_expected_native_usage_wait_commits_prerequisite_and_history_link(
         raise data_tasks.RefreshDependencyPending(retry_at=retry_at)
 
     monkeypatch.setattr(data_tasks, "AsyncSessionLocal", lambda: _SessionContext(session))
-    monkeypatch.setattr(data_tasks, "claim_refresh_jobs", AsyncMock(return_value=[history_job]))
+    monkeypatch.setattr(
+        data_tasks, "claim_refresh_jobs", AsyncMock(side_effect=[[history_job], []])
+    )
     monkeypatch.setattr(data_tasks, "_plan_and_fetch_history_chunk", plan_waiting_for_usage)
 
     result = await data_tasks.process_refresh_jobs({})

@@ -22,7 +22,8 @@ import httpx
 from sqlalchemy import and_, or_, select
 from sqlalchemy.dialects.postgresql import insert as postgresql_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
+from sqlalchemy.orm.attributes import set_committed_value
 
 from app.config import (
     marketdata_app_reviewed_plan,
@@ -3000,28 +3001,93 @@ async def _apply_provider_capacity_hold(
     use persistent per-capability circuits for the same scope instead.
     """
 
-    scope = str(error.scope or policy.quota_scope or "").strip()
+    telemetry_factory = _independent_telemetry_session_factory(db)
+    if telemetry_factory is not None:
+        async with telemetry_factory() as telemetry_db:
+            async with telemetry_db.begin():
+                capacity_values = await _apply_provider_capacity_hold_in_session(
+                    telemetry_db,
+                    data_source_id=data_source_id,
+                    policy_id=policy.id,
+                    fallback_scope=policy.quota_scope,
+                    error=error,
+                )
+                if capacity_values is not None:
+                    await telemetry_db.flush()
+        if capacity_values is not None:
+            _sync_provider_capacity_identity_map(db, data_source_id, capacity_values)
+            return
+
+    await _apply_provider_capacity_hold_in_session(
+        db,
+        data_source_id=data_source_id,
+        policy_id=policy.id,
+        fallback_scope=policy.quota_scope,
+        error=error,
+        fallback_policy=policy,
+    )
+
+
+def _independent_telemetry_session_factory(db: AsyncSession):
+    """Build a short session on the caller's bind, or keep SQLite local.
+
+    This deliberately avoids the global application factory: tests and
+    isolated request scopes may bind to a private database/schema. SQLite's
+    shared in-memory connection and file-writer locking also make a second
+    writer inappropriate, so those callers retain their original transaction.
+    """
+
+    if not isinstance(db, AsyncSession):
+        return None
+    bind = db.bind
+    if not isinstance(bind, AsyncEngine) or bind.dialect.name == "sqlite":
+        return None
+    return async_sessionmaker(
+        bind=bind,
+        class_=AsyncSession,
+        autoflush=False,
+        expire_on_commit=False,
+    )
+
+
+async def _apply_provider_capacity_hold_in_session(
+    db: AsyncSession,
+    *,
+    data_source_id: int,
+    policy_id: int,
+    fallback_scope: str | None,
+    error: ProviderRateLimitError,
+    fallback_policy: ProviderPolicy | None = None,
+) -> dict[str, dict[int, dict[str, Any]]] | None:
+    scope = str(error.scope or fallback_scope or "").strip()
     policies_query = select(ProviderPolicy).where(ProviderPolicy.data_source_id == data_source_id)
     if scope:
         policies_query = policies_query.where(ProviderPolicy.quota_scope == scope)
-    policies = list((await db.execute(policies_query)).scalars().all())
+    policies = list((await db.execute(policies_query.with_for_update())).scalars().all())
     if not policies:
-        policies = [policy]
+        if fallback_policy is None:
+            return None
+        policies = [fallback_policy]
 
     if error.retry_at is None:
         for affected_policy in policies:
             affected_policy.is_enabled = False
         await db.flush()
-        return
+        return {
+            "policies": {item.id: {"is_enabled": item.is_enabled} for item in policies},
+            "health": {},
+        }
 
     affected_capabilities = [item.capability for item in policies]
     health_rows = (
         (
             await db.execute(
-                select(ProviderHealthState).where(
+                select(ProviderHealthState)
+                .where(
                     ProviderHealthState.data_source_id == data_source_id,
                     ProviderHealthState.capability.in_(affected_capabilities),
                 )
+                .with_for_update()
             )
         )
         .scalars()
@@ -3031,6 +3097,32 @@ async def _apply_provider_capacity_hold(
         if health.circuit_open_until is None or health.circuit_open_until < error.retry_at:
             health.circuit_open_until = error.retry_at
     await db.flush()
+    return {
+        "policies": {},
+        "health": {
+            item.id: {"circuit_open_until": item.circuit_open_until} for item in health_rows
+        },
+    }
+
+
+def _sync_provider_capacity_identity_map(
+    db: AsyncSession,
+    data_source_id: int,
+    capacity_values: dict[str, dict[int, dict[str, Any]]],
+) -> None:
+    """Refresh only changed capacity attributes without dirtying the caller."""
+
+    policy_values = capacity_values.get("policies") or {}
+    health_values = capacity_values.get("health") or {}
+    for instance in db.identity_map.values():
+        if isinstance(instance, ProviderPolicy) and instance.id in policy_values:
+            if instance.data_source_id == data_source_id:
+                for name, value in policy_values[instance.id].items():
+                    set_committed_value(instance, name, value)
+        elif isinstance(instance, ProviderHealthState) and instance.id in health_values:
+            if instance.data_source_id == data_source_id:
+                for name, value in health_values[instance.id].items():
+                    set_committed_value(instance, name, value)
 
 
 def _capacity_response_headers(headers: dict[str, str] | None) -> dict[str, str]:
@@ -3904,8 +3996,6 @@ async def _record_result(
     response_items: int | None = None,
     error: Exception | None = None,
 ) -> None:
-    health = resolved.health
-    policy = resolved.policy
     now = datetime.now(UTC)
 
     log_row.completed_at = now
@@ -3916,6 +4006,110 @@ async def _record_result(
         log_row.error_type = error.__class__.__name__
         log_row.error_message = bounded_redact_provider_message(error, max_length=4000)
 
+    await db.flush()
+
+    telemetry_factory = _independent_telemetry_session_factory(db)
+    if telemetry_factory is not None:
+        async with telemetry_factory() as telemetry_db:
+            async with telemetry_db.begin():
+                policy = await _locked_provider_policy(telemetry_db, resolved.policy.id)
+                health = await _locked_provider_health(
+                    telemetry_db,
+                    data_source_id=resolved.data_source.id,
+                    capability=resolved.health.capability,
+                )
+                if policy is not None and health is not None:
+                    _apply_provider_result_values(
+                        policy,
+                        health,
+                        now=now,
+                        success=success,
+                        latency_ms=latency_ms,
+                        response_items=response_items,
+                        error=error,
+                    )
+                    await telemetry_db.flush()
+                    policy_values = {
+                        name: getattr(policy, name)
+                        for name in ("learned_weight", "effective_score")
+                    }
+                    health_values = {name: getattr(health, name) for name in _RESULT_HEALTH_COLUMNS}
+                else:
+                    policy_values = None
+                    health_values = None
+        if policy_values is not None and health_values is not None:
+            for name, value in policy_values.items():
+                set_committed_value(resolved.policy, name, value)
+            for name, value in health_values.items():
+                set_committed_value(resolved.health, name, value)
+            return
+
+    # First-use runtime seeding may have created these rows in the caller's
+    # still-uncommitted transaction. Preserve that ownership and telemetry by
+    # applying the result locally when the short session cannot see them.
+    _apply_provider_result_values(
+        resolved.policy,
+        resolved.health,
+        now=now,
+        success=success,
+        latency_ms=latency_ms,
+        response_items=response_items,
+        error=error,
+    )
+    await db.flush()
+
+
+_RESULT_HEALTH_COLUMNS = (
+    "ewma_latency_ms",
+    "ewma_success_rate",
+    "ewma_completeness",
+    "ewma_freshness",
+    "ewma_consistency",
+    "failure_streak",
+    "last_success_at",
+    "last_failure_at",
+    "circuit_open_until",
+    "last_error_type",
+    "last_error_message",
+    "observed_score",
+)
+
+
+async def _locked_provider_policy(db: AsyncSession, policy_id: int) -> ProviderPolicy | None:
+    result = await db.execute(
+        select(ProviderPolicy)
+        .where(ProviderPolicy.id == policy_id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    return result.scalar_one_or_none()
+
+
+async def _locked_provider_health(
+    db: AsyncSession, *, data_source_id: int, capability: ProviderCapability
+) -> ProviderHealthState | None:
+    result = await db.execute(
+        select(ProviderHealthState)
+        .where(
+            ProviderHealthState.data_source_id == data_source_id,
+            ProviderHealthState.capability == capability,
+        )
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    return result.scalar_one_or_none()
+
+
+def _apply_provider_result_values(
+    policy: ProviderPolicy,
+    health: ProviderHealthState,
+    *,
+    now: datetime,
+    success: bool,
+    latency_ms: int,
+    response_items: int | None,
+    error: Exception | None,
+) -> None:
     health.ewma_latency_ms = _ewma(health.ewma_latency_ms, Decimal(str(latency_ms)))
     health.ewma_success_rate = _ewma(
         health.ewma_success_rate, Decimal("1") if success else Decimal("0")
@@ -3926,7 +4120,8 @@ async def _record_result(
     )
     health.ewma_freshness = _ewma(health.ewma_freshness, Decimal("1") if success else Decimal("0"))
     health.ewma_consistency = _ewma(
-        health.ewma_consistency, Decimal("1") if success else Decimal("0.25")
+        health.ewma_consistency,
+        Decimal("1") if success else Decimal("0.25"),
     )
 
     if success:
@@ -3947,7 +4142,6 @@ async def _record_result(
 
     policy.effective_score = _effective_score(policy, health)
     health.observed_score = policy.effective_score
-    await db.flush()
 
 
 async def execute_provider_call(

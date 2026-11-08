@@ -331,7 +331,7 @@ on_demand_consumer_implementation: 'Current TC-owned mocked implementation at th
   is pending Root. Controlled tests are not genuine Provider/issuer proof; target/deployment and the complete roadmap remain
   open.'
 current_blocker: "Local focused checks are green. Root must rebuild and run the affected critical journeys; exact-tip CI, full route/action coverage, combined acceptance, and release gates remain pending."
-current_checkpoint_status: "Current TC successor includes the Root-identified common-flow fixes, exact Provider 0a1cda84 backend imports, Strategy 16a9523e lifecycle test, and a refreshed TC08 chart-save recovery mapping. Focused affected units pass 181/181 and frontend type-check passes; Root rebuild and critical journey qualification remain pending."
+current_checkpoint_status: "Current TC source is 8d96cf3bd702459c4eef2ced93ec1dfb8db3dc2f with the Root-identified common-flow and observer-handoff fixes; the active Provider dependency is 19d34d0b3e875b29b276ee80e471311586e6023f, with Strategy 2689c2c6 and ETF fb378d7a private inputs retained. Focused coordinator tests passed 26/26, frontend type-check passed, and Root browser qualification remains pending."
 
 ordinary_ticker_latest_update: 'Root accepted the exact combined served profile at backend source 6eae00eb8380438da771fed0c42d19587e9520ce
   / image sha256:6c962aad753959c2ecdd79f0a1d6057d77f2ba6b829ec85b99404b009a42e76a and frontend source 36e7ad2cb08c769a242773ab2b6be69fcc350774
@@ -4272,7 +4272,7 @@ closing_tip_ci:
   run_id: null
   scope: "Exact closing TC source after the active platform-usability implementation checkpoint."
   status: "pending Root observation after publication"
-current_candidate_ci_status: "The current TC successor preserves the Plots click/save recovery, auth abort normalization, route coherence, current holdings feedback, and virtual-pane close retention. The J12 fixture now verifies B's distinct workspace and owner-scoped Notes content, the IGV fixture observes the actual OIH status poll before asserting its cancellation, and the TCNEW observer records the real canonical lookup request. The shared preparation coordinator keeps an identical in-flight creation attachable for a 50 ms same-context observer handoff while cancelAll remains immediate. Focused coordinator tests passed 26/26, frontend type-check passed, E2E reference preflight has no actionable unbound names, and scope/workstream/journey/diff guards passed. Root browser qualification, exact CI, and full platform acceptance remain pending."
+current_candidate_ci_status: "The current TC successor preserves the Plots click/save recovery, auth abort normalization, route coherence, current holdings feedback, and virtual-pane close retention. The J12 fixture now verifies B's distinct workspace and owner-scoped Notes content, the IGV fixture observes the actual OIH status poll before asserting its cancellation, and the TCNEW observer records the real canonical lookup request. The shared preparation coordinator keeps an identical in-flight creation attachable for a 50 ms same-context observer handoff while cancelAll remains immediate. Provider 19d34d0b3e875b29b276ee80e471311586e6023f is the current development backend dependency (79 manifest rows; 8 TC deltas), not release acceptance. Focused coordinator tests passed 26/26, frontend type-check passed, E2E reference preflight has no actionable unbound names, and scope/workstream/journey/diff guards passed. Root browser qualification, exact CI, and full platform acceptance remain pending."
 history_dashboard_scope_archive:
   path: ops/workstreams/feat-tc2000-frontend-rework/checkpoint-archives/history-dashboard-repair-scope-archive-20261106.json
   sha256: 2880cdb5ef6a0074b6204267b51ba9f676160bad2ef1ecff1385db1d5819d6cd
@@ -5319,9 +5319,9 @@ development_dependency_import_history:
     state: superseded_development_import
     superseded_by: 2689c2c64996b1588dd764adcef2e7d570b15096
 approved_development_dependency_imports:
-- source_sha: b19293006ea624a4f0c05a4fd91152ffd650a426
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/b19293006ea624a4f0c05a4fd91152ffd650a426.json
-  manifest_sha256: 97b429b3d99e4f8da78edcc10ed13178a17b482e31a136941f8acff14290457d
+- source_sha: 19d34d0b3e875b29b276ee80e471311586e6023f
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/19d34d0b3e875b29b276ee80e471311586e6023f.json
+  manifest_sha256: 0d1fa69e0e97f890176f71de1115418af035d8a02933211b8b1de84d98abe294
   paths:
   - backend/app/config.py
   - backend/app/main.py
@@ -5362,6 +5362,7 @@ approved_development_dependency_imports:
   - backend/tests/integration/api/test_baskets.py
   - backend/tests/integration/api/test_workspace_read_consistency_postgres.py
   - backend/tests/integration/test_data_preparation_queue_postgres.py
+  - backend/tests/integration/test_provider_runtime_transactions_postgres.py
   - backend/tests/unit/conftest.py
   - backend/tests/unit/providers/test_new_providers.py
   - backend/tests/unit/providers/test_optional_market_data.py
