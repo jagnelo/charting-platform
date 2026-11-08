@@ -1181,7 +1181,12 @@ LIVE_OPERATION_DISPOSITIONS = {
     },
     "massive": {},
     "tiingo": {},
-    "twelve_data": {},
+    "twelve_data": {
+        "get_earliest_timestamp": (
+            "blocked: the endpoint has unit-tested symbol/MIC/timeframe response validation "
+            "but no bounded live qualification case; do not treat it as covered by OHLCV reads"
+        ),
+    },
     "finnhub": {
         "fetch_ohlcv": "expected_entitlement_denial: the observed free-plan key returned HTTP 403 for the stock-candle endpoint",
     },

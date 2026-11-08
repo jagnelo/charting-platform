@@ -1450,6 +1450,19 @@ def test_manifest_has_exact_operation_evidence_for_every_provider():
     assert runner.LIVE_EXPECTED_ENTITLEMENT_DENIALS.keys() <= manifest_cases
 
 
+def test_twelve_data_earliest_timestamp_is_explicitly_unqualified():
+    runner = _runner_module()
+
+    operation = "get_earliest_timestamp"
+    disposition = runner.LIVE_OPERATION_DISPOSITIONS["twelve_data"][operation]
+    assert runner.live_operation_disposition_kind(disposition) == "blocked"
+    assert "no bounded live qualification case" in disposition
+    assert operation not in runner.LIVE_REQUIRED_OPERATIONS["twelve_data"]
+    assert runner.LIVE_OPERATION_METHOD_ALIASES.get(operation) is None
+    assert "blocked" not in runner.LIVE_COVERED_DISPOSITION_KINDS
+    assert runner.live_matrix_inventory_errors() == []
+
+
 def test_bounded_manifest_cost_overrides_cover_response_paged_cases():
     """Dynamic adapter estimates must be explicit in the safety preflight."""
 

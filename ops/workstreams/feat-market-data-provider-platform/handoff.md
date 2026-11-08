@@ -1,5 +1,19 @@
 # feat/market-data-provider-platform
 
+## 2026-11-08 — keep Twelve Data earliest-timestamp outside live coverage
+
+The global live-runner inventory found a concrete `get_earliest_timestamp`
+method on `TwelveDataProvider`, a one-credit operation in the cost map, and
+unit-only adapter tests for symbol/MIC/timeframe and timezone response
+validation. No live case exercises this endpoint, and an OHLCV read is not
+evidence for it. The runner now records an explicit `blocked` disposition for
+this one operation. It is not a method alias, is not counted as successful
+coverage, and does not enable transport; the unrelated live manifest can pass
+its structural inventory check without broadening Twelve Data qualification.
+No source HTTP, credential access, quota/ledger/policy change, or application
+code change occurred. Product source remains frozen at `9e2`; Root owns actual
+EODHD/Nasdaq qualification and any later Twelve Data account/operation review.
+
 ## 2026-11-08 — isolated EODHD free-plan history qualification probe
 
 Added `test_eodhd_free_recent_daily_history` to the existing live-probe
