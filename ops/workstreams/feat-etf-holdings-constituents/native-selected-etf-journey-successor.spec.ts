@@ -46,13 +46,28 @@ function selectedEnsure(request: Request, symbol: string, instrumentId: number):
 }
 
 function observeSelectedD1Bars(page: Page, symbol: string): Promise<Response> {
-  // Keep the existing canonical acquisition bound for cold selections; do not
-  // make chart readiness depend on a shorter independent network timeout.
-  return page.waitForResponse(response => {
+  // Install before selection and ignore empty Watchlist/history reads. The
+  // actual primary chart requests the current adjusted D1 series at limit 500.
+  // Keep the existing canonical acquisition bound; do not add a retry or
+  // prewarm request to make the observation pass.
+  return page.waitForResponse(async response => {
     const request = response.request()
     const url = new URL(response.url())
-    return request.method() === 'GET'
-      && url.pathname === `/api/v1/ohlcv/local/${symbol}/D1`
+    if (request.method() !== 'GET'
+      || url.pathname !== `/api/v1/ohlcv/local/${symbol}/D1`
+      || url.searchParams.get('limit') !== '500'
+      || response.status() !== 200) return false
+    const adjusted = url.searchParams.get('adjusted')?.trim().toLowerCase() ?? null
+    if (adjusted !== null && adjusted !== 'true') return false
+    try {
+      const bars = await response.json() as Bar[]
+      return Array.isArray(bars) && bars.length > 1 && bars.every(bar =>
+        Number.isFinite(Date.parse(bar.ts))
+          && [bar.open, bar.high, bar.low, bar.close].every(Number.isFinite),
+      )
+    } catch {
+      return false
+    }
   }, { timeout: 120_000 })
 }
 
@@ -297,6 +312,10 @@ async function assertSelectedBars(
   pageBarsResponse: Promise<Response>,
 ): Promise<Bar[]> {
   await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue(symbol)
+  // Consume the first successful non-empty primary-chart response before
+  // reading persistence, so a cold progressive source upgrade is compared
+  // against the closest current stored series rather than a stale empty read.
+  const selectedResponse = await pageBarsResponse
   await expect.poll(async () => {
     const response = await request.get(`/api/v1/ohlcv/local/${symbol}/D1`, {
       headers: { Authorization: `Bearer ${token}` }, params: { limit: 500, adjusted: 'true' },
@@ -306,7 +325,6 @@ async function assertSelectedBars(
   const bars = await json<Bar[]>(request, `/api/v1/ohlcv/local/${symbol}/D1`, token, { limit: 500, adjusted: 'true' })
   expect(bars.every(bar => Number.isFinite(Date.parse(bar.ts)) && [bar.open, bar.high, bar.low, bar.close].every(Number.isFinite))).toBeTruthy()
 
-  const selectedResponse = await pageBarsResponse
   const selectedURL = new URL(selectedResponse.url())
   expect(selectedResponse.status(), `${symbol} page-originated D1 bars response`).toBe(200)
   expect(selectedURL.pathname).toBe(`/api/v1/ohlcv/local/${symbol}/D1`)

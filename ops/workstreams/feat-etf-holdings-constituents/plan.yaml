@@ -5728,8 +5728,8 @@ acceptance_criteria:
 progress:
   completed: []
   total: 5
-  current_phase: Strengthened the ETF-owned native selected-fund proof to bind chart readiness to the page-originated selected-symbol D1 response, visible active chart tool/timeframe, and independent XHB/IGV test cases. BWET future-source proof remains separate and unchanged. Cheap Playwright discovery only; Root owns genuine per-fund execution and release qualification.
-  current_blocker: "The native chart journey is not yet accepted: Root owns exact-source IHI/IYW/IGV variants and actual native browser execution, including the primary price-chart visibility outcome. Preserve all earlier failures, full roadmaps, genuine-source holds, and final combined/CI/release gates."
+  current_phase: The native proof observer now accepts only a successful, nonempty, finite adjusted/default-adjusted primary D1 response with limit=500; initial empty and smaller same-path reads cannot satisfy chart readiness. The response is captured before selection and consumed before the persisted comparison. XHB and IGV cases remain independent; BWET future-source proof remains separate and unchanged. Focused discovery only; Root owns genuine per-fund execution.
+  current_blocker: "Cold IHI/IYW/IGV native runs and full ETF/basket browser qualification remain Root-owned and pending. Preserve all earlier failures, full roadmaps, genuine-source holds, and final combined/CI/release gates."
 previous_provider_b0eae597_development_import:
   source: b0eae5974801e320b3da858d7e1a33829b206430
   previous_source: 5cdc5ee06e26b191d889212b8cd1554d28abbc8f
@@ -7198,6 +7198,15 @@ native_selected_etf_page_chart_and_independent_fund_proof_2026_11_08:
   preserved: Existing automatic selection/acquisition, exact identity, current snapshot, completeness, source/date/known-at provenance, constituent-row binding, actual canvas paint, date-bound numeric tooltip, IGV lineage/drilldown/return/reload. BWET's authentic future_dated_source boundary spec is unchanged.
   validation: Correct focused Playwright discovery lists two cases; browser bodies are not run in this owner turn. Root derives IHI/IYW/IGV and owns the actual native execution.
   non_actions: No browser, HTTP, source/provider request, fixture, runtime, shared-product, database, policy, quota, ledger, production, or sibling-worktree change.
+
+native_selected_etf_cold_primary_page_chart_observer_2026_11_08:
+  authority: Root review root-ETF2124-cold-page-observer-review.json; test-only correction in the ETF-owned successor spec.
+  source: ops/workstreams/feat-etf-holdings-constituents/native-selected-etf-journey-successor.spec.ts
+  source_sha256: f77d9706ab92d236f765fe8ba451207551c82aaaf97f6597ae1572671294ed48
+  contract: Before selection, observe only the exact selected-symbol D1 response with HTTP 200, primary-chart limit=500, adjusted omitted/default or true, and a nonempty finite OHLC body. Empty first responses and same-path smaller Watchlist reads do not complete the observer. Consume this selected response before the authenticated persisted-history comparison, retaining all canvas, visible-chart, date-bound tooltip, and exact OHLC checks.
+  preserved: Independent XHB and IGV cases; current snapshot completeness and source/date/known-at provenance; IGV constituent-row binding, drilldown, return and reload; separate genuine BWET future-source boundary and original strict proof.
+  validation: Focused Playwright discovery, workstream validation, diff check and plan/session hash checks remain the required cheap checks. No browser body was run; Root owns cold IHI/IYW/IGV variants and native execution.
+  non_actions: No API prewarm, browser, HTTP, source/provider request, fixture, runtime, shared-product, database, policy, quota, ledger, production, or sibling-worktree change.
 
 native_xhb_current_rows_proof_successor_2026_11_07:
   authority: Root assigned a test-only successor after root-native-XHB-current-rows-proof-contract-review.json.

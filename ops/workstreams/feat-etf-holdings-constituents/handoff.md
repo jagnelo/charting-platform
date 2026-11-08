@@ -18791,3 +18791,23 @@ source HTTP, fixture, runtime, shared product, database, policy, quota, ledger,
 production or sibling-worktree operation ran. Root owns IHI/IYW/IGV derivation
 and actual native execution. Successor spec SHA256
 `fbbde53011b6ba9c7e9339924dce6277eeb31ca3578841a3fcb96bf383ec469b`.
+
+## Cold native primary-chart response binding — 2026-11-08
+
+Root review `root-ETF2124-cold-page-observer-review.json` showed that the
+earliest same-path D1 response can be an empty `limit=31` Watchlist read or an
+empty `limit=500` response before cold history arrives. The ETF successor
+observer now ignores those responses and resolves only for a successful exact
+selected-symbol D1 `limit=500` response in the default-adjusted/explicit-true
+scope whose body has multiple finite OHLC bars. The observer remains installed
+before selection; no API prewarm, retry, timeout increase, or mocked response
+was added. The accepted page payload is consumed before the existing persisted
+history comparison, then the same visible active-chart, canvas paint,
+date-bound tooltip and exact OHLC assertions run.
+
+Updated successor SHA256 is
+`f77d9706ab92d236f765fe8ba451207551c82aaaf97f6597ae1572671294ed48`. The
+original strict proof and separate BWET future-source proof remain unchanged.
+Root owns IHI/IYW/IGV derivation and actual native browser execution; no browser
+body, source HTTP, fixture, runtime, database, quota, production, or shared
+product operation was run.
