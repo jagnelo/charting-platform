@@ -20425,3 +20425,8 @@ The same run exposed a genuine final-bar fill gap: with no next `on_bar`, the ad
 Focused Nautilus module: 17/17. Locked Ruff 0.4.7 check/format, frontend type-check, workstream validation, diff check, and E2E discovery of all 12 Study journey bodies pass. The reference preflight reports no actionable unbound references; its existing E2E semantic and Node ambient advisories remain unqualified. No browser, fixture, full suite, CI, provider, or native operation was run; Root owns exact-source browser/release qualification. Full roadmap criteria and existing operational holds remain open.
 
 Changed paths: `backend/app/services/strategy_lab_nautilus.py`, `backend/tests/unit/services/test_strategy_lab_nautilus.py`, `frontend/tests/e2e/strategy_study_journey.spec.ts`, `ops/workstreams/feat-strategy-lab-v2/handoff.md`, and `ops/workstreams/feat-strategy-lab-v2/validation.jsonl`.
+
+
+### Run History singular/plural accessible name (2026-11-08)
+
+Root's 3413/e949 replay completed the legacy positive engine assertions and exposed that the prior selector's `batches?` fragment missed the singular label “Run history 1 batch.” The owned E2E now matches `batch` with optional `es`, retaining the expanded-state assertion and all selected-run/results/export/delete checks. A direct singular/plural matcher check, Playwright discovery (12 bodies), workstream validation, and diff check pass. Browser execution remains Root-owned.
