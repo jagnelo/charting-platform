@@ -18969,3 +18969,28 @@ supporting-feature cases; the actual browser body remains Root-owned.
 Root released TC source `e7500fb2905ed217c96d3ac8b32a19d719ee9564` with manifest SHA256 `25c3af6616112f4f9f3fdff6de06fbd7cda7abe0adfd7a74cb8e95eb11d3af7e`. Verified all145 manifest records and imported only the51 ETF-declared paths after their exact old guards; all10 ETF-private paths were preserved. The current foreign-context pin now has135 paths, and prior9ec context is retained under `historical_tc_common_runtime_dependency_9ec4d783`. The Provider9e2 runtime (79 rows) and Provider-aed0 operator files (3 rows) already matched exactly and were not rewritten.
 
 Root reports the complete ETF browser body passed with zero retries on this candidate; its complete mapped profile remains in progress. This is development context, not final acceptance. No tests, browser body, Docker, provider/native HTTP, quota, production, CI, push, or promotion ran in this adoption.
+
+## e750 Notes canonical-read synchronization — 2026-11-08
+
+Root's full66 failure batch identifies one ETF-owned Notes journey failure. Its
+retained trace shows ordinary `GET /instruments/QQQ` returned instrument id4
+with `identity_status=provisional`; the separate UI lookup
+`GET /instruments/QQQ?canonical_only=true` had no response before teardown, and
+no QQQ Notes GET was issued. The Notes panel therefore displayed its null-id
+state (`No canonical instrument`) before the shared canonical lookup settled.
+This does not establish that QQQ is absent or that a note leaked across
+symbols. The former test asserted `No note` after only the ordinary instrument
+read; it now waits for the UI's canonical-only response, then the Notes GET for
+that returned id, and asserts both successful responses and an empty QQQ note.
+The existing SPY save/edit/reload/return assertions remain unchanged. A missing
+or failed canonical response still fails the test; no timeout was extended.
+
+The retained trace points to a shared TC-owned readiness/priority seam:
+`WorkstationToolContent.vue` clears `toolInstrument` while its active-symbol
+watcher calls `fetchCanonicalInstrument`, and
+`lib/workstation/instrumentQueries.ts` does not accept/pass request priority.
+The Notes component consequently cannot distinguish a pending identity lookup
+from a terminal missing identity. No shared file was changed here. The exact
+e750 imports remain in the already committed context adoption; this correction
+is a descendant and does not rewrite those imported files. Playwright discovery
+lists all four supporting-feature cases; no browser or full profile was run.
