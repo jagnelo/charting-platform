@@ -309,6 +309,31 @@ describe('RatioUPlot', () => {
     expect(wrapper.emitted('configuration')).toContainEqual([{ ratio_benchmarks: ['SPY'] }])
   })
 
+  it('keeps an already-visible comparison when Add is submitted again without restarting its reads', async () => {
+    vi.mocked(api.get).mockResolvedValue({
+      coverage: 1,
+      points: [{ timestamp: '2026-01-02T00:00:00Z', value: 1.25 }],
+      warnings: [],
+    })
+    const wrapper = mountTool({ props: { symbol: 'SPY', benchmarks: ['RSP', 'XLB', 'XLK'], editableBenchmarks: true } })
+    await vi.waitFor(() => expect(vi.mocked(uPlot)).toHaveBeenCalled())
+    const initialReadCount = vi.mocked(api.get).mock.calls.length
+    const input = wrapper.get('input[aria-label="Ratio comparison symbol"]')
+
+    await input.setValue('xlk')
+    await wrapper.get('button[aria-label="Add ratio comparison"]').trigger('click')
+
+    expect(wrapper.findAll('.ratio-chart__chip').map(chip => chip.attributes('aria-label'))).toEqual([
+      'Remove ratio comparison RSP',
+      'Remove ratio comparison XLB',
+      'Remove ratio comparison XLK',
+    ])
+    expect(wrapper.emitted('configuration')).toBeUndefined()
+    expect(vi.mocked(api.get)).toHaveBeenCalledTimes(initialReadCount)
+    expect(wrapper.get('input[aria-label="Ratio comparison symbol"]').element.value).toBe('')
+    wrapper.unmount()
+  })
+
   it('loads and plots a newly entered comparison before the parent configuration echo', async () => {
     vi.mocked(api.get).mockImplementation(async (_path, options) => ({
       coverage: 1,

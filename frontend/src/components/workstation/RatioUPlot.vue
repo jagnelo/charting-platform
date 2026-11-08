@@ -128,6 +128,13 @@ function persistBenchmarks(next: string[]) {
 function addBenchmark() {
   const value = benchmarkDraft.value.trim().toUpperCase()
   if (!value) return
+  // The active ratio set can already contain a symbol from linked/default
+  // configuration. Treat Add as idempotent in that case: a duplicate must not
+  // emit another workspace edit or restart every existing comparison read.
+  if (localBenchmarks.value.includes(value)) {
+    benchmarkDraft.value = ''
+    return
+  }
   persistBenchmarks([...localBenchmarks.value, value])
   benchmarkDraft.value = ''
 }
