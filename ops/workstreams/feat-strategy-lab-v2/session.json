@@ -50,13 +50,13 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "current_blocker": "Provider 9b196304 exact development imports are consumed; E099 Study ensure was ready in Root direct API, while repeated shared frontend preparation requests left the browser request unanswered. TC owns shared request lifecycle/dedup; Root owns next combined runtime/browser proof.",
+  "current_blocker": "Root's exact 8d96/19d affected-four browser run is terminal 0/4. The Strategy catalogue Coverage assertion compared the editable shell search draft with a blue-linked panel's committed symbol; the trace showed correct canonical SPYV coverage while the draft displayed SPY. Strategy corrected the owned oracle to wait for committed context and compare the panel link group, header, canonical API result, and exact bar count. Root's rerun is pending; other case failures remain with their assigned owners.",
   "current_execution_checkpoint": {
     "authority": "Human-activated platform-usability plan; existing session-local goal aligned in place by Root, no objective/accounting reset.",
     "full_roadmap_preserved": true,
-    "heavy_profile": "E099 remains terminal 4/10 on frontend e099a0ee/backend 13630db1. Provider 9b196304 is imported as an exact shared development dependency; Root direct API proved the same bounded Study ensure ready in 0.16s, while TC owns repeated shared frontend request lifecycle/dedup.",
+    "heavy_profile": "The latest affected-four run is terminal 0/4 on frontend 8d96cf3bd702459c4eef2ced93ec1dfb8db3dc2f and backend 19d34d0b3e875b29b276ee80e471311586e6023f, with zero retries. Strategy's Coverage failure was a test-oracle mismatch between editable search text and committed blue-linked panel context; its focused correction awaits Root's next browser run. Remaining failures are assigned across TC/ETF/Root; combined qualification is still open.",
     "id": "strategy-study-usability-2026-11-06",
-    "next_action": "Await TC request-coalescing candidate and Root combined runtime/browser proof; retain all E099 failures and 18-roadmap history.",
+    "next_action": "Commit the Strategy-owned Coverage context oracle correction with its focused workstream evidence and return the exact source to Root for the authorized rerun. Do not launch a local browser or alter shared runtime. Preserve the terminal 0/4 history, all18 roadmap criteria, and safety holds.",
     "status": "in_progress"
   },
   "dirty_paths": [
@@ -117,10 +117,10 @@
   "goal_unavailable_reason": null,
   "head": "e09f33ffff7095bf99a6ecb0c80a5e2f47a179f0",
   "implementation_sha": "55851d2b953ce38de5afe59ba90b613ffde08f87",
-  "last_checkpoint": "2026-11-08T02:06:37Z",
+  "last_checkpoint": "2026-11-08T02:21:54Z",
   "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Root/TC to qualify the final shared-runtime candidate and run the complete Study/Results/Library plus combined browser profile. Strategy consumed the exact 8d96 common source but did not run a browser or full suite; preserve the prior 2a8 6/10 red and separate Study pass, all18 roadmap criteria, and safety holds.",
+  "next_action": "Commit the Strategy-owned Coverage context oracle correction with its focused workstream evidence and return the exact source to Root for the authorized rerun. Do not launch a local browser or alter shared runtime. Preserve the terminal 0/4 history, all18 roadmap criteria, and safety holds.",
   "parent_branch": "staging",
   "plan_hash": "3a987da137c1f2350aa0f1d58f1b9d3c3dd0ec22017d37f5cc93bfb1bdee7cc5",
   "planning_required": false,
@@ -151,11 +151,11 @@
       "SU3",
       "SU4"
     ],
-    "current_blocker": "Root/TC report three common proof issues on the current 8d96 development source; exact current-source full browser/CI qualification is not yet available. The prior 2a8/b192 complete Study/Results/Library journey passed but overall critical run remained6/10. Provider19d and TC8d96 are development imports only.",
+    "current_blocker": "Root's exact 8d96/19d affected-four browser run is terminal 0/4. The Strategy catalogue Coverage assertion compared the editable shell search draft with a blue-linked panel's committed symbol; the trace showed correct canonical SPYV coverage while the draft displayed SPY. Strategy corrected the owned oracle to wait for committed context and compare the panel link group, header, canonical API result, and exact bar count. Root's rerun is pending; other case failures remain with their assigned owners.",
     "current_phase": "strategy-study-usability-2026-11-06",
-    "next_action": "Root/TC to qualify the final shared-runtime candidate and run the complete Study/Results/Library plus combined browser profile. Strategy consumed the exact 8d96 common source but did not run a browser or full suite; preserve the prior 2a8 6/10 red and separate Study pass, all18 roadmap criteria, and safety holds.",
+    "next_action": "Commit the Strategy-owned Coverage context oracle correction with its focused workstream evidence and return the exact source to Root for the authorized rerun. Do not launch a local browser or alter shared runtime. Preserve the terminal 0/4 history, all18 roadmap criteria, and safety holds.",
     "total": 9,
-    "updated_at": "2026-11-08T02:06:37Z"
+    "updated_at": "2026-11-08T02:21:54Z"
   },
   "remote": "b555268b8237d1c50e34b39320b4cb18a8bd9a03",
   "remote_sha": "b555268b8237d1c50e34b39320b4cb18a8bd9a03",
@@ -262,7 +262,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for Strategy Lab v2 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-11-07T23:43:01Z",
+  "updated_at": "2026-11-08T02:21:54Z",
   "validation_tier": "full_integration",
   "workstream": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2",
   "workstream_files": [
