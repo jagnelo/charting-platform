@@ -50,13 +50,13 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "current_blocker": "Root's exact 8d96/19d affected-four browser run is terminal 0/4. The Strategy catalogue Coverage assertion compared the editable shell search draft with a blue-linked panel's committed symbol; the trace showed correct canonical SPYV coverage while the draft displayed SPY. Strategy corrected the owned oracle to wait for committed context and compare the panel link group, header, canonical API result, and exact bar count. Root's rerun is pending; other case failures remain with their assigned owners.",
+  "current_blocker": "The exact 8d96/19d affected-four browser run remains terminal 0/4; its Strategy Coverage failure was corrected in commit 88b70230f03cab3f45b2817033892e4c9e1ea9f5. The Study, Results, and Code Library focused component suites now pass 160/160 on that source. Root owns the exact-source browser rerun and the remaining cross-feature qualification; other predecessor failures remain with their assigned owners.",
   "current_execution_checkpoint": {
     "authority": "Human-activated platform-usability plan; existing session-local goal aligned in place by Root, no objective/accounting reset.",
     "full_roadmap_preserved": true,
-    "heavy_profile": "The latest affected-four run is terminal 0/4 on frontend 8d96cf3bd702459c4eef2ced93ec1dfb8db3dc2f and backend 19d34d0b3e875b29b276ee80e471311586e6023f, with zero retries. Strategy's Coverage failure was a test-oracle mismatch between editable search text and committed blue-linked panel context; its focused correction awaits Root's next browser run. Remaining failures are assigned across TC/ETF/Root; combined qualification is still open.",
+    "heavy_profile": "The affected-four run is terminal 0/4 on frontend 8d96cf3bd702459c4eef2ced93ec1dfb8db3dc2f and backend 19d34d0b3e875b29b276ee80e471311586e6023f, with zero retries. Strategy corrected its Coverage context oracle in 88b70230f03cab3f45b2817033892e4c9e1ea9f5. On the same product source, the focused Study Lab, Research Results, and Code Library unit suites pass 160/160. Root owns browser rerun and combined qualification; the terminal predecessor remains red history.",
     "id": "strategy-study-usability-2026-11-06",
-    "next_action": "Commit the Strategy-owned Coverage context oracle correction with its focused workstream evidence and return the exact source to Root for the authorized rerun. Do not launch a local browser or alter shared runtime. Preserve the terminal 0/4 history, all18 roadmap criteria, and safety holds.",
+    "next_action": "Provide exact local source 88b70230f03cab3f45b2817033892e4c9e1ea9f5 and the 160/160 focused component result to Root; Root owns the affected-four browser rerun and complete Study/Results/Library acceptance. Preserve the terminal 0/4 history, all18 roadmap criteria, and safety holds.",
     "status": "in_progress"
   },
   "dirty_paths": [
@@ -117,10 +117,10 @@
   "goal_unavailable_reason": null,
   "head": "e09f33ffff7095bf99a6ecb0c80a5e2f47a179f0",
   "implementation_sha": "55851d2b953ce38de5afe59ba90b613ffde08f87",
-  "last_checkpoint": "2026-11-08T02:21:54Z",
+  "last_checkpoint": "2026-11-08T02:25:40Z",
   "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Commit the Strategy-owned Coverage context oracle correction with its focused workstream evidence and return the exact source to Root for the authorized rerun. Do not launch a local browser or alter shared runtime. Preserve the terminal 0/4 history, all18 roadmap criteria, and safety holds.",
+  "next_action": "Provide exact local source 88b70230f03cab3f45b2817033892e4c9e1ea9f5 and the 160/160 focused component result to Root; Root owns the affected-four browser rerun and complete Study/Results/Library acceptance. Preserve the terminal 0/4 history, all18 roadmap criteria, and safety holds.",
   "parent_branch": "staging",
   "plan_hash": "3a987da137c1f2350aa0f1d58f1b9d3c3dd0ec22017d37f5cc93bfb1bdee7cc5",
   "planning_required": false,
@@ -151,11 +151,11 @@
       "SU3",
       "SU4"
     ],
-    "current_blocker": "Root's exact 8d96/19d affected-four browser run is terminal 0/4. The Strategy catalogue Coverage assertion compared the editable shell search draft with a blue-linked panel's committed symbol; the trace showed correct canonical SPYV coverage while the draft displayed SPY. Strategy corrected the owned oracle to wait for committed context and compare the panel link group, header, canonical API result, and exact bar count. Root's rerun is pending; other case failures remain with their assigned owners.",
+    "current_blocker": "The exact 8d96/19d affected-four browser run remains terminal 0/4; its Strategy Coverage failure was corrected in commit 88b70230f03cab3f45b2817033892e4c9e1ea9f5. The Study, Results, and Code Library focused component suites now pass 160/160 on that source. Root owns the exact-source browser rerun and the remaining cross-feature qualification; other predecessor failures remain with their assigned owners.",
     "current_phase": "strategy-study-usability-2026-11-06",
-    "next_action": "Commit the Strategy-owned Coverage context oracle correction with its focused workstream evidence and return the exact source to Root for the authorized rerun. Do not launch a local browser or alter shared runtime. Preserve the terminal 0/4 history, all18 roadmap criteria, and safety holds.",
+    "next_action": "Provide exact local source 88b70230f03cab3f45b2817033892e4c9e1ea9f5 and the 160/160 focused component result to Root; Root owns the affected-four browser rerun and complete Study/Results/Library acceptance. Preserve the terminal 0/4 history, all18 roadmap criteria, and safety holds.",
     "total": 9,
-    "updated_at": "2026-11-08T02:21:54Z"
+    "updated_at": "2026-11-08T02:25:40Z"
   },
   "remote": "b555268b8237d1c50e34b39320b4cb18a8bd9a03",
   "remote_sha": "b555268b8237d1c50e34b39320b4cb18a8bd9a03",
@@ -262,7 +262,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for Strategy Lab v2 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-11-08T02:21:54Z",
+  "updated_at": "2026-11-08T02:25:40Z",
   "validation_tier": "full_integration",
   "workstream": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2",
   "workstream_files": [
