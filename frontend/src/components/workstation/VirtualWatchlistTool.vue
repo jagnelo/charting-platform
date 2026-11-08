@@ -2,7 +2,7 @@
   <section class="watchlist" :class="{ 'watchlist--columns-open': columnMenuOpen, 'watchlist--sets-open': columnSetMenuOpen, 'watchlist--condition-open': Boolean(conditionFilterState || pythonConditionState), 'watchlist--grouped': hasColumnGroups, 'watchlist--plot-drop-active': plotDropActive }" :aria-label="label" :aria-busy="loading ? 'true' : 'false'" :data-row-count="filteredRows.length" :data-rendered-row-count="virtualItems.length" :data-row-budget="workstationRowBudgetState(filteredRows.length)" @click="contextMenu = null; pinContextMenu = null" @keydown.esc="handleWatchlistEscape" @dragenter.prevent="dragOverPlot" @dragover.prevent="dragOverPlot" @dragleave="dragLeavePlot" @drop.prevent="dropPlot">
     <p v-if="plotDropActive" class="watchlist__plot-drop-hint" role="status" aria-live="polite" aria-atomic="true">Drop to add the chart plot as a numeric column</p>
     <p v-if="dropError" class="watchlist__drop-error" role="alert" aria-live="assertive" aria-atomic="true">{{ dropError }}</p>
-    <p v-if="loading" class="watchlist__loading-status" role="status" aria-live="polite" aria-atomic="true">{{ loadingLabel }}</p>
+    <p v-if="loading || refreshing" class="watchlist__loading-status" role="status" aria-live="polite" aria-atomic="true">{{ loading ? loadingLabel : refreshingLabel }}</p>
     <p v-if="errorMessage" class="watchlist__data-error" role="alert" aria-live="assertive" aria-atomic="true">{{ errorMessage }}</p>
     <header class="watchlist__controls">
       <span>{{ label }}</span>
@@ -242,6 +242,8 @@ const props = withDefaults(defineProps<{
   dropError?: string
   loading?: boolean
   loadingLabel?: string
+  refreshing?: boolean
+  refreshingLabel?: string
   errorMessage?: string
   pythonCondition?: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off'; timeframe?: string } | null
   reorderable?: boolean
@@ -280,6 +282,8 @@ const props = withDefaults(defineProps<{
   dropError: '',
   loading: false,
   loadingLabel: 'Loading…',
+  refreshing: false,
+  refreshingLabel: 'Refreshing…',
   errorMessage: '',
   pythonCondition: null,
   reorderable: false,

@@ -18962,3 +18962,10 @@ The owned E2E now waits for the exact `SPY instrument report` region before the
 existing ordinary panel/Indicators clicks and assertions. No shared UI source,
 assertion, or existing timeout was changed. Playwright discovery lists all four
 supporting-feature cases; the actual browser body remains Root-owned.
+
+
+## TC e750 full frontend context adoption — 2026-11-08
+
+Root released TC source `e7500fb2905ed217c96d3ac8b32a19d719ee9564` with manifest SHA256 `25c3af6616112f4f9f3fdff6de06fbd7cda7abe0adfd7a74cb8e95eb11d3af7e`. Verified all145 manifest records and imported only the51 ETF-declared paths after their exact old guards; all10 ETF-private paths were preserved. The current foreign-context pin now has135 paths, and prior9ec context is retained under `historical_tc_common_runtime_dependency_9ec4d783`. The Provider9e2 runtime (79 rows) and Provider-aed0 operator files (3 rows) already matched exactly and were not rewritten.
+
+Root reports the complete ETF browser body passed with zero retries on this candidate; its complete mapped profile remains in progress. This is development context, not final acceptance. No tests, browser body, Docker, provider/native HTTP, quota, production, CI, push, or promotion ran in this adoption.

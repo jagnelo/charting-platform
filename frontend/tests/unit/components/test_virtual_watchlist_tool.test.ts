@@ -23,6 +23,22 @@ beforeEach(() => { apiGet.mockResolvedValue([]); apiPost.mockReset(); apiPut.moc
 afterEach(() => { apiGet.mockReset(); apiPost.mockReset(); apiPut.mockReset(); apiDelete.mockReset(); vi.unstubAllGlobals() })
 
 describe('VirtualWatchlistTool', () => {
+  it('keeps cached rows available while a shared analysis refresh is still running', () => {
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: {
+        label: 'Major US benchmarks',
+        rows,
+        refreshing: true,
+        refreshingLabel: 'Refreshing benchmark analysis…',
+      },
+    })
+
+    expect(wrapper.get('.watchlist').attributes('aria-busy')).toBe('false')
+    expect(wrapper.get('[role="status"]').text()).toBe('Refreshing benchmark analysis…')
+    expect(wrapper.findAll('.watchlist__row')).toHaveLength(rows.length)
+    wrapper.unmount()
+  })
+
   it('selects a reported ETF holding by its stable row identity when tickers repeat', async () => {
     const duplicateReportedRows = [
       { rowKey: 'igv:510:610', instrumentId: null, symbol: 'DUP', name: 'Older reported line' },
@@ -343,7 +359,9 @@ describe('VirtualWatchlistTool', () => {
       : Promise.resolve([]))
     const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Late assets', rows } })
     await Promise.resolve()
-    expect(apiGet).toHaveBeenCalledWith('/code/assets')
+    expect(apiGet).toHaveBeenCalledWith('/code/assets', undefined, expect.objectContaining({
+      queueKey: 'workstation:code-assets', signal: expect.any(AbortSignal),
+    }))
 
     wrapper.unmount()
     resolveAssets([{ kind: 'column', name: 'Late column', versions: [{ id: 7, version_number: 1 }] }])

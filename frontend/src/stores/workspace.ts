@@ -2198,10 +2198,14 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     return merged
   }
 
-  async function loadMarketGroup(stableKey: string, options: { useCache?: boolean } = {}) {
+  async function loadMarketGroup(stableKey: string, options: { useCache?: boolean; priority?: ApiRequestPriority } = {}) {
     if (options.useCache && marketGroups.value[stableKey]) return marketGroups.value[stableKey]
     const pending = marketGroupLoads.get(stableKey)
-    if (pending) return pending
+    const queueKey = `top-down:market-group:${stableKey}`
+    if (pending) {
+      if (options.priority === 'high') setQueuedApiRequestPriority(queueKey, 'high')
+      return pending
+    }
     const requestKey = `top-down:market-group:${stableKey}`
     const generation = beginAnalysisRequest(requestKey)
     if (!documentIsVisible()) return null
@@ -2209,7 +2213,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     let request: Promise<MarketGroupState | null>
     request = (async () => {
       try {
-        const group = await api.get<MarketGroupState>(`/market-groups/${encodeURIComponent(stableKey)}`)
+        const group = await api.get<MarketGroupState>(`/market-groups/${encodeURIComponent(stableKey)}`, undefined, {
+          priority: options.priority ?? 'auto', queueKey,
+        })
         if (!isCurrentAnalysisRequest(requestKey, generation)) return null
         let hydratedGroup = group
         // Older persisted/backend fixtures may expose the benchmark root before
@@ -2218,7 +2224,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         // changing the selected universe.
         if (stableKey === 'us-benchmarks' && group.provenance && !Array.isArray(group.provenance.benchmark_families)) {
           try {
-            const children = await api.get<MarketGroupState[]>('/market-groups/us-benchmarks/children')
+            const children = await api.get<MarketGroupState[]>('/market-groups/us-benchmarks/children', undefined, {
+              priority: options.priority ?? 'auto', queueKey: `${queueKey}:children`,
+            })
             const families = children
               .filter(child => child.group_type === 'benchmark_family')
               .map(child => ({ logical_key: child.stable_key, name: child.name }))
@@ -2951,7 +2959,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
           selectedIndustry.value = null
           selectedIndustryProxy.value = null
         }
-        void loadETFConstituentSnapshot(normalized)
+        void loadETFConstituentSnapshot(normalized, undefined, priority)
         return page
       } catch (cause: any) {
         if (!isCurrentAnalysisRequest(requestKey, generation)) return null
@@ -2974,7 +2982,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     return request
   }
 
-  async function loadETFConstituentSnapshot(symbol: string, benchmark?: string) {
+  async function loadETFConstituentSnapshot(symbol: string, benchmark?: string, priority?: ApiRequestPriority) {
     const normalized = symbol.trim().toUpperCase()
     if (!normalized) return null
     const comparison = (benchmark ?? normalized).trim().toUpperCase()
@@ -2983,10 +2991,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (!documentIsVisible()) return null
     etfConstituentSnapshotErrors.value = { ...etfConstituentSnapshotErrors.value, [normalized]: null }
     try {
-      const snapshot = await api.get<ETFConstituentSnapshotState>(
-        `/analysis/etf/${encodeURIComponent(normalized)}/constituents/snapshot`,
-        { benchmark: comparison, market_benchmark: 'SPY' },
-      )
+      const path = `/analysis/etf/${encodeURIComponent(normalized)}/constituents/snapshot`
+      const params = { benchmark: comparison, market_benchmark: 'SPY' }
+      const snapshot = await (priority
+        ? api.get<ETFConstituentSnapshotState>(path, params, { priority })
+        : api.get<ETFConstituentSnapshotState>(path, params))
       if (!isCurrentAnalysisRequest(requestKey, generation)) return null
       etfConstituentSnapshots.value = { ...etfConstituentSnapshots.value, [normalized]: snapshot }
       etfConstituentSnapshotErrors.value = { ...etfConstituentSnapshotErrors.value, [normalized]: null }
@@ -3010,7 +3019,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
   }
 
-  async function loadETFIndustries(symbol: string) {
+  async function loadETFIndustries(symbol: string, priority?: ApiRequestPriority) {
     const normalized = symbol.trim().toUpperCase()
     if (!normalized) return null
     const requestKey = 'top-down:industries'
@@ -3019,10 +3028,13 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     etfIndustryLoading.value = { ...etfIndustryLoading.value, [normalized]: true }
     etfIndustryErrors.value = { ...etfIndustryErrors.value, [normalized]: null }
     try {
-      const composition = await api.get<ETFIndustryCompositionState>(`/market-groups/etf/${encodeURIComponent(normalized)}/industries`)
+      const path = `/market-groups/etf/${encodeURIComponent(normalized)}/industries`
+      const composition = await (priority
+        ? api.get<ETFIndustryCompositionState>(path, undefined, { priority })
+        : api.get<ETFIndustryCompositionState>(path))
       if (!isCurrentAnalysisRequest(requestKey, generation)) return null
       etfIndustries.value = { ...etfIndustries.value, [normalized]: composition }
-      void loadIndustrySnapshot(normalized)
+      void loadIndustrySnapshot(normalized, priority)
       return composition
     } catch (cause: any) {
       if (!isCurrentAnalysisRequest(requestKey, generation)) return null
@@ -3045,7 +3057,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
   }
 
-  async function loadIndustrySnapshot(symbol: string) {
+  async function loadIndustrySnapshot(symbol: string, priority?: ApiRequestPriority) {
     const normalized = symbol.trim().toUpperCase()
     if (!normalized) return null
     const requestKey = 'top-down:industry-snapshot'
@@ -3053,7 +3065,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (!documentIsVisible()) return null
     industrySnapshotErrors.value = { ...industrySnapshotErrors.value, [normalized]: null }
     try {
-      const snapshot = await api.get<IndustrySnapshotState>(`/analysis/etf/${encodeURIComponent(normalized)}/industries/snapshot`, { market_benchmark: 'SPY' })
+      const path = `/analysis/etf/${encodeURIComponent(normalized)}/industries/snapshot`
+      const params = { market_benchmark: 'SPY' }
+      const snapshot = await (priority
+        ? api.get<IndustrySnapshotState>(path, params, { priority })
+        : api.get<IndustrySnapshotState>(path, params))
       if (!isCurrentAnalysisRequest(requestKey, generation)) return null
       industrySnapshots.value = { ...industrySnapshots.value, [normalized]: snapshot }
       return snapshot

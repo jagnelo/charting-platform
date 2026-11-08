@@ -273,7 +273,7 @@ describe('explicit acquisition API contracts', () => {
     await discoverInstruments(' OIH ', ['ETF'], 100)
     expect(api.post).toHaveBeenCalledWith('/instruments/discover', {
       query: 'OIH', types: ['ETF'], limit: 10, request_id: 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d',
-    })
+    }, expect.objectContaining({ priority: 'high' }))
   })
 
   it('resolves a selected candidate without treating its nullable ID as canonical', async () => {
@@ -282,7 +282,7 @@ describe('explicit acquisition API contracts', () => {
     expect(api.post).toHaveBeenCalledWith('/instruments/acquire', {
       symbol: 'OIH', provider_candidate: { provider: 'free-source', symbol: 'OIH', exchange: 'NYSE Arca' },
       request_id: 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d',
-    })
+    }, expect.objectContaining({ priority: 'high' }))
   })
 
   it('requests one canonical instrument and finite UTC history range', async () => {

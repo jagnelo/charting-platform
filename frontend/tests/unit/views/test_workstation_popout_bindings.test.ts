@@ -474,7 +474,7 @@ describe('WorkstationView pop-out bindings', () => {
       await input.setValue('BWET')
       await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/instruments/discover', expect.objectContaining({
         query: 'BWET', types: [], limit: 10, request_id: expect.any(String),
-      })), { timeout: 1500 })
+      }), expect.objectContaining({ priority: 'high', signal: expect.any(AbortSignal) })), { timeout: 1500 })
       expect(apiPost).toHaveBeenCalledTimes(1)
       expect(wrapper.text()).toContain('Select one to verify its identity')
       expect(wrapper.text()).toContain('Use BWET')
@@ -957,10 +957,10 @@ describe('WorkstationView pop-out bindings', () => {
     await input.trigger('keydown', { key: 'Enter' })
 
     await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'F', instrumentId: 83 })))
-    expect(apiPost).toHaveBeenNthCalledWith(1, '/instruments/discover', expect.objectContaining({ query: 'F' }))
+    expect(apiPost).toHaveBeenNthCalledWith(1, '/instruments/discover', expect.objectContaining({ query: 'F' }), expect.objectContaining({ priority: 'high', signal: expect.any(AbortSignal) }))
     expect(apiPost).toHaveBeenNthCalledWith(2, '/instruments/acquire', expect.objectContaining({
       symbol: 'F', provider_candidate: { provider: 'fixture', symbol: 'F', exchange: 'XNYS' },
-    }))
+    }), expect.objectContaining({ priority: 'high', signal: expect.any(AbortSignal) }))
     expect(apiPost.mock.calls.filter(([path]) => path === '/instruments/acquire')).toHaveLength(1)
     expect(harness.workspace.publishSymbol).not.toHaveBeenCalledWith(expect.objectContaining({ symbol: 'FTI' }))
     wrapper.unmount()
@@ -1000,7 +1000,7 @@ describe('WorkstationView pop-out bindings', () => {
       harness.workspace.publishSymbol.mockClear()
       const input = wrapper.get('input[aria-label="Active symbol"]')
       await input.setValue('F')
-      await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/instruments/discover', expect.objectContaining({ query: 'F' })))
+      await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/instruments/discover', expect.objectContaining({ query: 'F' }), expect.objectContaining({ priority: 'high', signal: expect.any(AbortSignal) })))
       await vi.waitFor(() => expect(wrapper.text()).toContain('Ticker lookup is temporarily waiting to retry after'))
       expect(harness.workspace.publishSymbol).not.toHaveBeenCalled()
       await input.trigger('keydown', { key: 'Enter' })
@@ -1081,7 +1081,7 @@ describe('WorkstationView pop-out bindings', () => {
       await input.setValue('OLD')
       await vi.waitFor(() => expect(wrapper.text()).toContain('Ticker lookup is temporarily waiting to retry after'))
       await input.setValue('NEW')
-      await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/instruments/discover', expect.objectContaining({ query: 'NEW' })))
+      await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/instruments/discover', expect.objectContaining({ query: 'NEW' }), expect.objectContaining({ priority: 'high', signal: expect.any(AbortSignal) })))
       await new Promise(resolve => setTimeout(resolve, 140))
       expect(apiPost.mock.calls.filter(([path, body]) => path === '/instruments/discover' && body.query === 'OLD')).toHaveLength(1)
       expect(apiPost).not.toHaveBeenCalledWith('/instruments/acquire', expect.objectContaining({ symbol: 'OLD' }))
@@ -1137,10 +1137,10 @@ describe('WorkstationView pop-out bindings', () => {
     await wrapper.findAll('button').find(button => button.text() === 'Go')!.trigger('click')
 
     await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'F', instrumentId: 83 })))
-    expect(apiPost).toHaveBeenNthCalledWith(1, '/instruments/discover', expect.objectContaining({ query: 'F' }))
+    expect(apiPost).toHaveBeenNthCalledWith(1, '/instruments/discover', expect.objectContaining({ query: 'F' }), expect.objectContaining({ priority: 'high', signal: expect.any(AbortSignal) }))
     expect(apiPost).toHaveBeenNthCalledWith(2, '/instruments/acquire', expect.objectContaining({
       symbol: 'F', provider_candidate: { provider: 'fixture', symbol: 'F', exchange: 'XNYS' },
-    }))
+    }), expect.objectContaining({ priority: 'high', signal: expect.any(AbortSignal) }))
     wrapper.unmount()
   })
 
@@ -1240,7 +1240,7 @@ describe('WorkstationView pop-out bindings', () => {
     const input = wrapper.get('input[aria-label="Active symbol"]')
     await input.setValue('BAD')
     await wrapper.findAll('button').find(button => button.text() === 'Go')!.trigger('click')
-    await vi.waitFor(() => expect(resolveKnownInstrument).toHaveBeenCalledWith('BAD', 'Workstation symbol', { canonicalOnly: true }))
+    await vi.waitFor(() => expect(resolveKnownInstrument).toHaveBeenCalledWith('BAD', 'Workstation symbol', expect.objectContaining({ canonicalOnly: true, priority: 'high', signal: expect.any(AbortSignal) })))
 
     await input.setValue('GOOD')
     await vi.waitFor(() => expect(wrapper.find('.workstation__source-option').exists()).toBe(true))
@@ -1763,7 +1763,7 @@ describe('WorkstationView pop-out bindings', () => {
     await input.trigger('input')
 
     await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'NVDA', canonical_only: true }))
-    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/instruments/discover', expect.objectContaining({ query: 'NVDA' })))
+    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/instruments/discover', expect.objectContaining({ query: 'NVDA' }), expect.objectContaining({ priority: 'high', signal: expect.any(AbortSignal) })))
     await vi.waitFor(() => expect(wrapper.text()).toContain('No matching ticker is available for “NVDA”'))
     expect(apiPost).toHaveBeenCalledTimes(1)
     expect(input.attributes('aria-expanded')).toBe('true')
@@ -1787,7 +1787,7 @@ describe('WorkstationView pop-out bindings', () => {
     await vi.waitFor(() => expect(apiPost).toHaveBeenCalledTimes(1))
     await input.setValue('BWET')
     await vi.waitFor(() => expect(apiPost).toHaveBeenCalledTimes(2))
-    expect(apiPost).toHaveBeenNthCalledWith(2, '/instruments/discover', expect.objectContaining({ query: 'BWET' }))
+    expect(apiPost).toHaveBeenNthCalledWith(2, '/instruments/discover', expect.objectContaining({ query: 'BWET' }), expect.objectContaining({ priority: 'high', signal: expect.any(AbortSignal) }))
     await vi.waitFor(() => expect(wrapper.text()).toContain('No matching ticker is available for “BWET”'))
 
     finishOldDiscovery({
@@ -1850,7 +1850,7 @@ describe('WorkstationView pop-out bindings', () => {
     expect(wrapper.get('[role="listbox"]').element.contains(wrapper.get('.workstation__source-actions').element)).toBe(false)
     expect(apiPost).toHaveBeenNthCalledWith(1, '/instruments/discover', {
       query: 'OIH', types: [], limit: 10, request_id: expect.stringMatching(/^[0-9a-f-]{36}$/),
-    })
+    }, expect.objectContaining({ priority: 'high', signal: expect.any(AbortSignal) }))
     const candidate = wrapper.findAll('.workstation__source-option').find(button => button.text().includes('Use OIH'))
     expect(candidate).toBeTruthy()
     await candidate!.trigger('click')
@@ -1859,7 +1859,7 @@ describe('WorkstationView pop-out bindings', () => {
     expect(apiPost).toHaveBeenNthCalledWith(2, '/instruments/acquire', {
       symbol: 'OIH', provider_candidate: { provider: 'free-source', symbol: 'OIH', exchange: 'NYSE Arca' },
       request_id: expect.stringMatching(/^[0-9a-f-]{36}$/),
-    })
+    }, expect.objectContaining({ priority: 'high', signal: expect.any(AbortSignal) }))
     expect(apiPost.mock.calls[1][1].request_id).not.toBe(apiPost.mock.calls[0][1].request_id)
     expect(resolveKnownInstrument).not.toHaveBeenCalledWith('OIH', 'Workstation symbol', { canonicalOnly: true })
     await vi.waitFor(() => expect(dataPreparationPost.mock.calls.some(([request]) => request.target.instrument_id === 43 && request.datasets.includes('holdings'))).toBe(true))
@@ -2479,7 +2479,7 @@ describe('WorkstationView pop-out bindings', () => {
     try {
       await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'UNXQ' })))
       await vi.waitFor(() => expect(dataPreparationPost).toHaveBeenCalledTimes(1))
-      expect(resolveKnownInstrument).toHaveBeenCalledWith('UNXQ', 'Workstation symbol', { canonicalOnly: true })
+      expect(resolveKnownInstrument).toHaveBeenCalledWith('UNXQ', 'Workstation symbol', expect.objectContaining({ canonicalOnly: true, priority: 'high', signal: expect.any(AbortSignal) }))
       expect(dataPreparationPost.mock.calls[0]?.[0]).toMatchObject({ target: { kind: 'instrument', instrument_id: 77 } })
       expect(dataPreparationPost.mock.calls[0]?.[0].target).not.toMatchObject({ instrument_id: 8802 })
       expect(harness.workspace.setConstituentETF).not.toHaveBeenCalledWith('IWM')
@@ -2516,7 +2516,7 @@ describe('WorkstationView pop-out bindings', () => {
     })
     try {
       await vi.waitFor(() => expect(dataPreparationPost).toHaveBeenCalledTimes(1))
-      expect(resolveKnownInstrument).toHaveBeenCalledWith('UNXQ', 'Workstation symbol', { canonicalOnly: true })
+    expect(resolveKnownInstrument).toHaveBeenCalledWith('UNXQ', 'Workstation symbol', expect.objectContaining({ canonicalOnly: true, priority: 'high', signal: expect.any(AbortSignal) }))
       expect(dataPreparationPost.mock.calls[0]?.[0]).toMatchObject({ target: { kind: 'instrument', instrument_id: 8802 } })
       expect(harness.workspace.setConstituentETF).not.toHaveBeenCalledWith('IWM')
       expect(wrapper.get('[data-testid="active-holding-lineage"]').text()).toBe('UNXQ from IWM dated holdings · 2026-10-27')
@@ -2537,7 +2537,7 @@ describe('WorkstationView pop-out bindings', () => {
     })
     try {
       await vi.waitFor(() => expect(harness.workspace.loadETFHoldings).toHaveBeenCalledWith('SPY', 'high'))
-      expect(harness.workspace.loadETFIndustries).toHaveBeenCalledWith('SPY')
+      expect(harness.workspace.loadETFIndustries).toHaveBeenCalledWith('SPY', 'high')
       await vi.waitFor(() => expect(dataPreparationPost).toHaveBeenCalledTimes(1))
       expect(dataPreparationPost.mock.calls[0]?.[0]).toMatchObject({ target: { kind: 'instrument', symbol: 'SPY' } })
       expect(apiPost).not.toHaveBeenCalled()
@@ -2713,7 +2713,7 @@ describe('WorkstationView pop-out bindings', () => {
     })
     try {
       await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith(
-        '/etf-holdings/BWET/capability', undefined, { priority: 'high' },
+        '/etf-holdings/BWET/capability', undefined, expect.objectContaining({ priority: 'high', signal: expect.any(AbortSignal) }),
       ))
       expect(harness.workspace.loadETFHoldings).toHaveBeenCalledWith('BWET', 'high')
       finishHoldings()
@@ -2770,7 +2770,7 @@ describe('WorkstationView pop-out bindings', () => {
       expect(harness.chart.bars).toHaveLength(1)
       expect(harness.chart.bars[0]).toMatchObject({ close: 101 })
       expect((wrapper.get('input[aria-label="Active symbol"]').element as HTMLInputElement).value).toBe('NVDA')
-      expect(resolveKnownInstrument).toHaveBeenCalledWith('NVDA', 'Workstation symbol', { canonicalOnly: true })
+      expect(resolveKnownInstrument).toHaveBeenCalledWith('NVDA', 'Workstation symbol', expect.objectContaining({ canonicalOnly: true, priority: 'high', signal: expect.any(AbortSignal) }))
     } finally {
       wrapper.unmount()
     }

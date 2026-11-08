@@ -26,7 +26,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
 import uPlot from 'uplot'
 import 'uplot/dist/uPlot.min.css'
-import { api } from '@/lib/api'
+import { api, type ApiRequestPriority } from '@/lib/api'
 import CompactStatusNotice from '@/components/common/CompactStatusNotice.vue'
 import { dataPreparationCoordinator, isPreparationTimeframe, preparationStatusMessage, PreparationProgressRefreshQueue, shouldRefreshAnalysisProgress, type DataEnsureResponse } from '@/lib/dataPreparation'
 import WorkstationGlyph from './WorkstationGlyph.vue'
@@ -38,6 +38,7 @@ const props = withDefaults(defineProps<{
   asOf?: string | null
   linkedTimestamp?: string | null
   editableBenchmarks?: boolean
+  requestPriority?: ApiRequestPriority
 }>(), {
   timeframe: 'D1',
   asOf: null,
@@ -183,7 +184,7 @@ async function load() {
           queryFn: () => api.get('/analysis/relative-strength', {
             symbol: numerator, benchmark, timeframe, adjusted: true,
             ...(cutoff ? { as_of: cutoff } : {}),
-          }, { signal: controller.signal }),
+          }, { signal: controller.signal, priority: props.requestPriority ?? 'auto' }),
           staleTime: fresh ? 0 : 30_000,
         })
         return { benchmark, payload, failed: false as const }
@@ -253,6 +254,7 @@ async function load() {
           analysis: { kind: 'ratio', legs: [{ symbol: numerator }, { symbol: denominator }] },
         }, {
           signal: controller.signal,
+          priority: props.requestPriority ?? 'auto',
           onProgress: progress => {
             if (!isCurrent()) return
             preparationByBenchmark.value = {

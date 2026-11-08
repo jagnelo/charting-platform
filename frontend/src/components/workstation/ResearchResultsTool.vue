@@ -314,6 +314,13 @@ function mergeRunSummaryWithDetail(summary: ResearchRunSummary, detail?: Researc
     artifact_count: Math.max(summary.artifact_count ?? 0, detail.artifact_count ?? detail.artifacts.length),
   }
 }
+function richestRunDetail(runId: number, ...candidates: Array<ResearchRunSummary | null | undefined>): ResearchRunSummary | null {
+  return candidates.reduce<ResearchRunSummary | null>((best, candidate) => {
+    if (!candidate || candidate.id !== runId) return best
+    if (!best || (candidate.artifacts?.length ?? 0) > (best.artifacts?.length ?? 0)) return candidate
+    return best
+  }, null)
+}
 function publishAcceptedRunMutation(run: ResearchRunSummary) {
   queryClient.setQueryData<ResearchRunSummary[]>(runsQueryKey, current =>
     mergeResearchRuns([run], current ?? []).slice(0, RESEARCH_RUN_FETCH_SIZE),
@@ -413,7 +420,7 @@ const queryClient = useQueryClient()
 function selectRun(run: ResearchRunSummary) {
   const currentDetail = selectedRun.value?.id === run.id ? selectedRun.value : null
   const cachedDetail = queryClient.getQueryData<ResearchRunSummary>(researchRunQueryKey(run.id))
-  selectedRun.value = mergeRunSummaryWithDetail(run, currentDetail ?? cachedDetail)
+  selectedRun.value = mergeRunSummaryWithDetail(run, richestRunDetail(run.id, currentDetail, cachedDetail))
 }
 const artifactSummaryId = (artifactId: number) => `${resultsInstanceId}-research-artifact-${artifactId}-summary`
 let visibilityObserver: IntersectionObserver | null = null
@@ -450,7 +457,7 @@ const runsQuery = useQuery({
       const serverRuns = (await api.get<ResearchRunSummary[]>(
         '/research/runs',
         { limit: RESEARCH_RUN_FETCH_SIZE, include_artifacts: false },
-        { signal: requestController.signal },
+        { signal: requestController.signal, priority: 'high' },
       )) ?? []
       const cachedRuns = queryClient.getQueryData<ResearchRunSummary[]>(runsQueryKey) ?? []
       return reconcileResearchRunsWithCache(serverRuns, cachedRuns)
@@ -479,7 +486,7 @@ const selectedRunDetailQuery = useQuery({
   queryFn: async () => {
     const runId = selectedRun.value?.id
     if (!runId) throw new Error('Research result detail requires a run id')
-    return api.get<ResearchRunSummary>(`/research/runs/${runId}`)
+    return api.get<ResearchRunSummary>(`/research/runs/${runId}`, undefined, { priority: 'high' })
   },
   enabled: computed(() => Boolean(selectedRun.value?.id && selectedRun.value.artifacts.length === 0 && (selectedRun.value.artifact_count ?? 0) > 0)),
   // Detail failures are recoverable through the visible Retry action below.
@@ -505,7 +512,7 @@ watch(() => runsQuery.data.value, next => {
   if (nextSelectedRun) {
     const currentDetail = selectedRun.value?.id === nextSelectedRun.id ? selectedRun.value : null
     const cachedDetail = queryClient.getQueryData<ResearchRunSummary>(researchRunQueryKey(nextSelectedRun.id))
-    selectedRun.value = mergeRunSummaryWithDetail(nextSelectedRun, currentDetail ?? cachedDetail)
+    selectedRun.value = mergeRunSummaryWithDetail(nextSelectedRun, richestRunDetail(nextSelectedRun.id, currentDetail, cachedDetail))
   } else selectedRun.value = null
   comparisonIds.value = comparisonIds.value.filter(id => runs.value.some(run => run.id === id))
 }, { immediate: true })
@@ -537,13 +544,18 @@ async function loadOlderRuns() {
       include_artifacts: false,
       before_created_at: cursor.created_at,
       before_id: cursor.id,
-    })) ?? []
+    }, { priority: 'high' })) ?? []
     const visiblePage = page.slice(0, RESEARCH_RUN_PAGE_SIZE)
     const previousCount = runs.value.length
     runs.value = mergeResearchRuns(runs.value, visiblePage)
     hasLoadedOlderRuns.value = true
     hasMoreRuns.value = page.length > RESEARCH_RUN_PAGE_SIZE && runs.value.length > previousCount
-    selectedRun.value = runs.value.find(run => run.id === selectedId) ?? runs.value[0] ?? null
+    const nextSelectedRun = runs.value.find(run => run.id === selectedId) ?? runs.value[0] ?? null
+    if (nextSelectedRun) {
+      const currentDetail = selectedRun.value?.id === nextSelectedRun.id ? selectedRun.value : null
+      const cachedDetail = queryClient.getQueryData<ResearchRunSummary>(researchRunQueryKey(nextSelectedRun.id))
+      selectedRun.value = mergeRunSummaryWithDetail(nextSelectedRun, richestRunDetail(nextSelectedRun.id, currentDetail, cachedDetail))
+    } else selectedRun.value = null
     comparisonIds.value = comparisonIds.value.filter(id => runs.value.some(run => run.id === id))
   } catch (cause: any) {
     olderRunsError.value = cause?.message ?? 'Unable to load older research runs'
@@ -566,7 +578,7 @@ async function loadComparisonDetails(key: string) {
     if (run.artifacts.length >= artifactCount) return Promise.resolve(run)
     return queryClient.fetchQuery<ResearchRunSummary>({
       queryKey: ['workstation', 'research-run', run.id],
-      queryFn: () => api.get<ResearchRunSummary>(`/research/runs/${run.id}`),
+      queryFn: () => api.get<ResearchRunSummary>(`/research/runs/${run.id}`, undefined, { priority: 'high' }),
       staleTime: 5_000,
       retry: false,
     })
@@ -1116,7 +1128,7 @@ async function rerun(run: ResearchRunSummary, snapshot: boolean) {
   rerunning.value = true
   error.value = ''
   try {
-    const queued = await api.post<ResearchRunSummary>(`/research/runs/${run.id}/rerun?snapshot=${snapshot}`, {})
+    const queued = await api.post<ResearchRunSummary>(`/research/runs/${run.id}/rerun?snapshot=${snapshot}`, {}, { priority: 'high' })
     publishAcceptedRunMutation(queued)
     if (!mounted || generation !== mutationGeneration) return
     const nextRuns = mergeResearchRuns([queued], runs.value)
@@ -1135,7 +1147,7 @@ async function cancel(run: ResearchRunSummary) {
   canceling.value = true
   error.value = ''
   try {
-    const canceled = await api.post<ResearchRunSummary>(`/research/runs/${runId}/cancel`, {})
+    const canceled = await api.post<ResearchRunSummary>(`/research/runs/${runId}/cancel`, {}, { priority: 'high' })
     publishAcceptedRunMutation({ ...run, ...canceled, status: canceled.status ?? 'canceled' })
     if (!mounted || generation !== mutationGeneration) return
     const nextRuns = runs.value.map(item => item.id === run.id ? { ...item, ...canceled, status: canceled.status ?? 'canceled' } : item)
@@ -1146,11 +1158,11 @@ async function cancel(run: ResearchRunSummary) {
     queryClient.setQueryData<ResearchRunSummary[]>(runsQueryKey, current => (current ?? []).map(item => item.id === run.id ? { ...item, ...canceled, status: canceled.status ?? 'canceled' } : item))
   } catch (cause: any) {
     try {
-      const terminal = await readTerminalRunAfterCancelConflict(cause, runId, () => api.get<ResearchRunSummary>(`/research/runs/${runId}`))
+      const terminal = await readTerminalRunAfterCancelConflict(cause, runId, () => api.get<ResearchRunSummary>(`/research/runs/${runId}`, undefined, { priority: 'high' }))
       if (terminal) {
         const cachedDetail = queryClient.getQueryData<ResearchRunSummary>(researchRunQueryKey(runId))
         const selectedDetail = selectedRun.value?.id === runId ? selectedRun.value : null
-        const current = mergeRunSummaryWithDetail(terminal, selectedDetail ?? cachedDetail)
+        const current = mergeRunSummaryWithDetail(terminal, richestRunDetail(runId, selectedDetail, cachedDetail))
         queryClient.setQueryData(researchRunQueryKey(runId), current)
         queryClient.setQueryData<ResearchRunSummary[]>(runsQueryKey, existing =>
           mergeResearchRuns([current], existing ?? []).slice(0, RESEARCH_RUN_FETCH_SIZE),

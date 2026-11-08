@@ -306,12 +306,12 @@ describe('ChartPanel lifecycle fencing', () => {
     await vi.waitFor(() => expect(api.get).toHaveBeenCalledWith('/instruments/search', { q: 'C', canonical_only: true }))
     await vi.waitFor(() => expect(api.post).toHaveBeenCalledWith('/instruments/discover', {
       query: 'C', types: [], limit: 10, request_id: expect.any(String),
-    }))
+    }, expect.objectContaining({ priority: 'high' })))
     expect(wrapper.text()).toContain('Checking ticker availability')
     resolveDiscovery({ request_id: 'discover-c', status: 'complete', candidates: [{ symbol: 'C', name: 'Example C', exchange: 'XNYS', type: 'Equity', provider: 'fixture', instrument_id: null, identity_status: 'provider_candidate' }], source_outcomes: [] })
     await vi.waitFor(() => expect(api.post).toHaveBeenCalledWith('/instruments/acquire', {
       symbol: 'C', provider_candidate: { provider: 'fixture', symbol: 'C', exchange: 'XNYS' }, request_id: expect.any(String),
-    }))
+    }, expect.objectContaining({ priority: 'high' })))
     await vi.waitFor(() => expect(wrapper.find('.search-source-candidate').exists()).toBe(false))
     await vi.waitFor(() => expect(wrapper.find('.result-item').exists()).toBe(true))
     await wrapper.get('input[role="combobox"]').trigger('keydown', { key: 'Enter' })

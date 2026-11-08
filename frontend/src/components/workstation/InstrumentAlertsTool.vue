@@ -120,7 +120,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
-import { api } from '@/lib/api'
+import { api, setQueuedApiRequestPriority, type ApiRequestPriority } from '@/lib/api'
 import { INDICATOR_CATALOG, indicatorSeriesDisplayName } from '@/lib/indicators/catalog'
 import { getTechnicalIndicatorOutputOptions } from '@/lib/technicalConditions'
 import type { IndicatorType } from '@/types'
@@ -148,7 +148,10 @@ type AlertHistory = {
   is_viewed: boolean
 }
 
-const props = withDefaults(defineProps<{ instrumentId: number | null | undefined; symbol: string; timeframe?: string }>(), { timeframe: 'D1' })
+const props = withDefaults(defineProps<{ instrumentId: number | null | undefined; symbol: string; timeframe?: string; requestPriority?: ApiRequestPriority }>(), {
+  timeframe: 'D1',
+  requestPriority: 'auto',
+})
 const queryClient = useQueryClient()
 const alertsQueryRoot = ['workstation', 'alerts'] as const
 const alerts = ref<PriceAlert[]>([])
@@ -234,7 +237,9 @@ async function load() {
     try {
       const scans = await queryClient.fetchQuery<ScreenerAlert[]>({
         queryKey: [...alertsQueryRoot, 'screener'],
-        queryFn: () => api.get<ScreenerAlert[]>('/alerts/screener'),
+        queryFn: ({ signal }) => api.get<ScreenerAlert[]>('/alerts/screener', undefined, {
+          signal, priority: props.requestPriority, queueKey: 'workstation-alerts:screener',
+        }),
         staleTime: 30_000,
       })
       if (mounted && generation === viewGeneration && !props.instrumentId) screenerAlerts.value = scans
@@ -250,10 +255,10 @@ async function load() {
     const instrumentId = props.instrumentId
     const params = { instrument_id: instrumentId }
     const [prices, indicators, scans, firingHistory] = await Promise.all([
-      queryClient.fetchQuery<PriceAlert[]>({ queryKey: [...alertsQueryRoot, 'price', instrumentId], queryFn: () => api.get<PriceAlert[]>('/alerts/price', params), staleTime: 30_000 }),
-      queryClient.fetchQuery<IndicatorAlert[]>({ queryKey: [...alertsQueryRoot, 'indicator', instrumentId], queryFn: () => api.get<IndicatorAlert[]>('/alerts/indicator', params), staleTime: 30_000 }),
-      queryClient.fetchQuery<ScreenerAlert[]>({ queryKey: [...alertsQueryRoot, 'screener'], queryFn: () => api.get<ScreenerAlert[]>('/alerts/screener'), staleTime: 30_000 }),
-      queryClient.fetchQuery<AlertHistory[]>({ queryKey: [...alertsQueryRoot, 'history', instrumentId], queryFn: () => api.get<AlertHistory[]>(`/alerts/history/instrument/${instrumentId}`), staleTime: 30_000 }),
+      queryClient.fetchQuery<PriceAlert[]>({ queryKey: [...alertsQueryRoot, 'price', instrumentId], queryFn: ({ signal }) => api.get<PriceAlert[]>('/alerts/price', params, { signal, priority: props.requestPriority, queueKey: `workstation-alerts:price:${instrumentId}` }), staleTime: 30_000 }),
+      queryClient.fetchQuery<IndicatorAlert[]>({ queryKey: [...alertsQueryRoot, 'indicator', instrumentId], queryFn: ({ signal }) => api.get<IndicatorAlert[]>('/alerts/indicator', params, { signal, priority: props.requestPriority, queueKey: `workstation-alerts:indicator:${instrumentId}` }), staleTime: 30_000 }),
+      queryClient.fetchQuery<ScreenerAlert[]>({ queryKey: [...alertsQueryRoot, 'screener'], queryFn: ({ signal }) => api.get<ScreenerAlert[]>('/alerts/screener', undefined, { signal, priority: props.requestPriority, queueKey: 'workstation-alerts:screener' }), staleTime: 30_000 }),
+      queryClient.fetchQuery<AlertHistory[]>({ queryKey: [...alertsQueryRoot, 'history', instrumentId], queryFn: ({ signal }) => api.get<AlertHistory[]>(`/alerts/history/instrument/${instrumentId}`, undefined, { signal, priority: props.requestPriority, queueKey: `workstation-alerts:history:${instrumentId}` }), staleTime: 30_000 }),
     ])
     if (!mounted || generation !== viewGeneration || props.instrumentId !== instrumentId) return
     alerts.value = prices
@@ -378,6 +383,15 @@ function historyTriggerLabel(event: AlertHistory): string {
 }
 
 watch(() => props.instrumentId, () => { void load() }, { immediate: true })
+watch(() => [props.requestPriority, props.instrumentId] as const, ([priority, instrumentId]) => {
+  if (priority !== 'high') return
+  setQueuedApiRequestPriority('workstation-alerts:screener', 'high')
+  if (instrumentId) {
+    setQueuedApiRequestPriority(`workstation-alerts:price:${instrumentId}`, 'high')
+    setQueuedApiRequestPriority(`workstation-alerts:indicator:${instrumentId}`, 'high')
+    setQueuedApiRequestPriority(`workstation-alerts:history:${instrumentId}`, 'high')
+  }
+})
 watch(() => props.timeframe, value => {
   if (timeframeOptions.some(option => option.value === value)) alertTimeframe.value = value
 })
