@@ -1351,6 +1351,9 @@ const isActiveToolWindow = computed(() => {
 const watchlistStore = useWatchlistStore()
 const favoriteStore = useFavoritesStore()
 const isFavoritesTool = computed(() => props.tool.configuration.favorites === true)
+function fetchWorkstationWatchlistPrices(symbols: string[]) {
+  return watchlistStore.fetchPrices(symbols, false, true, isActiveToolWindow.value ? 'high' : 'low')
+}
 async function toggleChartFavorite() {
   const instrumentId = chartStore.instrument?.id
   if (props.tool.tool_type === 'chart' && instrumentId != null) await favoriteStore.toggle(instrumentId)
@@ -1917,7 +1920,7 @@ onMounted(async () => {
     if (!favoriteStore.loaded) await favoriteStore.load()
     if (disposed) return
     const symbols = favoriteRows.value.map(row => row.symbol)
-    if (symbols.length) await watchlistStore.fetchPrices(symbols, false, true)
+    if (symbols.length) await fetchWorkstationWatchlistPrices(symbols)
     if (disposed) return
     void loadIndicatorColumns(favoriteRows.value)
     return
@@ -1933,7 +1936,7 @@ onMounted(async () => {
   }
   const symbols = personalWatchlistRows.value.map(row => row.symbol).filter(symbol => !symbol.startsWith('#'))
   if (symbols.length) {
-    await watchlistStore.fetchPrices(symbols, false, true)
+    await fetchWorkstationWatchlistPrices(symbols)
     if (disposed) return
   }
   void loadIndicatorColumns([
@@ -1985,20 +1988,20 @@ watch(() => props.tool.configuration.watchlist_id, value => {
 
 watch(() => selectedPersonalWatchlist.value?.items.map(item => item.symbol).join(','), value => {
   const symbols = (value ?? '').split(',').filter(Boolean)
-  if (symbols.length) void watchlistStore.fetchPrices(symbols, false, true)
+  if (symbols.length) void fetchWorkstationWatchlistPrices(symbols)
 })
 watch(() => flaggedWatchlistRows.value.map(row => row.symbol).join(','), value => {
   const symbols = (value ?? '').split(',').filter(Boolean)
-  if (symbols.length) void watchlistStore.fetchPrices(symbols, false, true)
+  if (symbols.length) void fetchWorkstationWatchlistPrices(symbols)
 })
 watch(() => comboWatchlistRows.value.map(row => row.symbol).join(','), value => {
   const symbols = (value ?? '').split(',').filter(Boolean)
-  if (symbols.length) void watchlistStore.fetchPrices(symbols, false, true)
+  if (symbols.length) void fetchWorkstationWatchlistPrices(symbols)
 })
 watch(() => favoriteRows.value.map(row => row.symbol).join(','), value => {
   if (!isFavoritesTool.value) return
   const symbols = (value ?? '').split(',').filter(Boolean)
-  if (symbols.length) void watchlistStore.fetchPrices(symbols, false, true)
+  if (symbols.length) void fetchWorkstationWatchlistPrices(symbols)
 })
 // A Golden Layout virtual component is mounted independently from its host render
 // cycle. Keep the latest serializable chart configuration locally so template changes

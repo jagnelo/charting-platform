@@ -2676,12 +2676,28 @@ test('ordinary Workstation, Chart, and reported-holding selection use the real s
       && url.pathname === '/api/v1/instruments/search'
       && url.searchParams.get('q')?.toUpperCase() === symbol
   })
-  const waitForBars = (symbol: string) => page.waitForResponse(response => {
-    const url = new URL(response.url())
-    return response.request().method() === 'GET'
-      && new RegExp(`/api/v1/ohlcv/(?:local/)?${symbol}/D1$`).test(url.pathname)
-      && response.status() === 200
-  })
+  const observedPrimaryBars = new WeakMap<object, OHLCVBar[]>()
+  const waitForBars = async (symbol: string): Promise<OHLCVBar[]> => {
+    const response = await page.waitForResponse(async candidate => {
+      const url = new URL(candidate.url())
+      if (candidate.request().method() !== 'GET'
+        || !new RegExp(`/api/v1/ohlcv/(?:local/)?${symbol}/D1$`).test(url.pathname)
+        || url.searchParams.get('limit') !== '500'
+        || (url.searchParams.has('adjusted') && url.searchParams.get('adjusted') !== 'true')
+        || candidate.status() !== 200) return false
+
+      let bars: unknown
+      try { bars = await candidate.json() } catch { return false }
+      if (!Array.isArray(bars) || bars.length === 0) return false
+      const finiteAdjustedBars = bars.every((bar: Partial<OHLCVBar>) => typeof bar.ts === 'string' && bar.ts.length > 0
+        && bar.is_adjusted === true
+        && [bar.open, bar.high, bar.low, bar.close].every(value => typeof value === 'number' && Number.isFinite(value)))
+      if (!finiteAdjustedBars) return false
+      observedPrimaryBars.set(candidate, bars as OHLCVBar[])
+      return true
+    })
+    return observedPrimaryBars.get(response)!
+  }
 
   await page.goto('/chart')
   await expect(page.locator('.workstation')).toBeVisible()
@@ -2704,7 +2720,7 @@ test('ordinary Workstation, Chart, and reported-holding selection use the real s
   await workstationResults.getByRole('option', { name: /AMD/ }).first().click()
   await expect(workstationSearch).toHaveValue('AMD')
   const workstationBars = await workstationBarsResponse
-  expect(await workstationBars.json()).not.toHaveLength(0)
+  expect(workstationBars).not.toHaveLength(0)
   const workstationPreparation = await workstationPreparationResponse
   expect(workstationPreparation.ok()).toBe(true)
   expect((workstationPreparation.request().postDataJSON() as DataEnsureRequest).start_at).toBeUndefined()
@@ -2730,7 +2746,7 @@ test('ordinary Workstation, Chart, and reported-holding selection use the real s
   await chartResults.getByRole('option', { name: /NVDA/ }).first().click()
   await expect(chartSearch).toHaveValue('NVDA')
   const chartBars = await chartBarsResponse
-  expect(await chartBars.json()).not.toHaveLength(0)
+  expect(chartBars).not.toHaveLength(0)
   const chartPreparation = await chartPreparationResponse
   expect(chartPreparation.ok()).toBe(true)
   expect((chartPreparation.request().postDataJSON() as DataEnsureRequest).start_at).toBeUndefined()
@@ -2787,6 +2803,6 @@ test('ordinary Workstation, Chart, and reported-holding selection use the real s
   expect(holdingChartUrl.searchParams.get('holding_known_at')).toBe(spyPage.snapshot.known_at)
   expect(holdingChartUrl.searchParams.get('holding_provenance')).toBe(spyPage.snapshot.provenance)
   expect(holdingChartUrl.searchParams.get('holding_instrument_id')).toBe(String(reportedNvda!.constituent_instrument_id))
-  expect(await (await chartBarsAfterDrilldown).json()).not.toHaveLength(0)
+  expect(await chartBarsAfterDrilldown).not.toHaveLength(0)
   await browserDiagnostics.expectNoCriticalIssues()
 })

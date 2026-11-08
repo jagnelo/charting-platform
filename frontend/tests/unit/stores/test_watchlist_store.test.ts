@@ -413,6 +413,18 @@ describe('useWatchlistStore', () => {
     expect(store.priceMap.SPY.close).toBe(11)
   })
 
+  it('forwards the active Workstation quote priority to the shared API admission layer', async () => {
+    ;(api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce([
+      { open: 10, high: 11, low: 9, close: 10, volume: 100 },
+      { open: 10, high: 12, low: 9, close: 11, volume: 120 },
+    ])
+    const store = useWatchlistStore()
+    await store.fetchPrices(['spy'], false, true, 'high')
+
+    expect(api.get).toHaveBeenCalledWith('/ohlcv/local/SPY/D1', { limit: 31 }, { priority: 'high' })
+    expect(store.priceMap.SPY.close).toBe(11)
+  })
+
   it('shares one local quote read across overlapping watchlist hydration triggers', async () => {
     const store = useWatchlistStore()
     let resolveBars!: (bars: Array<{ open: number; high: number; low: number; close: number; volume: number }>) => void
