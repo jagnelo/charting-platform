@@ -578,13 +578,24 @@ test('legacy Strategy Lab creates, edits, reloads, and safely deletes a supporte
   const spyChoice = page.getByRole('listbox', { name: 'Symbol search results' }).getByRole('option', { name: /^SPY\b/ }).first()
   await expect(spyChoice).toBeVisible({ timeout: 15_000 })
   await spyChoice.click()
-  await expect(page.locator('.symbol-chip').getByText('SPY', { exact: true })).toBeVisible()
+  const assertSelectedSpy = async () => {
+    const spyChip = page.locator('.symbol-chip').filter({
+      has: page.getByRole('button', { name: 'Remove SPY', exact: true }),
+    })
+    await expect(spyChip).toHaveCount(1)
+    await expect(spyChip).toContainText(/^SPY/)
+    await expect(spyChip.getByRole('button', { name: 'Remove SPY', exact: true })).toBeVisible()
+  }
+  await assertSelectedSpy()
 
   const createResponsePromise = page.waitForResponse(response => response.request().method() === 'POST'
     && new URL(response.url()).pathname === '/api/v1/strategy-lab/definitions')
   await page.getByRole('button', { name: 'Create strategy', exact: true }).click()
   const createResponse = await createResponsePromise
   expect(createResponse.status()).toBe(201)
+  expect(createResponse.request().postDataJSON()).toMatchObject({
+    initial_version: { universe_config: { symbols: ['SPY'] } },
+  })
   const created = await createResponse.json() as { id?: number; name?: string; versions?: Array<{ id?: number; version_number?: number }> }
   expect(Number.isInteger(created.id)).toBe(true)
   expect(created.name).toBe(name)
@@ -621,7 +632,7 @@ test('legacy Strategy Lab creates, edits, reloads, and safely deletes a supporte
   await page.getByRole('button', { name: `Open strategy ${name}`, exact: true }).click()
   await expect(page.getByPlaceholder('Momentum Continuation')).toHaveValue(name)
   await expect(page.getByPlaceholder('What market behaviour is this strategy trying to capture?')).toHaveValue(description)
-  await expect(page.locator('.symbol-chip').getByText('SPY', { exact: true })).toBeVisible()
+  await assertSelectedSpy()
 
   const runHistoryToggle = page.getByRole('button', { name: /^Research runs/ })
   if (await runHistoryToggle.getAttribute('aria-expanded') !== 'true') await runHistoryToggle.click()
@@ -720,16 +731,30 @@ test('Strategy Lab v2 reads a selected owner resource and recovers from a denied
     const url = new URL(request.url())
     if (url.pathname.startsWith('/api/v1/strategy-lab/v2/') && request.method() !== 'GET') writes.push(`${request.method()} ${url.pathname}`)
   })
-  await page.route('**/api/v1/strategy-lab/v2/strategies', route => route.fulfill({ status: 200, json: { data: [resource], links: {} } }))
-  await page.route('**/api/v1/strategy-lab/v2/strategies/controlled-owner-resource', route => route.fulfill({ status: 200, json: { data: resource } }))
-  await page.route('**/api/v1/strategy-lab/v2/trials', route => route.fulfill({ status: 200, json: { data: [], links: {} } }))
-  await page.route('**/api/v1/strategy-lab/v2/artifacts', route => route.fulfill({ status: 200, json: { data: [], links: {} } }))
-  await page.route('**/api/v1/strategy-lab/v2/study-artifact-references/41/*', route => {
+  await page.route(url => url.pathname === '/api/v1/strategy-lab/v2/strategies', async route => {
+    if (route.request().method() !== 'GET') return route.continue()
+    await route.fulfill({ status: 200, json: { data: [resource], links: {} } })
+  })
+  await page.route(url => url.pathname === '/api/v1/strategy-lab/v2/strategies/controlled-owner-resource', async route => {
+    if (route.request().method() !== 'GET') return route.continue()
+    await route.fulfill({ status: 200, json: { data: resource } })
+  })
+  await page.route(url => url.pathname === '/api/v1/strategy-lab/v2/trials', async route => {
+    if (route.request().method() !== 'GET') return route.continue()
+    await route.fulfill({ status: 200, json: { data: [], links: {} } })
+  })
+  await page.route(url => url.pathname === '/api/v1/strategy-lab/v2/artifacts', async route => {
+    if (route.request().method() !== 'GET') return route.continue()
+    await route.fulfill({ status: 200, json: { data: [], links: {} } })
+  })
+  await page.route(url => url.pathname.startsWith('/api/v1/strategy-lab/v2/study-artifact-references/41/'), async route => {
+    if (route.request().method() !== 'GET') return route.continue()
     pinAttempts += 1
     if (new URL(route.request().url()).pathname.endsWith('/999')) {
-      return route.fulfill({ status: 404, json: { detail: 'Study artifact reference not found' } })
+      await route.fulfill({ status: 404, json: { detail: 'Study artifact reference not found' } })
+      return
     }
-    return route.fulfill({ status: 200, json: { data: { type: 'study-artifact-references', id: '41:73', attributes: pinAttributes } } })
+    await route.fulfill({ status: 200, json: { data: { type: 'study-artifact-references', id: '41:73', attributes: pinAttributes } } })
   })
 
   await page.goto('/legacy/strategy-lab-v2')
