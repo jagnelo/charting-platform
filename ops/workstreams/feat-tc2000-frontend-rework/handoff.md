@@ -26960,4 +26960,10 @@ Root's rendered review of the exact `dbb0d739` screenshots confirmed lower Golde
 
 Focused workspace layout, ratio plot, and chart-context modules pass 43/43, including a compact ratio-host measurement assertion. Frontend type-check and strict TC scope/self-tests, workstream, journey-matrix, and diff checks pass. Root's actual rendered requalification is pending; no browser/runtime operation ran in TC and this is not visual or full-platform acceptance.
 
+## 2026-11-08 — Import ETF's compact S&P overflow journey successor
+
+Root released ETF source `646fe8d8e60acce32afcedf94de023c86b2d69fd` with manifest SHA256 `6278c41718149bd4360ef1e3a97a5fcb9513d452fe1e16f14426307b7b407d6a`. The exact old guard for `frontend/tests/e2e/sp500_analysis_journey.spec.ts` matched. All ten manifest rows, Git blobs, SHA256 values, and modes were checked; only that declared S&P journey file differed, while the other nine ETF files were byte-identical. The spec now uses ordinary GoldenLayout overflow-tab actions from the released source. The previous ETF `52b8e749` active pin and manifest are preserved in history; only the active pin advances. No frontend product, unit, configuration, or backend bytes changed.
+
+The S&P journey reference-only preflight reports no actionable unbound names or other semantic advisories; it reports the existing missing Node ambient type as an unqualified diagnostic. Journey matrix and diff checks pass. Root's compact rendered profile and full66 requalification remain pending; this is exact development consumption, not browser or release acceptance.
+
 ---

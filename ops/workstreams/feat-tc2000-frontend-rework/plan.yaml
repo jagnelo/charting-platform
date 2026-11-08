@@ -5451,6 +5451,23 @@ development_dependency_import_history:
       - frontend/tests/unit/views/test_etf_holdings_view.test.ts
     state: superseded_development_import
     superseded_by: 52b8e74999a3e4ae8feedb551bc6ef5a2eb95b3b
+  - source_sha: 52b8e74999a3e4ae8feedb551bc6ef5a2eb95b3b
+    manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/52b8e74999a3e4ae8feedb551bc6ef5a2eb95b3b.json
+    manifest_sha256: 4c31d41077f12166c3aeee5726bcedf943e5f7b49b5d7455a20b0d9306a0c85f
+    paths:
+    - frontend/src/components/workstation/InstrumentNoteTool.vue
+    - frontend/src/views/BasketsView.vue
+    - frontend/src/views/ETFHoldingsView.vue
+    - frontend/tests/e2e/baskets_journey.spec.ts
+    - frontend/tests/e2e/etf_holdings_preparation.spec.ts
+    - frontend/tests/e2e/sp500_analysis_journey.spec.ts
+    - frontend/tests/e2e/supporting_features_journey.spec.ts
+    - frontend/tests/unit/components/test_instrument_note_tool.test.ts
+    - frontend/tests/unit/views/test_baskets_view.test.ts
+    - frontend/tests/unit/views/test_etf_holdings_view.test.ts
+    state: superseded_development_import
+    superseded_by: 646fe8d8e60acce32afcedf94de023c86b2d69fd
+
 approved_development_dependency_imports:
 - source_sha: fc220242ff9ff8be603c632dc80350a90708bec7
   manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/fc220242ff9ff8be603c632dc80350a90708bec7.json
@@ -5537,9 +5554,9 @@ approved_development_dependency_imports:
   - backend/tests/unit/workers/test_arq_worker.py
   - backend/app/services/etf_holdings.py
   - backend/tests/unit/services/test_etf_holdings_catalogue.py
-- source_sha: 52b8e74999a3e4ae8feedb551bc6ef5a2eb95b3b
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/52b8e74999a3e4ae8feedb551bc6ef5a2eb95b3b.json
-  manifest_sha256: 4c31d41077f12166c3aeee5726bcedf943e5f7b49b5d7455a20b0d9306a0c85f
+- source_sha: 646fe8d8e60acce32afcedf94de023c86b2d69fd
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/646fe8d8e60acce32afcedf94de023c86b2d69fd.json
+  manifest_sha256: 6278c41718149bd4360ef1e3a97a5fcb9513d452fe1e16f14426307b7b407d6a
   paths:
   - frontend/src/components/workstation/InstrumentNoteTool.vue
   - frontend/src/views/BasketsView.vue
@@ -5597,4 +5614,14 @@ rendered_dock_tab_and_plot_bounds_followup_20261108:
   changes: GoldenLayout retains its native tab sizing and overflow dropdown, with no forced right offset or scroll override; dock labels stay on one line. Primary uPlot keeps a 120px price plane where room allows and shrinks only to the chart root's actual available height. Ratio uPlot uses its measured host width/height and waits while the pane is zero-sized.
   validation: Focused workspace-layout, ratio-uPlot and chart-context modules pass 43/43; frontend type-check, TC scope/self-tests, workstream validation, journey matrix, and diff check pass.
   pending: Root actual rendered review of dock-tab bounds/dropdown access and visible Chart/Relative Strength axes at the exact 1024x640 CSS DPR1.25 and other approved profiles; full platform, CI, and release gates remain pending.
+  integration_capture: exact branch HEAD
+
+etf_sp500_compact_overflow_journey_successor_20261108:
+  source: 646fe8d8e60acce32afcedf94de023c86b2d69fd
+  manifest: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/646fe8d8e60acce32afcedf94de023c86b2d69fd.json
+  manifest_sha256: 6278c41718149bd4360ef1e3a97a5fcb9513d452fe1e16f14426307b7b407d6a
+  imported_consumer_delta: frontend/tests/e2e/sp500_analysis_journey.spec.ts only; all ten ETF manifest rows were checked and the other nine are byte/mode-identical.
+  previous_private_pin: ETF 52b8e74999a3e4ae8feedb551bc6ef5a2eb95b3b was retained unchanged in development_dependency_import_history and superseded only in the active pin.
+  validation: ETF old-byte guard and all source blobs, hashes and modes verified; S&P E2E reference preflight has no actionable unbound names; strict scope, workstream, journey-matrix and diff checks pass.
+  pending: Root updated compact-profile and full66 browser qualification. This import is exact development consumption, not runtime or release acceptance.
   integration_capture: exact branch HEAD
