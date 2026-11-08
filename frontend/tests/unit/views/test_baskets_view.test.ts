@@ -275,6 +275,8 @@ describe('BasketsView', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('Read-only basket materialized from an ETF holdings snapshot.')
+    expect(wrapper.get('.basket-panel').classes()).toContain('basket-panel--readonly')
+    expect(wrapper.get('.member-table').text()).toContain('AAPL')
     expect(wrapper.find('input[placeholder="Basket name"]').attributes('disabled')).toBeDefined()
     expect(wrapper.find('.btn-primary').attributes('disabled')).toBeDefined()
     expect(wrapper.find('.btn-danger').exists()).toBe(false)

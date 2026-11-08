@@ -1070,8 +1070,8 @@
     "status": "Root-delegated bounded software checkpoint accepted; exact final-source CI pending.",
     "validated_implementation_sha": "b6d67ce93104a0a2cf83b1c41f385513b3c230f8"
   },
-  "plan_hash": "18ccd3762c5493ca45098a2994bf3724f7ac2a4bd4b47cf94c1bd16f317328fc",
-  "plan_sha256": "18ccd3762c5493ca45098a2994bf3724f7ac2a4bd4b47cf94c1bd16f317328fc",
+  "plan_hash": "c2b877eb24be8b7a893922dc401c90e3e3862a17a48ec8aeeb1f80339990706b",
+  "plan_sha256": "c2b877eb24be8b7a893922dc401c90e3e3862a17a48ec8aeeb1f80339990706b",
   "planning_required": false,
   "planning_state": "ready",
   "previous_active_changeset": {

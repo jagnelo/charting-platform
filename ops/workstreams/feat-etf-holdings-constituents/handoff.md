@@ -19150,3 +19150,26 @@ Focused ETF Holdings and Baskets view tests passed54/54; `npm run type-check`
 and `git diff --check` passed. Root owns the rendered 1024x640 DPR1.25
 recheck; no browser, API, native source, fixture, or data operation was run by
 ETF. The full roadmap and all previous acceptance evidence remain open/intact.
+
+## Compact readonly basket members and capability review details — 2026-11-08
+
+Root's f9 actual compact review confirmed Holdings now passes the first-row
+viewport check, but a readonly system basket's disabled Name/Weighting/Description
+fields pushed the first member out of the 1024x640 CSS DPR1.25 viewport. At the
+compact breakpoint only, readonly basket panels now visually order the dated
+source summary and member toolbar/table before those still-present fields. The
+main panel and selector remain separate in normal flow; the main panel scrolls,
+and manual baskets keep their original editable form order. Snapshot provenance
+and history remain in the existing keyboard-accessible Source details disclosure.
+
+The ETF capability warning continues to show current eligibility, failure
+classification, and the honest current-analysis reason. The administrative
+`symbol_audit.next_action` is now in the existing collapsed Source details,
+including when no snapshot page is available; it is not presented as an action
+for ordinary users. A focused unit regression verifies that it is absent from
+the warning and preserved in Source details alongside the displayed snapshot.
+
+ETF Holdings and Baskets view modules passed54/54 and frontend type-check passed.
+Root owns the next rendered compact-basket check; no browser, fixture, provider,
+or data operation was run by ETF. Prior validation journal rows and full
+roadmap remain intact.

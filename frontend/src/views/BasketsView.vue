@@ -37,7 +37,7 @@
     </aside>
 
     <main class="basket-main">
-      <section class="basket-panel">
+      <section class="basket-panel" :class="{ 'basket-panel--readonly': isReadOnly }">
         <div class="panel-title-row">
           <div>
             <h2>{{ isEditingExisting ? draft.name || 'Basket' : 'New basket' }}</h2>
@@ -1222,6 +1222,19 @@ function humanize(value: string) {
   .basket-main {
     padding: 14px;
   }
+
+  .basket-panel--readonly {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .basket-panel--readonly .panel-title-row { order: 0; }
+  .basket-panel--readonly .basket-source-summary { order: 1; }
+  .basket-panel--readonly .member-toolbar { order: 2; }
+  .basket-panel--readonly .member-table { order: 3; }
+  .basket-panel--readonly .form-grid { order: 4; }
+  .basket-panel--readonly .allocation-strip { order: 5; }
+  .basket-panel--readonly .basket-provenance { order: 6; }
 
   .form-grid,
   .member-row {

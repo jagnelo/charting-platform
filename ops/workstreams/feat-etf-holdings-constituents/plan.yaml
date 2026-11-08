@@ -8608,3 +8608,22 @@ root_allocated_etf_compact_content_readiness_2026_11_08:
     frontend/src/views/BasketsView.vue: 5cc51e921085e771249241c1b18a5fcffa508bad350cc0c2a88d9494fd2cea27
     frontend/tests/unit/views/test_etf_holdings_view.test.ts: e36acb3123d1b0909273143b520d8b9a2d2b886b74ad2e932c89565effa098af
   state: Bounded implementation checkpoint; full roadmap remains open and Root owns browser, CI, integration, and release qualification.
+
+root_allocated_etf_compact_readonly_basket_first_member_2026_11_08:
+  authority: Root assigned a bounded actual-render follow-up; no browser, fixture, native-source, staging, or deployment acceptance is implied.
+  assignment: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/root-ETF-compact-Baskets-first-member-repair.json
+  follow_up: Root screenshot review also requires moving administrative symbol_audit.next_action out of the main Holdings warning and into Source details.
+  scope:
+  - frontend/src/views/BasketsView.vue
+  - frontend/src/views/ETFHoldingsView.vue
+  - frontend/tests/unit/views/test_baskets_view.test.ts
+  - frontend/tests/unit/views/test_etf_holdings_view.test.ts
+  repair: At compact widths, readonly basket member content is visually ordered before still-present readonly metadata, with manual basket layout unchanged. The Holdings current eligibility reason remains visible, while administrative source-review next_action remains available in Source details.
+  validation: ETF Holdings and Baskets focused view modules passed54/54; frontend vue-tsc type-check passed; workstream validator and git diff --check passed.
+  browser: Pending Root's 1024x640 CSS DPR1.25 first-member rendered recheck; no worker browser or fixture was run.
+  source_sha256:
+    frontend/src/views/BasketsView.vue: 763ac56473d9b52661d807a732cdc5216bbd4345d256eda0cb08b38cb09d9aa4
+    frontend/src/views/ETFHoldingsView.vue: 3e4ebaf96e5f9fa538aaf31f5d267c2fddae37f3ec80471d788e88aa433004a3
+    frontend/tests/unit/views/test_baskets_view.test.ts: 688b75b3bf53013ed2ae32ab16655b677d899d70afe81e0284a565783e307fac
+    frontend/tests/unit/views/test_etf_holdings_view.test.ts: c1c3f8ff7744927ebab87729bef10ef6585328bbc883cb8d7e82e1ce0fa2b0bd
+  state: Bounded implementation checkpoint; full roadmap remains open and Root owns rendered qualification, CI, integration, and release.
