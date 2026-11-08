@@ -638,6 +638,34 @@ async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUT
     await expect(completedStreaks).toBeVisible()
     await expect(completedStreaks.locator('table caption')).toHaveText('completed_streaks table')
     await expect(completedStreaks.locator('table tbody tr').first()).toBeVisible()
+    const studyControlBounds = await tool.locator('.study-lab-tool').evaluate(root => {
+      const rootRect = root.getBoundingClientRect()
+      const contentLeft = rootRect.left + root.clientLeft
+      const contentRight = contentLeft + root.clientWidth
+      const controls = Array.from(root.querySelectorAll('input, select'))
+        .filter(control => {
+          const style = getComputedStyle(control)
+          return style.display !== 'none' && style.visibility !== 'hidden' && control.getClientRects().length > 0
+        })
+        .map(control => {
+          const rect = control.getBoundingClientRect()
+          return {
+            label: control.getAttribute('aria-label') ?? control.tagName.toLowerCase(),
+            left: rect.left,
+            right: rect.right,
+            contentLeft,
+            contentRight,
+          }
+        })
+      return { width: root.clientWidth, controls }
+    })
+    expect(studyControlBounds.width, 'the Study catalogue witness should exercise the compact dock layout').toBeLessThanOrEqual(360)
+    expect(studyControlBounds.width).toBeGreaterThan(0)
+    expect(studyControlBounds.controls.length, 'the narrow Study panel should expose its native controls').toBeGreaterThan(0)
+    for (const control of studyControlBounds.controls) {
+      expect(control.left, `${control.label} should remain within the Study panel's content edge`).toBeGreaterThanOrEqual(control.contentLeft - 1)
+      expect(control.right, `${control.label} should remain within the Study panel's content edge`).toBeLessThanOrEqual(control.contentRight + 1)
+    }
   } else if (kind === 'results') {
     await expect(tool.locator('.research-results-tool__run-select').first()).toBeVisible({ timeout: 30_000 })
     await expect(tool.locator('.research-results-tool__artifacts article').first()).toBeVisible({ timeout: 20_000 })

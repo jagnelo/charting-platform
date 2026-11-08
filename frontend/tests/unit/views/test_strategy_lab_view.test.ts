@@ -1799,6 +1799,72 @@ describe('StrategyLabView', () => {
     }))
   })
 
+  it('keeps editable version controls busy through profile save, revision save, and final hydration', async () => {
+    const originalGet = (api.get as ReturnType<typeof vi.fn>).getMockImplementation()
+    const originalPatch = (api.patch as ReturnType<typeof vi.fn>).getMockImplementation()
+    let savedVersionPayload: Record<string, any> | null = null
+    let definitionReads = 0
+    let finalRefreshStarted = false
+    let releaseFinalRefresh: ((value: any) => void) | undefined
+
+    ;(api.patch as ReturnType<typeof vi.fn>).mockImplementation((path: string, payload?: any) => {
+      if (path === '/strategy-lab/versions/8') savedVersionPayload = clone(payload)
+      return originalPatch?.(path, payload) ?? Promise.resolve({})
+    })
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string, ...args: any[]) => {
+      if (path === '/strategy-lab/definitions/4') {
+        definitionReads += 1
+        const persisted = clone(definition)
+        if (savedVersionPayload) {
+          persisted.versions[0] = { ...persisted.versions[0], ...clone(savedVersionPayload) }
+        }
+        if (definitionReads === 2) {
+          finalRefreshStarted = true
+          return new Promise(resolve => {
+            releaseFinalRefresh = resolve
+          })
+        }
+        return Promise.resolve(persisted)
+      }
+      return originalGet?.(path, ...args) ?? Promise.resolve([])
+    })
+
+    const wrapper = mountView()
+    await flushPromises()
+    await ensurePanelExpanded(wrapper, 'Entry logic')
+    await addTechnicalCondition(wrapper)
+    const revisionNote = wrapper.get('input[placeholder="What changed in this revision?"]')
+    await revisionNote.setValue('Preserve the saved rule and revision note.')
+    expect(wrapper.text()).toContain('Condition 2')
+
+    await wrapper.get('button[aria-label="Save profile"]').trigger('click')
+    await vi.waitFor(() => expect(finalRefreshStarted).toBe(true))
+
+    const editorFields = wrapper.get('.detail-columns')
+    expect(editorFields.attributes('aria-busy')).toBe('true')
+    expect(editorFields.attributes('inert')).toBeDefined()
+    expect(revisionNote.element.closest('[inert]')).toBe(editorFields.element)
+    const addCondition = wrapper.findAll('button').find(button => button.text().includes('Add technical condition'))
+    expect(addCondition).toBeTruthy()
+    expect(addCondition!.element.closest('[inert]')).toBe(editorFields.element)
+    expect(wrapper.get('.detail-actions .btn-primary').element).toHaveProperty('disabled', true)
+    expect(wrapper.get('.profile-save-status').text()).toContain('Saving profile and revision')
+
+    const persisted = clone(definition)
+    persisted.versions[0] = { ...persisted.versions[0], ...clone(savedVersionPayload) }
+    expect(releaseFinalRefresh).toBeTypeOf('function')
+    releaseFinalRefresh?.(persisted)
+    await vi.waitFor(() => expect(wrapper.find('.detail-columns').attributes('aria-busy')).toBe('false'))
+
+    expect(wrapper.find('.detail-columns').attributes('aria-busy')).toBe('false')
+    expect(wrapper.find('.detail-columns').attributes('inert')).toBeUndefined()
+    expect(wrapper.find('.profile-save-status').exists()).toBe(false)
+    expect(wrapper.get('input[placeholder="What changed in this revision?"]').element).toHaveProperty('value', 'Preserve the saved rule and revision note.')
+    expect(wrapper.text()).toContain('Condition 2')
+    expect(savedVersionPayload).toMatchObject({ notes: 'Preserve the saved rule and revision note.' })
+    expect(savedVersionPayload?.definition_snapshot.conditions).toHaveLength(2)
+  })
+
   it('persists and hydrates sweep-capable input modes for saved versions', async () => {
     const persistedDefinition = clone(definition)
     persistedDefinition.versions[0].execution_model = {

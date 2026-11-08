@@ -2073,4 +2073,10 @@ input,textarea,button,select { min-width:0; border:1px solid #3a4954; background
   .study-lab-tool__parameters { grid-template-columns:minmax(0,1fr); }
   .study-lab-tool__parameters > label { min-width:0; }
 }
+@container (max-width: 360px) {
+  .study-lab-tool__header-main { grid-template-columns:minmax(0,1fr); }
+  .study-lab-tool__header-main > * { grid-column:1 / -1; }
+  .study-lab-tool__dataset { grid-template-columns:minmax(0,1fr); }
+  .study-lab-tool__dataset label { min-width:0; }
+}
 </style>

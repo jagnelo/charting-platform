@@ -6362,7 +6362,7 @@
     {
       "source": "frontend/src/views/StrategyLabView.vue",
       "control_count": 123,
-      "signature_sha256": "29943b46135423a6b9e4ef18ddbc85fc8aee97f94bd270475ef4c664d34c08c6",
+      "signature_sha256": "33f357cc173197312be9353ce414f9c3575cc5337dc11f8eb12eb02e66d14264",
       "journeys": [
         "TC09"
       ],

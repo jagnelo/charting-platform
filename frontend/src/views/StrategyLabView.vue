@@ -19,6 +19,7 @@
             class="definition-item definition-item--new sidebar-new-btn"
             aria-label="Create new strategy"
             @click="startNew"
+            :disabled="profileSaveInProgress"
           >
             + New
           </button>
@@ -31,6 +32,7 @@
             :aria-pressed="strategyLab.selectedDefinitionId === definition.id ? 'true' : 'false'"
             :aria-label="`Open strategy ${definition.name}`"
             @click="selectDefinition(definition.id)"
+            :disabled="profileSaveInProgress"
           >
             <div class="definition-tile definition-tile--dense">
               <span class="state-dot definition-state-dot" :class="{ inactive: !definition.is_active }" />
@@ -58,6 +60,7 @@
             class="definition-item definition-item--new sidebar-new-btn"
             aria-label="Create new strategy"
             @click="startNew"
+            :disabled="profileSaveInProgress"
           >
             + New
           </button>
@@ -100,7 +103,7 @@
             title="Refresh"
             aria-label="Refresh"
             @click="reload"
-            :disabled="strategyLab.isLoading"
+            :disabled="strategyLab.isLoading || profileSaveInProgress"
           >
             <svg viewBox="0 0 16 16" aria-hidden="true">
               <path d="M13.5 3.5v3h-3" />
@@ -114,7 +117,7 @@
             title="Save profile"
             aria-label="Save profile"
             @click="saveProfileOnly"
-            :disabled="strategyLab.isSaving"
+            :disabled="strategyLab.isSaving || profileSaveInProgress"
           >
             <svg viewBox="0 0 16 16" aria-hidden="true">
               <path d="M3 2.5h8l2 2V13.5H3z" />
@@ -129,7 +132,7 @@
             title="Delete strategy"
             aria-label="Delete strategy"
             @click="showDeleteModal = true"
-            :disabled="strategyLab.isSaving"
+            :disabled="strategyLab.isSaving || profileSaveInProgress"
           >
             <svg viewBox="0 0 16 16" aria-hidden="true">
               <path d="M3.5 4.5h9" />
@@ -144,14 +147,17 @@
             class="btn-primary"
             type="button"
             @click="publishStrategy"
-            :disabled="strategyLab.isSaving || !canPublish"
+            :disabled="strategyLab.isSaving || profileSaveInProgress || !canPublish"
           >
-            {{ strategyLab.isSaving ? 'Saving…' : isNew ? 'Create strategy' : 'Publish revision' }}
+            {{ strategyLab.isSaving || profileSaveInProgress ? 'Saving…' : isNew ? 'Create strategy' : 'Publish revision' }}
           </button>
         </div>
+        <span v-if="profileSaveInProgress" class="profile-save-status" role="status" aria-live="polite">
+          {{ isPythonSignal ? 'Saving Strategy profile…' : 'Saving profile and revision…' }}
+        </span>
       </div>
 
-      <div class="detail-columns">
+      <div class="detail-columns" :inert="profileSaveInProgress ? 'true' : undefined" :aria-busy="profileSaveInProgress ? 'true' : 'false'">
           <div class="panel">
             <div class="panel-head">
               <div class="panel-head-title">
@@ -1825,6 +1831,7 @@ const executionLogColumns: Array<{ key: ExecutionLogColumnKey; label: string }> 
 ]
 const isNew = ref(false)
 const versionNotes = ref('')
+const profileSaveInProgress = ref(false)
 const symbolInput = ref('')
 const sourceType = ref<'custom' | 'radar'>('custom')
 const universeMode = ref<StrategyUniverseMode>('symbols')
@@ -4237,47 +4244,55 @@ function compileCondition(condition: BuilderConditionNode) {
 }
 
 async function saveProfileOnly() {
-  if (!strategyLab.selectedDefinition || !currentVersion.value) return
-  if (isPythonSignal.value) {
-    const runInputs = {
-      universeMode: universeMode.value,
-      symbols: [...logicDraft.symbols],
-      selectedWatchlistId: selectedWatchlistId.value,
-      selectedScreenerId: selectedScreenerId.value,
-      selectedBasketId: selectedBasketId.value,
-      selectedBasketSnapshotMode: selectedBasketSnapshotMode.value,
-      selectedEtfHoldingSymbol: selectedEtfHoldingSymbol.value,
-      selectedEtfHoldingSnapshotMode: selectedEtfHoldingSnapshotMode.value,
-      selectedEtfHoldingSnapshotDate: selectedEtfHoldingSnapshotDate.value,
-      runDraft: { ...runDraft, overrideSymbols: [...runDraft.overrideSymbols] },
+  const selectedDefinition = strategyLab.selectedDefinition
+  const version = currentVersion.value
+  if (!selectedDefinition || !version || profileSaveInProgress.value) return
+
+  profileSaveInProgress.value = true
+  try {
+    if (isPythonSignal.value) {
+      const runInputs = {
+        universeMode: universeMode.value,
+        symbols: [...logicDraft.symbols],
+        selectedWatchlistId: selectedWatchlistId.value,
+        selectedScreenerId: selectedScreenerId.value,
+        selectedBasketId: selectedBasketId.value,
+        selectedBasketSnapshotMode: selectedBasketSnapshotMode.value,
+        selectedEtfHoldingSymbol: selectedEtfHoldingSymbol.value,
+        selectedEtfHoldingSnapshotMode: selectedEtfHoldingSnapshotMode.value,
+        selectedEtfHoldingSnapshotDate: selectedEtfHoldingSnapshotDate.value,
+        runDraft: { ...runDraft, overrideSymbols: [...runDraft.overrideSymbols] },
+      }
+      await strategyLab.updateDefinition(selectedDefinition.id, {
+        name: draft.name.trim(),
+        description: draft.description.trim() || null,
+        is_active: draft.is_active,
+        tags: normalizeTags(draft.tags),
+      })
+      const refreshed = await strategyLab.refreshDefinition(selectedDefinition.id)
+      if (strategyLab.selectedDefinitionId === selectedDefinition.id) hydrateFromSelection(refreshed)
+      await nextTick()
+      universeMode.value = runInputs.universeMode
+      logicDraft.symbols = runInputs.symbols
+      selectedWatchlistId.value = runInputs.selectedWatchlistId
+      selectedScreenerId.value = runInputs.selectedScreenerId
+      selectedBasketId.value = runInputs.selectedBasketId
+      selectedBasketSnapshotMode.value = runInputs.selectedBasketSnapshotMode
+      selectedEtfHoldingSymbol.value = runInputs.selectedEtfHoldingSymbol
+      selectedEtfHoldingSnapshotMode.value = runInputs.selectedEtfHoldingSnapshotMode
+      selectedEtfHoldingSnapshotDate.value = runInputs.selectedEtfHoldingSnapshotDate
+      Object.assign(runDraft, runInputs.runDraft)
+      return
     }
-    await strategyLab.updateDefinition(strategyLab.selectedDefinition.id, {
-      name: draft.name.trim(),
-      description: draft.description.trim() || null,
-      is_active: draft.is_active,
-      tags: normalizeTags(draft.tags),
-    })
-    const refreshed = await strategyLab.refreshDefinition(strategyLab.selectedDefinition.id)
-    hydrateFromSelection(refreshed)
-    await nextTick()
-    universeMode.value = runInputs.universeMode
-    logicDraft.symbols = runInputs.symbols
-    selectedWatchlistId.value = runInputs.selectedWatchlistId
-    selectedScreenerId.value = runInputs.selectedScreenerId
-    selectedBasketId.value = runInputs.selectedBasketId
-    selectedBasketSnapshotMode.value = runInputs.selectedBasketSnapshotMode
-    selectedEtfHoldingSymbol.value = runInputs.selectedEtfHoldingSymbol
-    selectedEtfHoldingSnapshotMode.value = runInputs.selectedEtfHoldingSnapshotMode
-    selectedEtfHoldingSnapshotDate.value = runInputs.selectedEtfHoldingSnapshotDate
-    Object.assign(runDraft, runInputs.runDraft)
-    return
+    const definitionPayload = buildDefinitionPayload()
+    const versionPayload = buildVersionPayload()
+    await strategyLab.updateDefinition(selectedDefinition.id, definitionPayload)
+    await strategyLab.updateVersion(version.id, selectedDefinition.id, versionPayload)
+    const refreshed = await strategyLab.refreshDefinition(selectedDefinition.id)
+    if (strategyLab.selectedDefinitionId === selectedDefinition.id) hydrateFromSelection(refreshed)
+  } finally {
+    profileSaveInProgress.value = false
   }
-  const definitionPayload = buildDefinitionPayload()
-  const versionPayload = buildVersionPayload()
-  await strategyLab.updateDefinition(strategyLab.selectedDefinition.id, definitionPayload)
-  await strategyLab.updateVersion(currentVersion.value.id, strategyLab.selectedDefinition.id, versionPayload)
-  const refreshed = await strategyLab.refreshDefinition(strategyLab.selectedDefinition.id)
-  hydrateFromSelection(refreshed)
 }
 
 async function deleteCurrentStrategy() {
@@ -5326,6 +5341,16 @@ function humanizeBarSpan(barCount: number, timeframe: string | null | undefined)
 .detail-columns {
   display: grid;
   gap: 16px;
+}
+
+.detail-columns[inert] {
+  opacity: 0.62;
+}
+
+.profile-save-status {
+  align-self: center;
+  color: var(--tc-text-muted, #9aa4ad);
+  font-size: 12px;
 }
 
 .panel,

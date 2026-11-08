@@ -331,7 +331,7 @@ on_demand_consumer_implementation: 'Current TC-owned mocked implementation at th
   is pending Root. Controlled tests are not genuine Provider/issuer proof; target/deployment and the complete roadmap remain
   open.'
 current_blocker: "Root exact5 on ca4e57f6 ended 3 passed / 2 failed. Root proved the TCNEW failure is a delayed /workspaces/default hydration overwriting the already accepted TCNEW selection; the Workstation race now has a focused deferred-load regression. The second-window Results GET remains a separate unproven dispatch/admission issue; API queue logging is opt-in and temporary for Root’s bounded two-case observation. Root owns browser replay and remaining final gates."
-current_checkpoint_status: "Provisional diagnostic candidate from ca4e57f6: a delayed default-workspace response no longer overwrites a newer verified symbol selection; the focused WorkstationView module passes 109/109, API client passes 28/28, and frontend type-check passes. Imported ETF017’s six exact consumer paths; all ten manifest blobs, SHA256 values, and Git modes verify, and bd5129 is superseded only in the active pin while retained in history. TCNEW E2E uses its actual button role. api.ts has opt-in redacted queue observations for Root’s bounded Results dispatch diagnosis; remove them after measurement. Strict scope/workstream/matrix/reference/diff checks pass. Root’s two-case and full journey qualification remain pending; the full roadmap remains open."
+current_checkpoint_status: "TC clean candidate 47425524ae74e88726ce7875773c84b71fd40659 plus exact Strategy source 4a0785fffbf3f75f99c138f59938bb141ab81c86; four guarded private imports advance the active Strategy pin to all 28 manifest paths while preserving the f7 archive. All 28 source blobs/SHA/modes and four old guards verified; ETF private10 from 2bf remains byte-identical. Calendar status is a compact in-flow row with full accessible/tooltip detail and TCNEW count/geometry assertions. Type and required guards pass; current-source rendered qualification remains Root-owned and pending."
 
 ordinary_ticker_latest_update: 'Root accepted the exact combined served profile at backend source 6eae00eb8380438da771fed0c42d19587e9520ce
   / image sha256:6c962aad753959c2ecdd79f0a1d6057d77f2ba6b829ec85b99404b009a42e76a and frontend source 36e7ad2cb08c769a242773ab2b6be69fcc350774
@@ -5684,9 +5684,9 @@ approved_development_dependency_imports:
   - frontend/tests/unit/components/test_instrument_note_tool.test.ts
   - frontend/tests/unit/views/test_baskets_view.test.ts
   - frontend/tests/unit/views/test_etf_holdings_view.test.ts
-- source_sha: f7cb9505acf697dd7ee082d01f668a44f3b00bed
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/f7cb9505acf697dd7ee082d01f668a44f3b00bed.json
-  manifest_sha256: 8914f098e99ec43fca4142e7a699d9da6841f5a7fd478e74f468729745e98a77
+- source_sha: 4a0785fffbf3f75f99c138f59938bb141ab81c86
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/4a0785fffbf3f75f99c138f59938bb141ab81c86.json
+  manifest_sha256: 33918f00bf576e7dc1a3e73881f2945be94d0bad7257c7b7d2d7838d516e8b94
   paths:
   - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
   - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
@@ -5701,6 +5701,7 @@ approved_development_dependency_imports:
   - frontend/src/lib/workstation/researchRunCancellation.ts
   - frontend/src/stores/dashboard.ts
   - frontend/src/views/DashboardView.vue
+  - frontend/src/views/StrategyLabView.vue
   - frontend/tests/e2e/dashboard_usability_journey.spec.ts
   - frontend/tests/e2e/strategy_study_journey.spec.ts
   - frontend/tests/e2e/workstation_lifecycle_journey.spec.ts
@@ -5714,6 +5715,7 @@ approved_development_dependency_imports:
   - frontend/tests/unit/components/test_study_lab_tool.test.ts
   - frontend/tests/unit/stores/test_dashboard_store.test.ts
   - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts
+  - frontend/tests/unit/views/test_strategy_lab_view.test.ts
 - source_sha: aed0d62c7e93ee6bd320c6b7a22791bb8d3d8b87
   manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/aed0d62c7e93ee6bd320c6b7a22791bb8d3d8b87.json
   manifest_sha256: 4b93054b8d10072c8c9c431717471f6082810ef87cad75db9eedc75ddbba435d
