@@ -146,11 +146,11 @@
       "SU3",
       "SU4"
     ],
-    "current_blocker": "E099 catalogue close/recreate saturates shared preparation requests: the exact bounded Study Validate POST had no response/request_id within the 20-second assertion, so no status poll or code validation occurred. Root's direct identical bounded ensure returned ready in 0.16s; overlapping history/group/ratio requests and client-side navigation queueing point to TC shared request lifecycle/dedup. Strategy Study source is unchanged; Root/TC own the shared repair and rerun.",
+    "current_blocker": "Root ae378/cc31077 critical run was terminal 4/10 with zero retries. The separate full Study journey passed; the 21-tool catalogue case stopped at Alerts because its ordinary create POST was still pending at the old 5s row assertion. The preceding GET [] was normal and no rejection was shown. Strategy now waits for the exact creation response before row assertion; shared saving feedback/latency belongs to Root/TC.",
     "current_phase": "strategy-study-usability-2026-11-06",
-    "next_action": "Wait for TC's shared preparation coalescing fix and Root's next exact catalogue run; preserve E099 as red. Provider cc31077c is consumed as a development-only two-path backend update; Root image/native worker-restart and combined acceptance remain pending. Continue only on a new concrete Strategy-owned failure; keep the full roadmap and safety holds open.",
+    "next_action": "Root to run the corrected Strategy-owned catalogue case on a coherent candidate and continue the full profile. Keep the separate Study pass and the 4/10 terminal critical result distinct; no browser, product/runtime, provider or native operation was run by Strategy. Preserve all 18 roadmap criteria, holds and release gates.",
     "total": 9,
-    "updated_at": "2026-11-07T23:56:06Z"
+    "updated_at": "2026-11-08T00:05:20Z"
   },
   "remote": "b555268b8237d1c50e34b39320b4cb18a8bd9a03",
   "remote_sha": "b555268b8237d1c50e34b39320b4cb18a8bd9a03",

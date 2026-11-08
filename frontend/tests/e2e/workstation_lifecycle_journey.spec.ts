@@ -406,7 +406,25 @@ async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUT
     const form = tool.getByRole('form', { name: 'Create instrument alert' })
     await expect(form.getByLabel('Alert price')).toBeEnabled({ timeout: 20_000 })
     await form.getByLabel('Alert price').fill('1')
+    const createResponsePromise = page.waitForResponse(response => {
+      const request = response.request()
+      if (request.method() !== 'POST' || new URL(response.url()).pathname !== '/api/v1/alerts/price') return false
+      try {
+        const body = request.postDataJSON() as { instrument_id?: unknown; threshold_price?: unknown } | null
+        return Number.isInteger(body?.instrument_id) && Number(body?.threshold_price) === 1
+      } catch {
+        return false
+      }
+    })
     await form.getByRole('button', { name: 'Add', exact: true }).click()
+    const createResponse = await createResponsePromise
+    expect(createResponse.status()).toBe(201)
+    const createRequest = createResponse.request().postDataJSON() as { instrument_id: number; threshold_price: number }
+    const createdAlert = await createResponse.json() as { id: number; instrument_id: number; threshold_price: number | string; status: string }
+    expect(Number.isInteger(createdAlert.id)).toBe(true)
+    expect(createdAlert.instrument_id).toBe(createRequest.instrument_id)
+    expect(Number(createdAlert.threshold_price)).toBe(createRequest.threshold_price)
+    expect(createdAlert.status).toBe('active')
     await expect(tool.getByRole('list', { name: 'Saved alerts' })).toContainText(/1\.00|1/)
   } else if (kind === 'scan') {
     const conditionName = `Lifecycle ${Date.now()}`
