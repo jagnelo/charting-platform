@@ -1,8 +1,16 @@
 <template>
   <div class="chart-root" ref="rootRef" tabindex="0" role="region" aria-label="Chart workspace" :aria-describedby="`${chartControlId}-provenance`" :aria-busy="chartStore.isLoading || (chartStore.bars.length > 0 && !chartReady) ? 'true' : 'false'" :data-linked-timestamp="props.linkedTimestamp || undefined" :data-date-pointer-mode="datePointerMode" @keydown="handleDatePointerKeydown" @keydown.esc="handleChartEscape">
     <span :id="`${chartControlId}-provenance`" class="sr-only">{{ chartAriaLabel }}</span>
-    <div v-if="calendarStatusMessage" class="calendar-status" role="status" aria-live="polite" data-testid="instrument-calendar-status">
-      {{ calendarStatusMessage }}
+    <div
+      v-if="calendarStatusMessage"
+      class="calendar-status"
+      role="status"
+      aria-live="polite"
+      :title="calendarStatusMessage"
+      data-testid="instrument-calendar-status"
+    >
+      <span class="calendar-status__summary" aria-hidden="true">{{ calendarStatusSummary }}</span>
+      <span class="sr-only">{{ calendarStatusMessage }}</span>
     </div>
 
     <!-- Main price chart -->
@@ -1351,6 +1359,29 @@ const calendarStatusMessage = computed(() => {
     return count ? `Calendar ready · ${count} ${count === 1 ? 'event' : 'events'}` : 'Calendar ready · no events in this range'
   }
   if (status.status === 'partial') return `Calendar partially available · ${instrumentEvents.value.length} events`
+  return ''
+})
+
+const calendarStatusSummary = computed(() => {
+  if (instrumentCalendarStatusQuery.error.value) return 'Calendar status unavailable'
+
+  const status = instrumentCalendarStatusQuery.data.value
+  if (!status) return ''
+  if (status.status === 'deferred') {
+    const retryAt = status.retry_at ? Date.parse(status.retry_at) : Number.NaN
+    return Number.isFinite(retryAt) && retryAt > Date.now() ? 'Calendar update queued' : 'Calendar retrying'
+  }
+  if (status.status === 'held') return 'Calendar held'
+  if (status.status === 'unavailable') return 'Calendar unavailable'
+  if (status.status === 'stale') return 'Calendar may be stale'
+  if (status.has_pending_work || status.status === 'queued' || status.status === 'running') {
+    return instrumentEvents.value.length ? 'Updating calendar' : 'Preparing calendar'
+  }
+  if (status.status === 'ready') {
+    const count = instrumentEvents.value.length
+    return count ? `Calendar ready · ${count}` : 'Calendar ready · none'
+  }
+  if (status.status === 'partial') return `Calendar partial · ${instrumentEvents.value.length}`
   return ''
 })
 
@@ -3804,20 +3835,33 @@ defineExpose({ jumpToTs })
 }
 
 .calendar-status {
-  position: absolute;
-  z-index: 18;
-  top: 7px;
-  right: 10px;
-  max-width: min(42%, 360px);
-  padding: 3px 6px;
+  position: relative;
+  flex: 0 0 20px;
+  align-self: flex-end;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: calc(100% - 20px);
+  min-width: 0;
+  height: 20px;
+  margin: 3px 10px 0;
+  padding: 2px 5px;
   border: 1px solid rgba(125, 145, 165, 0.22);
   border-radius: 3px;
-  background: rgba(8, 8, 8, 0.78);
+  background: #101214;
   color: #929ba5;
   font-size: 10px;
-  line-height: 1.35;
+  line-height: 14px;
   text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   pointer-events: none;
+}
+
+.calendar-status__summary {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .uplot-wrapper {

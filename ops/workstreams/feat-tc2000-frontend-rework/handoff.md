@@ -27048,3 +27048,8 @@ Implemented the approved Calendar status-v1 consumer in the existing shared cale
 The shared browser diagnostics helper now treats only GET 404 for a positive Strategy study/reference artifact pair as the documented missing-read result. Unit coverage keeps unrelated methods/paths and 503/504 fatal; the existing positive pin/digest and Strategy negative-read journey assertions are unchanged.
 
 Focused Calendar and browser-diagnostics modules pass 22/22; frontend type-check passes; the E2E reference-only preflight reports no actionable unbound names. Journey-matrix and scope/workstream guards remain required for this source checkpoint. Provider owns the backend status route; the backend source has not been imported here. Root owns combined build, Calendar/critical browser journeys and all full-suite, CI, integration, native, and release qualification. No browser/runtime, backend, fixture, or deployment action ran in TC.
+
+
+## 2026-11-08 — Keep Calendar status readable without covering the chart
+
+Root's inspected 1280×720 benchmark-list capture showed the unavailable Calendar message wrapping over six lines above the price plot and obscuring OHLC data. UPlotChart now reserves a compact one-line status row before the plot, uses short visible labels for each Calendar state, and retains the complete message in the live status region and tooltip. Calendar polling, cache/session/context fences, retry timing, event rows, and the existing queued-to-ready journey are unchanged. Frontend type-check and the required scope, workstream, journey-matrix, and diff guards pass. TC did not capture a new browser render; Root owns visual verification. No backend or foreign-private source was changed.
