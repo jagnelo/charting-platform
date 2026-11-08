@@ -5521,9 +5521,9 @@ approved_development_dependency_imports:
   - backend/tests/unit/workers/test_arq_worker.py
   - backend/app/services/etf_holdings.py
   - backend/tests/unit/services/test_etf_holdings_catalogue.py
-- source_sha: cbb4b2761a884b99af79a24fdfe5a691bb1ee994
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/cbb4b2761a884b99af79a24fdfe5a691bb1ee994.json
-  manifest_sha256: ccf7229a8cf04a9a293684636ff6aab3155152387eea509a3cc202b3d724ddd1
+- source_sha: 27e360de1057368bb49da11662d33e268ed999b9
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/27e360de1057368bb49da11662d33e268ed999b9.json
+  manifest_sha256: 7c727c676fba6e760e51891c92bdc1345a32ff0abf6a62e3eb248de38327b01c
   paths:
   - frontend/src/components/workstation/InstrumentNoteTool.vue
   - frontend/src/views/BasketsView.vue
