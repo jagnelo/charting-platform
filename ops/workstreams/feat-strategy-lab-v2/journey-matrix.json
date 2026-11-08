@@ -739,5 +739,84 @@
     ],
     "source_manifest_entries_verified": 67,
     "qualification": "Exact Provider22c31cd3 development import; six declared paths and all67 source records match the Root manifest. This is development context only; full browser/profile, exact-source CI, integrated and release acceptance remain pending."
+  },
+  "strategy_case_crosswalk": {
+    "source_checkpoint": "371aa656fef7faed8c6139dfddba02b3248ee70a",
+    "source_specs": [
+      "frontend/tests/e2e/strategy_study_journey.spec.ts"
+    ],
+    "unique_test_titles": 3,
+    "mapping_rows": 4,
+    "browser_acceptance": "pending_root_exact_source_browser",
+    "cases": [
+      {
+        "case_id": "study-positive-immutable-pin-navigation",
+        "spec": "frontend/tests/e2e/strategy_study_journey.spec.ts",
+        "test_title": "Study journey keeps saved identity, refreshes Results, and returns from Python Library on the immutable version",
+        "semantic_journeys": [
+          "StudyLabTool and ResearchResultsTool | Persisted run hydration, adjacent Results list, and workspace reload.",
+          "CodeLibraryTool -> StudyLabTool | Python Library Open in Study Lab / Open selected version in Study Lab."
+        ],
+        "actions": [
+          "validate",
+          "supported run",
+          "persist and reload results",
+          "open the saved immutable version from Library in Study Lab"
+        ],
+        "proof_boundary": "The positive run/artifact pin follows the ordinary Study API path. Authenticated browser execution is pending Root; this row does not claim completion.",
+        "status": "pending_root_exact_source_browser"
+      },
+      {
+        "case_id": "legacy-strategy-local-backtest-lifecycle",
+        "spec": "frontend/tests/e2e/strategy_study_journey.spec.ts",
+        "test_title": "legacy Strategy Lab creates, edits, reloads, and safely deletes a supported definition",
+        "semantic_journeys": [
+          "StrategyLabView | /legacy/strategy-lab (also linked from /strategy-lab)."
+        ],
+        "actions": [
+          "create and edit definition",
+          "save immutable version",
+          "reload selection",
+          "run bounded SPY D1 local backtest",
+          "read persisted result",
+          "export summary",
+          "cancel then confirm delete",
+          "return to Workstation"
+        ],
+        "proof_boundary": "Uses the supported local Backtest action and retained fixture data. Paper forward, broker, native and capital actions remain outside this journey and held.",
+        "status": "pending_root_exact_source_browser"
+      },
+      {
+        "case_id": "legacy-strategy-execution-mode-boundary",
+        "spec": "frontend/tests/e2e/strategy_study_journey.spec.ts",
+        "test_title": "legacy Strategy Lab creates, edits, reloads, and safely deletes a supported definition",
+        "semantic_journeys": [
+          "StrategyLabView | /legacy/strategy-lab execution mode controls."
+        ],
+        "actions": [
+          "select ordinary Backtest mode",
+          "execute one bounded local historical run"
+        ],
+        "proof_boundary": "Only Backtest is exercised; Walk forward remains unexercised and Paper forward remains held.",
+        "status": "pending_root_exact_source_browser"
+      },
+      {
+        "case_id": "v2-read-only-resource-and-denied-pin-recovery",
+        "spec": "frontend/tests/e2e/strategy_study_journey.spec.ts",
+        "test_title": "Strategy Lab v2 reads a selected owner resource and recovers from a denied reference without writes",
+        "semantic_journeys": [
+          "StrategyLabV2View | /legacy/strategy-lab-v2 (also linked from /strategy-lab-v2)."
+        ],
+        "actions": [
+          "read collections",
+          "select owner resource and inspect detail",
+          "observe invalid/foreign-like reference denial",
+          "retry corrected reference",
+          "return to Workstation"
+        ],
+        "proof_boundary": "The row/detail/denial responses are controlled read-only fixtures; they are not real owner-negative API proof. The positive persisted pin is mapped separately to the Study journey above.",
+        "status": "pending_root_exact_source_browser"
+      }
+    ]
   }
 }
