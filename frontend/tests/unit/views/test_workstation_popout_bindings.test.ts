@@ -101,6 +101,7 @@ const harness = vi.hoisted(() => {
   const chart = {
     symbol: 'SPY',
     timeframe: 'D1',
+    instrument: { id: 2, symbol: 'SPY' } as { id: number; symbol: string } | null,
     barType: 'candles',
     bars: [] as unknown[],
     isLoading: false,
@@ -326,6 +327,7 @@ describe('WorkstationView pop-out bindings', () => {
     harness.workspace.technicals = {}
     harness.chart.symbol = 'SPY'
     harness.chart.timeframe = 'D1'
+    harness.chart.instrument = { id: 2, symbol: 'SPY' }
     harness.chart.bars = []
     harness.chart.loadBars.mockClear()
     harness.chart.refreshLocalBars.mockClear()
@@ -1686,6 +1688,86 @@ describe('WorkstationView pop-out bindings', () => {
     })
     expect(harness.workspace.publishTimeframe).toHaveBeenCalledTimes(2)
     wrapper.unmount()
+  })
+
+  it('prepares the primary chart timeframe without a comparison widget and ignores superseded history', async () => {
+    routeState.path = '/chart/AMD'
+    routeState.params = { symbol: 'AMD' }
+    harness.workspace.linkedSymbol = 'AMD'
+    const originalWindows = harness.workspace.activeTab.windows
+    const originalLinkedTimeframeDescriptor = Object.getOwnPropertyDescriptor(harness.workspace, 'linkedTimeframe')
+    const reactiveTimeframe = reactive({ value: 'D1' })
+    Object.defineProperty(harness.workspace, 'linkedTimeframe', {
+      configurable: true,
+      get: () => reactiveTimeframe.value,
+      set: (value: string) => { reactiveTimeframe.value = value },
+    })
+    harness.workspace.activeTab.windows = [harness.chartWindow]
+    harness.chart.symbol = 'AMD'
+    harness.chart.timeframe = 'D1'
+    harness.chart.instrument = { id: 36, symbol: 'AMD' }
+    const originalLoadBarsImplementation = harness.chart.loadBars.getMockImplementation()
+    harness.chart.loadBars.mockImplementation(async (symbol: string, timeframe?: string) => {
+      harness.chart.symbol = symbol
+      if (timeframe) harness.chart.timeframe = timeframe
+    })
+    vi.mocked(resolveKnownInstrument).mockResolvedValueOnce({ symbol: 'AMD', id: 36 } as any)
+    harness.workspace.publishTimeframe = vi.fn((timeframe: string) => {
+      harness.workspace.linkedTimeframe = timeframe
+    })
+
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    try {
+      await vi.waitFor(() => expect(dataPreparationPost).toHaveBeenCalledTimes(1))
+      await vi.waitFor(() => expect(wrapper.text()).toContain('The admitted D1 history for AMD is available locally.'))
+      await flushPromises()
+      dataPreparationPost.mockClear()
+      const firstMinute = deferred<any>()
+      const fiveMinute = deferred<any>()
+      dataPreparationPost.mockImplementation((request: any) => {
+        if (request.timeframe === 'M1') return firstMinute.promise
+        if (request.timeframe === 'M5') return fiveMinute.promise
+        return Promise.resolve(readyPreparationResponse(request, dataPreparationPost.mock.calls.length))
+      })
+      harness.chart.loadBars.mockClear()
+      harness.chart.refreshLocalBars.mockClear()
+
+      const linkedTimeframe = wrapper.get('select[aria-label="Linked timeframe"]')
+      await linkedTimeframe.setValue('M1')
+      await vi.waitFor(() => expect(dataPreparationPost).toHaveBeenCalledTimes(1))
+      expect(dataPreparationPost.mock.calls[0]?.[0]).toMatchObject({
+        target: { kind: 'instrument', instrument_id: 36 },
+        datasets: ['history'],
+        timeframe: 'M1',
+        adjusted: true,
+      })
+      expect(harness.chart.loadBars).toHaveBeenCalledWith('AMD', 'M1', 'candles', true)
+
+      await linkedTimeframe.setValue('M5')
+      await vi.waitFor(() => expect(dataPreparationPost).toHaveBeenCalledTimes(2))
+      expect(dataPreparationPost.mock.calls[1]?.[0]).toMatchObject({
+        target: { kind: 'instrument', instrument_id: 36 },
+        datasets: ['history'],
+        timeframe: 'M5',
+      })
+      expect(dataPreparationPost).toHaveBeenCalledTimes(2)
+
+      firstMinute.resolve(readyPreparationResponse(dataPreparationPost.mock.calls[0]?.[0], 2))
+      await flushPromises()
+      expect(harness.chart.refreshLocalBars).not.toHaveBeenCalled()
+
+      fiveMinute.resolve(readyPreparationResponse(dataPreparationPost.mock.calls[1]?.[0], 3))
+      await vi.waitFor(() => expect(harness.chart.refreshLocalBars).toHaveBeenCalledTimes(1))
+      expect(wrapper.text()).toContain('The admitted M5 history for AMD is available locally.')
+      expect(harness.chart.refreshLocalBars).toHaveBeenCalledTimes(1)
+    } finally {
+      harness.workspace.activeTab.windows = originalWindows
+      wrapper.unmount()
+      if (originalLoadBarsImplementation) harness.chart.loadBars.mockImplementation(originalLoadBarsImplementation)
+      if (originalLinkedTimeframeDescriptor) Object.defineProperty(harness.workspace, 'linkedTimeframe', originalLinkedTimeframeDescriptor)
+    }
   })
 
   it('does not continue initial hydration after the workstation unmounts', async () => {

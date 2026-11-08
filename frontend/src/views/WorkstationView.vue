@@ -387,7 +387,7 @@ import {
 import { isSharedNavigationItemActive, sharedShellNavigation } from '@/router'
 import CompactStatusNotice from '@/components/common/CompactStatusNotice.vue'
 import type { Timeframe } from '@/types'
-import { dataPreparationCoordinator, historyPreparationStatusMessage, instrumentHistoryPreparationRequest, PreparationProgressRefreshQueue, preparationMessageSummary, preparationStatusMessage, type DataEnsureResponse, type PreparationDataset, type PreparationStatus } from '@/lib/dataPreparation'
+import { dataPreparationCoordinator, historyPreparationStatusMessage, instrumentHistoryPreparationRequest, PreparationProgressRefreshQueue, preparationMessageSummary, preparationStatusMessage, type DataEnsureRequest, type DataEnsureResponse, type PreparationDataset, type PreparationStatus } from '@/lib/dataPreparation'
 
 const BLOCKED_POPOUT_ERROR = 'Browser blocked the pop-out. The tool remains docked.'
 const CHART_TIMEFRAME_ORDER: readonly Timeframe[] = ['M1', 'M5', 'M15', 'M30', 'H1', 'H2', 'H4', 'H12', 'D1', 'W1', 'MN']
@@ -589,6 +589,8 @@ const ctrlWheelHeld = ref(false)
 // intent wins so a late initial SPY request cannot restore an older selection.
 let symbolSelectionGeneration = 0
 let selectedAcquisitionAbortController: AbortController | null = null
+let linkedTimeframePreparationGeneration = 0
+let linkedTimeframePreparationAbortController: AbortController | null = null
 let drilldownSelectionGeneration = 0
 let componentMounted = false
 let resolveComponentMountSettled: (() => void) | null = null
@@ -1375,6 +1377,9 @@ async function selectSymbol(
   if (!requested) return
   const privateBasketSelection = isPrivateBasketToken(requested)
   clearSupersededSymbolSelectionError()
+  linkedTimeframePreparationGeneration += 1
+  linkedTimeframePreparationAbortController?.abort()
+  linkedTimeframePreparationAbortController = null
   selectedAcquisitionAbortController?.abort()
   const acquisitionController = new AbortController()
   selectedAcquisitionAbortController = acquisitionController
@@ -2186,6 +2191,103 @@ function setLinkedTimeframe(timeframe: string, group: LinkGroup = 'blue') {
   // linked timeframe before the initial workspace load settles.
   if (!workspaceReady.value) pendingTimeframeSelections.set(group, timeframe)
   workspaceStore.publishTimeframe(timeframe, group, 'workstation')
+}
+
+function cancelLinkedTimeframePreparation() {
+  linkedTimeframePreparationGeneration += 1
+  linkedTimeframePreparationAbortController?.abort()
+  linkedTimeframePreparationAbortController = null
+}
+
+async function prepareLinkedTimeframeHistory(symbol: string, timeframe: Timeframe) {
+  cancelLinkedTimeframePreparation()
+  const generation = linkedTimeframePreparationGeneration
+  const controller = new AbortController()
+  linkedTimeframePreparationAbortController = controller
+  const isCurrent = () => componentMounted
+    && generation === linkedTimeframePreparationGeneration
+    && !controller.signal.aborted
+    && activeSymbol.value.trim().toUpperCase() === symbol
+    && workspaceStore.linkedTimeframe === timeframe
+    && chartStore.symbol.trim().toUpperCase() === symbol
+    && chartStore.timeframe === timeframe
+
+  selectionHistoryError.value = ''
+  selectionHistoryMessage.value = `Checking saved ${timeframe} history for ${symbol}…`
+
+  try {
+    const linkedInstrument = workspaceStore.linkedSymbols?.blue
+    const currentChartInstrument = chartStore.instrument
+    const holding = activeHoldingContext.value
+    const candidates = [
+      holding?.symbol === symbol ? holding.context.instrumentId : null,
+      linkedInstrument?.symbol.trim().toUpperCase() === symbol ? linkedInstrument.instrumentId : null,
+      currentChartInstrument?.symbol.trim().toUpperCase() === symbol ? currentChartInstrument.id : null,
+    ]
+    let instrumentId = candidates.find(candidate => Number.isSafeInteger(candidate) && Number(candidate) > 0) ?? null
+
+    if (instrumentId === null) {
+      const resolved = await resolveKnownInstrument(symbol, 'Workstation timeframe history', {
+        canonicalOnly: true,
+        priority: 'high',
+        signal: controller.signal,
+      })
+      if (!isCurrent()) return
+      if (resolved.symbol.trim().toUpperCase() !== symbol || typeof resolved.id !== 'number'
+        || !Number.isSafeInteger(resolved.id) || resolved.id <= 0) {
+        selectionHistoryError.value = `The canonical identity for ${symbol} could not be confirmed; ${timeframe} history was not requested.`
+        return
+      }
+      instrumentId = resolved.id
+    }
+
+    const request: DataEnsureRequest = {
+      target: { kind: 'instrument', instrument_id: instrumentId },
+      datasets: ['history'],
+      timeframe,
+      adjusted: true,
+    }
+    const refreshQueue = new PreparationProgressRefreshQueue()
+    const refreshCurrentChart = async () => {
+      if (!isCurrent()) return
+      await Promise.allSettled([
+        chartStore.refreshLocalBars(),
+        refreshMountedWorkstationChartPanels(symbol, timeframe, isCurrent),
+      ])
+    }
+    const historyResult = (response: DataEnsureResponse) => selectedDatasetPreparationResponse(response, 'history', instrumentId!, symbol)
+    const hasHistoryOutput = (response: DataEnsureResponse) => response.dependencies.some(dependency =>
+      dependency.dataset === 'history'
+      && dependency.instrument_id === instrumentId
+      && (dependency.symbol === null || dependency.symbol.trim().toUpperCase() === symbol)
+      && (dependency.status === 'ready' || dependency.covered_ranges.length > 0
+        || (dependency.covered_start !== null && dependency.covered_end !== null)),
+    )
+    const result = await dataPreparationCoordinator.ensure(request, {
+      signal: controller.signal,
+      priority: 'high',
+      onProgress: ({ response, completed, total }) => {
+        if (!isCurrent()) return
+        const scoped = historyResult(response)
+        selectionHistoryMessage.value = historyPreparationStatusMessage(scoped, symbol, timeframe, completed, total)
+        if (hasHistoryOutput(scoped)) {
+          void refreshQueue.request(response, refreshCurrentChart).catch(() => {
+            if (isCurrent()) selectionHistoryError.value = `Available ${timeframe} history for ${symbol} could not be refreshed; saved bars remain visible.`
+          })
+        }
+      },
+    })
+    if (!isCurrent()) return
+    const scoped = historyResult(result)
+    selectionHistoryMessage.value = historyPreparationStatusMessage(scoped, symbol, timeframe, result.completed, result.total)
+    if (hasHistoryOutput(scoped)) await refreshQueue.request(result, refreshCurrentChart)
+  } catch (error: any) {
+    if (isCurrent() && error?.name !== 'AbortError') {
+      selectionHistoryError.value = `History for ${symbol} could not be prepared; the current ${timeframe} chart remains available.`
+    }
+  } finally {
+    if (linkedTimeframePreparationAbortController === controller) linkedTimeframePreparationAbortController = null
+  }
 }
 
 async function signOut() {
@@ -3340,6 +3442,7 @@ function cycleChartTimeframe(windowKey: string, direction: 1 | -1) {
 
 watch(activeSymbol, symbol => {
   if (!symbol) return
+  cancelLinkedTimeframePreparation()
   const privateBasketSelection = isPrivateBasketToken(symbol)
   const activeRouteContext = activeHoldingContext.value?.symbol === symbol
     ? activeHoldingContext.value.context
@@ -3387,10 +3490,14 @@ watch(symbolDraft, value => {
   scheduleSymbolSearch(value)
 })
 watch(() => workspaceStore.linkedTimeframe, timeframe => {
-  if (timeframe === chartStore.timeframe) return
+  cancelLinkedTimeframePreparation()
   selectedAcquisitionAbortController?.abort()
   selectedAcquisitionAbortController = null
-  void chartStore.loadBars(activeSymbol.value, timeframe as typeof chartStore.timeframe, chartStore.barType, true)
+  const symbol = activeSymbol.value.trim().toUpperCase()
+  void chartStore.loadBars(symbol, timeframe as typeof chartStore.timeframe, chartStore.barType, true)
+  if (symbol && !isPrivateBasketToken(symbol)) {
+    void prepareLinkedTimeframeHistory(symbol, timeframe as Timeframe)
+  }
 })
 watch(() => chartStore.timeframe, () => {
   selectedAcquisitionAbortController?.abort()
@@ -3594,6 +3701,7 @@ onBeforeUnmount(() => {
   resolveComponentMountSettled = null
   resolveMount?.()
   symbolSelectionGeneration += 1
+  cancelLinkedTimeframePreparation()
   selectedAcquisitionAbortController?.abort()
   selectedAcquisitionAbortController = null
   drilldownSelectionGeneration += 1

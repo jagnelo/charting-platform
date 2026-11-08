@@ -26894,3 +26894,12 @@ The UNXQ fixture retains an exact `/instruments/UNXQ` pathname match for GET. It
 
 
 Root issued the scope-compatible Provider manifest alias for the same fc220 source. Only `authority` differs from the immutable producer contract; all source rows, hashes, consumers, guards, state, and evidence are unchanged. The active TC import pin now records the alias digest `b8412e6902c6a1bc343885c4d9200a75a8ea748049b6a61e9fc25688087d59b1`; the producer manifest remains preserved unchanged at the Root attempt path.
+
+
+# 2026-11-08 — Primary timeframe preparation and UNXQ reload contract
+
+Root's terminal `cd94fb5b3688fd5c5ffc56969d17c2e9e17eec9d` acquisition-three review showed that changing the shared Linked timeframe loaded local primary-chart bars but did not submit primary-chart history preparation; M1 ensure requests were limited to ratio legs. The Workstation shell now starts its local chart read immediately and submits a high-priority, history-only shared ensure against the active canonical instrument ID. Current symbol, timeframe, observer generation, and abort signals fence progress and readback; late M1 completion cannot refresh a newer M5 chart. Blue-linked chart period changes use the same shell lifecycle; isolated/non-blue tools keep their existing explicit history path. This uses the existing preparation coordinator and does not rely on comparison panels.
+
+The exact review also established one identical ID `779004` D1 ensure per document across UNXQ reload and no mounted Options panels. The UNXQ journey now asserts the second post-reload request and unchanged request contract, and verifies that no hidden Options exposure/expiration requests are issued. The existing exact-path fixture continues to return pre-resolution 404 and resolved canonical ID 779004 for both plain and `canonical_only=true` GETs; non-GET requests continue normally. Calendar, bar readback, holding lineage, and no-legacy-history assertions remain.
+
+Focused evidence: Workstation pop-out bindings module 108/108; frontend type-check passed; on-demand reference-only preflight has zero actionable unbound names (other semantic advisories remain unqualified); exact Provider fc220 alias SHA `b8412e6902c6a1bc343885c4d9200a75a8ea748049b6a61e9fc25688087d59b1` and all 81 source rows verified, including TC old guards; scope/workstream/journey guards pass. Root owns the exact acquisition-three browser rerun and full mapped suite. No browser, runtime, provider HTTP, native, CI, staging, or production operation was run here.

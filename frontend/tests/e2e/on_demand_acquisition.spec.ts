@@ -474,8 +474,7 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
   let resolved = false
   let historyCompleted = false
   let localReadCount = 0
-  const optionsExposureReads: string[] = []
-  const optionsExpirationReads: string[] = []
+  const optionsPanelRequests: string[] = []
   const calendarReads: Array<{ symbol: string; start: string; end: string }> = []
   const discoveryRequests: DiscoveryRequest[] = []
   const identityRequests: InstrumentRequestBody[] = []
@@ -486,6 +485,11 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
   let releaseHistoryResponse!: () => void
   const historyRequestArrived = new Promise<void>(resolve => { signalHistoryRequest = resolve })
   const historyResponseGate = new Promise<void>(resolve => { releaseHistoryResponse = resolve })
+  const recordOptionsPanelRequest = (request: Request) => {
+    const pathname = new URL(request.url()).pathname
+    if (/\/options\/exposure(?:\/expirations)?$/.test(pathname)) optionsPanelRequests.push(pathname)
+  }
+  page.on('request', recordOptionsPanelRequest)
   const bar: OHLCVBar = {
     ts: '2026-10-29T00:00:00Z', open: 24, high: 26, low: 23, close: 25,
     volume: 12000, is_adjusted: true, is_derived: false,
@@ -622,25 +626,6 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
   await page.route('**/api/v1/coverage/instruments/UNXQ/ohlcv**', async route => {
     const url = new URL(route.request().url())
     await route.fulfill({ status: 200, json: missingCoverage(url) })
-  })
-  await page.route('**/api/v1/instruments/UNXQ/options/exposure', async route => {
-    const url = new URL(route.request().url())
-    expect(route.request().method()).toBe('GET')
-    expect(url.pathname).toBe('/api/v1/instruments/UNXQ/options/exposure')
-    optionsExposureReads.push(url.pathname)
-    await route.fulfill({ status: 200, json: {
-      symbol, spot: null, expirations: [], active_expirations: [], computed_at: '2026-10-27T00:00:00Z',
-      ladder: [], key_levels: { call_wall: null, put_wall: null, gamma_flip: null, max_pain: null },
-      pcr_oi: null, pcr_volume: null, implied_move_pct: null, total_gex: 0, total_net_dex: 0,
-    } satisfies OptionsExposureResponse })
-  })
-  await page.route('**/api/v1/instruments/UNXQ/options/exposure/expirations', async route => {
-    const url = new URL(route.request().url())
-    expect(route.request().method()).toBe('GET')
-    expect(url.pathname).toBe('/api/v1/instruments/UNXQ/options/exposure/expirations')
-    optionsExpirationReads.push(url.pathname)
-    const noExpirations: ExpirationSummary[] = []
-    await route.fulfill({ status: 200, json: noExpirations })
   })
   await page.route('**/api/v1/data/ensure', async route => {
     const body = route.request().postDataJSON() as DataEnsureRequest
@@ -786,11 +771,27 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
       && url.pathname === `/api/v1/instruments/${symbol}`
       && url.searchParams.get('canonical_only') === 'true'
   })
+  const historyEnsureAfterReloadReady = page.waitForResponse(response => {
+    const request = response.request()
+    const url = new URL(request.url())
+    if (request.frame() !== mainFrame
+      || (requestDocumentEpoch.get(request) ?? 0) <= documentEpochBeforeReload
+      || request.method() !== 'POST'
+      || url.pathname !== '/api/v1/data/ensure') return false
+    const body = request.postDataJSON() as DataEnsureRequest
+    return body.target.kind === 'instrument'
+      && body.target.instrument_id === instrumentId
+      && body.datasets?.includes('history') === true
+      && body.timeframe === 'D1'
+      && body.adjusted === true
+  })
   await page.reload()
   const calendarResponseAfterReload = await calendarResponseAfterReloadReady
   const canonicalIdentityAfterReload = await canonicalIdentityAfterReloadReady
+  const historyEnsureAfterReload = await historyEnsureAfterReloadReady
   page.off('framenavigated', recordMainFrameNavigation)
   page.off('request', recordMainFrameRequest)
+  page.off('request', recordOptionsPanelRequest)
   expect(calendarResponseAfterReload.method).toBe('GET')
   expect(calendarResponseAfterReload.pathname).toBe(`/api/v1/calendar/instruments/${symbol}/calendar`)
   expect(calendarResponseAfterReload.status).toBe(200)
@@ -806,9 +807,10 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
   await expect(page.getByTestId('active-holding-lineage')).toHaveText(`UNXQ from ${profile.symbol} dated holdings · ${snapshot.composition_date}`)
   await expect.poll(() => localReadCount).toBeGreaterThan(readsBeforeReload)
   expect(localReadBars.at(-1)).toEqual([bar])
-  expect(historyRequests).toHaveLength(1)
-  expect(optionsExposureReads.length).toBeGreaterThan(0)
-  expect(optionsExpirationReads.length).toBeGreaterThan(0)
+  expect(historyEnsureAfterReload.status()).toBe(200)
+  expect(historyRequests).toHaveLength(2)
+  expect(historyRequests[1]).toEqual(historyRequests[0])
+  expect(optionsPanelRequests).toEqual([])
   await expect.poll(() => calendarReads.length).toBeGreaterThan(calendarReadsBeforeReload)
   expect(calendarReads.at(-1)).toMatchObject({ symbol, start: bar.ts })
   expect(calendarReads.every(read => read.symbol === symbol)).toBe(true)

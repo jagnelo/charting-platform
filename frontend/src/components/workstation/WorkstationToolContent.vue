@@ -2329,7 +2329,11 @@ function selectRotationSymbol(symbol: string, instrumentId?: number | null) {
 function setTimeframe(timeframe: string) {
   timeframeHistoryAbortController?.abort()
   workspaceStore.updateToolTimeframe(props.tool.instance_key, timeframe)
-  if (props.tool.tool_type === 'chart' && ['M1', 'M5', 'M15', 'M30', 'H1', 'H2', 'H4', 'H12', 'D1', 'W1', 'MN'].includes(timeframe)) {
+  // Blue-linked chart periods use the shell's shared preparation lifecycle,
+  // which also covers its primary chart and coalesces the linked windows.
+  // Isolated/non-blue charts retain their own explicit timeframe lifecycle.
+  if (props.tool.tool_type === 'chart' && timeframeLinkGroup.value !== 'blue'
+    && ['M1', 'M5', 'M15', 'M30', 'H1', 'H2', 'H4', 'H12', 'D1', 'W1', 'MN'].includes(timeframe)) {
     void acquireExplicitTimeframeHistory(timeframe as Timeframe)
   }
 }
