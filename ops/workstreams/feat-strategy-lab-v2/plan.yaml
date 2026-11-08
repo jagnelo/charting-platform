@@ -1407,16 +1407,17 @@ dependencies:
     feat/market-data-provider-platform owns canonical identity, market series,
     capability/entitlement, acquisition, coverage, and repair contracts. Consume
     after its reviewed work reaches staging, except for the exact Root-released
-    development dependency `b19293006ea624a4f0c05a4fd91152ffd650a426` recorded
-    under `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providerb1929300-runtime-development-consumption-contract.json`
-    (manifest SHA256 `97b429b3d99e4f8da78edcc10ed13178a17b482e31a136941f8acff14290457d`)
-    and `development-dependency-imports/providerb1929300-runtime-development-consumption-contract.json`,
+    development dependency `19d34d0b3e875b29b276ee80e471311586e6023f` recorded
+    under `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider19d34d0b-runtime-development-consumption-contract.json`
+    (manifest SHA256 `0d1fa69e0e97f890176f71de1115418af035d8a02933211b8b1de84d98abe294`)
+    and `development-dependency-imports/provider19d34d0b-runtime-development-consumption-contract.json`,
     with the Strategy import receipt at
-    `development-dependency-imports/b19293006ea624a4f0c05a4fd91152ffd650a426-strategy-import-receipt.json`.
-    Strategy imported only its 15 declared paths and verified all 78 source rows;
-    this is development context, not full qualification or product acceptance.
-    Earlier Provider pins remain in the append-only handoff and import archive.
-    Do not duplicate providers or provider runtime policy.
+    `development-dependency-imports/19d34d0b3e875b29b276ee80e471311586e6023f-strategy-import-receipt.json`.
+    Strategy imported only its eight declared paths and verified all 79 source rows;
+    this is development context, not full qualification or product acceptance. The
+    prior b192 import and its receipt remain archived. Root owns PostgreSQL/native,
+    combined browser, and exact-source CI qualification. Do not duplicate providers
+    or provider runtime policy.
   - >-
     feat/etf-holdings-constituents owns ETF holdings adapters and point-in-time
     holdings history. Consume its staged membership and known-at contracts; do
@@ -2568,6 +2569,18 @@ approved_development_dependency_imports:
   - backend/tests/unit/services/test_provider_routing.py
   - backend/tests/unit/services/test_provider_runtime.py
   - backend/tests/unit/services/test_workstation_tool_catalogue.py
+  - backend/tests/unit/tasks/test_data_tasks.py
+  - backend/tests/unit/tasks/test_native_usage_prerequisite.py
+  - backend/tests/unit/workers/test_arq_worker.py
+- source_sha: 19d34d0b3e875b29b276ee80e471311586e6023f
+  manifest_path: ops/workstreams/feat-strategy-lab-v2/development-dependency-imports/provider19d34d0b-runtime-development-consumption-contract.json
+  manifest_sha256: 0d1fa69e0e97f890176f71de1115418af035d8a02933211b8b1de84d98abe294
+  paths:
+  - backend/app/services/provider_runtime.py
+  - backend/app/tasks/data_tasks.py
+  - backend/tests/integration/test_provider_runtime_transactions_postgres.py
+  - backend/tests/unit/services/test_data_preparation_worker_deeper_default.py
+  - backend/tests/unit/services/test_provider_runtime.py
   - backend/tests/unit/tasks/test_data_tasks.py
   - backend/tests/unit/tasks/test_native_usage_prerequisite.py
   - backend/tests/unit/workers/test_arq_worker.py

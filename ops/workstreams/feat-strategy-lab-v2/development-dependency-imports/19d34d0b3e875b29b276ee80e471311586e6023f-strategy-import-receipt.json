@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "dependency": "provider-runtime-development-consumption",
+  "source_commit": "19d34d0b3e875b29b276ee80e471311586e6023f",
+  "root_manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider19d34d0b-runtime-development-consumption-contract.json",
+  "root_manifest_sha256": "0d1fa69e0e97f890176f71de1115418af035d8a02933211b8b1de84d98abe294",
+  "consumer": "Strategy",
+  "imported_paths": [
+    "backend/app/services/provider_runtime.py",
+    "backend/app/tasks/data_tasks.py",
+    "backend/tests/integration/test_provider_runtime_transactions_postgres.py",
+    "backend/tests/unit/services/test_data_preparation_worker_deeper_default.py",
+    "backend/tests/unit/services/test_provider_runtime.py",
+    "backend/tests/unit/tasks/test_data_tasks.py",
+    "backend/tests/unit/tasks/test_native_usage_prerequisite.py",
+    "backend/tests/unit/workers/test_arq_worker.py"
+  ],
+  "old_guards": {
+    "backend/app/services/provider_runtime.py": {
+      "sha256": "805d083b3c9b3547d9e9a7c08b359be86305984890f6fa50259c78142f0a218c",
+      "known_source": "b19293006ea624a4f0c05a4fd91152ffd650a426"
+    },
+    "backend/app/tasks/data_tasks.py": {
+      "sha256": "4213a3bd511bd4adf41da5e4e852994053a0fcc384664164ccc1c79952a3c210",
+      "known_source": "b19293006ea624a4f0c05a4fd91152ffd650a426"
+    },
+    "backend/tests/integration/test_provider_runtime_transactions_postgres.py": {
+      "sha256": null,
+      "known_source": "b19293006ea624a4f0c05a4fd91152ffd650a426",
+      "known_absent": true
+    },
+    "backend/tests/unit/services/test_data_preparation_worker_deeper_default.py": {
+      "sha256": "d09f76d114e118c76ed0c235107e5e24d8845160fdc4a46f80092d0b3dc9795b",
+      "known_source": "b19293006ea624a4f0c05a4fd91152ffd650a426"
+    },
+    "backend/tests/unit/services/test_provider_runtime.py": {
+      "sha256": "b0a29289a602fbe1feaed23ab21810d6e7a7fea9f3bac192388ce22eca4630e1",
+      "known_source": "b19293006ea624a4f0c05a4fd91152ffd650a426"
+    },
+    "backend/tests/unit/tasks/test_data_tasks.py": {
+      "sha256": "ad81f4ec7cf61f9119d918535b319a8f61fd4df86142401fc5de587812d31e6b",
+      "known_source": "b19293006ea624a4f0c05a4fd91152ffd650a426"
+    },
+    "backend/tests/unit/tasks/test_native_usage_prerequisite.py": {
+      "sha256": "ad18cc0bf29385123869b3f09f910bea6d9814ba8211d3dca67f3e7543a998fa",
+      "known_source": "b19293006ea624a4f0c05a4fd91152ffd650a426"
+    },
+    "backend/tests/unit/workers/test_arq_worker.py": {
+      "sha256": "1ceac458878132414dd83e8913332f953d58456bdd493c92f6b538ed6abdf963",
+      "known_source": "b19293006ea624a4f0c05a4fd91152ffd650a426"
+    }
+  },
+  "verified_source_manifest_rows": 79,
+  "verification": {
+    "sha256": true,
+    "git_blob": true,
+    "status_from139": true,
+    "git_executable_mode": true,
+    "consumer_old_guards": true,
+    "consumer_import_exact": true
+  },
+  "qualification": "Exact development consumption only. Root owns combined/browser/native/exact-source CI and release qualification; Strategy did not run the Provider-owned PostgreSQL transaction test or Provider runtime suite."
+}

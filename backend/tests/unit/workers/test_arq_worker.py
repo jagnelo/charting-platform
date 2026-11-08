@@ -156,7 +156,7 @@ async def test_refresh_queue_does_not_retry_after_lease_is_lost(monkeypatch):
         next_attempt_at=None,
     )
     monkeypatch.setattr(data_tasks, "AsyncSessionLocal", lambda: session)
-    monkeypatch.setattr(data_tasks, "claim_refresh_jobs", AsyncMock(return_value=[job]))
+    monkeypatch.setattr(data_tasks, "claim_refresh_jobs", AsyncMock(side_effect=[[job], []]))
     monkeypatch.setattr(data_tasks, "fetch_ohlcv", AsyncMock(return_value=[]))
     complete = AsyncMock(side_effect=RefreshLeaseLostError("reclaimed"))
     retry = AsyncMock()
