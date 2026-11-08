@@ -1,3 +1,13 @@
+# 2026-11-08 — ETF selection-panel bounds and modern history request assertions
+
+Root's measured prototype for the IGV reported-holding selection showed the candidate at y=542..584 while its selection panel ended at y=510.25. Removing the panel's `max-height: 75%` cap lets the selection details use the available tool body; the test retains full containment, center-hit, and ordinary-click assertions. The lineage assertion now includes the canonical ETF instrument ID shown in the accessible detail.
+
+The same journey's UNXQ history is recorded from `POST /data/ensure`. Its final assertion now matches the actual `instrumentHistoryPreparationRequest` contract: exact instrument ID, `identity`/`profile`/`history` datasets, D1, adjusted, and no client-supplied `start_at`/`end_at`. The separate IWM assertion now reads `timeframe` from its recorded `DataEnsureRequest`, not nonexistent `.body`. Auditing the rest of this journey found no further stale history endpoint/range assumptions; legacy compatibility coverage elsewhere is unchanged.
+
+Frontend type-check, E2E unbound-reference preflight, TC scope/workstream validators, journey matrix, and `git diff --check` pass. Playwright listed seven on-demand cases but exited with EACCES writing `frontend/playwright-report/index.html`; no browser was run. Root owns exact-source browser and full-profile qualification.
+
+---
+
 # 2026-11-08 — Resolve focused unit failures and consume Provider operator/test context
 
 Root's complete frontend unit run on frozen product `9ec4d783` reported 1903 passed and 5 failed across MarketGaugeTool and the chart-store module. The two chart-store failures were stale call-shape assertions: the local canonical OHLCV and transformed requests already used the correct route and `priority: high`, now asserted as the API's third options argument.

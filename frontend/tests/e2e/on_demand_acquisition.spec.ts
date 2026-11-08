@@ -1442,7 +1442,7 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
   expect(identityRequests).toHaveLength(3)
   expect(identityRequests.map(request => request.symbol)).toEqual(['IWM', 'AMD', 'AMD'])
   expect(historyRequests).toHaveLength(2)
-  expect(historyRequests.map(request => request.body.timeframe)).toEqual(['D1', 'M1'])
+  expect(historyRequests.map(request => request.timeframe)).toEqual(['D1', 'M1'])
   expect(historyRequests.every(request => ensureInstrumentId(request) === amdInstrumentId)).toBe(true)
   expect(historyRequests[0]?.start_at).toBeUndefined()
   expect(historyRequests[0]?.end_at).toBeUndefined()
@@ -2653,7 +2653,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     await expect(holdingLineage).toHaveText(`UNXQ from IGV holdings · ${igvSnapshot.composition_date}`)
     const holdingDetails = await holdingLineage.getAttribute('title')
     expect(await holdingLineage.getAttribute('aria-label')).toBe(holdingDetails)
-    expect(holdingDetails).toContain(`from IGV holdings · snapshot ${igvSnapshot.id} · row ${unxqHolding.id}`)
+    expect(holdingDetails).toContain(`from IGV holdings · instrument ${igvSnapshot.etf_instrument_id} · snapshot ${igvSnapshot.id} · row ${unxqHolding.id}`)
     expect(holdingDetails).toContain(`composition ${igvSnapshot.composition_date}`)
     expect(holdingDetails).toContain(`known ${igvSnapshot.known_at}`)
     expect(holdingDetails).toContain(`${igvSnapshot.source_provider} / ${igvSnapshot.provenance}`)
@@ -2663,7 +2663,14 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     expect(identityRequests.find(request => request.symbol === 'UNXQ')?.provider_candidate).toMatchObject({ provider: 'test-fixture', symbol: 'UNXQ', exchange: 'TEST' })
     const unxqHistory = historyRequests.filter(request => request.symbol === 'UNXQ')
     expect(unxqHistory).toHaveLength(1)
-    expectBoundedD1Request(unxqHistory[0]!.body)
+    expect(unxqHistory[0]!.body).toMatchObject({
+      target: { kind: 'instrument', instrument_id: instruments.UNXQ.id },
+      datasets: ['identity', 'profile', 'history'],
+      timeframe: 'D1',
+      adjusted: true,
+    })
+    expect(unxqHistory[0]!.body.start_at).toBeUndefined()
+    expect(unxqHistory[0]!.body.end_at).toBeUndefined()
     const loadedUnxqBar = bars.get('UNXQ')
     await expect.poll(() => localReadbacks.some(readback => readback.symbol === 'UNXQ' && readback.bars.length === 1)).toBe(true)
     expect(localReadbacks.find(readback => readback.symbol === 'UNXQ' && readback.bars.length === 1)?.bars[0]).toMatchObject({ ts: loadedUnxqBar?.ts, close: loadedUnxqBar?.close })
