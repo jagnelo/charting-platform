@@ -600,7 +600,7 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
   await page.route(url => url.pathname === '/api/v1/instruments/UNXQ', async route => {
     const request = route.request()
     const url = new URL(request.url())
-    if (request.method() !== 'GET' || url.searchParams.get('canonical_only') !== 'true') return route.continue()
+    if (request.method() !== 'GET') return route.continue()
     if (!resolved) {
       await route.fulfill({ status: 404, json: { detail: 'No pre-existing instrument in this controlled fixture.' } })
       return

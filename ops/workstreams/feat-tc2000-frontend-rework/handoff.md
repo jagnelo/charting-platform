@@ -26884,3 +26884,13 @@ The IWM held-history journey now targets the modern accessible Chart workspace a
 Root also released the two catalogue batching paths at source 09938f32e97b9c21530b96d055380baccbb88c6c. Their old guards and source hashes/blob IDs/modes were verified, but the immutable manifest declares state released_for_exact_development_consumption_not_release_acceptance and omits authority. The unchanged strict scope validator requires its exact common-interface state and authority, so it rejected the import. No validator or producer manifest was edited; the two imported bytes, copied manifest, and active pin were restored/removed. A scope-compatible immutable Root manifest is needed before those backend paths can be consumed. The ETF Holdings view remains exclusively ETF-owned.
 
 Frontend type-check and on-demand E2E reference-only preflight pass with zero actionable unbound references; no browser/runtime/native/provider HTTP operation was run by TC. Root owns the three acquisition cases, full66 and final acceptance, all pending.
+
+
+# 2026-11-08 — Exact acquisition fixture and released dependency assembly
+
+Root released ETF catalogue frontend source `cbb4b2761a884b99af79a24fdfe5a691bb1ee994` (10-file manifest) and Provider runtime source `fc220242ff9ff8be603c632dc80350a90708bec7` (81-file manifest). Imported only ETFHoldingsView and its focused view test, plus the two ETF catalogue backend files already present in the Provider composite; all remaining manifest rows were verified byte/blob/mode-identical. The two backend blobs match the earlier 09938 ETF release exactly. Operator/test imports remain unchanged.
+
+The UNXQ fixture retains an exact `/instruments/UNXQ` pathname match for GET. It returns 404 before explicit candidate resolution, and the controlled positive canonical response (ID 779004, `identity_status: resolved`) after resolution for both plain and `canonical_only=true` GETs; non-GET methods continue normally. No product code, browser/runtime, provider HTTP, or native operation changed. Root owns the next browser qualification and full profile.
+
+
+Root issued the scope-compatible Provider manifest alias for the same fc220 source. Only `authority` differs from the immutable producer contract; all source rows, hashes, consumers, guards, state, and evidence are unchanged. The active TC import pin now records the alias digest `b8412e6902c6a1bc343885c4d9200a75a8ea748049b6a61e9fc25688087d59b1`; the producer manifest remains preserved unchanged at the Root attempt path.

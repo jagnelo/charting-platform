@@ -4602,7 +4602,7 @@ platform_usability_checkpoint_20261106:
       gates remain pending.","next_action":"Root owns exact new-tip CI, new exact
       full staging104 visual qualification, and canonical degraded-staging remediation;
       keep application and all other references frozen."}'
-  dependencies: "Current development dependencies: Provider19d34d0b3e875b29b276ee80e471311586e6023f; ETF55c0e52d4afdf7703fe23fab2fda9e81b2c40bf8 (10-path private domain); Strategy68c5f5ef9fe2f0903476b1cb813d57695f2481ec (26-path private domain). Exact source-consumption pins are not release qualification. Root owns combined qualification, integration, and live acceptance."
+  dependencies: "Current development dependencies: Providerfc220242ff9ff8be603c632dc80350a90708bec7 (81-path runtime); ETFcbb4b2761a884b99af79a24fdfe5a691bb1ee994 (10-path private domain); Strategy68c5f5ef9fe2f0903476b1cb813d57695f2481ec (26-path private domain). Exact source-consumption pins are not release qualification. Root owns combined qualification, integration, and live acceptance."
   boundaries: No new app server/hidden agents/sibling edits; no provider HTTP, real
     quota/ledger, data-hold, production, staging or master writes from TC. No duplicate
     heavy stack or broad suite replay during implementation.
@@ -5436,9 +5436,9 @@ development_dependency_import_history:
     state: superseded_development_import
     superseded_by: 68c5f5ef9fe2f0903476b1cb813d57695f2481ec
 approved_development_dependency_imports:
-- source_sha: 9e2de1591cb8fc124839309ff4549808b7632844
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/9e2de1591cb8fc124839309ff4549808b7632844.json
-  manifest_sha256: f8b7724293e20dee3f3dbe739c28a4bd5dc19e6991685c67211f035a8fc23672
+- source_sha: fc220242ff9ff8be603c632dc80350a90708bec7
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/fc220242ff9ff8be603c632dc80350a90708bec7.json
+  manifest_sha256: b8412e6902c6a1bc343885c4d9200a75a8ea748049b6a61e9fc25688087d59b1
   paths:
   - backend/app/config.py
   - backend/app/main.py
@@ -5519,9 +5519,11 @@ approved_development_dependency_imports:
   - backend/tests/unit/tasks/test_data_tasks.py
   - backend/tests/unit/tasks/test_native_usage_prerequisite.py
   - backend/tests/unit/workers/test_arq_worker.py
-- source_sha: b4dfd78953bc926032fbf85af97927549c1ef1e2
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/b4dfd78953bc926032fbf85af97927549c1ef1e2.json
-  manifest_sha256: e8206f8e0ef264340b9e305278d7d2906f0dad0833ddc27b9eea94ba81487a20
+  - backend/app/services/etf_holdings.py
+  - backend/tests/unit/services/test_etf_holdings_catalogue.py
+- source_sha: cbb4b2761a884b99af79a24fdfe5a691bb1ee994
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/cbb4b2761a884b99af79a24fdfe5a691bb1ee994.json
+  manifest_sha256: ccf7229a8cf04a9a293684636ff6aab3155152387eea509a3cc202b3d724ddd1
   paths:
   - frontend/src/components/workstation/InstrumentNoteTool.vue
   - frontend/src/views/BasketsView.vue

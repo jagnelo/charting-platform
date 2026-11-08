@@ -931,12 +931,22 @@ async function loadProfiles(search = profileSearch.value.trim(), autoSelectFirst
       && !normalized.some(profile => profile.id === currentSelection.id)
       ? [...normalized, currentSelection]
       : normalized
+    // Catalogue readiness is independent from the default profile's snapshot
+    // and holdings requests. Keep the list usable while that selection settles.
+    if (seq === profileLoadSeq) loadingProfiles.value = false
     if (autoSelectFirst
       && selectionGeneration === fundSelectionGeneration
       && !selectedProfile.value
       && !pendingFund.value
       && normalized.length) {
-      await selectProfile(normalized[0])
+      const defaultProfile = normalized[0]
+      void selectProfile(defaultProfile).catch(error => {
+        if (selectedProfile.value?.id !== defaultProfile.id
+          || pendingFund.value?.symbol !== defaultProfile.symbol) return
+        loadError.value = error instanceof Error
+          ? error.message
+          : `Could not load saved details for ${defaultProfile.symbol}.`
+      })
     }
     return normalized
   } catch (error) {
