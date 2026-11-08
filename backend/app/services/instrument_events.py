@@ -43,6 +43,14 @@ logger = logging.getLogger(__name__)
 EVENT_FETCH_VERSION = 3
 
 
+def _as_utc(value: datetime | None) -> datetime | None:
+    if value is None:
+        return None
+    if value.tzinfo is None or value.utcoffset() is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
+
+
 def instrument_events_refresh_request_key(
     instrument_id: int,
     state: InstrumentEventFetchState | None = None,
@@ -80,7 +88,7 @@ async def enqueue_instrument_events_refresh(
     if instrument.is_synthetic:
         return False
 
-    current = now or datetime.now(UTC)
+    current = _as_utc(now) or datetime.now(UTC)
     fresh_dataset = (
         await db.execute(
             select(InstrumentDatasetState)
@@ -132,11 +140,12 @@ async def enqueue_instrument_events_refresh(
     )
     if terminal_without_retry and not refresh:
         return False
-    existing_wait_is_live = (
-        existing_job is not None
-        and existing_job.status in {"retry", "deferred"}
-        and existing_job.next_attempt_at > current
-    )
+    existing_wait_is_live = existing_job is not None and existing_job.status in {
+        "retry",
+        "deferred",
+    }
+    if existing_wait_is_live:
+        existing_wait_is_live = _as_utc(existing_job.next_attempt_at) > _as_utc(current)
     if existing_wait_is_live and not refresh:
         return False
 
@@ -169,30 +178,7 @@ async def instrument_events_refresh_status(
 ) -> dict[str, object]:
     """Project existing cache and durable job state for a Calendar client."""
 
-    current = now or datetime.now(UTC)
-    fresh_dataset = (
-        await db.execute(
-            select(InstrumentDatasetState)
-            .where(
-                InstrumentDatasetState.instrument_id == instrument.id,
-                InstrumentDatasetState.dataset_type == "events",
-                InstrumentDatasetState.dataset_key == "calendar",
-                InstrumentDatasetState.status == DatasetStatus.FRESH,
-                InstrumentDatasetState.stale_after.is_not(None),
-                InstrumentDatasetState.stale_after > current,
-            )
-            .limit(1)
-        )
-    ).scalar_one_or_none()
-    if fresh_dataset is not None:
-        return {
-            "status": "ready",
-            "has_pending_work": False,
-            "retry_at": None,
-            "reason_code": None,
-            "updated_at": fresh_dataset.fetched_at or fresh_dataset.observed_at,
-        }
-
+    current = _as_utc(now) or datetime.now(UTC)
     state = (
         await db.execute(
             select(InstrumentEventFetchState)
@@ -208,6 +194,97 @@ async def instrument_events_refresh_status(
             select(MarketRefreshJob).where(MarketRefreshJob.request_key == request_key)
         )
     ).scalar_one_or_none()
+    # Accepted queue work takes precedence over cache freshness. A fresh page
+    # may coexist with an explicit refresh or a cursor continuation; reporting
+    # ready first would cause clients to stop observing before that work ends.
+    if job is not None and job.status == "leased":
+        return {
+            "status": "running",
+            "has_pending_work": True,
+            "retry_at": None,
+            "reason_code": None,
+            "updated_at": _as_utc(job.updated_at or job.created_at),
+        }
+    if job is not None and job.status == "queued":
+        return {
+            "status": "queued",
+            "has_pending_work": True,
+            "retry_at": _as_utc(job.next_attempt_at),
+            "reason_code": None,
+            "updated_at": _as_utc(job.updated_at or job.created_at),
+        }
+    if job is not None and job.status in {"retry", "deferred"}:
+        defer_reason = (job.metadata_payload or {}).get("defer_reason")
+        return {
+            "status": "deferred",
+            "has_pending_work": True,
+            "retry_at": _as_utc(job.next_attempt_at),
+            "reason_code": "provider_reset"
+            if defer_reason == "provider_reset"
+            else "retry_backoff"
+            if job.status == "retry"
+            else "retry_wait",
+            "updated_at": _as_utc(job.updated_at or job.created_at),
+        }
+
+    if state is not None and state.fetch_version >= EVENT_FETCH_VERSION and not state.complete:
+        summary = (job.result_summary if job is not None else None) or {}
+        stored_status = str(summary.get("preparation_status") or "")
+        if stored_status in {"held", "unavailable"}:
+            return {
+                "status": stored_status,
+                "has_pending_work": False,
+                "retry_at": summary.get("retry_at"),
+                "reason_code": summary.get("reason_code"),
+                "updated_at": _as_utc(
+                    (job.updated_at or job.finished_at or job.created_at)
+                    if job is not None
+                    else state.fetched_at
+                ),
+            }
+        return {
+            "status": "partial",
+            "has_pending_work": False,
+            "retry_at": summary.get("retry_at"),
+            "reason_code": summary.get("reason_code")
+            or (
+                "event_continuation_not_queued"
+                if state.continuation_token
+                else "event_page_incomplete"
+            ),
+            "updated_at": _as_utc(
+                (job.updated_at or job.finished_at or job.created_at)
+                if job is not None
+                else state.fetched_at
+            ),
+        }
+
+    fresh_dataset = (
+        await db.execute(
+            select(InstrumentDatasetState)
+            .where(
+                InstrumentDatasetState.instrument_id == instrument.id,
+                InstrumentDatasetState.dataset_type == "events",
+                InstrumentDatasetState.dataset_key == "calendar",
+                InstrumentDatasetState.status == DatasetStatus.FRESH,
+                InstrumentDatasetState.stale_after.is_not(None),
+                InstrumentDatasetState.stale_after > current,
+            )
+            .order_by(
+                InstrumentDatasetState.fetched_at.desc(),
+                InstrumentDatasetState.observed_at.desc(),
+            )
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    if fresh_dataset is not None:
+        return {
+            "status": "ready",
+            "has_pending_work": False,
+            "retry_at": None,
+            "reason_code": None,
+            "updated_at": _as_utc(fresh_dataset.fetched_at or fresh_dataset.observed_at),
+        }
     if job is None:
         return {
             "status": "not_requested",
@@ -215,36 +292,6 @@ async def instrument_events_refresh_status(
             "retry_at": None,
             "reason_code": None,
             "updated_at": None,
-        }
-
-    if job.status == "leased":
-        return {
-            "status": "running",
-            "has_pending_work": True,
-            "retry_at": None,
-            "reason_code": None,
-            "updated_at": job.updated_at or job.created_at,
-        }
-    if job.status == "queued":
-        return {
-            "status": "queued",
-            "has_pending_work": True,
-            "retry_at": job.next_attempt_at,
-            "reason_code": None,
-            "updated_at": job.updated_at or job.created_at,
-        }
-    if job.status in {"retry", "deferred"}:
-        defer_reason = (job.metadata_payload or {}).get("defer_reason")
-        return {
-            "status": "deferred",
-            "has_pending_work": True,
-            "retry_at": job.next_attempt_at,
-            "reason_code": "provider_reset"
-            if defer_reason == "provider_reset"
-            else "retry_backoff"
-            if job.status == "retry"
-            else "retry_wait",
-            "updated_at": job.updated_at or job.created_at,
         }
 
     summary = job.result_summary or {}
@@ -256,7 +303,7 @@ async def instrument_events_refresh_status(
             "has_pending_work": False,
             "retry_at": None,
             "reason_code": "calendar_cache_stale",
-            "updated_at": job.updated_at or job.finished_at or job.created_at,
+            "updated_at": _as_utc(job.updated_at or job.finished_at or job.created_at),
         }
     if preparation_status in {"ready", "partial", "held", "unavailable"}:
         return {
@@ -264,14 +311,14 @@ async def instrument_events_refresh_status(
             "has_pending_work": False,
             "retry_at": summary.get("retry_at"),
             "reason_code": reason_code,
-            "updated_at": job.updated_at or job.finished_at or job.created_at,
+            "updated_at": _as_utc(job.updated_at or job.finished_at or job.created_at),
         }
     return {
         "status": "unavailable",
         "has_pending_work": False,
         "retry_at": None,
         "reason_code": "refresh_failed",
-        "updated_at": job.updated_at or job.finished_at or job.created_at,
+        "updated_at": _as_utc(job.updated_at or job.finished_at or job.created_at),
     }
 
 
