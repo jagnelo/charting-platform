@@ -929,20 +929,55 @@ test('SPY and all eleven sector charts use real bars, and both sector/SPY ratios
   const groupSymbols = group.members.map(member => member.instrument.symbol).sort()
   expect(groupSymbols).toEqual([...SECTOR_SYMBOLS].sort())
 
-  const ratioResponses = new Map<string, RatioResponse>()
-  for (const symbol of SECTOR_SYMBOLS) {
-    for (const [primary, benchmark] of [[symbol, 'SPY'], ['SPY', symbol]] as const) {
-      const response = await getJson<RatioResponse>(request, token, '/api/v1/analysis/relative-strength', {
-        symbol: primary,
-        benchmark,
-        timeframe: 'D1',
-        adjusted: true,
-      })
-      ratioResponses.set(`${primary}/${benchmark}`, response)
-    }
+  // The public UI actions below produce the actual backend response for each
+  // of the 22 directed pairs. Reuse those responses for independent arithmetic
+  // instead of first issuing a duplicate set of 22 serial API requests.
+  const uiRatioResponses = new Map<string, RatioResponse>()
+
+  const spyChartResponse = page.waitForResponse(response => response.ok() && barResponseFor(response, 'SPY', 'D1'))
+  await page.reload()
+  await assertChartRendered(page, 'SPY', await spyChartResponse.then(response => response.json() as Promise<Bar[]>))
+
+  const ratioTool = page.locator('.tool-window[data-window-key="ratio-chart"] .ratio-chart')
+  const sectorList = page.locator('.tool-window[data-window-key="sector-list"]')
+    .getByRole('listbox', { name: 'Relative to SPY symbols' })
+  for (let index = 0; index < SECTOR_SYMBOLS.length; index += 1) {
+    const symbol = SECTOR_SYMBOLS[index]
+    await sectorList.evaluate((element: HTMLElement, rowIndex) => {
+      element.scrollTop = Math.max(0, rowIndex * 28 - element.clientHeight / 2)
+      element.dispatchEvent(new Event('scroll'))
+    }, index)
+    const option = sectorList.getByRole('option', { name: new RegExp(`^${symbol}\\b`) })
+    await expect(option).toBeVisible()
+    const chartResponse = page.waitForResponse(response => response.ok() && barResponseFor(response, symbol, 'D1'))
+    const uiRatioResponse = page.waitForResponse(response => response.ok() && relativeStrengthResponseFor(response, symbol, 'SPY'))
+    await option.click()
+    await assertChartRendered(page, symbol, await chartResponse.then(response => response.json() as Promise<Bar[]>))
+    const visibleRatio = await uiRatioResponse.then(response => response.json() as Promise<RatioResponse>)
+    uiRatioResponses.set(`${symbol}/SPY`, visibleRatio)
+    await assertRatioUiLine(page, symbol, 'SPY', visibleRatio)
+    await expect(ratioTool.locator('.ratio-chart__legend strong')).toContainText(`${symbol}/SPY`)
   }
 
-  const ratioTimestamps = [...ratioResponses.values()].flatMap(response => response.points.map(point => Date.parse(point.timestamp)))
+  // The active-symbol control chooses the numerator; RatioUPlot's public
+  // Compare control adds each inverse SPY/sector leg to the visible chart.
+  const activeSymbol = page.getByRole('combobox', { name: 'Active symbol' })
+  await activeSymbol.fill('SPY')
+  const activeSpyBars = page.waitForResponse(response => response.ok() && barResponseFor(response, 'SPY', 'D1'))
+  await page.getByRole('button', { name: 'Go' }).click()
+  await assertChartRendered(page, 'SPY', await activeSpyBars.then(response => response.json() as Promise<Bar[]>))
+  for (const symbol of SECTOR_SYMBOLS) {
+    const compare = ratioTool.getByRole('textbox', { name: 'Ratio comparison symbol' })
+    await compare.fill(symbol)
+    const uiRatioResponse = page.waitForResponse(response => response.ok() && relativeStrengthResponseFor(response, 'SPY', symbol))
+    await ratioTool.getByRole('button', { name: 'Add ratio comparison' }).click()
+    const visibleRatio = await uiRatioResponse.then(response => response.json() as Promise<RatioResponse>)
+    uiRatioResponses.set(`SPY/${symbol}`, visibleRatio)
+    await assertRatioUiLine(page, 'SPY', symbol, visibleRatio)
+  }
+
+  expect(uiRatioResponses.size, 'the public UI must request every direction for all 11 sector pairs').toBe(SECTOR_SYMBOLS.length * 2)
+  const ratioTimestamps = [...uiRatioResponses.values()].flatMap(response => response.points.map(point => Date.parse(point.timestamp)))
   expect(ratioTimestamps.length, 'the actual ratio APIs must return aligned split-adjusted points').toBeGreaterThan(0)
   const start = new Date(Math.min(...ratioTimestamps)).toISOString()
   const end = new Date(Math.max(...ratioTimestamps)).toISOString()
@@ -969,63 +1004,9 @@ test('SPY and all eleven sector charts use real bars, and both sector/SPY ratios
         benchmark,
         adjustedBarsBySymbol.get(primary)!,
         adjustedBarsBySymbol.get(benchmark)!,
-        ratioResponses.get(`${primary}/${benchmark}`)!,
+        uiRatioResponses.get(`${primary}/${benchmark}`)!,
       )
     }
-  }
-
-  const spyChartResponse = page.waitForResponse(response => response.ok() && barResponseFor(response, 'SPY', 'D1'))
-  await page.reload()
-  await assertChartRendered(page, 'SPY', await spyChartResponse.then(response => response.json() as Promise<Bar[]>))
-
-  const ratioTool = page.locator('.tool-window[data-window-key="ratio-chart"] .ratio-chart')
-  const sectorList = page.locator('.tool-window[data-window-key="sector-list"]')
-    .getByRole('listbox', { name: 'Relative to SPY symbols' })
-  for (let index = 0; index < SECTOR_SYMBOLS.length; index += 1) {
-    const symbol = SECTOR_SYMBOLS[index]
-    await sectorList.evaluate((element: HTMLElement, rowIndex) => {
-      element.scrollTop = Math.max(0, rowIndex * 28 - element.clientHeight / 2)
-      element.dispatchEvent(new Event('scroll'))
-    }, index)
-    const option = sectorList.getByRole('option', { name: new RegExp(`^${symbol}\\b`) })
-    await expect(option).toBeVisible()
-    const chartResponse = page.waitForResponse(response => response.ok() && barResponseFor(response, symbol, 'D1'))
-    const uiRatioResponse = page.waitForResponse(response => response.ok() && relativeStrengthResponseFor(response, symbol, 'SPY'))
-    await option.click()
-    await assertChartRendered(page, symbol, await chartResponse.then(response => response.json() as Promise<Bar[]>))
-    const visibleRatio = await uiRatioResponse.then(response => response.json() as Promise<RatioResponse>)
-    assertRatioMatchesAdjustedIntersection(
-      symbol,
-      'SPY',
-      adjustedBarsBySymbol.get(symbol)!,
-      adjustedBarsBySymbol.get('SPY')!,
-      visibleRatio,
-    )
-    await assertRatioUiLine(page, symbol, 'SPY', visibleRatio)
-    await expect(ratioTool.locator('.ratio-chart__legend strong')).toContainText(`${symbol}/SPY`)
-  }
-
-  // The active-symbol control chooses the numerator; RatioUPlot's public
-  // Compare control adds each inverse SPY/sector leg to the visible chart.
-  const activeSymbol = page.getByRole('combobox', { name: 'Active symbol' })
-  await activeSymbol.fill('SPY')
-  const activeSpyBars = page.waitForResponse(response => response.ok() && barResponseFor(response, 'SPY', 'D1'))
-  await page.getByRole('button', { name: 'Go' }).click()
-  await assertChartRendered(page, 'SPY', await activeSpyBars.then(response => response.json() as Promise<Bar[]>))
-  for (const symbol of SECTOR_SYMBOLS) {
-    const compare = ratioTool.getByRole('textbox', { name: 'Ratio comparison symbol' })
-    await compare.fill(symbol)
-    const uiRatioResponse = page.waitForResponse(response => response.ok() && relativeStrengthResponseFor(response, 'SPY', symbol))
-    await ratioTool.getByRole('button', { name: 'Add ratio comparison' }).click()
-    const visibleRatio = await uiRatioResponse.then(response => response.json() as Promise<RatioResponse>)
-    assertRatioMatchesAdjustedIntersection(
-      'SPY',
-      symbol,
-      adjustedBarsBySymbol.get('SPY')!,
-      adjustedBarsBySymbol.get(symbol)!,
-      visibleRatio,
-    )
-    await assertRatioUiLine(page, 'SPY', symbol, visibleRatio)
   }
 })
 

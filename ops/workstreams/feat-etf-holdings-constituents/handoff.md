@@ -19057,3 +19057,10 @@ Focused regressions keep the DIA dates request pending while selecting SPY, then
 Root's complete frontend unit run on source `52de7718fd367c192780fbe7016514c785928478` found two owned assertion failures in `test_instrument_note_tool.test.ts`. The exact shared `fetchCanonicalInstrument` implementation at that source sends canonical instrument GETs with the third options argument `{ priority: 'high' }`; the two QQQ-success and UNKNOWN-not-found expectations now assert that exact request. Existing identity-pending, not-found, disabled-editor, and note lifecycle assertions are unchanged.
 
 The local ETF worktree intentionally does not import that newer shared helper. Its current helper is still the older two-argument implementation, so the focused local module reports 6 passed / 2 failed exactly at the newly corrected options expectations. This is source skew, not a widened test allowance: Root's 52de runtime has the required third argument and owns validation on the composed source. No shared source or product component was edited here.
+
+
+## S&P directed-ratio journey request reuse — 2026-11-08
+
+Root's retained 52de full-profile trace showed the S&P first journey consuming its 180-second test budget before the inverse-ratio loop completed. The spec first fetched all 22 directed ratio pairs serially, then fetched those same 22 pairs again through the actual sector and comparison controls. It now retains each real UI response and uses that complete set for the independent split-adjusted bar-intersection arithmetic. The test still requires all 11 sector chart selections, all 22 directed API responses, visible ratio lines, exact timestamp/value matching, and actual adjusted bars; it no longer repeats the first 22 requests.
+
+Playwright discovery lists both S&P cases and `git diff --check` passes. No browser body was run; Root owns the retained combined fixture and must rerun this exact source before treating the timeout as resolved. No product source, fixture, API, or chart assertion was changed.
