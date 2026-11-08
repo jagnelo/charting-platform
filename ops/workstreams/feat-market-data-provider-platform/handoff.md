@@ -34133,3 +34133,8 @@ Owner evidence reports 2/2 SQLite query-count/output-equivalence cases; this Pro
 Root released TC source `db4b1f55f78b1d907aab9d062da9470b5e3cc109` for exact Provider development consumption. Verified all 150 manifest rows against source Git blobs, SHA-256 values, and modes; all 37 Provider old guards matched; imported only the 37 declared Provider paths. All 150 foreign context paths now match the released source. The exact contract is retained at `ops/workstreams/feat-market-data-provider-platform/development-dependency-imports/db4b1f55f78b1d907aab9d062da9470b5e3cc109-full-frontend-context.json`.
 
 The previous e750 frontend context remains archived in its existing manifest and handoff history. Backend fc220 (81 paths), operator aed0 (3 paths), and existing ETF/Strategy pins were preserved. No browser, Docker, native/provider HTTP, full suite, CI, production, quota, or policy operation was performed. This is development context only; Root owns combined qualification and release.
+
+
+## 2026-11-08 — consume TC common runtime context 1379d956
+
+Root released TC source `1379d9567a27c7262ea0bc62a1c3e04352916029` for exact development consumption. Verified the contract SHA-256, all 114 manifest rows (SHA-256/Git blob/mode), all 18 Provider old guards, and imported only the 18 declared Provider paths. The active common pointer now names this source; the previous DB4 common manifest remains archived, and Provider, ETF, and Strategy domain pins are preserved. This is compatible development context only; no producer suite, browser, provider HTTP, runtime, quota, or release gate was run. Exact-source CI and combined qualification remain Root-owned.

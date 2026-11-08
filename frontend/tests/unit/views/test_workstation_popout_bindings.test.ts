@@ -1071,6 +1071,89 @@ describe('WorkstationView pop-out bindings', () => {
     }
   })
 
+  it('keeps a verified symbol selected while the initial workspace read completes later', async () => {
+    routeState.path = '/chart'
+    routeState.params = {}
+    const originalWorkspace = harness.workspace
+    harness.workspace = reactive(originalWorkspace)
+    harness.workspace.linkedSymbol = 'SPY'
+    harness.workspace.workspace.settings.linked_symbols = { blue: { symbol: 'SPY', instrument_id: 2 } }
+    const isolatedTool = {
+      instance_key: 'isolated-study', tool_type: 'study_lab', title: 'Isolated Study',
+      link_group: 'grey', configuration: { symbol: 'XLB', instrument_id: 43 },
+    }
+    harness.workspace.workspace.tabs[0]!.windows.push(isolatedTool)
+    harness.workspace.publishSymbol.mockImplementation((event: any) => {
+      harness.workspace.linkedSymbol = event.symbol
+    })
+    let finishWorkspaceLoad!: () => void
+    harness.workspace.loadDefault.mockReturnValueOnce(new Promise<void>(resolve => {
+      finishWorkspaceLoad = () => {
+        harness.workspace.linkedSymbol = 'SPY'
+        resolve()
+      }
+    }))
+    apiGet.mockImplementation(async (path: string, params?: Record<string, unknown>) => {
+      if (path === '/instruments/search') return []
+      return []
+    })
+    apiPost.mockImplementation(async (path: string, body: Record<string, any>) => {
+      if (path === '/instruments/discover') return {
+        request_id: 'tcnew-discovery', status: 'complete',
+        candidates: [{ symbol: 'TCNEW', name: 'Test Instrument', exchange: 'TEST', type: 'Stock', provider: 'fixture', instrument_id: null, identity_status: 'provider_candidate' }],
+        source_outcomes: [],
+      }
+      if (path === '/instruments/acquire') return {
+        request_id: body.request_id, status: 'resolved',
+        instrument: { instrument_id: 990011, symbol: 'TCNEW', identity_status: 'resolved', instrument_type: 'Common Stock' },
+        source_outcomes: [],
+      }
+      throw new Error(`Unexpected request: ${path}`)
+    })
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+
+    try {
+      await vi.waitFor(() => expect(harness.workspace.loadDefault).toHaveBeenCalled())
+      const input = wrapper.get('input[aria-label="Active symbol"]')
+      await input.setValue('TCNEW')
+      const candidate = await vi.waitFor(() => {
+        const button = wrapper.findAll('.workstation__source-option').find(item => item.text().includes('Use TCNEW'))
+        expect(button).toBeTruthy()
+        return button!
+      })
+      await candidate.trigger('click')
+      await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({
+        symbol: 'TCNEW', instrumentId: 990011, group: 'blue',
+      })))
+      expect(wrapper.get('input[aria-label="Active symbol"]').element.value).toBe('TCNEW')
+
+      finishWorkspaceLoad()
+      await vi.waitFor(() => {
+        expect(harness.workspace.linkedSymbol).toBe('TCNEW')
+        expect(wrapper.get('input[aria-label="Active symbol"]').element.value).toBe('TCNEW')
+      })
+      expect(routerReplace).toHaveBeenLastCalledWith(expect.objectContaining({ path: '/chart/TCNEW' }))
+      expect(harness.workspace.publishSymbol).toHaveBeenLastCalledWith(expect.objectContaining({
+        symbol: 'TCNEW', instrumentId: 990011, group: 'blue',
+      }))
+      expect(isolatedTool.configuration).toEqual({ symbol: 'XLB', instrument_id: 43 })
+      expect(dataPreparationPost).toHaveBeenCalledWith(expect.objectContaining({
+        target: { kind: 'instrument', instrument_id: 990011 },
+        datasets: ['identity', 'profile', 'history'],
+        timeframe: 'D1',
+      }), expect.anything())
+    } finally {
+      finishWorkspaceLoad()
+      wrapper.unmount()
+      harness.workspace = originalWorkspace
+      harness.workspace.workspace.tabs[0]!.windows = harness.workspace.workspace.tabs[0]!.windows.filter(
+        tool => tool.instance_key !== 'isolated-study',
+      )
+    }
+  })
+
   it('cancels a held dashboard discovery when the user edits to a different query', async () => {
     routeState.path = '/'
     routeState.params = {}

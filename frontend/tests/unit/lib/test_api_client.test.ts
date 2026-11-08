@@ -139,6 +139,42 @@ describe('api.get', () => {
     await Promise.all([...preparations, foreground])
   })
 
+  it('admits an active user read ahead of queued high-priority startup work and then resumes it', async () => {
+    setTokens('tok', 'ref')
+    const deferredResponses: Array<{ resolve: (response: unknown) => void }> = []
+    ;(global.fetch as ReturnType<typeof vi.fn>).mockImplementation(() => new Promise(resolve => {
+      deferredResponses.push({ resolve })
+    }))
+    const { api } = await import('@/lib/api')
+    const response = () => ({ ok: true, status: 200, json: () => Promise.resolve({}), text: () => Promise.resolve('') })
+
+    // Match the observed browser state: five bounded startup reads and one
+    // interactive startup read occupy all six transport slots.
+    const startupData = Array.from({ length: 4 }, (_, index) => api.get(`/analysis/startup-${index}`, undefined, { priority: 'high' }))
+    const lowStartup = api.get('/settings/background', undefined, { priority: 'low' })
+    const startupLookup = api.get('/coverage/instruments/SPY', undefined, { priority: 'high' })
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(6))
+
+    const queuedStartup = Array.from({ length: 8 }, (_, index) => api.get(`/coverage/startup-${index}`, undefined, { priority: 'high' }))
+    const visibleResults = api.get('/research/runs', undefined, { priority: 'high', foreground: true })
+    deferredResponses[5]!.resolve(response())
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(7))
+    expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[6]?.[0])).toContain('/research/runs')
+
+    // Completing the foreground read frees its slot for earlier queued
+    // startup work; foreground intent does not stall the bounded queue.
+    deferredResponses[6]!.resolve(response())
+    await visibleResults
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(8))
+    expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[7]?.[0])).toContain('/coverage/startup-')
+
+    for (let index = 0; index < 15; index += 1) {
+      await vi.waitFor(() => expect(deferredResponses.length).toBeGreaterThan(index))
+      deferredResponses[index]!.resolve(response())
+    }
+    await Promise.all([...startupData, lowStartup, startupLookup, ...queuedStartup])
+  })
+
   it('bounds high-priority analysis and market-data reads while admitting Notes, Results, and canonical identity lookups', async () => {
     setTokens('tok', 'ref')
     const deferredResponses: Array<{ resolve: (response: unknown) => void }> = []

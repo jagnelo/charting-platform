@@ -1226,6 +1226,8 @@ test.describe('Chart', () => {
       // direct route is only used to restore the shared Workstation starting
       // point for the next ordinary menu activation.
       await page.goto('/chart')
+      await expect(page).toHaveURL(/\/chart\/SPY$/)
+      await expect(page.locator('.workspace-layout-host')).toBeVisible()
       const trigger = page.getByRole('button', { name: 'Open application navigation' })
       await expect(trigger).toBeVisible()
       await trigger.click()
