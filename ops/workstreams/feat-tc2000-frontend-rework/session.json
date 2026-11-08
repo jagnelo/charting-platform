@@ -414,7 +414,7 @@
   "local_candidate_capture": "exact current branch HEAD after staging16 remediation and one-case proof; Root push and exact full staging104 pending",
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
-  "next_action": "Complete cheap strict scope/workstream/journey/reference checks, commit this coherent successor, and freeze it for Root’s affected browser and native verification. Continue only on concrete Root evidence.",
+  "next_action": "Complete cheap strict scope/workstream/journey/reference checks, commit this coherent successor, and freeze it for Root\u2019s affected browser and native verification. Continue only on concrete Root evidence.",
   "owned_runtime_cleanup": {
     "after_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-after.json (SHA256 3696bb48051e0e6cf11d45af99ac118d302f454337b6fbd48df8dbeae57d157b)",
     "before_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-before.json (SHA256 8f1eeb19f585da67cfea43f8c35a4aa11baa3aa6d3510a065afd0f95498505bf)",
@@ -445,7 +445,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "f2df267313ab2b0ec8f13a8ae8a778e9df1a5d059401f2a040265896fa6c2b31",
+  "plan_hash": "bdac246f93bb9d8212dc53e09084e08af81bb68c3bf9557d1b73f45bbe3564cb",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
