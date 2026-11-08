@@ -121,6 +121,16 @@ function relativeStrengthResponseFor(response: Response, numerator: string, deno
     && url.searchParams.get('adjusted') === 'true'
 }
 
+function relativeStrengthPairFor(response: Response): string | null {
+  const url = new URL(response.url())
+  if (url.pathname !== '/api/v1/analysis/relative-strength'
+    || url.searchParams.get('timeframe') !== 'D1'
+    || url.searchParams.get('adjusted') !== 'true') return null
+  const symbol = url.searchParams.get('symbol')
+  const benchmark = url.searchParams.get('benchmark')
+  return symbol && benchmark ? `${symbol}/${benchmark}` : null
+}
+
 function rotationPercent(value: number): string {
   return `${(value * 100).toFixed(2)}%`
 }
@@ -933,6 +943,16 @@ test('SPY and all eleven sector charts use real bars, and both sector/SPY ratios
   // of the 22 directed pairs. Reuse those responses for independent arithmetic
   // instead of first issuing a duplicate set of 22 serial API requests.
   const uiRatioResponses = new Map<string, RatioResponse>()
+  const observedPageRatioResponses = new Map<string, Response>()
+  const capturePageRatioResponse = (response: Response) => {
+    if (!response.ok()) return
+    const pair = relativeStrengthPairFor(response)
+    if (pair) observedPageRatioResponses.set(pair, response)
+  }
+  // Observe real page traffic before reload and any symbol selection so a
+  // comparison already present in the public control can reuse its exact
+  // successful response instead of waiting for a duplicate Add request.
+  page.on('response', capturePageRatioResponse)
 
   const spyChartResponse = page.waitForResponse(response => response.ok() && barResponseFor(response, 'SPY', 'D1'))
   await page.reload()
@@ -953,7 +973,9 @@ test('SPY and all eleven sector charts use real bars, and both sector/SPY ratios
     const uiRatioResponse = page.waitForResponse(response => response.ok() && relativeStrengthResponseFor(response, symbol, 'SPY'))
     await option.click()
     await assertChartRendered(page, symbol, await chartResponse.then(response => response.json() as Promise<Bar[]>))
-    const visibleRatio = await uiRatioResponse.then(response => response.json() as Promise<RatioResponse>)
+    const actualResponse = await uiRatioResponse
+    observedPageRatioResponses.set(`${symbol}/SPY`, actualResponse)
+    const visibleRatio = await actualResponse.json() as RatioResponse
     uiRatioResponses.set(`${symbol}/SPY`, visibleRatio)
     await assertRatioUiLine(page, symbol, 'SPY', visibleRatio)
     await expect(ratioTool.locator('.ratio-chart__legend strong')).toContainText(`${symbol}/SPY`)
@@ -969,10 +991,26 @@ test('SPY and all eleven sector charts use real bars, and both sector/SPY ratios
   for (const symbol of SECTOR_SYMBOLS) {
     const compare = ratioTool.getByRole('textbox', { name: 'Ratio comparison symbol' })
     await compare.fill(symbol)
-    const uiRatioResponse = page.waitForResponse(response => response.ok() && relativeStrengthResponseFor(response, 'SPY', symbol))
+    const pair = `SPY/${symbol}`
+    const removeControl = ratioTool.getByRole('button', { name: `Remove ratio comparison ${symbol}` })
+    const existingLegCount = await removeControl.count()
+    expect(existingLegCount, `${pair} has at most one existing public comparison control`).toBeLessThanOrEqual(1)
+    const previouslyObservedResponse = observedPageRatioResponses.get(pair)
+    if (existingLegCount === 1) {
+      expect(previouslyObservedResponse, `${pair} existing leg has an actual successful page response`).toBeDefined()
+    }
+    const newResponse = existingLegCount === 0
+      ? page.waitForResponse(response => response.ok() && relativeStrengthResponseFor(response, 'SPY', symbol))
+      : null
     await ratioTool.getByRole('button', { name: 'Add ratio comparison' }).click()
-    const visibleRatio = await uiRatioResponse.then(response => response.json() as Promise<RatioResponse>)
-    uiRatioResponses.set(`SPY/${symbol}`, visibleRatio)
+    await expect(removeControl, `${pair} is represented by exactly one public chip after Add`).toHaveCount(1)
+    const actualResponse = existingLegCount === 1
+      ? previouslyObservedResponse!
+      : await newResponse!
+    expect(actualResponse.ok(), `${pair} must use a successful actual page response`).toBe(true)
+    observedPageRatioResponses.set(pair, actualResponse)
+    const visibleRatio = await actualResponse.json() as RatioResponse
+    uiRatioResponses.set(pair, visibleRatio)
     await assertRatioUiLine(page, 'SPY', symbol, visibleRatio)
   }
 

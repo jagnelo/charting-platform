@@ -19064,3 +19064,10 @@ The local ETF worktree intentionally does not import that newer shared helper. I
 Root's retained 52de full-profile trace showed the S&P first journey consuming its 180-second test budget before the inverse-ratio loop completed. The spec first fetched all 22 directed ratio pairs serially, then fetched those same 22 pairs again through the actual sector and comparison controls. It now retains each real UI response and uses that complete set for the independent split-adjusted bar-intersection arithmetic. The test still requires all 11 sector chart selections, all 22 directed API responses, visible ratio lines, exact timestamp/value matching, and actual adjusted bars; it no longer repeats the first 22 requests.
 
 Playwright discovery lists both S&P cases and `git diff --check` passes. No browser body was run; Root owns the retained combined fixture and must rerun this exact source before treating the timeout as resolved. No product source, fixture, API, or chart assertion was changed.
+
+
+## S&P idempotent comparison response reconciliation — 2026-11-08
+
+Root confirmed that the first-direction UI pass can already create the inverse comparison leg. The second pass now inspects the public Remove control: if that exact leg exists, it requires a previously observed successful page response for that pair, performs the ordinary Add action, and asserts exactly one chip plus the visible ratio canvas line. If no leg exists, it arms a pair-specific page-response waiter before Add and requires the new successful response. All 22 directed UI pair payloads remain the arithmetic inputs; no ratio request is mocked or fabricated.
+
+The page response listener is installed before reload/selection to retain actual earlier pair responses. Playwright discovery lists both S&P cases, the workstream validator passes, and `git diff --check` passes. No browser body ran. Root's published-prior guard for the new test path must remain exact; if the TC consumer has proposed bytes newer than that prior, Root must reconcile that conflict rather than weakening the guard.
