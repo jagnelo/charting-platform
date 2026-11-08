@@ -141,9 +141,6 @@
           <span v-if="selectedCapability.failure_class" class="capability-failure-class">
             Last check classification: {{ capabilityFailureLabel(selectedCapability.failure_class) }}.
           </span>
-          <span v-if="selectedCapability.symbol_audit?.next_action" class="capability-next-action">
-            Next source-review action: {{ selectedCapability.symbol_audit.next_action }}
-          </span>
           <span v-if="page" data-testid="etf-selected-snapshot-currentness">
             The displayed saved snapshot remains available for historical review and is not verified as current.
           </span>
@@ -675,39 +672,49 @@
           </div>
         </section>
 
-        <details v-if="page" class="snapshot-source-details" data-testid="etf-snapshot-details">
+        <details
+          v-if="page || selectedCapability?.symbol_audit?.next_action"
+          class="snapshot-source-details"
+          data-testid="etf-snapshot-details"
+        >
           <summary>Source details</summary>
           <dl class="snapshot-lineage">
-            <div>
-              <dt>Provenance</dt>
-              <dd>{{ formatProvenance(page.snapshot.provenance) }}</dd>
-            </div>
-            <div>
-              <dt>Source provider</dt>
-              <dd>{{ page.snapshot.source_provider || 'Not established' }}</dd>
-            </div>
-            <div>
-              <dt>Source identifier</dt>
-              <dd data-testid="etf-snapshot-source-identifier">{{ page.snapshot.source_identifier || 'Not established' }}</dd>
-            </div>
-            <div>
-              <dt>Source document</dt>
-              <dd data-testid="etf-snapshot-source-url">{{ page.snapshot.source_url || 'Not established' }}</dd>
-            </div>
-            <div>
-              <dt>Observed / known at</dt>
-              <dd>{{ page.snapshot.known_at ? formatDateTime(page.snapshot.known_at) : 'Unknown' }}</dd>
-            </div>
-            <div>
-              <dt>Source-reported publication</dt>
-              <dd>
-                <time
-                  v-if="page.snapshot.published_at"
-                  data-testid="etf-snapshot-published-at"
-                  :datetime="page.snapshot.published_at"
-                >{{ formatDateTime(page.snapshot.published_at) }}</time>
-                <span v-else>Not established</span>
-              </dd>
+            <template v-if="page">
+              <div>
+                <dt>Provenance</dt>
+                <dd>{{ formatProvenance(page.snapshot.provenance) }}</dd>
+              </div>
+              <div>
+                <dt>Source provider</dt>
+                <dd>{{ page.snapshot.source_provider || 'Not established' }}</dd>
+              </div>
+              <div>
+                <dt>Source identifier</dt>
+                <dd data-testid="etf-snapshot-source-identifier">{{ page.snapshot.source_identifier || 'Not established' }}</dd>
+              </div>
+              <div>
+                <dt>Source document</dt>
+                <dd data-testid="etf-snapshot-source-url">{{ page.snapshot.source_url || 'Not established' }}</dd>
+              </div>
+              <div>
+                <dt>Observed / known at</dt>
+                <dd>{{ page.snapshot.known_at ? formatDateTime(page.snapshot.known_at) : 'Unknown' }}</dd>
+              </div>
+              <div>
+                <dt>Source-reported publication</dt>
+                <dd>
+                  <time
+                    v-if="page.snapshot.published_at"
+                    data-testid="etf-snapshot-published-at"
+                    :datetime="page.snapshot.published_at"
+                  >{{ formatDateTime(page.snapshot.published_at) }}</time>
+                  <span v-else>Not established</span>
+                </dd>
+              </div>
+            </template>
+            <div v-if="selectedCapability?.symbol_audit?.next_action" data-testid="etf-source-review-action">
+              <dt>Source review action</dt>
+              <dd>{{ selectedCapability.symbol_audit.next_action }}</dd>
             </div>
           </dl>
         </details>
@@ -2636,10 +2643,6 @@ button.holding-row:hover,
   border-color: #693333;
   color: #ffb2b2;
   background: #1b0f0f;
-}
-.notice--capability .capability-next-action {
-  display: block;
-  color: #b9c6d8;
 }
 .notice--capability .capability-failure-class {
   display: block;

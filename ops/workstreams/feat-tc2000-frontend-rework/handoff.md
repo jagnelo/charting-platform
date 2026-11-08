@@ -27032,3 +27032,10 @@ The canonical inventory now has 90 mapped cases (64 E2E, 26 unit-only), 77 contr
 Root's finalized factory-copy trace showed the ordinary `Pass 9` action repeatedly intercepted by the generic breadth-history canvas (696×110), with the generic drilldown also sharing the cramped Breadth flex column. The history plot retains its minimum useful height while the generic member drilldown is now a non-shrinking, independently scrollable flex item inside the existing scrollable Breadth panel. No chart, calculation, member, or E2E assertion was changed. A focused mounted-component regression evaluates a real-shaped one-member result, verifies the history plot and Pass control coexist, and selects the member through its ordinary button.
 
 The focused WorkstationToolContent history/acquisition module passes 17/17; frontend type-check and current scope, workstream, journey-matrix, and diff checks pass. Root's original 16-case browser run remains in progress and owns rendered proof; no browser/runtime was started in TC. All nine critical-review slots and broader release criteria remain pending.
+
+
+## 2026-11-08 — Coalesce Strategy f7 and ETF 2bf UI successors
+
+Consumed only the two guarded Strategy f7 E2E files and four guarded ETF 2bf view/unit files. Both original old guards matched; the full Strategy 26-row and ETF 10-row manifests were verified against source Git blobs, SHA256 values and modes. The canonical manifests are archived under their source commit names, the prior 371/aae pins are preserved as superseded history, and only the active Strategy/ETF pins advance. The journey-matrix validator confirms current control signatures, case counts and mappings remain valid; no matrix or owner control rows needed alteration.
+
+The d5 Breadth fix and its focused test remain unchanged. Root's 16-case run on f9 ended 11/16 and does not qualify d5; the affected UI replay remains pending on the coalesced candidate. No producer suites, browser, fixture, native, or release operation ran in TC. The newly approved shared Calendar status consumer is the next bounded TC task; Provider owns its backend implementation.

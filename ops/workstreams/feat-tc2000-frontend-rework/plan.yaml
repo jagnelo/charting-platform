@@ -5533,6 +5533,56 @@ development_dependency_import_history:
       - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts
     state: superseded_development_import
     superseded_by: 371aa656fef7faed8c6139dfddba02b3248ee70a
+  - source_sha: aae3665b6a8512ea9c5d53d9d6397da7407005ee
+    manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/aae3665b6a8512ea9c5d53d9d6397da7407005ee.json
+    manifest_sha256: 62eb537f65c1b33a8290e30b329b762ec771e6bdf6b49e983b8bfe5e905e4a45
+    paths:
+    - frontend/src/components/workstation/InstrumentNoteTool.vue
+    - frontend/src/views/BasketsView.vue
+    - frontend/src/views/ETFHoldingsView.vue
+    - frontend/tests/e2e/baskets_journey.spec.ts
+    - frontend/tests/e2e/etf_holdings_preparation.spec.ts
+    - frontend/tests/e2e/sp500_analysis_journey.spec.ts
+    - frontend/tests/e2e/supporting_features_journey.spec.ts
+    - frontend/tests/unit/components/test_instrument_note_tool.test.ts
+    - frontend/tests/unit/views/test_baskets_view.test.ts
+    - frontend/tests/unit/views/test_etf_holdings_view.test.ts
+    state: superseded_development_import
+    superseded_by: 2bf4dad5bf9495af0b646238ee531e168f0d173a
+
+  - source_sha: 371aa656fef7faed8c6139dfddba02b3248ee70a
+    manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/371aa656fef7faed8c6139dfddba02b3248ee70a.json
+    manifest_sha256: 39baa48e8958dcfa1c15f7c59394dc7f5ddc7335c2101845d25c88f147edd536
+    paths:
+    - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
+    - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
+    - frontend/src/components/dashboard/DashboardInstrumentSearch.vue
+    - frontend/src/components/dashboard/DashboardLineChartWidget.vue
+    - frontend/src/components/dashboard/DashboardQuoteWidget.vue
+    - frontend/src/components/workstation/CodeLibraryTool.vue
+    - frontend/src/components/workstation/PythonSourceEditor.vue
+    - frontend/src/components/workstation/ResearchResultsTool.vue
+    - frontend/src/components/workstation/StudyLabTool.vue
+    - frontend/src/lib/workstation/researchQueryKeys.ts
+    - frontend/src/lib/workstation/researchRunCancellation.ts
+    - frontend/src/stores/dashboard.ts
+    - frontend/src/views/DashboardView.vue
+    - frontend/tests/e2e/dashboard_usability_journey.spec.ts
+    - frontend/tests/e2e/strategy_study_journey.spec.ts
+    - frontend/tests/e2e/workstation_lifecycle_journey.spec.ts
+    - frontend/tests/unit/components/test_code_library_tool.test.ts
+    - frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts
+    - frontend/tests/unit/components/test_dashboard_instrument_search.test.ts
+    - frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts
+    - frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts
+    - frontend/tests/unit/components/test_python_source_editor.test.ts
+    - frontend/tests/unit/components/test_research_results_tool.test.ts
+    - frontend/tests/unit/components/test_study_lab_tool.test.ts
+    - frontend/tests/unit/stores/test_dashboard_store.test.ts
+    - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts
+    state: superseded_development_import
+    superseded_by: f7cb9505acf697dd7ee082d01f668a44f3b00bed
+
 approved_development_dependency_imports:
 - source_sha: fc220242ff9ff8be603c632dc80350a90708bec7
   manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/fc220242ff9ff8be603c632dc80350a90708bec7.json
@@ -5619,9 +5669,9 @@ approved_development_dependency_imports:
   - backend/tests/unit/workers/test_arq_worker.py
   - backend/app/services/etf_holdings.py
   - backend/tests/unit/services/test_etf_holdings_catalogue.py
-- source_sha: aae3665b6a8512ea9c5d53d9d6397da7407005ee
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/aae3665b6a8512ea9c5d53d9d6397da7407005ee.json
-  manifest_sha256: 62eb537f65c1b33a8290e30b329b762ec771e6bdf6b49e983b8bfe5e905e4a45
+- source_sha: 2bf4dad5bf9495af0b646238ee531e168f0d173a
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/2bf4dad5bf9495af0b646238ee531e168f0d173a.json
+  manifest_sha256: fa43b44d58c2ca5416f823ad8114e2467240b1d879d044723dbc64266001e1c0
   paths:
   - frontend/src/components/workstation/InstrumentNoteTool.vue
   - frontend/src/views/BasketsView.vue
@@ -5633,9 +5683,9 @@ approved_development_dependency_imports:
   - frontend/tests/unit/components/test_instrument_note_tool.test.ts
   - frontend/tests/unit/views/test_baskets_view.test.ts
   - frontend/tests/unit/views/test_etf_holdings_view.test.ts
-- source_sha: 371aa656fef7faed8c6139dfddba02b3248ee70a
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/371aa656fef7faed8c6139dfddba02b3248ee70a.json
-  manifest_sha256: 39baa48e8958dcfa1c15f7c59394dc7f5ddc7335c2101845d25c88f147edd536
+- source_sha: f7cb9505acf697dd7ee082d01f668a44f3b00bed
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/f7cb9505acf697dd7ee082d01f668a44f3b00bed.json
+  manifest_sha256: 8914f098e99ec43fca4142e7a699d9da6841f5a7fd478e74f468729745e98a77
   paths:
   - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
   - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
@@ -5688,7 +5738,7 @@ breadth_generic_drilldown_geometry_20261108:
   cause: The history canvas retained its 110px minimum while the generic member drilldown was allowed to shrink in the constrained Breadth flex column, leaving ordinary Pass/Fail/member controls underneath the plot hit area.
   change: The generic drilldown is now a non-shrinking scrollable flex item; the existing Breadth panel retains outer scrolling and the history plot/data remain rendered.
   validation: WorkstationToolContent history/acquisition component module passes 17/17; frontend type-check, TC scope, workstream, canonical journey-matrix and diff checks pass.
-  pending: Root's active original 16-case browser run must prove ordinary Breadth Pass/Fail/member interaction in the copied layout; all remaining journey and release criteria remain open.
+  pending: The original 16-case run on f9e44e3e ended 11/16 and does not qualify d5ba8428. Root owns the affected UI replay on the coalesced successor; broader route, CI, and release criteria remain open.
 
 etf_sp500_compact_overflow_journey_successor_20261108:
   source: 646fe8d8e60acce32afcedf94de023c86b2d69fd
@@ -5720,3 +5770,16 @@ canonical_inventory_extension_20261108:
   imported_strategy: 371aa656fef7faed8c6139dfddba02b3248ee70a; exact five-path consumer delta and all 26 manifest rows verified; frozen owner matrix and two exact Strategy E2E cases mapped pending Root execution.
   validation: The scanner now inventories private ETF and Strategy controls, checks exact private-owner and case crosswalks, and self-tests missing controls, stale signatures, missing mappings, unknown journey IDs and stale summary counts.
   pending: All nine critical-review slots remain pending_root_receipt. Unit-only mappings are partial evidence; Root-rendered journeys and release acceptance remain pending.
+ui_candidate_coalesced_d5_f7_2bf_20261108:
+  root_assignment: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/root-TC-d5-Strategyf7-ETF2bf-UI-coalescing.json
+  base_tc_source: d5ba84285eb5c7285f5cb27a8fe6c54c247580e8
+  strategy_source: f7cb9505acf697dd7ee082d01f668a44f3b00bed
+  strategy_manifest: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/f7cb9505acf697dd7ee082d01f668a44f3b00bed.json
+  strategy_manifest_sha256: 8914f098e99ec43fca4142e7a699d9da6841f5a7fd478e74f468729745e98a77
+  strategy_imported_paths: frontend/tests/e2e/strategy_study_journey.spec.ts and frontend/tests/e2e/workstation_lifecycle_journey.spec.ts; all 26 manifest rows verified.
+  etf_source: 2bf4dad5bf9495af0b646238ee531e168f0d173a
+  etf_manifest: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/2bf4dad5bf9495af0b646238ee531e168f0d173a.json
+  etf_manifest_sha256: fa43b44d58c2ca5416f823ad8114e2467240b1d879d044723dbc64266001e1c0
+  etf_imported_paths: BasketsView, ETFHoldingsView, and their two view unit files; all 10 manifest rows verified.
+  validation: Exact old guards passed; journey-matrix validation confirms current control signatures, case counts and mappings remain valid.
+  pending: Root affected UI browser qualification; Provider Calendar dependency and all final route, CI, and release criteria remain open.

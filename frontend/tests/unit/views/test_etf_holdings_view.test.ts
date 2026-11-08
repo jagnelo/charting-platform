@@ -1775,12 +1775,14 @@ describe('ETFHoldingsView', () => {
   })
 
   it('distinguishes a displayed saved snapshot from a capability check that found no current-eligible snapshot', async () => {
+    const administrativeReviewAction = 'Record a symbol-scoped first-party source investigation before claiming support.'
     const capabilityWithoutCurrentSnapshot = {
       ...profile.holdings_capability,
       availability: 'unavailable',
       identity_verified: false,
       usable_for_current_analysis: false,
       reason: 'No holdings snapshot has ever been stored for this ETF.',
+      symbol_audit: { next_action: administrativeReviewAction },
     }
     const selectedProfile = {
       ...profile,
@@ -1806,9 +1808,14 @@ describe('ETFHoldingsView', () => {
     expect(wrapper.get('.notice--capability').text()).toContain('Current holdings are not verified.')
     expect(wrapper.get('.notice--capability').text())
       .toContain('The current-analysis check did not find an eligible snapshot.')
+    expect(wrapper.get('.notice--capability').text()).not.toContain(administrativeReviewAction)
     expect(wrapper.get('[data-testid="etf-selected-snapshot-currentness"]').text())
       .toContain('not verified as current')
     expect(wrapper.text()).not.toContain('No holdings snapshot has ever been stored for this ETF.')
+    const sourceDetails = wrapper.get('[data-testid="etf-snapshot-details"]')
+    expect(sourceDetails.attributes('open')).toBeUndefined()
+    expect(sourceDetails.get('[data-testid="etf-source-review-action"]').text())
+      .toContain(administrativeReviewAction)
     expect(wrapper.find('.panel-meta').text()).toContain('Profile current eligibility: unavailable')
     wrapper.unmount()
   })
