@@ -387,7 +387,7 @@ import {
 import { isSharedNavigationItemActive, sharedShellNavigation } from '@/router'
 import CompactStatusNotice from '@/components/common/CompactStatusNotice.vue'
 import type { Timeframe } from '@/types'
-import { dataPreparationCoordinator, historyPreparationStatusMessage, instrumentHistoryPreparationRequest, PreparationProgressRefreshQueue, preparationMessageSummary, preparationStatusMessage, type DataEnsureResponse } from '@/lib/dataPreparation'
+import { dataPreparationCoordinator, historyPreparationStatusMessage, instrumentHistoryPreparationRequest, PreparationProgressRefreshQueue, preparationMessageSummary, preparationStatusMessage, type DataEnsureResponse, type PreparationDataset, type PreparationStatus } from '@/lib/dataPreparation'
 
 const BLOCKED_POPOUT_ERROR = 'Browser blocked the pop-out. The tool remains docked.'
 const CHART_TIMEFRAME_ORDER: readonly Timeframe[] = ['M1', 'M5', 'M15', 'M30', 'H1', 'H2', 'H4', 'H12', 'D1', 'W1', 'MN']
@@ -403,6 +403,28 @@ const DIRECT_CHART_PERIOD_SHORTCUTS: Readonly<Record<string, Timeframe>> = {
   '5': 'W1',
 }
 const STANDARD_CHART_STYLES = ['hlc', 'ohlc', 'candles', 'line'] as const
+
+/** Prefer the selected instrument's requested dataset outcome over an aggregate
+ * partial status that may be caused by an unrelated dependency. */
+function selectedDatasetPreparationResponse(
+  response: DataEnsureResponse,
+  dataset: PreparationDataset,
+  instrumentId: number,
+  symbol: string,
+): DataEnsureResponse {
+  const normalizedSymbol = symbol.trim().toUpperCase()
+  const dependencies = response.dependencies.filter(dependency => dependency.dataset === dataset
+    && dependency.instrument_id === instrumentId
+    && (dependency.symbol === null || dependency.symbol.trim().toUpperCase() === normalizedSymbol))
+  if (!dependencies.length) return response
+
+  const statusOrder: PreparationStatus[] = ['failed', 'unavailable', 'waiting', 'partial', 'running', 'queued', 'ready']
+  const status = statusOrder.find(candidate => dependencies.some(dependency => dependency.status === candidate)) ?? response.status
+  const completed = dependencies.filter(dependency => dependency.status === 'ready').length
+  const hasPendingWork = dependencies.some(dependency => ['queued', 'running', 'partial', 'waiting'].includes(dependency.status))
+  return { ...response, status, completed, total: dependencies.length, has_pending_work: hasPendingWork, dependencies }
+}
+
 const route = useRoute()
 const router = useRouter()
 const chartStore = useChartStore()
@@ -1713,16 +1735,17 @@ async function acquireSelectedTickerData(
         signal,
         onProgress: progress => {
           if (!isCurrent()) return
-          const dependency = progress.response.dependencies.find(item => item.dataset === 'holdings'
+          const datasetProgress = selectedDatasetPreparationResponse(progress.response, 'holdings', instrumentId, symbol)
+          const dependency = datasetProgress.dependencies.find(item => item.dataset === 'holdings'
             && item.instrument_id === instrumentId)
           if (dependency && (dependency.status === 'ready' || dependency.covered_ranges.length > 0)) {
             void holdingsRefreshQueue.request(progress.response, refreshHoldings)
           }
-          if (progress.response.status === 'waiting' || progress.response.status === 'unavailable'
-            || progress.response.status === 'failed') {
-            selectionHoldingsMessage.value = `Holdings for ${symbol}: ${preparationStatusMessage(progress.response)}`
-          } else if (progress.response.has_pending_work !== false) {
-            selectionHoldingsMessage.value = `Preparing holdings for ${symbol} (${progress.completed}/${progress.total})…`
+          if (datasetProgress.status === 'waiting' || datasetProgress.status === 'unavailable'
+            || datasetProgress.status === 'failed') {
+            selectionHoldingsMessage.value = `Holdings for ${symbol}: ${preparationStatusMessage(datasetProgress)}`
+          } else if (datasetProgress.has_pending_work !== false) {
+            selectionHoldingsMessage.value = `Preparing holdings for ${symbol} (${datasetProgress.completed}/${datasetProgress.total})…`
           }
         },
       })
@@ -1731,11 +1754,12 @@ async function acquireSelectedTickerData(
       if (!isCurrent()) return
       const page = workspaceStore.etfHoldings[normalizedSymbol]
       const finalSnapshot = page?.snapshot
-      if (holdingsResult.status === 'ready' && finalSnapshot) {
+      const selectedHoldingsResult = selectedDatasetPreparationResponse(holdingsResult, 'holdings', instrumentId, symbol)
+      if (selectedHoldingsResult.status === 'ready' && finalSnapshot) {
         selectionHoldingsMessage.value = `Current holdings for ${symbol} are available locally.`
-      } else if (holdingsResult.status === 'partial' || holdingsResult.status === 'waiting'
-        || holdingsResult.status === 'unavailable' || holdingsResult.status === 'failed') {
-        const detail = `Holdings for ${symbol}: ${preparationStatusMessage(holdingsResult)}`
+      } else if (selectedHoldingsResult.status === 'partial' || selectedHoldingsResult.status === 'waiting'
+        || selectedHoldingsResult.status === 'unavailable' || selectedHoldingsResult.status === 'failed') {
+        const detail = `Holdings for ${symbol}: ${preparationStatusMessage(selectedHoldingsResult)}`
         selectionHoldingsMessage.value = finalSnapshot
           ? `Last-known holdings for ${symbol} remain visible. ${detail}`
           : detail
