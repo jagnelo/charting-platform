@@ -5742,6 +5742,41 @@ development_dependency_import_history:
     state: superseded_development_import
     superseded_by: 4b9f53bca2097501e7c2843cb2f92567c8f74ea5
 
+  - source_sha: 8ef8fe8bd83e34eea7afe6b6c02fdce31a1047bc
+    manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/8ef8fe8bd83e34eea7afe6b6c02fdce31a1047bc.json
+    manifest_sha256: b66336da67e8f3e4cfe5144ec0aa9d0b4d23a0352c0ed0e9ebeee9a62f04b149
+    paths:
+    - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
+    - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
+    - frontend/src/components/dashboard/DashboardInstrumentSearch.vue
+    - frontend/src/components/dashboard/DashboardLineChartWidget.vue
+    - frontend/src/components/dashboard/DashboardQuoteWidget.vue
+    - frontend/src/components/workstation/CodeLibraryTool.vue
+    - frontend/src/components/workstation/PythonSourceEditor.vue
+    - frontend/src/components/workstation/ResearchResultsTool.vue
+    - frontend/src/components/workstation/StudyLabTool.vue
+    - frontend/src/lib/workstation/researchQueryKeys.ts
+    - frontend/src/lib/workstation/researchRunCancellation.ts
+    - frontend/src/stores/dashboard.ts
+    - frontend/src/views/DashboardView.vue
+    - frontend/src/views/StrategyLabView.vue
+    - frontend/tests/e2e/dashboard_usability_journey.spec.ts
+    - frontend/tests/e2e/strategy_study_journey.spec.ts
+    - frontend/tests/e2e/workstation_lifecycle_journey.spec.ts
+    - frontend/tests/unit/components/test_code_library_tool.test.ts
+    - frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts
+    - frontend/tests/unit/components/test_dashboard_instrument_search.test.ts
+    - frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts
+    - frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts
+    - frontend/tests/unit/components/test_python_source_editor.test.ts
+    - frontend/tests/unit/components/test_research_results_tool.test.ts
+    - frontend/tests/unit/components/test_study_lab_tool.test.ts
+    - frontend/tests/unit/stores/test_dashboard_store.test.ts
+    - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts
+    - frontend/tests/unit/views/test_strategy_lab_view.test.ts
+    state: superseded_development_import
+    superseded_by: 7aa843efeec7b5a37e1ecc52fa5392069cda9326
+
 approved_development_dependency_imports:
 - source_sha: 4b9f53bca2097501e7c2843cb2f92567c8f74ea5
   manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/4b9f53bca2097501e7c2843cb2f92567c8f74ea5.json
@@ -5846,9 +5881,9 @@ approved_development_dependency_imports:
   - frontend/tests/unit/components/test_instrument_note_tool.test.ts
   - frontend/tests/unit/views/test_baskets_view.test.ts
   - frontend/tests/unit/views/test_etf_holdings_view.test.ts
-- source_sha: 8ef8fe8bd83e34eea7afe6b6c02fdce31a1047bc
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/8ef8fe8bd83e34eea7afe6b6c02fdce31a1047bc.json
-  manifest_sha256: b66336da67e8f3e4cfe5144ec0aa9d0b4d23a0352c0ed0e9ebeee9a62f04b149
+- source_sha: 7aa843efeec7b5a37e1ecc52fa5392069cda9326
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/7aa843efeec7b5a37e1ecc52fa5392069cda9326.json
+  manifest_sha256: 74f456831181fbbdd5c48939e8122a4798cfecd6e5c799acb7b5e227ea952617
   paths:
   - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
   - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue

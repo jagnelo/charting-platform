@@ -642,7 +642,7 @@ async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUT
       const rootRect = root.getBoundingClientRect()
       const contentLeft = rootRect.left + root.clientLeft
       const contentRight = contentLeft + root.clientWidth
-      const controls = Array.from(root.querySelectorAll('input, select'))
+      const controls = Array.from(root.querySelectorAll('input, select, textarea, button'))
         .filter(control => {
           const style = getComputedStyle(control)
           return style.display !== 'none' && style.visibility !== 'hidden' && control.getClientRects().length > 0
@@ -668,21 +668,37 @@ async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUT
     }
 
     const studyRoot = tool.locator('.study-lab-tool')
-    await studyRoot.hover()
-    await page.mouse.wheel(0, 600)
-    await expect.poll(() => studyRoot.evaluate(root => root.scrollTop)).toBeGreaterThan(0)
-    const editorFitsInStudyViewport = await studyRoot.evaluate(root => {
+    const editorViewportState = () => studyRoot.evaluate(root => {
       const editor = root.querySelector<HTMLElement>('[aria-label="Study Python source"]')
-      if (!editor) return false
+      if (!editor) return null
       const rootRect = root.getBoundingClientRect()
       const editorRect = editor.getBoundingClientRect()
       const visibleTop = rootRect.top + root.clientTop
       const visibleBottom = visibleTop + root.clientHeight
-      return editorRect.top >= visibleTop - 1 && editorRect.bottom <= visibleBottom + 1
+      return {
+        scrollTop: root.scrollTop,
+        wheelToEditorCenter: editorRect.top + editorRect.height / 2 - (visibleTop + root.clientHeight / 2),
+        contained: editorRect.top >= visibleTop - 1 && editorRect.bottom <= visibleBottom + 1,
+      }
     })
-    expect(editorFitsInStudyViewport, 'ordinary wheel scrolling should expose the Study editor inside the dock').toBe(true)
+    const initialEditorState = await editorViewportState()
+    expect(initialEditorState).not.toBeNull()
+    if (initialEditorState!.scrollTop > 0) {
+      await studyRoot.hover()
+      await page.mouse.wheel(0, -initialEditorState!.scrollTop)
+      await expect.poll(() => studyRoot.evaluate(root => root.scrollTop)).toBe(0)
+    }
+    const topEditorState = await editorViewportState()
+    expect(topEditorState).not.toBeNull()
+    expect(topEditorState!.wheelToEditorCenter, 'the long Study form should place the editor below the initial dock viewport').toBeGreaterThan(0)
+    await studyRoot.hover()
+    await page.mouse.wheel(0, Math.round(topEditorState!.wheelToEditorCenter))
+    await expect.poll(async () => (await editorViewportState())?.contained ?? false).toBe(true)
+    await expect.poll(() => studyRoot.evaluate(root => root.scrollTop)).toBeGreaterThan(0)
 
-    await page.mouse.wheel(0, -1200)
+    const observedScrollTop = await studyRoot.evaluate(root => root.scrollTop)
+    await studyRoot.hover()
+    await page.mouse.wheel(0, -observedScrollTop)
     await expect.poll(() => studyRoot.evaluate(root => root.scrollTop)).toBe(0)
     const studyName = tool.getByRole('textbox', { name: 'Study name', exact: true })
     await studyName.click()
