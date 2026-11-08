@@ -27016,3 +27016,19 @@ Focused journey-matrix self-tests and validation pass; workstream validation and
 Imported exactly the five TC consumer paths from `371aa656fef7faed8c6139dfddba02b3248ee70a` after all five old guards matched. All 26 manifest rows were verified by Git blob, SHA256 and mode; the other 21 consumer paths were already byte-identical. The exact manifest is archived at `development-dependency-imports/371aa656fef7faed8c6139dfddba02b3248ee70a.json`, the active private pin now references all 26 paths, and the previous `011e2fc8` pin is preserved in dependency history.
 
 This is a product/build checkpoint only. The released Strategy owner-matrix source and its exact destination guard are verified but its copy, provenance, new journey rows, private control crosswalk and case counts are the next records-only step. Root owns the combined build/browser/visual/full-suite and release qualification; no such results are claimed here.
+
+
+## 2026-11-08 — Refresh Strategy371 owner matrix and pending case crosswalk
+
+Copied the exact Strategy owner journey matrix from source commit `371aa656fef7faed8c6139dfddba02b3248ee70a` after the old destination SHA guard matched. The frozen copy is verified by blob `fba6e73e9e876314b81b981c940a3d50bfa7a80d` and SHA256 `c5ac4eecd0587997ebb229c65cc796326a089d748aa66342f58bd4c9326071c8`; its 18 owner journey rows and 23 approved journey references are represented in the canonical cross-owner record.
+
+Mapped the new authored Strategy E2E cases `legacy Strategy Lab creates, edits, reloads, and safely deletes a supported definition` and `Strategy Lab v2 reads a selected owner resource and recovers from a denied reference without writes` to exact case IDs and relevant TC09/TC08 routes, actions and private view controls. The existing Study saved-context case remains the witness for Library-to-Study immutable pin navigation. Private control counts/signatures were recomputed from the current imported source; the existing signatures remain unchanged.
+
+The canonical inventory now has 90 mapped cases (64 E2E, 26 unit-only), 77 control surfaces, 28 routes/aliases, 21 Add-tool definitions, 8 factory layouts and 38 factory instances. All nine critical-review slots remain `pending_root_receipt`; Root's build/rendered execution and final release qualification are not claimed here. Product source remains frozen at `f9e44e3e1985934891fcd3f452590823411364cd`.
+
+
+## 2026-11-08 — Keep generic Breadth member controls reachable beside history
+
+Root's finalized factory-copy trace showed the ordinary `Pass 9` action repeatedly intercepted by the generic breadth-history canvas (696×110), with the generic drilldown also sharing the cramped Breadth flex column. The history plot retains its minimum useful height while the generic member drilldown is now a non-shrinking, independently scrollable flex item inside the existing scrollable Breadth panel. No chart, calculation, member, or E2E assertion was changed. A focused mounted-component regression evaluates a real-shaped one-member result, verifies the history plot and Pass control coexist, and selects the member through its ordinary button.
+
+The focused WorkstationToolContent history/acquisition module passes 17/17; frontend type-check and current scope, workstream, journey-matrix, and diff checks pass. Root's original 16-case browser run remains in progress and owns rendered proof; no browser/runtime was started in TC. All nine critical-review slots and broader release criteria remain pending.

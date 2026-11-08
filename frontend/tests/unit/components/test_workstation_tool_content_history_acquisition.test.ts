@@ -403,6 +403,57 @@ describe('WorkstationToolContent missing chart history entrypoint', () => {
     ensure.mockRestore()
   })
 
+  it('keeps generic breadth drilldown actions and history in the scrollable analysis panel', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const tool: WorkspaceWindowState = {
+      id: 36, instance_key: 'breadth-drilldown-layout', tool_type: 'breadth', title: 'S&P 500 Sectors',
+      link_group: 'blue', configuration: { group_key: 'sp500-sectors' }, style: {}, state_schema_version: 1, position: 0,
+    }
+    const member = { instrument_id: 1001, symbol: 'AAA', name: 'Alpha Incorporated', value: true, metric: 0.12 }
+    apiPost.mockImplementation((path: string) => path === '/analysis/breadth'
+      ? {
+          definition_version: 1, definition_hash: 'breadth-layout', universe: { kind: 'group', key: 'sp500-sectors' },
+          condition: { kind: 'above_moving_average' }, timeframe: 'D1', adjustment: 'split_adjusted',
+          requested_count: 1, eligible_count: 1, pass_count: 1, excluded_count: 0, percentage: 1, coverage: 1,
+          members: [member], exclusions: [],
+        }
+      : {
+          definition_version: 1, definition_hash: 'breadth-layout', universe: { kind: 'group', key: 'sp500-sectors' },
+          condition: { kind: 'above_moving_average' }, timeframe: 'D1', adjustment: 'split_adjusted',
+          points: [{ timestamp: '2026-11-07T00:00:00Z', requested_count: 1, eligible_count: 1, pass_count: 1, excluded_count: 0, percentage: 1, coverage: 1, members: [member], exclusions: [] }],
+          occurrences: [],
+        })
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    const wrapper = mount(WorkstationToolContent, {
+      props: { tool, activeWindowKey: tool.instance_key },
+      global: {
+        plugins: [pinia, [VueQueryPlugin, { queryClient }]],
+        stubs: {
+          UPlotChart: EmptyChartStub, ChartPlotLibrary: { template: '<div />' }, ChartTemplateControl: { template: '<div />' },
+          DrawingToolbar: { template: '<div />' }, ToolWindow: ToolWindowShell,
+          BreadthHistoryUPlot: true,
+          GenericBreadthHistoryUPlot: { template: '<div class="generic-breadth-history" data-test="generic-breadth-history" />', props: ['history'] },
+        },
+      },
+    })
+
+    await wrapper.get('.breadth-tool__custom button').trigger('click')
+    const drilldown = wrapper.get('[aria-label="Generic breadth member drilldown"]')
+    await vi.waitFor(() => expect(drilldown.text()).toContain('Pass 1'))
+    expect(wrapper.get('.breadth-tool').element.querySelector('[data-test="generic-breadth-history"]')).not.toBeNull()
+    const passFilter = drilldown.get('button[aria-pressed="true"]')
+    const failFilter = drilldown.get('button[aria-pressed="false"]')
+    await passFilter.trigger('click')
+    await failFilter.trigger('click')
+    expect(drilldown.findAll('button').find(button => button.text() === 'Fail 0')?.attributes('aria-pressed')).toBe('true')
+    await drilldown.findAll('button').find(button => button.text() === 'Pass 1')?.trigger('click')
+    await drilldown.get('button[aria-label="Select AAA Alpha Incorporated"]').trigger('click')
+    expect(wrapper.emitted('select')).toEqual([['AAA', 1001]])
+    wrapper.unmount()
+    queryClient.clear()
+  })
+
   it('reserves the drawing rail while keeping inactive chart controls out of keyboard access', async () => {
     const pinia = createPinia()
     setActivePinia(pinia)
