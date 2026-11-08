@@ -1490,14 +1490,12 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
   await expect(linkedTimeframe).toHaveValue('M1')
   const [m1History, m1LocalBars, m1Coverage] = await Promise.all([m1HistoryReady, m1LocalBarsReady, m1CoverageReady])
   expect(m1History.status()).toBe(200)
-  expect(await m1History.json()).toMatchObject({
+  const m1HistoryResponse = await m1History.json() as DataEnsureResponse
+  expect(m1HistoryResponse.dependencies.map(dependency => dependency.dataset)).toEqual(['history'])
+  expect(m1HistoryResponse).toMatchObject({
     status: 'unavailable',
     has_pending_work: false,
-    dependencies: expect.arrayContaining([
-      expect.objectContaining({ dataset: 'identity', status: 'ready', symbol: 'AMD', instrument_id: amdInstrumentId }),
-      expect.objectContaining({ dataset: 'profile', status: 'ready', symbol: 'AMD', instrument_id: amdInstrumentId }),
-      expect.objectContaining({ dataset: 'history', status: 'unavailable', symbol: 'AMD', instrument_id: amdInstrumentId, reason_code: 'test_fixture_hold' }),
-    ]),
+    dependencies: [expect.objectContaining({ dataset: 'history', status: 'unavailable', symbol: 'AMD', instrument_id: amdInstrumentId, reason_code: 'test_fixture_hold' })],
   })
   expect(m1LocalBars.status()).toBe(200)
   expect(m1Coverage.status()).toBe(200)
@@ -1512,6 +1510,7 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
   expect(historyRequests).toHaveLength(2)
   expect(historyRequests.map(request => request.timeframe)).toEqual(['D1', 'M1'])
   expect(historyRequests.every(request => ensureInstrumentId(request) === amdInstrumentId)).toBe(true)
+  expect(historyRequests[1]).toMatchObject({ datasets: ['history'], timeframe: 'M1', adjusted: true })
   expect(historyRequests[0]?.start_at).toBeUndefined()
   expect(historyRequests[0]?.end_at).toBeUndefined()
   expect(historyRequests[1]?.start_at).toBeUndefined()
@@ -2013,14 +2012,12 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
   await expect(linkedTimeframe).toHaveValue('M1')
   const [m1History, m1LocalBars, m1Coverage, localReadback] = await Promise.all([m1HistoryReady, m1LocalBarsReady, m1CoverageReady, localReadbackReady])
   expect(m1History.status()).toBe(200)
-  expect(await m1History.json()).toMatchObject({
+  const m1HistoryResponse = await m1History.json() as DataEnsureResponse
+  expect(m1HistoryResponse.dependencies.map(dependency => dependency.dataset)).toEqual(['history'])
+  expect(m1HistoryResponse).toMatchObject({
     status: 'partial',
     has_pending_work: false,
-    dependencies: expect.arrayContaining([
-      expect.objectContaining({ dataset: 'identity', status: 'ready', symbol: 'AMD', instrument_id: amdInstrumentId }),
-      expect.objectContaining({ dataset: 'profile', status: 'ready', symbol: 'AMD', instrument_id: amdInstrumentId }),
-      expect.objectContaining({ dataset: 'history', status: 'partial', symbol: 'AMD', instrument_id: amdInstrumentId, covered_ranges: expect.arrayContaining([expect.objectContaining({ is_adjusted: true })]) }),
-    ]),
+    dependencies: [expect.objectContaining({ dataset: 'history', status: 'partial', symbol: 'AMD', instrument_id: amdInstrumentId, covered_ranges: expect.arrayContaining([expect.objectContaining({ is_adjusted: true })]) })],
   })
   expect(m1LocalBars.status()).toBe(200)
   expect(m1Coverage.status()).toBe(200)
@@ -2032,6 +2029,7 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
   expect(historyRequests).toHaveLength(2)
   expect(historyRequests.map(request => request.timeframe)).toEqual(['D1', 'M1'])
   expect(historyRequests.every(request => ensureInstrumentId(request) === amdInstrumentId)).toBe(true)
+  expect(historyRequests[1]).toMatchObject({ datasets: ['history'], timeframe: 'M1', adjusted: true })
   expect(historyRequests.every(request => request.start_at === undefined && request.end_at === undefined)).toBe(true)
   expect(acquiredFixtureBar).not.toBeNull()
   expect(identityRequests).toHaveLength(1)
