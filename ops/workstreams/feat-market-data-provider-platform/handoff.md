@@ -1,5 +1,35 @@
 # feat/market-data-provider-platform
 
+## 2026-11-08 — isolated EODHD free-plan history qualification probe
+
+Added `test_eodhd_free_recent_daily_history` to the existing live-probe
+runner. It performs one observed, quota-reserved EODHD AAPL D1 request over the
+existing recent five-day window with raw/unadjusted bars, validates positive
+finite OHLC values, timestamps and ordering, and asserts exactly one HTTP
+request. The runner maps the case only to `fetch_ohlcv`; the separate EODHD
+account-usage one-request probe and Nasdaq two-file/two-request case are
+unchanged. Once the runner's global manifest preflight is clear, Root can
+qualify the requested four-request sequence without unrelated quote/discovery
+reads in the older EODHD compound case. The current preflight has a
+pre-existing unrelated inventory error for
+`twelve_data/get_earliest_timestamp`; the exact same error reproduces from
+the frozen 9e2 runner, and this isolated EODHD scope does not alter it.
+
+The scoped EODHD display gate is supported by current official guidance:
+<https://eodhd.com/help/personal-use> permits private display to the account
+holder on their own devices and private research, while prohibiting display,
+sharing or redistribution to other people and business/team/public use. Root's
+read-only review is
+`root-EODHD-current-private-display-source-review-20261108.json`. This applies
+only to the private single-owner m920q use; it is not a vendor exception letter
+or general distribution right. The app's source/configuration, Free 20/day and
+one-year limits, native usage reconciliation, shared ledger, profile exclusion,
+and all holds remain unchanged. No EODHD or Nasdaq HTTP, runtime, quota, policy
+or ledger action was performed here. Focused manifest/test evidence and exact
+source hashes are appended in `validation.jsonl`; Root owns current-usage
+admission and actual transport qualification. The broader Provider roadmap
+remains in progress.
+
 ## 2026-11-08 — refresh cached coarse defaults on held or empty D1 work
 
 The retained upgrade path can already have a deeper selected Alpaca D1 series

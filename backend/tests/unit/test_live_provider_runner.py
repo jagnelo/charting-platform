@@ -150,6 +150,19 @@ def test_eodhd_compound_small_read_accounts_for_every_operation_and_repeat():
     }
 
 
+def test_eodhd_recent_daily_case_is_an_isolated_single_history_request():
+    runner = _runner_module()
+
+    case = "test_eodhd_free_recent_daily_history"
+    assert ("test_market_data_providers_live.py", case) in runner.LIVE_PROVIDER_CASES["eodhd"]
+    assert runner.LIVE_CASE_OPERATIONS["eodhd"][case] == {"fetch_ohlcv"}
+    assert case not in runner.LIVE_CASE_OPERATION_MULTIPLIERS.get("eodhd", {})
+
+    selected, operations = runner.parse_live_case_selectors([f"eodhd:{case}"], {"eodhd"})
+    assert operations == {"eodhd": {"fetch_ohlcv"}}
+    assert runner.selected_case_operation_multipliers(selected) == {"eodhd": {"fetch_ohlcv": 1}}
+
+
 def test_finnhub_expected_denial_is_preflighted_without_becoming_capability_evidence(
     monkeypatch,
 ):

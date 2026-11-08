@@ -321,6 +321,10 @@ LIVE_PROVIDER_CASES = {
     "eodhd": (
         (
             "test_market_data_providers_live.py",
+            "test_eodhd_free_recent_daily_history",
+        ),
+        (
+            "test_market_data_providers_live.py",
             "test_optional_credentialed_provider_small_read",
         ),
         (
@@ -595,6 +599,7 @@ LIVE_CASE_OPERATIONS = {
         },
     },
     "eodhd": {
+        "test_eodhd_free_recent_daily_history": {"fetch_ohlcv"},
         "test_eodhd_credentialed_delayed_quote": {"get_current_price"},
         # This parameterized case makes three EOD-history requests (daily,
         # weekly, monthly), then one latest-price and one universe-page read.
