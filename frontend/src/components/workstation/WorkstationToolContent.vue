@@ -1,5 +1,5 @@
 <template>
-<ToolWindow :window-key="tool.instance_key" :title="tool.title || tool.tool_type" :symbol="toolHeaderSymbol" :link-group="localLinkGroup" :timeframe-link-group="timeframeLinkGroup" :timeframe="tool.tool_type === 'chart' ? activeTimeframe : ''" :active="isActiveToolWindow" :maximized="maximizedState?.value ?? false" :maximizing="maximizingState?.value ?? false" :scrollable-body="tool.instance_key === 'relative-rotation' || tool.tool_type === 'relative_rotation'" :favorite-available="tool.tool_type === 'chart' && favoriteStore.loaded && chartStore.instrument?.id != null" :favorite-active="favoriteStore.isFavorite(chartStore.instrument?.id)" @toggle-favorite="toggleChartFavorite" @pointerdown.capture="emit('activate')" @float="emit('float', tool.instance_key)" @maximize="emit('maximize', tool.instance_key)" @close="emit('close', tool.instance_key)" @update:link-group="handleLinkGroupChange" @update:timeframe-link-group="setTimeframeLinkGroup" @update:timeframe="setTimeframe">
+<ToolWindow :window-key="tool.instance_key" :title="tool.title || tool.tool_type" :symbol="toolHeaderSymbol" :link-group="localLinkGroup" :timeframe-link-group="timeframeLinkGroup" :timeframe="tool.tool_type === 'chart' ? activeTimeframe : ''" :active="isActiveToolWindow" :maximized="maximizedState?.value ?? false" :maximizing="maximizingState?.value ?? false" :scrollable-body="tool.instance_key === 'relative-rotation' || tool.tool_type === 'relative_rotation'" :favorite-available="tool.tool_type === 'chart' && favoriteStore.loaded && chartStore.instrument?.id != null" :favorite-active="favoriteStore.isFavorite(chartStore.instrument?.id)" :favorite-pending="favoriteStore.isPending(chartStore.instrument?.id)" @toggle-favorite="toggleChartFavorite" @pointerdown.capture="emit('activate')" @float="emit('float', tool.instance_key)" @maximize="emit('maximize', tool.instance_key)" @close="emit('close', tool.instance_key)" @update:link-group="handleLinkGroupChange" @update:timeframe-link-group="setTimeframeLinkGroup" @update:timeframe="setTimeframe">
     <span v-if="personalWatchlistError" class="workstation-tool-content__mutation-error" role="alert" aria-live="assertive">{{ personalWatchlistError }}</span>
     <small v-if="isIndustryTool && industryProfilePreparation?.message" class="industry-list__load-state" role="status" aria-live="polite">{{ industryProfilePreparation.message }}</small>
     <div v-if="isBenchmarkUniverse" class="benchmark-surface">
@@ -1351,6 +1351,9 @@ const isActiveToolWindow = computed(() => {
 const watchlistStore = useWatchlistStore()
 const favoriteStore = useFavoritesStore()
 const isFavoritesTool = computed(() => props.tool.configuration.favorites === true)
+function fetchWorkstationWatchlistPrices(symbols: string[]) {
+  return watchlistStore.fetchPrices(symbols, false, true, isActiveToolWindow.value ? 'high' : 'low')
+}
 async function toggleChartFavorite() {
   const instrumentId = chartStore.instrument?.id
   if (props.tool.tool_type === 'chart' && instrumentId != null) await favoriteStore.toggle(instrumentId)
@@ -1917,7 +1920,7 @@ onMounted(async () => {
     if (!favoriteStore.loaded) await favoriteStore.load()
     if (disposed) return
     const symbols = favoriteRows.value.map(row => row.symbol)
-    if (symbols.length) await watchlistStore.fetchPrices(symbols, false, true)
+    if (symbols.length) await fetchWorkstationWatchlistPrices(symbols)
     if (disposed) return
     void loadIndicatorColumns(favoriteRows.value)
     return
@@ -1933,7 +1936,7 @@ onMounted(async () => {
   }
   const symbols = personalWatchlistRows.value.map(row => row.symbol).filter(symbol => !symbol.startsWith('#'))
   if (symbols.length) {
-    await watchlistStore.fetchPrices(symbols, false, true)
+    await fetchWorkstationWatchlistPrices(symbols)
     if (disposed) return
   }
   void loadIndicatorColumns([
@@ -1985,20 +1988,20 @@ watch(() => props.tool.configuration.watchlist_id, value => {
 
 watch(() => selectedPersonalWatchlist.value?.items.map(item => item.symbol).join(','), value => {
   const symbols = (value ?? '').split(',').filter(Boolean)
-  if (symbols.length) void watchlistStore.fetchPrices(symbols, false, true)
+  if (symbols.length) void fetchWorkstationWatchlistPrices(symbols)
 })
 watch(() => flaggedWatchlistRows.value.map(row => row.symbol).join(','), value => {
   const symbols = (value ?? '').split(',').filter(Boolean)
-  if (symbols.length) void watchlistStore.fetchPrices(symbols, false, true)
+  if (symbols.length) void fetchWorkstationWatchlistPrices(symbols)
 })
 watch(() => comboWatchlistRows.value.map(row => row.symbol).join(','), value => {
   const symbols = (value ?? '').split(',').filter(Boolean)
-  if (symbols.length) void watchlistStore.fetchPrices(symbols, false, true)
+  if (symbols.length) void fetchWorkstationWatchlistPrices(symbols)
 })
 watch(() => favoriteRows.value.map(row => row.symbol).join(','), value => {
   if (!isFavoritesTool.value) return
   const symbols = (value ?? '').split(',').filter(Boolean)
-  if (symbols.length) void watchlistStore.fetchPrices(symbols, false, true)
+  if (symbols.length) void fetchWorkstationWatchlistPrices(symbols)
 })
 // A Golden Layout virtual component is mounted independently from its host render
 // cycle. Keep the latest serializable chart configuration locally so template changes

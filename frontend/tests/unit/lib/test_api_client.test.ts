@@ -67,6 +67,127 @@ describe('api.get', () => {
     )
   })
 
+  it('forwards explicit fetch priority to keep user actions responsive during background loading', async () => {
+    setTokens('tok', 'ref')
+    mockFetchOk({ id: 17 })
+    const { api } = await import('@/lib/api')
+
+    await api.put('/favorites/instruments/17', {}, { priority: 'high' })
+
+    expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/favorites/instruments/17'), expect.objectContaining({
+      method: 'PUT',
+      priority: 'high',
+    }))
+  })
+
+  it('reserves a transport slot for high-priority requests and orders queued work by priority', async () => {
+    setTokens('tok', 'ref')
+    const deferredResponses: Array<{ resolve: (response: unknown) => void }> = []
+    ;(global.fetch as ReturnType<typeof vi.fn>).mockImplementation(() => new Promise(resolve => {
+      deferredResponses.push({ resolve })
+    }))
+    const { api } = await import('@/lib/api')
+    const response = () => ({ ok: true, status: 200, json: () => Promise.resolve({}), text: () => Promise.resolve('') })
+
+    const ordinary = Array.from({ length: 5 }, (_, index) => api.get(`/ordinary-${index}`))
+    const low = api.get('/background', undefined, { priority: 'low' })
+    const highFirst = api.get('/visible-price-first', undefined, { priority: 'high' })
+    const highSecond = api.get('/visible-price-second', undefined, { priority: 'high' })
+
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(6))
+    expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[5]?.[0])).toContain('/visible-price-first')
+    expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[5]?.[0])).not.toContain('/background')
+
+    deferredResponses[0]!.resolve(response())
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(7))
+    expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[6]?.[0])).toContain('/visible-price-second')
+
+    for (let index = 1; index < 8; index += 1) {
+      await vi.waitFor(() => expect(deferredResponses.length).toBeGreaterThan(index))
+      deferredResponses[index]!.resolve(response())
+      await new Promise(resolve => setTimeout(resolve, 0))
+    }
+    await Promise.all([...ordinary, low, highFirst, highSecond])
+  })
+
+  it('holds transport admission until the response body has been consumed', async () => {
+    setTokens('tok', 'ref')
+    const deferredResponses: Array<{ resolve: (response: unknown) => void }> = []
+    ;(global.fetch as ReturnType<typeof vi.fn>).mockImplementation(() => new Promise(resolve => {
+      deferredResponses.push({ resolve })
+    }))
+    const { api } = await import('@/lib/api')
+    let resolveBody!: (value: unknown) => void
+    const body = new Promise(resolve => { resolveBody = resolve })
+    const requests = Array.from({ length: 6 }, (_, index) => api.get(`/body-read-${index}`))
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(5))
+    expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[5]?.[0] ?? '')).not.toContain('/body-read-5')
+
+    deferredResponses[0]!.resolve({
+      ok: true, status: 200, json: () => body, text: () => Promise.resolve(''),
+    })
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(fetch).toHaveBeenCalledTimes(5)
+
+    resolveBody({ consumed: true })
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(6))
+    for (let index = 1; index < 6; index += 1) {
+      await vi.waitFor(() => expect(deferredResponses.length).toBeGreaterThan(index))
+      deferredResponses[index]!.resolve({ ok: true, status: 200, json: () => Promise.resolve({}), text: () => Promise.resolve('') })
+      await new Promise(resolve => setTimeout(resolve, 0))
+    }
+    await Promise.all(requests)
+  })
+
+  it('removes an aborted high-priority request before it reaches the browser transport', async () => {
+    setTokens('tok', 'ref')
+    const deferredResponses: Array<{ resolve: (response: unknown) => void }> = []
+    ;(global.fetch as ReturnType<typeof vi.fn>).mockImplementation(() => new Promise(resolve => {
+      deferredResponses.push({ resolve })
+    }))
+    const { api } = await import('@/lib/api')
+    const response = () => ({ ok: true, status: 200, json: () => Promise.resolve({}), text: () => Promise.resolve('') })
+    const ordinary = Array.from({ length: 5 }, (_, index) => api.get(`/ordinary-${index}`))
+    const high = api.get('/active-high', undefined, { priority: 'high' })
+    const controller = new AbortController()
+    const cancelled = api.get('/cancel-before-send', undefined, { priority: 'high', signal: controller.signal })
+
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(6))
+    controller.abort()
+    await expect(cancelled).rejects.toMatchObject({ name: 'AbortError' })
+    for (let index = 0; index < 6; index += 1) {
+      await vi.waitFor(() => expect(deferredResponses.length).toBeGreaterThan(index))
+      deferredResponses[index]!.resolve(response())
+    }
+    await Promise.all([...ordinary, high])
+    expect(fetch).not.toHaveBeenCalledWith(expect.stringContaining('/cancel-before-send'), expect.anything())
+  })
+
+  it('cancels a queued authenticated request at the session boundary before transport admission', async () => {
+    setTokens('user-a-access', 'user-a-refresh')
+    const deferredResponses: Array<{ resolve: (response: unknown) => void }> = []
+    ;(global.fetch as ReturnType<typeof vi.fn>).mockImplementation(() => new Promise(resolve => {
+      deferredResponses.push({ resolve })
+    }))
+    const { api } = await import('@/lib/api')
+    const response = () => ({ ok: true, status: 200, json: () => Promise.resolve({}), text: () => Promise.resolve('') })
+    const ordinary = Array.from({ length: 5 }, (_, index) => api.get(`/ordinary-${index}`))
+    const high = api.get('/visible-price', undefined, { priority: 'high' })
+    const queued = api.get('/private/queued-during-boundary')
+
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(6))
+    beginAuthSessionBoundary()
+    await expect(queued).rejects.toBeInstanceOf(AuthSessionChangedError)
+    expect(fetch).not.toHaveBeenCalledWith(expect.stringContaining('/private/queued-during-boundary'), expect.anything())
+
+    for (let index = 0; index < 6; index += 1) {
+      await vi.waitFor(() => expect(deferredResponses.length).toBeGreaterThan(index))
+      deferredResponses[index]!.resolve(response())
+    }
+    await Promise.allSettled([...ordinary, high])
+  })
+
   it('appends query params to URL', async () => {
     setTokens('tok', 'ref')
     mockFetchOk([])
@@ -112,6 +233,7 @@ describe('api.get', () => {
     ;(global.fetch as ReturnType<typeof vi.fn>).mockReturnValueOnce(new Promise(resolve => { resolveFetch = resolve }))
     const { api } = await import('@/lib/api')
     const request = api.get('/private/results')
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1))
     expect((fetch as ReturnType<typeof vi.fn>).mock.calls[0]?.[1]?.headers).toMatchObject({ Authorization: 'Bearer user-a-access' })
 
     beginAuthSessionBoundary()
@@ -196,6 +318,7 @@ describe('api.post', () => {
     const { api } = await import('@/lib/api')
     const request = api.post('/items', { name: 'batch' }, { signal: controller.signal })
 
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1))
     const [, opts] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0]
     expect(opts.signal).toBeInstanceOf(AbortSignal)
     expect(opts.signal.aborted).toBe(false)

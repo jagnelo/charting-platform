@@ -32,7 +32,11 @@ function activeWorkspaceSnapshotContainsTools(value: unknown, toolTypes: string[
 }
 
 async function activateDockToolTab(page: import('@playwright/test').Page, title: string) {
-  const tab = page.locator(`.lm_tab[title="${title}"]`).last()
+  // GoldenLayout can leave an invisible duplicate tab node mounted in another
+  // stack. Address the visible ordinary tab that the user can actually click.
+  const tabs = page.locator(`.lm_tab[title="${title}"]:visible`)
+  await expect(tabs).toHaveCount(1)
+  const tab = tabs.first()
   await expect(tab).toBeVisible()
   if (!await tab.evaluate(element => element.classList.contains('lm_active'))) await tab.click()
   await expect(tab).toHaveClass(/lm_active/)
@@ -58,6 +62,7 @@ test('J12 session boundary isolates test-owned same-origin accounts, expired ref
   let expiredResearchRequests = 0
   let expiredRefreshRequests = 0
   const drawingReadOwners: string[] = []
+  const noteReadOwners: string[] = []
   let delayNextAResearch = false
   let releaseLateAResearch!: () => void
   let reportLateAResearchStarted!: () => void
@@ -105,6 +110,7 @@ test('J12 session boundary isolates test-owned same-origin accounts, expired ref
     const authorization = route.request().headers().authorization ?? ''
     const owner = authorization === `Bearer ${tokenA}` ? 'A' : authorization === `Bearer ${tokenB}` ? 'B' : 'unknown'
     if (route.request().method() === 'GET') {
+      noteReadOwners.push(owner)
       return route.fulfill({ status: 200, json: {
         content: `private-note-${owner}`,
         updated_at: '2026-11-06T12:00:00Z',
@@ -220,14 +226,30 @@ test('J12 session boundary isolates test-owned same-origin accounts, expired ref
   await expect(restoredResultsInSecondWindow).toContainText('Run #91501')
 
   const firstWindowAuthenticatedUsers: string[] = []
+  const firstWindowWorkspaceReads: Array<{ owner: 'A' | 'B'; workspaceId: number }> = []
   page.on('response', async response => {
-    if (new URL(response.url()).pathname !== '/api/v1/auth/me' || !response.ok()) return
-    if (response.request().headers().authorization !== `Bearer ${tokenB}`) return
-    try {
-      const payload = await response.json() as { username?: string }
-      if (payload.username) firstWindowAuthenticatedUsers.push(payload.username)
-    } catch {
-      // The assertion below fails if the actual user profile was not readable.
+    const url = new URL(response.url())
+    if (!response.ok()) return
+    const authorization = response.request().headers().authorization
+    const owner = authorization === `Bearer ${tokenA}` ? 'A' : authorization === `Bearer ${tokenB}` ? 'B' : null
+    if (url.pathname === '/api/v1/auth/me' && owner === 'B') {
+      try {
+        const payload = await response.json() as { username?: string }
+        if (payload.username) firstWindowAuthenticatedUsers.push(payload.username)
+      } catch {
+        // The assertion below fails if the actual user profile was not readable.
+      }
+      return
+    }
+    if (url.pathname === '/api/v1/workspaces/default' && owner) {
+      try {
+        const payload = await response.json() as { id?: number }
+        if (typeof payload.id === 'number' && Number.isSafeInteger(payload.id)) {
+          firstWindowWorkspaceReads.push({ owner, workspaceId: payload.id })
+        }
+      } catch {
+        // The owner-scoped workspace assertion below fails if no valid body arrived.
+      }
     }
   })
 
@@ -240,6 +262,9 @@ test('J12 session boundary isolates test-owned same-origin accounts, expired ref
   // Direct navigation to the public login route in another window is also an
   // account boundary. No explicit Sign out event is sent before B replaces
   // the shared browser tokens.
+  browserDiagnostics.allowExpectedAuthSessionChangedAbortErrors(1)
+  const workspaceReadsBeforeB = firstWindowWorkspaceReads.length
+  const noteReadsBeforeB = noteReadOwners.length
   await secondWindow.goto('/login')
   await expect(secondWindow).toHaveURL(/\/login$/)
   const login = new LoginPage(secondWindow)
@@ -256,18 +281,23 @@ test('J12 session boundary isolates test-owned same-origin accounts, expired ref
   await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
   expect(await secondWindow.evaluate(() => localStorage.getItem('access_token'))).not.toBe(tokenA)
   expect(tokenB).toBeTruthy()
+  await expect.poll(() => firstWindowWorkspaceReads.slice(workspaceReadsBeforeB).some(read => read.owner === 'B')).toBe(true)
+  const bWorkspaceReads = firstWindowWorkspaceReads.slice(workspaceReadsBeforeB).filter(read => read.owner === 'B')
+  expect(bWorkspaceReads.at(-1)?.workspaceId).toBeGreaterThan(0)
+  expect(bWorkspaceReads.at(-1)?.workspaceId).not.toBe(workspaceId)
+  await expect.poll(() => noteReadOwners.slice(noteReadsBeforeB)).toContain('B')
+  expect(noteReadOwners.slice(noteReadsBeforeB)).not.toContain('A')
 
-  // B starts from B's own workspace and only gets private tools/data after
-  // choosing them. Same instrument IDs and query keys must not reuse A's state.
-  await expect(page.locator('.note-tool')).toHaveCount(0)
+  // B starts from a distinct workspace. Its factory layout already contains a
+  // Notes pane, so verify the owner-scoped value after ordinary tab activation
+  // instead of treating a retained factory panel as A's private state.
+  await expect(page.locator('.note-tool')).toHaveCount(1)
+  await expect(page.getByText('private-note-A', { exact: true })).toHaveCount(0)
   await expect(page.locator('.research-results-tool')).toHaveCount(0)
-  await page.getByRole('button', { name: 'Add tool' }).click()
-  const noteToolSnapshotB = page.waitForResponse(response => response.request().method() === 'PUT'
-    && /\/api\/v1\/workspaces\/\d+\/snapshot$/.test(new URL(response.url()).pathname) && response.ok())
-  await page.getByRole('menuitem', { name: 'Notes', exact: true }).click()
-  await noteToolSnapshotB
+  await activateDockToolTab(page, 'Notes')
   const notesB = page.getByRole('region', { name: /notes$/i })
   await expect(notesB.getByRole('textbox', { name: 'Instrument note' })).toHaveValue('private-note-B')
+  await expect(notesB).not.toContainText('private-note-A')
 
   await page.getByRole('button', { name: 'Add tool' }).click()
   const resultsToolSnapshotB = page.waitForResponse(response => response.request().method() === 'PUT'
@@ -280,6 +310,7 @@ test('J12 session boundary isolates test-owned same-origin accounts, expired ref
   releaseLateAResearch()
   await expect(resultsB).toContainText('Run #91502')
   await expect(resultsB).not.toContainText('Run #91501')
+  await activateDockToolTab(page, 'Notes')
   await expect(notesB.getByRole('textbox', { name: 'Instrument note' })).toHaveValue('private-note-B')
   await expect.poll(() => drawingReadOwners.filter(owner => owner === 'B').length).toBeGreaterThan(0)
   await expect.poll(() => drawingReadOwners).toContain('B')

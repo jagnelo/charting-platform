@@ -177,6 +177,7 @@ describe('workspace store layout tabs', () => {
     expect(saved).toBe(true)
     expect(apiPut).toHaveBeenCalledTimes(1)
     expect(apiPut.mock.calls[0][1].tabs[0].layout_config.root.maximised).toBe(true)
+    expect(apiPut.mock.calls[0][2]).toEqual({ priority: 'high' })
     vi.useRealTimers()
   })
 
@@ -979,7 +980,7 @@ describe('workspace store layout tabs', () => {
     expect(store.activeTabKey).toBe(clone.stable_key)
 
     await new Promise(resolve => setTimeout(resolve, 400))
-    expect(apiPut).toHaveBeenCalledWith('/workspaces/10/snapshot', expect.objectContaining({ base_revision: 4, tabs: expect.any(Array) }))
+    expect(apiPut).toHaveBeenCalledWith('/workspaces/10/snapshot', expect.objectContaining({ base_revision: 4, tabs: expect.any(Array) }), { priority: 'high' })
   })
 
   it('preserves a benchmark universe role and selected family when cloning a legacy workspace tool', async () => {
@@ -1010,7 +1011,7 @@ describe('workspace store layout tabs', () => {
     await new Promise(resolve => setTimeout(resolve, 400))
     expect(apiPut).toHaveBeenCalledWith('/workspaces/10/snapshot', expect.objectContaining({
       tabs: expect.arrayContaining([expect.objectContaining({ windows: expect.arrayContaining([expect.objectContaining({ configuration: expect.objectContaining({ workspace_role: 'benchmark-universe', benchmark_family_key: 'sp500' }) })]) })]),
-    }))
+    }), { priority: 'high' })
   })
 
   it('catalogues and preserves the semantic roles for factory list and ratio tools', async () => {
@@ -1297,7 +1298,7 @@ describe('workspace store layout tabs', () => {
     expect(store.activeTabKey).toBe('imported')
     expect(store.workspace.tabs[0].name).toBe('Imported')
     await new Promise(resolve => setTimeout(resolve, 400))
-    expect(apiPut).toHaveBeenCalledWith('/workspaces/10/snapshot', expect.objectContaining({ tabs: expect.any(Array) }))
+    expect(apiPut).toHaveBeenCalledWith('/workspaces/10/snapshot', expect.objectContaining({ tabs: expect.any(Array) }), { priority: 'high' })
   })
 
   it('offers a same-workspace layout restore without reusing deleted server row IDs', async () => {
@@ -1329,7 +1330,7 @@ describe('workspace store layout tabs', () => {
     await new Promise(resolve => setTimeout(resolve, 400))
     expect(apiPut).toHaveBeenCalledWith('/workspaces/10/snapshot', expect.objectContaining({
       tabs: expect.arrayContaining([expect.objectContaining({ stable_key: 'two', windows: [expect.objectContaining({ instance_key: 'chart-two', configuration: { timeframe: 'W1' } })] })]),
-    }))
+    }), { priority: 'high' })
   })
 
   it('flushes an explicit Undo after an older snapshot settles, preserving the restored name and position', async () => {
@@ -1417,7 +1418,7 @@ describe('workspace store layout tabs', () => {
     await new Promise(resolve => setTimeout(resolve, 400))
     expect(apiPut).toHaveBeenCalledWith('/workspaces/10/snapshot', expect.objectContaining({
       tabs: [expect.objectContaining({ windows: [expect.objectContaining({ instance_key: 'chart', link_group: 'yellow' })] })],
-    }))
+    }), { priority: 'high' })
   })
 
   it('captures the current symbol when moving a shared tool into grey isolation', () => {
@@ -1655,7 +1656,7 @@ describe('workspace store layout tabs', () => {
           expect.objectContaining({ componentState: { instance_key: 'chart-copy-1' } }),
         ]) }) }),
       })],
-    })))
+    }), { priority: 'high' }))
   })
 
   it('settles a stale layout snapshot before renaming the active workspace', async () => {
@@ -1673,7 +1674,7 @@ describe('workspace store layout tabs', () => {
 
     // A layout observer has already started an older snapshot write.
     const pendingSave = store.saveSnapshot()
-    await vi.waitFor(() => expect(apiPut).toHaveBeenCalledWith('/workspaces/10/snapshot', expect.any(Object)))
+    await vi.waitFor(() => expect(apiPut).toHaveBeenCalledWith('/workspaces/10/snapshot', expect.any(Object), { priority: 'high' }))
     const rename = store.renameWorkspace(' Morning Review ')
     await Promise.resolve()
     expect(apiPatch).not.toHaveBeenCalled()

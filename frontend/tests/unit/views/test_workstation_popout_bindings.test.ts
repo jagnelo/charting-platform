@@ -1861,7 +1861,8 @@ describe('WorkstationView pop-out bindings', () => {
       request_id: expect.stringMatching(/^[0-9a-f-]{36}$/),
     })
     expect(apiPost.mock.calls[1][1].request_id).not.toBe(apiPost.mock.calls[0][1].request_id)
-    expect(dataPreparationPost.mock.calls.some(([request]) => request.target.instrument_id === 43 && request.datasets.includes('holdings'))).toBe(true)
+    expect(resolveKnownInstrument).not.toHaveBeenCalledWith('OIH', 'Workstation symbol', { canonicalOnly: true })
+    await vi.waitFor(() => expect(dataPreparationPost.mock.calls.some(([request]) => request.target.instrument_id === 43 && request.datasets.includes('holdings'))).toBe(true))
     await flushPromises()
     await vi.waitFor(() => expect(harness.workspace.refreshMarketAnalysis).toHaveBeenCalled())
     wrapper.unmount()
@@ -2583,6 +2584,53 @@ describe('WorkstationView pop-out bindings', () => {
     }
   })
 
+  it('uses the selected holdings dependency reason when aggregate preparation is partial', async () => {
+    routeState.path = '/chart/BWET'
+    routeState.params = { symbol: 'BWET' }
+    let aggregateIncludedReadyHistory = false
+    apiGet.mockImplementation(async (path: string) => {
+      if (path === '/instruments/search') return [{ symbol: 'BWET', type: 'ETF', instrument_id: 77 }]
+      return []
+    })
+    dataPreparationPost.mockImplementation(async (request: any) => {
+      const progress = readyPreparationResponse(request, dataPreparationPost.mock.calls.length)
+      if (request.datasets?.includes('holdings')) {
+        const now = '2026-11-06T12:00:00Z'
+        const id = request.target.instrument_id
+        const coveredRange = [{ start_at: '2025-01-01T00:00:00Z', end_at: now,
+          data_source_id: 4, market_series_id: 9, adjustment_basis: 'split_dividend', adjustment_version: 'v1', is_adjusted: true }]
+        progress.status = 'partial'
+        progress.completed = 3
+        progress.total = 4
+        progress.has_pending_work = false
+        progress.dependencies = [
+          { dependency_id: `identity:${id}`, depends_on: [], instrument_id: id, symbol: 'BWET', dataset: 'identity', status: 'ready', requested_start: null, requested_end: null, covered_start: null, covered_end: null, reason_code: null, retry_at: null, updated_at: now, covered_ranges: [] },
+          { dependency_id: `profile:${id}`, depends_on: [`identity:${id}`], instrument_id: id, symbol: 'BWET', dataset: 'profile', status: 'ready', requested_start: null, requested_end: null, covered_start: null, covered_end: null, reason_code: null, retry_at: null, updated_at: now, covered_ranges: [] },
+          { dependency_id: `history:${id}:D1`, depends_on: [`identity:${id}`], instrument_id: id, symbol: 'BWET', dataset: 'history', status: 'ready', requested_start: null, requested_end: null, covered_start: '2025-01-01T00:00:00Z', covered_end: now, reason_code: null, retry_at: null, updated_at: now, covered_ranges: coveredRange },
+          { dependency_id: `holdings:${id}`, depends_on: [`identity:${id}`], instrument_id: id, symbol: 'BWET', dataset: 'holdings', status: 'failed', requested_start: null, requested_end: null, covered_start: null, covered_end: null, reason_code: 'future_dated_source', retry_at: null, updated_at: now, covered_ranges: [] },
+        ]
+        aggregateIncludedReadyHistory = progress.dependencies.some((dependency: any) => dependency.dataset === 'history' && dependency.status === 'ready')
+      }
+      return progress
+    })
+
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    try {
+      await vi.waitFor(() => expect(wrapper.text()).toContain('Current holdings are unavailable because the latest source snapshot is dated in the future.'))
+      await vi.waitFor(() => expect(harness.chart.loadBars).toHaveBeenCalledWith('BWET', 'D1', 'candles', true))
+      expect(aggregateIncludedReadyHistory).toBe(true)
+      expect(wrapper.text()).not.toContain('Some requested data is unavailable.')
+      expect(wrapper.text()).not.toContain('future_dated_source')
+      expect(dataPreparationPost).toHaveBeenCalledWith(expect.objectContaining({
+        target: { kind: 'instrument', instrument_id: 77 }, datasets: ['holdings'],
+      }), expect.anything())
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
   it('shows newly prepared history on a cold canonical chart without another click or reload', async () => {
     routeState.path = '/chart/NVDA'
     routeState.params = { symbol: 'NVDA' }
@@ -2631,7 +2679,10 @@ describe('WorkstationView pop-out bindings', () => {
   it('renders an initially empty deep-linked chart from preparation progress without another interaction', async () => {
     routeState.path = '/chart/NVDA'
     routeState.params = { symbol: 'NVDA' }
-    vi.mocked(resolveKnownInstrument).mockResolvedValueOnce({ symbol: 'NVDA', id: 77001 })
+    // Keep this request key distinct from the preceding cold-chart case. The
+    // shared coordinator intentionally coalesces a still-settling request
+    // across a rapid unmount/remount of the same instrument.
+    vi.mocked(resolveKnownInstrument).mockResolvedValueOnce({ symbol: 'NVDA', id: 77002 })
     harness.chart.bars = []
     harness.chart.refreshLocalBars.mockImplementation(async () => {
       harness.chart.bars = [{ time: '2026-11-06', open: 100, high: 102, low: 99, close: 101, volume: 10 }]
@@ -2657,7 +2708,7 @@ describe('WorkstationView pop-out bindings', () => {
     })
     try {
       await vi.waitFor(() => expect(dataPreparationPost).toHaveBeenCalledTimes(1))
-      expect(dataPreparationPost.mock.calls[0]?.[0]).toMatchObject({ target: { kind: 'instrument', instrument_id: 77001 } })
+      expect(dataPreparationPost.mock.calls[0]?.[0]).toMatchObject({ target: { kind: 'instrument', instrument_id: 77002 } })
       expect(dataPreparationPost.mock.calls[0]?.[0]).not.toHaveProperty('start_at')
       expect(dataPreparationPost.mock.calls[0]?.[0]).not.toHaveProperty('end_at')
       await vi.waitFor(() => expect(harness.chart.refreshLocalBars).toHaveBeenCalled())

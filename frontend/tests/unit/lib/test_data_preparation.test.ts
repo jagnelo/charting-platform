@@ -336,11 +336,35 @@ describe('DataPreparationCoordinator', () => {
     expect(client.get).toHaveBeenCalledTimes(1)
   })
 
+  it('reuses a pending creation when an identical observer replaces the last subscriber', async () => {
+    let resolvePost: ((result: DataEnsureResponse) => void) | null = null
+    const client = {
+      post: vi.fn(() => new Promise<DataEnsureResponse>(resolve => { resolvePost = resolve })),
+      get: vi.fn(),
+    }
+    const service = coordinator(client)
+    const oldObserver = new AbortController()
+    const cancelled = expect(service.ensure(request, { signal: oldObserver.signal })).rejects.toMatchObject({ name: 'AbortError' })
+    oldObserver.abort()
+    await cancelled
+
+    const replacement = service.ensure({ ...request, target: { kind: 'instrument', symbol: 'SPY' } })
+    resolvePost?.(response('ready', 1))
+
+    await expect(replacement).resolves.toMatchObject({ status: 'ready' })
+    expect(client.post).toHaveBeenCalledTimes(1)
+    expect(client.get).not.toHaveBeenCalled()
+  })
+
   it('cancels old-session observers and does not coalesce the next user into their request', async () => {
     let resolveOld!: (result: DataEnsureResponse) => void
+    let oldSignal: AbortSignal | undefined
     const client = {
       post: vi.fn()
-        .mockImplementationOnce(() => new Promise<DataEnsureResponse>(resolve => { resolveOld = resolve }))
+        .mockImplementationOnce((_path, _body, options: { signal?: AbortSignal }) => {
+          oldSignal = options.signal
+          return new Promise<DataEnsureResponse>(resolve => { resolveOld = resolve })
+        })
         .mockResolvedValueOnce(response('ready', 1)),
       get: vi.fn(),
     }
@@ -350,6 +374,7 @@ describe('DataPreparationCoordinator', () => {
 
     service.cancelAll()
     await expect(oldUser).rejects.toMatchObject({ name: 'AbortError' })
+    expect(oldSignal?.aborted).toBe(true)
 
     await expect(service.ensure(request)).resolves.toMatchObject({ status: 'ready' })
     expect(client.post).toHaveBeenCalledTimes(2)

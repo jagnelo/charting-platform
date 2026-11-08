@@ -1,3 +1,17 @@
+## 2026-11-08 — TC common runtime context 3055946 development import
+
+Imported only the 28 Provider-declared paths from `3055946ceabbfd51e51281f06c3f98f766f0d019` after all 28 old-byte
+guards matched. All 99 released manifest rows matched their SHA256 and Git blob,
+and all 28 imported worktree files match source bytes, blobs, and executable
+modes. The exact manifest is retained at `ops/workstreams/feat-market-data-provider-platform/development-dependency-imports/3055946ceabbfd51e51281f06c3f98f766f0d019.json`.
+
+The current common pointer now names `3055946ceabbfd51e51281f06c3f98f766f0d019` in `session.json` and replaces
+the stale `2a8dc9e4` common frontend pointer in `plan.yaml`. The active Provider
+backend, ETF basket, and Strategy research pins remain unchanged; earlier common
+imports remain historical. Frontend `vue-tsc --noEmit` passed. This is
+development context only; no producer suite was replayed and no product or
+release acceptance is claimed. Root owns exact CI and combined release gates.
+
 ## 2026-11-08 — fresh-window EODHD history qualification
 
 Root supplied a new single-use v3 pair after the v2 history preflight proved
