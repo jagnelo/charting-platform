@@ -401,6 +401,8 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await expect(editor).toBeVisible()
     await expect(editor.getByRole('button', { name: 'Paste column settings' })).toBeVisible()
     await expect(editor.locator('.watchlist__column-editor-row')).toHaveCount(15)
+    await expect(benchmarks.locator('.watchlist__loading-status')).toHaveCount(0)
+    await expect(page.locator('.workstation__refresh')).toHaveText('Refresh')
     await expect(page).toHaveScreenshot('watchlist-column-editor-open.png', {
       animations: 'disabled',
       caret: 'hide',
