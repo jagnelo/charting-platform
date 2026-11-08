@@ -45,30 +45,54 @@ function selectedEnsure(request: Request, symbol: string, instrumentId: number):
   } catch { return false }
 }
 
+async function isPopulatedPrimaryD1Response(response: Response, symbol: string): Promise<boolean> {
+  const request = response.request()
+  const url = new URL(response.url())
+  if (request.method() !== 'GET'
+    || url.pathname !== `/api/v1/ohlcv/local/${symbol}/D1`
+    || url.searchParams.get('limit') !== '500'
+    || response.status() !== 200) return false
+  const adjusted = url.searchParams.get('adjusted')?.trim().toLowerCase() ?? null
+  if (adjusted !== null && adjusted !== 'true') return false
+  try {
+    const bars = await response.json() as Bar[]
+    return Array.isArray(bars) && bars.length > 1 && bars.every(bar =>
+      Number.isFinite(Date.parse(bar.ts))
+        && [bar.open, bar.high, bar.low, bar.close].every(Number.isFinite),
+    )
+  } catch {
+    return false
+  }
+}
+
 function observeSelectedD1Bars(page: Page, symbol: string): Promise<Response> {
   // Install before selection and ignore empty Watchlist/history reads. The
   // actual primary chart requests the current adjusted D1 series at limit 500.
   // Keep the existing canonical acquisition bound; do not add a retry or
   // prewarm request to make the observation pass.
-  return page.waitForResponse(async response => {
-    const request = response.request()
-    const url = new URL(response.url())
-    if (request.method() !== 'GET'
-      || url.pathname !== `/api/v1/ohlcv/local/${symbol}/D1`
-      || url.searchParams.get('limit') !== '500'
-      || response.status() !== 200) return false
-    const adjusted = url.searchParams.get('adjusted')?.trim().toLowerCase() ?? null
-    if (adjusted !== null && adjusted !== 'true') return false
-    try {
-      const bars = await response.json() as Bar[]
-      return Array.isArray(bars) && bars.length > 1 && bars.every(bar =>
-        Number.isFinite(Date.parse(bar.ts))
-          && [bar.open, bar.high, bar.low, bar.close].every(Number.isFinite),
-      )
-    } catch {
-      return false
-    }
-  }, { timeout: 120_000 })
+  return page.waitForResponse(response => isPopulatedPrimaryD1Response(response, symbol), { timeout: 120_000 })
+}
+
+function waitForNextPopulatedPrimaryD1Response(page: Page, symbol: string, timeoutMs: number) {
+  let settled = false
+  let timer: ReturnType<typeof setTimeout>
+  let resolvePromise: (response: Response | null) => void = () => undefined
+  const promise = new Promise<Response | null>(resolve => { resolvePromise = resolve })
+  const finish = (response: Response | null) => {
+    if (settled) return
+    settled = true
+    clearTimeout(timer)
+    page.off('response', onResponse)
+    resolvePromise(response)
+  }
+  const onResponse = (response: Response) => {
+    void isPopulatedPrimaryD1Response(response, symbol).then(matches => {
+      if (matches) finish(response)
+    }).catch(() => undefined)
+  }
+  page.on('response', onResponse)
+  timer = setTimeout(() => finish(null), timeoutMs)
+  return { promise, cancel: () => finish(null) }
 }
 
 async function chooseETF(page: Page, symbol: string): Promise<SelectedETF> {
@@ -312,29 +336,65 @@ async function assertSelectedBars(
   pageBarsResponse: Promise<Response>,
 ): Promise<Bar[]> {
   await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue(symbol)
-  // Consume the first successful non-empty primary-chart response before
-  // reading persistence, so a cold progressive source upgrade is compared
-  // against the closest current stored series rather than a stale empty read.
-  const selectedResponse = await pageBarsResponse
-  await expect.poll(async () => {
-    const response = await request.get(`/api/v1/ohlcv/local/${symbol}/D1`, {
-      headers: { Authorization: `Bearer ${token}` }, params: { limit: 500, adjusted: 'true' },
-    })
-    return response.status() === 200 ? (await response.json() as Bar[]).length : 0
-  }, { message: `${symbol} should have persisted daily bars`, timeout: 90_000 }).toBeGreaterThan(1)
-  const bars = await json<Bar[]>(request, `/api/v1/ohlcv/local/${symbol}/D1`, token, { limit: 500, adjusted: 'true' })
-  expect(bars.every(bar => Number.isFinite(Date.parse(bar.ts)) && [bar.open, bar.high, bar.low, bar.close].every(Number.isFinite))).toBeTruthy()
+  // A cold source can improve the default series while the first chart read is
+  // in flight. Pair the page payload with a persisted read that contains the
+  // exact same bars; if persistence has already advanced, observe the next
+  // ordinary successful primary-chart response instead of comparing different
+  // source versions as though they were one result.
+  const persistenceDeadline = Date.now() + 90_000
+  let selectedResponse = await pageBarsResponse
+  let selectedBars = await selectedResponse.json() as Bar[]
+  let bars: Bar[] | null = null
+  while (Date.now() < persistenceDeadline) {
+    const remaining = persistenceDeadline - Date.now()
+    const nextPageResponse = waitForNextPopulatedPrimaryD1Response(page, symbol, remaining)
+    try {
+      const response = await request.get(`/api/v1/ohlcv/local/${symbol}/D1`, {
+        headers: { Authorization: `Bearer ${token}` }, params: { limit: 500, adjusted: 'true' },
+      })
+      if (response.status() === 200) {
+        const currentBars = await response.json() as Bar[]
+        const persistedByTimestamp = new Map(currentBars.map(bar => [Date.parse(bar.ts), bar]))
+        const matches = currentBars.length > 1
+          && currentBars.every(bar => Number.isFinite(Date.parse(bar.ts))
+            && [bar.open, bar.high, bar.low, bar.close].every(Number.isFinite))
+          && selectedBars.length > 1
+          && selectedBars.every(bar => {
+            const persisted = persistedByTimestamp.get(Date.parse(bar.ts))
+            return Number.isFinite(Date.parse(bar.ts))
+              && [bar.open, bar.high, bar.low, bar.close].every(Number.isFinite)
+              && Boolean(persisted)
+              && bar.open === persisted!.open && bar.high === persisted!.high
+              && bar.low === persisted!.low && bar.close === persisted!.close
+          })
+        if (matches) {
+          bars = currentBars
+          nextPageResponse.cancel()
+          break
+        }
+      }
+      const nextResponse = await nextPageResponse.promise
+      if (!nextResponse) {
+        throw new Error(`${symbol} page chart response and current persisted series did not converge within the existing bound`)
+      }
+      selectedResponse = nextResponse
+      selectedBars = await selectedResponse.json() as Bar[]
+    } finally {
+      nextPageResponse.cancel()
+    }
+  }
+  expect(bars, `${symbol} page bars must match a current persisted adjusted D1 series version`).not.toBeNull()
+  const persistedBars = bars!
 
   const selectedURL = new URL(selectedResponse.url())
   expect(selectedResponse.status(), `${symbol} page-originated D1 bars response`).toBe(200)
   expect(selectedURL.pathname).toBe(`/api/v1/ohlcv/local/${symbol}/D1`)
   const adjusted = selectedURL.searchParams.get('adjusted')?.trim().toLowerCase() ?? null
   expect(adjusted === null || adjusted === 'true').toBeTruthy()
-  const selectedBars = await selectedResponse.json() as Bar[]
   expect(selectedBars.length, `${symbol} page-originated chart response must contain bars`).toBeGreaterThan(1)
   expect(selectedBars.every(bar => Number.isFinite(Date.parse(bar.ts))
     && [bar.open, bar.high, bar.low, bar.close].every(Number.isFinite))).toBeTruthy()
-  const persistedByTimestamp = new Map(bars.map(bar => [Date.parse(bar.ts), bar]))
+  const persistedByTimestamp = new Map(persistedBars.map(bar => [Date.parse(bar.ts), bar]))
   const pagePersistenceMismatches: string[] = []
   for (const selectedBar of selectedBars) {
     const persisted = persistedByTimestamp.get(Date.parse(selectedBar.ts))
@@ -399,7 +459,7 @@ async function assertSelectedBars(
     expect(tooltipOhlc[field]!.rendered, `${symbol} tooltip ${field} should match the date-bound persisted bar`)
       .toBe(tooltipOhlc[field]!.persisted)
   }
-  return bars
+  return persistedBars
 }
 
 async function currentHoldings(request: APIRequestContext, symbol: string, instrumentId: number, token: string) {

@@ -18829,3 +18829,24 @@ unchanged at SHA256
 Root owns the compatible native browser and combined ETF/basket qualification;
 no tests, browser, Source HTTP, fixture, DB, quota, policy, production or
 deployment operation ran during this import.
+
+## Cold-page chart and persisted-series version binding — 2026-11-08
+
+Root review `root-ETF2124-cold-page-observer-review.json` confirms the observer
+must ignore empty same-path responses and Watchlist `limit=31` reads. The
+successor filters for the actual selected-symbol D1 `limit=500` chart request,
+default-adjusted or explicit adjusted data, and multiple finite bars. This
+follow-up also handles a cold source upgrade between that page response and
+the authenticated persisted read: every page bar must match the current
+persisted OHLC at the same timestamp. If the stored default has advanced, the
+test observes the next ordinary populated primary-chart response and compares
+that version instead, within the existing 90-second persistence bound. It
+preserves the visible chart, paint, tooltip-date and exact OHLC assertions; no
+prewarm, mocked response, retry policy or timeout increase was added.
+
+Focused Playwright discovery lists the same two independent XHB and IGV cases;
+`git diff --check` passes. No browser body, native/source HTTP, fixture,
+runtime, database, quota, production or shared-product operation ran. The
+separate strict proof and BWET future-source boundary remain unchanged. Root
+owns actual native browser qualification. Current successor SHA256
+`850904227597b32ceeb6423bd84f56a868124f645d9a3a2d3f4c29977fa2a8c7`.
