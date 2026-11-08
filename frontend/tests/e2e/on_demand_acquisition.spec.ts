@@ -65,6 +65,18 @@ const fixtureOutcome = {
   status: 'used' as const,
 }
 
+async function expectSelectionHoldingsDetails(page: Page, symbol: string, detailText: string) {
+  const notice = page.locator('.workstation__selection-acquisition')
+    .filter({ has: page.locator('summary[aria-label^="Holdings"]') }).last()
+  const summary = notice.locator('summary')
+  const details = notice.locator('details')
+  await expect(summary).toBeVisible()
+  await expect(summary).toHaveAttribute('aria-label', new RegExp(`Holdings[^]*${symbol}`))
+  if (!await details.evaluate(element => (element as HTMLDetailsElement).open)) await summary.click()
+  await expect(notice.locator('.compact-status__detail')).toContainText(`Holdings for ${symbol}`)
+  await expect(notice.locator('.compact-status__detail')).toContainText(detailText)
+}
+
 function resolvedIdentity(request: InstrumentRequestBody, instrumentId: number, instrumentType = 'ETF'): InstrumentAcquireResponse {
   return {
     request_id: request.request_id,
@@ -2287,7 +2299,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
       has_pending_work: false,
       dependencies: [{ dataset: 'holdings', status: 'unavailable', reason_code: 'test_fixture_hold' }],
     })
-    await expect(page.locator('.workstation__selection-acquisition').filter({ hasText: 'Holdings for XHB are not available' })).toBeVisible()
+    await expectSelectionHoldingsDetails(page, 'XHB', 'Some requested data is unavailable.')
 
     for (const symbol of ['SPY', 'RSP', 'QQQ'] as const) {
       const historyResponseReady = waitForDatasetEnsure(symbol, 'history')
@@ -2302,7 +2314,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
         dependencies: [{ dataset: 'holdings', status: 'unavailable' }],
       })
       await expect.poll(() => localReadbacks.some(readback => readback.symbol === symbol && readback.bars.length === 1)).toBe(true)
-      await expect(page.locator('.workstation__selection-acquisition').filter({ hasText: `Holdings for ${symbol} are not available` })).toBeVisible()
+      await expectSelectionHoldingsDetails(page, symbol, 'Some requested data is unavailable.')
     }
 
     const oihHoldingsResponseReady = waitForDatasetEnsure('OIH', 'holdings')
@@ -2323,7 +2335,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     expect(igvAccepted.status()).toBe(200)
     expect(await igvAccepted.json()).toMatchObject({ request_id: igvRequestId, status: 'queued', has_pending_work: true })
     const igvStatusResponseReady = waitForPreparationStatus(igvRequestId)
-    await expect(page.locator('.workstation__selection-acquisition').filter({ hasText: 'Checking holdings for IGV' })).toBeVisible()
+    await expectSelectionHoldingsDetails(page, 'IGV', 'Preparing holdings for IGV')
     await expect(page.locator('.workstation__selection-acquisition').filter({ hasText: 'Holdings for OIH' })).toHaveCount(0)
     expect(holdingsReads.at(-1)).toBe('IGV')
     igvEnsureGate.resolve()
@@ -2331,7 +2343,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     const igvTerminal = await igvStatusResponseReady
     expect(igvTerminal.status()).toBe(200)
     expect(await igvTerminal.json()).toMatchObject({ request_id: igvRequestId, status: 'ready', has_pending_work: false })
-    await expect(page.locator('.workstation__selection-acquisition').filter({ hasText: 'Holdings for IGV are available from the selected ticker' })).toBeVisible()
+    await expectSelectionHoldingsDetails(page, 'IGV', 'Current holdings for IGV are available locally.')
     expect(industryReads.at(-1)).toBe('IGV')
     expect(holdingsReads.filter(symbol => symbol === 'IGV').length).toBeGreaterThan(0)
     const oihIndustryReadsBeforeLateResponse = industryReads.filter(symbol => symbol === 'OIH').length
@@ -2344,7 +2356,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     expect(oihTerminal.status()).toBe(200)
     expect(await oihTerminal.json()).toMatchObject({ request_id: oihRequestId, status: 'ready', has_pending_work: false })
     await expect(symbolSearch).toHaveValue('IGV')
-    await expect(page.locator('.workstation__selection-acquisition').filter({ hasText: 'Holdings for IGV are available from the selected ticker' })).toBeVisible()
+    await expectSelectionHoldingsDetails(page, 'IGV', 'Current holdings for IGV are available locally.')
     expect(holdingsReads.filter(symbol => symbol === 'OIH')).toHaveLength(oihReadsBeforeSwitch)
     expect(industryReads.filter(symbol => symbol === 'OIH')).toHaveLength(oihIndustryReadsBeforeLateResponse)
 
@@ -2387,7 +2399,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     expect(historyRequests.filter(request => request.symbol === 'BWET').map(request => request.body.timeframe)).toEqual(['D1'])
     expect(capabilityReads).toContain('BWET')
     await expect.poll(() => localReadbacks.some(readback => readback.symbol === 'BWET' && readback.bars.length === 1)).toBe(true)
-    await expect(page.locator('.workstation__selection-acquisition').filter({ hasText: 'Holdings for BWET are not available' })).toBeVisible()
+    await expectSelectionHoldingsDetails(page, 'BWET', 'Current holdings are unavailable because the latest source snapshot is dated in the future.')
     await expect(igvContextGroup).toContainText('BWET')
     await expect(igvContextWidget).toBeVisible()
     await expect(priorIgvHolding).toHaveCount(0)
@@ -2409,11 +2421,11 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     const xhbAfterFailureSelectionReady = waitForDatasetEnsure('XHB', 'holdings')
     await chooseETF('XHB')
     expect((await xhbAfterFailureSelectionReady).status()).toBe(200)
-    await expect(page.locator('.workstation__selection-acquisition').filter({ hasText: 'Holdings for XHB are not available' })).toBeVisible()
+    await expectSelectionHoldingsDetails(page, 'XHB', 'Some requested data is unavailable.')
     oihFailureGate.resolve()
     igvEnsureGate.resolve()
     expect((await delayedOihFailureResponseReady).status()).toBe(503)
-    await expect(page.locator('.workstation__selection-acquisition').filter({ hasText: 'Holdings for XHB are not available' })).toBeVisible()
+    await expectSelectionHoldingsDetails(page, 'XHB', 'Some requested data is unavailable.')
     await expect(page.locator('.workstation__selection-acquisition--error')).toHaveCount(0)
 
     expect(holdingsEnsureRequests.map(request => request.symbol)).toEqual(['XHB', 'SPY', 'RSP', 'QQQ', 'OIH', 'IGV', 'BWET', 'OIH', 'XHB'])

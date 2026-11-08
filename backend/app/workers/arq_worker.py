@@ -8,6 +8,7 @@ in separate worker processes, keeping the FastAPI server non-blocking.
 """
 
 import logging
+from dataclasses import replace
 from datetime import UTC, datetime
 
 from arq import cron
@@ -605,7 +606,11 @@ async def worker_startup(ctx: dict):
 
 
 class WorkerSettings:
-    redis_settings = RedisSettings.from_dsn(settings.REDIS_URL)
+    # The installed ARQ/redis defaults use a one-second connect timeout. The
+    # retained native validation worker has observed transient Redis connect
+    # timeouts during otherwise healthy periods; allow a short bounded delay while
+    # retaining ARQ's existing finite retry count and delay.
+    redis_settings = replace(RedisSettings.from_dsn(settings.REDIS_URL), conn_timeout=5)
     functions = [
         task_bulk_fetch_instrument,
         task_refresh_benchmark_family_history,

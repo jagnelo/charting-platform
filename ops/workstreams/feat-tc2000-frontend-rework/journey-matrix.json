@@ -138,7 +138,7 @@
     "owned_actions": 12,
     "etf_actions": 16,
     "strategy_actions": 48,
-    "journey_cases": 68,
+    "journey_cases": 69,
     "critical_review_slots": 9,
     "control_surfaces": 57
   },
@@ -2772,6 +2772,7 @@
         "frontend/tests/unit/lib/test_data_preparation.test.ts",
         "frontend/tests/unit/components/test_market_map_tool.test.ts",
         "frontend/tests/unit/components/test_market_gauge_tool.test.ts",
+        "frontend/tests/unit/components/test_chart_plot_library.test.ts",
         "frontend/tests/unit/components/test_easy_scan_tool.test.ts",
         "frontend/tests/unit/components/test_study_lab_tool.test.ts",
         "frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts",
@@ -2796,6 +2797,7 @@
         "TC08-market-map",
         "TC08-breadth",
         "TC08-gauge",
+        "TC08-plot-save-recovery",
         "TC04-basket-preparation",
         "TC09-dashboard-advanced-details"
       ],
@@ -5787,8 +5789,8 @@
     },
     {
       "source": "frontend/src/components/workstation/ChartPlotLibrary.vue",
-      "control_count": 48,
-      "signature_sha256": "a22612cbe9d3f0d17b9692b2dac1d5bf047daac3945b8ed8610947f63802549f",
+      "control_count": 49,
+      "signature_sha256": "220114ba3f306757d21e80c1b0db0c98ba5c9153a6e4bafb830c91ad2a3ce11a",
       "journeys": [
         "TC04",
         "TC06",
@@ -5800,9 +5802,11 @@
       ],
       "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
       "journey_ids": [
+        "TC08",
         "TC09"
       ],
       "case_refs": [
+        "TC08-plot-save-recovery",
         "TC09-shell-menu"
       ]
     },
@@ -6909,6 +6913,16 @@
       "test_name": "F9e-shell-public-navigation — application menu activation mounts Watchlist, Alerts, and Settings",
       "execution_status": "authored_pending_root_run",
       "critical_review_slot": "TC09-critical-review"
+    },
+    {
+      "id": "TC08-plot-save-recovery",
+      "journey_ids": [
+        "TC08"
+      ],
+      "test_path": "frontend/tests/unit/components/test_chart_plot_library.test.ts",
+      "test_name": "closes immediately during a slow indicator save and exposes a retryable failure",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC08-critical-review"
     }
   ],
   "critical_review_slots": [

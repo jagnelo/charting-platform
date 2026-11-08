@@ -652,7 +652,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
       // without waiting for the chart to become ready.
       const benchmarks = page.getByRole('region', { name: 'Major US benchmarks' })
       const sectors = page.getByRole('region', { name: 'Relative to SPY' })
-      const constituents = page.getByRole('region', { name: 'Constituents' })
+      const constituents = page.getByRole('group', { name: 'Constituents', exact: true })
       await expect(page.locator('.workstation__refresh')).toHaveText('Refresh', { timeout: 15_000 })
       await expect(benchmarks).toHaveAttribute('aria-busy', 'false', { timeout: 15_000 })
       await expect(benchmarks.locator('.watchlist__row')).toHaveCount(5, { timeout: 15_000 })

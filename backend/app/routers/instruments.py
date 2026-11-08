@@ -452,6 +452,7 @@ async def discover_instruments(
                             provider_symbol=query_symbol,
                             usage_identity=query_symbol,
                             provider_name=selected_provider,
+                            seed_runtime=False,
                             invoke=lambda provider, actual_symbol: provider.get_instrument_profile(
                                 actual_symbol or query_symbol
                             ),

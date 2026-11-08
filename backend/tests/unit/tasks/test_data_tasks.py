@@ -1,3 +1,4 @@
+from contextlib import nullcontext
 from datetime import UTC, datetime
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
@@ -132,7 +133,36 @@ async def test_workstation_maintenance_skips_controlled_e2e_market_data(monkeypa
 
 @pytest.mark.asyncio
 async def test_refresh_worker_rolls_back_before_refreshing_and_retrying_failed_job(monkeypatch):
-    job = SimpleNamespace(
+    class ExpiringJob:
+        _expired_fields = {
+            "id",
+            "capability",
+            "status",
+            "attempts",
+            "lease_token",
+            "next_attempt_at",
+            "metadata_payload",
+        }
+
+        def __init__(self, **values):
+            self._expired = False
+            self.__dict__.update(values)
+
+        def __getattribute__(self, name):
+            if name in ExpiringJob._expired_fields and object.__getattribute__(self, "_expired"):
+                raise AssertionError(f"expired ORM field read without async reload: {name}")
+            return object.__getattribute__(self, name)
+
+    job = ExpiringJob(
+        id=41,
+        capability=data_tasks.ProviderCapability.ACCOUNT_USAGE.value,
+        status="leased",
+        attempts=3,
+        lease_token="lease-41",
+        next_attempt_at=None,
+        metadata_payload={"provider_account_usage_refresh": {"provider_name": "alpaca"}},
+    )
+    reloaded_job = SimpleNamespace(
         id=41,
         capability=data_tasks.ProviderCapability.ACCOUNT_USAGE.value,
         status="leased",
@@ -148,6 +178,7 @@ async def test_refresh_worker_rolls_back_before_refreshing_and_retrying_failed_j
             self.rollbacks = 0
             self.failed = False
             self.refreshes = 0
+            self.no_autoflush = nullcontext()
 
         async def __aenter__(self):
             return self
@@ -161,6 +192,7 @@ async def test_refresh_worker_rolls_back_before_refreshing_and_retrying_failed_j
         async def rollback(self):
             self.rollbacks += 1
             self.failed = False
+            job._expired = True
 
         async def refresh(self, refreshed_job):
             assert refreshed_job is job
@@ -168,6 +200,22 @@ async def test_refresh_worker_rolls_back_before_refreshing_and_retrying_failed_j
             assert not self.failed
             if self.refreshes == 2:
                 assert self.rollbacks == 1
+
+        async def execute(self, statement):
+            assert self.rollbacks == 1
+            assert "market_refresh_job" in str(statement)
+            params = statement.compile().params
+            assert 41 in params.values()
+            assert "leased" in params.values()
+            assert "lease-41" in params.values()
+            assert statement._for_update_arg is not None
+
+            class Result:
+                @staticmethod
+                def scalar_one_or_none():
+                    return reloaded_job
+
+            return Result()
 
     session = Session()
     retry_calls = []
@@ -178,7 +226,8 @@ async def test_refresh_worker_rolls_back_before_refreshing_and_retrying_failed_j
 
     async def retry(_db, retried_job, error, **kwargs):
         assert session.rollbacks == 1
-        assert retried_job is job
+        assert retried_job is reloaded_job
+        assert retried_job.attempts == 3
         retry_calls.append((error, kwargs))
         retried_job.next_attempt_at = datetime(2026, 11, 7, 12, tzinfo=UTC)
 

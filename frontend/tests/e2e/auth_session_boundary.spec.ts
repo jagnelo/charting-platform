@@ -31,6 +31,13 @@ function activeWorkspaceSnapshotContainsTools(value: unknown, toolTypes: string[
   return hasRequired && !!activeWindow && (!activeToolType || activeWindow.tool_type === activeToolType)
 }
 
+async function activateDockToolTab(page: import('@playwright/test').Page, title: string) {
+  const tab = page.locator(`.lm_tab[title="${title}"]`).last()
+  await expect(tab).toBeVisible()
+  if (!await tab.evaluate(element => element.classList.contains('lm_active'))) await tab.click()
+  await expect(tab).toHaveClass(/lm_active/)
+}
+
 test('J12 session boundary isolates test-owned same-origin accounts, expired refresh, stores and late responses', async ({ page, request, loggedIn, browserDiagnostics }, testInfo) => {
   void loggedIn
   const nonce = `${testInfo.workerIndex}_${Date.now().toString(36)}`
@@ -189,17 +196,26 @@ test('J12 session boundary isolates test-owned same-origin accounts, expired ref
   const restoredResultsA = page.getByRole('region', { name: 'Study Lab research results' })
   await expect(restoredResultsA).toBeVisible()
   await expect(restoredResultsA).toContainText('Run #91501')
+  // Results is the saved active tab. Notes remains in the same saved stack and
+  // must be activated as an ordinary dock tab before its editor is visible.
+  await activateDockToolTab(page, 'Notes')
   await expect(page.getByRole('region', { name: /notes$/i }).getByRole('textbox', { name: 'Instrument note' }))
     .toHaveValue('private-note-A')
+  await activateDockToolTab(page, 'Study Results')
+  await expect(restoredResultsA).toContainText('Run #91501')
 
   // A second same-origin window holds its own A session cache. Cross-window
   // logout must clear that cache and return it to the login route as well.
   const secondWindow = await context.newPage()
   await secondWindow.goto('/chart')
   await expect(secondWindow.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
+  const restoredResultsInSecondWindow = secondWindow.getByRole('region', { name: 'Study Lab research results' })
+  await expect(restoredResultsInSecondWindow).toBeVisible()
+  await expect(restoredResultsInSecondWindow).toContainText('Run #91501')
+  await activateDockToolTab(secondWindow, 'Notes')
   await expect(secondWindow.getByRole('region', { name: /notes$/i }).getByRole('textbox', { name: 'Instrument note' }))
     .toHaveValue('private-note-A')
-  const restoredResultsInSecondWindow = secondWindow.getByRole('region', { name: 'Study Lab research results' })
+  await activateDockToolTab(secondWindow, 'Study Results')
   await expect(restoredResultsInSecondWindow).toBeVisible()
   await expect(restoredResultsInSecondWindow).toContainText('Run #91501')
 

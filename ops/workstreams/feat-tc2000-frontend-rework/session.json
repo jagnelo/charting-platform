@@ -103,8 +103,8 @@
     "status": "pending Root observation after publication"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "Focused local evidence is available for the current implementation slice. Provider732 is development-only. Exact-tip CI, remaining journeys and Root-owned combined browser/release qualification remain pending.",
-  "current_checkpoint_status": "The committed d5e8d628 route/preparation/inventory slice is in place; the dated holding reload now revalidates canonical identity before restoring lineage, with 105/105 route tests and type-check green. Remaining SearchBar, secondary routes, reversible lifecycle and complete journeys stay open.",
+  "current_candidate_ci_status": "The current TC candidate contains Plots click/save recovery, auth abort normalization, direct/blue-linked/private-basket URL coherence, holdings feedback fixture updates, and virtual-pane close retention. Provider 0a1cda84 and Strategy 16a9523e are exact imports. Affected units passed 181/181, vue-tsc passed, and E2E discovery listed 307 tests without running a browser. Root build, critical journeys, exact CI, and full release gates remain pending.",
+  "current_checkpoint_status": "Current TC source is the exact pending successor for the Root-identified common failures: Plots menu interaction, auth restore cancellation, ticker and private-basket URL restore, shared ensure fixture identity, and nested-pane close responsiveness. It includes exact Provider 0a1cda84 and Strategy 16a9523e imports plus updated journey mapping. Full acceptance is not claimed.",
   "current_exact_ci": {
     "head_sha": null,
     "run_id": null,
@@ -415,7 +415,7 @@
   "local_candidate_capture": "exact current branch HEAD after staging16 remediation and one-case proof; Root push and exact full staging104 pending",
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
-  "next_action": "Continue shared SearchBar and secondary-page preparation wiring, then complete reversible workspace/layout actions and the full route/tool/action journeys. Keep Root-owned exact-CI, combined browser, integration and release gates pending.",
+  "next_action": "Freeze this coherent checkpoint for Root exact-source build and critical journey qualification; continue only on concrete new Root evidence while preserving full platform criteria and release gates.",
   "owned_runtime_cleanup": {
     "after_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-after.json (SHA256 3696bb48051e0e6cf11d45af99ac118d302f454337b6fbd48df8dbeae57d157b)",
     "before_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-before.json (SHA256 8f1eeb19f585da67cfea43f8c35a4aa11baa3aa6d3510a065afd0f95498505bf)",
@@ -446,7 +446,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "5ef6333499ff01bc6d4b5440deed4db0f4020508bbb06a067e1a7d46e476dfc6",
+  "plan_hash": "f12a95068cd1b493e8f6993194f133152fe6d6634b5ac0a983a957d463c07c96",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -476,10 +476,10 @@
   "progress": {
     "completed": [],
     "total": 9,
-    "current_phase": "Human-approved platform-usability implementation is active. The shared preparation/auth boundary, server-backed canonical tool catalogue, route/action inventory, and focused ratio/RRG and lifecycle slices have implementation and focused-check evidence; the whole platform scope remains incomplete.",
-    "current_blocker": "No external blocker to continued TC-owned implementation. Shared SearchBar/secondary-entrypoint wiring, reversible workspace lifecycle, complete semantic tool journeys and full route/action coverage remain incomplete. Provider runtime integration and exact combined browser/release qualification remain Root-owned.",
-    "next_action": "Continue shared SearchBar and secondary-page preparation wiring, then implement and verify reversible workspace/layout actions and complete the route/tool/action journeys. Keep all Root-owned browser, exact-CI, combined release and live-operation gates explicitly pending.",
-    "updated_at": "2026-11-07"
+    "current_phase": "Complete the Root-identified common UI failures and preserve exact Provider 0a1cda84 and Strategy 16a9523e imports; affected local unit and type checks now pass.",
+    "current_blocker": "Root exact-source rebuild and critical browser journeys are pending. Full platform usability, exact CI, combined release profile, and genuine source acceptance remain open.",
+    "next_action": "Freeze this coherent checkpoint for Root build and journey qualification; continue only after concrete Root evidence and keep the complete roadmap open.",
+    "updated_at": "2026-11-08"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
@@ -670,7 +670,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for TC2000 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-11-07T01:39:55Z",
+  "updated_at": "2026-11-08T00:36:00Z",
   "upstream_backmerge": {
     "canonical_green_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json",
     "local_merge_commit": "acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32",

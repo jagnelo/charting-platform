@@ -26654,3 +26654,12 @@ Root traced repeated identical preparation requests to structural Workstation ch
 Imported Provider `9b196304` and its `cc31077c` successor under exact source manifests. Only the seven 9b deltas and two cc310 deltas were changed locally; the active Provider pin points to cc310's 76-file manifest, and earlier manifests remain available as history. Focused frontend checks passed: 124/124 across WorkspaceLayoutHost, UPlot context, application routes and Workstation popout modules; Vue type-check passed; Playwright discovery listed all eight auth/on-demand cases without launching a browser. The causal user journeys, full profile, exact-tip CI, Root integration/release gates, and genuine-source qualification remain pending. No browser, runtime, native request, or full suite was run in this worktree.
 
 Correction to the preceding public-navigation diagnosis: later Root event evidence showed the link remained connected and ordinary click reached the router; lazy Watchlist JavaScript was queued behind the initial API burst. The eager route entrypoints address that observed delay; no menu-focus or premature-dismissal workaround is claimed.
+
+
+## 2026-11-08 — Common flow repair and exact dependency successors
+
+The current source closes the Root-identified Plots insertion/save, auth cancellation, chart URL/provenance, and nested-pane close gaps. Direct, blue-linked, and private basket selections are covered by the same route synchronizer; the basket continues through its existing private data path. The journey matrix records the retryable plot-save case as focused local evidence with browser execution pending.
+
+Imported the exact 12 TC backend paths from Provider 0a1cda84 and the exact Strategy lifecycle test from 16a9523e. The complete Provider 76-row and Strategy 27-row source manifests were verified against hashes, Git blobs and modes; previous cc31077 and be61 pins were archived as superseded history. The active plan/session fields retain the full platform goal and open roadmap.
+
+Focused units passed 181/181, frontend vue-tsc passed, and Playwright discovery listed 307 tests across five affected files without launching a browser. Journey matrix validation passed for 28 routes/aliases, 21 Add-tool definitions, eight factory layouts/38 instances, 69 named cases, and explicit pending receipts. Root exact-source build and critical journeys remain pending; no integration, deployment, genuine-source, or full-roadmap completion is claimed.

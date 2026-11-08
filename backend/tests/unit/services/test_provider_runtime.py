@@ -147,6 +147,34 @@ def _bind_native_etf_scope(provider_name: str, source, policy, entitlement, **ov
     return bind_native_etf_initial_qualification(**values)
 
 
+@pytest.mark.asyncio
+async def test_execution_can_use_preseeded_chain_without_request_time_reseed(monkeypatch):
+    captured = {}
+
+    async def _resolve(_db, _capability, **kwargs):
+        captured.update(kwargs)
+        return []
+
+    monkeypatch.setattr(provider_runtime, "resolve_provider_chain", _resolve)
+    with provider_runtime.bind_explicit_provider_acquisition(
+        request_id="request-search-igv",
+        operations=frozenset({(ProviderCapability.INSTRUMENT_SEARCH, "search_instruments")}),
+        symbol="IGV",
+    ):
+        with pytest.raises(RuntimeError, match="No enabled providers available"):
+            await provider_runtime.execute_provider_call(
+                object(),
+                ProviderCapability.INSTRUMENT_SEARCH,
+                "search_instruments",
+                provider_symbol="IGV",
+                provider_name="massive",
+                seed_runtime=False,
+                invoke=lambda *_args: pytest.fail("empty preseeded chain must not transport"),
+            )
+
+    assert captured["read_only"] is True
+
+
 @pytest.mark.parametrize(("provider_name", "source_id"), [("spdr", 31), ("invesco", 32)])
 def test_native_etf_initial_scope_matches_exact_unrelated_publishers(provider_name, source_id):
     source, policy, entitlement = _native_etf_review_objects(provider_name, source_id)

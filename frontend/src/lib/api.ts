@@ -1,4 +1,4 @@
-import { assertAuthSessionCurrent, beginAuthSessionBoundary, captureAuthSession } from '@/lib/authSession'
+import { assertAuthSessionCurrent, AuthSessionChangedError, beginAuthSessionBoundary, captureAuthSession } from '@/lib/authSession'
 
 /**
  * Authenticated API client with automatic token refresh on 401.
@@ -141,6 +141,13 @@ async function request<T>(
     const payload = await res.json() as T
     assertAuthSessionCurrent(session)
     return payload
+  } catch (error) {
+    // Fetch rejects with a browser-native AbortError when logout or another
+    // account boundary aborts its session signal. Normalize that expected
+    // cancellation at the API boundary so consumers can handle it as the
+    // typed auth-session transition rather than logging an opaque fetch error.
+    if (session.signal.aborted) throw new AuthSessionChangedError()
+    throw error
   } finally {
     session.signal.removeEventListener('abort', abortForSession)
     options?.signal?.removeEventListener('abort', abortForCaller)

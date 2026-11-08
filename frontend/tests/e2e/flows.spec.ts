@@ -3711,7 +3711,7 @@ test.describe('TC2000 workstation', () => {
     await proxyRow.click()
     await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue(proxySymbol)
 
-    const constituents = page.getByRole('region', { name: 'Constituents' }).filter({ has: page.locator('.watchlist__row') }).last()
+    const constituents = page.getByRole('group', { name: 'Constituents', exact: true })
     await expect(constituents).toBeVisible({ timeout: 15_000 })
     for (const target of ['1D', '1W', '1M', '3M', '6M', 'YTD', '1Y']) {
       await expect.poll(async () => {
@@ -3861,7 +3861,7 @@ test.describe('TC2000 workstation', () => {
     const firstIndustry = industries.locator('.industry-list__row').first()
     await expect(firstIndustry).toBeVisible({ timeout: 20_000 })
     await firstIndustry.click()
-    const constituents = page.getByRole('region', { name: 'Constituents' }).filter({ has: page.locator('.watchlist__row') }).last()
+    const constituents = page.getByRole('group', { name: 'Constituents', exact: true })
     await expect(constituents).toBeVisible({ timeout: 20_000 })
     const firstConstituent = constituents.locator('.watchlist__row').first()
     await expect(firstConstituent).toBeVisible({ timeout: 20_000 })

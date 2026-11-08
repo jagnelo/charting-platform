@@ -3949,6 +3949,7 @@ async def execute_provider_call(
     capture_response_payloads: bool = True,
     etf_holdings_adapters: dict[str, Any] | None = None,
     request_log_id_callback: Callable[[int], None] | None = None,
+    seed_runtime: bool = True,
 ) -> ProviderExecutionResult:
     if inspect.iscoroutinefunction(invoke):
         raise TypeError(
@@ -4002,6 +4003,10 @@ async def execute_provider_call(
         "adjusted": adjusted,
         "history_start": history_start,
         "etf_holdings_adapters": etf_holdings_adapters,
+        # Explicit discovery first resolves the already-seeded runtime once,
+        # then executes each candidate in order. Avoid replaying the full
+        # provider seed/reconciliation pass for every candidate.
+        "read_only": not seed_runtime,
     }
     if (
         _ETF_INITIAL_QUALIFICATION_CONTEXT.get() is not None

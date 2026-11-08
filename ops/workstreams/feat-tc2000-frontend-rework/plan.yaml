@@ -330,8 +330,8 @@ on_demand_consumer_implementation: 'Current TC-owned mocked implementation at th
   tree and passed its full required CI40656688915. This feature-branch adoption records ancestry only; its exact branch CI
   is pending Root. Controlled tests are not genuine Provider/issuer proof; target/deployment and the complete roadmap remain
   open.'
-current_blocker: 'The assigned feedback cases and type-check pass. One non-targeted Workstation application-menu unit assertion still fails at test_workstation_popout_bindings.test.ts:397; Root-owned ten-journey qualification and the broader release gates remain pending.'
-current_checkpoint_status: 'Current TC feedback successor based on 64eec09d adds future-dated holdings feedback and dataset-aware history progress, plus the exact Provider ad114d20 dependency. Root build and ten critical affected journeys remain pending; full platform acceptance is not claimed.'
+current_blocker: "Local focused checks are green. Root must rebuild and run the affected critical journeys; exact-tip CI, full route/action coverage, combined acceptance, and release gates remain pending."
+current_checkpoint_status: "Current TC successor includes the Root-identified common-flow fixes, exact Provider 0a1cda84 backend imports, Strategy 16a9523e lifecycle test, and a refreshed TC08 chart-save recovery mapping. Focused affected units pass 181/181 and frontend type-check passes; Root rebuild and critical journey qualification remain pending."
 
 ordinary_ticker_latest_update: 'Root accepted the exact combined served profile at backend source 6eae00eb8380438da771fed0c42d19587e9520ce
   / image sha256:6c962aad753959c2ecdd79f0a1d6057d77f2ba6b829ec85b99404b009a42e76a and frontend source 36e7ad2cb08c769a242773ab2b6be69fcc350774
@@ -1981,10 +1981,10 @@ status: in_progress
 progress:
   completed: []
   total: 9
-  current_phase: 'Implement common preparation feedback: report future-dated holdings as unavailable without treating them as current, and distinguish usable partial history from active older-history work and unrelated identity/profile waits. Imported the exact 11-path Provider ad114d20 delta.'
-  current_blocker: 'Root build and ten critical affected journeys are pending. The assigned data-preparation tests (25/25), mounted Workstation feedback test (1/1), and vue-tsc passed. The full Workstation unit module had one non-targeted application-menu assertion failure at line 397; broader route/action and release acceptance remain open.'
-  next_action: 'Root to build the exact TC/Provider successor and run the ten critical affected journeys. After Root evidence, address only a demonstrated TC defect and continue the full approved route/action matrix; do not claim integration or release acceptance.'
-  updated_at: '2026-11-07'
+  current_phase: "Complete ordinary Plots save/retry responsiveness, auth-boundary cancellation, saved selection URL/provenance, shared ensure fixture identity, and nested-pane close without remounting unrelated tools; consume Provider 0a1cda84 and Strategy 16a9523e exact sources."
+  current_blocker: "Local focused validation is green. Root exact-source build and critical journeys are pending; full route/action, combined profile, exact CI, and release acceptance remain open."
+  next_action: "Freeze this coherent source checkpoint and let Root build and qualify it. Continue only from concrete Root evidence; preserve the complete platform roadmap and all release gates."
+  updated_at: "2026-11-08"
 historical_checkpoint_status_archive: 'Current boundary (2026-10-22): published HEAD is a7c8ecba208ce6c79d8f1a5d7294500122e462e5;
   one test-only change in workstation_performance.spec.ts and the four owned records are pending review. Exact hosted CI39693019337
   on a7 is terminal red/flaky (190 passed,110 declared skips, one retry-passing Market Map hover failure); preserve it. The
@@ -4261,7 +4261,7 @@ correction_summary:
     recorded.
 
 ordinary_ticker_snapshot_followup_20261105: {"kind": "corrective followup within existing ordinary ticker checkpoint; no roadmap replan", "baseline": "45cc8206602d7823ca29e132d991d88b0bcbbc25", "previous_goal": "Repair exact discovered ticker Enter/Go in Workstation and shared chart SearchBar, and isolate superseded selection errors while preserving exact-local precedence, explicit choices, expressions, identity verification, ambiguity safeguards, picker scopes, stale-query fencing, current ETF context, and genuine workspace conflict recovery.", "Root_acceptance": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/TC-same-snapshot-implementation-root-acceptance.json", "accepted_file_hashes": {"frontend/src/components/workstation/WorkstationToolContent.vue": "3ff06c38e10066f15e4bca78b49833ec109d6e4443a4302106c6acdc1a813db2", "frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts": "b28994b75748976ef4658f74a79379909bb76fad5c7e8077b4e9b45a5e331c7e"}, "local_evidence": "4/4 mounted component tests, type-check and diff checks; prior failing CI retained", "release_state": "Root correct-bundle browser, exact closing-tip CI and combined full profile remain pending", "boundaries": "No self-integration/deployment; no source requests or quota/policy/dataset changes; all old roadmap criteria and accepted archives preserved"}
-next_action: "Continue the remaining TC-owned route/action behavior and full journey coverage, preserving Root-owned rendered qualification and exact-tip CI as pending."
+next_action: "Freeze this coherent source checkpoint for Root build and critical journey qualification. Continue only after concrete Root evidence; preserve all remaining roadmap and release gates."
 current_exact_ci:
   head_sha: null
   run_id: null
@@ -4272,7 +4272,7 @@ closing_tip_ci:
   run_id: null
   scope: "Exact closing TC source after the active platform-usability implementation checkpoint."
   status: "pending Root observation after publication"
-current_candidate_ci_status: "R68 Gauge repair on 851b4dbe556c2d03951fd20a245aefc2000d3c6b serializes the post-completion metrics read behind any older in-flight response and retains the last completed gauge during refresh. The deterministic deferred-response regression passes in MarketGaugeTool 12/12; vue-tsc passes. The exact Strategy48aa35a2 three-test import is verified across all27 manifest files. TC scope/workstream/journey validators pass, and Playwright discovery lists19 tests across the three imported journey files without running a browser. Root-owned rendered journeys, exact-tip CI, combined qualification and the full platform-usability acceptance remain pending."
+current_candidate_ci_status: "The current TC candidate contains the Plots click/save recovery, auth abort normalization, direct/blue-linked/basket URL coherence, current holdings feedback fixtures, and virtual-pane close retention. Provider 0a1cda84 and Strategy 16a9523e are exact development imports. Affected units passed 181/181, vue-tsc passed, and E2E discovery listed 307 tests without running a browser. Root build/critical journeys, exact CI, and full platform acceptance remain pending."
 history_dashboard_scope_archive:
   path: ops/workstreams/feat-tc2000-frontend-rework/checkpoint-archives/history-dashboard-repair-scope-archive-20261106.json
   sha256: 2880cdb5ef6a0074b6204267b51ba9f676160bad2ef1ecff1385db1d5819d6cd
@@ -5088,10 +5088,125 @@ development_dependency_import_history:
     state: superseded_development_import
     superseded_by: 8ae5f9aca10803f300b6d5a41a3bced447f70ebc
 
+  - source_sha: cc31077c60545e8455d1f064411fbddae7d21fe1
+    manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/cc31077c60545e8455d1f064411fbddae7d21fe1.json
+    manifest_sha256: ef257b2871ebfe5fafb9b3bd2ee6994e9c9c3faea9ba9aaa7d295facae2a0574
+    paths:
+    - backend/app/config.py
+    - backend/app/main.py
+    - backend/app/providers/alpaca.py
+    - backend/app/providers/massive.py
+    - backend/app/providers/optional_market_data.py
+    - backend/app/routers/analysis.py
+    - backend/app/routers/data_preparation.py
+    - backend/app/routers/instruments.py
+    - backend/app/routers/ohlcv.py
+    - backend/app/routers/providers.py
+    - backend/app/routers/research.py
+    - backend/app/routers/workspaces.py
+    - backend/app/schemas/data_preparation.py
+    - backend/app/services/baskets.py
+    - backend/app/services/bulk_fetch.py
+    - backend/app/services/data_preparation.py
+    - backend/app/services/data_preparation_contracts.py
+    - backend/app/services/derived_timeframes.py
+    - backend/app/services/e2e_seed.py
+    - backend/app/services/etf_holdings_adapters.py
+    - backend/app/services/etf_holdings_preparation.py
+    - backend/app/services/etf_holdings_refresh.py
+    - backend/app/services/evaluator_preflight.py
+    - backend/app/services/exchange_sessions.py
+    - backend/app/services/instrument_events.py
+    - backend/app/services/instrument_mastering.py
+    - backend/app/services/market_data.py
+    - backend/app/services/market_refresh_queue.py
+    - backend/app/services/market_series.py
+    - backend/app/services/ohlcv_coverage.py
+    - backend/app/services/provider_runtime.py
+    - backend/app/services/screener_engine.py
+    - backend/app/services/workstation_tool_catalogue.py
+    - backend/app/tasks/data_tasks.py
+    - backend/app/workers/arq_worker.py
+    - backend/tests/integration/api/test_baskets.py
+    - backend/tests/integration/api/test_workspace_read_consistency_postgres.py
+    - backend/tests/integration/test_data_preparation_queue_postgres.py
+    - backend/tests/unit/conftest.py
+    - backend/tests/unit/providers/test_new_providers.py
+    - backend/tests/unit/providers/test_optional_market_data.py
+    - backend/tests/unit/routers/test_analysis_router.py
+    - backend/tests/unit/routers/test_calendar_router.py
+    - backend/tests/unit/routers/test_data_preparation_router.py
+    - backend/tests/unit/routers/test_instruments_router.py
+    - backend/tests/unit/routers/test_ohlcv_router.py
+    - backend/tests/unit/routers/test_providers_router.py
+    - backend/tests/unit/routers/test_research_router.py
+    - backend/tests/unit/routers/test_workspace_tool_catalogue.py
+    - backend/tests/unit/services/test_data_preparation_contracts.py
+    - backend/tests/unit/services/test_data_preparation_history_planning.py
+    - backend/tests/unit/services/test_data_preparation_service.py
+    - backend/tests/unit/services/test_data_preparation_worker_deeper_default.py
+    - backend/tests/unit/services/test_derived_timeframes.py
+    - backend/tests/unit/services/test_e2e_seed.py
+    - backend/tests/unit/services/test_etf_holdings_adapters.py
+    - backend/tests/unit/services/test_etf_holdings_bootstrap.py
+    - backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py
+    - backend/tests/unit/services/test_etf_holdings_native_qualification.py
+    - backend/tests/unit/services/test_etf_holdings_preparation.py
+    - backend/tests/unit/services/test_etf_holdings_preparation_hook.py
+    - backend/tests/unit/services/test_etf_holdings_provider_bridge.py
+    - backend/tests/unit/services/test_etf_issuer_catalog.py
+    - backend/tests/unit/services/test_evaluator_preflight.py
+    - backend/tests/unit/services/test_exchange_catalog.py
+    - backend/tests/unit/services/test_market_data.py
+    - backend/tests/unit/services/test_market_refresh_queue.py
+    - backend/tests/unit/services/test_market_series_defaults.py
+    - backend/tests/unit/services/test_provider_persistence.py
+    - backend/tests/unit/services/test_provider_quota_contract.py
+    - backend/tests/unit/services/test_provider_quota_coordinator.py
+    - backend/tests/unit/services/test_provider_runtime.py
+    - backend/tests/unit/services/test_workstation_tool_catalogue.py
+    - backend/tests/unit/tasks/test_data_tasks.py
+    - backend/tests/unit/tasks/test_native_usage_prerequisite.py
+    - backend/tests/unit/workers/test_arq_worker.py
+    state: superseded_development_import
+    superseded_by: 0a1cda8434ec9f2f103400b7bd7fde3067f8ed42
+  - source_sha: be61e2d70e917a7ff758d137068c1dc779097129
+    manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/be61e2d70e917a7ff758d137068c1dc779097129.json
+    manifest_sha256: cdc18ee842d7f056a22b66e0210a1f091a566724e07339f61965b5575c3a2549
+    paths:
+    - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
+    - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
+    - frontend/src/components/dashboard/DashboardInstrumentSearch.vue
+    - frontend/src/components/dashboard/DashboardLineChartWidget.vue
+    - frontend/src/components/dashboard/DashboardQuoteWidget.vue
+    - frontend/src/components/workstation/CodeLibraryTool.vue
+    - frontend/src/components/workstation/PythonSourceEditor.vue
+    - frontend/src/components/workstation/ResearchResultsTool.vue
+    - frontend/src/components/workstation/StudyLabTool.vue
+    - frontend/src/lib/workstation/researchQueryKeys.ts
+    - frontend/src/stores/dashboard.ts
+    - frontend/src/views/DashboardView.vue
+    - frontend/tests/e2e/dashboard_usability_journey.spec.ts
+    - frontend/tests/e2e/helpers.ts
+    - frontend/tests/e2e/strategy_study_journey.spec.ts
+    - frontend/tests/e2e/workstation_lifecycle_journey.spec.ts
+    - frontend/tests/unit/components/test_code_library_tool.test.ts
+    - frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts
+    - frontend/tests/unit/components/test_dashboard_instrument_search.test.ts
+    - frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts
+    - frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts
+    - frontend/tests/unit/components/test_python_source_editor.test.ts
+    - frontend/tests/unit/components/test_research_results_tool.test.ts
+    - frontend/tests/unit/components/test_study_lab_tool.test.ts
+    - frontend/tests/unit/e2e/test_browser_diagnostics.test.ts
+    - frontend/tests/unit/stores/test_dashboard_store.test.ts
+    - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts
+    state: superseded_development_import
+    superseded_by: 16a9523e24bdb6398ff1e50c4c74585e718d9e19
 approved_development_dependency_imports:
-- source_sha: cc31077c60545e8455d1f064411fbddae7d21fe1
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/cc31077c60545e8455d1f064411fbddae7d21fe1.json
-  manifest_sha256: ef257b2871ebfe5fafb9b3bd2ee6994e9c9c3faea9ba9aaa7d295facae2a0574
+- source_sha: 0a1cda8434ec9f2f103400b7bd7fde3067f8ed42
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/0a1cda8434ec9f2f103400b7bd7fde3067f8ed42.json
+  manifest_sha256: e8a82ce247c5278882a76c9ab4df12fe257b06b39f348be31a8ba93070c46be6
   paths:
   - backend/app/config.py
   - backend/app/main.py
@@ -5183,9 +5298,9 @@ approved_development_dependency_imports:
   - frontend/tests/unit/components/test_instrument_note_tool.test.ts
   - frontend/tests/unit/views/test_baskets_view.test.ts
   - frontend/tests/unit/views/test_etf_holdings_view.test.ts
-- source_sha: be61e2d70e917a7ff758d137068c1dc779097129
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/be61e2d70e917a7ff758d137068c1dc779097129.json
-  manifest_sha256: cdc18ee842d7f056a22b66e0210a1f091a566724e07339f61965b5575c3a2549
+- source_sha: 16a9523e24bdb6398ff1e50c4c74585e718d9e19
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/16a9523e24bdb6398ff1e50c4c74585e718d9e19.json
+  manifest_sha256: 1559c88fc511389436451a324161f9b4bf47abb8fc1adaeb1fcc837bc85e8992
   paths:
   - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
   - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue

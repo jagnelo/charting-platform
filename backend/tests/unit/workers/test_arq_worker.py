@@ -56,6 +56,14 @@ class _RefreshQueueSession:
         self.commits += 1
 
 
+def test_arq_worker_uses_bounded_redis_connect_timeout_and_keeps_retry_defaults():
+    settings = arq_worker.WorkerSettings.redis_settings
+
+    assert settings.conn_timeout == 5
+    assert settings.conn_retries == 5
+    assert settings.conn_retry_delay == 1
+
+
 def test_refresh_queue_batch_limit_uses_configured_bound(monkeypatch):
     monkeypatch.setattr(settings, "MARKET_DATA_REFRESH_QUEUE_BATCH_SIZE", 240)
 

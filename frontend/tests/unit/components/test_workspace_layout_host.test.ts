@@ -382,6 +382,59 @@ describe('WorkspaceLayoutHost', () => {
     wrapper.unmount()
   })
 
+  it('removes a nested last-child pane without remounting sibling tools', async () => {
+    const chartState = { instance_key: 'chart-nested', title: 'Chart', tool_type: 'chart' }
+    const notesState = { instance_key: 'notes-sibling', title: 'Notes', tool_type: 'notes' }
+    const layout = { root: { type: 'row', content: [
+      { type: 'row', content: [{ type: 'stack', content: [{ type: 'component', componentState: chartState }] }] },
+      { type: 'stack', content: [{ type: 'component', componentState: notesState }] },
+    ] } } as any
+    const renderTool = vi.fn((tool: any, actions: any) => h('button', { 'data-tool': tool.instance_key, onClick: actions.close }, tool.title))
+    const wrapper = mount(WorkspaceLayoutHost, { props: { layout, activeWindowKey: 'notes-sibling', renderTool } })
+    const gl = goldenLayouts[0]
+    const host = wrapper.get('.workspace-layout-host').element
+    const destroyed = new Map<string, () => void>()
+    const chartStack: any = { type: 'stack', contentItems: [], header: { tabs: [] }, parentItem: null, on: vi.fn(), off: vi.fn() }
+    const chartComponent: any = { type: 'component', config: { componentState: chartState }, parentItem: chartStack, destroy: vi.fn(), show: vi.fn(), hide: vi.fn() }
+    chartStack.contentItems.push(chartComponent)
+    chartStack.header.tabs.push({ contentItem: chartComponent })
+    const nestedRow: any = { type: 'row', contentItems: [chartStack], parentItem: null }
+    chartStack.parentItem = nestedRow
+    const outerRow: any = { type: 'row', contentItems: [], removeChild: vi.fn() }
+    nestedRow.parentItem = outerRow
+    const notesStack: any = { type: 'stack', contentItems: [], header: { tabs: [] }, parentItem: outerRow, on: vi.fn(), off: vi.fn() }
+    const notesComponent: any = { type: 'component', config: { componentState: notesState }, parentItem: notesStack, destroy: vi.fn(), show: vi.fn(), hide: vi.fn() }
+    notesStack.contentItems.push(notesComponent)
+    notesStack.header.tabs.push({ contentItem: notesComponent })
+    outerRow.contentItems = [nestedRow, notesStack]
+    const render = (state: typeof chartState | typeof notesState, component: any) => {
+      const container = { parent: component, on: vi.fn((event: string, callback: () => void) => destroyed.set(`${state.instance_key}:${event}`, callback)) }
+      const { rootHtmlElement } = gl.factory!(container, state) as { rootHtmlElement: HTMLElement }
+      host.appendChild(rootHtmlElement)
+    }
+    render(chartState, chartComponent)
+    render(notesState, notesComponent)
+    outerRow.removeChild.mockImplementation((item: any) => {
+      outerRow.contentItems = outerRow.contentItems.filter((candidate: any) => candidate !== item)
+      chartComponent.destroy()
+      destroyed.get('chart-nested:destroy')?.()
+      gl.saved = { root: { type: 'row', content: [{ type: 'stack', content: [{ type: 'component', componentState: notesState }] }] } }
+    })
+    gl.root = { contentItems: [outerRow] }
+    gl.saved = layout
+
+    renderTool.mock.calls.find(([tool]) => tool.instance_key === 'chart-nested')?.[1].close()
+    await nextTick()
+
+    expect(outerRow.removeChild).toHaveBeenCalledWith(nestedRow, false)
+    expect(gl.destroyed).toBe(false)
+    expect(goldenLayouts).toHaveLength(1)
+    expect(renderTool.mock.calls.map(([tool]) => tool.instance_key)).toEqual(['chart-nested', 'notes-sibling'])
+    expect(host.querySelector('[data-tool-key="notes-sibling"]')).not.toBeNull()
+    expect(host.querySelector('[data-tool-key="chart-nested"]')).toBeNull()
+    wrapper.unmount()
+  })
+
   it('reinstalls virtual roots when a complete workspace snapshot is replaced', async () => {
     const layout = { root: { type: 'row', content: [] } } as any
     const wrapper = mount(WorkspaceLayoutHost, {

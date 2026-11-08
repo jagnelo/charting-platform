@@ -572,19 +572,30 @@ function closeComponent(windowKey: string) {
   // that stack is one pane among several, remove the pane from its parent
   // instead of rebuilding every virtual root; unrelated tools keep their
   // mounted stores and shared preparation subscriptions.
-  const stackParent = stack?.parentItem
-  if (component && stack && stack.contentItems?.length === 1
-    && stackParent && Array.isArray(stackParent.contentItems) && stackParent.contentItems.length > 1
-    && typeof stackParent.removeChild === 'function') {
-    suppressChange = true
-    try {
-      stackParent.removeChild(stack, false)
-    } finally {
-      suppressChange = false
+  if (component && stack && stack.contentItems?.length === 1) {
+    // A one-tab stack can be the only child of an intermediate row/column
+    // while other panes live beside that container. Climb only through those
+    // one-child wrappers, then remove the nearest ancestor that has siblings;
+    // rebuilding the whole virtual tree would restart unrelated requests.
+    let removableItem: any = stack
+    let removableParent: any = stack.parentItem
+    while (removableParent && Array.isArray(removableParent.contentItems)
+      && removableParent.contentItems.length === 1 && removableParent.parentItem) {
+      removableItem = removableParent
+      removableParent = removableParent.parentItem
     }
-    persistCurrentLayout()
-    void nextTick(() => activateWindow(props.activeWindowKey))
-    return
+    if (removableParent && Array.isArray(removableParent.contentItems)
+      && removableParent.contentItems.length > 1 && typeof removableParent.removeChild === 'function') {
+      suppressChange = true
+      try {
+        removableParent.removeChild(removableItem, false)
+      } finally {
+        suppressChange = false
+      }
+      persistCurrentLayout()
+      void nextTick(() => activateWindow(props.activeWindowKey))
+      return
+    }
   }
   const saved = goldenLayout.saveLayout() as unknown as Record<string, unknown>
   const filtered = withoutComponent(saved, windowKey)

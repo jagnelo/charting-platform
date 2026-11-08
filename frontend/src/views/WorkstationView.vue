@@ -380,6 +380,7 @@ import { isActiveVirtualToolRoot } from '@/lib/workstation/toolActivation'
 import {
   isConfirmedETFHoldingIdentity,
   isSameETFHoldingDrilldownContext,
+  holdingDrilldownRouteQuery,
   parseETFHoldingDrilldownRouteQuery,
   type ETFHoldingDrilldownContext,
 } from '@/lib/etfHoldingDrilldown'
@@ -1268,6 +1269,58 @@ function selectHoldingInDashboard(
     confirmedIdentity?.instrument?.instrument_type ?? '', true, confirmedIdentity, context)
 }
 
+let pendingChartRouteSync: string | null = null
+function syncChartRouteToSelection(
+  rawSymbol: string,
+  instrumentId?: number | null,
+  candidateContext?: ETFHoldingDrilldownContext | null,
+  markHoldingSelection = false,
+) {
+  if (isPopout.value || !/^\/chart(?:\/|$)/.test(route.path)) return
+  const symbol = rawSymbol.trim().toUpperCase()
+  if (!symbol) return
+  const candidateHoldingContext = candidateContext
+    ?? (!isPrivateBasketToken(symbol) && activeHoldingContext.value?.symbol === symbol
+      ? activeHoldingContext.value.context
+      : null)
+  const context = candidateHoldingContext
+    && candidateHoldingContext.canonicalSymbol.trim().toUpperCase() === symbol
+    && (instrumentId == null || candidateHoldingContext.instrumentId === instrumentId)
+    ? candidateHoldingContext
+    : null
+  const nextQuery: Record<string, unknown> = { ...route.query }
+  for (const key of Object.keys(nextQuery)) {
+    if (key.startsWith('holding_')) delete nextQuery[key]
+  }
+  if (typeof nextQuery.symbol === 'string' && nextQuery.symbol.trim().toUpperCase() !== symbol) {
+    delete nextQuery.symbol
+  }
+  if (context) {
+    Object.assign(nextQuery, holdingDrilldownRouteQuery(context))
+    if (markHoldingSelection || route.query.holding_history_intent === 'selected') {
+      nextQuery.holding_history_intent = 'selected'
+    }
+  }
+  const path = `/chart/${encodeURIComponent(symbol)}`
+  if (route.path === path && JSON.stringify(nextQuery) === JSON.stringify(route.query)) return
+  const requestKey = JSON.stringify({ path, query: nextQuery })
+  if (pendingChartRouteSync === requestKey) return
+  pendingChartRouteSync = requestKey
+  void router.replace({ path, query: nextQuery as typeof route.query }).then(failure => {
+      if (failure && pendingChartRouteSync === requestKey) {
+      pendingChartRouteSync = null
+      setSymbolSelectionError(`Selected ${symbol}, but the chart URL could not be updated; a reload may restore a different symbol.`)
+    }
+  }).catch(() => {
+    if (pendingChartRouteSync === requestKey) {
+      pendingChartRouteSync = null
+      setSymbolSelectionError(`Selected ${symbol}, but the chart URL could not be updated; a reload may restore a different symbol.`)
+    }
+  }).finally(() => {
+    if (pendingChartRouteSync === requestKey) pendingChartRouteSync = null
+  })
+}
+
 async function selectSymbol(
   raw: string,
   timestamp?: string,
@@ -1422,6 +1475,12 @@ async function selectSymbol(
     group: 'blue',
     sourceWindowKey: 'workstation',
   })
+  syncChartRouteToSelection(
+    symbol,
+    canonicalInstrumentId,
+    contextMatchesResolvedIdentity ? displayContext : null,
+    Boolean(holdingContext),
+  )
   // Update linked ratio state at publish time. Data hydration can take much
   // longer than the user's next click and must not delay the visible target.
   if (!privateBasketSelection) updateAutoRatioExpression(symbol, comparisonETF)
@@ -1638,7 +1697,7 @@ async function acquireSelectedTickerData(
           }
           if (progress.response.status === 'waiting' || progress.response.status === 'unavailable'
             || progress.response.status === 'failed') {
-            selectionHoldingsMessage.value = preparationStatusMessage(progress.response)
+            selectionHoldingsMessage.value = `Holdings for ${symbol}: ${preparationStatusMessage(progress.response)}`
           } else if (progress.response.has_pending_work !== false) {
             selectionHoldingsMessage.value = `Preparing holdings for ${symbol} (${progress.completed}/${progress.total})…`
           }
@@ -1653,7 +1712,7 @@ async function acquireSelectedTickerData(
         selectionHoldingsMessage.value = `Current holdings for ${symbol} are available locally.`
       } else if (holdingsResult.status === 'partial' || holdingsResult.status === 'waiting'
         || holdingsResult.status === 'unavailable' || holdingsResult.status === 'failed') {
-        const detail = preparationStatusMessage(holdingsResult)
+        const detail = `Holdings for ${symbol}: ${preparationStatusMessage(holdingsResult)}`
         selectionHoldingsMessage.value = finalSnapshot
           ? `Last-known holdings for ${symbol} remain visible. ${detail}`
           : detail
@@ -3186,6 +3245,10 @@ function cycleChartTimeframe(windowKey: string, direction: 1 | -1) {
 watch(activeSymbol, symbol => {
   if (!symbol) return
   const privateBasketSelection = isPrivateBasketToken(symbol)
+  const activeRouteContext = activeHoldingContext.value?.symbol === symbol
+    ? activeHoldingContext.value.context
+    : null
+  syncChartRouteToSelection(symbol, activeRouteContext?.instrumentId, activeRouteContext)
   const isHistoryNavigation = historyNavigationTarget === symbol
   if (!privateBasketSelection) recentStore.add(symbol, undefined, !isHistoryNavigation)
   if (isHistoryNavigation) historyNavigationTarget = null

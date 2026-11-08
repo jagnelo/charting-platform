@@ -1,4 +1,4 @@
-import { defineComponent, h, nextTick } from 'vue'
+import { defineComponent, h, nextTick, reactive } from 'vue'
 import { flushPromises, mount as rawMount, type MountingOptions } from '@vue/test-utils'
 import { VueQueryPlugin, QueryClient } from '@tanstack/vue-query'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -113,6 +113,7 @@ const harness = vi.hoisted(() => {
 })
 const routeState = vi.hoisted(() => ({ path: '/popout/benchmark-list', params: { windowKey: 'benchmark-list' }, query: {} as Record<string, string> }))
 const routerPush = vi.hoisted(() => vi.fn())
+const routerReplace = vi.hoisted(() => vi.fn().mockResolvedValue(undefined))
 const apiGet = vi.hoisted(() => vi.fn().mockResolvedValue([]))
 const apiPost = vi.hoisted(() => vi.fn())
 const dataPreparationPost = vi.hoisted(() => vi.fn())
@@ -175,7 +176,7 @@ vi.mock('vue-router', async (importOriginal) => {
   return {
     ...actual,
     useRoute: () => routeState,
-    useRouter: () => ({ resolve: vi.fn(), push: routerPush }),
+    useRouter: () => ({ resolve: vi.fn(), push: routerPush, replace: routerReplace }),
   }
 })
 
@@ -2241,8 +2242,8 @@ describe('WorkstationView pop-out bindings', () => {
       await wrapper.get('.workstation__canonical-symbol-options [role="option"]').trigger('mousedown')
       await vi.waitFor(() => expect(dataPreparationPost.mock.calls.some(([request]) => request.datasets.includes('holdings'))).toBe(true))
       const status = outcome === 'held'
-        ? 'Last-known holdings for SAVED remain visible. The data source is temporarily at its request capacity.'
-        : 'Last-known holdings for SAVED remain visible. A reviewed data source could not complete this request.'
+        ? 'Last-known holdings for SAVED remain visible. Holdings for SAVED: The data source is temporarily at its request capacity.'
+        : 'Last-known holdings for SAVED remain visible. Holdings for SAVED: A reviewed data source could not complete this request.'
       await vi.waitFor(() => expect(wrapper.text()).toContain(status))
       expect(wrapper.text()).not.toContain('provider_quota_admission_denied')
       expect(harness.workspace.etfHoldings.SAVED?.snapshot).toBe(savedSnapshot)
@@ -2307,21 +2308,77 @@ describe('WorkstationView pop-out bindings', () => {
     wrapper.unmount()
   })
 
-  it('opens a private basket route through the shared chart store without ticker identity or profile requests', async () => {
-    routeState.path = '/chart/BASKET%3A8'
-    routeState.params = { symbol: 'BASKET:8' }
+  it('keeps a newly selected canonical ticker in the chart URL and removes obsolete holding-route context', async () => {
+    routeState.path = '/chart'
+    routeState.params = {}
+    routeState.query = { holding_history_intent: 'selected', holding_snapshot_id: '77', unrelated: 'keep' }
+    apiGet.mockImplementation(async (path: string, params?: Record<string, unknown>) => {
+      if (path === '/instruments/search' && params?.q === 'XLE') {
+        return [{ symbol: 'XLE', name: 'Energy Select Sector SPDR Fund', exchange: 'ARCX', type: 'ETF', instrument_id: 89 }]
+      }
+      return []
+    })
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY' })))
+    const input = wrapper.get('input[aria-label="Active symbol"]')
+    await input.setValue('XLE')
+    await vi.waitFor(() => expect(wrapper.findAll('[role="option"]').some(option => option.text().includes('XLE'))).toBe(true))
+    await wrapper.findAll('[role="option"]').find(option => option.text().includes('XLE'))!.trigger('mousedown')
+
+    await vi.waitFor(() => expect(routerReplace).toHaveBeenCalledWith(expect.objectContaining({ path: '/chart/XLE' })))
+    const destination = routerReplace.mock.calls.at(-1)?.[0]
+    expect(destination.query).toMatchObject({ unrelated: 'keep' })
+    expect(destination.query).not.toHaveProperty('holding_history_intent')
+    expect(destination.query).not.toHaveProperty('holding_snapshot_id')
+    expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'XLE', instrumentId: 89 }))
+    wrapper.unmount()
+  })
+
+  it('syncs a blue-linked selection to the main chart URL and clears root-route holding context', async () => {
+    routeState.path = '/chart'
+    routeState.params = {}
+    routeState.query = { holding_snapshot_id: '77', holding_row_id: '9', unrelated: 'keep' }
+    harness.workspace = reactive(harness.workspace)
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY' })))
+
+    // A linked pop-out/workspace publication updates the shared selection without
+    // going through the shell combobox handler.
+    harness.workspace.linkedSymbol = 'XLE'
+
+    await vi.waitFor(() => expect(routerReplace).toHaveBeenCalledWith(expect.objectContaining({ path: '/chart/XLE' })))
+    const destination = routerReplace.mock.calls.at(-1)?.[0]
+    expect(destination.query).toMatchObject({ unrelated: 'keep' })
+    expect(Object.keys(destination.query).some(key => key.startsWith('holding_'))).toBe(false)
+    expect(harness.chart.loadBars).toHaveBeenCalledWith('XLE', 'D1', 'candles', true)
+    wrapper.unmount()
+  })
+
+  it('keeps private basket selection on its supported dashboard route without ticker identity or profile requests', async () => {
+    routeState.path = '/chart/SPY'
+    routeState.params = { symbol: 'SPY' }
+    routeState.query = { holding_snapshot_id: '77', holding_row_id: '9' }
+    harness.workspace = reactive(harness.workspace)
     const wrapper = mount(WorkstationView, {
       global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
     })
     try {
+      await vi.waitFor(() => expect(harness.chart.loadBars).toHaveBeenCalledWith('SPY', 'D1', 'candles', true))
+      harness.workspace.linkedSymbol = 'BASKET:8'
       await vi.waitFor(() => expect(harness.chart.loadBars).toHaveBeenCalledWith('BASKET:8', 'D1', 'candles', true))
-      expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'BASKET:8' }))
+      await vi.waitFor(() => expect(routerReplace).toHaveBeenCalledWith(expect.objectContaining({ path: '/chart/BASKET%3A8' })))
+      expect(Object.keys(routerReplace.mock.calls.at(-1)?.[0].query ?? {}).some(key => key.startsWith('holding_'))).toBe(false)
       expect(resolveKnownInstrument).not.toHaveBeenCalledWith('BASKET:8', expect.anything(), expect.anything())
       expect(apiGet).not.toHaveBeenCalledWith('/instruments/BASKET:8', expect.anything())
       expect(harness.workspace.loadTechnical).not.toHaveBeenCalledWith('BASKET:8')
       expect(harness.workspace.loadETFHoldings).not.toHaveBeenCalledWith('BASKET:8')
       expect(harness.workspace.loadETFIndustries).not.toHaveBeenCalledWith('BASKET:8')
-      expect(dataPreparationPost).not.toHaveBeenCalled()
+      expect(dataPreparationPost.mock.calls.some(([request]) => request.target?.kind === 'instrument'
+        && request.target.symbol === 'BASKET:8')).toBe(false)
       expect(harness.recent.add).not.toHaveBeenCalledWith('BASKET:8', expect.anything(), expect.anything())
     } finally {
       wrapper.unmount()
