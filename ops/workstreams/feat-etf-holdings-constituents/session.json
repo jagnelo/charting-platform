@@ -1070,8 +1070,8 @@
     "status": "Root-delegated bounded software checkpoint accepted; exact final-source CI pending.",
     "validated_implementation_sha": "b6d67ce93104a0a2cf83b1c41f385513b3c230f8"
   },
-  "plan_hash": "bdae731ba8b2fb3132af27ff992ae056a8fd5b09bf23c2861b70e7e21c6091f7",
-  "plan_sha256": "bdae731ba8b2fb3132af27ff992ae056a8fd5b09bf23c2861b70e7e21c6091f7",
+  "plan_hash": "284ab95c2dc4eca667f4c5c3fc63ccba28253bf2dd47ecb57dc54fa953f627f6",
+  "plan_sha256": "284ab95c2dc4eca667f4c5c3fc63ccba28253bf2dd47ecb57dc54fa953f627f6",
   "planning_required": false,
   "planning_state": "ready",
   "previous_active_changeset": {
@@ -4230,7 +4230,7 @@
   "current_sp500_analysis_spec": {
     "authority": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/etf-sp500-analysis-acceptance-ownership-20261107.json",
     "path": "frontend/tests/e2e/sp500_analysis_journey.spec.ts",
-    "sha256": "c46f4e217c6fa4f7f9c71ad4b26ad2cbcd5874933a5743c156af6074e927dfae",
+    "sha256": "2375251c97ca152081c9821314a5130e9ec4fba63e730a85112cf81b6bab83be",
     "frontend_typecheck": "passed after alpha-aware source-over tail and CSS-composited visibility assertions; R47 browser remains terminal red on the prior oracle and the corrected spec has not run in a browser",
     "playwright_cases_discovered": 2,
     "browser_body_run": false,

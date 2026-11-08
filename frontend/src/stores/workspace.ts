@@ -1074,6 +1074,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   let toolCatalogueRequest: Promise<OpenableToolDefinition[]> | null = null
   const workspace = ref<WorkspaceState | null>(null)
   const workspaces = ref<WorkspaceSummary[]>([])
+  let workspaceSelectionGeneration = 0
+  let workspaceListRefreshGeneration = 0
+  const deletedWorkspaceIds = new Set<number>()
   const activeTabKey = ref<string>('us-top-down')
   function workspaceActiveTabKey(state: WorkspaceState): string {
     const saved = typeof state.settings.active_tab_key === 'string' ? state.settings.active_tab_key : null
@@ -1607,6 +1610,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     // against the previous user's workspace ID. In-flight API calls are also
     // canceled by the shared authenticated-session signal.
     snapshotGeneration += 1
+    workspaceSelectionGeneration += 1
+    workspaceListRefreshGeneration += 1
+    deletedWorkspaceIds.clear()
     if (snapshotTimer) clearTimeout(snapshotTimer)
     snapshotTimer = null
     recentLinkGroupOverrides.clear()
@@ -1905,11 +1911,42 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   async function refreshWorkspaces() {
+    const generation = ++workspaceListRefreshGeneration
     const rows = await api.get<WorkspaceState[]>('/workspaces')
+    if (generation !== workspaceListRefreshGeneration) return workspaces.value
     if (!Array.isArray(rows)) return workspaces.value
     workspaces.value = rows.map(({ id, name, is_default, position, revision }) => ({ id, name, is_default, position, revision }))
+      .filter(item => !deletedWorkspaceIds.has(item.id))
       .sort((a, b) => a.position - b.position || a.id - b.id)
     return workspaces.value
+  }
+
+  function installWorkspaceSelection(next: WorkspaceState, persistedBaseline: WorkspaceState = next) {
+    workspace.value = next
+    persistedWorkspace = cloneSerializable(persistedBaseline)
+    snapshotSaveStatus.value = 'saved'
+    snapshotSaveError.value = null
+    activeTabKey.value = workspaceActiveTabKey(next)
+    error.value = null
+  }
+
+  async function loadWorkspaceSelection(workspaceId: number, generation: number): Promise<WorkspaceState | null> {
+    loading.value = true
+    try {
+      const next = await api.get<WorkspaceState>(`/workspaces/${workspaceId}`, undefined, { priority: 'high' })
+      if (generation !== workspaceSelectionGeneration || deletedWorkspaceIds.has(workspaceId)) return null
+      installWorkspaceSelection(next)
+      return next
+    } catch (cause: any) {
+      if (generation === workspaceSelectionGeneration) {
+        workspace.value = null
+        persistedWorkspace = null
+        error.value = cause?.message ?? 'Unable to switch workspace'
+      }
+      return null
+    } finally {
+      if (generation === workspaceSelectionGeneration) loading.value = false
+    }
   }
 
   function invalidateQueuedSnapshot() {
@@ -1931,89 +1968,103 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   async function switchWorkspace(workspaceId: number) {
-    if (!Number.isInteger(workspaceId) || workspace.value?.id === workspaceId) return workspace.value
-    loading.value = true
-    try {
-      const next = await api.get<WorkspaceState>(`/workspaces/${workspaceId}`)
-      workspace.value = next
-      persistedWorkspace = cloneSerializable(next)
-      snapshotSaveStatus.value = 'saved'
-      snapshotSaveError.value = null
-      activeTabKey.value = workspaceActiveTabKey(next)
-      error.value = null
-      await refreshWorkspaces()
-      return next
-    } catch (cause: any) {
-      error.value = cause?.message ?? 'Unable to switch workspace'
-      return null
-    } finally { loading.value = false }
+    if (!Number.isInteger(workspaceId) || deletedWorkspaceIds.has(workspaceId)) return null
+    const generation = ++workspaceSelectionGeneration
+    if (workspace.value?.id === workspaceId) {
+      // A newer same-workspace intent supersedes any outstanding selection
+      // request. Its finally block is now stale, so settle its loading state here.
+      loading.value = false
+      return workspace.value
+    }
+    const next = await loadWorkspaceSelection(workspaceId, generation)
+    if (next && generation === workspaceSelectionGeneration) await refreshWorkspaces()
+    return next
   }
 
   async function createWorkspace(name = 'New Workspace') {
     const normalized = name.trim().replace(/\s+/g, ' ').slice(0, 120) || 'New Workspace'
+    const generation = ++workspaceSelectionGeneration
     try {
       await settleSnapshotBeforeWorkspaceMutation()
       const created = await api.post<WorkspaceState>('/workspaces', { name: normalized, is_default: false })
-      workspace.value = created
-      persistedWorkspace = cloneSerializable(created)
-      snapshotSaveStatus.value = 'saved'
-      snapshotSaveError.value = null
-      activeTabKey.value = created.tabs[0]?.stable_key ?? 'us-top-down'
-      error.value = null
-      await refreshWorkspaces()
+      if (generation === workspaceSelectionGeneration) installWorkspaceSelection(created)
+      void refreshWorkspaces().catch(() => undefined)
       return created
-    } catch (cause: any) { error.value = cause?.message ?? 'Unable to create workspace'; return null }
+    } catch (cause: any) {
+      if (generation === workspaceSelectionGeneration) error.value = cause?.message ?? 'Unable to create workspace'
+      return null
+    }
   }
 
   async function cloneWorkspace() {
     if (!workspace.value) return null
+    const source = workspace.value
+    const generation = ++workspaceSelectionGeneration
     try {
       await settleSnapshotBeforeWorkspaceMutation()
-      const source = workspace.value
       const clone = await api.post<WorkspaceState>(`/workspaces/${source.id}/clone`, {})
       const corrected = remapClonedWorkspaceWindowKeys(source, clone)
-      workspace.value = corrected.workspace
-      persistedWorkspace = cloneSerializable(clone)
-      snapshotSaveStatus.value = 'saved'
-      snapshotSaveError.value = null
-      activeTabKey.value = corrected.workspace.tabs[0]?.stable_key ?? 'us-top-down'
-      error.value = null
+      if (generation === workspaceSelectionGeneration) installWorkspaceSelection(corrected.workspace, clone)
       // Some server versions clone window records but retain the source layout's
       // component keys. Persist the reconciled identity once so reload and other
       // windows see the same usable clone rather than only a client-side repair.
-      if (corrected.changed) scheduleSnapshot()
-      await refreshWorkspaces()
+      if (generation === workspaceSelectionGeneration && corrected.changed) scheduleSnapshot()
+      void refreshWorkspaces().catch(() => undefined)
       return corrected.workspace
-    } catch (cause: any) { error.value = cause?.message ?? 'Unable to clone workspace'; return null }
+    } catch (cause: any) {
+      if (generation === workspaceSelectionGeneration) error.value = cause?.message ?? 'Unable to clone workspace'
+      return null
+    }
   }
 
   async function renameWorkspace(name: string) {
     if (!workspace.value) return null
     const normalized = name.trim().replace(/\s+/g, ' ').slice(0, 120)
     if (!normalized) return null
+    const workspaceId = workspace.value.id
+    const generation = ++workspaceSelectionGeneration
     try {
       await settleSnapshotBeforeWorkspaceMutation()
-      const updated = await api.patch<WorkspaceState>(`/workspaces/${workspace.value.id}`, { name: normalized })
-      workspace.value = updated
-      persistedWorkspace = cloneSerializable(updated)
-      snapshotSaveStatus.value = 'saved'
-      snapshotSaveError.value = null
-      error.value = null
-      await refreshWorkspaces()
+      const updated = await api.patch<WorkspaceState>(`/workspaces/${workspaceId}`, { name: normalized })
+      if (generation === workspaceSelectionGeneration && workspace.value?.id === workspaceId) installWorkspaceSelection(updated)
+      void refreshWorkspaces().catch(() => undefined)
       return updated
-    } catch (cause: any) { error.value = cause?.message ?? 'Unable to rename workspace'; return null }
+    } catch (cause: any) {
+      if (generation === workspaceSelectionGeneration) error.value = cause?.message ?? 'Unable to rename workspace'
+      return null
+    }
   }
 
   async function deleteCurrentWorkspace() {
     if (!workspace.value || workspace.value.is_default) return false
+    const deletingWorkspaceId = workspace.value.id
+    const selectionGeneration = ++workspaceSelectionGeneration
     try {
       await settleSnapshotBeforeWorkspaceMutation()
-      await api.delete(`/workspaces/${workspace.value.id}`)
-      const rows = await refreshWorkspaces()
+      await api.delete(`/workspaces/${deletingWorkspaceId}`)
+      deletedWorkspaceIds.add(deletingWorkspaceId)
+      workspaces.value = workspaces.value.filter(item => item.id !== deletingWorkspaceId)
+      void refreshWorkspaces().catch(() => undefined)
+      if (selectionGeneration !== workspaceSelectionGeneration) return true
+      if (workspace.value?.id === deletingWorkspaceId) {
+        workspace.value = null
+        persistedWorkspace = null
+        activeTabKey.value = 'us-top-down'
+      }
+      const rows = workspaces.value
       const fallback = rows.find(item => item.is_default) ?? rows[0]
-      if (fallback) await switchWorkspace(fallback.id)
+      if (fallback) {
+        error.value = null
+        await loadWorkspaceSelection(fallback.id, selectionGeneration)
+      } else {
+        loading.value = false
+        error.value = 'Workspace deleted; no other saved workspace is available.'
+      }
       return true
-    } catch (cause: any) { error.value = cause?.message ?? 'Unable to delete workspace'; return false }
+    } catch (cause: any) {
+      if (selectionGeneration === workspaceSelectionGeneration) error.value = cause?.message ?? 'Unable to delete workspace'
+      return false
+    }
   }
 
   function snapshotPayload(current: WorkspaceState) {

@@ -1,0 +1,1910 @@
+{
+  "at": "2026-11-08T14:34:42.728959+00:00",
+  "authority": "Root coordinates the human-approved common-interface implementation; no staging or deployment acceptance",
+  "state": "released_for_exact_development_consumption_not_product_acceptance",
+  "source": "db4b1f55f78b1d907aab9d062da9470b5e3cc109",
+  "base": "139b350238b5e1c8a170dce5af09a805301d857e",
+  "constituent_manifests": [
+    "tc-db4b1f55-common-runtime-development-consumption-contract.json",
+    "strategy6595b47a-domain-frontend-development-consumption-contract.json",
+    "etf52b8e749-domain-frontend-development-consumption-contract.json"
+  ],
+  "files": [
+    {
+      "path": "frontend/package-lock.json",
+      "status_from139": "M",
+      "git_blob": "6117a1d937c5464413492a31aa6e8a6be1d73a97",
+      "sha256": "3af2d0a4120b7631c3138bd07d338cfd847fcdf9ee4b54f5c2e79e0069392c10"
+    },
+    {
+      "path": "frontend/package.json",
+      "status_from139": "M",
+      "git_blob": "8152bfb19bbca8adc0f99ee1bc4c9d8f58446ddf",
+      "sha256": "fdda93cc11c5077ca053c9481f50ad31284d3477dc0274f8941c8530a82f4b87"
+    },
+    {
+      "path": "frontend/src/App.vue",
+      "status_from139": "M",
+      "git_blob": "ea7a63f48402dd77dde0719c5ffd2f53fa2b4580",
+      "sha256": "37410e9a3900158c929588f3b1ded685d7a18cec135a146c034d6834b2103b8e"
+    },
+    {
+      "path": "frontend/src/components/chart/ChartPanel.vue",
+      "status_from139": "M",
+      "git_blob": "bd6a70bd4e16200be8fce74e0408445ff88f9fda",
+      "sha256": "152124682d75b070546649bdbf5ae8bb7fc922a0f1cd4dc3e4e9193303b76f17"
+    },
+    {
+      "path": "frontend/src/components/chart/HistoryAcquisitionControl.vue",
+      "status_from139": "M",
+      "git_blob": "1fd0fcaaf865b954f074ad0994d1d82c1e376bf3",
+      "sha256": "b707a705103bbfb90d42e422b2f91f580fb5917cceaee861b43c5571f32c8ef0"
+    },
+    {
+      "path": "frontend/src/components/chart/UPlotChart.vue",
+      "status_from139": "M",
+      "git_blob": "6244c9222c13206688260ce8d134c772cd1db845",
+      "sha256": "5610e57fad3db8dc1bb111224d93f6354f04210de7f580ca9cae6daca2acf795"
+    },
+    {
+      "path": "frontend/src/components/common/CompactStatusNotice.vue",
+      "status_from139": "A",
+      "git_blob": "303283e46fdd74b35d4649182ff6712074bbc224",
+      "sha256": "15a106b3052036ee79098b748df6e76180181719c9aee37a1b0f9f7a3f1ca7e5"
+    },
+    {
+      "path": "frontend/src/components/common/Notification.vue",
+      "status_from139": "M",
+      "git_blob": "6bc097a442066de2b9bc3e0b318275da4bcee388",
+      "sha256": "16535b3ec4d8983dd47aab9975f1777e1f4536c33e1891c263fb41539698709a"
+    },
+    {
+      "path": "frontend/src/components/common/SearchBar.vue",
+      "status_from139": "M",
+      "git_blob": "38b7fd3bbdf998553ca0c407a6c7a6050c3f04b6",
+      "sha256": "3bfcd2461db4855d4363e5e089daa74dd57d75ed2a9e5b6dc3ee9aa426542af2"
+    },
+    {
+      "path": "frontend/src/components/radar/RadarDetailPreviewChart.vue",
+      "status_from139": "M",
+      "git_blob": "2c037ec6ba10ace9c047d2845a04381409ef33d6",
+      "sha256": "5e0916e250d576bb0f5ca4cecbb14805e93848d33c5b211c4215d9c5a7154a4b"
+    },
+    {
+      "path": "frontend/src/components/workstation/ChartPlotLibrary.vue",
+      "status_from139": "M",
+      "git_blob": "35e3968fe47d1601d93d9cd6b2a15a03d6996982",
+      "sha256": "a9cf70245251469f1a070ee26dfd7c392a2e2051c7d8a9a0166527f26523946a"
+    },
+    {
+      "path": "frontend/src/components/workstation/CoverageSummaryTool.vue",
+      "status_from139": "M",
+      "git_blob": "51b1e7f74d371acf51997523d33b6bfd2c46d799",
+      "sha256": "395e8fc58342f59c7b6d377095a1ae58c673ba815f089899bde96a90735cd264"
+    },
+    {
+      "path": "frontend/src/components/workstation/EasyScanTool.vue",
+      "status_from139": "M",
+      "git_blob": "3d13ad377dd97fd6b6167d2b527779b6df90809c",
+      "sha256": "85d1fd5e7e3a7ffc33f2534d196832973105308bcd381881205dfdc90ac4dce1"
+    },
+    {
+      "path": "frontend/src/components/workstation/InstrumentAlertsTool.vue",
+      "status_from139": "M",
+      "git_blob": "0267c15c143d942ce82a6c85f63895f77042a872",
+      "sha256": "71b7a6de707cbfbec129a806549d8975ec7765f4b95f0e9594aad03fbc047f60"
+    },
+    {
+      "path": "frontend/src/components/workstation/MarketGaugeTool.vue",
+      "status_from139": "M",
+      "git_blob": "4ae8138606fdbe4089e90dbe891e92f94ab8aed8",
+      "sha256": "506deaceb0281525341665160cb46a2b5f3758aeb99c07c9c65da8d357ddcbef"
+    },
+    {
+      "path": "frontend/src/components/workstation/MarketMapTool.vue",
+      "status_from139": "M",
+      "git_blob": "3dcf307700de4852d8094bec6ce50746a4eb9521",
+      "sha256": "a5cb094ef2a9da0d4d68a92d8e43068958c92223e695ecbe902875b41ece152f"
+    },
+    {
+      "path": "frontend/src/components/workstation/RatioUPlot.vue",
+      "status_from139": "M",
+      "git_blob": "9b27074f1455b986027388e05cb490a51b6af84f",
+      "sha256": "b9612f7f349f271d4e5965ea0eb89c3733d73e8e1913e3a4d1df19f740449127"
+    },
+    {
+      "path": "frontend/src/components/workstation/RelativeRotationTool.vue",
+      "status_from139": "M",
+      "git_blob": "43c101d0a60c26ca01772aa4f5b417de8f0d23c2",
+      "sha256": "6a8812c2d29ae450ebdd62f1aa4e0a70037557ca716cc50e55382ed2b01293aa"
+    },
+    {
+      "path": "frontend/src/components/workstation/ToolWindow.vue",
+      "status_from139": "M",
+      "git_blob": "173f6a97fc4974adefdb7eef69960880c1f33ee7",
+      "sha256": "0cd339ec67bac8e98e59992477f7219d6972c2db69063b06ee424b0777daf6c3"
+    },
+    {
+      "path": "frontend/src/components/workstation/VirtualWatchlistTool.vue",
+      "status_from139": "M",
+      "git_blob": "e5a2c66f21160855e298aeaa7865d19b47c78043",
+      "sha256": "c873555578ebbf42cb2c6f0c959ac6c25d69a707439cd7880c733c2b9f029e00"
+    },
+    {
+      "path": "frontend/src/components/workstation/WorkspaceLayoutHost.vue",
+      "status_from139": "M",
+      "git_blob": "95ec1131a9e26b5613029300e4cfc0b2e3a64856",
+      "sha256": "30e707991a06cf9974e72f1c95e1b630dcc5d41bc6993c39b47ad013166fa5a1"
+    },
+    {
+      "path": "frontend/src/components/workstation/WorkstationToolContent.vue",
+      "status_from139": "M",
+      "git_blob": "44473702b615fef235fa04ed467015d9ffa34766",
+      "sha256": "7b28ffe703566458c88f7351da9e85f0d66dd3421ad922b241c1cdd2247e6974"
+    },
+    {
+      "path": "frontend/src/lib/api.ts",
+      "status_from139": "M",
+      "git_blob": "56c3836fc026eef06a120f216ceab53b180f5905",
+      "sha256": "6d10aaebfdccef984fe5bf4df0ef99eaf3118f1594b828d4a90bca816431ed10"
+    },
+    {
+      "path": "frontend/src/lib/authSession.ts",
+      "status_from139": "A",
+      "git_blob": "08a2ca831c277009bcf139699d22e569f5d1dac0",
+      "sha256": "8ed6b9dca7d36ca0da329b3f5885f470a25e3a0362599a326336bdcad42aaba8"
+    },
+    {
+      "path": "frontend/src/lib/dataPreparation.ts",
+      "status_from139": "A",
+      "git_blob": "5ed2c2cb2e2555bccdb5ab8f6da1d8c8b119f885",
+      "sha256": "32394c869a8f7c7e694646b4eb724240f65058faf246169910c7fd9625694dca"
+    },
+    {
+      "path": "frontend/src/lib/etfHoldingDrilldown.ts",
+      "status_from139": "M",
+      "git_blob": "714d26cc0e0e81fed24fadc1b25b9097d8318fbf",
+      "sha256": "05986174edd2c229a7c07640192a333eabc5daa8c46730fabda44d45c01bfa76"
+    },
+    {
+      "path": "frontend/src/lib/instruments.ts",
+      "status_from139": "M",
+      "git_blob": "e658949c7f004944a61758046a3c7f6b076dc802",
+      "sha256": "763d74f0dd825488b162f302c9d38780723abbe251a786ac0123c0182297aa25"
+    },
+    {
+      "path": "frontend/src/lib/onDemandAcquisition.ts",
+      "status_from139": "M",
+      "git_blob": "63ba80c4e68affd5fd2ebbc6e7c08c92384d2a7d",
+      "sha256": "d0017a8d78554ba86babf2c804f2f9b57297a5a3ccb0f08ae9c61a62f66e6266"
+    },
+    {
+      "path": "frontend/src/lib/workstation/benchmarkFamilySources.ts",
+      "status_from139": "M",
+      "git_blob": "5302faabfedc754292cbc7ea8850430d62e81718",
+      "sha256": "31bbc721ad9e1af21b14222a84660cb40aee5d9bed766c26ced141cb69d14e91"
+    },
+    {
+      "path": "frontend/src/lib/workstation/instrumentCalendar.ts",
+      "status_from139": "A",
+      "git_blob": "63b4d6414b2d5de4855c4deb2575c2540178a712",
+      "sha256": "03b300c5b68f6541cf92286c5be462967da2e6ae3f1c2c62068190abcab932fe"
+    },
+    {
+      "path": "frontend/src/lib/workstation/instrumentQueries.ts",
+      "status_from139": "M",
+      "git_blob": "2d9750c8d4093784ebb59e9d07435fb26ae3e852",
+      "sha256": "e370d3934eeb8a0ce372bb5970cdf71d3c0e76b2d17711cace83cae4ccd57dfd"
+    },
+    {
+      "path": "frontend/src/lib/workstation/libraryQueries.ts",
+      "status_from139": "M",
+      "git_blob": "1f2f30f8aa0dd86a7ace37d2a7e0ff626cd9f1a5",
+      "sha256": "be28bfc1741685fa3132dceb37eaa0f2411985550eb2c92e73bd93674f91b4a2"
+    },
+    {
+      "path": "frontend/src/lib/workstation/marketMap.ts",
+      "status_from139": "M",
+      "git_blob": "8f6ac45af963bd3e37ad9334af6d0b0409015c06",
+      "sha256": "b5af21d07cd45bb26938e50c1a1673939052360cad981bc93ae682c39843b519"
+    },
+    {
+      "path": "frontend/src/lib/workstation/ohlcvRequests.ts",
+      "status_from139": "M",
+      "git_blob": "e7ea6f716fc6f5a71a155e79b5ac51582a3552f3",
+      "sha256": "574359b7d69f359b56c9fbf292457cff87e2594d49b21f2cd04eb8fc10352602"
+    },
+    {
+      "path": "frontend/src/lib/workstation/sourceCapability.ts",
+      "status_from139": "M",
+      "git_blob": "dbf6084c7e2f7c5bd18bfab2f1ba3b884565c44c",
+      "sha256": "be7e95073d0032a911a9a6f6277078d0743b3a0c42a6db8becc94543f6f57a98"
+    },
+    {
+      "path": "frontend/src/lib/workstation/toolActivation.ts",
+      "status_from139": "A",
+      "git_blob": "2660bd391cef75cc3f75ba81c876171e9e88899a",
+      "sha256": "3ddb42abfe8cf113dea556a09ece1ba08796600fd605c6351a8d9028b4321124"
+    },
+    {
+      "path": "frontend/src/main.ts",
+      "status_from139": "M",
+      "git_blob": "feb9216bb519177c7782962de17b7fc2d2f1dd8a",
+      "sha256": "4c9253d30eab71e58826d9a46295e1785a2bfe795a43276469fef9a52bdaf304"
+    },
+    {
+      "path": "frontend/src/router/index.ts",
+      "status_from139": "M",
+      "git_blob": "6c255db1f99e35c72566e368b6f4145864f9fe25",
+      "sha256": "71481e273ea025e229ba2b269652d51aa3772d80b5660a46502c6b35b4300417"
+    },
+    {
+      "path": "frontend/src/stores/alerts.ts",
+      "status_from139": "M",
+      "git_blob": "c93f5b3c6297b4770f3cc107189064d7f69b8d2c",
+      "sha256": "d3fd2206e288ef27fb73517157e9fbbb6e54a02788319ad68688ece0c0b6dae1"
+    },
+    {
+      "path": "frontend/src/stores/auth.ts",
+      "status_from139": "M",
+      "git_blob": "a41924732bc9b179d3214502a0c5c70c63b67d44",
+      "sha256": "38b1b7f73cfc251cde7c2ef3971629b01d56e157d8f75ecc083f705e2db4feef"
+    },
+    {
+      "path": "frontend/src/stores/chart.ts",
+      "status_from139": "M",
+      "git_blob": "496d643f5365dafa6b0b3c86d77bfda970309cff",
+      "sha256": "8b85157c7933f5464a2934a80487bd0ee47e5853242194566640ccd10c01a494"
+    },
+    {
+      "path": "frontend/src/stores/drawings.ts",
+      "status_from139": "M",
+      "git_blob": "008f0fdd8bf15657bb39c1d45a7b20c583549f6b",
+      "sha256": "91c8922db035d8b2db6430f4c7169ff4d6694066718908a99c3d5b7f9f9fb746"
+    },
+    {
+      "path": "frontend/src/stores/favorites.ts",
+      "status_from139": "M",
+      "git_blob": "945291035350adaca1b0977ae63a8f6b5fb98b73",
+      "sha256": "d928aad5650aa8b1aaca5e59ca0fba87a8d6eac740330eb9c7e2a7722743a449"
+    },
+    {
+      "path": "frontend/src/stores/layout.ts",
+      "status_from139": "M",
+      "git_blob": "77025d52b26feaacf58eef0ec4e8bc750cff0417",
+      "sha256": "791997814cd88e48fe5c0b2f7d9508835875e57b32af3b31cdf0acb096e72f8f"
+    },
+    {
+      "path": "frontend/src/stores/panelLinks.ts",
+      "status_from139": "M",
+      "git_blob": "f958ee2443bb7fe13497e50b5d01f84d64493b98",
+      "sha256": "6e1fe199023441217209f8825e0b49f82fb3215b30d0b024cf9300034d7a103b"
+    },
+    {
+      "path": "frontend/src/stores/presets.ts",
+      "status_from139": "M",
+      "git_blob": "cd65f15cdef6d9430920e4205db433d7a13b58fb",
+      "sha256": "195a0696a5353351642cb87758bf402f8814976283bd90ac84fbe3a529815f2d"
+    },
+    {
+      "path": "frontend/src/stores/radar.ts",
+      "status_from139": "M",
+      "git_blob": "22bffcd457304eab655246c6f09ccdde66cf59cc",
+      "sha256": "a68988f29570e3921dfc4e9fb02ac0bbe0cc8dad8dab0d3c4f5cfbec4bc11b55"
+    },
+    {
+      "path": "frontend/src/stores/recentInstruments.ts",
+      "status_from139": "M",
+      "git_blob": "6acd5eabc747e562e2fc3fb63fe0fd2d85c43263",
+      "sha256": "ae0183555ae9363f4f5dec1d3f72ef857ddd3478512c51afebdc10166a4dd626"
+    },
+    {
+      "path": "frontend/src/stores/screener_alerts.ts",
+      "status_from139": "M",
+      "git_blob": "dc8e1238dff948a3586aa31e510a948f1e79ecab",
+      "sha256": "e9c06c69b4ffcddc5ac11dbdab203098027545da8974e0f31eb5e24ce5db32b8"
+    },
+    {
+      "path": "frontend/src/stores/userSettings.ts",
+      "status_from139": "M",
+      "git_blob": "c57829167ace9e54561975f8798818a339975606",
+      "sha256": "6bb3274cc326bc016b2eb07c8d94e8dfbead78701595db9ea0a864e9efed5598"
+    },
+    {
+      "path": "frontend/src/stores/watchlist.ts",
+      "status_from139": "M",
+      "git_blob": "a4287f9085767aa69089b6c06d44ad0b01e742e4",
+      "sha256": "1d33d58d5fe7a3e7ebf6a14a8695dc8461f83c7bcd8f571476596d8e035cdc37"
+    },
+    {
+      "path": "frontend/src/stores/workspace.ts",
+      "status_from139": "M",
+      "git_blob": "9297e87a6a25e02061a413050160a362f2bbcff6",
+      "sha256": "98ee66438f6c09c811ba0761a8e9d848529a8536edb67765ddd9739a8ed2f1a0"
+    },
+    {
+      "path": "frontend/src/types/index.ts",
+      "status_from139": "M",
+      "git_blob": "81bcdeb79d913823f447783809267faf8fa1f32d",
+      "sha256": "23f9e013dfb7eb57ac398db678bcf200b1befde87e47e5ee7fd63615d73d0ca3"
+    },
+    {
+      "path": "frontend/src/views/AlertsView.vue",
+      "status_from139": "M",
+      "git_blob": "06f9e951137aedf67da0102e47cdc7b927c19fad",
+      "sha256": "2836251888c982a5f8b4ef36dcd771cf3c6dce306303922d399c20b4f7ba02b1"
+    },
+    {
+      "path": "frontend/src/views/ChartView.vue",
+      "status_from139": "M",
+      "git_blob": "9d344e6c255965df27854f819f62003da752a99a",
+      "sha256": "590fd6be69315228c6935db2c48b9cfa25b235d12500ca371640c14f6b100282"
+    },
+    {
+      "path": "frontend/src/views/ScreenerView.vue",
+      "status_from139": "M",
+      "git_blob": "b604d4eb77f5b2574c0736348455b285322e5f09",
+      "sha256": "253d2e8393a10d67376eef7f2ba74a03815844cd22cf437c742fa91dce3272f5"
+    },
+    {
+      "path": "frontend/src/views/SettingsView.vue",
+      "status_from139": "M",
+      "git_blob": "c6c3a84bd27fd146595276f02d0e06a8793a762c",
+      "sha256": "9026481bee342d0356da768408ace682641f1bd4e67eebc06e93f3a00b62a57e"
+    },
+    {
+      "path": "frontend/src/views/WatchlistView.vue",
+      "status_from139": "M",
+      "git_blob": "8986789858f097be73a97eb4586e0a8f10f901c6",
+      "sha256": "8751352ffd4483f0c3c5365faa4ee84fff35c3faa9fe265c97a343e2f25e3e6c"
+    },
+    {
+      "path": "frontend/src/views/WorkstationView.vue",
+      "status_from139": "M",
+      "git_blob": "f545bc7209c8dae9f4568db108ec2ca90af0af9c",
+      "sha256": "f6f83f60d96bfd13337c6cc15140fccd871545a180ce7c85b46dc6e8e4711a87"
+    },
+    {
+      "path": "frontend/tests/e2e/auth_session_boundary.spec.ts",
+      "status_from139": "A",
+      "git_blob": "89f0666397cd9b29df6a59f5cc28977c9e4ddca9",
+      "sha256": "1b892a0ccf7b9f75fe4d5a2997612f588a6c4a4c0baef4f35c6cd71f794d47b4"
+    },
+    {
+      "path": "frontend/tests/e2e/flows.spec.ts",
+      "status_from139": "M",
+      "git_blob": "1517650e2efc617935e731cbcaa1fee600367e95",
+      "sha256": "80eac939a50e4ef07e08842a01a074ae1c3bc537d23256ff292a0bd3e8937c90"
+    },
+    {
+      "path": "frontend/tests/e2e/helpers.ts",
+      "status_from139": "M",
+      "git_blob": "c25fb210513d4c8c7d773df57d665e8c79e05d2b",
+      "sha256": "2ce1c40fb020bcaf68a3c2b94098195fe49e580c438b144f114d84de55086af2"
+    },
+    {
+      "path": "frontend/tests/e2e/on_demand_acquisition.spec.ts",
+      "status_from139": "M",
+      "git_blob": "950d692974e111d0c4aaae8c5ba52a8542011a7f",
+      "sha256": "c964de9ce6a8ec3d3c23e854f826fd9ea68097d0f05d460c7a5a0fdc0298bd68"
+    },
+    {
+      "path": "frontend/tests/e2e/tc2000_visual.spec.ts",
+      "status_from139": "M",
+      "git_blob": "6fe606bc7740d930afb5c93731e0a0a82eab2072",
+      "sha256": "670744fccb3b4d3adf19c7f48cc92676508d2e4e81801e005c5f741196e01ecf"
+    },
+    {
+      "path": "frontend/tests/e2e/tc_secondary_routes_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "2e31968084b46a722688f52fe7baeee66e98ad1d",
+      "sha256": "2a6ecb3863c589764507fb54d724b616fd55122f9f623a02c2d34a0224e62921"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_chart_panel_lifecycle.test.ts",
+      "status_from139": "M",
+      "git_blob": "83f2250ec13d58c8baf7c992cc22f8a18f43be16",
+      "sha256": "d587caeb7c8fe6c3ca09a96540f00fc85a52163c2ff8a7b22029c38d40a830b8"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_chart_plot_library.test.ts",
+      "status_from139": "M",
+      "git_blob": "8160ef097517ce26aa746ec8cca16197ce8ac190",
+      "sha256": "2495ef7f87627889e5a5439ed8d05dc382c75bcc4c294baf239013e6d6eadce0"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_compact_status_notice.test.ts",
+      "status_from139": "A",
+      "git_blob": "d191639f5d5a25cbf6624275682342328074810b",
+      "sha256": "7bf39d9cafd051b0f07ae2a074f1de995016da26e63ff11bd2a9ed65b7d29001"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_coverage_summary_tool.test.ts",
+      "status_from139": "M",
+      "git_blob": "e1d4de20c6c53d54cd553a55f316bad27f52ebce",
+      "sha256": "6b0d07f063bae0e2ba2d685080ff443f42c0533870acd35bcd87973ae0fea357"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_easy_scan_tool.test.ts",
+      "status_from139": "M",
+      "git_blob": "8e11e21089d8b42055d9628fdf5c4397ecfa522a",
+      "sha256": "4c2296476edb6c8da7e85639b1620a8b9615d5d208a0aae50727475e1d18d6fc"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_etf_holding_resolution_action.test.ts",
+      "status_from139": "M",
+      "git_blob": "91d20f0c9e2949eab0a30ad7baa981b091a4b957",
+      "sha256": "82a2df227721c3055a8e46d496109e16eb62c6d358f6efcd030103b7ea94e078"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_history_acquisition_control.test.ts",
+      "status_from139": "M",
+      "git_blob": "b281ca9d76d07ed08382605cc18e6f2a938f204a",
+      "sha256": "658529f244f58751c865388736e3c36aadfe0060242c55c50c00bbdcad431cd9"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_linked_instrument_tool_races.test.ts",
+      "status_from139": "M",
+      "git_blob": "cb12fd71ebbeb7644856c8459e61208318237dc8",
+      "sha256": "8a405a7b56e94dbae58e8443d507281bd526f7745912629e72f15f1364621ee2"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_market_gauge_tool.test.ts",
+      "status_from139": "M",
+      "git_blob": "549e9eec6e5e15b474d68a656607dfffcdd2715d",
+      "sha256": "77c45bb326f023a74bc8532e4485f7eb886c9ab35274479ccd601e285df19963"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_market_map_tool.test.ts",
+      "status_from139": "M",
+      "git_blob": "0b249340ebcdce6b951bcd25000494733ee651fe",
+      "sha256": "b8200ae11f1261846cce396f7720ad6d172a22cd55ab0422424ffdbff1d8b15e"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_radar_detail_preview_chart.test.ts",
+      "status_from139": "A",
+      "git_blob": "a7bcbddda6113c621d05357a78aef6cc9ce42773",
+      "sha256": "54f074573244ca33beb9f8f945b01ffde24920c2c3fcb4905393dc5f46be5a2e"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_ratio_uplot.test.ts",
+      "status_from139": "M",
+      "git_blob": "836d95ba093cee89e9e1f6492f96c822343ee1d8",
+      "sha256": "1627d18e9e69d6822d212bc15c4d42a37b05d7099ae8b2879c0ee95e8796ad53"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_relative_rotation_tool.test.ts",
+      "status_from139": "M",
+      "git_blob": "f1c540dd1d859dd92698733a57b367dc292c293c",
+      "sha256": "5c2d45d3d221f1a83cfbb30c640745c62cc522c615edba857fdfd4dae5ece284"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_search_bar.test.ts",
+      "status_from139": "M",
+      "git_blob": "5098563e34ce32f55f7b2fb5ba9ef0c487c5ff6c",
+      "sha256": "7a349cce8bd57f7b9cc0dc6505740ab4cedfe6feded8e2f88733894e93cabce0"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_tool_window.test.ts",
+      "status_from139": "M",
+      "git_blob": "2cd2b8494c77a6274d8d7828fbbc2dbaaa6464e4",
+      "sha256": "1b9c499932c15b40441b8a9e3280dcfa33b9b0ce91a8d92c65ba5da32ca874e0"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_uplot_chart_context.test.ts",
+      "status_from139": "M",
+      "git_blob": "a7dc970b202fce1891316a59f385c0199845ad48",
+      "sha256": "d09d922f5a3722257803f9ddccd2d7b526639ead0f7d0dfe1695d198270d1b60"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_virtual_watchlist_tool.test.ts",
+      "status_from139": "M",
+      "git_blob": "2caafc090ca6f4a6a35cb938ef0ca6c716c27c72",
+      "sha256": "3eb7ab644a8061d149b88f0e906f55905a2dbe78b7182a436653b2c7bc34a965"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_workspace_layout_host.test.ts",
+      "status_from139": "M",
+      "git_blob": "a578e2df9715c5cf9afd5c4a8cedf397aa80eb63",
+      "sha256": "6bf030967405d055f35864f691530c6f2f02652249bb28cbb7dcd4190196bb8d"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts",
+      "status_from139": "M",
+      "git_blob": "1855c6be194a675e0d6d56e2dd7ace845d2ab859",
+      "sha256": "f6a43a2121e13bc2cd78dd727ba5e7b947884b2b1c0fb90a5d099656d7b26d0f"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_workstation_tool_content_tag_columns_runtime.test.ts",
+      "status_from139": "M",
+      "git_blob": "aeaba2bdfb097b0ce65c0ed1ef7b784748480127",
+      "sha256": "9478d77f345baa621716e2e4c963114fc24a0a07c5bd420ce0c54b33478eadb7"
+    },
+    {
+      "path": "frontend/tests/unit/e2e/test_browser_diagnostics.test.ts",
+      "status_from139": "M",
+      "git_blob": "d981d5a034f2e4489e203152266f069a821402e2",
+      "sha256": "fb3c9cc896c042f7a67fda0672e49c41c53fc06b1c8ae60bde5f2bc8b53fa31b"
+    },
+    {
+      "path": "frontend/tests/unit/lib/test_api_client.test.ts",
+      "status_from139": "M",
+      "git_blob": "22e5d703129db9dad52044b5bcb92c894a2cb6f9",
+      "sha256": "d83968e1bf11ddb3232909d6444df62605a194b57994ec54c2d092a7f4c71423"
+    },
+    {
+      "path": "frontend/tests/unit/lib/test_auth_session.test.ts",
+      "status_from139": "A",
+      "git_blob": "27b13cb7dff285e148ec2ad90b52bef15facad4b",
+      "sha256": "c336f5b8e15cf8185199c5319de7dd87b008f01e1a06a095d1846a9de9818487"
+    },
+    {
+      "path": "frontend/tests/unit/lib/test_benchmark_family_sources.test.ts",
+      "status_from139": "M",
+      "git_blob": "6068f2b0a1cc1c785eaee4767e44e8028f81c348",
+      "sha256": "039bb1604bca0156e7289e98c9275741603602d461d34fe43317b00d9c08983c"
+    },
+    {
+      "path": "frontend/tests/unit/lib/test_data_preparation.test.ts",
+      "status_from139": "A",
+      "git_blob": "838e393a727c38b8cf17a4b670713a8c06355b37",
+      "sha256": "daf792c6aca6d02f6e2cb880435719d366ad55ef098dd243041f281da534f21d"
+    },
+    {
+      "path": "frontend/tests/unit/lib/test_instrument_calendar.test.ts",
+      "status_from139": "A",
+      "git_blob": "19a4c53518c82f4652b44a2013c9c23234bb0ba0",
+      "sha256": "84f0a17a40ddf56784b137d7eb0dabf8e5953c3802baba4024aa452791330589"
+    },
+    {
+      "path": "frontend/tests/unit/lib/test_instrument_queries.test.ts",
+      "status_from139": "M",
+      "git_blob": "4d320ce2d179cd78bbca4b5dfc67dafcd1930ef7",
+      "sha256": "3b12d6d04f3089ecca6ae857b134c34fb71c88af39d88b4be41fa05e4c1a3e58"
+    },
+    {
+      "path": "frontend/tests/unit/lib/test_instruments.test.ts",
+      "status_from139": "M",
+      "git_blob": "4197fade99b8a1698dd7dcb0c2c4d159fbeb5f0c",
+      "sha256": "cfc595948614690788a8d2090330babf6b08d90f772b0cf947093e4797b48c58"
+    },
+    {
+      "path": "frontend/tests/unit/lib/test_market_map.test.ts",
+      "status_from139": "M",
+      "git_blob": "a6681ee44f5e0743582b8b4e03c2c37952ad9e6e",
+      "sha256": "25dc09ae97a197c917d4e5e824681da73c995e82f57017a77dd178025cd0d3df"
+    },
+    {
+      "path": "frontend/tests/unit/lib/test_on_demand_acquisition.test.ts",
+      "status_from139": "M",
+      "git_blob": "f77703f3578a9594a7b2b96bfd8b3e80badf2270",
+      "sha256": "a8054b96658a95fbbc20eb9ed1a149d081363c9a053e606ec10a3a0eb62ac10c"
+    },
+    {
+      "path": "frontend/tests/unit/lib/test_tool_activation.test.ts",
+      "status_from139": "A",
+      "git_blob": "056afcdce58a480c16adc7787516c74199f6badc",
+      "sha256": "0abaf66e32f16e5e2760a8a578ec03c901babdff51bf523de7c3dc6b68689377"
+    },
+    {
+      "path": "frontend/tests/unit/lib/workstation_ohlcv_requests.test.ts",
+      "status_from139": "M",
+      "git_blob": "f365a2d6bbba9ec91e1eed5abaf537f0caf6d1e5",
+      "sha256": "d2282805ea6bebfe4dcc658f3507ead6fc0f0a4a641871fef8a399a5acaefa83"
+    },
+    {
+      "path": "frontend/tests/unit/lib/workstation_source_capability.test.ts",
+      "status_from139": "M",
+      "git_blob": "5caae636645b9bc0ed15c58f058487d8454145b2",
+      "sha256": "47860a970cd858653cd8ba04b7b9ab3db4da41668b43361dc0df9e7f8670df6a"
+    },
+    {
+      "path": "frontend/tests/unit/router/test_app_shell.test.ts",
+      "status_from139": "M",
+      "git_blob": "a337653297688f16098440e443cdb34cdd782489",
+      "sha256": "ba90b8eec8c99f2a8c858c676b0478d79561a73e3fcb609773f24b3cb6a7c9da"
+    },
+    {
+      "path": "frontend/tests/unit/router/test_application_routes.test.ts",
+      "status_from139": "M",
+      "git_blob": "dd5ef164a45dab0719fc74167b48fa73b3c50e18",
+      "sha256": "b5435edd7f37502ff54b18d147a2857d29df01b9743eb6fb7140abd1b519a739"
+    },
+    {
+      "path": "frontend/tests/unit/setup.ts",
+      "status_from139": "M",
+      "git_blob": "8d1aad7c0125bef31cb56b1fd950bb42bc0f70c1",
+      "sha256": "e011f0d9534079df270f39a9d763bc6d2ceb934f5b7324849824fe7bb8b9afb3"
+    },
+    {
+      "path": "frontend/tests/unit/stores/test_drawings_store.test.ts",
+      "status_from139": "M",
+      "git_blob": "c59b940728fafb41388963db291610719d056d80",
+      "sha256": "b460475a03c5a6bfceebb4105d918a1892549e093f5b26be42861fa833da83e0"
+    },
+    {
+      "path": "frontend/tests/unit/stores/test_favorites_store.test.ts",
+      "status_from139": "M",
+      "git_blob": "29a707d45139693cf11ffb7a6a425f3f456a8e66",
+      "sha256": "a00dd8682d6e7af942b96fd24e84e2288d2f6fe7bd8c055b1537068a4851d590"
+    },
+    {
+      "path": "frontend/tests/unit/stores/test_stores.test.ts",
+      "status_from139": "M",
+      "git_blob": "6b2fd1ca74050e6a64426d8e0373a07c2c04bde9",
+      "sha256": "ba79558bb780afd6c1702eab3ff23f10bdcbdd5a65d65cbb640291615586aa34"
+    },
+    {
+      "path": "frontend/tests/unit/stores/test_user_settings.test.ts",
+      "status_from139": "M",
+      "git_blob": "21ddebea2f9a5afcf6f2b2f056731de3966067da",
+      "sha256": "c282472c95c086fee14df18c05022d21bc55077add6f6e6c2d52dcc66197f022"
+    },
+    {
+      "path": "frontend/tests/unit/stores/test_watchlist_store.test.ts",
+      "status_from139": "M",
+      "git_blob": "354afa7278e961a8d4053bf467b8174e0e9fd6d6",
+      "sha256": "21200fe6f81cf1490bebf8f420ce2c1422936f375d422c79a86b615531827840"
+    },
+    {
+      "path": "frontend/tests/unit/stores/test_workspace_store.test.ts",
+      "status_from139": "M",
+      "git_blob": "d2a29cfcc3083841fff09ae5e1042d516efdb7e8",
+      "sha256": "0d0b2a0a26a1c821524ad61c83ee69fa8c0c4701e84b4f11b0b2097e6f84e16d"
+    },
+    {
+      "path": "frontend/tests/unit/views/test_alerts_view_creation_path.test.ts",
+      "status_from139": "A",
+      "git_blob": "da98f70673e8b146ea77389a6f94c4bc3d19820f",
+      "sha256": "5dc96a2edf4e96800f3016ec13d358ab2c49691fa9a03e4d03e4240a54550168"
+    },
+    {
+      "path": "frontend/tests/unit/views/test_chart_view_radar_handoff.test.ts",
+      "status_from139": "M",
+      "git_blob": "5a5bc711269fd186d70cb6c8d3e325cc06ebc18e",
+      "sha256": "a7d0b973565a51afd136a75ae598f4768bac84a32536a40b4a53bbf1293e454f"
+    },
+    {
+      "path": "frontend/tests/unit/views/test_screener_view_accessibility.test.ts",
+      "status_from139": "A",
+      "git_blob": "13e0e61a253e4841d88adde9625fdaa0e081de8d",
+      "sha256": "b3100c4c191febdba7d2d34056de6c7c55837826fdb3bd83d4f0e70ebaa824db"
+    },
+    {
+      "path": "frontend/tests/unit/views/test_settings_view.test.ts",
+      "status_from139": "M",
+      "git_blob": "964fc96b1209a3fbff08db078b533da3820799c9",
+      "sha256": "14af364e608a43eee5f244089388cf4204e893ef86ce136d4de8d0b4ae0cb616"
+    },
+    {
+      "path": "frontend/tests/unit/views/test_watchlist_view_bootstrap.test.ts",
+      "status_from139": "A",
+      "git_blob": "49bdf4052c86d35b98f3f8b8fdc32fbf941fd78b",
+      "sha256": "3939c5c451768d3668773a647bd00b805daa4ccf6df7ebab26a1b3931011c8d8"
+    },
+    {
+      "path": "frontend/tests/unit/views/test_workstation_capabilities.test.ts",
+      "status_from139": "M",
+      "git_blob": "f64f52085dadb1ba9d2f8e0faaf7e1fbb4721df4",
+      "sha256": "2b16d13242ff99f21c5f9a2b38aa479a5171fb3b890cb95896d66ae47f561f9f"
+    },
+    {
+      "path": "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts",
+      "status_from139": "M",
+      "git_blob": "5e09541aa503f1ed26cc978cbd9e7e47d0e6faaf",
+      "sha256": "dac37ad1f66d037960078bc8220444a2dd70cb816fcb929ce172de649347e7b7"
+    },
+    {
+      "path": "frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue",
+      "status_from139": "M",
+      "git_blob": "f5fcda94ed0025215d2921d332b0a9b43a8dbad8",
+      "sha256": "2b620a83f9c6c7b836b549b1078b8a984d3dc695d09f057aa43c0731384b4121"
+    },
+    {
+      "path": "frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue",
+      "status_from139": "M",
+      "git_blob": "df43a517499d8893dde970f85e42e5f25cc71733",
+      "sha256": "fe942768bf7da5799ffeeb7d7885b741f47e93c2e3d3e7d8bebdb157cb0fe333"
+    },
+    {
+      "path": "frontend/src/components/dashboard/DashboardInstrumentSearch.vue",
+      "status_from139": "M",
+      "git_blob": "3227a985105878ae948700827f2fc5c15813581d",
+      "sha256": "41cf044f69f03c1e0efc448a2322a26f546bd8b9a60a5bbec31c59e2ac1e9d50"
+    },
+    {
+      "path": "frontend/src/components/dashboard/DashboardLineChartWidget.vue",
+      "status_from139": "M",
+      "git_blob": "aca987112e0729e9554c5892ce54e1cec517ca29",
+      "sha256": "1285d5b6ebf0d3291fb87db642eaa5f723bc49d61eb968d65beba401aa5658d6"
+    },
+    {
+      "path": "frontend/src/components/dashboard/DashboardQuoteWidget.vue",
+      "status_from139": "M",
+      "git_blob": "586c6b856a20745c5d2fbf6e45500331c0da0b63",
+      "sha256": "35a9e36f0f7d494fdd06e0205c9c26fc7122788c0a4937077e634b68abac87ea"
+    },
+    {
+      "path": "frontend/src/components/workstation/CodeLibraryTool.vue",
+      "status_from139": "M",
+      "git_blob": "d3c308f01ecc0b5d007ed27cf192ef21bba1d153",
+      "sha256": "beaf9f2770e22187663a46c9068ef3dc11ebbec894f75641fd19dba7798e2962"
+    },
+    {
+      "path": "frontend/src/components/workstation/PythonSourceEditor.vue",
+      "status_from139": "M",
+      "git_blob": "7164932765faaaf15d68936d72c232bc7f147d16",
+      "sha256": "23d4078c17a333b151ba81f69f137c5fb5561ece7d055a346a17b44750cf5c1e"
+    },
+    {
+      "path": "frontend/src/components/workstation/ResearchResultsTool.vue",
+      "status_from139": "M",
+      "git_blob": "9f5a1461e6c78661fd40105bdc027f8820523a75",
+      "sha256": "12bcf4a6d12ec96c46bbdb682b0747af08be96f037c1526ed0fcec495296cde9"
+    },
+    {
+      "path": "frontend/src/components/workstation/StudyLabTool.vue",
+      "status_from139": "M",
+      "git_blob": "cd1b6f0ff5acfc567782f792b5959c0bc72830a4",
+      "sha256": "ea0569b7b8be62e84052c56f06b78935fc8d348976f977415f399555b9fcc07d"
+    },
+    {
+      "path": "frontend/src/lib/workstation/researchQueryKeys.ts",
+      "status_from139": "A",
+      "git_blob": "086bcb7261f5ce47e5725bb841abd111b47e211a",
+      "sha256": "d2efc149f5351df0bd33e726b78713c9edee581109977fe6045ae8da13b6dd03"
+    },
+    {
+      "path": "frontend/src/lib/workstation/researchRunCancellation.ts",
+      "status_from139": "A",
+      "git_blob": "3db3eae08833b145c1e08f4f712a6a754857d803",
+      "sha256": "9f7257a325b87a9ca04145485c8142d514d62c116f68c93a83777def6832a43b"
+    },
+    {
+      "path": "frontend/src/stores/dashboard.ts",
+      "status_from139": "M",
+      "git_blob": "147a7b073f15afc5042f28daa338b7306ccaf1eb",
+      "sha256": "d66b2584e1fe955e2322d0dceaa587b5c5ff5d735b6cea72f4091b0e4aa22d6a"
+    },
+    {
+      "path": "frontend/src/views/DashboardView.vue",
+      "status_from139": "M",
+      "git_blob": "a3e4e1e1d73aefd418721ebef931df9a814e99c9",
+      "sha256": "1425c4fb8b632be2e24066c092e07e4e7970ee6e09b64150101374375c7cff2e"
+    },
+    {
+      "path": "frontend/tests/e2e/dashboard_usability_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "1612b1898507d1e646e7b3d86eddec3cd192bf47",
+      "sha256": "1c2ca7f936686e0af1626906814bc254112582a8195455a7ccf8dceafb180d6e"
+    },
+    {
+      "path": "frontend/tests/e2e/strategy_study_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "e1ccc70216aaa7979a17cc7668aab59351a2a0e3",
+      "sha256": "46d45ec693cd6d6082c02e0e22b5e04d95d97fe39804337f3c86b2827edccaff"
+    },
+    {
+      "path": "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "7c2555e44dbf9836b652755eca29f75d2b37934a",
+      "sha256": "ed8ab09e89c62079c6f1b231cc14b371e101cc1870bbbb001951fea1ac2715d5"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_code_library_tool.test.ts",
+      "status_from139": "M",
+      "git_blob": "4bdaeda0f4eac4bc2034640a1fcd60c261c7c173",
+      "sha256": "27633e4b9b3cf32fc34b764e0974e97845686688480bed4667ee61d2e7748893"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts",
+      "status_from139": "M",
+      "git_blob": "6b875cfb169dea3a11169f5904a0d8aa3c3d4c64",
+      "sha256": "0e2de2b57a395888125c9a2d3739dbf390a2524dc3c1ac366b86387c18b7753e"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_dashboard_instrument_search.test.ts",
+      "status_from139": "M",
+      "git_blob": "c972ca9d1b48fefc92c6dcca6bd655cbf4e01e9c",
+      "sha256": "a2950e328b88bb49dbac0a08447e3119ed6786ce23cd765fb00a53667cc5e676"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts",
+      "status_from139": "M",
+      "git_blob": "019b9620563ef7c3953a1b3b013dd3953f0ee7db",
+      "sha256": "291dd83bef30984b7aa37f0b2ee87d990d8fee2d89ade372a78a933f6e0d94d0"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts",
+      "status_from139": "A",
+      "git_blob": "196ac971ba87c420c08fe7c2f5025cab6f54346f",
+      "sha256": "969d23d8a3c6239809e309ff0acba13e5181ce69aa678aa3047b1fb110ade508"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_python_source_editor.test.ts",
+      "status_from139": "M",
+      "git_blob": "26665a879f07a06e9ac1e67723103d3880cf5ee4",
+      "sha256": "8936d8f72d6f0fd8f17ac6f160cfe970220132c680b6fb83342d5f9292a8f237"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_research_results_tool.test.ts",
+      "status_from139": "M",
+      "git_blob": "3cb6a15abdd42eb579098b14edcc2d2f886804df",
+      "sha256": "96ab09e9d2faf4d7b84c96c724775a97a202bd75a42ca0fc11953ec5e0a4bd90"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_study_lab_tool.test.ts",
+      "status_from139": "M",
+      "git_blob": "083b34b28cb8501b0cfd0046ee68ef497f25454d",
+      "sha256": "555052ceb124f7ddf0ae957d33743508c6a3c8f3dec1232ec9dc52c0c555e793"
+    },
+    {
+      "path": "frontend/tests/unit/stores/test_dashboard_store.test.ts",
+      "status_from139": "M",
+      "git_blob": "e30d5676749a5d53ae3d80ee779b8d277aabcecf",
+      "sha256": "11286f17b314f28de3aed15b235bd0461bbffb9bd5476f61f1ac65bb94099827"
+    },
+    {
+      "path": "frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts",
+      "status_from139": "A",
+      "git_blob": "665ef5310ab01b5a7aa65025a3bdbe2f14aaedb1",
+      "sha256": "21374e32a9d7bd774cf9c1df0cf64b91ca131df08cd41523c3c2fac4041e7efe"
+    },
+    {
+      "path": "frontend/src/components/workstation/InstrumentNoteTool.vue",
+      "status_from139": "M",
+      "git_blob": "e3dee9a9c968a2e1f6f65a33af8a33b5823735cc",
+      "sha256": "e4fc90fc10c81b8087465d60923e203e4acaa8de9cd102a5968615957250a15a"
+    },
+    {
+      "path": "frontend/src/views/BasketsView.vue",
+      "status_from139": "M",
+      "git_blob": "71b27cafc4019d5004e54e7f2536606c0484756e",
+      "sha256": "eb237b4610cae5c7565bfcacc6bf2718586b89d032885d642f98cc55dcb5b141"
+    },
+    {
+      "path": "frontend/src/views/ETFHoldingsView.vue",
+      "status_from139": "M",
+      "git_blob": "6a4f56b58368988585c71fd1acbf8221110a95d8",
+      "sha256": "4fcf66917ab705052478e8bf91597c3d593806e5de18b03e93a9493d5df9c9e4"
+    },
+    {
+      "path": "frontend/tests/e2e/baskets_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "d11d84ce8c62bfcc6feac0407c1e3154dd530884",
+      "sha256": "61a380015d6ee85410942ace6b1ce7939dfc549f291609500285bb30983fa511"
+    },
+    {
+      "path": "frontend/tests/e2e/etf_holdings_preparation.spec.ts",
+      "status_from139": "A",
+      "git_blob": "d3db0535661b15a4461582fc1b53a84d15ce1c37",
+      "sha256": "0c8585967b15edad772d3fe272d75813ac533d5e018047a79bf76cc9b4483615"
+    },
+    {
+      "path": "frontend/tests/e2e/sp500_analysis_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "415405cf6b29aa4035c6b351ccceae42b49161e3",
+      "sha256": "7588f7031e38b51e4f9fd3eeeddabfc3d0f929889439a70670ebf8e041dbb3c9"
+    },
+    {
+      "path": "frontend/tests/e2e/supporting_features_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "2aea73ea7c12c2718965e2d378227ce55cafc9eb",
+      "sha256": "68db2c02810e7fd105b97a0e0542d8dbac34d0b646a541bdd5d539f9a3c9dea1"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_instrument_note_tool.test.ts",
+      "status_from139": "A",
+      "git_blob": "2febf61a7e0684c9234eb797df40253b8460c147",
+      "sha256": "0ef83d02c33b27989e82a3f82db9844b553f63aa4ef6be00975dc6ec2d66e153"
+    },
+    {
+      "path": "frontend/tests/unit/views/test_baskets_view.test.ts",
+      "status_from139": "M",
+      "git_blob": "0ebf9ba0bce23fcd5dfc5ed5daf8d98e69be9ec7",
+      "sha256": "8439f811cbaf26257f71591786d9b097ac2e92c49438a7f0f99b062d7d16c7cd"
+    },
+    {
+      "path": "frontend/tests/unit/views/test_etf_holdings_view.test.ts",
+      "status_from139": "M",
+      "git_blob": "e00e9c3ba368a4e53ae40e86f6b15a6499b8e717",
+      "sha256": "de306c796983bac3ba75f4f6056c25b64ee6a09ffa20a3e44ff89d6c726d1903"
+    }
+  ],
+  "consumers": [
+    {
+      "consumer": "Provider",
+      "foreign_context_paths": [
+        "frontend/package-lock.json",
+        "frontend/package.json",
+        "frontend/src/App.vue",
+        "frontend/src/components/chart/ChartPanel.vue",
+        "frontend/src/components/chart/HistoryAcquisitionControl.vue",
+        "frontend/src/components/chart/UPlotChart.vue",
+        "frontend/src/components/common/CompactStatusNotice.vue",
+        "frontend/src/components/common/Notification.vue",
+        "frontend/src/components/common/SearchBar.vue",
+        "frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue",
+        "frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue",
+        "frontend/src/components/dashboard/DashboardInstrumentSearch.vue",
+        "frontend/src/components/dashboard/DashboardLineChartWidget.vue",
+        "frontend/src/components/dashboard/DashboardQuoteWidget.vue",
+        "frontend/src/components/radar/RadarDetailPreviewChart.vue",
+        "frontend/src/components/workstation/ChartPlotLibrary.vue",
+        "frontend/src/components/workstation/CodeLibraryTool.vue",
+        "frontend/src/components/workstation/CoverageSummaryTool.vue",
+        "frontend/src/components/workstation/EasyScanTool.vue",
+        "frontend/src/components/workstation/InstrumentAlertsTool.vue",
+        "frontend/src/components/workstation/InstrumentNoteTool.vue",
+        "frontend/src/components/workstation/MarketGaugeTool.vue",
+        "frontend/src/components/workstation/MarketMapTool.vue",
+        "frontend/src/components/workstation/PythonSourceEditor.vue",
+        "frontend/src/components/workstation/RatioUPlot.vue",
+        "frontend/src/components/workstation/RelativeRotationTool.vue",
+        "frontend/src/components/workstation/ResearchResultsTool.vue",
+        "frontend/src/components/workstation/StudyLabTool.vue",
+        "frontend/src/components/workstation/ToolWindow.vue",
+        "frontend/src/components/workstation/VirtualWatchlistTool.vue",
+        "frontend/src/components/workstation/WorkspaceLayoutHost.vue",
+        "frontend/src/components/workstation/WorkstationToolContent.vue",
+        "frontend/src/lib/api.ts",
+        "frontend/src/lib/authSession.ts",
+        "frontend/src/lib/dataPreparation.ts",
+        "frontend/src/lib/etfHoldingDrilldown.ts",
+        "frontend/src/lib/instruments.ts",
+        "frontend/src/lib/onDemandAcquisition.ts",
+        "frontend/src/lib/workstation/benchmarkFamilySources.ts",
+        "frontend/src/lib/workstation/instrumentCalendar.ts",
+        "frontend/src/lib/workstation/instrumentQueries.ts",
+        "frontend/src/lib/workstation/libraryQueries.ts",
+        "frontend/src/lib/workstation/marketMap.ts",
+        "frontend/src/lib/workstation/ohlcvRequests.ts",
+        "frontend/src/lib/workstation/researchQueryKeys.ts",
+        "frontend/src/lib/workstation/researchRunCancellation.ts",
+        "frontend/src/lib/workstation/sourceCapability.ts",
+        "frontend/src/lib/workstation/toolActivation.ts",
+        "frontend/src/main.ts",
+        "frontend/src/router/index.ts",
+        "frontend/src/stores/alerts.ts",
+        "frontend/src/stores/auth.ts",
+        "frontend/src/stores/chart.ts",
+        "frontend/src/stores/dashboard.ts",
+        "frontend/src/stores/drawings.ts",
+        "frontend/src/stores/favorites.ts",
+        "frontend/src/stores/layout.ts",
+        "frontend/src/stores/panelLinks.ts",
+        "frontend/src/stores/presets.ts",
+        "frontend/src/stores/radar.ts",
+        "frontend/src/stores/recentInstruments.ts",
+        "frontend/src/stores/screener_alerts.ts",
+        "frontend/src/stores/userSettings.ts",
+        "frontend/src/stores/watchlist.ts",
+        "frontend/src/stores/workspace.ts",
+        "frontend/src/types/index.ts",
+        "frontend/src/views/AlertsView.vue",
+        "frontend/src/views/BasketsView.vue",
+        "frontend/src/views/ChartView.vue",
+        "frontend/src/views/DashboardView.vue",
+        "frontend/src/views/ETFHoldingsView.vue",
+        "frontend/src/views/ScreenerView.vue",
+        "frontend/src/views/SettingsView.vue",
+        "frontend/src/views/WatchlistView.vue",
+        "frontend/src/views/WorkstationView.vue",
+        "frontend/tests/e2e/auth_session_boundary.spec.ts",
+        "frontend/tests/e2e/baskets_journey.spec.ts",
+        "frontend/tests/e2e/dashboard_usability_journey.spec.ts",
+        "frontend/tests/e2e/etf_holdings_preparation.spec.ts",
+        "frontend/tests/e2e/flows.spec.ts",
+        "frontend/tests/e2e/helpers.ts",
+        "frontend/tests/e2e/on_demand_acquisition.spec.ts",
+        "frontend/tests/e2e/sp500_analysis_journey.spec.ts",
+        "frontend/tests/e2e/strategy_study_journey.spec.ts",
+        "frontend/tests/e2e/supporting_features_journey.spec.ts",
+        "frontend/tests/e2e/tc2000_visual.spec.ts",
+        "frontend/tests/e2e/tc_secondary_routes_journey.spec.ts",
+        "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts",
+        "frontend/tests/unit/components/test_chart_panel_lifecycle.test.ts",
+        "frontend/tests/unit/components/test_chart_plot_library.test.ts",
+        "frontend/tests/unit/components/test_code_library_tool.test.ts",
+        "frontend/tests/unit/components/test_compact_status_notice.test.ts",
+        "frontend/tests/unit/components/test_coverage_summary_tool.test.ts",
+        "frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts",
+        "frontend/tests/unit/components/test_dashboard_instrument_search.test.ts",
+        "frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts",
+        "frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts",
+        "frontend/tests/unit/components/test_easy_scan_tool.test.ts",
+        "frontend/tests/unit/components/test_etf_holding_resolution_action.test.ts",
+        "frontend/tests/unit/components/test_history_acquisition_control.test.ts",
+        "frontend/tests/unit/components/test_instrument_note_tool.test.ts",
+        "frontend/tests/unit/components/test_linked_instrument_tool_races.test.ts",
+        "frontend/tests/unit/components/test_market_gauge_tool.test.ts",
+        "frontend/tests/unit/components/test_market_map_tool.test.ts",
+        "frontend/tests/unit/components/test_python_source_editor.test.ts",
+        "frontend/tests/unit/components/test_radar_detail_preview_chart.test.ts",
+        "frontend/tests/unit/components/test_ratio_uplot.test.ts",
+        "frontend/tests/unit/components/test_relative_rotation_tool.test.ts",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts",
+        "frontend/tests/unit/components/test_search_bar.test.ts",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts",
+        "frontend/tests/unit/components/test_tool_window.test.ts",
+        "frontend/tests/unit/components/test_uplot_chart_context.test.ts",
+        "frontend/tests/unit/components/test_virtual_watchlist_tool.test.ts",
+        "frontend/tests/unit/components/test_workspace_layout_host.test.ts",
+        "frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts",
+        "frontend/tests/unit/components/test_workstation_tool_content_tag_columns_runtime.test.ts",
+        "frontend/tests/unit/e2e/test_browser_diagnostics.test.ts",
+        "frontend/tests/unit/lib/test_api_client.test.ts",
+        "frontend/tests/unit/lib/test_auth_session.test.ts",
+        "frontend/tests/unit/lib/test_benchmark_family_sources.test.ts",
+        "frontend/tests/unit/lib/test_data_preparation.test.ts",
+        "frontend/tests/unit/lib/test_instrument_calendar.test.ts",
+        "frontend/tests/unit/lib/test_instrument_queries.test.ts",
+        "frontend/tests/unit/lib/test_instruments.test.ts",
+        "frontend/tests/unit/lib/test_market_map.test.ts",
+        "frontend/tests/unit/lib/test_on_demand_acquisition.test.ts",
+        "frontend/tests/unit/lib/test_tool_activation.test.ts",
+        "frontend/tests/unit/lib/workstation_ohlcv_requests.test.ts",
+        "frontend/tests/unit/lib/workstation_source_capability.test.ts",
+        "frontend/tests/unit/router/test_app_shell.test.ts",
+        "frontend/tests/unit/router/test_application_routes.test.ts",
+        "frontend/tests/unit/setup.ts",
+        "frontend/tests/unit/stores/test_dashboard_store.test.ts",
+        "frontend/tests/unit/stores/test_drawings_store.test.ts",
+        "frontend/tests/unit/stores/test_favorites_store.test.ts",
+        "frontend/tests/unit/stores/test_stores.test.ts",
+        "frontend/tests/unit/stores/test_user_settings.test.ts",
+        "frontend/tests/unit/stores/test_watchlist_store.test.ts",
+        "frontend/tests/unit/stores/test_workspace_store.test.ts",
+        "frontend/tests/unit/views/test_alerts_view_creation_path.test.ts",
+        "frontend/tests/unit/views/test_baskets_view.test.ts",
+        "frontend/tests/unit/views/test_chart_view_radar_handoff.test.ts",
+        "frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts",
+        "frontend/tests/unit/views/test_etf_holdings_view.test.ts",
+        "frontend/tests/unit/views/test_screener_view_accessibility.test.ts",
+        "frontend/tests/unit/views/test_settings_view.test.ts",
+        "frontend/tests/unit/views/test_watchlist_view_bootstrap.test.ts",
+        "frontend/tests/unit/views/test_workstation_capabilities.test.ts",
+        "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts"
+      ],
+      "owned_private_paths_excluded": [],
+      "import_paths": [
+        "frontend/src/components/chart/UPlotChart.vue",
+        "frontend/src/components/radar/RadarDetailPreviewChart.vue",
+        "frontend/src/components/workstation/CoverageSummaryTool.vue",
+        "frontend/src/components/workstation/EasyScanTool.vue",
+        "frontend/src/components/workstation/RatioUPlot.vue",
+        "frontend/src/components/workstation/ToolWindow.vue",
+        "frontend/src/components/workstation/WorkspaceLayoutHost.vue",
+        "frontend/src/components/workstation/WorkstationToolContent.vue",
+        "frontend/src/lib/api.ts",
+        "frontend/src/lib/workstation/instrumentCalendar.ts",
+        "frontend/src/lib/workstation/instrumentQueries.ts",
+        "frontend/src/stores/chart.ts",
+        "frontend/src/stores/workspace.ts",
+        "frontend/src/views/WatchlistView.vue",
+        "frontend/src/views/WorkstationView.vue",
+        "frontend/tests/e2e/on_demand_acquisition.spec.ts",
+        "frontend/tests/unit/components/test_coverage_summary_tool.test.ts",
+        "frontend/tests/unit/components/test_easy_scan_tool.test.ts",
+        "frontend/tests/unit/components/test_linked_instrument_tool_races.test.ts",
+        "frontend/tests/unit/components/test_ratio_uplot.test.ts",
+        "frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts",
+        "frontend/tests/unit/lib/test_api_client.test.ts",
+        "frontend/tests/unit/lib/test_instrument_calendar.test.ts",
+        "frontend/tests/unit/lib/test_instrument_queries.test.ts",
+        "frontend/tests/unit/stores/test_stores.test.ts",
+        "frontend/tests/unit/stores/test_workspace_store.test.ts",
+        "frontend/tests/unit/views/test_watchlist_view_bootstrap.test.ts",
+        "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts",
+        "frontend/src/components/workstation/ResearchResultsTool.vue",
+        "frontend/tests/e2e/strategy_study_journey.spec.ts",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts",
+        "frontend/src/components/workstation/InstrumentNoteTool.vue",
+        "frontend/src/views/ETFHoldingsView.vue",
+        "frontend/tests/e2e/sp500_analysis_journey.spec.ts",
+        "frontend/tests/e2e/supporting_features_journey.spec.ts",
+        "frontend/tests/unit/components/test_instrument_note_tool.test.ts",
+        "frontend/tests/unit/views/test_etf_holdings_view.test.ts"
+      ],
+      "old_guards": {
+        "frontend/src/components/chart/UPlotChart.vue": {
+          "sha256": "2758fc01c9a53e92b6a010648334420b30e84dff53adc560717f2f0ca85d530d",
+          "known_absent": false
+        },
+        "frontend/src/components/radar/RadarDetailPreviewChart.vue": {
+          "sha256": "dac1abe2d8314669529cc23c5746cf2cb3bf22386db6598053969c64c0c9059b",
+          "known_absent": false
+        },
+        "frontend/src/components/workstation/CoverageSummaryTool.vue": {
+          "sha256": "230d616012e5119141c18eb9175a5e3987176fb238e27ae99c66c18a17e22eb2",
+          "known_absent": false
+        },
+        "frontend/src/components/workstation/EasyScanTool.vue": {
+          "sha256": "838702387e9f20d722d9f2bc10a4f42679e18e621ce8c00b399962c8b7ae5e12",
+          "known_absent": false
+        },
+        "frontend/src/components/workstation/RatioUPlot.vue": {
+          "sha256": "a8a4a2301486bc473e7c611f62b7c8addb23af80bfd597ebb986e9b69498cf25",
+          "known_absent": false
+        },
+        "frontend/src/components/workstation/ToolWindow.vue": {
+          "sha256": "28f19f824241a8710b19e769376b31159188c9318257ffadf492c6b0b9ce5e9c",
+          "known_absent": false
+        },
+        "frontend/src/components/workstation/WorkspaceLayoutHost.vue": {
+          "sha256": "1579e6e027fbb2d25b0acc50fdb2c848a9792d632f0f6710226543b7d7ed8601",
+          "known_absent": false
+        },
+        "frontend/src/components/workstation/WorkstationToolContent.vue": {
+          "sha256": "a3dbcdb27af80affd1c14e559597a422a87e8fb1fa3e591d45c8d8b5ca0d637c",
+          "known_absent": false
+        },
+        "frontend/src/lib/api.ts": {
+          "sha256": "76f37887d09bc7a9dd4b4699b5aacfe344a73b097e0548ee487d2ab1afcc6fd9",
+          "known_absent": false
+        },
+        "frontend/src/lib/workstation/instrumentCalendar.ts": {
+          "sha256": "6f9e9b36f1f1d662814b0d8be98bb7bb22906538463bf8f4f65d4d25a6d55fe5",
+          "known_absent": false
+        },
+        "frontend/src/lib/workstation/instrumentQueries.ts": {
+          "sha256": "0143e94c016edfacbe5c3c5e0a627d2426aae8d76d9058c9df657fd15c9ea560",
+          "known_absent": false
+        },
+        "frontend/src/stores/chart.ts": {
+          "sha256": "dbac8784e1653f6af2e704d55f0dd459f1f1e25fb0380cfb13b6ccd7581bdf92",
+          "known_absent": false
+        },
+        "frontend/src/stores/workspace.ts": {
+          "sha256": "7551ef802f91c91af117a61cd05f04002d911e175bdfdf960739d95ad60b0aa7",
+          "known_absent": false
+        },
+        "frontend/src/views/WatchlistView.vue": {
+          "sha256": "6681ec790101924178fa890966c1f5019e27e64be15bf02ef176a1f508ce20d2",
+          "known_absent": false
+        },
+        "frontend/src/views/WorkstationView.vue": {
+          "sha256": "7595672eabae5fa1e9f08ce3a289f61353fe9326c164fb1739dfa38f0352b896",
+          "known_absent": false
+        },
+        "frontend/tests/e2e/on_demand_acquisition.spec.ts": {
+          "sha256": "35ebeb83eb492dba52d1e3e798acdbbb009396ed81ed05ef69baa8de0b847ebb",
+          "known_absent": false
+        },
+        "frontend/tests/unit/components/test_coverage_summary_tool.test.ts": {
+          "sha256": "924cf38abe83f497a390c68facc4c707d3af0977fc517662f3ce96f2bc4d267f",
+          "known_absent": false
+        },
+        "frontend/tests/unit/components/test_easy_scan_tool.test.ts": {
+          "sha256": "e5d967cf4ed0fdcc7d9d5890d96c190366502625d80ab005af6dbb1ea3fbdfab",
+          "known_absent": false
+        },
+        "frontend/tests/unit/components/test_linked_instrument_tool_races.test.ts": {
+          "sha256": "89a3aa2747d04587702bab25eb05be351bf4ef8491b20453970f34fd97c4a2b7",
+          "known_absent": false
+        },
+        "frontend/tests/unit/components/test_ratio_uplot.test.ts": {
+          "sha256": "b3d50b8567a60256e15871aea90b58301ce43b709263e533bb009e9bda96f5d6",
+          "known_absent": false
+        },
+        "frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts": {
+          "sha256": "76ba40f93b07937f39ce5cab54fe0e926e28c0b9bb99c8375867e80dc9a296e3",
+          "known_absent": false
+        },
+        "frontend/tests/unit/lib/test_api_client.test.ts": {
+          "sha256": "35815861b2c4dbd658283d26a0e876333a5065534b95df53068bede1848179fa",
+          "known_absent": false
+        },
+        "frontend/tests/unit/lib/test_instrument_calendar.test.ts": {
+          "sha256": "1979b6c63a5b01d527a0579f389e597ef4e56277a39d2f1ce4318adf24f07fa0",
+          "known_absent": false
+        },
+        "frontend/tests/unit/lib/test_instrument_queries.test.ts": {
+          "sha256": "eceda6cfadb0fcbd44101e23b23f357c17c08b4037242a4e363162479105be86",
+          "known_absent": false
+        },
+        "frontend/tests/unit/stores/test_stores.test.ts": {
+          "sha256": "89e0944c62764b27b980ce93e60c7cdfd904c728a7bec68059477da798c5c1d3",
+          "known_absent": false
+        },
+        "frontend/tests/unit/stores/test_workspace_store.test.ts": {
+          "sha256": "51abb373e5f7d22b4ca87239fac157c86a54b837a3568e535a111960c1d941f5",
+          "known_absent": false
+        },
+        "frontend/tests/unit/views/test_watchlist_view_bootstrap.test.ts": {
+          "sha256": null,
+          "known_absent": true
+        },
+        "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts": {
+          "sha256": "f7077089100e534bb32295359a059f7a99c487ad781c633648b825bc0620d42d",
+          "known_absent": false
+        },
+        "frontend/src/components/workstation/ResearchResultsTool.vue": {
+          "sha256": "8a7b557b7aaca74246d0bbe50da29e3f2d8a33c13f6c44f5eaa47f0a6999ac56",
+          "known_absent": false
+        },
+        "frontend/tests/e2e/strategy_study_journey.spec.ts": {
+          "sha256": "93c89fea48cbdf7896092066da77705cf395cb37b78abd06c1570d64cb15b655",
+          "known_absent": false
+        },
+        "frontend/tests/unit/components/test_research_results_tool.test.ts": {
+          "sha256": "8a3d343499becab3e5ea315db0ee3eecfc5e65784b0cd140e0ed9c2bb2bfc7fa",
+          "known_absent": false
+        },
+        "frontend/src/components/workstation/InstrumentNoteTool.vue": {
+          "sha256": "0d3056927d5146c2f0fd5b8047b2ef8b11c7c009bc14ab28bd3945b8be3ae6b1",
+          "known_absent": false
+        },
+        "frontend/src/views/ETFHoldingsView.vue": {
+          "sha256": "26b695691ba36e36a9dd5d0a7850ca77c67d3974af22a38f9bc8ffdc372ce4ba",
+          "known_absent": false
+        },
+        "frontend/tests/e2e/sp500_analysis_journey.spec.ts": {
+          "sha256": "1e271e50bd236f6871c5c8ba9527c8cc1e1babe8d01c826c803b44c16c5a7c07",
+          "known_absent": false
+        },
+        "frontend/tests/e2e/supporting_features_journey.spec.ts": {
+          "sha256": "1e388d3779e1a3b7f6141d92b11b60c4eb8be1cee8fcde996b54a42849eff3b0",
+          "known_absent": false
+        },
+        "frontend/tests/unit/components/test_instrument_note_tool.test.ts": {
+          "sha256": "a9a43f3d5c8c7871d88abd0d9bab2b0e40f13fb97b30b19b4da979aada0d7741",
+          "known_absent": false
+        },
+        "frontend/tests/unit/views/test_etf_holdings_view.test.ts": {
+          "sha256": "abbf877da26e1547e4b0ab8c0304706effa2b24fd1caad7a29e3125d698cf84e",
+          "known_absent": false
+        }
+      }
+    },
+    {
+      "consumer": "ETF",
+      "foreign_context_paths": [
+        "frontend/package-lock.json",
+        "frontend/package.json",
+        "frontend/src/App.vue",
+        "frontend/src/components/chart/ChartPanel.vue",
+        "frontend/src/components/chart/HistoryAcquisitionControl.vue",
+        "frontend/src/components/chart/UPlotChart.vue",
+        "frontend/src/components/common/CompactStatusNotice.vue",
+        "frontend/src/components/common/Notification.vue",
+        "frontend/src/components/common/SearchBar.vue",
+        "frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue",
+        "frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue",
+        "frontend/src/components/dashboard/DashboardInstrumentSearch.vue",
+        "frontend/src/components/dashboard/DashboardLineChartWidget.vue",
+        "frontend/src/components/dashboard/DashboardQuoteWidget.vue",
+        "frontend/src/components/radar/RadarDetailPreviewChart.vue",
+        "frontend/src/components/workstation/ChartPlotLibrary.vue",
+        "frontend/src/components/workstation/CodeLibraryTool.vue",
+        "frontend/src/components/workstation/CoverageSummaryTool.vue",
+        "frontend/src/components/workstation/EasyScanTool.vue",
+        "frontend/src/components/workstation/InstrumentAlertsTool.vue",
+        "frontend/src/components/workstation/MarketGaugeTool.vue",
+        "frontend/src/components/workstation/MarketMapTool.vue",
+        "frontend/src/components/workstation/PythonSourceEditor.vue",
+        "frontend/src/components/workstation/RatioUPlot.vue",
+        "frontend/src/components/workstation/RelativeRotationTool.vue",
+        "frontend/src/components/workstation/ResearchResultsTool.vue",
+        "frontend/src/components/workstation/StudyLabTool.vue",
+        "frontend/src/components/workstation/ToolWindow.vue",
+        "frontend/src/components/workstation/VirtualWatchlistTool.vue",
+        "frontend/src/components/workstation/WorkspaceLayoutHost.vue",
+        "frontend/src/components/workstation/WorkstationToolContent.vue",
+        "frontend/src/lib/api.ts",
+        "frontend/src/lib/authSession.ts",
+        "frontend/src/lib/dataPreparation.ts",
+        "frontend/src/lib/etfHoldingDrilldown.ts",
+        "frontend/src/lib/instruments.ts",
+        "frontend/src/lib/onDemandAcquisition.ts",
+        "frontend/src/lib/workstation/benchmarkFamilySources.ts",
+        "frontend/src/lib/workstation/instrumentCalendar.ts",
+        "frontend/src/lib/workstation/instrumentQueries.ts",
+        "frontend/src/lib/workstation/libraryQueries.ts",
+        "frontend/src/lib/workstation/marketMap.ts",
+        "frontend/src/lib/workstation/ohlcvRequests.ts",
+        "frontend/src/lib/workstation/researchQueryKeys.ts",
+        "frontend/src/lib/workstation/researchRunCancellation.ts",
+        "frontend/src/lib/workstation/sourceCapability.ts",
+        "frontend/src/lib/workstation/toolActivation.ts",
+        "frontend/src/main.ts",
+        "frontend/src/router/index.ts",
+        "frontend/src/stores/alerts.ts",
+        "frontend/src/stores/auth.ts",
+        "frontend/src/stores/chart.ts",
+        "frontend/src/stores/dashboard.ts",
+        "frontend/src/stores/drawings.ts",
+        "frontend/src/stores/favorites.ts",
+        "frontend/src/stores/layout.ts",
+        "frontend/src/stores/panelLinks.ts",
+        "frontend/src/stores/presets.ts",
+        "frontend/src/stores/radar.ts",
+        "frontend/src/stores/recentInstruments.ts",
+        "frontend/src/stores/screener_alerts.ts",
+        "frontend/src/stores/userSettings.ts",
+        "frontend/src/stores/watchlist.ts",
+        "frontend/src/stores/workspace.ts",
+        "frontend/src/types/index.ts",
+        "frontend/src/views/AlertsView.vue",
+        "frontend/src/views/ChartView.vue",
+        "frontend/src/views/DashboardView.vue",
+        "frontend/src/views/ScreenerView.vue",
+        "frontend/src/views/SettingsView.vue",
+        "frontend/src/views/WatchlistView.vue",
+        "frontend/src/views/WorkstationView.vue",
+        "frontend/tests/e2e/auth_session_boundary.spec.ts",
+        "frontend/tests/e2e/dashboard_usability_journey.spec.ts",
+        "frontend/tests/e2e/flows.spec.ts",
+        "frontend/tests/e2e/helpers.ts",
+        "frontend/tests/e2e/on_demand_acquisition.spec.ts",
+        "frontend/tests/e2e/strategy_study_journey.spec.ts",
+        "frontend/tests/e2e/tc2000_visual.spec.ts",
+        "frontend/tests/e2e/tc_secondary_routes_journey.spec.ts",
+        "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts",
+        "frontend/tests/unit/components/test_chart_panel_lifecycle.test.ts",
+        "frontend/tests/unit/components/test_chart_plot_library.test.ts",
+        "frontend/tests/unit/components/test_code_library_tool.test.ts",
+        "frontend/tests/unit/components/test_compact_status_notice.test.ts",
+        "frontend/tests/unit/components/test_coverage_summary_tool.test.ts",
+        "frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts",
+        "frontend/tests/unit/components/test_dashboard_instrument_search.test.ts",
+        "frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts",
+        "frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts",
+        "frontend/tests/unit/components/test_easy_scan_tool.test.ts",
+        "frontend/tests/unit/components/test_etf_holding_resolution_action.test.ts",
+        "frontend/tests/unit/components/test_history_acquisition_control.test.ts",
+        "frontend/tests/unit/components/test_linked_instrument_tool_races.test.ts",
+        "frontend/tests/unit/components/test_market_gauge_tool.test.ts",
+        "frontend/tests/unit/components/test_market_map_tool.test.ts",
+        "frontend/tests/unit/components/test_python_source_editor.test.ts",
+        "frontend/tests/unit/components/test_radar_detail_preview_chart.test.ts",
+        "frontend/tests/unit/components/test_ratio_uplot.test.ts",
+        "frontend/tests/unit/components/test_relative_rotation_tool.test.ts",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts",
+        "frontend/tests/unit/components/test_search_bar.test.ts",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts",
+        "frontend/tests/unit/components/test_tool_window.test.ts",
+        "frontend/tests/unit/components/test_uplot_chart_context.test.ts",
+        "frontend/tests/unit/components/test_virtual_watchlist_tool.test.ts",
+        "frontend/tests/unit/components/test_workspace_layout_host.test.ts",
+        "frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts",
+        "frontend/tests/unit/components/test_workstation_tool_content_tag_columns_runtime.test.ts",
+        "frontend/tests/unit/e2e/test_browser_diagnostics.test.ts",
+        "frontend/tests/unit/lib/test_api_client.test.ts",
+        "frontend/tests/unit/lib/test_auth_session.test.ts",
+        "frontend/tests/unit/lib/test_benchmark_family_sources.test.ts",
+        "frontend/tests/unit/lib/test_data_preparation.test.ts",
+        "frontend/tests/unit/lib/test_instrument_calendar.test.ts",
+        "frontend/tests/unit/lib/test_instrument_queries.test.ts",
+        "frontend/tests/unit/lib/test_instruments.test.ts",
+        "frontend/tests/unit/lib/test_market_map.test.ts",
+        "frontend/tests/unit/lib/test_on_demand_acquisition.test.ts",
+        "frontend/tests/unit/lib/test_tool_activation.test.ts",
+        "frontend/tests/unit/lib/workstation_ohlcv_requests.test.ts",
+        "frontend/tests/unit/lib/workstation_source_capability.test.ts",
+        "frontend/tests/unit/router/test_app_shell.test.ts",
+        "frontend/tests/unit/router/test_application_routes.test.ts",
+        "frontend/tests/unit/setup.ts",
+        "frontend/tests/unit/stores/test_dashboard_store.test.ts",
+        "frontend/tests/unit/stores/test_drawings_store.test.ts",
+        "frontend/tests/unit/stores/test_favorites_store.test.ts",
+        "frontend/tests/unit/stores/test_stores.test.ts",
+        "frontend/tests/unit/stores/test_user_settings.test.ts",
+        "frontend/tests/unit/stores/test_watchlist_store.test.ts",
+        "frontend/tests/unit/stores/test_workspace_store.test.ts",
+        "frontend/tests/unit/views/test_alerts_view_creation_path.test.ts",
+        "frontend/tests/unit/views/test_chart_view_radar_handoff.test.ts",
+        "frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts",
+        "frontend/tests/unit/views/test_screener_view_accessibility.test.ts",
+        "frontend/tests/unit/views/test_settings_view.test.ts",
+        "frontend/tests/unit/views/test_watchlist_view_bootstrap.test.ts",
+        "frontend/tests/unit/views/test_workstation_capabilities.test.ts",
+        "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts"
+      ],
+      "owned_private_paths_excluded": [
+        "frontend/src/components/workstation/InstrumentNoteTool.vue",
+        "frontend/src/views/BasketsView.vue",
+        "frontend/src/views/ETFHoldingsView.vue",
+        "frontend/tests/e2e/baskets_journey.spec.ts",
+        "frontend/tests/e2e/etf_holdings_preparation.spec.ts",
+        "frontend/tests/e2e/sp500_analysis_journey.spec.ts",
+        "frontend/tests/e2e/supporting_features_journey.spec.ts",
+        "frontend/tests/unit/components/test_instrument_note_tool.test.ts",
+        "frontend/tests/unit/views/test_baskets_view.test.ts",
+        "frontend/tests/unit/views/test_etf_holdings_view.test.ts"
+      ],
+      "import_paths": [
+        "frontend/src/components/chart/UPlotChart.vue",
+        "frontend/src/components/radar/RadarDetailPreviewChart.vue",
+        "frontend/src/components/workstation/CoverageSummaryTool.vue",
+        "frontend/src/components/workstation/EasyScanTool.vue",
+        "frontend/src/components/workstation/RatioUPlot.vue",
+        "frontend/src/components/workstation/ToolWindow.vue",
+        "frontend/src/components/workstation/WorkspaceLayoutHost.vue",
+        "frontend/src/components/workstation/WorkstationToolContent.vue",
+        "frontend/src/lib/api.ts",
+        "frontend/src/lib/workstation/instrumentCalendar.ts",
+        "frontend/src/lib/workstation/instrumentQueries.ts",
+        "frontend/src/stores/chart.ts",
+        "frontend/src/stores/workspace.ts",
+        "frontend/src/views/WatchlistView.vue",
+        "frontend/src/views/WorkstationView.vue",
+        "frontend/tests/e2e/on_demand_acquisition.spec.ts",
+        "frontend/tests/unit/components/test_coverage_summary_tool.test.ts",
+        "frontend/tests/unit/components/test_easy_scan_tool.test.ts",
+        "frontend/tests/unit/components/test_linked_instrument_tool_races.test.ts",
+        "frontend/tests/unit/components/test_ratio_uplot.test.ts",
+        "frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts",
+        "frontend/tests/unit/lib/test_api_client.test.ts",
+        "frontend/tests/unit/lib/test_instrument_calendar.test.ts",
+        "frontend/tests/unit/lib/test_instrument_queries.test.ts",
+        "frontend/tests/unit/stores/test_stores.test.ts",
+        "frontend/tests/unit/stores/test_workspace_store.test.ts",
+        "frontend/tests/unit/views/test_watchlist_view_bootstrap.test.ts",
+        "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts",
+        "frontend/src/components/workstation/ResearchResultsTool.vue",
+        "frontend/tests/e2e/strategy_study_journey.spec.ts",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts"
+      ],
+      "old_guards": {
+        "frontend/src/components/chart/UPlotChart.vue": {
+          "sha256": "2758fc01c9a53e92b6a010648334420b30e84dff53adc560717f2f0ca85d530d",
+          "known_absent": false
+        },
+        "frontend/src/components/radar/RadarDetailPreviewChart.vue": {
+          "sha256": "dac1abe2d8314669529cc23c5746cf2cb3bf22386db6598053969c64c0c9059b",
+          "known_absent": false
+        },
+        "frontend/src/components/workstation/CoverageSummaryTool.vue": {
+          "sha256": "230d616012e5119141c18eb9175a5e3987176fb238e27ae99c66c18a17e22eb2",
+          "known_absent": false
+        },
+        "frontend/src/components/workstation/EasyScanTool.vue": {
+          "sha256": "838702387e9f20d722d9f2bc10a4f42679e18e621ce8c00b399962c8b7ae5e12",
+          "known_absent": false
+        },
+        "frontend/src/components/workstation/RatioUPlot.vue": {
+          "sha256": "a8a4a2301486bc473e7c611f62b7c8addb23af80bfd597ebb986e9b69498cf25",
+          "known_absent": false
+        },
+        "frontend/src/components/workstation/ToolWindow.vue": {
+          "sha256": "28f19f824241a8710b19e769376b31159188c9318257ffadf492c6b0b9ce5e9c",
+          "known_absent": false
+        },
+        "frontend/src/components/workstation/WorkspaceLayoutHost.vue": {
+          "sha256": "1579e6e027fbb2d25b0acc50fdb2c848a9792d632f0f6710226543b7d7ed8601",
+          "known_absent": false
+        },
+        "frontend/src/components/workstation/WorkstationToolContent.vue": {
+          "sha256": "a3dbcdb27af80affd1c14e559597a422a87e8fb1fa3e591d45c8d8b5ca0d637c",
+          "known_absent": false
+        },
+        "frontend/src/lib/api.ts": {
+          "sha256": "76f37887d09bc7a9dd4b4699b5aacfe344a73b097e0548ee487d2ab1afcc6fd9",
+          "known_absent": false
+        },
+        "frontend/src/lib/workstation/instrumentCalendar.ts": {
+          "sha256": "6f9e9b36f1f1d662814b0d8be98bb7bb22906538463bf8f4f65d4d25a6d55fe5",
+          "known_absent": false
+        },
+        "frontend/src/lib/workstation/instrumentQueries.ts": {
+          "sha256": "0143e94c016edfacbe5c3c5e0a627d2426aae8d76d9058c9df657fd15c9ea560",
+          "known_absent": false
+        },
+        "frontend/src/stores/chart.ts": {
+          "sha256": "dbac8784e1653f6af2e704d55f0dd459f1f1e25fb0380cfb13b6ccd7581bdf92",
+          "known_absent": false
+        },
+        "frontend/src/stores/workspace.ts": {
+          "sha256": "7551ef802f91c91af117a61cd05f04002d911e175bdfdf960739d95ad60b0aa7",
+          "known_absent": false
+        },
+        "frontend/src/views/WatchlistView.vue": {
+          "sha256": "6681ec790101924178fa890966c1f5019e27e64be15bf02ef176a1f508ce20d2",
+          "known_absent": false
+        },
+        "frontend/src/views/WorkstationView.vue": {
+          "sha256": "7595672eabae5fa1e9f08ce3a289f61353fe9326c164fb1739dfa38f0352b896",
+          "known_absent": false
+        },
+        "frontend/tests/e2e/on_demand_acquisition.spec.ts": {
+          "sha256": "35ebeb83eb492dba52d1e3e798acdbbb009396ed81ed05ef69baa8de0b847ebb",
+          "known_absent": false
+        },
+        "frontend/tests/unit/components/test_coverage_summary_tool.test.ts": {
+          "sha256": "924cf38abe83f497a390c68facc4c707d3af0977fc517662f3ce96f2bc4d267f",
+          "known_absent": false
+        },
+        "frontend/tests/unit/components/test_easy_scan_tool.test.ts": {
+          "sha256": "e5d967cf4ed0fdcc7d9d5890d96c190366502625d80ab005af6dbb1ea3fbdfab",
+          "known_absent": false
+        },
+        "frontend/tests/unit/components/test_linked_instrument_tool_races.test.ts": {
+          "sha256": "89a3aa2747d04587702bab25eb05be351bf4ef8491b20453970f34fd97c4a2b7",
+          "known_absent": false
+        },
+        "frontend/tests/unit/components/test_ratio_uplot.test.ts": {
+          "sha256": "b3d50b8567a60256e15871aea90b58301ce43b709263e533bb009e9bda96f5d6",
+          "known_absent": false
+        },
+        "frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts": {
+          "sha256": "76ba40f93b07937f39ce5cab54fe0e926e28c0b9bb99c8375867e80dc9a296e3",
+          "known_absent": false
+        },
+        "frontend/tests/unit/lib/test_api_client.test.ts": {
+          "sha256": "35815861b2c4dbd658283d26a0e876333a5065534b95df53068bede1848179fa",
+          "known_absent": false
+        },
+        "frontend/tests/unit/lib/test_instrument_calendar.test.ts": {
+          "sha256": "1979b6c63a5b01d527a0579f389e597ef4e56277a39d2f1ce4318adf24f07fa0",
+          "known_absent": false
+        },
+        "frontend/tests/unit/lib/test_instrument_queries.test.ts": {
+          "sha256": "eceda6cfadb0fcbd44101e23b23f357c17c08b4037242a4e363162479105be86",
+          "known_absent": false
+        },
+        "frontend/tests/unit/stores/test_stores.test.ts": {
+          "sha256": "89e0944c62764b27b980ce93e60c7cdfd904c728a7bec68059477da798c5c1d3",
+          "known_absent": false
+        },
+        "frontend/tests/unit/stores/test_workspace_store.test.ts": {
+          "sha256": "51abb373e5f7d22b4ca87239fac157c86a54b837a3568e535a111960c1d941f5",
+          "known_absent": false
+        },
+        "frontend/tests/unit/views/test_watchlist_view_bootstrap.test.ts": {
+          "sha256": null,
+          "known_absent": true
+        },
+        "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts": {
+          "sha256": "f7077089100e534bb32295359a059f7a99c487ad781c633648b825bc0620d42d",
+          "known_absent": false
+        },
+        "frontend/src/components/workstation/ResearchResultsTool.vue": {
+          "sha256": "8a7b557b7aaca74246d0bbe50da29e3f2d8a33c13f6c44f5eaa47f0a6999ac56",
+          "known_absent": false
+        },
+        "frontend/tests/e2e/strategy_study_journey.spec.ts": {
+          "sha256": "93c89fea48cbdf7896092066da77705cf395cb37b78abd06c1570d64cb15b655",
+          "known_absent": false
+        },
+        "frontend/tests/unit/components/test_research_results_tool.test.ts": {
+          "sha256": "8a3d343499becab3e5ea315db0ee3eecfc5e65784b0cd140e0ed9c2bb2bfc7fa",
+          "known_absent": false
+        }
+      }
+    },
+    {
+      "consumer": "Strategy",
+      "foreign_context_paths": [
+        "frontend/package-lock.json",
+        "frontend/package.json",
+        "frontend/src/App.vue",
+        "frontend/src/components/chart/ChartPanel.vue",
+        "frontend/src/components/chart/HistoryAcquisitionControl.vue",
+        "frontend/src/components/chart/UPlotChart.vue",
+        "frontend/src/components/common/CompactStatusNotice.vue",
+        "frontend/src/components/common/Notification.vue",
+        "frontend/src/components/common/SearchBar.vue",
+        "frontend/src/components/radar/RadarDetailPreviewChart.vue",
+        "frontend/src/components/workstation/ChartPlotLibrary.vue",
+        "frontend/src/components/workstation/CoverageSummaryTool.vue",
+        "frontend/src/components/workstation/EasyScanTool.vue",
+        "frontend/src/components/workstation/InstrumentAlertsTool.vue",
+        "frontend/src/components/workstation/InstrumentNoteTool.vue",
+        "frontend/src/components/workstation/MarketGaugeTool.vue",
+        "frontend/src/components/workstation/MarketMapTool.vue",
+        "frontend/src/components/workstation/RatioUPlot.vue",
+        "frontend/src/components/workstation/RelativeRotationTool.vue",
+        "frontend/src/components/workstation/ToolWindow.vue",
+        "frontend/src/components/workstation/VirtualWatchlistTool.vue",
+        "frontend/src/components/workstation/WorkspaceLayoutHost.vue",
+        "frontend/src/components/workstation/WorkstationToolContent.vue",
+        "frontend/src/lib/api.ts",
+        "frontend/src/lib/authSession.ts",
+        "frontend/src/lib/dataPreparation.ts",
+        "frontend/src/lib/etfHoldingDrilldown.ts",
+        "frontend/src/lib/instruments.ts",
+        "frontend/src/lib/onDemandAcquisition.ts",
+        "frontend/src/lib/workstation/benchmarkFamilySources.ts",
+        "frontend/src/lib/workstation/instrumentCalendar.ts",
+        "frontend/src/lib/workstation/instrumentQueries.ts",
+        "frontend/src/lib/workstation/libraryQueries.ts",
+        "frontend/src/lib/workstation/marketMap.ts",
+        "frontend/src/lib/workstation/ohlcvRequests.ts",
+        "frontend/src/lib/workstation/sourceCapability.ts",
+        "frontend/src/lib/workstation/toolActivation.ts",
+        "frontend/src/main.ts",
+        "frontend/src/router/index.ts",
+        "frontend/src/stores/alerts.ts",
+        "frontend/src/stores/auth.ts",
+        "frontend/src/stores/chart.ts",
+        "frontend/src/stores/drawings.ts",
+        "frontend/src/stores/favorites.ts",
+        "frontend/src/stores/layout.ts",
+        "frontend/src/stores/panelLinks.ts",
+        "frontend/src/stores/presets.ts",
+        "frontend/src/stores/radar.ts",
+        "frontend/src/stores/recentInstruments.ts",
+        "frontend/src/stores/screener_alerts.ts",
+        "frontend/src/stores/userSettings.ts",
+        "frontend/src/stores/watchlist.ts",
+        "frontend/src/stores/workspace.ts",
+        "frontend/src/types/index.ts",
+        "frontend/src/views/AlertsView.vue",
+        "frontend/src/views/BasketsView.vue",
+        "frontend/src/views/ChartView.vue",
+        "frontend/src/views/ETFHoldingsView.vue",
+        "frontend/src/views/ScreenerView.vue",
+        "frontend/src/views/SettingsView.vue",
+        "frontend/src/views/WatchlistView.vue",
+        "frontend/src/views/WorkstationView.vue",
+        "frontend/tests/e2e/auth_session_boundary.spec.ts",
+        "frontend/tests/e2e/baskets_journey.spec.ts",
+        "frontend/tests/e2e/etf_holdings_preparation.spec.ts",
+        "frontend/tests/e2e/flows.spec.ts",
+        "frontend/tests/e2e/helpers.ts",
+        "frontend/tests/e2e/on_demand_acquisition.spec.ts",
+        "frontend/tests/e2e/sp500_analysis_journey.spec.ts",
+        "frontend/tests/e2e/supporting_features_journey.spec.ts",
+        "frontend/tests/e2e/tc2000_visual.spec.ts",
+        "frontend/tests/e2e/tc_secondary_routes_journey.spec.ts",
+        "frontend/tests/unit/components/test_chart_panel_lifecycle.test.ts",
+        "frontend/tests/unit/components/test_chart_plot_library.test.ts",
+        "frontend/tests/unit/components/test_compact_status_notice.test.ts",
+        "frontend/tests/unit/components/test_coverage_summary_tool.test.ts",
+        "frontend/tests/unit/components/test_easy_scan_tool.test.ts",
+        "frontend/tests/unit/components/test_etf_holding_resolution_action.test.ts",
+        "frontend/tests/unit/components/test_history_acquisition_control.test.ts",
+        "frontend/tests/unit/components/test_instrument_note_tool.test.ts",
+        "frontend/tests/unit/components/test_linked_instrument_tool_races.test.ts",
+        "frontend/tests/unit/components/test_market_gauge_tool.test.ts",
+        "frontend/tests/unit/components/test_market_map_tool.test.ts",
+        "frontend/tests/unit/components/test_radar_detail_preview_chart.test.ts",
+        "frontend/tests/unit/components/test_ratio_uplot.test.ts",
+        "frontend/tests/unit/components/test_relative_rotation_tool.test.ts",
+        "frontend/tests/unit/components/test_search_bar.test.ts",
+        "frontend/tests/unit/components/test_tool_window.test.ts",
+        "frontend/tests/unit/components/test_uplot_chart_context.test.ts",
+        "frontend/tests/unit/components/test_virtual_watchlist_tool.test.ts",
+        "frontend/tests/unit/components/test_workspace_layout_host.test.ts",
+        "frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts",
+        "frontend/tests/unit/components/test_workstation_tool_content_tag_columns_runtime.test.ts",
+        "frontend/tests/unit/e2e/test_browser_diagnostics.test.ts",
+        "frontend/tests/unit/lib/test_api_client.test.ts",
+        "frontend/tests/unit/lib/test_auth_session.test.ts",
+        "frontend/tests/unit/lib/test_benchmark_family_sources.test.ts",
+        "frontend/tests/unit/lib/test_data_preparation.test.ts",
+        "frontend/tests/unit/lib/test_instrument_calendar.test.ts",
+        "frontend/tests/unit/lib/test_instrument_queries.test.ts",
+        "frontend/tests/unit/lib/test_instruments.test.ts",
+        "frontend/tests/unit/lib/test_market_map.test.ts",
+        "frontend/tests/unit/lib/test_on_demand_acquisition.test.ts",
+        "frontend/tests/unit/lib/test_tool_activation.test.ts",
+        "frontend/tests/unit/lib/workstation_ohlcv_requests.test.ts",
+        "frontend/tests/unit/lib/workstation_source_capability.test.ts",
+        "frontend/tests/unit/router/test_app_shell.test.ts",
+        "frontend/tests/unit/router/test_application_routes.test.ts",
+        "frontend/tests/unit/setup.ts",
+        "frontend/tests/unit/stores/test_drawings_store.test.ts",
+        "frontend/tests/unit/stores/test_favorites_store.test.ts",
+        "frontend/tests/unit/stores/test_stores.test.ts",
+        "frontend/tests/unit/stores/test_user_settings.test.ts",
+        "frontend/tests/unit/stores/test_watchlist_store.test.ts",
+        "frontend/tests/unit/stores/test_workspace_store.test.ts",
+        "frontend/tests/unit/views/test_alerts_view_creation_path.test.ts",
+        "frontend/tests/unit/views/test_baskets_view.test.ts",
+        "frontend/tests/unit/views/test_chart_view_radar_handoff.test.ts",
+        "frontend/tests/unit/views/test_etf_holdings_view.test.ts",
+        "frontend/tests/unit/views/test_screener_view_accessibility.test.ts",
+        "frontend/tests/unit/views/test_settings_view.test.ts",
+        "frontend/tests/unit/views/test_watchlist_view_bootstrap.test.ts",
+        "frontend/tests/unit/views/test_workstation_capabilities.test.ts",
+        "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts"
+      ],
+      "owned_private_paths_excluded": [
+        "frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue",
+        "frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue",
+        "frontend/src/components/dashboard/DashboardInstrumentSearch.vue",
+        "frontend/src/components/dashboard/DashboardLineChartWidget.vue",
+        "frontend/src/components/dashboard/DashboardQuoteWidget.vue",
+        "frontend/src/components/workstation/CodeLibraryTool.vue",
+        "frontend/src/components/workstation/PythonSourceEditor.vue",
+        "frontend/src/components/workstation/ResearchResultsTool.vue",
+        "frontend/src/components/workstation/StudyLabTool.vue",
+        "frontend/src/lib/workstation/researchQueryKeys.ts",
+        "frontend/src/lib/workstation/researchRunCancellation.ts",
+        "frontend/src/stores/dashboard.ts",
+        "frontend/src/views/DashboardView.vue",
+        "frontend/tests/e2e/dashboard_usability_journey.spec.ts",
+        "frontend/tests/e2e/strategy_study_journey.spec.ts",
+        "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts",
+        "frontend/tests/unit/components/test_code_library_tool.test.ts",
+        "frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts",
+        "frontend/tests/unit/components/test_dashboard_instrument_search.test.ts",
+        "frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts",
+        "frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts",
+        "frontend/tests/unit/components/test_python_source_editor.test.ts",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts",
+        "frontend/tests/unit/stores/test_dashboard_store.test.ts",
+        "frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts"
+      ],
+      "import_paths": [
+        "frontend/src/components/chart/UPlotChart.vue",
+        "frontend/src/components/radar/RadarDetailPreviewChart.vue",
+        "frontend/src/components/workstation/CoverageSummaryTool.vue",
+        "frontend/src/components/workstation/EasyScanTool.vue",
+        "frontend/src/components/workstation/RatioUPlot.vue",
+        "frontend/src/components/workstation/ToolWindow.vue",
+        "frontend/src/components/workstation/WorkspaceLayoutHost.vue",
+        "frontend/src/components/workstation/WorkstationToolContent.vue",
+        "frontend/src/lib/api.ts",
+        "frontend/src/lib/workstation/instrumentCalendar.ts",
+        "frontend/src/lib/workstation/instrumentQueries.ts",
+        "frontend/src/stores/chart.ts",
+        "frontend/src/stores/workspace.ts",
+        "frontend/src/views/WatchlistView.vue",
+        "frontend/src/views/WorkstationView.vue",
+        "frontend/tests/e2e/on_demand_acquisition.spec.ts",
+        "frontend/tests/unit/components/test_coverage_summary_tool.test.ts",
+        "frontend/tests/unit/components/test_easy_scan_tool.test.ts",
+        "frontend/tests/unit/components/test_linked_instrument_tool_races.test.ts",
+        "frontend/tests/unit/components/test_ratio_uplot.test.ts",
+        "frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts",
+        "frontend/tests/unit/lib/test_api_client.test.ts",
+        "frontend/tests/unit/lib/test_instrument_calendar.test.ts",
+        "frontend/tests/unit/lib/test_instrument_queries.test.ts",
+        "frontend/tests/unit/stores/test_stores.test.ts",
+        "frontend/tests/unit/stores/test_workspace_store.test.ts",
+        "frontend/tests/unit/views/test_watchlist_view_bootstrap.test.ts",
+        "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts",
+        "frontend/src/components/workstation/InstrumentNoteTool.vue",
+        "frontend/src/views/ETFHoldingsView.vue",
+        "frontend/tests/e2e/sp500_analysis_journey.spec.ts",
+        "frontend/tests/e2e/supporting_features_journey.spec.ts",
+        "frontend/tests/unit/components/test_instrument_note_tool.test.ts",
+        "frontend/tests/unit/views/test_etf_holdings_view.test.ts"
+      ],
+      "old_guards": {
+        "frontend/src/components/chart/UPlotChart.vue": {
+          "sha256": "2758fc01c9a53e92b6a010648334420b30e84dff53adc560717f2f0ca85d530d",
+          "known_absent": false
+        },
+        "frontend/src/components/radar/RadarDetailPreviewChart.vue": {
+          "sha256": "dac1abe2d8314669529cc23c5746cf2cb3bf22386db6598053969c64c0c9059b",
+          "known_absent": false
+        },
+        "frontend/src/components/workstation/CoverageSummaryTool.vue": {
+          "sha256": "230d616012e5119141c18eb9175a5e3987176fb238e27ae99c66c18a17e22eb2",
+          "known_absent": false
+        },
+        "frontend/src/components/workstation/EasyScanTool.vue": {
+          "sha256": "838702387e9f20d722d9f2bc10a4f42679e18e621ce8c00b399962c8b7ae5e12",
+          "known_absent": false
+        },
+        "frontend/src/components/workstation/RatioUPlot.vue": {
+          "sha256": "a8a4a2301486bc473e7c611f62b7c8addb23af80bfd597ebb986e9b69498cf25",
+          "known_absent": false
+        },
+        "frontend/src/components/workstation/ToolWindow.vue": {
+          "sha256": "28f19f824241a8710b19e769376b31159188c9318257ffadf492c6b0b9ce5e9c",
+          "known_absent": false
+        },
+        "frontend/src/components/workstation/WorkspaceLayoutHost.vue": {
+          "sha256": "1579e6e027fbb2d25b0acc50fdb2c848a9792d632f0f6710226543b7d7ed8601",
+          "known_absent": false
+        },
+        "frontend/src/components/workstation/WorkstationToolContent.vue": {
+          "sha256": "a3dbcdb27af80affd1c14e559597a422a87e8fb1fa3e591d45c8d8b5ca0d637c",
+          "known_absent": false
+        },
+        "frontend/src/lib/api.ts": {
+          "sha256": "76f37887d09bc7a9dd4b4699b5aacfe344a73b097e0548ee487d2ab1afcc6fd9",
+          "known_absent": false
+        },
+        "frontend/src/lib/workstation/instrumentCalendar.ts": {
+          "sha256": "6f9e9b36f1f1d662814b0d8be98bb7bb22906538463bf8f4f65d4d25a6d55fe5",
+          "known_absent": false
+        },
+        "frontend/src/lib/workstation/instrumentQueries.ts": {
+          "sha256": "0143e94c016edfacbe5c3c5e0a627d2426aae8d76d9058c9df657fd15c9ea560",
+          "known_absent": false
+        },
+        "frontend/src/stores/chart.ts": {
+          "sha256": "dbac8784e1653f6af2e704d55f0dd459f1f1e25fb0380cfb13b6ccd7581bdf92",
+          "known_absent": false
+        },
+        "frontend/src/stores/workspace.ts": {
+          "sha256": "7551ef802f91c91af117a61cd05f04002d911e175bdfdf960739d95ad60b0aa7",
+          "known_absent": false
+        },
+        "frontend/src/views/WatchlistView.vue": {
+          "sha256": "6681ec790101924178fa890966c1f5019e27e64be15bf02ef176a1f508ce20d2",
+          "known_absent": false
+        },
+        "frontend/src/views/WorkstationView.vue": {
+          "sha256": "7595672eabae5fa1e9f08ce3a289f61353fe9326c164fb1739dfa38f0352b896",
+          "known_absent": false
+        },
+        "frontend/tests/e2e/on_demand_acquisition.spec.ts": {
+          "sha256": "35ebeb83eb492dba52d1e3e798acdbbb009396ed81ed05ef69baa8de0b847ebb",
+          "known_absent": false
+        },
+        "frontend/tests/unit/components/test_coverage_summary_tool.test.ts": {
+          "sha256": "924cf38abe83f497a390c68facc4c707d3af0977fc517662f3ce96f2bc4d267f",
+          "known_absent": false
+        },
+        "frontend/tests/unit/components/test_easy_scan_tool.test.ts": {
+          "sha256": "e5d967cf4ed0fdcc7d9d5890d96c190366502625d80ab005af6dbb1ea3fbdfab",
+          "known_absent": false
+        },
+        "frontend/tests/unit/components/test_linked_instrument_tool_races.test.ts": {
+          "sha256": "89a3aa2747d04587702bab25eb05be351bf4ef8491b20453970f34fd97c4a2b7",
+          "known_absent": false
+        },
+        "frontend/tests/unit/components/test_ratio_uplot.test.ts": {
+          "sha256": "b3d50b8567a60256e15871aea90b58301ce43b709263e533bb009e9bda96f5d6",
+          "known_absent": false
+        },
+        "frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts": {
+          "sha256": "76ba40f93b07937f39ce5cab54fe0e926e28c0b9bb99c8375867e80dc9a296e3",
+          "known_absent": false
+        },
+        "frontend/tests/unit/lib/test_api_client.test.ts": {
+          "sha256": "35815861b2c4dbd658283d26a0e876333a5065534b95df53068bede1848179fa",
+          "known_absent": false
+        },
+        "frontend/tests/unit/lib/test_instrument_calendar.test.ts": {
+          "sha256": "1979b6c63a5b01d527a0579f389e597ef4e56277a39d2f1ce4318adf24f07fa0",
+          "known_absent": false
+        },
+        "frontend/tests/unit/lib/test_instrument_queries.test.ts": {
+          "sha256": "eceda6cfadb0fcbd44101e23b23f357c17c08b4037242a4e363162479105be86",
+          "known_absent": false
+        },
+        "frontend/tests/unit/stores/test_stores.test.ts": {
+          "sha256": "89e0944c62764b27b980ce93e60c7cdfd904c728a7bec68059477da798c5c1d3",
+          "known_absent": false
+        },
+        "frontend/tests/unit/stores/test_workspace_store.test.ts": {
+          "sha256": "51abb373e5f7d22b4ca87239fac157c86a54b837a3568e535a111960c1d941f5",
+          "known_absent": false
+        },
+        "frontend/tests/unit/views/test_watchlist_view_bootstrap.test.ts": {
+          "sha256": null,
+          "known_absent": true
+        },
+        "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts": {
+          "sha256": "f7077089100e534bb32295359a059f7a99c487ad781c633648b825bc0620d42d",
+          "known_absent": false
+        },
+        "frontend/src/components/workstation/InstrumentNoteTool.vue": {
+          "sha256": "0d3056927d5146c2f0fd5b8047b2ef8b11c7c009bc14ab28bd3945b8be3ae6b1",
+          "known_absent": false
+        },
+        "frontend/src/views/ETFHoldingsView.vue": {
+          "sha256": "26b695691ba36e36a9dd5d0a7850ca77c67d3974af22a38f9bc8ffdc372ce4ba",
+          "known_absent": false
+        },
+        "frontend/tests/e2e/sp500_analysis_journey.spec.ts": {
+          "sha256": "1e271e50bd236f6871c5c8ba9527c8cc1e1babe8d01c826c803b44c16c5a7c07",
+          "known_absent": false
+        },
+        "frontend/tests/e2e/supporting_features_journey.spec.ts": {
+          "sha256": "1e388d3779e1a3b7f6141d92b11b60c4eb8be1cee8fcde996b54a42849eff3b0",
+          "known_absent": false
+        },
+        "frontend/tests/unit/components/test_instrument_note_tool.test.ts": {
+          "sha256": "a9a43f3d5c8c7871d88abd0d9bab2b0e40f13fb97b30b19b4da979aada0d7741",
+          "known_absent": false
+        },
+        "frontend/tests/unit/views/test_etf_holdings_view.test.ts": {
+          "sha256": "abbf877da26e1547e4b0ab8c0304706effa2b24fd1caad7a29e3125d698cf84e",
+          "known_absent": false
+        }
+      }
+    }
+  ],
+  "required": "Import only own consumer import_paths througholdguards; activepin foreign_context_paths only. Neverfreeze/overwrite ownprivatepaths (alreadybyteidentical). Archive supersededforeignfrontendpins/receipts unchanged, retainfullroadmap. Batch the released fc220242 81-path runtime scope-compatible contract where not already consumed; its two ETF catalogue paths must not be omitted. Cheap scope/workstream/hash checks only, onecoherentcontextcommit, no duplicateUI/backend/live/CI untilRootdeclarescandidateeligible.",
+  "qualification": "Owner focused evidence remains SHA-scoped in durable workstreams. Earlier component browser and unit receipts do not qualify this successor; current exact browser, full unit, critical visual, CI, staging, master and deployed acceptance are required. No acceptance is implied by this import contract."
+}

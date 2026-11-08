@@ -220,7 +220,7 @@ const groups: LinkGroup[] = WORKSTATION_LINK_GROUPS.map(group => group.id)
 </script>
 
 <style scoped>
-.tool-window { position: relative; width: 100%; height: 100%; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--tc-border, #30363c); background: var(--tc-window, #15191e); box-shadow: inset 0 1px rgba(255, 255, 255, 0.035); }
+.tool-window { position: relative; container: tool-window / inline-size; width: 100%; height: 100%; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--tc-border, #30363c); background: var(--tc-window, #15191e); box-shadow: inset 0 1px rgba(255, 255, 255, 0.035); }
 .tool-window--active { border-color: #607486; }
 .tool-window__header { height: var(--tc-window-header-height); min-width: 0; display: flex; align-items: center; gap: 5px; padding: 0 4px; background: linear-gradient(var(--tc-header-top), var(--tc-header-bottom)); border-bottom: 1px solid #0d0f11; color: var(--tc-text); font: 600 11px/1 var(--tc-font-family); user-select: none; }
 .tool-window__drag-handle { display: inline-flex; width: 12px; flex: 0 0 12px; align-items: center; justify-content: center; color: #748793; font-size: 11px; letter-spacing: -2px; cursor: grab; }
@@ -257,5 +257,27 @@ const groups: LinkGroup[] = WORKSTATION_LINK_GROUPS.map(group => group.id)
   .tool-window__link, .tool-window__timeframe-link { width: 32px; min-width: 24px; }
   .tool-window__timeframe { width: 24px; min-width: 22px; }
   .tool-window__actions button { min-width: 16px; padding: 0 1px; }
+}
+@container tool-window (max-width: 560px) {
+  .tool-window__header {
+    display: grid;
+    grid-template-columns: 12px minmax(0, 1fr) auto;
+    grid-template-rows: minmax(var(--tc-window-header-height), auto) auto;
+    height: auto;
+    min-height: var(--tc-window-header-height);
+    gap: 2px 4px;
+    padding: 2px 4px 3px;
+  }
+  .tool-window__drag-handle { grid-area: 1 / 1; }
+  .tool-window__title { grid-area: 1 / 2; }
+  .tool-window__symbol { grid-area: 1 / 3; max-width: 32vw; }
+  .tool-window__actions {
+    grid-area: 2 / 1 / 3 / 4;
+    width: 100%;
+    margin-left: 0;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 1px 3px;
+  }
 }
 </style>

@@ -1620,9 +1620,108 @@ describe('workspace store layout tabs', () => {
     await expect(store.renameWorkspace(' Morning Scan ')).resolves.toMatchObject({ name: 'Morning Scan' })
     expect(apiPatch).toHaveBeenCalledWith('/workspaces/12', { name: 'Morning Scan' })
     store.workspace = { ...store.workspace!, is_default: false }
-    apiGet.mockResolvedValue([{ ...base }])
+    apiGet.mockImplementation((path: string) => path === '/workspaces' ? [{ ...base }] : { ...base })
     await expect(store.deleteCurrentWorkspace()).resolves.toBe(true)
     expect(apiDelete).toHaveBeenCalledWith('/workspaces/11')
+  })
+
+  it('opens the known fallback after an acknowledged delete without waiting for the workspace-list refresh', async () => {
+    const fallback = {
+      id: 505, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4,
+      schema_version: 1, settings: {}, tabs: [],
+    }
+    const deleted = { ...fallback, id: 506, name: 'US Top Down Copy', is_default: false, position: 1 }
+    const listRefresh = deferred<any[]>()
+    const fallbackRead = deferred<any>()
+    const store = useWorkspaceStore()
+    store.workspace = deleted
+    store.workspaces = [
+      { id: fallback.id, name: fallback.name, is_default: true, position: 0, revision: fallback.revision },
+      { id: deleted.id, name: deleted.name, is_default: false, position: 1, revision: deleted.revision },
+    ]
+    apiDelete.mockResolvedValueOnce(undefined)
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/workspaces') return listRefresh.promise
+      if (path === `/workspaces/${fallback.id}`) return fallbackRead.promise
+      throw new Error(`Unexpected workspace read: ${path}`)
+    })
+
+    const deletion = store.deleteCurrentWorkspace()
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/workspaces/505', undefined, { priority: 'high' }))
+    expect(store.workspace).toBeNull()
+    expect(store.workspaces.map(item => item.id)).toEqual([fallback.id])
+
+    fallbackRead.resolve(fallback)
+    await expect(deletion).resolves.toBe(true)
+    expect(store.workspace).toMatchObject({ id: fallback.id, name: fallback.name })
+    expect(store.loading).toBe(false)
+    expect(store.workspaces.map(item => item.id)).toEqual([fallback.id])
+
+    listRefresh.resolve([fallback, deleted])
+    await vi.waitFor(() => expect(store.workspaces.map(item => item.id)).toEqual([fallback.id]))
+  })
+
+  it('does not let a delayed delete fallback replace a newer explicit workspace selection', async () => {
+    const fallback = {
+      id: 505, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4,
+      schema_version: 1, settings: {}, tabs: [],
+    }
+    const newer = { ...fallback, id: 507, name: 'Research', is_default: false, position: 1 }
+    const deleted = { ...fallback, id: 506, name: 'US Top Down Copy', is_default: false, position: 2 }
+    const fallbackRead = deferred<any>()
+    const listRefresh = deferred<any[]>()
+    const store = useWorkspaceStore()
+    store.workspace = deleted
+    store.workspaces = [
+      { id: fallback.id, name: fallback.name, is_default: true, position: 0, revision: fallback.revision },
+      { id: newer.id, name: newer.name, is_default: false, position: 1, revision: newer.revision },
+      { id: deleted.id, name: deleted.name, is_default: false, position: 2, revision: deleted.revision },
+    ]
+    apiDelete.mockResolvedValueOnce(undefined)
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/workspaces') return listRefresh.promise
+      if (path === `/workspaces/${fallback.id}`) return fallbackRead.promise
+      if (path === `/workspaces/${newer.id}`) return Promise.resolve(newer)
+      throw new Error(`Unexpected workspace read: ${path}`)
+    })
+
+    const deletion = store.deleteCurrentWorkspace()
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/workspaces/505', undefined, { priority: 'high' }))
+    const newerSelection = store.switchWorkspace(newer.id)
+    await vi.waitFor(() => expect(store.workspace?.id).toBe(newer.id))
+    fallbackRead.resolve(fallback)
+
+    await expect(deletion).resolves.toBe(true)
+    expect(store.workspace).toMatchObject({ id: newer.id, name: newer.name })
+    listRefresh.resolve([fallback, newer, deleted])
+    await newerSelection
+    expect(store.workspace).toMatchObject({ id: newer.id, name: newer.name })
+    expect(store.workspaces.map(item => item.id)).not.toContain(deleted.id)
+  })
+
+  it('settles loading when the current workspace supersedes a pending different selection', async () => {
+    const current = {
+      id: 505, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4,
+      schema_version: 1, settings: {}, tabs: [],
+    }
+    const other = { ...current, id: 507, name: 'Research', is_default: false, position: 1 }
+    const delayedRead = deferred<any>()
+    const store = useWorkspaceStore()
+    store.workspace = current
+    apiGet.mockImplementation((path: string) => {
+      if (path === `/workspaces/${other.id}`) return delayedRead.promise
+      throw new Error(`Unexpected workspace read: ${path}`)
+    })
+
+    const pendingSelection = store.switchWorkspace(other.id)
+    await vi.waitFor(() => expect(store.loading).toBe(true))
+
+    await expect(store.switchWorkspace(current.id)).resolves.toMatchObject({ id: current.id })
+    expect(store.loading).toBe(false)
+    delayedRead.resolve(other)
+    await expect(pendingSelection).resolves.toBeNull()
+    expect(store.workspace).toMatchObject({ id: current.id, name: current.name })
+    expect(store.loading).toBe(false)
   })
 
   it('reconciles cloned layout component identities and persists the repaired dock tree', async () => {

@@ -7258,6 +7258,190 @@ approved_development_dependency_imports:
     combined acceptance or deployment.
 
 
+- source_sha: db4b1f55f78b1d907aab9d062da9470b5e3cc109
+  manifest_path: ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/db4b1f55f78b1d907aab9d062da9470b5e3cc109.json
+  manifest_sha256: af29da7d2aef12e1778bcd14fb219dab0a009739ad41f9e376e8a4531c8a7ba6
+  paths:
+  - frontend/package-lock.json
+  - frontend/package.json
+  - frontend/src/App.vue
+  - frontend/src/components/chart/ChartPanel.vue
+  - frontend/src/components/chart/HistoryAcquisitionControl.vue
+  - frontend/src/components/chart/UPlotChart.vue
+  - frontend/src/components/common/CompactStatusNotice.vue
+  - frontend/src/components/common/Notification.vue
+  - frontend/src/components/common/SearchBar.vue
+  - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
+  - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
+  - frontend/src/components/dashboard/DashboardInstrumentSearch.vue
+  - frontend/src/components/dashboard/DashboardLineChartWidget.vue
+  - frontend/src/components/dashboard/DashboardQuoteWidget.vue
+  - frontend/src/components/radar/RadarDetailPreviewChart.vue
+  - frontend/src/components/workstation/ChartPlotLibrary.vue
+  - frontend/src/components/workstation/CodeLibraryTool.vue
+  - frontend/src/components/workstation/CoverageSummaryTool.vue
+  - frontend/src/components/workstation/EasyScanTool.vue
+  - frontend/src/components/workstation/InstrumentAlertsTool.vue
+  - frontend/src/components/workstation/MarketGaugeTool.vue
+  - frontend/src/components/workstation/MarketMapTool.vue
+  - frontend/src/components/workstation/PythonSourceEditor.vue
+  - frontend/src/components/workstation/RatioUPlot.vue
+  - frontend/src/components/workstation/RelativeRotationTool.vue
+  - frontend/src/components/workstation/ResearchResultsTool.vue
+  - frontend/src/components/workstation/StudyLabTool.vue
+  - frontend/src/components/workstation/ToolWindow.vue
+  - frontend/src/components/workstation/VirtualWatchlistTool.vue
+  - frontend/src/components/workstation/WorkspaceLayoutHost.vue
+  - frontend/src/components/workstation/WorkstationToolContent.vue
+  - frontend/src/lib/api.ts
+  - frontend/src/lib/authSession.ts
+  - frontend/src/lib/dataPreparation.ts
+  - frontend/src/lib/etfHoldingDrilldown.ts
+  - frontend/src/lib/instruments.ts
+  - frontend/src/lib/onDemandAcquisition.ts
+  - frontend/src/lib/workstation/benchmarkFamilySources.ts
+  - frontend/src/lib/workstation/instrumentCalendar.ts
+  - frontend/src/lib/workstation/instrumentQueries.ts
+  - frontend/src/lib/workstation/libraryQueries.ts
+  - frontend/src/lib/workstation/marketMap.ts
+  - frontend/src/lib/workstation/ohlcvRequests.ts
+  - frontend/src/lib/workstation/researchQueryKeys.ts
+  - frontend/src/lib/workstation/researchRunCancellation.ts
+  - frontend/src/lib/workstation/sourceCapability.ts
+  - frontend/src/lib/workstation/toolActivation.ts
+  - frontend/src/main.ts
+  - frontend/src/router/index.ts
+  - frontend/src/stores/alerts.ts
+  - frontend/src/stores/auth.ts
+  - frontend/src/stores/chart.ts
+  - frontend/src/stores/dashboard.ts
+  - frontend/src/stores/drawings.ts
+  - frontend/src/stores/favorites.ts
+  - frontend/src/stores/layout.ts
+  - frontend/src/stores/panelLinks.ts
+  - frontend/src/stores/presets.ts
+  - frontend/src/stores/radar.ts
+  - frontend/src/stores/recentInstruments.ts
+  - frontend/src/stores/screener_alerts.ts
+  - frontend/src/stores/userSettings.ts
+  - frontend/src/stores/watchlist.ts
+  - frontend/src/stores/workspace.ts
+  - frontend/src/types/index.ts
+  - frontend/src/views/AlertsView.vue
+  - frontend/src/views/ChartView.vue
+  - frontend/src/views/DashboardView.vue
+  - frontend/src/views/ScreenerView.vue
+  - frontend/src/views/SettingsView.vue
+  - frontend/src/views/WatchlistView.vue
+  - frontend/src/views/WorkstationView.vue
+  - frontend/tests/e2e/auth_session_boundary.spec.ts
+  - frontend/tests/e2e/dashboard_usability_journey.spec.ts
+  - frontend/tests/e2e/flows.spec.ts
+  - frontend/tests/e2e/helpers.ts
+  - frontend/tests/e2e/on_demand_acquisition.spec.ts
+  - frontend/tests/e2e/strategy_study_journey.spec.ts
+  - frontend/tests/e2e/tc2000_visual.spec.ts
+  - frontend/tests/e2e/tc_secondary_routes_journey.spec.ts
+  - frontend/tests/e2e/workstation_lifecycle_journey.spec.ts
+  - frontend/tests/unit/components/test_chart_panel_lifecycle.test.ts
+  - frontend/tests/unit/components/test_chart_plot_library.test.ts
+  - frontend/tests/unit/components/test_code_library_tool.test.ts
+  - frontend/tests/unit/components/test_compact_status_notice.test.ts
+  - frontend/tests/unit/components/test_coverage_summary_tool.test.ts
+  - frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts
+  - frontend/tests/unit/components/test_dashboard_instrument_search.test.ts
+  - frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts
+  - frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts
+  - frontend/tests/unit/components/test_easy_scan_tool.test.ts
+  - frontend/tests/unit/components/test_etf_holding_resolution_action.test.ts
+  - frontend/tests/unit/components/test_history_acquisition_control.test.ts
+  - frontend/tests/unit/components/test_linked_instrument_tool_races.test.ts
+  - frontend/tests/unit/components/test_market_gauge_tool.test.ts
+  - frontend/tests/unit/components/test_market_map_tool.test.ts
+  - frontend/tests/unit/components/test_python_source_editor.test.ts
+  - frontend/tests/unit/components/test_radar_detail_preview_chart.test.ts
+  - frontend/tests/unit/components/test_ratio_uplot.test.ts
+  - frontend/tests/unit/components/test_relative_rotation_tool.test.ts
+  - frontend/tests/unit/components/test_research_results_tool.test.ts
+  - frontend/tests/unit/components/test_search_bar.test.ts
+  - frontend/tests/unit/components/test_study_lab_tool.test.ts
+  - frontend/tests/unit/components/test_tool_window.test.ts
+  - frontend/tests/unit/components/test_uplot_chart_context.test.ts
+  - frontend/tests/unit/components/test_virtual_watchlist_tool.test.ts
+  - frontend/tests/unit/components/test_workspace_layout_host.test.ts
+  - frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts
+  - frontend/tests/unit/components/test_workstation_tool_content_tag_columns_runtime.test.ts
+  - frontend/tests/unit/e2e/test_browser_diagnostics.test.ts
+  - frontend/tests/unit/lib/test_api_client.test.ts
+  - frontend/tests/unit/lib/test_auth_session.test.ts
+  - frontend/tests/unit/lib/test_benchmark_family_sources.test.ts
+  - frontend/tests/unit/lib/test_data_preparation.test.ts
+  - frontend/tests/unit/lib/test_instrument_calendar.test.ts
+  - frontend/tests/unit/lib/test_instrument_queries.test.ts
+  - frontend/tests/unit/lib/test_instruments.test.ts
+  - frontend/tests/unit/lib/test_market_map.test.ts
+  - frontend/tests/unit/lib/test_on_demand_acquisition.test.ts
+  - frontend/tests/unit/lib/test_tool_activation.test.ts
+  - frontend/tests/unit/lib/workstation_ohlcv_requests.test.ts
+  - frontend/tests/unit/lib/workstation_source_capability.test.ts
+  - frontend/tests/unit/router/test_app_shell.test.ts
+  - frontend/tests/unit/router/test_application_routes.test.ts
+  - frontend/tests/unit/setup.ts
+  - frontend/tests/unit/stores/test_dashboard_store.test.ts
+  - frontend/tests/unit/stores/test_drawings_store.test.ts
+  - frontend/tests/unit/stores/test_favorites_store.test.ts
+  - frontend/tests/unit/stores/test_stores.test.ts
+  - frontend/tests/unit/stores/test_user_settings.test.ts
+  - frontend/tests/unit/stores/test_watchlist_store.test.ts
+  - frontend/tests/unit/stores/test_workspace_store.test.ts
+  - frontend/tests/unit/views/test_alerts_view_creation_path.test.ts
+  - frontend/tests/unit/views/test_chart_view_radar_handoff.test.ts
+  - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts
+  - frontend/tests/unit/views/test_screener_view_accessibility.test.ts
+  - frontend/tests/unit/views/test_settings_view.test.ts
+  - frontend/tests/unit/views/test_watchlist_view_bootstrap.test.ts
+  - frontend/tests/unit/views/test_workstation_capabilities.test.ts
+  - frontend/tests/unit/views/test_workstation_popout_bindings.test.ts
+  consumer_import_paths:
+  - frontend/src/components/chart/UPlotChart.vue
+  - frontend/src/components/radar/RadarDetailPreviewChart.vue
+  - frontend/src/components/workstation/CoverageSummaryTool.vue
+  - frontend/src/components/workstation/EasyScanTool.vue
+  - frontend/src/components/workstation/RatioUPlot.vue
+  - frontend/src/components/workstation/ToolWindow.vue
+  - frontend/src/components/workstation/WorkspaceLayoutHost.vue
+  - frontend/src/components/workstation/WorkstationToolContent.vue
+  - frontend/src/lib/api.ts
+  - frontend/src/lib/workstation/instrumentCalendar.ts
+  - frontend/src/lib/workstation/instrumentQueries.ts
+  - frontend/src/stores/chart.ts
+  - frontend/src/stores/workspace.ts
+  - frontend/src/views/WatchlistView.vue
+  - frontend/src/views/WorkstationView.vue
+  - frontend/tests/e2e/on_demand_acquisition.spec.ts
+  - frontend/tests/unit/components/test_coverage_summary_tool.test.ts
+  - frontend/tests/unit/components/test_easy_scan_tool.test.ts
+  - frontend/tests/unit/components/test_linked_instrument_tool_races.test.ts
+  - frontend/tests/unit/components/test_ratio_uplot.test.ts
+  - frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts
+  - frontend/tests/unit/lib/test_api_client.test.ts
+  - frontend/tests/unit/lib/test_instrument_calendar.test.ts
+  - frontend/tests/unit/lib/test_instrument_queries.test.ts
+  - frontend/tests/unit/stores/test_stores.test.ts
+  - frontend/tests/unit/stores/test_workspace_store.test.ts
+  - frontend/tests/unit/views/test_watchlist_view_bootstrap.test.ts
+  - frontend/tests/unit/views/test_workstation_popout_bindings.test.ts
+  - frontend/src/components/workstation/ResearchResultsTool.vue
+  - frontend/tests/e2e/strategy_study_journey.spec.ts
+  - frontend/tests/unit/components/test_research_results_tool.test.ts
+  verification: All150 source rows match the released Git blobs, SHA256, status_from139 and Git executable-bit semantics.
+    All31 ETF imports passed their exact old guards and match the released bytes; all10 ETF-private paths remain
+    excluded.
+  scope: Root-released complete shared frontend runtime development context; ETF-private paths remain ETF-owned
+    and excluded.
+  state: Development context only; no release acceptance is implied. Root owns the combined browser and exact-source
+    qualification.
+
 historical_tc_common_runtime_dependency_a2e22225:
   authority: Root released exact TC source a2e222251d4ea796d0d4bfb6b0e8705f503c1e4d for development consumption only; final combined browser/CI/release acceptance remains Root-owned.
   previous_active_dependency: 1fdc92f1a1628d191ad1d5b2f0ba071a80df5052
@@ -8058,7 +8242,7 @@ historical_tc_common_runtime_dependency_9ec4d783:
   state: Development dependency only; exact CI and combined browser/release qualification
     remain Root-owned.
 
-tc_common_runtime_dependency_active_e7500fb2:
+historical_tc_common_runtime_dependency_e7500fb2:
   authority: Root coordinates approved completeplatformplan; exact frozen frontend context import only, not releaseacceptance
   source: e7500fb2905ed217c96d3ac8b32a19d719ee9564
   previous_active_dependency: 9ec4d7833c45cd2fc51916a2378445f7761b425e
@@ -8240,3 +8424,171 @@ provider_operator_test_context_active_aed0d62c:
     declared paths imported.
   state: Operator-test development dependency only; no Provider tests, provider HTTP,
     native operation, or release acceptance.
+
+tc_common_runtime_dependency_active_db4b1f55:
+  authority: Human-approved four-feature usability implementation; Root-coordinated exact development context consumption
+    only, not product acceptance.
+  source: db4b1f55f78b1d907aab9d062da9470b5e3cc109
+  previous_active_dependency: e7500fb2905ed217c96d3ac8b32a19d719ee9564
+  manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-db4b1f55-full-frontend-context-development-consumption-contract.json
+  manifest_sha256: af29da7d2aef12e1778bcd14fb219dab0a009739ad41f9e376e8a4531c8a7ba6
+  local_manifest_copy: ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/db4b1f55f78b1d907aab9d062da9470b5e3cc109.json
+  current_manifest_records_verified: 150
+  consumer_import_paths_verified: 31
+  foreign_context_paths:
+  - frontend/package-lock.json
+  - frontend/package.json
+  - frontend/src/App.vue
+  - frontend/src/components/chart/ChartPanel.vue
+  - frontend/src/components/chart/HistoryAcquisitionControl.vue
+  - frontend/src/components/chart/UPlotChart.vue
+  - frontend/src/components/common/CompactStatusNotice.vue
+  - frontend/src/components/common/Notification.vue
+  - frontend/src/components/common/SearchBar.vue
+  - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
+  - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
+  - frontend/src/components/dashboard/DashboardInstrumentSearch.vue
+  - frontend/src/components/dashboard/DashboardLineChartWidget.vue
+  - frontend/src/components/dashboard/DashboardQuoteWidget.vue
+  - frontend/src/components/radar/RadarDetailPreviewChart.vue
+  - frontend/src/components/workstation/ChartPlotLibrary.vue
+  - frontend/src/components/workstation/CodeLibraryTool.vue
+  - frontend/src/components/workstation/CoverageSummaryTool.vue
+  - frontend/src/components/workstation/EasyScanTool.vue
+  - frontend/src/components/workstation/InstrumentAlertsTool.vue
+  - frontend/src/components/workstation/MarketGaugeTool.vue
+  - frontend/src/components/workstation/MarketMapTool.vue
+  - frontend/src/components/workstation/PythonSourceEditor.vue
+  - frontend/src/components/workstation/RatioUPlot.vue
+  - frontend/src/components/workstation/RelativeRotationTool.vue
+  - frontend/src/components/workstation/ResearchResultsTool.vue
+  - frontend/src/components/workstation/StudyLabTool.vue
+  - frontend/src/components/workstation/ToolWindow.vue
+  - frontend/src/components/workstation/VirtualWatchlistTool.vue
+  - frontend/src/components/workstation/WorkspaceLayoutHost.vue
+  - frontend/src/components/workstation/WorkstationToolContent.vue
+  - frontend/src/lib/api.ts
+  - frontend/src/lib/authSession.ts
+  - frontend/src/lib/dataPreparation.ts
+  - frontend/src/lib/etfHoldingDrilldown.ts
+  - frontend/src/lib/instruments.ts
+  - frontend/src/lib/onDemandAcquisition.ts
+  - frontend/src/lib/workstation/benchmarkFamilySources.ts
+  - frontend/src/lib/workstation/instrumentCalendar.ts
+  - frontend/src/lib/workstation/instrumentQueries.ts
+  - frontend/src/lib/workstation/libraryQueries.ts
+  - frontend/src/lib/workstation/marketMap.ts
+  - frontend/src/lib/workstation/ohlcvRequests.ts
+  - frontend/src/lib/workstation/researchQueryKeys.ts
+  - frontend/src/lib/workstation/researchRunCancellation.ts
+  - frontend/src/lib/workstation/sourceCapability.ts
+  - frontend/src/lib/workstation/toolActivation.ts
+  - frontend/src/main.ts
+  - frontend/src/router/index.ts
+  - frontend/src/stores/alerts.ts
+  - frontend/src/stores/auth.ts
+  - frontend/src/stores/chart.ts
+  - frontend/src/stores/dashboard.ts
+  - frontend/src/stores/drawings.ts
+  - frontend/src/stores/favorites.ts
+  - frontend/src/stores/layout.ts
+  - frontend/src/stores/panelLinks.ts
+  - frontend/src/stores/presets.ts
+  - frontend/src/stores/radar.ts
+  - frontend/src/stores/recentInstruments.ts
+  - frontend/src/stores/screener_alerts.ts
+  - frontend/src/stores/userSettings.ts
+  - frontend/src/stores/watchlist.ts
+  - frontend/src/stores/workspace.ts
+  - frontend/src/types/index.ts
+  - frontend/src/views/AlertsView.vue
+  - frontend/src/views/ChartView.vue
+  - frontend/src/views/DashboardView.vue
+  - frontend/src/views/ScreenerView.vue
+  - frontend/src/views/SettingsView.vue
+  - frontend/src/views/WatchlistView.vue
+  - frontend/src/views/WorkstationView.vue
+  - frontend/tests/e2e/auth_session_boundary.spec.ts
+  - frontend/tests/e2e/dashboard_usability_journey.spec.ts
+  - frontend/tests/e2e/flows.spec.ts
+  - frontend/tests/e2e/helpers.ts
+  - frontend/tests/e2e/on_demand_acquisition.spec.ts
+  - frontend/tests/e2e/strategy_study_journey.spec.ts
+  - frontend/tests/e2e/tc2000_visual.spec.ts
+  - frontend/tests/e2e/tc_secondary_routes_journey.spec.ts
+  - frontend/tests/e2e/workstation_lifecycle_journey.spec.ts
+  - frontend/tests/unit/components/test_chart_panel_lifecycle.test.ts
+  - frontend/tests/unit/components/test_chart_plot_library.test.ts
+  - frontend/tests/unit/components/test_code_library_tool.test.ts
+  - frontend/tests/unit/components/test_compact_status_notice.test.ts
+  - frontend/tests/unit/components/test_coverage_summary_tool.test.ts
+  - frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts
+  - frontend/tests/unit/components/test_dashboard_instrument_search.test.ts
+  - frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts
+  - frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts
+  - frontend/tests/unit/components/test_easy_scan_tool.test.ts
+  - frontend/tests/unit/components/test_etf_holding_resolution_action.test.ts
+  - frontend/tests/unit/components/test_history_acquisition_control.test.ts
+  - frontend/tests/unit/components/test_linked_instrument_tool_races.test.ts
+  - frontend/tests/unit/components/test_market_gauge_tool.test.ts
+  - frontend/tests/unit/components/test_market_map_tool.test.ts
+  - frontend/tests/unit/components/test_python_source_editor.test.ts
+  - frontend/tests/unit/components/test_radar_detail_preview_chart.test.ts
+  - frontend/tests/unit/components/test_ratio_uplot.test.ts
+  - frontend/tests/unit/components/test_relative_rotation_tool.test.ts
+  - frontend/tests/unit/components/test_research_results_tool.test.ts
+  - frontend/tests/unit/components/test_search_bar.test.ts
+  - frontend/tests/unit/components/test_study_lab_tool.test.ts
+  - frontend/tests/unit/components/test_tool_window.test.ts
+  - frontend/tests/unit/components/test_uplot_chart_context.test.ts
+  - frontend/tests/unit/components/test_virtual_watchlist_tool.test.ts
+  - frontend/tests/unit/components/test_workspace_layout_host.test.ts
+  - frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts
+  - frontend/tests/unit/components/test_workstation_tool_content_tag_columns_runtime.test.ts
+  - frontend/tests/unit/e2e/test_browser_diagnostics.test.ts
+  - frontend/tests/unit/lib/test_api_client.test.ts
+  - frontend/tests/unit/lib/test_auth_session.test.ts
+  - frontend/tests/unit/lib/test_benchmark_family_sources.test.ts
+  - frontend/tests/unit/lib/test_data_preparation.test.ts
+  - frontend/tests/unit/lib/test_instrument_calendar.test.ts
+  - frontend/tests/unit/lib/test_instrument_queries.test.ts
+  - frontend/tests/unit/lib/test_instruments.test.ts
+  - frontend/tests/unit/lib/test_market_map.test.ts
+  - frontend/tests/unit/lib/test_on_demand_acquisition.test.ts
+  - frontend/tests/unit/lib/test_tool_activation.test.ts
+  - frontend/tests/unit/lib/workstation_ohlcv_requests.test.ts
+  - frontend/tests/unit/lib/workstation_source_capability.test.ts
+  - frontend/tests/unit/router/test_app_shell.test.ts
+  - frontend/tests/unit/router/test_application_routes.test.ts
+  - frontend/tests/unit/setup.ts
+  - frontend/tests/unit/stores/test_dashboard_store.test.ts
+  - frontend/tests/unit/stores/test_drawings_store.test.ts
+  - frontend/tests/unit/stores/test_favorites_store.test.ts
+  - frontend/tests/unit/stores/test_stores.test.ts
+  - frontend/tests/unit/stores/test_user_settings.test.ts
+  - frontend/tests/unit/stores/test_watchlist_store.test.ts
+  - frontend/tests/unit/stores/test_workspace_store.test.ts
+  - frontend/tests/unit/views/test_alerts_view_creation_path.test.ts
+  - frontend/tests/unit/views/test_chart_view_radar_handoff.test.ts
+  - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts
+  - frontend/tests/unit/views/test_screener_view_accessibility.test.ts
+  - frontend/tests/unit/views/test_settings_view.test.ts
+  - frontend/tests/unit/views/test_watchlist_view_bootstrap.test.ts
+  - frontend/tests/unit/views/test_workstation_capabilities.test.ts
+  - frontend/tests/unit/views/test_workstation_popout_bindings.test.ts
+  owned_private_paths_excluded:
+  - frontend/src/components/workstation/InstrumentNoteTool.vue
+  - frontend/src/views/BasketsView.vue
+  - frontend/src/views/ETFHoldingsView.vue
+  - frontend/tests/e2e/baskets_journey.spec.ts
+  - frontend/tests/e2e/etf_holdings_preparation.spec.ts
+  - frontend/tests/e2e/sp500_analysis_journey.spec.ts
+  - frontend/tests/e2e/supporting_features_journey.spec.ts
+  - frontend/tests/unit/components/test_instrument_note_tool.test.ts
+  - frontend/tests/unit/views/test_baskets_view.test.ts
+  - frontend/tests/unit/views/test_etf_holdings_view.test.ts
+  verification: Imported only the31 declared ETF paths under their old-byte guards. All150 source rows were checked
+    against DB4 Git blobs and manifest status/hash/mode fields. All10 ETF-private paths remain excluded.
+  scope: Current Root-released DB4 shared frontend context for ETF; the already-current Provider fc220 dependency
+    is unchanged.
+  state: Development context only. Root owns the compact RRG rerun, combined qualification, CI, and release gates.

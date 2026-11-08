@@ -387,7 +387,7 @@ import {
 import { isSharedNavigationItemActive, sharedShellNavigation } from '@/router'
 import CompactStatusNotice from '@/components/common/CompactStatusNotice.vue'
 import type { Timeframe } from '@/types'
-import { dataPreparationCoordinator, historyPreparationStatusMessage, instrumentHistoryPreparationRequest, PreparationProgressRefreshQueue, preparationMessageSummary, preparationStatusMessage, type DataEnsureResponse, type PreparationDataset, type PreparationStatus } from '@/lib/dataPreparation'
+import { dataPreparationCoordinator, historyPreparationStatusMessage, instrumentHistoryPreparationRequest, PreparationProgressRefreshQueue, preparationMessageSummary, preparationStatusMessage, type DataEnsureRequest, type DataEnsureResponse, type PreparationDataset, type PreparationStatus } from '@/lib/dataPreparation'
 
 const BLOCKED_POPOUT_ERROR = 'Browser blocked the pop-out. The tool remains docked.'
 const CHART_TIMEFRAME_ORDER: readonly Timeframe[] = ['M1', 'M5', 'M15', 'M30', 'H1', 'H2', 'H4', 'H12', 'D1', 'W1', 'MN']
@@ -469,6 +469,12 @@ const recentSymbolsMenuStyle = ref<Record<string, string>>({})
 const routeSymbol = typeof route.params.symbol === 'string' && route.params.symbol.trim()
   ? decodeURIComponent(route.params.symbol).trim().toUpperCase()
   : 'SPY'
+const initialHoldingRouteContext = (() => {
+  const requestedSymbol = route.params.symbol ?? route.query.symbol
+  if (typeof requestedSymbol !== 'string' || route.query.holding_history_intent !== 'selected') return null
+  return parseETFHoldingDrilldownRouteQuery(route.query as Record<string, unknown>, requestedSymbol)
+})()
+const holdingRouteHydrationPending = ref(initialHoldingRouteContext !== null)
 const symbolDraft = ref(routeSymbol)
 const toolLibraryOpen = ref(false)
 const workspaceMenuOpen = ref(false)
@@ -504,7 +510,8 @@ const tabDragOverKey = ref<string | null>(null)
 const tabDragCommitted = ref(false)
 const searchResults = ref<Array<{ symbol: string; name: string; exchange: string; type: string; instrument_id?: number | null }>>([])
 const searchIndex = ref(-1)
-const searchOptionExplicitlyNavigated = ref(false)
+const searchOptionExplicitlyNavigatedFor = ref('')
+const userSymbolDraftActive = ref(false)
 const searchLoading = ref(false)
 const searchSettled = ref(false)
 const searchError = ref('')
@@ -538,6 +545,7 @@ const selectedHoldingDetails = computed(() => {
     `composition ${context.compositionDate}`,
     `known ${context.knownAt || 'not reported'}`,
     `${context.sourceProvider} / ${context.provenance}`,
+    'This dated context does not establish current ETF analysis eligibility',
   ].filter(Boolean).join(' · ')
 })
 const selectedHoldingCaption = computed(() => {
@@ -556,7 +564,7 @@ let candidateResolutionAbortController: AbortController | null = null
 let candidateResolutionSequence = 0
 let searchRequest = 0
 let pendingSymbolSearch: { requestId: number; query: string; promise: Promise<void>; resolve: () => void } | null = null
-let symbolSubmissionInFlight = false
+let symbolSubmissionInFlight: { query: string; requestId: number } | null = null
 let lastSymbolSelectionError: string | null = null
 let lastDiscoveryQuery = ''
 const symbolSearchEnabled = ref(false)
@@ -581,6 +589,8 @@ const ctrlWheelHeld = ref(false)
 // intent wins so a late initial SPY request cannot restore an older selection.
 let symbolSelectionGeneration = 0
 let selectedAcquisitionAbortController: AbortController | null = null
+let linkedTimeframePreparationGeneration = 0
+let linkedTimeframePreparationAbortController: AbortController | null = null
 let drilldownSelectionGeneration = 0
 let componentMounted = false
 let resolveComponentMountSettled: (() => void) | null = null
@@ -607,6 +617,8 @@ const popoutGeometryPollers = new Map<string, ReturnType<typeof window.setInterv
 
 function closeSymbolSearch() {
   symbolSearchEnabled.value = false
+  searchOptionExplicitlyNavigatedFor.value = ''
+  userSymbolDraftActive.value = false
   discoveryRetryAbortController?.abort()
   discoveryRetryAbortController = null
   candidateResolutionAbortController?.abort()
@@ -648,6 +660,7 @@ function handleSymbolInput() {
   symbolSelectionGeneration += 1
   drilldownSelectionGeneration += 1
   symbolSearchEnabled.value = true
+  userSymbolDraftActive.value = true
   const inputValue = symbolInput.value?.value ?? symbolDraft.value
   if (symbolDraft.value !== inputValue) symbolDraft.value = inputValue
   // Schedule from the actual DOM event as well as the ref watcher. This also
@@ -965,7 +978,7 @@ function handleShellMenuKeydown(menu: ShellMenuRoot, event: KeyboardEvent) {
 
 function preserveActiveUserSymbolDraft(symbol: string) {
   return symbolSearchEnabled.value
-    && symbolInput.value === document.activeElement
+    && userSymbolDraftActive.value
     && symbolDraft.value.trim().toUpperCase() !== symbol.toUpperCase()
 }
 
@@ -1364,6 +1377,9 @@ async function selectSymbol(
   if (!requested) return
   const privateBasketSelection = isPrivateBasketToken(requested)
   clearSupersededSymbolSelectionError()
+  linkedTimeframePreparationGeneration += 1
+  linkedTimeframePreparationAbortController?.abort()
+  linkedTimeframePreparationAbortController = null
   selectedAcquisitionAbortController?.abort()
   const acquisitionController = new AbortController()
   selectedAcquisitionAbortController = acquisitionController
@@ -1823,7 +1839,7 @@ function scheduleSymbolSearch(value: string) {
   candidateResolutionAbortController?.abort()
   candidateResolutionAbortController = null
   candidateResolutionSequence += 1
-  searchOptionExplicitlyNavigated.value = false
+  searchOptionExplicitlyNavigatedFor.value = ''
   finishPendingSymbolSearch()
   if (searchTimer) clearTimeout(searchTimer)
   if (discoveryTimer) clearTimeout(discoveryTimer)
@@ -1863,7 +1879,11 @@ function scheduleSymbolSearch(value: string) {
     try {
       const results = await queryClient.fetchQuery<Array<{ symbol: string; name: string; exchange: string; type: string }>>({
         queryKey: ['workstation', 'instrument-search', query.toUpperCase()],
-      queryFn: () => api.get<Array<{ symbol: string; name: string; exchange: string; type: string; instrument_id?: number | null }>>('/instruments/search', { q: query, canonical_only: true }),
+      queryFn: () => api.get<Array<{ symbol: string; name: string; exchange: string; type: string; instrument_id?: number | null }>>(
+        '/instruments/search',
+        { q: query, canonical_only: true },
+        { priority: 'high' },
+      ),
         staleTime: 30_000,
       })
       if (!componentMounted || requestId !== searchRequest || symbolDraft.value.trim() !== query) return
@@ -2061,11 +2081,17 @@ async function goToSymbolDraft() {
 
 async function submitSymbolDraft() {
   const symbol = symbolDraft.value.trim()
-  if (!symbol || symbolSubmissionInFlight) return
-  symbolSubmissionInFlight = true
+  if (!symbol) return
   const requestId = searchRequest
+  const submission = { query: symbol.toUpperCase(), requestId }
+  if (symbolSubmissionInFlight?.query === submission.query
+    && symbolSubmissionInFlight.requestId === submission.requestId) return
+  // A newer query is a newer selection intent. It must be allowed to finish
+  // even while an older Go action is still waiting for its own search result.
+  symbolSubmissionInFlight = submission
+  const explicitlyNavigatedCurrentQuery = searchOptionExplicitlyNavigatedFor.value === symbol.toUpperCase()
   try {
-    const immediateLocal = searchOptionExplicitlyNavigated.value
+    const immediateLocal = explicitlyNavigatedCurrentQuery
       ? searchResults.value[searchIndex.value]
       : searchResults.value.find(result => result.symbol.trim().toUpperCase() === symbol.toUpperCase())
     if (immediateLocal) {
@@ -2079,15 +2105,20 @@ async function submitSymbolDraft() {
     }
     if (requestId !== searchRequest || symbolDraft.value.trim() !== symbol) return
 
-    const navigatedLocal = searchOptionExplicitlyNavigated.value ? searchResults.value[searchIndex.value] : undefined
-    const local = navigatedLocal
+    const navigatedLocal = explicitlyNavigatedCurrentQuery ? searchResults.value[searchIndex.value] : undefined
+    // A canonical exact result may arrive while Go is waiting for the current
+    // debounced lookup. Use that newly confirmed row before considering any
+    // provisional prefix candidate; only an explicit arrow choice overrides it.
+    const local = navigatedLocal ?? searchResults.value.find(result =>
+      result.symbol.trim().toUpperCase() === symbol.toUpperCase(),
+    )
     if (local) {
       recentSymbolsOpen.value = false
       selectSearchResult(local.symbol, local.instrument_id, local.type)
       return
     }
 
-    if (!searchOptionExplicitlyNavigated.value) {
+    if (!explicitlyNavigatedCurrentQuery) {
       const exactCandidates = sourceCandidates.value.filter(candidate =>
         candidate.symbol.trim().toUpperCase() === symbol.toUpperCase(),
       )
@@ -2106,7 +2137,7 @@ async function submitSymbolDraft() {
     closeSymbolSearch()
     void selectSymbol(symbol, undefined, false, undefined, true, false, '', true)
   } finally {
-    symbolSubmissionInFlight = false
+    if (symbolSubmissionInFlight === submission) symbolSubmissionInFlight = null
   }
 }
 
@@ -2120,11 +2151,11 @@ function selectRecentSymbol(symbol: string) {
 function handleSymbolInputKeydown(event: KeyboardEvent) {
   if (event.key === 'ArrowDown' && searchResults.value.length) {
     event.preventDefault()
-    searchOptionExplicitlyNavigated.value = true
+    searchOptionExplicitlyNavigatedFor.value = symbolDraft.value.trim().toUpperCase()
     searchIndex.value = (searchIndex.value + 1) % searchResults.value.length
   } else if (event.key === 'ArrowUp' && searchResults.value.length) {
     event.preventDefault()
-    searchOptionExplicitlyNavigated.value = true
+    searchOptionExplicitlyNavigatedFor.value = symbolDraft.value.trim().toUpperCase()
     searchIndex.value = (searchIndex.value - 1 + searchResults.value.length) % searchResults.value.length
   } else if (event.key === 'Enter') {
     event.preventDefault()
@@ -2160,6 +2191,103 @@ function setLinkedTimeframe(timeframe: string, group: LinkGroup = 'blue') {
   // linked timeframe before the initial workspace load settles.
   if (!workspaceReady.value) pendingTimeframeSelections.set(group, timeframe)
   workspaceStore.publishTimeframe(timeframe, group, 'workstation')
+}
+
+function cancelLinkedTimeframePreparation() {
+  linkedTimeframePreparationGeneration += 1
+  linkedTimeframePreparationAbortController?.abort()
+  linkedTimeframePreparationAbortController = null
+}
+
+async function prepareLinkedTimeframeHistory(symbol: string, timeframe: Timeframe) {
+  cancelLinkedTimeframePreparation()
+  const generation = linkedTimeframePreparationGeneration
+  const controller = new AbortController()
+  linkedTimeframePreparationAbortController = controller
+  const isCurrent = () => componentMounted
+    && generation === linkedTimeframePreparationGeneration
+    && !controller.signal.aborted
+    && activeSymbol.value.trim().toUpperCase() === symbol
+    && workspaceStore.linkedTimeframe === timeframe
+    && chartStore.symbol.trim().toUpperCase() === symbol
+    && chartStore.timeframe === timeframe
+
+  selectionHistoryError.value = ''
+  selectionHistoryMessage.value = `Checking saved ${timeframe} history for ${symbol}…`
+
+  try {
+    const linkedInstrument = workspaceStore.linkedSymbols?.blue
+    const currentChartInstrument = chartStore.instrument
+    const holding = activeHoldingContext.value
+    const candidates = [
+      holding?.symbol === symbol ? holding.context.instrumentId : null,
+      linkedInstrument?.symbol.trim().toUpperCase() === symbol ? linkedInstrument.instrumentId : null,
+      currentChartInstrument?.symbol.trim().toUpperCase() === symbol ? currentChartInstrument.id : null,
+    ]
+    let instrumentId = candidates.find(candidate => Number.isSafeInteger(candidate) && Number(candidate) > 0) ?? null
+
+    if (instrumentId === null) {
+      const resolved = await resolveKnownInstrument(symbol, 'Workstation timeframe history', {
+        canonicalOnly: true,
+        priority: 'high',
+        signal: controller.signal,
+      })
+      if (!isCurrent()) return
+      if (resolved.symbol.trim().toUpperCase() !== symbol || typeof resolved.id !== 'number'
+        || !Number.isSafeInteger(resolved.id) || resolved.id <= 0) {
+        selectionHistoryError.value = `The canonical identity for ${symbol} could not be confirmed; ${timeframe} history was not requested.`
+        return
+      }
+      instrumentId = resolved.id
+    }
+
+    const request: DataEnsureRequest = {
+      target: { kind: 'instrument', instrument_id: instrumentId },
+      datasets: ['history'],
+      timeframe,
+      adjusted: true,
+    }
+    const refreshQueue = new PreparationProgressRefreshQueue()
+    const refreshCurrentChart = async () => {
+      if (!isCurrent()) return
+      await Promise.allSettled([
+        chartStore.refreshLocalBars(),
+        refreshMountedWorkstationChartPanels(symbol, timeframe, isCurrent),
+      ])
+    }
+    const historyResult = (response: DataEnsureResponse) => selectedDatasetPreparationResponse(response, 'history', instrumentId!, symbol)
+    const hasHistoryOutput = (response: DataEnsureResponse) => response.dependencies.some(dependency =>
+      dependency.dataset === 'history'
+      && dependency.instrument_id === instrumentId
+      && (dependency.symbol === null || dependency.symbol.trim().toUpperCase() === symbol)
+      && (dependency.status === 'ready' || dependency.covered_ranges.length > 0
+        || (dependency.covered_start !== null && dependency.covered_end !== null)),
+    )
+    const result = await dataPreparationCoordinator.ensure(request, {
+      signal: controller.signal,
+      priority: 'high',
+      onProgress: ({ response, completed, total }) => {
+        if (!isCurrent()) return
+        const scoped = historyResult(response)
+        selectionHistoryMessage.value = historyPreparationStatusMessage(scoped, symbol, timeframe, completed, total)
+        if (hasHistoryOutput(scoped)) {
+          void refreshQueue.request(response, refreshCurrentChart).catch(() => {
+            if (isCurrent()) selectionHistoryError.value = `Available ${timeframe} history for ${symbol} could not be refreshed; saved bars remain visible.`
+          })
+        }
+      },
+    })
+    if (!isCurrent()) return
+    const scoped = historyResult(result)
+    selectionHistoryMessage.value = historyPreparationStatusMessage(scoped, symbol, timeframe, result.completed, result.total)
+    if (hasHistoryOutput(scoped)) await refreshQueue.request(result, refreshCurrentChart)
+  } catch (error: any) {
+    if (isCurrent() && error?.name !== 'AbortError') {
+      selectionHistoryError.value = `History for ${symbol} could not be prepared; the current ${timeframe} chart remains available.`
+    }
+  } finally {
+    if (linkedTimeframePreparationAbortController === controller) linkedTimeframePreparationAbortController = null
+  }
 }
 
 async function signOut() {
@@ -3314,11 +3442,16 @@ function cycleChartTimeframe(windowKey: string, direction: 1 | -1) {
 
 watch(activeSymbol, symbol => {
   if (!symbol) return
+  cancelLinkedTimeframePreparation()
   const privateBasketSelection = isPrivateBasketToken(symbol)
   const activeRouteContext = activeHoldingContext.value?.symbol === symbol
     ? activeHoldingContext.value.context
     : null
-  syncChartRouteToSelection(symbol, activeRouteContext?.instrumentId, activeRouteContext)
+  const preservingInitialHoldingRoute = holdingRouteHydrationPending.value
+    && initialHoldingRouteContext?.canonicalSymbol === routeSymbol
+  if (!preservingInitialHoldingRoute) {
+    syncChartRouteToSelection(symbol, activeRouteContext?.instrumentId, activeRouteContext)
+  }
   const isHistoryNavigation = historyNavigationTarget === symbol
   if (!privateBasketSelection) recentStore.add(symbol, undefined, !isHistoryNavigation)
   if (isHistoryNavigation) historyNavigationTarget = null
@@ -3357,10 +3490,14 @@ watch(symbolDraft, value => {
   scheduleSymbolSearch(value)
 })
 watch(() => workspaceStore.linkedTimeframe, timeframe => {
-  if (timeframe === chartStore.timeframe) return
+  cancelLinkedTimeframePreparation()
   selectedAcquisitionAbortController?.abort()
   selectedAcquisitionAbortController = null
-  void chartStore.loadBars(activeSymbol.value, timeframe as typeof chartStore.timeframe, chartStore.barType, true)
+  const symbol = activeSymbol.value.trim().toUpperCase()
+  void chartStore.loadBars(symbol, timeframe as typeof chartStore.timeframe, chartStore.barType, true)
+  if (symbol && !isPrivateBasketToken(symbol)) {
+    void prepareLinkedTimeframeHistory(symbol, timeframe as Timeframe)
+  }
 })
 watch(() => chartStore.timeframe, () => {
   selectedAcquisitionAbortController?.abort()
@@ -3429,6 +3566,11 @@ onMounted(async () => {
     workspaceStore.publishTimeframe(timeframe, group, 'workstation')
   }
   pendingTimeframeSelections.clear()
+  if (symbolSelectionGeneration !== mountSelectionGeneration) {
+    // A newer explicit selection already synchronized the route while the
+    // workspace loaded, so initial-route protection is no longer needed.
+    holdingRouteHydrationPending.value = false
+  }
   // A user can interact with the shell while the first snapshot is loading.
   // loadDefault hydrates the persisted blue link, so replay the newer explicit
   // shell selection once hydration completes instead of silently reverting it.
@@ -3500,6 +3642,10 @@ onMounted(async () => {
       const holdingHandoff = consumeHoldingSelectionHandoff(routeHoldingContext)
       const selectedHoldingRoute = route.query.holding_history_intent === 'selected'
         && routeHoldingContext !== null && holdingHandoff.selected
+      // The route consumer is now taking over. From this point on, ordinary
+      // linked selections must synchronize their own URL and clear unrelated
+      // holding provenance through the normal identity-checked selection path.
+      holdingRouteHydrationPending.value = false
       if (selectedHoldingRoute && routeHoldingContext) {
         // The one-use same-tab handoff is written only after the holdings view
         // validates the exact current row/identity. A bare replayed query keeps
@@ -3555,6 +3701,7 @@ onBeforeUnmount(() => {
   resolveComponentMountSettled = null
   resolveMount?.()
   symbolSelectionGeneration += 1
+  cancelLinkedTimeframePreparation()
   selectedAcquisitionAbortController?.abort()
   selectedAcquisitionAbortController = null
   drilldownSelectionGeneration += 1
@@ -3649,7 +3796,24 @@ onBeforeUnmount(() => {
 .workstation__leader { color: #63bd85; }
 .workstation__data-state--fetching { color:#80bce8; }.workstation__data-state--unavailable { color:#ed9696; }.workstation__data-state--current { color:#91d5a7; }.workstation__data-state--delayed,.workstation__data-state--stale { color:#e8c06b; }.workstation__data-state--partial,.workstation__data-state--coverage-limited { color:#e8b879; }
 @media (max-width: 1100px) {
-  .workstation__menu { gap: 5px; padding-inline: 5px; }
+  .workstation { min-width: 0; grid-template-rows: auto var(--tc-tab-height) minmax(0, 1fr) var(--tc-status-height); }
+  .workstation:has(.workstation__popout) { min-width: 320px; grid-template-rows: minmax(0, 1fr); }
+  .workstation__menu {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 2fr);
+    grid-template-areas: "application navigation navigation" "search timeframe status";
+    align-content: center;
+    align-items: center;
+    gap: 4px 8px;
+    min-width: 0;
+    padding: 5px;
+  }
+  .workstation__application-navigation { grid-area: application; }
+  .workstation__menu > nav { grid-area: navigation; min-width: 0; overflow-x: auto; overflow-y: hidden; }
+  .workstation__menu nav button { flex: 0 0 auto; }
+  .workstation__search { grid-area: search; width: max-content; max-width: 100%; }
+  .workstation__timeframe { grid-area: timeframe; }
+  .workstation__status { grid-area: status; width: 100%; max-width: none; min-width: 0; flex-wrap: wrap; }
   .workstation__menu nav button { padding-inline: 5px; font-size: 10px; }
   .workstation__search { margin-left: 0; }
   .workstation__search input { width: 72px; }
@@ -3661,11 +3825,12 @@ onBeforeUnmount(() => {
   .workstation__refresh, .workstation__sign-out { flex: 0 0 auto; padding-inline: 4px; white-space: nowrap; }
 }
 .workstation__tabs { display: flex; align-items: stretch; background: var(--tc-panel-bg); border-bottom: 1px solid var(--tc-border); }
+.workstation__tabs { min-width: 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
 .workstation__tool-library { position: relative; display: flex; }
 .workstation__tool-library-menu { position: fixed; z-index: 60; display: grid; min-width: 118px; padding: 2px; border: 1px solid #42505a; background: #1b2228; box-shadow: 0 3px 10px #000a; overflow: auto; }
 .workstation__tool-library-menu button { border: 0; background: transparent; color: #cbd6dc; padding: 5px 8px; font: 11px "Segoe UI", Arial, sans-serif; text-align: left; cursor: pointer; }
 .workstation__tool-library-menu button:hover { background: #31424d; color: #fff; }
-.workstation__tabs > button:not(.workstation__tab-add) { min-width: 112px; padding: 0 11px; border: 0; border-right: 1px solid #303940; background: #1b2126; color: #9facb5; font: 11px "Segoe UI", Arial, sans-serif; cursor: grab; }
+.workstation__tabs > button:not(.workstation__tab-add) { flex: 0 0 auto; min-width: 112px; padding: 0 11px; border: 0; border-right: 1px solid #303940; background: #1b2126; color: #9facb5; font: 11px "Segoe UI", Arial, sans-serif; cursor: grab; }
 .workstation__tabs > button:not(.workstation__tab-add):active { cursor: grabbing; }
 .workstation__tabs > button.workstation__tab--active { background: #28333b; color: #eaf2f6; box-shadow: inset 0 2px #68b6e9; }
 .workstation__tabs > button.workstation__tab--drag-over { box-shadow: inset 2px 0 #f0c66d, inset -2px 0 #f0c66d; }

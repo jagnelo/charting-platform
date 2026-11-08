@@ -1389,6 +1389,12 @@ function syncWorkstationToolVisibility() {
   if (visible === workstationToolVisible.value) return
   workstationToolVisible.value = visible
   const priority = visible ? 'high' : 'low'
+  if (visible && isBenchmarkUniverse.value) {
+    // The shell starts market analysis in the background. Join that exact
+    // deduplicated universe read when the benchmark list becomes visible so
+    // its queued fetch is promoted into the existing foreground lane.
+    void workspaceStore.loadMarketGroup('us-benchmarks', { useCache: true, priority: 'high' })
+  }
   if (visible && isPersonalWatchlistTool.value) {
     setQueuedApiRequestPriority('workstation:combo-lists', 'high')
   }
@@ -1969,6 +1975,9 @@ onMounted(async () => {
   observeWorkstationToolVisibility()
   const requestPriority = workstationToolVisible.value ? 'high' : 'low'
   void loadBreadthPythonSeriesAssets()
+  if (isBenchmarkUniverse.value && !workspaceStore.marketGroups['us-benchmarks']) {
+    void workspaceStore.loadMarketGroup('us-benchmarks', { useCache: true, priority: requestPriority })
+  }
   // Sector membership is already a local curated catalogue. Load it directly
   // for the visible list so a slow snapshot/breadth refresh cannot leave the
   // ordinary symbol choices empty. The store coalesces this with the shell's
@@ -2329,7 +2338,11 @@ function selectRotationSymbol(symbol: string, instrumentId?: number | null) {
 function setTimeframe(timeframe: string) {
   timeframeHistoryAbortController?.abort()
   workspaceStore.updateToolTimeframe(props.tool.instance_key, timeframe)
-  if (props.tool.tool_type === 'chart' && ['M1', 'M5', 'M15', 'M30', 'H1', 'H2', 'H4', 'H12', 'D1', 'W1', 'MN'].includes(timeframe)) {
+  // Blue-linked chart periods use the shell's shared preparation lifecycle,
+  // which also covers its primary chart and coalesces the linked windows.
+  // Isolated/non-blue charts retain their own explicit timeframe lifecycle.
+  if (props.tool.tool_type === 'chart' && timeframeLinkGroup.value !== 'blue'
+    && ['M1', 'M5', 'M15', 'M30', 'H1', 'H2', 'H4', 'H12', 'D1', 'W1', 'MN'].includes(timeframe)) {
     void acquireExplicitTimeframeHistory(timeframe as Timeframe)
   }
 }

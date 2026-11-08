@@ -331,6 +331,28 @@ async function setDisclosureOpen(disclosure: Locator, open: boolean): Promise<vo
   else await expect(disclosure).not.toHaveAttribute('open')
 }
 
+async function activatePublicRotationTab(page: Page): Promise<void> {
+  const tab = page.locator('.lm_tab').filter({ hasText: /^Relative Rotation$/ }).first()
+  if (await tab.isVisible().catch(() => false)) {
+    await tab.click()
+  } else {
+    // Golden Layout moves excess tabs into the ordinary header overflow menu.
+    // Derive that menu from the exact named tab so virtual Vue roots do not
+    // need to be physical descendants of a particular stack element.
+    const header = tab.locator('xpath=ancestor::*[contains(concat(" ",normalize-space(@class)," ")," lm_header ")][1]')
+    const dropdown = header.locator('.lm_tabdropdown')
+    await expect(dropdown).toBeVisible()
+    await dropdown.click()
+    const overflowTab = header.locator('.lm_tabdropdown_list .lm_tab').filter({ hasText: /^Relative Rotation$/ }).first()
+    await expect(overflowTab).toBeVisible()
+    await overflowTab.click()
+  }
+  // The overflow click can reparent the active element from its dropdown into
+  // .lm_tabs; this named locator spans that move and verifies the public active
+  // state without depending on the old dropdown parent.
+  await expect(tab).toHaveClass(/lm_active/)
+}
+
 async function assertRotationPainted(page: Page, payload: RotationResponse): Promise<{ width: number; height: number }> {
   const rotation = page.getByRole('region', { name: 'Relative rotation vs SPY' })
   const settingsDisclosure = rotation.locator('details.rotation-tool__settings')
@@ -1061,10 +1083,7 @@ test('S&P 500 RRG renders deep D1/W1/MN data and survives selection, resize, max
 
   const rrgWindow = page.locator('.tool-window[data-window-key="relative-rotation"]')
   const rotation = page.getByRole('region', { name: 'Relative rotation vs SPY' })
-  const rrgTab = page.locator('.lm_tab:visible').filter({ hasText: /^Relative Rotation$/ }).last()
-  await expect(rrgTab).toBeVisible()
-  await rrgTab.click()
-  await expect(rrgTab).toHaveClass(/lm_active/)
+  await activatePublicRotationTab(page)
   await expect(rotation).toBeVisible()
   await expect(rrgWindow.getByRole('button', { name: 'Maximize tool' })).toBeVisible()
   const maximizeSnapshotAcknowledged = page.waitForResponse(response => {
@@ -1121,10 +1140,7 @@ test('S&P 500 RRG renders deep D1/W1/MN data and survives selection, resize, max
   await rrgWindow.getByRole('button', { name: 'Restore tool' }).click()
   await expect(rrgWindow.getByRole('button', { name: 'Maximize tool' })).toBeVisible()
   await expect(page.locator('.tool-window[data-window-key="primary-chart"]')).toBeVisible()
-  const reloadedRrgTab = page.locator('.lm_tab:visible').filter({ hasText: /^Relative Rotation$/ }).last()
-  await expect(reloadedRrgTab).toBeVisible()
-  await reloadedRrgTab.click()
-  await expect(reloadedRrgTab).toHaveClass(/lm_active/)
+  await activatePublicRotationTab(page)
   await expect(page.getByRole('region', { name: 'Relative rotation vs SPY' })).toBeVisible()
 
   for (const timeframe of TIMEFRAMES) {

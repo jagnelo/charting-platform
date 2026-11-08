@@ -101,6 +101,7 @@ const harness = vi.hoisted(() => {
   const chart = {
     symbol: 'SPY',
     timeframe: 'D1',
+    instrument: { id: 2, symbol: 'SPY' } as { id: number; symbol: string } | null,
     barType: 'candles',
     bars: [] as unknown[],
     isLoading: false,
@@ -182,7 +183,13 @@ vi.mock('vue-router', async (importOriginal) => {
 
 import WorkstationView from '@/views/WorkstationView.vue'
 import { resolveKnownInstrument } from '@/lib/instruments'
-import { holdingDrilldownRouteQuery } from '@/lib/etfHoldingDrilldown'
+import { holdingDrilldownRouteQuery, holdingDrilldownRouteState } from '@/lib/etfHoldingDrilldown'
+
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>(done => { resolve = done })
+  return { promise, resolve }
+}
 
 function readyPreparationResponse(request: any, call = 1) {
   const now = '2026-11-06T12:00:00Z'
@@ -320,6 +327,7 @@ describe('WorkstationView pop-out bindings', () => {
     harness.workspace.technicals = {}
     harness.chart.symbol = 'SPY'
     harness.chart.timeframe = 'D1'
+    harness.chart.instrument = { id: 2, symbol: 'SPY' }
     harness.chart.bars = []
     harness.chart.loadBars.mockClear()
     harness.chart.refreshLocalBars.mockClear()
@@ -467,7 +475,7 @@ describe('WorkstationView pop-out bindings', () => {
 
       const input = wrapper.get('[aria-label="Active symbol"]')
       await input.setValue('QQQ')
-      await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'QQQ', canonical_only: true }))
+      await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'QQQ', canonical_only: true }, { priority: 'high' }))
       await vi.waitFor(() => expect(wrapper.get('.workstation__canonical-symbol-options').text()).toContain('QQQ'))
       expect(apiPost).not.toHaveBeenCalled()
 
@@ -878,7 +886,7 @@ describe('WorkstationView pop-out bindings', () => {
     await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY' })))
     const input = wrapper.get('input[aria-label="Active symbol"]')
     await input.setValue('xl')
-    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'xl', canonical_only: true }))
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'xl', canonical_only: true }, { priority: 'high' }))
     await vi.waitFor(() => expect(wrapper.find('[role="listbox"]').exists()).toBe(true))
     const listbox = wrapper.get('[role="listbox"]')
     const resultsId = listbox.attributes('id')
@@ -1682,6 +1690,86 @@ describe('WorkstationView pop-out bindings', () => {
     wrapper.unmount()
   })
 
+  it('prepares the primary chart timeframe without a comparison widget and ignores superseded history', async () => {
+    routeState.path = '/chart/AMD'
+    routeState.params = { symbol: 'AMD' }
+    harness.workspace.linkedSymbol = 'AMD'
+    const originalWindows = harness.workspace.activeTab.windows
+    const originalLinkedTimeframeDescriptor = Object.getOwnPropertyDescriptor(harness.workspace, 'linkedTimeframe')
+    const reactiveTimeframe = reactive({ value: 'D1' })
+    Object.defineProperty(harness.workspace, 'linkedTimeframe', {
+      configurable: true,
+      get: () => reactiveTimeframe.value,
+      set: (value: string) => { reactiveTimeframe.value = value },
+    })
+    harness.workspace.activeTab.windows = [harness.chartWindow]
+    harness.chart.symbol = 'AMD'
+    harness.chart.timeframe = 'D1'
+    harness.chart.instrument = { id: 36, symbol: 'AMD' }
+    const originalLoadBarsImplementation = harness.chart.loadBars.getMockImplementation()
+    harness.chart.loadBars.mockImplementation(async (symbol: string, timeframe?: string) => {
+      harness.chart.symbol = symbol
+      if (timeframe) harness.chart.timeframe = timeframe
+    })
+    vi.mocked(resolveKnownInstrument).mockResolvedValueOnce({ symbol: 'AMD', id: 36 } as any)
+    harness.workspace.publishTimeframe = vi.fn((timeframe: string) => {
+      harness.workspace.linkedTimeframe = timeframe
+    })
+
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    try {
+      await vi.waitFor(() => expect(dataPreparationPost).toHaveBeenCalledTimes(1))
+      await vi.waitFor(() => expect(wrapper.text()).toContain('The admitted D1 history for AMD is available locally.'))
+      await flushPromises()
+      dataPreparationPost.mockClear()
+      const firstMinute = deferred<any>()
+      const fiveMinute = deferred<any>()
+      dataPreparationPost.mockImplementation((request: any) => {
+        if (request.timeframe === 'M1') return firstMinute.promise
+        if (request.timeframe === 'M5') return fiveMinute.promise
+        return Promise.resolve(readyPreparationResponse(request, dataPreparationPost.mock.calls.length))
+      })
+      harness.chart.loadBars.mockClear()
+      harness.chart.refreshLocalBars.mockClear()
+
+      const linkedTimeframe = wrapper.get('select[aria-label="Linked timeframe"]')
+      await linkedTimeframe.setValue('M1')
+      await vi.waitFor(() => expect(dataPreparationPost).toHaveBeenCalledTimes(1))
+      expect(dataPreparationPost.mock.calls[0]?.[0]).toMatchObject({
+        target: { kind: 'instrument', instrument_id: 36 },
+        datasets: ['history'],
+        timeframe: 'M1',
+        adjusted: true,
+      })
+      expect(harness.chart.loadBars).toHaveBeenCalledWith('AMD', 'M1', 'candles', true)
+
+      await linkedTimeframe.setValue('M5')
+      await vi.waitFor(() => expect(dataPreparationPost).toHaveBeenCalledTimes(2))
+      expect(dataPreparationPost.mock.calls[1]?.[0]).toMatchObject({
+        target: { kind: 'instrument', instrument_id: 36 },
+        datasets: ['history'],
+        timeframe: 'M5',
+      })
+      expect(dataPreparationPost).toHaveBeenCalledTimes(2)
+
+      firstMinute.resolve(readyPreparationResponse(dataPreparationPost.mock.calls[0]?.[0], 2))
+      await flushPromises()
+      expect(harness.chart.refreshLocalBars).not.toHaveBeenCalled()
+
+      fiveMinute.resolve(readyPreparationResponse(dataPreparationPost.mock.calls[1]?.[0], 3))
+      await vi.waitFor(() => expect(harness.chart.refreshLocalBars).toHaveBeenCalledTimes(1))
+      expect(wrapper.text()).toContain('The admitted M5 history for AMD is available locally.')
+      expect(harness.chart.refreshLocalBars).toHaveBeenCalledTimes(1)
+    } finally {
+      harness.workspace.activeTab.windows = originalWindows
+      wrapper.unmount()
+      if (originalLoadBarsImplementation) harness.chart.loadBars.mockImplementation(originalLoadBarsImplementation)
+      if (originalLinkedTimeframeDescriptor) Object.defineProperty(harness.workspace, 'linkedTimeframe', originalLinkedTimeframeDescriptor)
+    }
+  })
+
   it('does not continue initial hydration after the workstation unmounts', async () => {
     routeState.path = '/'
     routeState.params = {}
@@ -1732,7 +1820,7 @@ describe('WorkstationView pop-out bindings', () => {
     // The user can deliberately re-edit/paste the same ticker after route
     // hydration. A ref watcher alone would not run because the value is equal.
     await input.trigger('input')
-    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'SPY', canonical_only: true }))
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'SPY', canonical_only: true }, { priority: 'high' }))
     await vi.waitFor(() => expect(wrapper.findAll('[role="option"]').some(option => option.text().includes('SPY'))).toBe(true))
     expect(input.attributes('aria-expanded')).toBe('true')
     expect(apiPost).not.toHaveBeenCalled()
@@ -1762,7 +1850,7 @@ describe('WorkstationView pop-out bindings', () => {
     ;(input.element as HTMLInputElement).value = 'NVDA'
     await input.trigger('input')
 
-    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'NVDA', canonical_only: true }))
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'NVDA', canonical_only: true }, { priority: 'high' }))
     await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/instruments/discover', expect.objectContaining({ query: 'NVDA' }), expect.objectContaining({ priority: 'high', signal: expect.any(AbortSignal) })))
     await vi.waitFor(() => expect(wrapper.text()).toContain('No matching ticker is available for “NVDA”'))
     expect(apiPost).toHaveBeenCalledTimes(1)
@@ -1846,7 +1934,7 @@ describe('WorkstationView pop-out bindings', () => {
     const input = wrapper.get('input[aria-label="Active symbol"]')
     await input.setValue('OIH')
     await vi.waitFor(() => expect(wrapper.find('.workstation__source-actions button').exists()).toBe(true))
-    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'OIH', canonical_only: true }))
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'OIH', canonical_only: true }, { priority: 'high' }))
     expect(wrapper.get('[role="listbox"]').element.contains(wrapper.get('.workstation__source-actions').element)).toBe(false)
     expect(apiPost).toHaveBeenNthCalledWith(1, '/instruments/discover', {
       query: 'OIH', types: [], limit: 10, request_id: expect.stringMatching(/^[0-9a-f-]{36}$/),
@@ -2268,7 +2356,7 @@ describe('WorkstationView pop-out bindings', () => {
     const input = wrapper.get('input[aria-label="Active symbol"]')
     await input.setValue('OIH')
     await vi.waitFor(() => expect(wrapper.find('.workstation__source-actions button').exists()).toBe(true))
-    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'OIH', canonical_only: true }))
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'OIH', canonical_only: true }, { priority: 'high' }))
     const action = wrapper.find('.workstation__source-actions button')
     expect((action.element as HTMLButtonElement).tabIndex).toBe(0)
     await input.trigger('focusout', { relatedTarget: action.element })
@@ -2357,6 +2445,288 @@ describe('WorkstationView pop-out bindings', () => {
     expect(Object.keys(destination.query).some(key => key.startsWith('holding_'))).toBe(false)
     expect(harness.chart.loadBars).toHaveBeenCalledWith('XLE', 'D1', 'candles', true)
     wrapper.unmount()
+  })
+
+  it('keeps a typed exact symbol when a prior map publication arrives while Go has focus', async () => {
+    routeState.path = '/chart'
+    routeState.params = {}
+    harness.workspace = reactive(harness.workspace)
+    harness.workspace.publishSymbol.mockImplementation((event: any) => {
+      harness.workspace.linkedSymbol = event.symbol
+    })
+    const search = deferred<Array<{ symbol: string; name: string; exchange: string; type: string; instrument_id: number }>>()
+    apiGet.mockImplementation(async (path: string, params?: Record<string, unknown>) => {
+      if (path === '/instruments/search' && params?.q === 'SPY') return search.promise
+      if (path.startsWith('/coverage/instruments/')) return { status: 'ready', bar_count: 124, missing_slices: [] }
+      return []
+    })
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    try {
+      await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY' })))
+      harness.workspace.publishSymbol.mockClear()
+
+      // A map tile was selected first, and its committed blue symbol is still
+      // visible while the user starts a different exact ticker query.
+      harness.workspace.linkedSymbol = 'SPYG'
+      await nextTick()
+      const input = wrapper.get('input[aria-label="Active symbol"]')
+      ;(input.element as HTMLInputElement).focus()
+      await input.setValue('SPY')
+      await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'SPY', canonical_only: true }, { priority: 'high' }))
+
+      // Clicking Go moves focus off the input before its click handler. A late
+      // map/link publication in that boundary must not replace the user's draft.
+      const go = wrapper.get('.workstation__search > button[type="button"]')
+      ;(go.element as HTMLButtonElement).focus()
+      harness.workspace.linkedSymbol = 'SPYV'
+      await nextTick()
+      expect((input.element as HTMLInputElement).value).toBe('SPY')
+
+      search.resolve([
+        { symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust', exchange: 'ARCX', type: 'ETF', instrument_id: 2 },
+        { symbol: 'SPYG', name: 'SPDR Portfolio S&P 500 Growth ETF', exchange: 'ARCX', type: 'ETF', instrument_id: 19 },
+        { symbol: 'SPYV', name: 'SPDR Portfolio S&P 500 Value ETF', exchange: 'ARCX', type: 'ETF', instrument_id: 18 },
+      ])
+      await flushPromises()
+      await go.trigger('click')
+
+      await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY', instrumentId: 2 })))
+      expect(harness.workspace.publishSymbol).not.toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPYV' }))
+      expect(wrapper.get('.workstation__footer > span').text()).toBe('SPY')
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
+  it('allows a newer Go intent to finish while an older query is still unresolved', async () => {
+    routeState.path = '/chart'
+    routeState.params = {}
+    harness.workspace = reactive(harness.workspace)
+    harness.workspace.publishSymbol.mockImplementation((event: any) => {
+      harness.workspace.linkedSymbol = event.symbol
+    })
+    const oldSearch = deferred<Array<{ symbol: string; name: string; exchange: string; type: string; instrument_id: number }>>()
+    apiGet.mockImplementation(async (path: string, params?: Record<string, unknown>) => {
+      if (path === '/instruments/search' && params?.q === 'SPYV') return oldSearch.promise
+      if (path === '/instruments/search' && params?.q === 'SPY') return [
+        { symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust', exchange: 'ARCX', type: 'ETF', instrument_id: 2 },
+        { symbol: 'SPYG', name: 'SPDR Portfolio S&P 500 Growth ETF', exchange: 'ARCX', type: 'ETF', instrument_id: 19 },
+        { symbol: 'SPYV', name: 'SPDR Portfolio S&P 500 Value ETF', exchange: 'ARCX', type: 'ETF', instrument_id: 18 },
+      ]
+      if (path.startsWith('/coverage/instruments/')) return { status: 'ready', bar_count: 124, missing_slices: [] }
+      return []
+    })
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    try {
+      await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY' })))
+      harness.workspace.publishSymbol.mockClear()
+      const input = wrapper.get('input[aria-label="Active symbol"]')
+      await input.setValue('SPYV')
+      await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'SPYV', canonical_only: true }, { priority: 'high' }))
+      const go = wrapper.get('.workstation__search > button[type="button"]')
+      await go.trigger('click')
+
+      // Repeated Go for the same unresolved query is coalesced, but a newer
+      // exact query can submit and supersede its pending result.
+      await go.trigger('click')
+      await input.setValue('SPY')
+      await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'SPY', canonical_only: true }, { priority: 'high' }))
+      await go.trigger('click')
+      await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY', instrumentId: 2 })))
+
+      oldSearch.resolve([{ symbol: 'SPYV', name: 'SPY Value', exchange: 'ARCX', type: 'ETF', instrument_id: 18 }])
+      await flushPromises()
+      expect(harness.workspace.publishSymbol).not.toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPYV' }))
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
+  it('keeps an intentional arrow-selected prefix result when Go submits the current query', async () => {
+    routeState.path = '/chart'
+    routeState.params = {}
+    harness.workspace = reactive(harness.workspace)
+    harness.workspace.publishSymbol.mockImplementation((event: any) => {
+      harness.workspace.linkedSymbol = event.symbol
+    })
+    apiGet.mockImplementation(async (path: string, params?: Record<string, unknown>) => {
+      if (path === '/instruments/search' && params?.q === 'SPY') return [
+        { symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust', exchange: 'ARCX', type: 'ETF', instrument_id: 2 },
+        { symbol: 'SPYG', name: 'SPDR Portfolio S&P 500 Growth ETF', exchange: 'ARCX', type: 'ETF', instrument_id: 19 },
+        { symbol: 'SPYV', name: 'SPDR Portfolio S&P 500 Value ETF', exchange: 'ARCX', type: 'ETF', instrument_id: 18 },
+      ]
+      if (path.startsWith('/coverage/instruments/')) return { status: 'ready', bar_count: 124, missing_slices: [] }
+      return []
+    })
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    try {
+      await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY' })))
+      harness.workspace.publishSymbol.mockClear()
+      const input = wrapper.get('input[aria-label="Active symbol"]')
+      await input.setValue('SPY')
+      await vi.waitFor(() => expect(wrapper.findAll('[role="option"]')).toHaveLength(3))
+      await input.trigger('keydown', { key: 'ArrowDown' })
+      await wrapper.get('.workstation__search > button[type="button"]').trigger('click')
+      await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPYG', instrumentId: 19 })))
+      expect(harness.workspace.publishSymbol).not.toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY', instrumentId: 2 }))
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
+  it('uses a canonical exact result that arrives while Go is waiting for search', async () => {
+    routeState.path = '/chart'
+    routeState.params = {}
+    harness.workspace = reactive(harness.workspace)
+    harness.workspace.publishSymbol.mockImplementation((event: any) => {
+      harness.workspace.linkedSymbol = event.symbol
+    })
+    const search = deferred<Array<{ symbol: string; name: string; exchange: string; type: string; instrument_id: number }>>()
+    apiGet.mockImplementation(async (path: string, params?: Record<string, unknown>) => {
+      if (path === '/instruments/search' && params?.q === 'SPY') return search.promise
+      if (path.startsWith('/coverage/instruments/')) return { status: 'ready', bar_count: 124, missing_slices: [] }
+      return []
+    })
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    try {
+      await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY' })))
+      harness.workspace.publishSymbol.mockClear()
+      const input = wrapper.get('input[aria-label="Active symbol"]')
+      await input.setValue('SPY')
+      await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'SPY', canonical_only: true }, { priority: 'high' }))
+      await wrapper.get('.workstation__search > button[type="button"]').trigger('click')
+
+      search.resolve([
+        { symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust', exchange: 'ARCX', type: 'ETF', instrument_id: 2 },
+        { symbol: 'SPYG', name: 'SPDR Portfolio S&P 500 Growth ETF', exchange: 'ARCX', type: 'ETF', instrument_id: 19 },
+        { symbol: 'SPYV', name: 'SPDR Portfolio S&P 500 Value ETF', exchange: 'ARCX', type: 'ETF', instrument_id: 18 },
+      ])
+      await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY', instrumentId: 2 })))
+      expect(harness.workspace.publishSymbol).not.toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPYV' }))
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
+  it('keeps selected holding route provenance through linked-symbol workspace hydration', async () => {
+    const context = {
+      etfSymbol: 'IWM', instrumentId: 8802, canonicalSymbol: 'UNXQ', snapshotId: 8801,
+      compositionDate: '2026-10-27', knownAt: '2026-10-28T12:00:00Z',
+      provenance: 'issuer_current_holdings', sourceProvider: 'fixture-only', holdingRowId: 8803,
+      sourceRowId: 'issuer-row-8803', reportedSymbol: 'UNXQ', reportedName: 'Uncached Example Equity', holdingType: 'equity',
+    }
+    const confirmedIdentity = {
+      status: 'resolved',
+      instrument: { instrument_id: 8802, symbol: 'UNXQ', identity_status: 'resolved', instrument_type: 'Common Stock' },
+    }
+    routeState.path = '/chart/UNXQ'
+    routeState.params = { symbol: 'UNXQ' }
+    routeState.query = { ...holdingDrilldownRouteQuery(context), holding_history_intent: 'selected' }
+    harness.workspace = reactive(harness.workspace)
+    harness.workspace.linkedSymbol = 'SPY'
+    harness.workspace.publishSymbol.mockImplementation((event: any) => {
+      harness.workspace.linkedSymbol = event.symbol
+    })
+    harness.workspace.setConstituentETF.mockImplementation((symbol: string | null) => {
+      harness.workspace.constituentETF = symbol
+    })
+    let finishWorkspaceLoad!: () => void
+    harness.workspace.loadDefault.mockReturnValueOnce(new Promise<void>(resolve => { finishWorkspaceLoad = resolve }))
+    const historyState = { ...(window.history.state ?? {}), ...holdingDrilldownRouteState(context, confirmedIdentity as any) }
+    window.history.replaceState(historyState, '', window.location.href)
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+
+    try {
+      await vi.waitFor(() => expect(harness.workspace.loadDefault).toHaveBeenCalled())
+      harness.workspace.linkedSymbol = 'SPYV'
+      await nextTick()
+      expect(routerReplace).not.toHaveBeenCalledWith(expect.objectContaining({ path: '/chart/SPYV' }))
+      expect(routeState.query).toMatchObject({ ...holdingDrilldownRouteQuery(context), holding_history_intent: 'selected' })
+
+      finishWorkspaceLoad()
+      await vi.waitFor(() => expect(wrapper.get('[data-testid="active-holding-lineage"]').text()).toBe('UNXQ from IWM holdings · 2026-10-27'))
+      expect(dataPreparationPost.mock.calls.some(([request]) => request.target?.kind === 'instrument'
+        && request.target.instrument_id === 8802)).toBe(true)
+      expect(harness.workspace.setConstituentETF).toHaveBeenCalledWith('IWM')
+
+      routerReplace.mockClear()
+      harness.workspace.linkedSymbol = 'SPY'
+      await nextTick()
+      expect(routerReplace).toHaveBeenCalledWith(expect.objectContaining({ path: '/chart/SPY' }))
+      expect(Object.keys(routerReplace.mock.calls[0]![0].query).some(key => key.startsWith('holding_'))).toBe(false)
+    } finally {
+      wrapper.unmount()
+      const nextState = { ...(window.history.state ?? {}) }
+      delete nextState.tcHoldingSelectionHandoff
+      delete nextState.tcHoldingIdentityHandoff
+      window.history.replaceState(nextState, '', window.location.href)
+    }
+  })
+
+  it('preserves same-symbol holding route provenance until workspace hydration finishes, then clears it on a new selection', async () => {
+    const context = {
+      etfSymbol: 'IWM', instrumentId: 8802, canonicalSymbol: 'UNXQ', snapshotId: 8801,
+      compositionDate: '2026-10-27', knownAt: '2026-10-28T12:00:00Z',
+      provenance: 'issuer_current_holdings', sourceProvider: 'fixture-only', holdingRowId: 8803,
+      sourceRowId: 'issuer-row-8803', reportedSymbol: 'UNXQ', reportedName: 'Uncached Example Equity', holdingType: 'equity',
+    }
+    const confirmedIdentity = {
+      status: 'resolved',
+      instrument: { instrument_id: 8802, symbol: 'UNXQ', identity_status: 'resolved', instrument_type: 'Common Stock' },
+    }
+    routeState.path = '/chart/UNXQ'
+    routeState.params = { symbol: 'UNXQ' }
+    routeState.query = { ...holdingDrilldownRouteQuery(context), holding_history_intent: 'selected' }
+    harness.workspace = reactive(harness.workspace)
+    harness.workspace.linkedSymbol = 'SPY'
+    harness.workspace.publishSymbol.mockImplementation((event: any) => {
+      harness.workspace.linkedSymbol = event.symbol
+    })
+    harness.workspace.setConstituentETF.mockImplementation((symbol: string | null) => {
+      harness.workspace.constituentETF = symbol
+    })
+    let finishWorkspaceLoad!: () => void
+    harness.workspace.loadDefault.mockReturnValueOnce(new Promise<void>(resolve => { finishWorkspaceLoad = resolve }))
+    const historyState = { ...(window.history.state ?? {}), ...holdingDrilldownRouteState(context, confirmedIdentity as any) }
+    window.history.replaceState(historyState, '', window.location.href)
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+
+    try {
+      await vi.waitFor(() => expect(harness.workspace.loadDefault).toHaveBeenCalled())
+      harness.workspace.linkedSymbol = 'UNXQ'
+      await nextTick()
+      expect(routerReplace).not.toHaveBeenCalledWith(expect.objectContaining({ path: '/chart/UNXQ' }))
+      expect(routeState.query).toMatchObject({ ...holdingDrilldownRouteQuery(context), holding_history_intent: 'selected' })
+
+      finishWorkspaceLoad()
+      await vi.waitFor(() => expect(wrapper.get('[data-testid="active-holding-lineage"]').text()).toBe('UNXQ from IWM holdings · 2026-10-27'))
+      expect(routeState.query).toMatchObject({ ...holdingDrilldownRouteQuery(context), holding_history_intent: 'selected' })
+      expect(harness.workspace.setConstituentETF).toHaveBeenCalledWith('IWM')
+
+      routerReplace.mockClear()
+      harness.workspace.linkedSymbol = 'SPY'
+      await nextTick()
+      expect(routerReplace).toHaveBeenCalledWith(expect.objectContaining({ path: '/chart/SPY' }))
+      expect(Object.keys(routerReplace.mock.calls[0]![0].query).some(key => key.startsWith('holding_'))).toBe(false)
+    } finally {
+      wrapper.unmount()
+      const nextState = { ...(window.history.state ?? {}) }
+      delete nextState.tcHoldingSelectionHandoff
+      delete nextState.tcHoldingIdentityHandoff
+      window.history.replaceState(nextState, '', window.location.href)
+    }
   })
 
   it('keeps private basket selection on its supported dashboard route without ticker identity or profile requests', async () => {
@@ -2522,6 +2892,7 @@ describe('WorkstationView pop-out bindings', () => {
       expect(wrapper.get('[data-testid="active-holding-lineage"]').text()).toBe('UNXQ from IWM dated holdings · 2026-10-27')
       expect(wrapper.get('[data-testid="active-holding-lineage"]').attributes('title')).toContain('snapshot 8801 · row 8803')
       expect(wrapper.get('[data-testid="active-holding-lineage"]').attributes('title')).toContain('issuer-row-8803')
+      expect(wrapper.get('[data-testid="active-holding-lineage"]').attributes('title')).toContain('does not establish current ETF analysis eligibility')
     } finally {
       wrapper.unmount()
     }
@@ -2850,7 +3221,7 @@ describe('WorkstationView pop-out bindings', () => {
     await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY' })))
     const input = wrapper.get('input[aria-label="Active symbol"]')
     await input.setValue('xlk')
-    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'xlk', canonical_only: true }))
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'xlk', canonical_only: true }, { priority: 'high' }))
     await vi.waitFor(() => expect(wrapper.find('[role="listbox"]').exists()).toBe(true))
     await input.trigger('keydown', { key: 'Escape' })
     expect(wrapper.find('[role="listbox"]').exists()).toBe(false)
@@ -2917,7 +3288,7 @@ describe('WorkstationView pop-out bindings', () => {
     await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY' })))
     const input = wrapper.get('input[aria-label="Active symbol"]')
     await input.setValue('xlk')
-    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'xlk', canonical_only: true }))
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'xlk', canonical_only: true }, { priority: 'high' }))
     await vi.waitFor(() => expect(wrapper.find('[role="listbox"]').exists()).toBe(true))
     await wrapper.find('.workstation__tabs').trigger('pointerdown')
     expect(wrapper.find('[role="listbox"]').exists()).toBe(false)
