@@ -5943,7 +5943,7 @@
     {
       "source": "frontend/src/components/workstation/InstrumentNoteTool.vue",
       "control_count": 1,
-      "signature_sha256": "c65eb6021e671c637e0e86d21503566c56fa8f74fb4453699ceb48fbcaadbd2c",
+      "signature_sha256": "c3ccfde77e77218f1436f138feca61f83776aa24ee79a23562ead52474c9171a",
       "journeys": [
         "TC04",
         "TC06",

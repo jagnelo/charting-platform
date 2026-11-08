@@ -184,6 +184,12 @@ import WorkstationView from '@/views/WorkstationView.vue'
 import { resolveKnownInstrument } from '@/lib/instruments'
 import { holdingDrilldownRouteQuery } from '@/lib/etfHoldingDrilldown'
 
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>(done => { resolve = done })
+  return { promise, resolve }
+}
+
 function readyPreparationResponse(request: any, call = 1) {
   const now = '2026-11-06T12:00:00Z'
   const datasets = request.datasets ?? ['identity', 'profile', 'history']
@@ -2357,6 +2363,139 @@ describe('WorkstationView pop-out bindings', () => {
     expect(Object.keys(destination.query).some(key => key.startsWith('holding_'))).toBe(false)
     expect(harness.chart.loadBars).toHaveBeenCalledWith('XLE', 'D1', 'candles', true)
     wrapper.unmount()
+  })
+
+  it('keeps a typed exact symbol when a prior map publication arrives while Go has focus', async () => {
+    routeState.path = '/chart'
+    routeState.params = {}
+    harness.workspace = reactive(harness.workspace)
+    harness.workspace.publishSymbol.mockImplementation((event: any) => {
+      harness.workspace.linkedSymbol = event.symbol
+    })
+    const search = deferred<Array<{ symbol: string; name: string; exchange: string; type: string; instrument_id: number }>>()
+    apiGet.mockImplementation(async (path: string, params?: Record<string, unknown>) => {
+      if (path === '/instruments/search' && params?.q === 'SPY') return search.promise
+      if (path.startsWith('/coverage/instruments/')) return { status: 'ready', bar_count: 124, missing_slices: [] }
+      return []
+    })
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    try {
+      await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY' })))
+      harness.workspace.publishSymbol.mockClear()
+
+      // A map tile was selected first, and its committed blue symbol is still
+      // visible while the user starts a different exact ticker query.
+      harness.workspace.linkedSymbol = 'SPYG'
+      await nextTick()
+      const input = wrapper.get('input[aria-label="Active symbol"]')
+      ;(input.element as HTMLInputElement).focus()
+      await input.setValue('SPY')
+      await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'SPY', canonical_only: true }))
+
+      // Clicking Go moves focus off the input before its click handler. A late
+      // map/link publication in that boundary must not replace the user's draft.
+      const go = wrapper.get('.workstation__search > button[type="button"]')
+      ;(go.element as HTMLButtonElement).focus()
+      harness.workspace.linkedSymbol = 'SPYV'
+      await nextTick()
+      expect((input.element as HTMLInputElement).value).toBe('SPY')
+
+      search.resolve([
+        { symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust', exchange: 'ARCX', type: 'ETF', instrument_id: 2 },
+        { symbol: 'SPYG', name: 'SPDR Portfolio S&P 500 Growth ETF', exchange: 'ARCX', type: 'ETF', instrument_id: 19 },
+        { symbol: 'SPYV', name: 'SPDR Portfolio S&P 500 Value ETF', exchange: 'ARCX', type: 'ETF', instrument_id: 18 },
+      ])
+      await flushPromises()
+      await go.trigger('click')
+
+      await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY', instrumentId: 2 })))
+      expect(harness.workspace.publishSymbol).not.toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPYV' }))
+      expect(wrapper.get('.workstation__footer > span').text()).toBe('SPY')
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
+  it('allows a newer Go intent to finish while an older query is still unresolved', async () => {
+    routeState.path = '/chart'
+    routeState.params = {}
+    harness.workspace = reactive(harness.workspace)
+    harness.workspace.publishSymbol.mockImplementation((event: any) => {
+      harness.workspace.linkedSymbol = event.symbol
+    })
+    const oldSearch = deferred<Array<{ symbol: string; name: string; exchange: string; type: string; instrument_id: number }>>()
+    apiGet.mockImplementation(async (path: string, params?: Record<string, unknown>) => {
+      if (path === '/instruments/search' && params?.q === 'SPYV') return oldSearch.promise
+      if (path === '/instruments/search' && params?.q === 'SPY') return [
+        { symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust', exchange: 'ARCX', type: 'ETF', instrument_id: 2 },
+        { symbol: 'SPYG', name: 'SPDR Portfolio S&P 500 Growth ETF', exchange: 'ARCX', type: 'ETF', instrument_id: 19 },
+        { symbol: 'SPYV', name: 'SPDR Portfolio S&P 500 Value ETF', exchange: 'ARCX', type: 'ETF', instrument_id: 18 },
+      ]
+      if (path.startsWith('/coverage/instruments/')) return { status: 'ready', bar_count: 124, missing_slices: [] }
+      return []
+    })
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    try {
+      await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY' })))
+      harness.workspace.publishSymbol.mockClear()
+      const input = wrapper.get('input[aria-label="Active symbol"]')
+      await input.setValue('SPYV')
+      await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'SPYV', canonical_only: true }))
+      const go = wrapper.get('.workstation__search > button[type="button"]')
+      await go.trigger('click')
+
+      // Repeated Go for the same unresolved query is coalesced, but a newer
+      // exact query can submit and supersede its pending result.
+      await go.trigger('click')
+      await input.setValue('SPY')
+      await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'SPY', canonical_only: true }))
+      await go.trigger('click')
+      await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY', instrumentId: 2 })))
+
+      oldSearch.resolve([{ symbol: 'SPYV', name: 'SPY Value', exchange: 'ARCX', type: 'ETF', instrument_id: 18 }])
+      await flushPromises()
+      expect(harness.workspace.publishSymbol).not.toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPYV' }))
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
+  it('keeps an intentional arrow-selected prefix result when Go submits the current query', async () => {
+    routeState.path = '/chart'
+    routeState.params = {}
+    harness.workspace = reactive(harness.workspace)
+    harness.workspace.publishSymbol.mockImplementation((event: any) => {
+      harness.workspace.linkedSymbol = event.symbol
+    })
+    apiGet.mockImplementation(async (path: string, params?: Record<string, unknown>) => {
+      if (path === '/instruments/search' && params?.q === 'SPY') return [
+        { symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust', exchange: 'ARCX', type: 'ETF', instrument_id: 2 },
+        { symbol: 'SPYG', name: 'SPDR Portfolio S&P 500 Growth ETF', exchange: 'ARCX', type: 'ETF', instrument_id: 19 },
+        { symbol: 'SPYV', name: 'SPDR Portfolio S&P 500 Value ETF', exchange: 'ARCX', type: 'ETF', instrument_id: 18 },
+      ]
+      if (path.startsWith('/coverage/instruments/')) return { status: 'ready', bar_count: 124, missing_slices: [] }
+      return []
+    })
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    try {
+      await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY' })))
+      harness.workspace.publishSymbol.mockClear()
+      const input = wrapper.get('input[aria-label="Active symbol"]')
+      await input.setValue('SPY')
+      await vi.waitFor(() => expect(wrapper.findAll('[role="option"]')).toHaveLength(3))
+      await input.trigger('keydown', { key: 'ArrowDown' })
+      await wrapper.get('.workstation__search > button[type="button"]').trigger('click')
+      await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPYG', instrumentId: 19 })))
+      expect(harness.workspace.publishSymbol).not.toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY', instrumentId: 2 }))
+    } finally {
+      wrapper.unmount()
+    }
   })
 
   it('keeps private basket selection on its supported dashboard route without ticker identity or profile requests', async () => {

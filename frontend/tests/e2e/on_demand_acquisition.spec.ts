@@ -730,7 +730,9 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
   expect(lineageDetails).toContain(holding.source_row_id)
   expect(lineageDetails).toContain(holding.reported_name)
 
-  await expect(page.getByRole('status').filter({ hasText: 'Loaded 1 local D1 bars for UNXQ.' })).toBeVisible()
+  await expect(page.getByRole('status').filter({
+    hasText: /^Partial D1 price history for UNXQ remains available\. Additional history is not currently available\.$/,
+  })).toBeVisible()
   expect(historyRequests).toHaveLength(1)
   expect(historyRequests[0]?.timeframe).toBe('D1')
   await expect.poll(() => localReadCount).toBeGreaterThan(1)
@@ -1292,17 +1294,25 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
     return response.request().method() === 'GET'
       && url.pathname === '/api/v1/etf-holdings/IWM/holdings'
   })
-  const iwmIdentityResponseReady = page.waitForResponse(response => {
+  const iwmAutomaticHoldingsEnsureReady = page.waitForResponse(response => {
     const url = new URL(response.url())
-    return response.request().method() === 'POST'
-      && url.pathname.replace(/\/+$/, '') === '/api/v1/instruments/acquire'
-  }, { timeout: 10_000 })
-  const firstIwmIssuerResponseReady = page.waitForResponse(response => {
-    const url = new URL(response.url())
-    return response.request().method() === 'POST' && url.pathname === '/api/v1/etf-holdings/IWM/acquire'
-  }, { timeout: 10_000 })
+    if (response.request().method() !== 'POST' || url.pathname !== '/api/v1/data/ensure') return false
+    const body = response.request().postDataJSON() as DataEnsureRequest
+    return body.target.kind === 'instrument' && body.target.symbol === 'IWM' && body.datasets?.includes('holdings') === true
+  })
   await page.locator('.profile-card').filter({ hasText: 'IWM' }).first().click()
   const originalPage = await (await holdingsReady).json() as ETFHoldingsPage
+  const iwmAutomaticHoldingsEnsure = await iwmAutomaticHoldingsEnsureReady
+  expect(iwmAutomaticHoldingsEnsure.status()).toBe(202)
+  expect(iwmAutomaticHoldingsEnsure.request().postDataJSON()).toMatchObject({
+    target: { kind: 'instrument', symbol: 'IWM' },
+    datasets: ['holdings'],
+  })
+  expect(await iwmAutomaticHoldingsEnsure.json()).toMatchObject({
+    status: 'waiting',
+    has_pending_work: false,
+    dependencies: [{ dataset: 'holdings', status: 'waiting', reason_code: 'canonical_etf_instrument_required' }],
+  })
   const amdRow = originalPage.holdings.find(row => (row.constituent_symbol || row.reported_symbol) === 'AMD' && row.is_resolved)
   amdInstrumentId = Number(amdRow?.constituent_instrument_id ?? 0)
   expect(amdInstrumentId, 'history identity uses the actual selected constituent ID').toBeGreaterThan(0)
@@ -1322,8 +1332,20 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
   const originalRowCount = await rowLocator.count()
   expect(originalRowCount).toBeGreaterThan(0)
 
-  // The first deliberate stale-profile selection above is itself the approved
-  // refresh intent; identity is confirmed once before its issuer request.
+  // Selecting the saved profile starts the current shared holdings check. A
+  // provider refresh remains a separate explicit action and must follow exact
+  // canonical identity confirmation.
+  await expect(page.getByTestId('etf-request-issuer')).toBeEnabled()
+  const iwmIdentityResponseReady = page.waitForResponse(response => {
+    const url = new URL(response.url())
+    return response.request().method() === 'POST'
+      && url.pathname.replace(/\/+$/, '') === '/api/v1/instruments/acquire'
+  })
+  const firstIwmIssuerResponseReady = page.waitForResponse(response => {
+    const url = new URL(response.url())
+    return response.request().method() === 'POST' && url.pathname === '/api/v1/etf-holdings/IWM/acquire'
+  })
+  await page.getByTestId('etf-request-issuer').click()
   const iwmIdentityResponse = await iwmIdentityResponseReady
   expect(iwmIdentityResponse.status()).toBe(200)
   expect(await iwmIdentityResponse.json()).toMatchObject({ status: 'resolved', instrument: { symbol: 'IWM', identity_status: 'resolved' } })
@@ -1768,16 +1790,63 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
 
   const oihOption = page.getByRole('option', { name: /^OIH\b/ })
   await expect(oihOption).toBeVisible()
+  const oihCanonicalEnsureReady = page.waitForResponse(response => {
+    const url = new URL(response.url())
+    if (response.request().method() !== 'POST' || url.pathname !== '/api/v1/data/ensure') return false
+    const body = response.request().postDataJSON() as DataEnsureRequest
+    return body.target.kind === 'instrument'
+      && body.target.instrument_id === fixtureInstrumentId
+      && body.datasets?.includes('identity') === true
+      && body.datasets.includes('profile')
+      && body.datasets.includes('history')
+      && body.datasets.includes('holdings')
+  })
+  const oihAutomaticHoldingsEnsureReady = page.waitForResponse(response => {
+    const url = new URL(response.url())
+    if (response.request().method() !== 'POST' || url.pathname !== '/api/v1/data/ensure') return false
+    const body = response.request().postDataJSON() as DataEnsureRequest
+    return body.target.kind === 'instrument' && body.target.symbol === 'OIH' && body.datasets?.includes('holdings') === true
+  })
+  await oihOption.click()
+  const oihCanonicalEnsure = await oihCanonicalEnsureReady
+  expect(oihCanonicalEnsure.status()).toBe(202)
+  expect(oihCanonicalEnsure.request().postDataJSON()).toMatchObject({
+    target: { kind: 'instrument', instrument_id: fixtureInstrumentId },
+    datasets: ['identity', 'profile', 'history', 'holdings'],
+    timeframe: 'D1',
+    adjusted: true,
+  })
+  expect((oihCanonicalEnsure.request().postDataJSON() as DataEnsureRequest).start_at).toBeUndefined()
+  expect((oihCanonicalEnsure.request().postDataJSON() as DataEnsureRequest).end_at).toBeUndefined()
+  const oihAutomaticHoldingsEnsure = await oihAutomaticHoldingsEnsureReady
+  expect(oihAutomaticHoldingsEnsure.status()).toBe(202)
+  expect(oihAutomaticHoldingsEnsure.request().postDataJSON()).toMatchObject({
+    target: { kind: 'instrument', symbol: 'OIH' },
+    datasets: ['holdings'],
+  })
+  expect(await oihAutomaticHoldingsEnsure.json()).toMatchObject({
+    status: 'waiting',
+    has_pending_work: false,
+    dependencies: [{ dataset: 'holdings', status: 'waiting', reason_code: 'canonical_etf_instrument_required' }],
+  })
+  expect(identityRequests).toHaveLength(0)
+  expect(issuerRequests).toHaveLength(0)
+  await expect(page.getByTestId('etf-preparation-status')).toBeVisible()
+  await expect(page.getByTestId('etf-request-issuer')).toBeEnabled()
+
+  // Automatic preparation is handled by the shared coordinator. The explicit
+  // “Load latest holdings” action is where this controlled fixture confirms the
+  // canonical identity and materializes its labeled test-only snapshot.
   const oihIdentityReady = page.waitForResponse(response => {
     const url = new URL(response.url())
     return response.request().method() === 'POST' && url.pathname.replace(/\/+$/, '') === '/api/v1/instruments/acquire'
-  }, { timeout: 10_000 })
+  })
   const firstUseIssuerReady = page.waitForResponse(response => {
     const url = new URL(response.url())
     return response.request().method() === 'POST'
       && url.pathname === '/api/v1/etf-holdings/OIH/acquire'
   }, { timeout: 10_000 })
-  await oihOption.click()
+  await page.getByTestId('etf-request-issuer').click()
   const oihIdentityResponse = await oihIdentityReady
   expect(oihIdentityResponse.status()).toBe(200)
   expect(await oihIdentityResponse.json()).toMatchObject({ status: 'resolved', instrument: { symbol: 'OIH', instrument_id: fixtureInstrumentId } })
@@ -2783,7 +2852,14 @@ test('ordinary Workstation, Chart, and reported-holding selection use the real s
   expect((chartPreparation.request().postDataJSON() as DataEnsureRequest).start_at).toBeUndefined()
   expect((chartPreparation.request().postDataJSON() as DataEnsureRequest).end_at).toBeUndefined()
 
-  await page.getByRole('link', { name: 'ETF Holdings' }).click()
+  const applicationNavigationTrigger = page.getByRole('button', { name: 'Open application navigation' })
+  await expect(applicationNavigationTrigger).toBeVisible()
+  await applicationNavigationTrigger.click()
+  const applicationNavigation = page.getByRole('menu', { name: 'Application navigation' })
+  await expect(applicationNavigation).toBeVisible()
+  await applicationNavigation.getByRole('menuitem', { name: 'ETF Holdings', exact: true }).click()
+  await expect(page).toHaveURL(/\/legacy\/etf-holdings$/)
+  await expect(page.locator('.holdings-view')).toBeVisible()
   const spyProfile = page.locator('.profile-card').filter({ hasText: /\bSPY\b/ }).first()
   await expect(spyProfile).toBeVisible()
   const spyHoldingsResponse = page.waitForResponse(response => {

@@ -331,7 +331,7 @@ on_demand_consumer_implementation: 'Current TC-owned mocked implementation at th
   is pending Root. Controlled tests are not genuine Provider/issuer proof; target/deployment and the complete roadmap remain
   open.'
 current_blocker: "Root's passive Auth diagnostic on fac5c2b0 reached the second account, then failed at the Notes-owner read assertion before the ordinary activation of the retained hidden Notes pane; move that read assertion after activation without reducing owner-isolation checks. The same trace showed six occupied same-origin slots, including expensive analysis, universe, and chart-history reads, before the Auth Notes request. TC now keeps high-priority analysis, market-group, basket OHLCV, and full local-chart reads within the existing five-request non-interactive budget while preserving the reserved slot for Notes/Results and canonical identity reads; short 31-bar WatchList refreshes remain foreground eligible. Focused API client passes 27/27 and frontend type-check passes. Root's exact-source browser requalification, full profile, and release gates remain pending."
-current_checkpoint_status: "Current source contains bounded API admission, promotion-only priority for shared queued reads, visible-dock WatchList quote promotion with cached rows independent of unrelated refresh state, selected holdings preparation independent of chart/technical hydration, durable EasyScan unmount behavior, dataset-specific preparation reasons, first-map rendering independent of optional snapshot/personal-watchlist metadata, and bounded admission for expensive high-priority analysis/universe/chart-history reads. Provider 9e2de159, ETF 6412cf5a, and Strategy 2ec3221 are pinned. Root's Auth diagnostic is terminal on predecessor fac5c2b0; its Notes activation and foreground-admission follow-up has focused unit/type proof but awaits exact-source browser qualification. Full platform/release gates remain pending."
+current_checkpoint_status: "Current source adds generation/query-scoped Go submissions, preserves a user-entered symbol draft across linked map publications while Go has focus, and gives canonical identity lookup foreground priority. The exact Strategy 6595b47a and ETF e9c3f938 private successors are imported with all 26 and 10 manifest rows verified. UNXQ partial-history status, held IWM/OIH ensure contracts, and ordinary ETF Holdings navigation now match current shared UI/API behavior. Focused unit proof is 106/106; Root owns exact-source browser qualification and the remaining full-platform gates."
 
 ordinary_ticker_latest_update: 'Root accepted the exact combined served profile at backend source 6eae00eb8380438da771fed0c42d19587e9520ce
   / image sha256:6c962aad753959c2ecdd79f0a1d6057d77f2ba6b829ec85b99404b009a42e76a and frontend source 36e7ad2cb08c769a242773ab2b6be69fcc350774
@@ -4271,7 +4271,7 @@ correction_summary:
     recorded.
 
 ordinary_ticker_snapshot_followup_20261105: {"kind": "corrective followup within existing ordinary ticker checkpoint; no roadmap replan", "baseline": "45cc8206602d7823ca29e132d991d88b0bcbbc25", "previous_goal": "Repair exact discovered ticker Enter/Go in Workstation and shared chart SearchBar, and isolate superseded selection errors while preserving exact-local precedence, explicit choices, expressions, identity verification, ambiguity safeguards, picker scopes, stale-query fencing, current ETF context, and genuine workspace conflict recovery.", "Root_acceptance": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/TC-same-snapshot-implementation-root-acceptance.json", "accepted_file_hashes": {"frontend/src/components/workstation/WorkstationToolContent.vue": "3ff06c38e10066f15e4bca78b49833ec109d6e4443a4302106c6acdc1a813db2", "frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts": "b28994b75748976ef4658f74a79379909bb76fad5c7e8077b4e9b45a5e331c7e"}, "local_evidence": "4/4 mounted component tests, type-check and diff checks; prior failing CI retained", "release_state": "Root correct-bundle browser, exact closing-tip CI and combined full profile remain pending", "boundaries": "No self-integration/deployment; no source requests or quota/policy/dataset changes; all old roadmap criteria and accepted archives preserved"}
-next_action: "Freeze this focused OIH poll observer correction after scope/workstream checks; Root owns exact-source browser qualification and all remaining combined gates. Preserve all full-platform criteria and release gates."
+next_action: "Commit this coherent search, acquisition-flow, and exact private-import checkpoint after staged scope/workstream/matrix checks. Root owns browser qualification and all remaining combined acceptance gates; preserve the full roadmap and pending status."
 current_exact_ci:
   head_sha: null
   run_id: null
@@ -5519,9 +5519,9 @@ approved_development_dependency_imports:
   - backend/tests/unit/tasks/test_data_tasks.py
   - backend/tests/unit/tasks/test_native_usage_prerequisite.py
   - backend/tests/unit/workers/test_arq_worker.py
-- source_sha: 6412cf5a92a316536ae406ccd261e595da69a438
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/6412cf5a92a316536ae406ccd261e595da69a438.json
-  manifest_sha256: 71f7047e75897008f29ce9bca4f9558e2583fde2102a9fcea0189cb67ad36a73
+- source_sha: e9c3f938621e853d38017e9eef8f90ba308efcf2
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/e9c3f938621e853d38017e9eef8f90ba308efcf2.json
+  manifest_sha256: f529e51ddd2032c1bd0a929ba4020e50c8177b6c6191d42bdb1d97bab9eb62ad
   paths:
   - frontend/src/components/workstation/InstrumentNoteTool.vue
   - frontend/src/views/BasketsView.vue
@@ -5533,9 +5533,9 @@ approved_development_dependency_imports:
   - frontend/tests/unit/components/test_instrument_note_tool.test.ts
   - frontend/tests/unit/views/test_baskets_view.test.ts
   - frontend/tests/unit/views/test_etf_holdings_view.test.ts
-- source_sha: 2ec3221df8d6e4ae5216572b9353a2c986e02902
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/2ec3221df8d6e4ae5216572b9353a2c986e02902.json
-  manifest_sha256: ab331a27394b77e904f948981c8b1ffa86605f4e34b450660aa65c37f2ee6904
+- source_sha: 6595b47a3d56220deda0e925901e4351df06cb1c
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/6595b47a3d56220deda0e925901e4351df06cb1c.json
+  manifest_sha256: b5117f2efc2b568b5c9368b3b4af9c6696f3b32823e8d95437571662569f2584
   paths:
   - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
   - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue

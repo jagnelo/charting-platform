@@ -26845,3 +26845,12 @@ Reference-only preflight reported no actionable unbound names; Playwright discov
 Root's normal `cd3f1a42` geometry diagnostic measured the UNXQ candidate at `(8,542)-(272,584)` while its selection panel ended at `y=510.25`; the candidate center hit a native `select`, although the candidate and tool body were visible. The constituent grid had implicitly placed the selection panel into the short first track while forcing the watchlist track to a 160px minimum. Made the grid placement explicit (empty context, scrollable watchlist, provenance, selection) and reduced the watchlist minimum to 80px so the picker can use the available body height. The existing strict containment, center-hit, ordinary-click, and provenance assertions are unchanged. No browser ran in TC; Root owns geometric requalification and the full profile.
 
 Frontend `vue-tsc --noEmit`, TC scope guard, workstream validator, journey-matrix validator, and `git diff --check` pass. Full route/action acceptance, exact-source browser profile, CI, and release remain pending.
+
+
+## 2026-11-08 coherent search and acquisition-flow checkpoint
+
+The bounded common repair preserves a typed exact ticker draft across a linked map publication while Go has focus, lets a newer Go intent supersede an older unresolved search, and retains explicit arrow-selected prefix behavior. Canonical instrument lookup now uses the shared high-priority request path. The UNXQ status assertion reflects typed partial history; the IWM/OIH browser contracts observe shared `/data/ensure` requests and explicit identity/issuer actions; ordinary ETF Holdings navigation uses the visible application menu.
+
+Imported the exact Strategy `6595b47a3d56220deda0e925901e4351df06cb1c` and ETF `e9c3f938621e853d38017e9eef8f90ba308efcf2` successors. All 26 Strategy and 10 ETF manifest rows match source SHA256/Git blob IDs; only the six declared changed paths were imported. The current journey matrix reflects the updated Notes control signature without changing journey coverage.
+
+Focused Workstation/instrument-query tests passed 106/106. E2E unbound-reference preflight found no actionable unbound names; existing semantic advisories remain unqualified. Frontend type-check, workstream validator, journey-matrix validator (28 routes/aliases, 21 tools, 38 factory instances), and diff check passed. Root owns exact-source browser qualification; this is not full-platform acceptance.

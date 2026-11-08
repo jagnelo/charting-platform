@@ -504,7 +504,8 @@ const tabDragOverKey = ref<string | null>(null)
 const tabDragCommitted = ref(false)
 const searchResults = ref<Array<{ symbol: string; name: string; exchange: string; type: string; instrument_id?: number | null }>>([])
 const searchIndex = ref(-1)
-const searchOptionExplicitlyNavigated = ref(false)
+const searchOptionExplicitlyNavigatedFor = ref('')
+const userSymbolDraftActive = ref(false)
 const searchLoading = ref(false)
 const searchSettled = ref(false)
 const searchError = ref('')
@@ -556,7 +557,7 @@ let candidateResolutionAbortController: AbortController | null = null
 let candidateResolutionSequence = 0
 let searchRequest = 0
 let pendingSymbolSearch: { requestId: number; query: string; promise: Promise<void>; resolve: () => void } | null = null
-let symbolSubmissionInFlight = false
+let symbolSubmissionInFlight: { query: string; requestId: number } | null = null
 let lastSymbolSelectionError: string | null = null
 let lastDiscoveryQuery = ''
 const symbolSearchEnabled = ref(false)
@@ -607,6 +608,8 @@ const popoutGeometryPollers = new Map<string, ReturnType<typeof window.setInterv
 
 function closeSymbolSearch() {
   symbolSearchEnabled.value = false
+  searchOptionExplicitlyNavigatedFor.value = ''
+  userSymbolDraftActive.value = false
   discoveryRetryAbortController?.abort()
   discoveryRetryAbortController = null
   candidateResolutionAbortController?.abort()
@@ -648,6 +651,7 @@ function handleSymbolInput() {
   symbolSelectionGeneration += 1
   drilldownSelectionGeneration += 1
   symbolSearchEnabled.value = true
+  userSymbolDraftActive.value = true
   const inputValue = symbolInput.value?.value ?? symbolDraft.value
   if (symbolDraft.value !== inputValue) symbolDraft.value = inputValue
   // Schedule from the actual DOM event as well as the ref watcher. This also
@@ -965,7 +969,7 @@ function handleShellMenuKeydown(menu: ShellMenuRoot, event: KeyboardEvent) {
 
 function preserveActiveUserSymbolDraft(symbol: string) {
   return symbolSearchEnabled.value
-    && symbolInput.value === document.activeElement
+    && userSymbolDraftActive.value
     && symbolDraft.value.trim().toUpperCase() !== symbol.toUpperCase()
 }
 
@@ -1823,7 +1827,7 @@ function scheduleSymbolSearch(value: string) {
   candidateResolutionAbortController?.abort()
   candidateResolutionAbortController = null
   candidateResolutionSequence += 1
-  searchOptionExplicitlyNavigated.value = false
+  searchOptionExplicitlyNavigatedFor.value = ''
   finishPendingSymbolSearch()
   if (searchTimer) clearTimeout(searchTimer)
   if (discoveryTimer) clearTimeout(discoveryTimer)
@@ -2061,11 +2065,17 @@ async function goToSymbolDraft() {
 
 async function submitSymbolDraft() {
   const symbol = symbolDraft.value.trim()
-  if (!symbol || symbolSubmissionInFlight) return
-  symbolSubmissionInFlight = true
+  if (!symbol) return
   const requestId = searchRequest
+  const submission = { query: symbol.toUpperCase(), requestId }
+  if (symbolSubmissionInFlight?.query === submission.query
+    && symbolSubmissionInFlight.requestId === submission.requestId) return
+  // A newer query is a newer selection intent. It must be allowed to finish
+  // even while an older Go action is still waiting for its own search result.
+  symbolSubmissionInFlight = submission
+  const explicitlyNavigatedCurrentQuery = searchOptionExplicitlyNavigatedFor.value === symbol.toUpperCase()
   try {
-    const immediateLocal = searchOptionExplicitlyNavigated.value
+    const immediateLocal = explicitlyNavigatedCurrentQuery
       ? searchResults.value[searchIndex.value]
       : searchResults.value.find(result => result.symbol.trim().toUpperCase() === symbol.toUpperCase())
     if (immediateLocal) {
@@ -2079,7 +2089,7 @@ async function submitSymbolDraft() {
     }
     if (requestId !== searchRequest || symbolDraft.value.trim() !== symbol) return
 
-    const navigatedLocal = searchOptionExplicitlyNavigated.value ? searchResults.value[searchIndex.value] : undefined
+    const navigatedLocal = explicitlyNavigatedCurrentQuery ? searchResults.value[searchIndex.value] : undefined
     const local = navigatedLocal
     if (local) {
       recentSymbolsOpen.value = false
@@ -2087,7 +2097,7 @@ async function submitSymbolDraft() {
       return
     }
 
-    if (!searchOptionExplicitlyNavigated.value) {
+    if (!explicitlyNavigatedCurrentQuery) {
       const exactCandidates = sourceCandidates.value.filter(candidate =>
         candidate.symbol.trim().toUpperCase() === symbol.toUpperCase(),
       )
@@ -2106,7 +2116,7 @@ async function submitSymbolDraft() {
     closeSymbolSearch()
     void selectSymbol(symbol, undefined, false, undefined, true, false, '', true)
   } finally {
-    symbolSubmissionInFlight = false
+    if (symbolSubmissionInFlight === submission) symbolSubmissionInFlight = null
   }
 }
 
@@ -2120,11 +2130,11 @@ function selectRecentSymbol(symbol: string) {
 function handleSymbolInputKeydown(event: KeyboardEvent) {
   if (event.key === 'ArrowDown' && searchResults.value.length) {
     event.preventDefault()
-    searchOptionExplicitlyNavigated.value = true
+    searchOptionExplicitlyNavigatedFor.value = symbolDraft.value.trim().toUpperCase()
     searchIndex.value = (searchIndex.value + 1) % searchResults.value.length
   } else if (event.key === 'ArrowUp' && searchResults.value.length) {
     event.preventDefault()
-    searchOptionExplicitlyNavigated.value = true
+    searchOptionExplicitlyNavigatedFor.value = symbolDraft.value.trim().toUpperCase()
     searchIndex.value = (searchIndex.value - 1 + searchResults.value.length) % searchResults.value.length
   } else if (event.key === 'Enter') {
     event.preventDefault()
