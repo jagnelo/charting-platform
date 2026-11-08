@@ -1177,9 +1177,18 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
   await expect.poll(() => calendarRequests.length).toBeGreaterThan(0)
   expect(calendarRequests.every(symbol => symbol === 'TCNEW')).toBe(true)
 
-  await expect(page.getByTestId('instrument-calendar-status')).toContainText('Preparing calendar events')
+  const calendarStatus = visibleChart.getByTestId('instrument-calendar-status')
+  await expect(calendarStatus.locator('.calendar-status__summary')).toHaveText('Preparing calendar')
   calendarStatusReady = true
-  await expect(page.getByTestId('instrument-calendar-status')).toHaveText('Calendar ready · 1 event', { timeout: 10_000 })
+  await expect(calendarStatus.locator('.calendar-status__summary')).toHaveText('Calendar ready · 1', { timeout: 10_000 })
+  await expect(calendarStatus.locator('.sr-only')).toHaveText('Calendar ready · 1 event')
+  await expect(calendarStatus).toHaveAttribute('title', 'Calendar ready · 1 event')
+  const calendarStatusBounds = await calendarStatus.boundingBox()
+  const calendarPlotBounds = await visibleChart.locator('.uplot-wrapper').boundingBox()
+  expect(calendarStatusBounds?.height ?? Infinity).toBeLessThanOrEqual(24)
+  expect(calendarStatusBounds && calendarPlotBounds
+    ? calendarStatusBounds.y + calendarStatusBounds.height <= calendarPlotBounds.y
+    : false).toBe(true)
   expect(calendarStatusReads).toBeGreaterThan(1)
   expect(calendarEventResponses.at(-1)).toEqual([expect.objectContaining({
     id: 901, symbol: 'TCNEW', title: 'Controlled earnings event',

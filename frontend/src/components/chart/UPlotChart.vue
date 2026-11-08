@@ -3855,7 +3855,7 @@ defineExpose({ jumpToTs })
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  pointer-events: none;
+  pointer-events: auto;
 }
 
 .calendar-status__summary {
