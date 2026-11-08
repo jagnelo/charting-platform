@@ -2479,7 +2479,9 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     await expectSelectionHoldingsDetails(page, 'BWET', 'Current holdings are unavailable because the latest source snapshot is dated in the future.')
     await expect(igvContextGroup).toContainText('BWET')
     await expect(igvContextWidget).toBeVisible()
-    await expect(igvContextWidget).toHaveAccessibleName(/^BWET holdings .* symbols$/)
+    // The future-dated holdings dependency is unavailable as current membership;
+    // do not relabel the empty control or carry IGV rows into BWET's context.
+    await expect(igvContextWidget).toHaveAccessibleName('No point-in-time ETF holdings snapshot symbols')
     await expect(priorIgvHolding).toHaveCount(0)
 
     await chooseETF('OIH')

@@ -110,6 +110,35 @@ describe('api.get', () => {
     await Promise.all([...ordinary, low, highFirst, highSecond])
   })
 
+  it('keeps foreground reads admissible when high-priority preparation creation fills its bounded lane', async () => {
+    setTokens('tok', 'ref')
+    const deferredResponses: Array<{ resolve: (response: unknown) => void }> = []
+    ;(global.fetch as ReturnType<typeof vi.fn>).mockImplementation(() => new Promise(resolve => {
+      deferredResponses.push({ resolve })
+    }))
+    const { api } = await import('@/lib/api')
+    const response = () => ({ ok: true, status: 202, json: () => Promise.resolve({ request_id: 'req' }), text: () => Promise.resolve('') })
+    const preparations = Array.from({ length: 6 }, (_, index) => api.post('/data/ensure', { index }, { priority: 'high' }))
+
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(5))
+    for (const [, init] of (fetch as ReturnType<typeof vi.fn>).mock.calls) {
+      expect(init).toEqual(expect.objectContaining({ method: 'POST', priority: 'high' }))
+    }
+    const foreground = api.get('/workspaces/library/items', undefined, { priority: 'high' })
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(6))
+    expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[5]?.[0])).toContain('/workspaces/library/items')
+
+    deferredResponses[0]!.resolve(response())
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(7))
+    expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[6]?.[0])).toContain('/data/ensure')
+    expect((fetch as ReturnType<typeof vi.fn>).mock.calls[6]?.[1]).toEqual(expect.objectContaining({ priority: 'high' }))
+
+    for (let index = 1; index < 7; index += 1) {
+      deferredResponses[index]!.resolve(response())
+    }
+    await Promise.all([...preparations, foreground])
+  })
+
   it('promotes one already queued local read when its docked list becomes visible', async () => {
     setTokens('tok', 'ref')
     const deferredResponses: Array<{ resolve: (response: unknown) => void }> = []
