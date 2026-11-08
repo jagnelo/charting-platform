@@ -2591,6 +2591,62 @@ describe('WorkstationView pop-out bindings', () => {
     }
   })
 
+  it('preserves same-symbol holding route provenance until workspace hydration finishes, then clears it on a new selection', async () => {
+    const context = {
+      etfSymbol: 'IWM', instrumentId: 8802, canonicalSymbol: 'UNXQ', snapshotId: 8801,
+      compositionDate: '2026-10-27', knownAt: '2026-10-28T12:00:00Z',
+      provenance: 'issuer_current_holdings', sourceProvider: 'fixture-only', holdingRowId: 8803,
+      sourceRowId: 'issuer-row-8803', reportedSymbol: 'UNXQ', reportedName: 'Uncached Example Equity', holdingType: 'equity',
+    }
+    const confirmedIdentity = {
+      status: 'resolved',
+      instrument: { instrument_id: 8802, symbol: 'UNXQ', identity_status: 'resolved', instrument_type: 'Common Stock' },
+    }
+    routeState.path = '/chart/UNXQ'
+    routeState.params = { symbol: 'UNXQ' }
+    routeState.query = { ...holdingDrilldownRouteQuery(context), holding_history_intent: 'selected' }
+    harness.workspace = reactive(harness.workspace)
+    harness.workspace.linkedSymbol = 'SPY'
+    harness.workspace.publishSymbol.mockImplementation((event: any) => {
+      harness.workspace.linkedSymbol = event.symbol
+    })
+    harness.workspace.setConstituentETF.mockImplementation((symbol: string | null) => {
+      harness.workspace.constituentETF = symbol
+    })
+    let finishWorkspaceLoad!: () => void
+    harness.workspace.loadDefault.mockReturnValueOnce(new Promise<void>(resolve => { finishWorkspaceLoad = resolve }))
+    const historyState = { ...(window.history.state ?? {}), ...holdingDrilldownRouteState(context, confirmedIdentity as any) }
+    window.history.replaceState(historyState, '', window.location.href)
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+
+    try {
+      await vi.waitFor(() => expect(harness.workspace.loadDefault).toHaveBeenCalled())
+      harness.workspace.linkedSymbol = 'UNXQ'
+      await nextTick()
+      expect(routerReplace).not.toHaveBeenCalledWith(expect.objectContaining({ path: '/chart/UNXQ' }))
+      expect(routeState.query).toMatchObject({ ...holdingDrilldownRouteQuery(context), holding_history_intent: 'selected' })
+
+      finishWorkspaceLoad()
+      await vi.waitFor(() => expect(wrapper.get('[data-testid="active-holding-lineage"]').text()).toBe('UNXQ from IWM holdings · 2026-10-27'))
+      expect(routeState.query).toMatchObject({ ...holdingDrilldownRouteQuery(context), holding_history_intent: 'selected' })
+      expect(harness.workspace.setConstituentETF).toHaveBeenCalledWith('IWM')
+
+      routerReplace.mockClear()
+      harness.workspace.linkedSymbol = 'SPY'
+      await nextTick()
+      expect(routerReplace).toHaveBeenCalledWith(expect.objectContaining({ path: '/chart/SPY' }))
+      expect(Object.keys(routerReplace.mock.calls[0]![0].query).some(key => key.startsWith('holding_'))).toBe(false)
+    } finally {
+      wrapper.unmount()
+      const nextState = { ...(window.history.state ?? {}) }
+      delete nextState.tcHoldingSelectionHandoff
+      delete nextState.tcHoldingIdentityHandoff
+      window.history.replaceState(nextState, '', window.location.href)
+    }
+  })
+
   it('keeps private basket selection on its supported dashboard route without ticker identity or profile requests', async () => {
     routeState.path = '/chart/SPY'
     routeState.params = { symbol: 'SPY' }

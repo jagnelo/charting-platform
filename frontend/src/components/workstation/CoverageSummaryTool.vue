@@ -1,8 +1,9 @@
 <template>
   <section class="coverage-summary" role="region" :aria-label="`${symbol} coverage`" :aria-busy="loading || rangeLoading">
-    <p v-if="loading" class="coverage-summary__state" role="status" aria-live="polite" aria-atomic="true">Loading local coverage…</p>
-    <p v-else-if="error" class="coverage-summary__state coverage-summary__state--error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</p>
+    <p v-if="loading && coverageSymbol !== symbol.toUpperCase()" class="coverage-summary__state" role="status" aria-live="polite" aria-atomic="true">Loading local coverage…</p>
+    <p v-else-if="error && coverageSymbol !== symbol.toUpperCase()" class="coverage-summary__state coverage-summary__state--error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</p>
     <template v-else>
+      <p v-if="error" class="coverage-summary__state coverage-summary__state--error" role="alert" aria-live="assertive" aria-atomic="true">Coverage refresh failed: {{ error }} Existing local coverage remains shown.</p>
       <div class="coverage-summary__identity">
         <span>Canonical instrument</span><strong>{{ symbol }}</strong>
       </div>
@@ -121,6 +122,7 @@ const loading = ref(false)
 const error = ref<string | null>(null)
 const coverage = ref<Record<string, CoverageRange>>({})
 const datasetStates = ref<DatasetState[]>([])
+const coverageSymbol = ref<string | null>(null)
 const timeframeOptions = [
   { value: 'D1', label: 'Daily' }, { value: 'W1', label: 'Weekly' }, { value: 'MN', label: 'Monthly' },
   { value: 'H1', label: 'Hourly' }, { value: 'M15', label: '15 minute' },
@@ -189,6 +191,17 @@ watch(() => props.symbol, async symbol => {
   rangeRequestId += 1
   rangeAssessment.value = null
   rangeError.value = ''
+  const normalizedSymbol = symbol.toUpperCase()
+  const queryKey = ['workstation', 'coverage', 'instrument', normalizedSymbol] as const
+  const cached = queryClient.getQueryData<{
+    local_coverage: Record<string, CoverageRange>
+    dataset_states?: DatasetState[]
+  }>(queryKey)
+  if (cached) {
+    coverageSymbol.value = normalizedSymbol
+    coverage.value = cached.local_coverage ?? {}
+    datasetStates.value = (cached.dataset_states ?? []).slice(0, 6)
+  }
   loading.value = true
   error.value = null
   try {
@@ -196,20 +209,24 @@ watch(() => props.symbol, async symbol => {
       local_coverage: Record<string, CoverageRange>
       dataset_states?: DatasetState[]
     }>({
-      queryKey: ['workstation', 'coverage', 'instrument', symbol.toUpperCase()],
+      queryKey,
       queryFn: () => api.get<{
         local_coverage: Record<string, CoverageRange>
         dataset_states?: DatasetState[]
-      }>(`/coverage/instruments/${encodeURIComponent(symbol)}`),
+      }>(`/coverage/instruments/${encodeURIComponent(symbol)}`, undefined, { priority: 'high' }),
       staleTime: 30_000,
     })
     if (disposed || id !== requestId) return
+    coverageSymbol.value = normalizedSymbol
     coverage.value = response.local_coverage ?? {}
     datasetStates.value = (response.dataset_states ?? []).slice(0, 6)
   } catch (caught: any) {
     if (disposed || id !== requestId) return
-    coverage.value = {}
-    datasetStates.value = []
+    if (coverageSymbol.value !== normalizedSymbol) {
+      coverageSymbol.value = null
+      coverage.value = {}
+      datasetStates.value = []
+    }
     error.value = caught?.message ?? 'Coverage is unavailable.'
   } finally {
     if (!disposed && id === requestId) loading.value = false
@@ -255,7 +272,7 @@ async function checkRange() {
     }
     const response = await queryClient.fetchQuery<OhlcvCoverageAssessment>({
       queryKey: ['workstation', 'coverage', 'ohlcv', props.symbol.toUpperCase(), params],
-      queryFn: () => api.get<OhlcvCoverageAssessment>(`/coverage/instruments/${encodeURIComponent(props.symbol)}/ohlcv`, params),
+      queryFn: () => api.get<OhlcvCoverageAssessment>(`/coverage/instruments/${encodeURIComponent(props.symbol)}/ohlcv`, params, { priority: 'high' }),
       staleTime: 30_000,
     })
     if (!disposed && id === rangeRequestId) rangeAssessment.value = response

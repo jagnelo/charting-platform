@@ -3346,7 +3346,6 @@ watch(activeSymbol, symbol => {
     : null
   const preservingInitialHoldingRoute = holdingRouteHydrationPending.value
     && initialHoldingRouteContext?.canonicalSymbol === routeSymbol
-    && initialHoldingRouteContext.canonicalSymbol !== symbol.trim().toUpperCase()
   if (!preservingInitialHoldingRoute) {
     syncChartRouteToSelection(symbol, activeRouteContext?.instrumentId, activeRouteContext)
   }

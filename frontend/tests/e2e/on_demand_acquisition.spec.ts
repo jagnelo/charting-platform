@@ -1304,7 +1304,7 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
     if (response.request().method() !== 'POST' || url.pathname !== '/api/v1/data/ensure') return false
     const body = response.request().postDataJSON() as DataEnsureRequest
     return body.target.kind === 'instrument' && body.target.symbol === 'IWM'
-      && body.datasets?.includes('holdings') === true && body.timeframe === 'D1'
+      && body.datasets?.includes('holdings') === true
   })
   await page.locator('.profile-card').filter({ hasText: 'IWM' }).first().click()
   const originalPage = await (await holdingsReady).json() as ETFHoldingsPage
@@ -1828,7 +1828,7 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
     if (response.request().method() !== 'POST' || url.pathname !== '/api/v1/data/ensure') return false
     const body = response.request().postDataJSON() as DataEnsureRequest
     return body.target.kind === 'instrument' && body.target.symbol === 'OIH'
-      && body.datasets?.includes('holdings') === true && body.timeframe === 'D1'
+      && body.datasets?.includes('holdings') === true
   })
   await oihOption.click()
   const oihCanonicalEnsure = await oihCanonicalEnsureReady

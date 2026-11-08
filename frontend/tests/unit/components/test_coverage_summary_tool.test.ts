@@ -38,7 +38,7 @@ describe('CoverageSummaryTool', () => {
     const wrapper = mountTool({ props: { symbol: 'SPY' } })
 
     expect(wrapper.find('[role="region"][aria-label="SPY coverage"]').exists()).toBe(true)
-    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/coverage/instruments/SPY'))
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/coverage/instruments/SPY', undefined, { priority: 'high' }))
     await vi.waitFor(() => expect(wrapper.text()).toContain('Canonical instrument'))
     await wrapper.get('[aria-label="Coverage start date"]').setValue('2025-01-01')
     await wrapper.get('[aria-label="Coverage end date"]').setValue('2025-12-31')
@@ -53,7 +53,7 @@ describe('CoverageSummaryTool', () => {
       end: '2025-12-31T23:59:59.999Z',
       mode: 'historical',
       adjusted: true,
-    })
+    }, { priority: 'high' })
     expect(wrapper.text()).toContain('partial')
     expect(wrapper.text()).toContain('Missing slices (1)')
     expect(wrapper.text()).toContain('3/10/2025')
@@ -116,6 +116,66 @@ describe('CoverageSummaryTool', () => {
     expect(apiGet).toHaveBeenCalledTimes(1)
   })
 
+  it('renders cached current-symbol coverage instead of hiding it behind the loading state', () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    const queryKey = ['workstation', 'coverage', 'instrument', 'SPY']
+    queryClient.setQueryData(queryKey, {
+      local_coverage: { D1: { oldest: '2024-01-01T00:00:00Z', newest: '2025-12-31T00:00:00Z', bar_count: 500 } },
+      dataset_states: [{ dataset_type: 'ohlcv', dataset_key: 'D1', status: 'fresh' }],
+    })
+    const wrapper = mount(CoverageSummaryTool, { props: { symbol: 'SPY' }, global: { plugins: [[VueQueryPlugin, { queryClient }]] } })
+
+    try {
+      expect(wrapper.text()).toContain('500')
+      expect(wrapper.text()).toContain('ohlcv · D1: fresh')
+      expect(wrapper.find('.coverage-summary__state').exists()).toBe(false)
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
+  it('retains matching cached counts and dataset states when a coverage refresh fails', async () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    queryClient.setQueryData(['workstation', 'coverage', 'instrument', 'SPY'], {
+      local_coverage: { D1: { oldest: '2024-01-01T00:00:00Z', newest: '2025-12-31T00:00:00Z', bar_count: 500 } },
+      dataset_states: [{ dataset_type: 'ohlcv', dataset_key: 'D1', status: 'fresh' }],
+    }, { updatedAt: 0 })
+    apiGet.mockRejectedValueOnce(new Error('Temporary coverage refresh failure'))
+    const wrapper = mount(CoverageSummaryTool, { props: { symbol: 'SPY' }, global: { plugins: [[VueQueryPlugin, { queryClient }]] } })
+
+    try {
+      await vi.waitFor(() => expect(wrapper.get('[role="alert"]').text()).toContain('Temporary coverage refresh failure'))
+      expect(wrapper.text()).toContain('500')
+      expect(wrapper.text()).toContain('ohlcv · D1: fresh')
+      expect(wrapper.text()).toContain('Existing local coverage remains shown.')
+      expect(wrapper.find('[role="region"][aria-label="SPY coverage"]').attributes('aria-busy')).toBe('false')
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
+  it('does not show another symbol cached coverage after the current symbol refresh fails', async () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    queryClient.setQueryData(['workstation', 'coverage', 'instrument', 'SPY'], {
+      local_coverage: { D1: { oldest: '2024-01-01T00:00:00Z', newest: '2025-12-31T00:00:00Z', bar_count: 500 } },
+      dataset_states: [{ dataset_type: 'ohlcv', dataset_key: 'D1', status: 'fresh' }],
+    })
+    apiGet.mockRejectedValueOnce(new Error('QQQ coverage unavailable'))
+    const wrapper = mount(CoverageSummaryTool, { props: { symbol: 'SPY' }, global: { plugins: [[VueQueryPlugin, { queryClient }]] } })
+
+    try {
+      expect(wrapper.text()).toContain('500')
+      await wrapper.setProps({ symbol: 'QQQ' })
+      await vi.waitFor(() => expect(wrapper.get('[role="alert"]').text()).toContain('QQQ coverage unavailable'))
+      expect(wrapper.find('[role="region"][aria-label="QQQ coverage"]').exists()).toBe(true)
+      expect(wrapper.text()).not.toContain('500')
+      expect(wrapper.text()).not.toContain('ohlcv · D1: fresh')
+      expect(wrapper.text()).not.toContain('Existing local coverage remains shown.')
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
   it('does not publish a late coverage response after the tool unmounts', async () => {
     apiGet.mockImplementation(() => new Promise(resolve => {
       setTimeout(() => resolve({
@@ -126,7 +186,7 @@ describe('CoverageSummaryTool', () => {
     const wrapper = mountTool({ props: { symbol: 'SPY' } })
     const vm = wrapper.vm as any
 
-    expect(apiGet).toHaveBeenCalledWith('/coverage/instruments/SPY')
+    expect(apiGet).toHaveBeenCalledWith('/coverage/instruments/SPY', undefined, { priority: 'high' })
     wrapper.unmount()
     await new Promise(resolve => setTimeout(resolve, 10))
     await flushPromises()
