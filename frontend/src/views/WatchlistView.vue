@@ -185,6 +185,7 @@ const router = useRouter()
 const store  = useWatchlistStore()
 
 const activeId       = ref<number | null>(null)
+let activeSelectionIntent = 0
 const showCreateForm = ref(false)
 const newName        = ref('')
 const createInput    = ref<HTMLInputElement | null>(null)
@@ -206,6 +207,7 @@ async function onWlReorder() {
 }
 
 function setActive(id: number) {
+  activeSelectionIntent += 1
   activeId.value = id
   const syms = (store.watchlists.find(w => w.id === id)?.items ?? [])
     .map(i => i.symbol).filter(Boolean) as string[]
@@ -215,7 +217,10 @@ function setActive(id: number) {
 async function submitCreate() {
   if (!newName.value.trim()) return
   const wl = await store.createWatchlist(newName.value.trim())
-  if (wl) activeId.value = wl.id
+  if (wl) {
+    activeSelectionIntent += 1
+    activeId.value = wl.id
+  }
   cancelCreate()
 }
 
@@ -304,14 +309,20 @@ async function confirmSidebarDelete() {
   const id = sidebarDeleteTargetId.value
   await store.deleteWatchlist(id)
   sidebarDeleteTargetId.value = null
-  if (activeId.value === id) activeId.value = store.watchlists[0]?.id ?? null
+  if (activeId.value === id) {
+    activeSelectionIntent += 1
+    activeId.value = store.watchlists[0]?.id ?? null
+  }
 }
 
 // ── Sidebar copy / lock / unlock ────────────────────────────────────────────
 async function doSidebarCopy(id: number) {
   closeSidebarMenu()
   const copy = await store.copyWatchlist(id)
-  if (copy) activeId.value = copy.id
+  if (copy) {
+    activeSelectionIntent += 1
+    activeId.value = copy.id
+  }
 }
 
 async function doSidebarLock(id: number) {
@@ -344,10 +355,16 @@ function fmtPct(v: number) {
 }
 
 onMounted(async () => {
+  const selectionIntentAtLoadStart = activeSelectionIntent
   await store.loadWatchlists()
-  if (store.watchlists.length) {
-    activeId.value = store.watchlists[0].id
-    const syms = store.watchlists[0].items.map(i => i.symbol).filter(Boolean) as string[]
+  const selectedStillExists = activeId.value !== null
+    && store.watchlists.some(watchlist => watchlist.id === activeId.value)
+  if (activeSelectionIntent !== selectionIntentAtLoadStart && selectedStillExists) return
+  if (activeId.value !== null && !selectedStillExists) activeId.value = null
+  if (activeId.value === null && store.watchlists.length) {
+    const first = store.watchlists[0]
+    activeId.value = first.id
+    const syms = first.items.map(i => i.symbol).filter(Boolean) as string[]
     store.fetchPrices(syms)
   }
 })
