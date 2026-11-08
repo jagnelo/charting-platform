@@ -18863,3 +18863,27 @@ may still have other subscribers. The ETF holdings view module passes29/29 and
 the existing frontend type-check passes. No browser, backend, Source, quota,
 or production operation ran. Test file SHA256
 `abbf877da26e1547e4b0ab8c0304706effa2b24fd1caad7a29e3125d698cf84e`.
+
+
+## Provider9e2 exact backend context import and native proof selector — 2026-11-08
+
+Root released Provider source `9e2de1591cb8fc124839309ff4549808b7632844` under
+`provider9e2de159-runtime-development-consumption-contract.json` (SHA256
+`f8b7724293e20dee3f3dbe739c28a4bd5dc19e6991685c67211f035a8fc23672`). All79
+manifest rows match the source Git blobs, SHA256 values and base statuses. The
+seven ETF-declared paths passed their exact per-path old guards and now match
+the released source; the prior19d pin and manifest remain archived. The
+release provides shared derived-coarse-cache behavior; this is development
+context only. ETF did not rerun Provider suites or the assigned PostgreSQL DB.
+
+Root review `root-native9e2-IHI-visible-chart-focus-oracle-review.json` showed
+that the real IHI candles rendered while focus remained in the symbol input, so
+`.tool-window--active:visible` was not a valid primary-chart locator. The
+private proof now selects the one visible primary chart tool containing the
+exact selected symbol, independent of keyboard focus. D1, canvas paint,
+date-bound tooltip OHLC and holdings/provenance checks remain unchanged.
+Playwright discovery lists the same two XHB and IGV cases. No browser body,
+native request, fixture, runtime, DB, quota or production operation ran.
+Updated private proof SHA256
+`68437e4f6810be657a723061cbb3ba9ee9c95e6c64cacb227b7ee5adedb27da2`. Root
+continues the three-case native proof and owns final qualification.

@@ -823,7 +823,7 @@
   },
   "last_checkpoint": "2026-10-31T09:51:12Z",
   "last_human_progress_update": "2026-10-24T16:58:00.570331+00:00",
-  "latest_checkpoint": "Root authorized context-only adoption of exact green a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7. Local non-fast-forward merge completed without conflicts; full ETF roadmap remains open and no deployment/genuine flow is claimed. Root owns push and later private cutover.",
+  "latest_checkpoint": "Imported only the seven ETF-authorized Provider9e2 backend paths after all old guards and all79 manifest rows passed. Updated the active dependency pin while preserving19d history. Corrected the private visible-primary-chart selector from focus-active state to symbol-bound visible chart identity. Root owns all native/combined qualification; no browser or native operation was run.",
   "latest_published_ci": {
     "covers_current_local_changes": false,
     "result": "Exact implementation push CI41186532340 is terminal green on 802ef5b1e6a4246cc27f29da90950984878df947; Backend, Frontend Unit, Branch-declared and Playwright succeeded; Exhaustive Integration Gate was skipped as configured.",
@@ -1070,8 +1070,8 @@
     "status": "Root-delegated bounded software checkpoint accepted; exact final-source CI pending.",
     "validated_implementation_sha": "b6d67ce93104a0a2cf83b1c41f385513b3c230f8"
   },
-  "plan_hash": "318377850256c50007abb0efd3dd2667079c5c261ad6b2bf1f6e76da1d305af1",
-  "plan_sha256": "318377850256c50007abb0efd3dd2667079c5c261ad6b2bf1f6e76da1d305af1",
+  "plan_hash": "41c487dde8741c175371f8e6bb61490fc6d2ddd74198284ccd6cb57532f6c6d4",
+  "plan_sha256": "41c487dde8741c175371f8e6bb61490fc6d2ddd74198284ccd6cb57532f6c6d4",
   "planning_required": false,
   "planning_state": "ready",
   "previous_active_changeset": {
@@ -4550,27 +4550,26 @@
     "state": "Root-released development dependency only. No native request, production mutation, integration, deployment, or combined acceptance is claimed; Root owns release qualification."
   },
   "current_provider_runtime_dependency": {
-    "source": "19d34d0b3e875b29b276ee80e471311586e6023f",
-    "previous_source": "b19293006ea624a4f0c05a4fd91152ffd650a426",
-    "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider19d34d0b-runtime-development-consumption-contract.json",
-    "manifest_sha256": "0d1fa69e0e97f890176f71de1115418af035d8a02933211b8b1de84d98abe294",
-    "local_manifest_copy": "ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/19d34d0b3e875b29b276ee80e471311586e6023f.json",
-    "consumer_import_paths_verified": 8,
+    "source": "9e2de1591cb8fc124839309ff4549808b7632844",
+    "previous_source": "19d34d0b3e875b29b276ee80e471311586e6023f",
+    "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider9e2de159-runtime-development-consumption-contract.json",
+    "manifest_sha256": "f8b7724293e20dee3f3dbe739c28a4bd5dc19e6991685c67211f035a8fc23672",
+    "local_manifest_copy": "ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/9e2de1591cb8fc124839309ff4549808b7632844.json",
+    "consumer_import_paths_verified": 7,
     "current_manifest_records_verified": 79,
     "imported_paths": [
+      "backend/app/services/derived_timeframes.py",
+      "backend/app/services/market_series.py",
       "backend/app/services/provider_runtime.py",
       "backend/app/tasks/data_tasks.py",
       "backend/tests/integration/test_provider_runtime_transactions_postgres.py",
       "backend/tests/unit/services/test_data_preparation_worker_deeper_default.py",
-      "backend/tests/unit/services/test_provider_runtime.py",
-      "backend/tests/unit/tasks/test_data_tasks.py",
-      "backend/tests/unit/tasks/test_native_usage_prerequisite.py",
-      "backend/tests/unit/workers/test_arq_worker.py"
+      "backend/tests/unit/services/test_derived_timeframes.py"
     ],
-    "verification": "All79 source rows match exact Git blobs/SHA256. All8 ETF imports passed old guards and match released bytes with executable-bit semantics.",
-    "provider_evidence": "Provider reports five actual PostgreSQL tests and89 focused units; Root owns combined/native qualification and exact CI.",
-    "scope": "Recover native identity persistence and rollback-safe worker retry; preserve historical identifier values without repeated suffix growth. Retain first-series, partial coverage, deeper coherent defaults and known local refill repairs. Recover completed negative holdings children through normal bounded deduplicated requests; flush derived W1/MN before state projection, inherit source freshness and preserve adjustment lineage, and recover existing pending/null-signature caches through ordinary reads. All prior source fallback, canonical identity, quotas, source lineage, independent datasets and background preparation retained. Preserve all native quotas, prior held outcomes, provider eligibility, compatible series and all earlier shared backend contracts. Actual native, combined, exact CI and release proof remains pending.",
-    "state": "Root-released development dependency only; no native/production operation or final acceptance is claimed."
+    "verification": "All79 source status/Git blob/SHA256 rows verified. All7 ETF paths passed their exact19d old guards and match9e2 source bytes; executable-bit semantics preserved.",
+    "provider_evidence": "Root exact development review provider9e2de159-exact-development-review.json; ETF did not rerun Provider unit/PG suites or assigned DB.",
+    "scope": "Preserve rollback-safe native prerequisites and worker retry; derive coarse timeframes from compatible cached history while retaining source freshness, adjustment lineage, coverage truth and existing quotas/holds.",
+    "state": "Root-released development dependency only; native, combined browser, exact CI and final release acceptance remain Root-owned."
   },
   "current_checkpoint_2026_11_07_notes_lifecycle": {
     "source_parent": "369f0c8d051d8d7e17ea0dfe7478860f51218368",
@@ -4798,5 +4797,28 @@
     "verification": "All99 source rows match status/Git blob/SHA256; all15 ETF imports passed old guards and match released source with executable-bit semantics.",
     "scope": "Common frontend runtime development context; TC retains transferred on-demand spec ownership and ETF private-domain paths remain separate.",
     "state": "Root-released development dependency only; combined browser, exact CI and final release acceptance remain pending."
+  },
+  "historical_provider_runtime_dependency_19d34d0b": {
+    "source": "19d34d0b3e875b29b276ee80e471311586e6023f",
+    "previous_source": "b19293006ea624a4f0c05a4fd91152ffd650a426",
+    "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider19d34d0b-runtime-development-consumption-contract.json",
+    "manifest_sha256": "0d1fa69e0e97f890176f71de1115418af035d8a02933211b8b1de84d98abe294",
+    "local_manifest_copy": "ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/19d34d0b3e875b29b276ee80e471311586e6023f.json",
+    "consumer_import_paths_verified": 8,
+    "current_manifest_records_verified": 79,
+    "imported_paths": [
+      "backend/app/services/provider_runtime.py",
+      "backend/app/tasks/data_tasks.py",
+      "backend/tests/integration/test_provider_runtime_transactions_postgres.py",
+      "backend/tests/unit/services/test_data_preparation_worker_deeper_default.py",
+      "backend/tests/unit/services/test_provider_runtime.py",
+      "backend/tests/unit/tasks/test_data_tasks.py",
+      "backend/tests/unit/tasks/test_native_usage_prerequisite.py",
+      "backend/tests/unit/workers/test_arq_worker.py"
+    ],
+    "verification": "All79 source rows match exact Git blobs/SHA256. All8 ETF imports passed old guards and match released bytes with executable-bit semantics.",
+    "provider_evidence": "Provider reports five actual PostgreSQL tests and89 focused units; Root owns combined/native qualification and exact CI.",
+    "scope": "Recover native identity persistence and rollback-safe worker retry; preserve historical identifier values without repeated suffix growth. Retain first-series, partial coverage, deeper coherent defaults and known local refill repairs. Recover completed negative holdings children through normal bounded deduplicated requests; flush derived W1/MN before state projection, inherit source freshness and preserve adjustment lineage, and recover existing pending/null-signature caches through ordinary reads. All prior source fallback, canonical identity, quotas, source lineage, independent datasets and background preparation retained. Preserve all native quotas, prior held outcomes, provider eligibility, compatible series and all earlier shared backend contracts. Actual native, combined, exact CI and release proof remains pending.",
+    "state": "Root-released development dependency only; no native/production operation or final acceptance is claimed."
   }
 }

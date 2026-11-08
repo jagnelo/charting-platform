@@ -285,17 +285,6 @@ async def derived_timeframe_needs_refresh(
     signature = await _canonical_d1_signature(db, instrument_id, adjusted=adjusted)
     if signature["bar_count"] == 0:
         return False
-    derived_count_result = await db.execute(
-        select(func.count(OHLCVBar.id)).where(
-            OHLCVBar.instrument_id == instrument_id,
-            OHLCVBar.timeframe == timeframe,
-            OHLCVBar.is_adjusted.is_(adjusted),
-            OHLCVBar.is_derived.is_(True),
-        )
-    )
-    derived_count = int(derived_count_result.scalar_one() or 0)
-    if derived_count == 0:
-        return True
     state = (
         await db.execute(
             select(InstrumentDatasetState).where(
@@ -307,9 +296,25 @@ async def derived_timeframe_needs_refresh(
             )
         )
     ).scalar_one_or_none()
+    state_extra_data = state.extra_data or {} if state is not None else {}
+    derived_series_id = state_extra_data.get("derived_market_series_id")
+    derived_predicates = [
+        OHLCVBar.instrument_id == instrument_id,
+        OHLCVBar.timeframe == timeframe,
+        OHLCVBar.is_adjusted.is_(adjusted),
+        OHLCVBar.is_derived.is_(True),
+    ]
+    if isinstance(derived_series_id, int) and not isinstance(derived_series_id, bool):
+        derived_predicates.append(OHLCVBar.market_series_id == derived_series_id)
+    derived_count_result = await db.execute(
+        select(func.count(OHLCVBar.id)).where(*derived_predicates)
+    )
+    derived_count = int(derived_count_result.scalar_one() or 0)
+    if derived_count == 0:
+        return True
     stored_signature = (state.extra_data or {}).get("source_d1_signature") if state else None
     if state is not None:
-        stored_bar_count = (state.extra_data or {}).get("derived_bar_count")
+        stored_bar_count = state_extra_data.get("derived_bar_count")
         if (
             state.status in {DatasetStatus.PENDING, DatasetStatus.FAILED}
             or isinstance(stored_bar_count, bool)
@@ -339,12 +344,17 @@ async def derived_timeframe_needs_refresh(
         if newest_source_fetch > _signature_timestamp(state.fetched_at):
             return True
 
+    source_bound_predicates = [
+        OHLCVBar.instrument_id == instrument_id,
+        OHLCVBar.timeframe == timeframe,
+        OHLCVBar.is_adjusted.is_(adjusted),
+        OHLCVBar.is_derived.is_(True),
+    ]
+    if isinstance(derived_series_id, int) and not isinstance(derived_series_id, bool):
+        source_bound_predicates.append(OHLCVBar.market_series_id == derived_series_id)
     source_bounds = await db.execute(
         select(func.min(OHLCVBar.source_start), func.max(OHLCVBar.source_end)).where(
-            OHLCVBar.instrument_id == instrument_id,
-            OHLCVBar.timeframe == timeframe,
-            OHLCVBar.is_adjusted.is_(adjusted),
-            OHLCVBar.is_derived.is_(True),
+            *source_bound_predicates
         )
     )
     derived_source_start, derived_source_end = source_bounds.one()
@@ -567,7 +577,10 @@ async def materialize_derived_timeframes(
                     adjustment_basis=adjustment_basis,
                     adjustment_version=adjustment_version,
                 ),
-                canonical=(existing_default is None and existing_canonical is None),
+                canonical=(
+                    source_series is not None
+                    or (existing_default is None and existing_canonical is None)
+                ),
                 source_series_key=f"derived-from-d1:{source_identity}",
                 provenance={
                     "derived_from_timeframe": Timeframe.D1.value,
@@ -743,6 +756,9 @@ async def materialize_derived_timeframes(
                 "provider_periods_excluded": 0,
                 "source_d1_signature": source_d1_signature,
                 "source_market_series_id": source_series.id if source_series is not None else None,
+                "derived_market_series_id": derived_series.id
+                if derived_series is not None
+                else None,
                 "adjustment_provenance": {
                     "mode": "split_adjusted" if adjusted else "raw",
                     "source_kind": "derived_from_canonical_d1",
@@ -770,7 +786,10 @@ async def materialize_derived_timeframes(
             state.extra_data = state_extra_data
         result[timeframe.value] = len(payloads)
         if normalized_end is None and derived_series is not None:
-            from app.services.market_series import select_default_series_for_complete_range
+            from app.services.market_series import (
+                select_default_series_for_complete_range,
+                select_default_series_for_latest_contiguous_suffix,
+            )
             from app.services.ohlcv_coverage import assess_ohlcv_coverage
 
             await db.flush()
@@ -814,6 +833,19 @@ async def materialize_derived_timeframes(
                         market_series_id=derived_series.id,
                         start=start_at,
                         end=end_at,
+                        prefer_selected_series=True,
+                    )
+                else:
+                    await select_default_series_for_latest_contiguous_suffix(
+                        db,
+                        instrument_id=instrument_id,
+                        timeframe=timeframe.value,
+                        adjusted=adjusted,
+                        market_series_id=derived_series.id,
+                        requested_start=start_at,
+                        end=end_at,
+                        is_derived=True,
+                        prefer_selected_series=True,
                     )
     await db.flush()
     return result

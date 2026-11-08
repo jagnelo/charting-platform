@@ -7564,3 +7564,30 @@ tc_common_runtime_dependency_active_a49a5e05:
   verification: All99 source status/Git blob/SHA256 entries were verified; all15 ETF paths passed old guards and match source blobs and executable-bit semantics.
   scope: Common UI runtime development import. TC retains transferred on-demand spec ownership; ETF domain paths remain separate.
   state: Root-released development dependency only; actual browser, exact CI and final release acceptance remain pending.
+
+
+provider_runtime_dependency_active_9e2de159:
+  authority: Root released exact Provider source for development consumption only;
+    native proof, combined browser, exact CI, and release qualification remain Root-owned.
+  source: 9e2de1591cb8fc124839309ff4549808b7632844
+  previous_active_dependency: 19d34d0b3e875b29b276ee80e471311586e6023f
+  manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider9e2de159-runtime-development-consumption-contract.json
+  manifest_sha256: f8b7724293e20dee3f3dbe739c28a4bd5dc19e6991685c67211f035a8fc23672
+  local_manifest_copy: ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/9e2de1591cb8fc124839309ff4549808b7632844.json
+  current_manifest_records_verified: 79
+  consumer_import_paths:
+  - backend/app/services/derived_timeframes.py
+  - backend/app/services/market_series.py
+  - backend/app/services/provider_runtime.py
+  - backend/app/tasks/data_tasks.py
+  - backend/tests/integration/test_provider_runtime_transactions_postgres.py
+  - backend/tests/unit/services/test_data_preparation_worker_deeper_default.py
+  - backend/tests/unit/services/test_derived_timeframes.py
+  verification: All79 source status/Git-blob/SHA256 rows verified; all7 ETF paths
+    passed their exact per-path old guards and match the exact9e2 source, with Git executable-bit
+    semantics preserved.
+  scope: Preserve rollback-safe native prerequisite recovery, durable retry and prior
+    source/cache contracts. Derive coarse timeframes from compatible cached series and
+    retain truthful coverage, freshness, adjustment lineage, and existing request bounds.
+  state: Root-released development dependency only; no native replay, fixture, production
+    mutation, combined acceptance, exact-CI completion, or deployment is implied.

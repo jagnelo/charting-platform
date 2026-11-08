@@ -1,4 +1,4 @@
-from datetime import UTC, date, datetime, time
+from datetime import UTC, date, datetime, time, timedelta
 
 import pytest
 from sqlalchemy import select
@@ -9,6 +9,7 @@ from app.models.data_source import DataSource
 from app.models.market_data_foundation import MarketRefreshJob, MarketSeries, MarketSeriesDefault
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.services import market_data
+from app.services.derived_timeframes import derived_timeframe_needs_refresh
 from app.services.market_data import _default_series_bar_condition
 from app.services.ohlcv_coverage import _xnys_session_days
 from app.tasks import data_tasks
@@ -31,10 +32,18 @@ class _WorkerSessionContext:
         return None
 
 
-@pytest.mark.parametrize("retained_alternate", [False, True])
+@pytest.mark.parametrize(
+    ("retained_alternate", "older_chunk", "held_chunk"),
+    [
+        (False, False, False),
+        (True, False, False),
+        (True, True, False),
+        (True, True, True),
+    ],
+)
 @pytest.mark.asyncio
 async def test_worker_persists_first_alternate_series_returns_bars_and_queues_older_chunk(
-    db, instrument, monkeypatch, retained_alternate
+    db, instrument, monkeypatch, retained_alternate, older_chunk, held_chunk
 ):
     """The actual worker keeps useful deeper bars visible and queues older work."""
     massive = DataSource(name="massive")
@@ -85,6 +94,59 @@ async def test_worker_persists_first_alternate_series_returns_bars_and_queues_ol
     )
     db.add(default)
 
+    coarse_provider_rows = {}
+    for coarse_timeframe, row_count, anchor in (
+        (Timeframe.W1, 104, date(2024, 10, 28)),
+        (Timeframe.MN, 25, date(2024, 10, 1)),
+    ):
+        coarse_series = MarketSeries(
+            instrument_id=instrument.id,
+            data_source_id=massive.id,
+            feed_scope="provider_native",
+            session_code="regular",
+            timeframe=coarse_timeframe.value,
+            adjustment_basis="split_adjusted",
+            adjustment_version="massive-split-adjusted",
+            is_canonical=True,
+            is_active=True,
+        )
+        db.add(coarse_series)
+        db.flush()
+        db.add(
+            MarketSeriesDefault(
+                instrument_id=instrument.id,
+                timeframe=coarse_timeframe.value,
+                is_adjusted=True,
+                market_series_id=coarse_series.id,
+                selection_reason="first_canonical",
+            )
+        )
+        provider_rows = []
+        for offset in range(row_count):
+            period_date = anchor + timedelta(
+                days=offset * (7 if coarse_timeframe is Timeframe.W1 else 30)
+            )
+            row = OHLCVBar(
+                instrument_id=instrument.id,
+                data_source_id=massive.id,
+                market_series_id=coarse_series.id,
+                timeframe=coarse_timeframe,
+                ts=datetime.combine(period_date, time.min, tzinfo=UTC),
+                open=100,
+                high=102,
+                low=99,
+                close=101,
+                volume=1000,
+                is_adjusted=True,
+                adjustment_basis="split_adjusted",
+                adjustment_version="massive-split-adjusted",
+                session="regular",
+                scope_key=f"series:{coarse_series.id}:regular",
+            )
+            provider_rows.append(row)
+        db.add_all(provider_rows)
+        coarse_provider_rows[coarse_timeframe] = (coarse_series, provider_rows)
+
     retained_alpaca_series = None
     if retained_alternate:
         retained_alpaca_series = MarketSeries(
@@ -124,6 +186,10 @@ async def test_worker_persists_first_alternate_series_returns_bars_and_queues_ol
                     scope_key=f"series:{retained_alpaca_series.id}:regular",
                 )
             )
+        if held_chunk:
+            # This is the retained upgrade state: current D1 is already the
+            # deeper Alpaca series while W1/MN still select old Massive rows.
+            default.market_series_id = retained_alpaca_series.id
 
     requested_start = datetime(2016, 1, 1, tzinfo=UTC)
     planned_start = datetime(2021, 5, 17, tzinfo=UTC)
@@ -136,13 +202,15 @@ async def test_worker_persists_first_alternate_series_returns_bars_and_queues_ol
         "adjusted": True,
         "derive_coarse_timeframes": False,
     }
+    chunk_start = requested_start if older_chunk else planned_start
+    chunk_end = planned_start if older_chunk else end
     job = MarketRefreshJob(
-        request_key="worker-deeper-default-initial",
+        request_key=f"worker-deeper-default-{chunk_start.date()}",
         instrument_id=instrument.id,
         capability="price_history",
         timeframe=Timeframe.D1.value,
-        start_at=planned_start,
-        end_at=end,
+        start_at=chunk_start,
+        end_at=chunk_end,
         priority=10,
         status="queued",
         attempts=0,
@@ -251,17 +319,29 @@ async def test_worker_persists_first_alternate_series_returns_bars_and_queues_ol
         worker_db, *, job, instrument, timeframe, preparation, priority, redis
     ):
         preparation["source_provider"] = "alpaca"
+        request_start = requested_start if older_chunk else planned_start
+        request_end = planned_start if older_chunk else end
+        if held_chunk:
+            return (
+                (request_start, request_end, requested_start, end, "alpaca", None),
+                preparation,
+                None,
+                None,
+                "native_usage_bootstrap_not_admitted",
+                None,
+            )
         fetched = await market_data.fetch_ohlcv(
             worker_db,
             instrument,
             timeframe,
-            planned_start,
-            end=end,
+            request_start,
+            end=request_end,
             adjusted=True,
             source_provider="alpaca",
+            allow_provider_fetch=not older_chunk,
         )
         return (
-            (planned_start, end, requested_start, end, "alpaca", None),
+            (request_start, request_end, requested_start, end, "alpaca", None),
             preparation,
             None,
             None,
@@ -297,22 +377,37 @@ async def test_worker_persists_first_alternate_series_returns_bars_and_queues_ol
     result = await data_tasks.process_refresh_jobs({})
 
     assert result["claimed"] == 1
-    assert result["completed"] == 1
+    assert result["completed"] == 1, result
     summary = completed_summaries[0]
-    assert summary["bars_observed"] > 0
+    if held_chunk:
+        assert summary["preparation_status"] == "held"
+        assert summary["reason_code"] == "native_usage_bootstrap_not_admitted"
+        assert summary["retry_at"] is None
+    else:
+        assert summary["bars_observed"] > 0
     if retained_alternate:
         assert created_provider_bars == []
         assert retained_alpaca_series is not None
-    assert summary["data_status"] == "partial"
-    assert summary["range_coverage_status"] == "partial"
-    assert summary["default_series_selected"] is True
+    if not held_chunk:
+        assert summary["data_status"] == "partial"
+        assert summary["range_coverage_status"] == "partial"
+        assert summary["default_series_selected"] is True
 
-    stored_default = db.execute(select(MarketSeriesDefault)).scalar_one()
+    stored_default = db.execute(
+        select(MarketSeriesDefault).where(
+            MarketSeriesDefault.instrument_id == instrument.id,
+            MarketSeriesDefault.timeframe == Timeframe.D1.value,
+            MarketSeriesDefault.is_adjusted.is_(True),
+        )
+    ).scalar_one()
     assert stored_default.market_series_id != massive_series.id
     alpaca_series = (
         retained_alpaca_series
         or db.execute(
-            select(MarketSeries).where(MarketSeries.data_source_id == alpaca.id)
+            select(MarketSeries).where(
+                MarketSeries.data_source_id == alpaca.id,
+                MarketSeries.timeframe == Timeframe.D1.value,
+            )
         ).scalar_one()
     )
     assert stored_default.market_series_id == alpaca_series.id
@@ -332,12 +427,86 @@ async def test_worker_persists_first_alternate_series_returns_bars_and_queues_ol
     )
     assert default_read
     assert {bar.market_series_id for bar in default_read} == {alpaca_series.id}
+    if older_chunk:
+        assert job.end_at < max(bar.ts for bar in default_read)
     if retained_alternate:
         assert min(bar.ts.date() for bar in default_read) == date(2018, 11, 1)
     else:
         expected_first_bar = min(_xnys_session_days(planned_start.date(), end.date()))
         assert min(bar.ts.date() for bar in default_read) == expected_first_bar
     assert max(bar.ts.date() for bar in default_read) == date(2026, 10, 30)
+
+    # A D1 source switch also refreshes the derived defaults in the same worker
+    # pass, without replacing the older provider-supplied coarse observations.
+    for coarse_timeframe, (old_series, original_rows) in coarse_provider_rows.items():
+        coarse_default = db.execute(
+            select(MarketSeriesDefault).where(
+                MarketSeriesDefault.instrument_id == instrument.id,
+                MarketSeriesDefault.timeframe == coarse_timeframe.value,
+                MarketSeriesDefault.is_adjusted.is_(True),
+            )
+        ).scalar_one()
+        derived_series = db.get(MarketSeries, coarse_default.market_series_id)
+        assert derived_series is not None
+        assert derived_series.id != old_series.id
+        assert derived_series.is_canonical is True
+        assert derived_series.data_source_id == alpaca.id
+        assert derived_series.adjustment_basis == "split_adjusted"
+        assert derived_series.adjustment_version == "alpaca-split-adjusted"
+        visible_coarse_rows = (
+            db.execute(
+                select(OHLCVBar).where(
+                    OHLCVBar.instrument_id == instrument.id,
+                    OHLCVBar.timeframe == coarse_timeframe,
+                    OHLCVBar.is_adjusted.is_(True),
+                    _default_series_bar_condition(instrument.id, coarse_timeframe, True),
+                )
+            )
+            .scalars()
+            .all()
+        )
+        assert visible_coarse_rows
+        assert all(row.is_derived is True for row in visible_coarse_rows)
+        assert {row.market_series_id for row in visible_coarse_rows} == {derived_series.id}
+        assert {row.data_source_id for row in visible_coarse_rows} == {alpaca.id}
+        retained_provider_rows = (
+            db.execute(select(OHLCVBar).where(OHLCVBar.market_series_id == old_series.id))
+            .scalars()
+            .all()
+        )
+        assert len(retained_provider_rows) == len(original_rows)
+        assert all(row.data_source_id == massive.id for row in retained_provider_rows)
+        assert all(
+            row.adjustment_version == "massive-split-adjusted" for row in retained_provider_rows
+        )
+        if retained_alternate:
+            from app.services.ohlcv_coverage import assess_ohlcv_coverage
+
+            coarse_coverage = assess_ohlcv_coverage(
+                visible_coarse_rows,
+                coarse_timeframe,
+                min(row.ts for row in visible_coarse_rows),
+                max(row.ts for row in visible_coarse_rows),
+                calendar="XNYS",
+            )
+            assert coarse_coverage.status.value == "partial"
+        else:
+            from app.services.ohlcv_coverage import assess_ohlcv_coverage
+
+            coarse_coverage = assess_ohlcv_coverage(
+                visible_coarse_rows,
+                coarse_timeframe,
+                min(row.ts for row in visible_coarse_rows),
+                max(row.ts for row in visible_coarse_rows),
+                calendar="XNYS",
+            )
+            assert coarse_coverage.status.value == "ready"
+        assert not await derived_timeframe_needs_refresh(
+            AsyncSessionAdapter(db),
+            instrument.id,
+            coarse_timeframe,
+            adjusted=True,
+        )
 
     # Original Massive observations remain stored and keep their source lineage.
     retained_massive = (
@@ -360,16 +529,24 @@ async def test_worker_persists_first_alternate_series_returns_bars_and_queues_ol
         assert coverage.status.value == "partial"
         assert coverage.missing_slices
 
-    continuation = db.execute(
-        select(MarketRefreshJob).where(
-            MarketRefreshJob.id != job.id,
-            MarketRefreshJob.capability == "price_history",
+    continuations = (
+        db.execute(
+            select(MarketRefreshJob).where(
+                MarketRefreshJob.id != job.id,
+                MarketRefreshJob.capability == "price_history",
+            )
         )
-    ).scalar_one()
-    continuation_prep = continuation.metadata_payload["data_preparation_child"]
-    assert continuation.status == "queued"
-    assert continuation_prep["chunk"] is True
-    assert continuation_prep["source_provider"] == "alpaca"
-    assert continuation_prep["range_start"] == requested_start.isoformat()
-    assert continuation.start_at.replace(tzinfo=UTC) < planned_start
-    assert continuation.end_at.replace(tzinfo=UTC) < planned_start
+        .scalars()
+        .all()
+    )
+    if held_chunk or older_chunk:
+        assert continuations == []
+    else:
+        continuation = continuations[0]
+        continuation_prep = continuation.metadata_payload["data_preparation_child"]
+        assert continuation.status == "queued"
+        assert continuation_prep["chunk"] is True
+        assert continuation_prep["source_provider"] == "alpaca"
+        assert continuation_prep["range_start"] == requested_start.isoformat()
+        assert continuation.start_at.replace(tzinfo=UTC) < planned_start
+        assert continuation.end_at.replace(tzinfo=UTC) < planned_start
