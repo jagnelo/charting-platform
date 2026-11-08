@@ -1141,8 +1141,8 @@
     "status": "Root-delegated bounded software checkpoint accepted; exact final-source CI pending.",
     "validated_implementation_sha": "b6d67ce93104a0a2cf83b1c41f385513b3c230f8"
   },
-  "plan_hash": "bcc1087ab38a7f1425e8ef67aca148c8595e200b0416973ddb87cc6976421ad2",
-  "plan_sha256": "bcc1087ab38a7f1425e8ef67aca148c8595e200b0416973ddb87cc6976421ad2",
+  "plan_hash": "f750f16fabd6e53a3e338758387ff271711b5fd82aba57b8e1ef40116f0f1285",
+  "plan_sha256": "f750f16fabd6e53a3e338758387ff271711b5fd82aba57b8e1ef40116f0f1285",
   "planning_required": false,
   "planning_state": "ready",
   "previous_active_changeset": {
@@ -3554,7 +3554,7 @@
   "progress": {
     "completed": [],
     "current_blocker": "Root combined seeded-backend browser qualification and final release gates remain pending; the full 15 Tier-0/156 Tier-1 and broader ETF/platform roadmaps remain open.",
-    "current_phase": "Consumed exact TC2a8 and Provider b192 development dependencies: all126+78 source rows verified;58+15 declared ETF paths imported under old guards; frontend type-check passed. Root combined/native qualification and final release gates remain pending.",
+    "current_phase": "Consumed exact Provider19d34d0b development dependency: all79 source rows and8 ETF import paths verified under b192 guards. No Provider runtime/assigned PG test replay; Root owns native, combined, and exact-CI qualification.",
     "total": 5
   },
   "provider_release": {
@@ -3825,7 +3825,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for ETF returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-11-08T01:02:53Z",
+  "updated_at": "2026-11-08T01:59:38Z",
   "validation_tier": "full_integration",
   "whole_frontend_presentation_reconciliation": {
     "authority": "/home/m920q/charting-platform/.ai/staging-attempts/human-whole-frontend-tc2000-reconciliation-20261026.md",
@@ -4664,33 +4664,27 @@
     "state": "Root-released development dependency only. No native request, production mutation, integration, deployment, or combined acceptance is claimed; Root owns release qualification."
 },
   "current_provider_runtime_dependency": {
-                                           "source": "b19293006ea624a4f0c05a4fd91152ffd650a426",
-                                           "previous_source": "cc31077c60545e8455d1f064411fbddae7d21fe1",
-                                           "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providerb1929300-runtime-development-consumption-contract.json",
-                                           "manifest_sha256": "97b429b3d99e4f8da78edcc10ed13178a17b482e31a136941f8acff14290457d",
-                                           "local_manifest_copy": "ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/b19293006ea624a4f0c05a4fd91152ffd650a426.json",
-                                           "consumer_import_paths_verified": 15,
-                                           "current_manifest_records_verified": 78,
+                                           "source": "19d34d0b3e875b29b276ee80e471311586e6023f",
+                                           "previous_source": "b19293006ea624a4f0c05a4fd91152ffd650a426",
+                                           "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider19d34d0b-runtime-development-consumption-contract.json",
+                                           "manifest_sha256": "0d1fa69e0e97f890176f71de1115418af035d8a02933211b8b1de84d98abe294",
+                                           "local_manifest_copy": "ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/19d34d0b3e875b29b276ee80e471311586e6023f.json",
+                                           "consumer_import_paths_verified": 8,
+                                           "current_manifest_records_verified": 79,
                                            "imported_paths": [
-                                             "backend/app/routers/instruments.py",
-                                             "backend/app/services/data_preparation.py",
-                                             "backend/app/services/instrument_mastering.py",
-                                             "backend/app/services/market_data.py",
-                                             "backend/app/services/provider_routing.py",
                                              "backend/app/services/provider_runtime.py",
                                              "backend/app/tasks/data_tasks.py",
-                                             "backend/app/workers/arq_worker.py",
-                                             "backend/tests/unit/routers/test_instruments_router.py",
-                                             "backend/tests/unit/services/test_data_preparation_contracts.py",
-                                             "backend/tests/unit/services/test_provider_persistence.py",
-                                             "backend/tests/unit/services/test_provider_routing.py",
+                                             "backend/tests/integration/test_provider_runtime_transactions_postgres.py",
+                                             "backend/tests/unit/services/test_data_preparation_worker_deeper_default.py",
                                              "backend/tests/unit/services/test_provider_runtime.py",
                                              "backend/tests/unit/tasks/test_data_tasks.py",
+                                             "backend/tests/unit/tasks/test_native_usage_prerequisite.py",
                                              "backend/tests/unit/workers/test_arq_worker.py"
                                            ],
-                                           "verification": "All78 manifest source rows verified; exact15 ETF consumer paths passed old guards and match released source/blob with executable-bit semantics.",
+                                           "verification": "All79 source rows match exact Git blobs/SHA256. All8 ETF imports passed old guards and match released bytes with executable-bit semantics.",
+                                           "provider_evidence": "Provider reports five actual PostgreSQL tests and89 focused units; Root owns combined/native qualification and exact CI.",
                                            "scope": "Recover native identity persistence and rollback-safe worker retry; preserve historical identifier values without repeated suffix growth. Retain first-series, partial coverage, deeper coherent defaults and known local refill repairs. Recover completed negative holdings children through normal bounded deduplicated requests; flush derived W1/MN before state projection, inherit source freshness and preserve adjustment lineage, and recover existing pending/null-signature caches through ordinary reads. All prior source fallback, canonical identity, quotas, source lineage, independent datasets and background preparation retained. Preserve all native quotas, prior held outcomes, provider eligibility, compatible series and all earlier shared backend contracts. Actual native, combined, exact CI and release proof remains pending.",
-                                           "state": "Root-released development dependency only; native/combined/exact-CI/release proof remains Root-owned."
+                                           "state": "Root-released development dependency only; no native/production operation or final acceptance is claimed."
                                          },
   "current_checkpoint_2026_11_07_notes_lifecycle": {
     "source_parent": "369f0c8d051d8d7e17ea0dfe7478860f51218368",
@@ -4790,5 +4784,35 @@
     "provider_evidence": "Root reports the exact two-path native-prerequisite rollback repair; pinned style is green and the image is building. No Provider suite was rerun by ETF.",
     "latest_native_attempts": "The XHB/IGV browser attempt used predecessor test source bd3a and failed only at duplicate-close tooltip date matching; frozen successor 74fa binds date and independently verifies OHLC. MSFT browser-closed attempt is failed/unattended with no bars and deferred price jobs; Root owns the same durable job restart proof.",
     "state": "Root-released development dependency only; no native replay, HTTP, production mutation, acceptance, integration, or deployment is claimed."
+  }
+,
+  "historical_provider_runtime_dependency_b1929300": {
+    "source": "b19293006ea624a4f0c05a4fd91152ffd650a426",
+    "previous_source": "cc31077c60545e8455d1f064411fbddae7d21fe1",
+    "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providerb1929300-runtime-development-consumption-contract.json",
+    "manifest_sha256": "97b429b3d99e4f8da78edcc10ed13178a17b482e31a136941f8acff14290457d",
+    "local_manifest_copy": "ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/b19293006ea624a4f0c05a4fd91152ffd650a426.json",
+    "consumer_import_paths_verified": 15,
+    "current_manifest_records_verified": 78,
+    "imported_paths": [
+      "backend/app/routers/instruments.py",
+      "backend/app/services/data_preparation.py",
+      "backend/app/services/instrument_mastering.py",
+      "backend/app/services/market_data.py",
+      "backend/app/services/provider_routing.py",
+      "backend/app/services/provider_runtime.py",
+      "backend/app/tasks/data_tasks.py",
+      "backend/app/workers/arq_worker.py",
+      "backend/tests/unit/routers/test_instruments_router.py",
+      "backend/tests/unit/services/test_data_preparation_contracts.py",
+      "backend/tests/unit/services/test_provider_persistence.py",
+      "backend/tests/unit/services/test_provider_routing.py",
+      "backend/tests/unit/services/test_provider_runtime.py",
+      "backend/tests/unit/tasks/test_data_tasks.py",
+      "backend/tests/unit/workers/test_arq_worker.py"
+    ],
+    "verification": "All78 manifest source rows verified; exact15 ETF consumer paths passed old guards and match released source/blob with executable-bit semantics.",
+    "scope": "Recover native identity persistence and rollback-safe worker retry; preserve historical identifier values without repeated suffix growth. Retain first-series, partial coverage, deeper coherent defaults and known local refill repairs. Recover completed negative holdings children through normal bounded deduplicated requests; flush derived W1/MN before state projection, inherit source freshness and preserve adjustment lineage, and recover existing pending/null-signature caches through ordinary reads. All prior source fallback, canonical identity, quotas, source lineage, independent datasets and background preparation retained. Preserve all native quotas, prior held outcomes, provider eligibility, compatible series and all earlier shared backend contracts. Actual native, combined, exact CI and release proof remains pending.",
+    "state": "Root-released development dependency only; native/combined/exact-CI/release proof remains Root-owned."
   }
 }

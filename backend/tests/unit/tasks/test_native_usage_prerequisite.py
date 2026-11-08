@@ -1,3 +1,4 @@
+from contextlib import nullcontext
 from copy import deepcopy
 from datetime import UTC, datetime
 from types import SimpleNamespace
@@ -560,6 +561,16 @@ async def test_normal_history_worker_defers_behind_deduplicated_native_usage_job
     )
 
     class Session:
+        @property
+        def no_autoflush(self):
+            return nullcontext()
+
+        async def execute(self, *_args, **_kwargs):
+            return SimpleNamespace(scalar_one_or_none=lambda: job)
+
+        async def flush(self):
+            return None
+
         async def __aenter__(self):
             return self
 
@@ -578,7 +589,7 @@ async def test_normal_history_worker_defers_behind_deduplicated_native_usage_job
     usage_job = SimpleNamespace(id=101, status="queued")
     queued = AsyncMock(return_value=(usage_job, None, True))
     monkeypatch.setattr(data_tasks, "AsyncSessionLocal", Session)
-    monkeypatch.setattr(data_tasks, "claim_refresh_jobs", AsyncMock(return_value=[job]))
+    monkeypatch.setattr(data_tasks, "claim_refresh_jobs", AsyncMock(side_effect=[[job], []]))
     monkeypatch.setattr(
         data_tasks,
         "_history_chunk_plan",
@@ -677,7 +688,7 @@ async def test_cold_metadata_worker_defers_before_search_or_profile_transport(
     monkeypatch.setattr(settings, "PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED", True)
     monkeypatch.setattr(settings, "PROVIDER_ACCOUNT_USAGE_REFRESH_PROVIDERS", ["alpaca"])
     monkeypatch.setattr(data_tasks, "AsyncSessionLocal", Session)
-    monkeypatch.setattr(data_tasks, "claim_refresh_jobs", AsyncMock(return_value=[job]))
+    monkeypatch.setattr(data_tasks, "claim_refresh_jobs", AsyncMock(side_effect=[[job], []]))
     monkeypatch.setattr(data_tasks, "_native_usage_prerequisite_for_operation", preflight)
     monkeypatch.setattr(data_tasks, "retry_refresh_job", retry)
     monkeypatch.setattr(data_tasks, "complete_refresh_job", AsyncMock())
@@ -793,7 +804,7 @@ async def test_native_usage_bootstrap_hold_stays_waiting_and_records_resume_scop
     profile_fetch = AsyncMock()
     acquire = AsyncMock()
     monkeypatch.setattr(data_tasks, "AsyncSessionLocal", Session)
-    monkeypatch.setattr(data_tasks, "claim_refresh_jobs", AsyncMock(return_value=[job]))
+    monkeypatch.setattr(data_tasks, "claim_refresh_jobs", AsyncMock(side_effect=[[job], []]))
     monkeypatch.setattr(data_tasks, "_native_usage_prerequisite_for_operation", preflight)
     monkeypatch.setattr(
         "app.services.data_preparation.record_identity_preparation_outcome", record_outcome

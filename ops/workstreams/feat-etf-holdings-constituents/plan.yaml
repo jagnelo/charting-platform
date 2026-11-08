@@ -6802,6 +6802,89 @@ approved_development_dependency_imports:
   - backend/tests/unit/tasks/test_data_tasks.py
   - backend/tests/unit/tasks/test_native_usage_prerequisite.py
   - backend/tests/unit/workers/test_arq_worker.py
+- source_sha: 19d34d0b3e875b29b276ee80e471311586e6023f
+  manifest_path: ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/19d34d0b3e875b29b276ee80e471311586e6023f.json
+  manifest_sha256: 0d1fa69e0e97f890176f71de1115418af035d8a02933211b8b1de84d98abe294
+  paths:
+  - backend/app/config.py
+  - backend/app/main.py
+  - backend/app/providers/alpaca.py
+  - backend/app/providers/massive.py
+  - backend/app/providers/optional_market_data.py
+  - backend/app/routers/analysis.py
+  - backend/app/routers/data_preparation.py
+  - backend/app/routers/instruments.py
+  - backend/app/routers/ohlcv.py
+  - backend/app/routers/providers.py
+  - backend/app/routers/research.py
+  - backend/app/routers/workspaces.py
+  - backend/app/schemas/data_preparation.py
+  - backend/app/services/baskets.py
+  - backend/app/services/bulk_fetch.py
+  - backend/app/services/data_preparation.py
+  - backend/app/services/data_preparation_contracts.py
+  - backend/app/services/derived_timeframes.py
+  - backend/app/services/e2e_seed.py
+  - backend/app/services/etf_holdings_adapters.py
+  - backend/app/services/etf_holdings_preparation.py
+  - backend/app/services/etf_holdings_refresh.py
+  - backend/app/services/evaluator_preflight.py
+  - backend/app/services/exchange_sessions.py
+  - backend/app/services/instrument_events.py
+  - backend/app/services/instrument_mastering.py
+  - backend/app/services/market_data.py
+  - backend/app/services/market_refresh_queue.py
+  - backend/app/services/market_series.py
+  - backend/app/services/ohlcv_coverage.py
+  - backend/app/services/provider_routing.py
+  - backend/app/services/provider_runtime.py
+  - backend/app/services/screener_engine.py
+  - backend/app/services/workstation_tool_catalogue.py
+  - backend/app/tasks/data_tasks.py
+  - backend/app/workers/arq_worker.py
+  - backend/tests/integration/api/test_baskets.py
+  - backend/tests/integration/api/test_workspace_read_consistency_postgres.py
+  - backend/tests/integration/test_data_preparation_queue_postgres.py
+  - backend/tests/integration/test_provider_runtime_transactions_postgres.py
+  - backend/tests/unit/conftest.py
+  - backend/tests/unit/providers/test_new_providers.py
+  - backend/tests/unit/providers/test_optional_market_data.py
+  - backend/tests/unit/routers/test_analysis_router.py
+  - backend/tests/unit/routers/test_calendar_router.py
+  - backend/tests/unit/routers/test_data_preparation_router.py
+  - backend/tests/unit/routers/test_instruments_router.py
+  - backend/tests/unit/routers/test_ohlcv_router.py
+  - backend/tests/unit/routers/test_providers_router.py
+  - backend/tests/unit/routers/test_research_router.py
+  - backend/tests/unit/routers/test_workspace_tool_catalogue.py
+  - backend/tests/unit/services/test_data_preparation_contracts.py
+  - backend/tests/unit/services/test_data_preparation_history_planning.py
+  - backend/tests/unit/services/test_data_preparation_service.py
+  - backend/tests/unit/services/test_data_preparation_worker_deeper_default.py
+  - backend/tests/unit/services/test_derived_timeframes.py
+  - backend/tests/unit/services/test_e2e_seed.py
+  - backend/tests/unit/services/test_etf_holdings_adapters.py
+  - backend/tests/unit/services/test_etf_holdings_bootstrap.py
+  - backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py
+  - backend/tests/unit/services/test_etf_holdings_native_qualification.py
+  - backend/tests/unit/services/test_etf_holdings_preparation.py
+  - backend/tests/unit/services/test_etf_holdings_preparation_hook.py
+  - backend/tests/unit/services/test_etf_holdings_provider_bridge.py
+  - backend/tests/unit/services/test_etf_issuer_catalog.py
+  - backend/tests/unit/services/test_evaluator_preflight.py
+  - backend/tests/unit/services/test_exchange_catalog.py
+  - backend/tests/unit/services/test_market_data.py
+  - backend/tests/unit/services/test_market_refresh_queue.py
+  - backend/tests/unit/services/test_market_series_defaults.py
+  - backend/tests/unit/services/test_provider_persistence.py
+  - backend/tests/unit/services/test_provider_quota_contract.py
+  - backend/tests/unit/services/test_provider_quota_coordinator.py
+  - backend/tests/unit/services/test_provider_routing.py
+  - backend/tests/unit/services/test_provider_runtime.py
+  - backend/tests/unit/services/test_workstation_tool_catalogue.py
+  - backend/tests/unit/tasks/test_data_tasks.py
+  - backend/tests/unit/tasks/test_native_usage_prerequisite.py
+  - backend/tests/unit/workers/test_arq_worker.py
 historical_tc_common_runtime_dependency_a2e22225:
   authority: Root released exact TC source a2e222251d4ea796d0d4bfb6b0e8705f503c1e4d for development consumption only; final combined browser/CI/release acceptance remains Root-owned.
   previous_active_dependency: 1fdc92f1a1628d191ad1d5b2f0ba071a80df5052
@@ -7173,3 +7256,40 @@ provider_runtime_dependency_active_b1929300:
     proof remains pending.
   state: Root-released development dependency only; no native request or release acceptance
     is implied.
+
+provider_runtime_dependency_active_19d34d0b:
+  authority: Root released exact Provider source for development consumption only;
+    final native, combined browser, exact CI, and release qualification remain Root-owned.
+  source: 19d34d0b3e875b29b276ee80e471311586e6023f
+  previous_active_dependency: b19293006ea624a4f0c05a4fd91152ffd650a426
+  manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider19d34d0b-runtime-development-consumption-contract.json
+  manifest_sha256: 0d1fa69e0e97f890176f71de1115418af035d8a02933211b8b1de84d98abe294
+  local_manifest_copy: ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/19d34d0b3e875b29b276ee80e471311586e6023f.json
+  current_manifest_records_verified: 79
+  consumer_import_paths:
+  - backend/app/services/provider_runtime.py
+  - backend/app/tasks/data_tasks.py
+  - backend/tests/integration/test_provider_runtime_transactions_postgres.py
+  - backend/tests/unit/services/test_data_preparation_worker_deeper_default.py
+  - backend/tests/unit/services/test_provider_runtime.py
+  - backend/tests/unit/tasks/test_data_tasks.py
+  - backend/tests/unit/tasks/test_native_usage_prerequisite.py
+  - backend/tests/unit/workers/test_arq_worker.py
+  verification: All79 source status/Git blob/SHA256 rows verified; all8 ETF import
+    paths passed b192 old guards and now match released bytes with Git executable-bit
+    semantics.
+  provider_evidence: Root reports five real PostgreSQL tests and89 focused unit cases;
+    ETF did not replay Provider runtime or its assigned test database.
+  scope: Recover native identity persistence and rollback-safe worker retry; preserve
+    historical identifier values without repeated suffix growth. Retain first-series,
+    partial coverage, deeper coherent defaults and known local refill repairs. Recover
+    completed negative holdings children through normal bounded deduplicated requests;
+    flush derived W1/MN before state projection, inherit source freshness and preserve
+    adjustment lineage, and recover existing pending/null-signature caches through
+    ordinary reads. All prior source fallback, canonical identity, quotas, source
+    lineage, independent datasets and background preparation retained. Preserve all
+    native quotas, prior held outcomes, provider eligibility, compatible series and
+    all earlier shared backend contracts. Actual native, combined, exact CI and release
+    proof remains pending.
+  state: Development dependency only; no native/provider request, fixture replay,
+    quota/production change, or release acceptance is implied.

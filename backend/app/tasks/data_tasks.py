@@ -2093,20 +2093,27 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
         return result.scalar_one_or_none()
 
     async with AsyncSessionLocal() as db:
-        jobs = await claim_refresh_jobs(db, limit=_refresh_queue_batch_limit(limit))
-        claimed_leases = {id(job): (job.id, getattr(job, "lease_token", None)) for job in jobs}
-        # Persist the lease and release its row locks before doing any
-        # provider work. Request handlers may coalesce another owner onto a
-        # leased child while the worker is waiting on a slow transport.
-        await db.commit()
+        batch_limit = _refresh_queue_batch_limit(limit)
+        claimed_jobs = 0
         completed = 0
         retried = 0
         lease_lost = 0
-        more_jobs = len(jobs) >= _refresh_queue_batch_limit(limit)
+        more_jobs = False
         next_wakeup_at: datetime | None = None
         previous_job_rollback = False
-        for job in jobs:
-            claimed_job_id, claimed_lease_token = claimed_leases[id(job)]
+        while claimed_jobs < batch_limit:
+            jobs = await claim_refresh_jobs(db, limit=1)
+            if not jobs:
+                break
+            job = jobs[0]
+            claimed_jobs += 1
+            claimed_job_id = job.id
+            claimed_lease_token = getattr(job, "lease_token", None)
+            # Claim only the next job, persist the lease, then release its row
+            # locks before provider work. Re-selecting after each bounded job
+            # lets newly arrived visible requests outrank queued background
+            # work instead of sitting behind a pre-leased batch.
+            await db.commit()
             try:
                 if previous_job_rollback:
                     # A rollback expires every ORM object in this session, not
@@ -3076,6 +3083,7 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                             job.next_attempt_at,
                         )
             await db.commit()
+        more_jobs = more_jobs or claimed_jobs >= batch_limit
         wakeup_scheduled = False
         redis = ctx.get("redis")
         if redis is not None and (more_jobs or next_wakeup_at is not None):
@@ -3093,7 +3101,7 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                     "Could not schedule data-preparation continuation: %s", type(exc).__name__
                 )
         return {
-            "claimed": len(jobs),
+            "claimed": claimed_jobs,
             "completed": completed,
             "retried": retried,
             "lease_lost": lease_lost,

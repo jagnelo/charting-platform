@@ -271,7 +271,14 @@ async def test_worker_persists_first_alternate_series_returns_bars_and_queues_ol
 
     monkeypatch.setattr(data_tasks, "_plan_and_fetch_history_chunk", plan_and_fetch)
 
+    claim_calls = 0
+
     async def claim(worker_db, *, limit):
+        nonlocal claim_calls
+        claim_calls += 1
+        assert limit == 1
+        if claim_calls > 1:
+            return []
         job.status = "leased"
         job.lease_token = "initial-worker-lease"
         job.leased_until = datetime(2026, 11, 8, tzinfo=UTC)
