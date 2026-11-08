@@ -15815,3 +15815,24 @@ provider_native_retry_identity_discovery_redis_20261108:
   provider_http_runtime_database_or_quota_ledger_policy_mutation: false
   root_native_replay_exact_source_ci_and_combined_release: pending Root-owned
   full_platform_roadmaps: remain open
+
+
+provider_native_health_selection_lock_20261108:
+  id: provider-native-health-selection-lock-20261108
+  status: focused_local_green_root_native_concurrency_replay_and_exact_ci_pending
+  base_source: 0a1cda8434ec9f2f103400b7bd7fde3067f8ed42
+  root_finding: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/root-native0a1-IYW-acquisition-health-lock-review.json
+  implementation:
+    - Provider-chain selection now calculates the effective score from the current policy and health fields in memory, uses that score for ranking and returns it on ResolvedProvider. Routing decision reports and instrument mastering consume the same computed value.
+    - Runtime seeding initializes the persisted display score only when the policy/health score rows are first created. Repeated selection no longer updates existing policy.effective_score or health.observed_score before provider transport. Outcome telemetry and operator mutations remain unchanged.
+  focused_validation:
+    command: backend/.venv/bin/pytest backend/tests/unit/services/test_provider_runtime.py::test_concurrent_provider_selection_uses_live_scores_without_score_row_writes backend/tests/unit/services/test_provider_runtime.py::test_seed_provider_runtime_backfills_missing_policy_defaults backend/tests/unit/services/test_provider_runtime.py::test_checkpoint_operation_holds_preserve_eodhd_zero_credit_usage_exception backend/tests/unit/services/test_provider_routing.py -q; Ruff 0.4.7 check/format --check on five changed Python paths; validate-workstream; git diff --check
+    result: 40 focused tests passed in 5.20s; Ruff check/format and diff check passed.
+    coverage:
+      - Concurrent resolver calls rank two test candidates, with the admission gates isolated, by current health-derived scores although persisted score columns deliberately contain the opposite order, and leave both ORM score rows unchanged.
+      - ProviderRoutingDecision records the same computed score rather than the stale persisted display field.
+      - The full runtime module's first pass had 169 passes and one pre-existing exact-alias expectation failure. The expectation now includes the already-present get_earliest_timestamp -> fetch_ohlcv alias; that exact case passed in the focused 40-test rerun.
+  runtime_read_only_observation: A bounded authorized pg_stat_activity sample after Root's captured blocker chain showed four brief idle-in-transaction sessions and no active blockers. It did not independently reproduce the lock; the Root native replay remains necessary.
+  provider_http_or_runtime_database_quota_ledger_policy_hold_mutation: false
+  root_native_concurrency_replay_exact_ci_and_combined_release: pending Root-owned
+  full_platform_roadmaps: remain open

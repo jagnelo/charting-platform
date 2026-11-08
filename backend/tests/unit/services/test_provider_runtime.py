@@ -3072,6 +3072,7 @@ def test_checkpoint_operation_holds_preserve_eodhd_zero_credit_usage_exception(m
     assert PROVIDER_SERVICE_OPERATION_ALIASES == {
         "bulk_fetch": "fetch_ohlcv",
         "fetch_rfr_ohlcv": "fetch_ohlcv",
+        "get_earliest_timestamp": "fetch_ohlcv",
         "reconcile_universe_page": "discover_universe_page",
     }
     assert provider_checkpoint_operation_hold_reason("eodhd", "fetch_ohlcv:D1")
@@ -4366,6 +4367,119 @@ async def test_provider_chain_excludes_environment_ineligible_entitlements(db, m
     chain = await resolve_provider_chain(async_db, ProviderCapability.PRICE_HISTORY)
 
     assert all(item.provider_name != "alpaca" for item in chain)
+
+
+@pytest.mark.asyncio
+async def test_concurrent_provider_selection_uses_live_scores_without_score_row_writes(
+    db, monkeypatch
+):
+    """Concurrent selection must not lock shared score rows before transport."""
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr(settings, "PROVIDER_ROUTING_ENABLED", True)
+    monkeypatch.setattr(settings, "PROVIDER_REQUEST_DRIVEN_ONLY", False)
+    monkeypatch.setattr(settings, "PROVIDER_FREE_ONLY_CHECKPOINT", True)
+    monkeypatch.setattr(settings, "ALLOW_PAID_PROVIDER_ROUTING", False)
+    monkeypatch.setattr(
+        "app.services.provider_runtime.provider_configuration_required", lambda _name: False
+    )
+    monkeypatch.setattr(
+        "app.services.provider_runtime.provider_is_configured",
+        lambda _name, operation=None: True,
+    )
+    monkeypatch.setattr(
+        "app.services.provider_runtime.provider_missing_routing_controls",
+        lambda _name, _operation: [],
+    )
+    monkeypatch.setattr(
+        "app.services.provider_runtime.provider_entitlement_admission",
+        lambda entitlement, **_kwargs: {"allowed": bool(entitlement.is_free)},
+    )
+    monkeypatch.setattr(
+        "app.services.provider_runtime.provider_checkpoint_operation_hold_reason",
+        lambda _name, _operation, **_kwargs: None,
+    )
+    await seed_provider_runtime(async_db)
+    db.commit()
+
+    selected_names = {"massive", "alpha_vantage"}
+    policies = db.execute(
+        select(ProviderPolicy).where(
+            ProviderPolicy.capability == ProviderCapability.INSTRUMENT_SEARCH
+        )
+    ).scalars()
+    for policy in policies:
+        policy.is_enabled = False
+    for provider_name in selected_names:
+        source = db.execute(select(DataSource).where(DataSource.name == provider_name)).scalar_one()
+        policy = db.execute(
+            select(ProviderPolicy).where(
+                ProviderPolicy.data_source_id == source.id,
+                ProviderPolicy.capability == ProviderCapability.INSTRUMENT_SEARCH,
+            )
+        ).scalar_one()
+        entitlement = db.execute(
+            select(ProviderEntitlement).where(
+                ProviderEntitlement.data_source_id == source.id,
+                ProviderEntitlement.capability == ProviderCapability.INSTRUMENT_SEARCH,
+            )
+        ).scalar_one()
+        health = db.execute(
+            select(ProviderHealthState).where(
+                ProviderHealthState.data_source_id == source.id,
+                ProviderHealthState.capability == ProviderCapability.INSTRUMENT_SEARCH,
+            )
+        ).scalar_one()
+        policy.is_enabled = True
+        policy.is_pinned = False
+        policy.base_priority = 10
+        policy.auto_weight_enabled = True
+        policy.learned_weight = Decimal("0")
+        policy.effective_score = Decimal("100") if provider_name == "massive" else Decimal("0")
+        entitlement.configured_plan = "unit-reviewed-free"
+        entitlement.is_free = True
+        entitlement.authentication_required = False
+        entitlement.live_probe_status = "passed"
+        entitlement.enabled_environments = [settings.APP_ENV.strip().lower()]
+        health.ewma_latency_ms = Decimal("0")
+        health.ewma_success_rate = Decimal("0") if provider_name == "massive" else Decimal("1")
+        health.ewma_completeness = Decimal("0") if provider_name == "massive" else Decimal("1")
+        health.ewma_freshness = Decimal("0") if provider_name == "massive" else Decimal("1")
+        health.ewma_consistency = Decimal("0") if provider_name == "massive" else Decimal("1")
+        health.observed_score = Decimal("100") if provider_name == "massive" else Decimal("0")
+    db.commit()
+
+    chains = await asyncio.gather(
+        resolve_provider_chain(async_db, ProviderCapability.INSTRUMENT_SEARCH),
+        resolve_provider_chain(async_db, ProviderCapability.INSTRUMENT_SEARCH),
+    )
+
+    assert all({item.provider_name for item in chain} == selected_names for chain in chains), [
+        [item.provider_name for item in chain] for chain in chains
+    ]
+    for chain in chains:
+        assert chain[0].provider_name == "alpha_vantage"
+        assert chain[0].effective_score > chain[1].effective_score
+    for provider_name in selected_names:
+        source = db.execute(select(DataSource).where(DataSource.name == provider_name)).scalar_one()
+        policy = db.execute(
+            select(ProviderPolicy).where(
+                ProviderPolicy.data_source_id == source.id,
+                ProviderPolicy.capability == ProviderCapability.INSTRUMENT_SEARCH,
+            )
+        ).scalar_one()
+        health = db.execute(
+            select(ProviderHealthState).where(
+                ProviderHealthState.data_source_id == source.id,
+                ProviderHealthState.capability == ProviderCapability.INSTRUMENT_SEARCH,
+            )
+        ).scalar_one()
+        assert policy.effective_score == (
+            Decimal("100") if provider_name == "massive" else Decimal("0")
+        )
+        assert health.observed_score == (
+            Decimal("100") if provider_name == "massive" else Decimal("0")
+        )
+        assert not db.is_modified(policy) and not db.is_modified(health)
 
 
 @pytest.mark.asyncio

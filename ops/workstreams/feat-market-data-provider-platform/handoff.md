@@ -33862,3 +33862,32 @@ and format, workstream validation, and `git diff --check` passed. No provider
 HTTP, Root runtime/database, quota-ledger, policy, or hold mutation occurred.
 Root owns exact-source native replay and remaining release gates; all Provider
 roadmaps remain open.
+
+
+## 2026-11-08 — avoid score-row writes during provider selection
+
+Root's IYW runtime trace recorded shared `provider_health_state` score updates
+blocking concurrent operations while transactions remained open around
+provider work. Selection and ranking now compute the current effective score
+from policy and health values in memory. That same value flows through
+`ResolvedProvider`, provider-routing decision reports, and instrument
+mastering. Runtime seeding initializes persisted display scores only for new
+score rows; outcome telemetry after provider responses and operator updates
+are unchanged.
+
+The focused resolver regression exercises two concurrent resolver coroutines
+with test admission gates isolated. It proves current health-derived ranking
+wins over deliberately stale stored score columns and leaves the policy/health
+rows unchanged. The routing report regression proves it serializes the same
+computed score. The bounded read-only PostgreSQL sample during this turn showed
+four brief idle-in-transaction sessions and no active blocker; it did not
+reproduce the Root blocker chain. Root owns the genuine concurrent runtime
+replay and exact-source qualification.
+
+Focused runtime/routing tests passed 40/40 in 5.20 seconds. An initial full
+runtime-module pass had 169 passes and one pre-existing expected-alias
+mismatch; the expectation was corrected to include the already-present
+`get_earliest_timestamp` alias and the exact case passed in the focused rerun.
+Ruff 0.4.7 check/format, workstream validation, and diff checks passed. No
+provider HTTP, runtime/database write, quota-ledger, policy, or hold mutation
+occurred. The full Provider/platform roadmaps remain open.
