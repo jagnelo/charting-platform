@@ -1230,6 +1230,9 @@
                   <b>{{ performance.closed_trade_count ?? performance.trade_count ?? 0 }} closed · {{ performance.open_position_count ?? 0 }} open</b>
                 </small>
               </div>
+              <small class="summary-basis-note" role="note">
+                Marked total uses the latest raw market price. Open P&amp;L estimates closing costs and slippage, so the figures can differ.
+              </small>
             </div>
             <div class="summary-card">
               <span class="summary-label">Win rate</span>

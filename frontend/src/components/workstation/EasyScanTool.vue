@@ -582,9 +582,15 @@ onBeforeUnmount(() => {
 .easy-scan__advanced-toggle { justify-self: start; padding: 2px 6px; }
 .easy-scan__advanced-drag-source { cursor: grab; }
 .easy-scan__advanced-drag-source:active { cursor: grabbing; }
-.easy-scan__advanced { display: grid; gap: 5px; padding: 5px; border: 1px solid #34434e; background: #151b20; }
-.easy-scan__advanced header { display: flex; align-items: center; justify-content: space-between; color: #a9bbc5; }
-.easy-scan__advanced header select { width: 130px; }
+.easy-scan__advanced { display: grid; gap: 4px; min-width: 0; padding: 4px; border: 1px solid var(--tc-border); background: var(--tc-panel-bg); color: var(--tc-text); }
+.easy-scan__advanced :deep(.condition-group) { gap: 4px; padding: 4px; }
+.easy-scan__advanced :deep(.condition-group__children) { gap: 4px; }
+.easy-scan__advanced :deep(.tech-cond-card) { gap: 4px; }
+.easy-scan__advanced :deep(.field-label) { color: var(--tc-text-muted); font-size: 11px; }
+.easy-scan__advanced :deep(.form-input),
+.easy-scan__advanced :deep(.form-select) { min-height: 26px; padding-block: 3px; }
+.easy-scan__advanced header { display: flex; align-items: center; justify-content: space-between; color: var(--tc-text-muted); font-size: 12px; }
+.easy-scan__advanced header select { width: min(150px, 45%); }
 .easy-scan__advanced > button { justify-self: start; padding: 2px 6px; }
 input, select, button { min-width: 0; border: 1px solid #34434e; background: #172027; color: #d2dce3; font: inherit; }
 input { padding: 2px 4px; } button { cursor: pointer; } button:disabled { cursor: default; opacity: .5; }

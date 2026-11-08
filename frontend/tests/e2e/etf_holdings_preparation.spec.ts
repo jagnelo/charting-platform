@@ -737,7 +737,7 @@ test.describe('ETF holdings preparation', () => {
     await openSnapshotSourceDetails(page)
     await expect(page.getByTestId('etf-snapshot-known-at')).toHaveAttribute('datetime', '2026-10-16T09:20:00Z')
     await expect(page.getByTestId('etf-snapshot-published-at')).toHaveAttribute('datetime', '2026-10-16T08:00:00Z')
-    await expect(page.getByTestId('etf-snapshot-lineage')).toContainText('ishares:239771:2026-10-15')
+    await expect(page.getByTestId('etf-snapshot-source-identifier')).toHaveText('ishares:239771:2026-10-15')
     await expect(page.getByTestId('etf-snapshot-source-url')).toHaveText('https://fixture.invalid/ishares/239771?date=2026-10-15')
     await expect(page.locator('.holdings-table')).toContainText('ACME')
     expect(requests.some(request => request.snapshotId === '911')).toBeTruthy()

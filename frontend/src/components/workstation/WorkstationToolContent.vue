@@ -806,9 +806,11 @@
         </template>
         </template>
         <button type="button" :disabled="breadthWatchlistSourceNotCurrent || (breadthConditionKind === 'python_series' && breadthPythonSeriesCodeVersionId == null) || (breadthComposition === 'tree' && breadthTreePythonSeriesLeaf !== null && pythonLeafAnchorId(breadthTreePythonSeriesLeaf) == null)" @click="runGenericBreadth">Evaluate</button>
-        <span v-if="genericBreadthLoading" role="status" aria-live="polite">Evaluating…</span>
-        <span v-else-if="genericBreadthError" class="breadth-tool__status--error" role="alert">{{ genericBreadthError }}</span>
-        <span v-else-if="genericBreadth" class="breadth-tool__custom-result"><b>{{ genericBreadthPercentage }}</b> · {{ genericBreadth.pass_count }}/{{ genericBreadth.eligible_count }} eligible · {{ genericBreadth.excluded_count }} excluded · {{ genericBreadth.requested_count }} requested · {{ genericBreadthCoverage }} coverage<span v-if="genericBreadth.group_value != null"> · group {{ genericBreadth.group_value.toFixed(4) }}</span></span>
+        <span v-if="genericBreadthEvaluationLoading" role="status" aria-live="polite">Evaluating…</span>
+        <span v-if="genericBreadthHistoryLoading" role="status" aria-live="polite">Updating historical breadth…</span>
+        <span v-if="genericBreadthEvaluationError" class="breadth-tool__status--error" role="alert">{{ genericBreadthEvaluationError }}</span>
+        <span v-if="genericBreadthHistoryError" class="breadth-tool__status--error" role="alert">Historical breadth: {{ genericBreadthHistoryError }}</span>
+        <span v-if="genericBreadth" class="breadth-tool__custom-result"><b>{{ genericBreadthPercentage }}</b> · {{ genericBreadth.pass_count }}/{{ genericBreadth.eligible_count }} eligible · {{ genericBreadth.excluded_count }} excluded · {{ genericBreadth.requested_count }} requested · {{ genericBreadthCoverage }} coverage<span v-if="genericBreadth.group_value != null"> · group {{ genericBreadth.group_value.toFixed(4) }}</span></span>
         <details v-if="genericBreadth" class="breadth-tool__generic-evidence" aria-label="Generic breadth result evidence">
           <summary>Snapshot evidence</summary>
           <dl>
@@ -3532,14 +3534,16 @@ const genericBreadthHistory = computed<GenericBreadthHistoryState | null>(() => 
   }
   return workspaceStore.genericBreadthHistory[genericBreadthKey.value] ?? null
 })
-const genericBreadthLoading = computed(() => breadthUsesPython.value
+const genericBreadthEvaluationLoading = computed(() => breadthUsesPython.value
   ? breadthPythonSeriesLoading.value
-  : workspaceStore.genericBreadthLoading[genericBreadthKey.value] === true || workspaceStore.genericBreadthHistoryLoading[genericBreadthKey.value] === true)
+  : workspaceStore.genericBreadthLoading[genericBreadthKey.value] === true)
+const genericBreadthHistoryLoading = computed(() => !breadthUsesPython.value
+  && workspaceStore.genericBreadthHistoryLoading[genericBreadthKey.value] === true)
 const genericBreadthRunError = ref('')
 watch([breadthCustomUniverseKind, breadthWatchlistSourceId], () => {
   genericBreadthRunError.value = ''
 })
-const genericBreadthError = computed(() => {
+const genericBreadthEvaluationError = computed(() => {
   if (genericBreadthRunError.value) return genericBreadthRunError.value
   if (breadthUsesPython.value) {
     if (breadthPythonSeriesError.value) return breadthPythonSeriesError.value
@@ -3547,8 +3551,11 @@ const genericBreadthError = computed(() => {
     if (breadthPythonSeriesStatus.value === 'canceled') return 'The isolated Python breadth run was canceled.'
     return null
   }
-  return workspaceStore.genericBreadthErrors[genericBreadthKey.value] ?? workspaceStore.genericBreadthHistoryErrors[genericBreadthKey.value] ?? null
+  return workspaceStore.genericBreadthErrors[genericBreadthKey.value] ?? null
 })
+const genericBreadthHistoryError = computed(() => breadthUsesPython.value
+  ? null
+  : workspaceStore.genericBreadthHistoryErrors[genericBreadthKey.value] ?? null)
 const genericBreadthPercentage = computed(() => genericBreadth.value?.percentage == null ? 'Unavailable' : `${(genericBreadth.value.percentage * 100).toFixed(1)}%`)
 const genericBreadthCoverage = computed(() => genericBreadth.value == null ? 'Unavailable' : `${(genericBreadth.value.coverage * 100).toFixed(1)}%`)
 const genericBreadthReferenceTargetEvidence = computed(() => breadthReferenceTargetEvidence(genericBreadth.value?.condition))

@@ -112,12 +112,40 @@ describe('workspace store layout tabs', () => {
     expect(apiGet).toHaveBeenCalledWith('/market-groups/sp500-sectors', undefined, {
       priority: 'auto', queueKey: 'top-down:market-group:sp500-sectors',
     })
-    expect(apiGet).toHaveBeenCalledWith('/analysis/groups/us-benchmarks/snapshot', { benchmark: 'SPY' })
-    expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/snapshot', { benchmark: 'SPY' })
-    expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/breadth')
-    expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/breadth/history', { limit: 500 })
+    expect(apiGet).toHaveBeenCalledWith('/analysis/groups/us-benchmarks/snapshot', { benchmark: 'SPY' }, {
+      priority: 'auto', queueKey: 'top-down:group-snapshot:us-benchmarks',
+    })
+    expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/snapshot', { benchmark: 'SPY' }, {
+      priority: 'auto', queueKey: 'top-down:group-snapshot:sp500-sectors',
+    })
+    expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/breadth', undefined, {
+      priority: 'auto', queueKey: 'top-down:breadth:sp500-sectors',
+    })
+    expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/breadth/history', { limit: 500 }, {
+      priority: 'auto', queueKey: 'top-down:breadth-history:sp500-sectors',
+    })
     expect(store.marketAnalysisRefreshing).toBe(false)
     expect(store.marketAnalysisRefreshedAt).toEqual(expect.any(String))
+  })
+
+  it('promotes an already queued shared refresh when a visible workstation joins it', async () => {
+    const pending = deferred<unknown>()
+    apiGet.mockReturnValue(pending.promise)
+    const store = useWorkspaceStore()
+
+    const background = store.refreshMarketAnalysis()
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledTimes(6))
+    const foreground = store.refreshMarketAnalysis('high')
+
+    expect(apiGet).toHaveBeenCalledTimes(6)
+    expect(promoteQueued).toHaveBeenCalledWith('top-down:market-group:us-benchmarks', 'high')
+    expect(promoteQueued).toHaveBeenCalledWith('top-down:market-group:sp500-sectors', 'high')
+    expect(promoteQueued).toHaveBeenCalledWith('top-down:group-snapshot:us-benchmarks', 'high')
+    expect(promoteQueued).toHaveBeenCalledWith('top-down:group-snapshot:sp500-sectors', 'high')
+    expect(promoteQueued).toHaveBeenCalledWith('top-down:breadth:sp500-sectors', 'high')
+    expect(promoteQueued).toHaveBeenCalledWith('top-down:breadth-history:sp500-sectors', 'high')
+    pending.resolve({})
+    await Promise.all([background, foreground])
   })
 
   it('joins active-panel reads to the shell refresh without cancelling its generation', async () => {
@@ -238,6 +266,80 @@ describe('workspace store layout tabs', () => {
     expect(store.activeTabKey).toBe('us-top-down')
   })
 
+  it('keeps an acknowledged local tool addition when default hydration returns an older snapshot', async () => {
+    const initial = {
+      id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 9, schema_version: 1, settings: {},
+      tabs: [{
+        id: 20, stable_key: 'us-top-down', name: 'US Top Down', position: 0, active_window_key: 'chart-one',
+        layout_config: { root: { type: 'stack', content: [{ type: 'component', componentType: 'workstation-tool', title: 'Chart', componentState: { instance_key: 'chart-one', tool_type: 'chart', title: 'Chart' } }] } },
+        windows: [{ id: 30, instance_key: 'chart-one', tool_type: 'chart', title: 'Chart', link_group: 'blue', configuration: { symbol: 'SPY' }, style: {}, state_schema_version: 1, position: 0 }],
+      }],
+    }
+    const lateRead = deferred<any>()
+    apiGet.mockResolvedValueOnce(initial).mockReturnValueOnce(lateRead.promise)
+    const store = useWorkspaceStore()
+    await store.loadDefault()
+
+    const pendingHydration = store.loadDefault()
+    const library = store.openTool({
+      key: 'code-library', tool_type: 'code_library', title: 'Python Library', instance_prefix: 'code-library', configuration: {},
+    })
+    expect(library).not.toBeNull()
+    apiPut.mockImplementationOnce(async (_path, payload) => ({ ...payload, revision: 10 }))
+    await expect(store.saveSnapshot()).resolves.toBe(true)
+
+    lateRead.resolve(initial)
+    await pendingHydration
+
+    expect(store.workspace?.revision).toBe(10)
+    expect(store.workspace?.tabs[0].active_window_key).toBe(library?.instance_key)
+    expect(store.workspace?.tabs[0].windows.map(window => window.tool_type)).toContain('code_library')
+    expect(store.snapshotSaveStatus).toBe('saved')
+  })
+
+  it('merges a local tool addition when default hydration finishes before its snapshot acknowledgement', async () => {
+    const initial = {
+      id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 9, schema_version: 1, settings: {},
+      tabs: [{
+        id: 20, stable_key: 'us-top-down', name: 'US Top Down', position: 0, active_window_key: 'chart-one',
+        layout_config: { root: { type: 'stack', content: [{ type: 'component', componentType: 'workstation-tool', title: 'Chart', componentState: { instance_key: 'chart-one', tool_type: 'chart', title: 'Chart' } }] } },
+        windows: [{ id: 30, instance_key: 'chart-one', tool_type: 'chart', title: 'Chart', link_group: 'blue', configuration: { symbol: 'SPY' }, style: {}, state_schema_version: 1, position: 0 }],
+      }],
+    }
+    const lateRead = deferred<any>()
+    const firstSave = deferred<any>()
+    apiGet.mockResolvedValueOnce(initial).mockReturnValueOnce(lateRead.promise)
+    const store = useWorkspaceStore()
+    await store.loadDefault()
+    vi.useFakeTimers()
+
+    const pendingHydration = store.loadDefault()
+    const library = store.openTool({
+      key: 'code-library', tool_type: 'code_library', title: 'Python Library', instance_prefix: 'code-library', configuration: {},
+    })
+    expect(library).not.toBeNull()
+    apiPut.mockReturnValueOnce(firstSave.promise).mockImplementationOnce(async (_path, payload) => ({ ...initial, ...payload, revision: 11 }))
+    const firstSaveResult = store.saveSnapshot()
+    await vi.waitFor(() => expect(apiPut).toHaveBeenCalledTimes(1))
+
+    // Reproduce the observed order: old default hydration resolves after the
+    // Library has been added and its PUT sent, but before that PUT is acked.
+    lateRead.resolve(initial)
+    await pendingHydration
+    expect(store.workspace?.tabs[0].windows.map(window => window.tool_type)).toContain('code_library')
+    expect(store.workspace?.tabs[0].active_window_key).toBe(library?.instance_key)
+
+    firstSave.resolve({ ...initial, ...apiPut.mock.calls[0][1], revision: 10 })
+    await firstSaveResult
+    await vi.runOnlyPendingTimersAsync()
+
+    expect(apiPut).toHaveBeenCalledTimes(2)
+    expect(apiPut.mock.calls[1][1].tabs[0].windows.map((window: { tool_type: string }) => window.tool_type)).toContain('code_library')
+    expect(apiPut.mock.calls[1][1].tabs[0].active_window_key).toBe(library?.instance_key)
+    expect(store.snapshotSaveStatus).toBe('saved')
+    vi.useRealTimers()
+  })
+
   it('reports snapshot save progress, failure, and a confirmed retry', async () => {
     const store = useWorkspaceStore()
     store.workspace = {
@@ -304,9 +406,15 @@ describe('workspace store layout tabs', () => {
     await store.loadBreadth('sp500-sectors', { timeframe: 'W1', adjusted: false })
     await store.loadBreadthHistory('sp500-sectors', { timeframe: 'W1', adjusted: false })
 
-    expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/snapshot', { benchmark: 'SPY', timeframe: 'W1', adjusted: false })
-    expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/breadth', { timeframe: 'W1', adjusted: false })
-    expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/breadth/history', { limit: 500, timeframe: 'W1', adjusted: false })
+    expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/snapshot', { benchmark: 'SPY', timeframe: 'W1', adjusted: false }, {
+      priority: 'auto', queueKey: 'top-down:group-snapshot:sp500-sectors',
+    })
+    expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/breadth', { timeframe: 'W1', adjusted: false }, {
+      priority: 'auto', queueKey: 'top-down:breadth:sp500-sectors',
+    })
+    expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/breadth/history', { limit: 500, timeframe: 'W1', adjusted: false }, {
+      priority: 'auto', queueKey: 'top-down:breadth-history:sp500-sectors',
+    })
   })
 
   it('loads role-aware benchmark-family ratios with a stable cache key and lineage', async () => {
@@ -687,7 +795,9 @@ describe('workspace store layout tabs', () => {
     expect(apiGet).toHaveBeenCalledWith('/market-groups/sp400', undefined, {
       priority: 'auto', queueKey: 'top-down:market-group:sp400',
     })
-    expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp400/snapshot', { benchmark: 'MDY', timeframe: 'W1' })
+    expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp400/snapshot', { benchmark: 'MDY', timeframe: 'W1' }, {
+      priority: 'auto', queueKey: 'top-down:group-snapshot:sp400',
+    })
     expect(apiGet).toHaveBeenCalledWith('/analysis/benchmark-families/sp400/overview', { timeframe: 'W1' })
     expect(store.marketGroups.sp400?.stable_key).toBe('sp400')
     expect(store.groupSnapshots.sp400).toEqual(expect.objectContaining({ group_key: 'sp400' }))

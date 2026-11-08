@@ -1149,16 +1149,20 @@ async function refreshMarketData() {
     // its first paint changes the canonical readiness/status state behind the
     // visual workstation oracle without helping the chart itself.
     if (popoutTool.value?.tool_type === 'watchlist' && !hasSharedMarketAnalysis()) {
-      await workspaceStore.refreshMarketAnalysis()
+      await workspaceStore.refreshMarketAnalysis('high')
     }
     return
   }
   if (workspaceStore.isPersistenceLeader) {
+    // Mounting a visible analysis surface is user-visible work. If the shell's
+    // interval refresh already queued these same reads, the store promotes the
+    // existing requests rather than issuing duplicates.
+    void workspaceStore.refreshMarketAnalysis('high')
     await marketAnalysisQuery.refetch()
   } else {
     // Followers still hydrate once when they open. Subsequent periodic refreshes are
     // leader-owned and arrive through the cross-window refresh event.
-    await workspaceStore.refreshMarketAnalysis()
+    await workspaceStore.refreshMarketAnalysis('high')
   }
 }
 const popoutTool = computed(() => {

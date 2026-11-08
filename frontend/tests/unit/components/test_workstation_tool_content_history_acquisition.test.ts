@@ -400,7 +400,9 @@ describe('WorkstationToolContent missing chart history entrypoint', () => {
     expect(apiGet).toHaveBeenCalledWith('/market-groups/sp500-sectors', undefined, {
       priority: 'auto', queueKey: 'top-down:market-group:sp500-sectors',
     })
-    expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/snapshot', { benchmark: 'SPY' })
+    expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/snapshot', { benchmark: 'SPY' }, {
+      priority: 'auto', queueKey: 'top-down:group-snapshot:sp500-sectors',
+    })
     expect(workspaceStore.groupSnapshots['sp500-sectors']).toBeUndefined()
 
     snapshot.resolve({ group_key: 'sp500-sectors', rows: [] })
@@ -521,6 +523,62 @@ describe('WorkstationToolContent missing chart history entrypoint', () => {
     await drilldown.findAll('button').find(button => button.text() === 'Pass 1')?.trigger('click')
     await drilldown.get('button[aria-label="Select AAA Alpha Incorporated"]').trigger('click')
     expect(wrapper.emitted('select')).toEqual([['AAA', 1001]])
+    wrapper.unmount()
+    queryClient.clear()
+  })
+
+  it('keeps a completed generic breadth result visible while its independent history request is pending', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const tool: WorkspaceWindowState = {
+      id: 36, instance_key: 'breadth-result-before-history', tool_type: 'breadth', title: 'S&P 500 Sectors',
+      link_group: 'blue', configuration: { group_key: 'sp500-sectors' }, style: {}, state_schema_version: 1, position: 0,
+    }
+    const historyPending = deferred<unknown>()
+    const member = { instrument_id: 1001, symbol: 'AAA', name: 'Alpha Incorporated', value: true, metric: 0.12 }
+    apiPost.mockImplementation((path: string) => path === '/analysis/breadth'
+      ? Promise.resolve({
+          definition_version: 1, definition_hash: 'breadth-result-before-history', universe: { kind: 'group', key: 'sp500-sectors' },
+          condition: { kind: 'above_moving_average' }, timeframe: 'D1', adjustment: 'split_adjusted',
+          requested_count: 2, eligible_count: 2, pass_count: 1, excluded_count: 0, percentage: 0.5, coverage: 1,
+          members: [member], exclusions: [],
+        })
+      : path === '/analysis/breadth/history'
+        ? historyPending.promise
+        : Promise.resolve({}))
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    const wrapper = mount(WorkstationToolContent, {
+      props: { tool, activeWindowKey: tool.instance_key },
+      global: {
+        plugins: [pinia, [VueQueryPlugin, { queryClient }]],
+        stubs: {
+          UPlotChart: EmptyChartStub, ChartPlotLibrary: { template: '<div />' }, ChartTemplateControl: { template: '<div />' },
+          DrawingToolbar: { template: '<div />' }, ToolWindow: ToolWindowShell,
+          BreadthHistoryUPlot: true, GenericBreadthHistoryUPlot: true,
+        },
+      },
+    })
+
+    await wrapper.get('.breadth-tool__custom button').trigger('click')
+    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/analysis/breadth', expect.any(Object)))
+    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/analysis/breadth/history', expect.objectContaining({ limit: 500 })))
+    await vi.waitFor(() => expect(wrapper.get('.breadth-tool__custom-result').text()).toContain('50.0%'))
+    expect(wrapper.text()).toContain('Updating historical breadth…')
+    expect(wrapper.get('[aria-label="Generic breadth member drilldown"]').text()).toContain('Pass 1')
+
+    historyPending.resolve({
+      definition_version: 1,
+      definition_hash: 'breadth-result-before-history',
+      universe: { kind: 'group', key: 'sp500-sectors' },
+      condition: { kind: 'above_moving_average' },
+      timeframe: 'D1',
+      adjustment: 'split_adjusted',
+      points: [],
+      occurrences: [],
+    })
+    await flushPromises()
+    expect(wrapper.get('.breadth-tool__custom-result').text()).toContain('50.0%')
+    expect(wrapper.text()).not.toContain('Updating historical breadth…')
     wrapper.unmount()
     queryClient.clear()
   })
