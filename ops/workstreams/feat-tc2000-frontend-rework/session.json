@@ -103,7 +103,7 @@
     "status": "pending Root observation after publication"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "Current working-tree successor based on 2a8dc9e4 includes strict confirmedIdentity reuse for the selected canonical ticker (including supplied-ID conflict rejection), truthful pending/high-priority My Favorites mutations, visible Notes-tab activation in J12, and corrected IGV holdings status matching. Exact Provider b1929300 5-of-78 backend imports and Strategy 2689c2c6 one-of-27 private test import are recorded. Focused confirmation/acquisition, API, favorites, ToolWindow and type checks pass; the full binding module retains one TC-owned visibility-return duplicate-refresh failure that must be repaired before branch release. Root exact-source rebuild/browser rerun and all wider qualification remain pending.",
+  "current_candidate_ci_status": "Current working-tree successor based on 2a8dc9e4 includes strict confirmedIdentity reuse for the selected canonical ticker (including supplied-ID conflict rejection), truthful pending/high-priority My Favorites mutations, visible Notes-tab activation in J12, and corrected IGV holdings status matching. Exact Provider b1929300 5-of-78 backend imports and Strategy 2689c2c6 one-of-27 private test import are recorded. Focused confirmation/acquisition, API, favorites, ToolWindow and type checks pass; the visibility-return duplicate query trigger is repaired and its focused one-refresh regression passes; Root rendered qualification remains pending. Root exact-source rebuild/browser rerun and all wider qualification remain pending.",
   "current_checkpoint_status": "Bounded common critical-smoke follow-up: do not block a resolved exact ticker selection on a redundant canonical GET; reject symbol/status/identity-ID disagreement; retain ordinary J12 tab activation and existing holdings feedback semantics; give favorite writes high browser fetch priority without optimistic server-state changes. Root owns rendered rerun and full release acceptance.",
   "current_exact_ci": {
     "head_sha": null,
@@ -463,7 +463,7 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "Focused confirmed-identity, acquisition-contract, API-priority, favorites, ToolWindow and type checks pass. The full Workstation bindings module still has one unrelated visibility-return duplicate-refresh failure; Root exact-source browser rerun, full route/action coverage, combined profile, exact CI and release acceptance remain pending.",
+    "current_blocker": "The visibility-return duplicate query trigger now has a focused one-refresh pass and frontend type-check. Root browser qualification of frozen ccb0 and this successor, full route/action coverage, combined profile, exact CI and release acceptance remain pending.",
     "current_phase": "Repair the four Root-owned critical-smoke gaps: trust only an exact confirmed canonical identity, activate the visible saved Notes tab in J12, align the IGV holdings detail assertion with status capitalization, and submit My Favorites mutations at high fetch priority with truthful pending state; consume Provider b1929300 and Strategy 2689c2c6.",
     "next_action": "Commit this bounded repair and exact dependency checkpoint for Root rebuild and critical-journey rerun; preserve all remaining platform-usability criteria and release gates.",
     "total": 9,

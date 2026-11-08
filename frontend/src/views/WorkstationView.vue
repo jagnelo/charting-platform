@@ -1073,6 +1073,10 @@ const marketAnalysisQuery = useQuery({
   },
   enabled: computed(() => !isPopout.value && documentVisible.value && Boolean(workspaceStore.workspace) && workspaceStore.isPersistenceLeader),
   staleTime: 60_000,
+  // The visibility handler below is the single refresh owner. Vue Query also
+  // observes document visibility as window focus; disabling its parallel
+  // focus refetch prevents two shell refreshes for the same foreground return.
+  refetchOnWindowFocus: false,
   refetchInterval: 5 * 60 * 1000,
   refetchIntervalInBackground: false,
 })
