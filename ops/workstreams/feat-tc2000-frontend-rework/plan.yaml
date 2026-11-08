@@ -331,7 +331,7 @@ on_demand_consumer_implementation: 'Current TC-owned mocked implementation at th
   is pending Root. Controlled tests are not genuine Provider/issuer proof; target/deployment and the complete roadmap remain
   open.'
 current_blocker: "Root is reviewing the frozen d020/9e2 exact-source run. This TC continuation now selects the current instrument's holdings dependency before formatting aggregate partial progress, preserving a typed future-dated holdings reason while ready history remains usable. The focused Workstation module and frontend type-check pass; Root's rendered/browser proof, full qualification, and release gates remain pending."
-current_checkpoint_status: "Current TC continuation atop d020 adds dataset-scoped Workstation holdings status selection: a matching instrument/holdings dependency's status and safe reason take precedence over unrelated aggregate partial progress, without hiding history or presenting future holdings as current. Workstation view tests passed 99/99 and vue-tsc passed. Root owns frozen-runtime browser qualification; wider platform criteria remain open."
+current_checkpoint_status: "Current source contains bounded common API admission, high-priority active WatchList local reads, durable EasyScan run lifecycle on virtual unmount, and specific dataset-level preparation reasons. Focused checks passed; Root actual browser/native qualification and full acceptance remain pending."
 
 ordinary_ticker_latest_update: 'Root accepted the exact combined served profile at backend source 6eae00eb8380438da771fed0c42d19587e9520ce
   / image sha256:6c962aad753959c2ecdd79f0a1d6057d77f2ba6b829ec85b99404b009a42e76a and frontend source 36e7ad2cb08c769a242773ab2b6be69fcc350774
@@ -1987,10 +1987,10 @@ status: in_progress
 progress:
   completed: []
   total: 9
-  current_phase: "Complete the current TC shared frontend checkpoint: keep workspace saves responsive, preserve confirmed-identity routing, align current holdings semantics, and publish nonempty local bars as soon as an exact-scope cache refresh returns, independent of slower metadata; retain exact Strategy private journey imports."
-  current_blocker: "Focused store/workspace units pass 166/166, vue-tsc passes, and the browser reference preflight has no actionable unbound references. Root must verify the actual cold-IHI plot and affected ordinary journeys; complete route/action, exact CI, combined, native, and release qualification remain pending."
-  next_action: "Run cheap scope/workstream/journey guards, commit this coherent source and exact Strategy dependency, then have Root verify the IHI cold-cache plot and affected journeys on its retained fixture; preserve the complete platform roadmap and pending release gates."
-  updated_at: "2026-11-08"
+  current_phase: "Finish common API admission/headroom and EasyScan durable-run cleanup with the exact ETF and Strategy private test successors pinned."
+  current_blocker: "Focused transport, WatchList priority, EasyScan lifecycle tests, frontend type-check, and strict scope/workstream/journey guards pass; Root browser/native qualification remains pending."
+  next_action: "Commit the coherent TC source and exact private imports, then have Root validate affected retained-fixture journeys; keep full-platform criteria and release gates open."
+  updated_at: '2026-11-08'
 historical_checkpoint_status_archive: 'Current boundary (2026-10-22): published HEAD is a7c8ecba208ce6c79d8f1a5d7294500122e462e5;
   one test-only change in workstation_performance.spec.ts and the four owned records are pending review. Exact hosted CI39693019337
   on a7 is terminal red/flaky (190 passed,110 declared skips, one retry-passing Market Map hover failure); preserve it. The
@@ -4265,7 +4265,7 @@ correction_summary:
     recorded.
 
 ordinary_ticker_snapshot_followup_20261105: {"kind": "corrective followup within existing ordinary ticker checkpoint; no roadmap replan", "baseline": "45cc8206602d7823ca29e132d991d88b0bcbbc25", "previous_goal": "Repair exact discovered ticker Enter/Go in Workstation and shared chart SearchBar, and isolate superseded selection errors while preserving exact-local precedence, explicit choices, expressions, identity verification, ambiguity safeguards, picker scopes, stale-query fencing, current ETF context, and genuine workspace conflict recovery.", "Root_acceptance": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/TC-same-snapshot-implementation-root-acceptance.json", "accepted_file_hashes": {"frontend/src/components/workstation/WorkstationToolContent.vue": "3ff06c38e10066f15e4bca78b49833ec109d6e4443a4302106c6acdc1a813db2", "frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts": "b28994b75748976ef4658f74a79379909bb76fad5c7e8077b4e9b45a5e331c7e"}, "local_evidence": "4/4 mounted component tests, type-check and diff checks; prior failing CI retained", "release_state": "Root correct-bundle browser, exact closing-tip CI and combined full profile remain pending", "boundaries": "No self-integration/deployment; no source requests or quota/policy/dataset changes; all old roadmap criteria and accepted archives preserved"}
-next_action: "Freeze the bounded shared-observer and journey-proof correction for Root rebuild; preserve the remaining full-platform criteria and release gates."
+next_action: "Freeze this coherent TC candidate after focused type/scope/workstream checks; Root owns retained-fixture and combined qualification. Preserve all remaining full-platform criteria and pending release gates."
 current_exact_ci:
   head_sha: null
   run_id: null
@@ -4276,7 +4276,7 @@ closing_tip_ci:
   run_id: null
   scope: "Exact closing TC source after the active platform-usability implementation checkpoint."
   status: "pending Root observation after publication"
-current_candidate_ci_status: "Current TC successor adds immediate publication of nonempty current-scope OHLCV from force-fresh local reads; Root's retained IHI trace showed this path waiting on a pending canonical instrument GET after the local cache had 500 bars. A store regression proves bars and finite uPlot data appear before delayed metadata returns, while empty refreshes preserve prior data. The checkpoint also contains the existing session-save priority and corrected TCNEW/IGV fixture contracts, plus the exact Strategy 88b70230 private lifecycle test import. Provider 19d34d0b3e875b29b276ee80e471311586e6023f remains the current development backend dependency (79 manifest rows; 8 TC deltas), not release acceptance. Focused store/workspace units passed 166/166, frontend type-check passed, E2E reference preflight has no actionable unbound names, and scope/workstream/journey/diff guards passed. Root retained-fixture/native-render verification, exact CI, and full platform acceptance remain pending."
+current_candidate_ci_status: "Current TC candidate adds bounded prioritized API transport admission with active-response-body slot retention and queued abort/session-boundary coverage; visible WatchList local quote reads use high priority; EasyScan unmount detaches local observers without canceling durable research runs, while explicit Cancel remains. The candidate includes typed dataset-specific holdings reason handling and exact ETF55c0/Strategy68c5 private imports. Focused API client 22/22, EasyScan 26/26, WatchList store 25/25, Workstation tool acquisition 15/15, frontend type-check, and strict scope/workstream/journey guards passed. Root retained-fixture/browser qualification, exact CI and full platform acceptance remain pending."
 history_dashboard_scope_archive:
   path: ops/workstreams/feat-tc2000-frontend-rework/checkpoint-archives/history-dashboard-repair-scope-archive-20261106.json
   sha256: 2880cdb5ef6a0074b6204267b51ba9f676160bad2ef1ecff1385db1d5819d6cd
@@ -4596,12 +4596,7 @@ platform_usability_checkpoint_20261106:
       gates remain pending.","next_action":"Root owns exact new-tip CI, new exact
       full staging104 visual qualification, and canonical degraded-staging remediation;
       keep application and all other references frozen."}'
-  dependencies: 'Current exact development dependencies: Provider33e1fd44829daee4b0f604b5507261bb10b7a711
-    (58-file manifest, supersedes Provider580); ETF055641eaafab37a8160908e974a3ec1a4483e7c6
-    (8-file domain manifest, supersedes ETFeed and ETF68 intermediate); Strategy8dfeed/5703
-    and the exact frozen lifecycle import remain as recorded. These are source-consumption
-    pins, not release qualification. Root owns combined qualification, integration,
-    and live acceptance.'
+  dependencies: "Current development dependencies: Provider19d34d0b3e875b29b276ee80e471311586e6023f; ETF55c0e52d4afdf7703fe23fab2fda9e81b2c40bf8 (10-path private domain); Strategy68c5f5ef9fe2f0903476b1cb813d57695f2481ec (26-path private domain). Exact source-consumption pins are not release qualification. Root owns combined qualification, integration, and live acceptance."
   boundaries: No new app server/hidden agents/sibling edits; no provider HTTP, real
     quota/ledger, data-hold, production, staging or master writes from TC. No duplicate
     heavy stack or broad suite replay during implementation.
@@ -5355,6 +5350,85 @@ development_dependency_import_history:
     - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts
     state: superseded_development_import
     superseded_by: a24d4c0f08b6eaffe364ef4d670c6889463000ad
+  - source_sha: fb378d7aa45e2741ad78475f84a9c0c7e8c78166
+    manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/fb378d7aa45e2741ad78475f84a9c0c7e8c78166.json
+    manifest_sha256: 84d132b9b6c4ebd4edb0ee10443b71df1aabda72f88585df5ab56f44578a6967
+    paths:
+    - frontend/src/components/workstation/InstrumentNoteTool.vue
+    - frontend/src/views/BasketsView.vue
+    - frontend/src/views/ETFHoldingsView.vue
+    - frontend/tests/e2e/baskets_journey.spec.ts
+    - frontend/tests/e2e/etf_holdings_preparation.spec.ts
+    - frontend/tests/e2e/sp500_analysis_journey.spec.ts
+    - frontend/tests/e2e/supporting_features_journey.spec.ts
+    - frontend/tests/unit/components/test_instrument_note_tool.test.ts
+    - frontend/tests/unit/views/test_baskets_view.test.ts
+    - frontend/tests/unit/views/test_etf_holdings_view.test.ts
+    state: superseded_development_import
+    superseded_by: 55c0e52d4afdf7703fe23fab2fda9e81b2c40bf8
+  - source_sha: a24d4c0f08b6eaffe364ef4d670c6889463000ad
+    manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/a24d4c0f08b6eaffe364ef4d670c6889463000ad.json
+    manifest_sha256: 7fed3377c2c837d36416ceab94d288a27eaa63a091c353a8092f3f7ce56e8249
+    paths:
+    - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
+    - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
+    - frontend/src/components/dashboard/DashboardInstrumentSearch.vue
+    - frontend/src/components/dashboard/DashboardLineChartWidget.vue
+    - frontend/src/components/dashboard/DashboardQuoteWidget.vue
+    - frontend/src/components/workstation/CodeLibraryTool.vue
+    - frontend/src/components/workstation/PythonSourceEditor.vue
+    - frontend/src/components/workstation/ResearchResultsTool.vue
+    - frontend/src/components/workstation/StudyLabTool.vue
+    - frontend/src/lib/workstation/researchQueryKeys.ts
+    - frontend/src/stores/dashboard.ts
+    - frontend/src/views/DashboardView.vue
+    - frontend/tests/e2e/dashboard_usability_journey.spec.ts
+    - frontend/tests/e2e/strategy_study_journey.spec.ts
+    - frontend/tests/e2e/workstation_lifecycle_journey.spec.ts
+    - frontend/tests/unit/components/test_code_library_tool.test.ts
+    - frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts
+    - frontend/tests/unit/components/test_dashboard_instrument_search.test.ts
+    - frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts
+    - frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts
+    - frontend/tests/unit/components/test_python_source_editor.test.ts
+    - frontend/tests/unit/components/test_research_results_tool.test.ts
+    - frontend/tests/unit/components/test_study_lab_tool.test.ts
+    - frontend/tests/unit/stores/test_dashboard_store.test.ts
+    - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts
+    state: superseded_development_import
+    superseded_by: 0007bcca5ca0b78486544506ecdd4aa366784350
+  - source_sha: 0007bcca5ca0b78486544506ecdd4aa366784350
+    manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/0007bcca5ca0b78486544506ecdd4aa366784350.json
+    manifest_sha256: 0aca981a18a695e1bc2f93e289af855a4640ddfe7b0202e29c88c2604ff4febe
+    paths:
+    - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
+    - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
+    - frontend/src/components/dashboard/DashboardInstrumentSearch.vue
+    - frontend/src/components/dashboard/DashboardLineChartWidget.vue
+    - frontend/src/components/dashboard/DashboardQuoteWidget.vue
+    - frontend/src/components/workstation/CodeLibraryTool.vue
+    - frontend/src/components/workstation/PythonSourceEditor.vue
+    - frontend/src/components/workstation/ResearchResultsTool.vue
+    - frontend/src/components/workstation/StudyLabTool.vue
+    - frontend/src/lib/workstation/researchQueryKeys.ts
+    - frontend/src/lib/workstation/researchRunCancellation.ts
+    - frontend/src/stores/dashboard.ts
+    - frontend/src/views/DashboardView.vue
+    - frontend/tests/e2e/dashboard_usability_journey.spec.ts
+    - frontend/tests/e2e/strategy_study_journey.spec.ts
+    - frontend/tests/e2e/workstation_lifecycle_journey.spec.ts
+    - frontend/tests/unit/components/test_code_library_tool.test.ts
+    - frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts
+    - frontend/tests/unit/components/test_dashboard_instrument_search.test.ts
+    - frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts
+    - frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts
+    - frontend/tests/unit/components/test_python_source_editor.test.ts
+    - frontend/tests/unit/components/test_research_results_tool.test.ts
+    - frontend/tests/unit/components/test_study_lab_tool.test.ts
+    - frontend/tests/unit/stores/test_dashboard_store.test.ts
+    - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts
+    state: superseded_development_import
+    superseded_by: 68c5f5ef9fe2f0903476b1cb813d57695f2481ec
 approved_development_dependency_imports:
 - source_sha: 19d34d0b3e875b29b276ee80e471311586e6023f
   manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/19d34d0b3e875b29b276ee80e471311586e6023f.json
@@ -5439,9 +5513,9 @@ approved_development_dependency_imports:
   - backend/tests/unit/tasks/test_data_tasks.py
   - backend/tests/unit/tasks/test_native_usage_prerequisite.py
   - backend/tests/unit/workers/test_arq_worker.py
-- source_sha: fb378d7aa45e2741ad78475f84a9c0c7e8c78166
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/fb378d7aa45e2741ad78475f84a9c0c7e8c78166.json
-  manifest_sha256: 84d132b9b6c4ebd4edb0ee10443b71df1aabda72f88585df5ab56f44578a6967
+- source_sha: 55c0e52d4afdf7703fe23fab2fda9e81b2c40bf8
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/55c0e52d4afdf7703fe23fab2fda9e81b2c40bf8.json
+  manifest_sha256: e8624734b3d6d0088cdb06432647d5aaca625f81246c9562fddc2e25ae9e4e54
   paths:
   - frontend/src/components/workstation/InstrumentNoteTool.vue
   - frontend/src/views/BasketsView.vue
@@ -5453,9 +5527,9 @@ approved_development_dependency_imports:
   - frontend/tests/unit/components/test_instrument_note_tool.test.ts
   - frontend/tests/unit/views/test_baskets_view.test.ts
   - frontend/tests/unit/views/test_etf_holdings_view.test.ts
-- source_sha: a24d4c0f08b6eaffe364ef4d670c6889463000ad
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/a24d4c0f08b6eaffe364ef4d670c6889463000ad.json
-  manifest_sha256: 7fed3377c2c837d36416ceab94d288a27eaa63a091c353a8092f3f7ce56e8249
+- source_sha: 68c5f5ef9fe2f0903476b1cb813d57695f2481ec
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/68c5f5ef9fe2f0903476b1cb813d57695f2481ec.json
+  manifest_sha256: af08a1749f07c6d3d34eed01992991c5de91286921b137aaa73289c0b7ab55d8
   paths:
   - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
   - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
@@ -5467,6 +5541,7 @@ approved_development_dependency_imports:
   - frontend/src/components/workstation/ResearchResultsTool.vue
   - frontend/src/components/workstation/StudyLabTool.vue
   - frontend/src/lib/workstation/researchQueryKeys.ts
+  - frontend/src/lib/workstation/researchRunCancellation.ts
   - frontend/src/stores/dashboard.ts
   - frontend/src/views/DashboardView.vue
   - frontend/tests/e2e/dashboard_usability_journey.spec.ts

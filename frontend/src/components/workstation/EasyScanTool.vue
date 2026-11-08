@@ -538,12 +538,10 @@ onMounted(() => {
   void load()
 })
 onBeforeUnmount(() => {
-  const runId = activeResearchRunId.value
   mounted = false
   loadGeneration += 1
   runGeneration += 1
   preparationController?.abort()
-  if (runId) void api.post(`/research/runs/${runId}/cancel`, {})
 })
 </script>
 

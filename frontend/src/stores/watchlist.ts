@@ -498,7 +498,7 @@ export const useWatchlistStore = defineStore('watchlist', () => {
     }
   }
 
-  async function fetchPrices(symbols: string[], force = false, localOnly = false) {
+  async function fetchPrices(symbols: string[], force = false, localOnly = false, priority?: 'high' | 'low' | 'auto') {
     const unique = [...new Set(symbols.map(s => s?.toUpperCase()).filter(Boolean))]
     const toFetch = unique.filter(s => force || !priceMap.value[s])
     if (!toFetch.length) return
@@ -512,10 +512,10 @@ export const useWatchlistStore = defineStore('watchlist', () => {
       const generation = watchlistPriceGeneration
       const pending = (async () => {
         try {
-          const bars: Array<{ open: number; high: number; low: number; close: number; volume?: number }> = await api.get(
-            localOnly ? `/ohlcv/local/${symbol}/D1` : `/ohlcv/${symbol}/D1`,
-            { limit: 31 },
-          )
+          const path = localOnly ? `/ohlcv/local/${symbol}/D1` : `/ohlcv/${symbol}/D1`
+          const bars: Array<{ open: number; high: number; low: number; close: number; volume?: number }> = priority
+            ? await api.get(path, { limit: 31 }, { priority })
+            : await api.get(path, { limit: 31 })
           if (generation !== watchlistPriceGeneration) return
           if (bars.length >= 2) {
             const last = bars[bars.length - 1]

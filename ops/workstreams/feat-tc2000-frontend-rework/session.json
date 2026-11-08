@@ -103,8 +103,8 @@
     "status": "pending Root observation after publication"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "Current shared-source successor is under focused local validation. Root owns exact-source build, affected browser/native journeys, exact CI, combined qualification, and release acceptance; none is claimed green.",
-  "current_checkpoint_status": "Focused TC successor for Root’s 921 findings: coalesced local WatchList quote reads with session-generation fencing; canonical instrument type from already-needed metadata; truthful D1 unavailable details; ordinary Notes activation; exact bounded auth-cancellation diagnostics. 141 focused tests and type-check pass. Root browser/native qualification pending.",
+  "current_candidate_ci_status": "Current TC source adds bounded priority admission in the shared API client, retains a transport slot through response-body consumption, and removes unsent queued requests on caller/session abort. Visible Workstation watchlist quote reads use the reserved high-priority lane. EasyScan unmount now stops local observers without implicitly canceling durable research runs; explicit user Cancel remains unchanged. The candidate includes typed dataset-specific holdings reasons and exact ETF55c0/Strategy68c5 development imports. Focused API client 22/22, EasyScan 26/26, WatchList store 25/25, Workstation tool acquisition 15/15, and frontend type-check passed. Root owns retained-fixture/browser/native qualification; exact CI and full platform acceptance remain pending.",
+  "current_checkpoint_status": "Current TC source adds bounded priority admission in the shared API client, retains a transport slot through response-body consumption, and removes unsent queued requests on caller/session abort. Visible Workstation watchlist quote reads use the reserved high-priority lane. EasyScan unmount now stops local observers without implicitly canceling durable research runs; explicit user Cancel remains unchanged. The candidate includes typed dataset-specific holdings reasons and exact ETF55c0/Strategy68c5 development imports. Focused API client 22/22, EasyScan 26/26, WatchList store 25/25, Workstation tool acquisition 15/15, and frontend type-check passed. Root owns retained-fixture/browser/native qualification; exact CI and full platform acceptance remain pending.",
   "current_exact_ci": {
     "head_sha": null,
     "run_id": null,
@@ -445,7 +445,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "a3feb4cb4b93655887ea3a3b465b52160741e3f3383ea840c40a0a3ab3653568",
+  "plan_hash": "f2df267313ab2b0ec8f13a8ae8a778e9df1a5d059401f2a040265896fa6c2b31",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -474,9 +474,9 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "The visibility-return duplicate query trigger now has a focused one-refresh pass and frontend type-check. Root browser qualification of frozen ccb0 and this successor, full route/action coverage, combined profile, exact CI and release acceptance remain pending.",
-    "current_phase": "Repair the four Root-owned critical-smoke gaps: trust only an exact confirmed canonical identity, activate the visible saved Notes tab in J12, align the IGV holdings detail assertion with status capitalization, and submit My Favorites mutations at high fetch priority with truthful pending state; consume Provider b1929300 and Strategy 2689c2c6.",
-    "next_action": "Commit this bounded repair and exact dependency checkpoint for Root rebuild and critical-journey rerun; preserve all remaining platform-usability criteria and release gates.",
+    "current_blocker": "Focused tests, frontend type-check, and strict TC scope/workstream/journey guards pass; Root retained-fixture/browser/native qualification, exact CI, combined acceptance, and release gates remain pending.",
+    "current_phase": "Complete the common API admission/headroom and EasyScan durable-run lifecycle fixes with exact ETF and Strategy private test successors pinned.",
+    "next_action": "Commit the coherent candidate and freeze its exact source for Root retained-fixture qualification; preserve all full-platform criteria and release gates.",
     "total": 9,
     "updated_at": "2026-11-08"
   },

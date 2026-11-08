@@ -26715,3 +26715,11 @@ Frontend type-check, E2E reference-only preflight, Playwright discovery for the 
 ## 2026-11-08 — Preserve selected holdings reasons under aggregate partial status
 
 Root's frozen d020/9e2 review found BWET's future-dated holdings explanation replaced by a generic aggregate partial message, even though D1 history remained usable. Workstation status presentation now scopes progress to the exact selected instrument's holdings dependencies before rendering status/reason/coverage; unrelated ready history no longer masks the typed future-source hold. The focused mixed-response regression verifies history-ready plus holdings-failed/future-dated state, retained chart loading, and user-safe reason text without accepting a fake current snapshot. Workstation view tests passed 99/99, frontend type-check passed, and scope/workstream/journey validators passed. Root owns rendered verification on the immutable d020 runtime; broader qualification remains pending.
+
+## 2026-11-08 — Shared transport priority and durable EasyScan unmount
+
+The current candidate adds a bounded priority queue to the common API client. It reserves one admission slot for explicit high-priority user work, caps low-priority background reads, holds admission through response-body consumption, and removes queued requests on caller abort or auth-session change. Active Workstation local WatchList quote reads use the high-priority lane. EasyScan virtual unmount now ends its local progress subscriber and fences late UI updates without issuing an implicit research-run cancel; explicit user Cancel remains available and unchanged.
+
+The exact private test imports are ETF55c0e52d4afdf7703fe23fab2fda9e81b2c40bf8 (10 manifest paths) and Strategy68c5f5ef9fe2f0903476b1cb813d57695f2481ec (26 manifest paths), replacing the prior active ETF/Strategy pins while retaining superseded manifest history. Dataset-specific holdings reason selection remains in the candidate.
+
+Focused evidence: API client 22/22, EasyScan 26/26, WatchList store 25/25, Workstation tool acquisition 15/15, and frontend type-check passed. The two manifests were verified against all 36 declared worktree paths and Git modes. Root owns retained-fixture/browser/native qualification, exact CI, and full platform acceptance; none is claimed complete here.
