@@ -18,6 +18,7 @@ from nautilus_trader.indicators import (
 )
 from nautilus_trader.model.data import Bar, BarType
 from nautilus_trader.model.enums import AccountType, OmsType, OrderSide, TimeInForce
+from nautilus_trader.model.events import PositionClosed
 from nautilus_trader.model.identifiers import InstrumentId
 from nautilus_trader.model.objects import Money
 from nautilus_trader.test_kit.providers import TestInstrumentProvider
@@ -244,6 +245,7 @@ class StrategyLabNautilusStrategy(Strategy):
         self.active_position_id: str | None = None
         self.position_plans: dict[str, dict[str, float | int | str]] = {}
         self.exit_reasons: dict[str, str] = {}
+        self.closed_position_events: list[dict[str, Any]] = []
         self.equity_curve: list[tuple[int, float]] = []
         self.warnings: list[str] = []
         self._signal_events = sorted(
@@ -259,6 +261,22 @@ class StrategyLabNautilusStrategy(Strategy):
             self._ensure_condition_indicators(condition)
         for condition in self.config.exit_conditions:
             self._ensure_condition_indicators(condition)
+
+    def on_position_closed(self, event: PositionClosed) -> None:
+        position_id = str(event.position_id)
+        # NETTING can reuse a position id after a close. Preserve the completed
+        # cycle before discarding state that belongs only to that open cycle.
+        self.closed_position_events.append(
+            {
+                "position": event.to_dict(event),
+                "plan": dict(self.position_plans.get(position_id, {})),
+                "exit_reason": self.exit_reasons.get(position_id, "session_close"),
+            }
+        )
+        self.position_plans.pop(position_id, None)
+        self.exit_reasons.pop(position_id, None)
+        if self.active_position_id == position_id:
+            self.active_position_id = None
 
     def _register_tree_indicators(self, node: dict[str, Any] | None) -> None:
         if not node:
@@ -317,7 +335,7 @@ class StrategyLabNautilusStrategy(Strategy):
         self.unsubscribe_bars(self.config.bar_type)
 
     def on_bar(self, bar: Bar) -> None:
-        self._sync_active_position()
+        self._sync_active_position(int(bar.ts_event))
         self._append_bar_snapshot(bar)
         condition_values = [
             self._condition_values(condition, bar)
@@ -342,7 +360,7 @@ class StrategyLabNautilusStrategy(Strategy):
         elif not self._has_pending_orders() and self._should_enter(condition_values, bar):
             self._submit_entry(bar)
 
-        self._sync_active_position()
+        self._sync_active_position(int(bar.ts_event))
         self._record_equity(bar.ts_event)
         self._previous_values = condition_values
         self._snapshot_indicator_values()
@@ -363,7 +381,7 @@ class StrategyLabNautilusStrategy(Strategy):
     def _has_pending_orders(self) -> bool:
         return bool(self.cache.orders_open_count() or self.cache.orders_inflight_count())
 
-    def _sync_active_position(self) -> None:
+    def _sync_active_position(self, bar_ts_event: int) -> None:
         open_positions = self.cache.positions_open()
         if not open_positions:
             self.active_position_id = None
@@ -372,9 +390,12 @@ class StrategyLabNautilusStrategy(Strategy):
         position_id = str(position.id)
         self.active_position_id = position_id
         if position_id in self.position_plans:
-            self.position_plans[position_id]["bars_elapsed"] = (
-                int(self.position_plans[position_id].get("bars_elapsed", 0)) + 1
-            )
+            plan = self.position_plans[position_id]
+            # on_bar synchronizes both before and after order handling; a given
+            # market bar advances the holding clock only once.
+            if int(plan.get("last_bar_ts", -1)) != bar_ts_event:
+                plan["bars_elapsed"] = int(plan.get("bars_elapsed", 0)) + 1
+                plan["last_bar_ts"] = bar_ts_event
             self.position_plans[position_id]["entry_count"] = max(
                 int(self.position_plans[position_id].get("entry_count", 1)),
                 1,
@@ -397,6 +418,7 @@ class StrategyLabNautilusStrategy(Strategy):
                     "initial_stop_price": stop_price,
                     "target_price": target_price,
                     "bars_elapsed": 0,
+                    "last_bar_ts": bar_ts_event,
                     "best_price": entry_price,
                     "entry_count": 1,
                     "direction": plan_direction,
@@ -436,6 +458,7 @@ class StrategyLabNautilusStrategy(Strategy):
             "initial_stop_price": stop_price,
             "target_price": target_price,
             "bars_elapsed": 0,
+            "last_bar_ts": bar_ts_event,
             "best_price": entry_price,
             "entry_count": 1,
             "direction": plan_direction,
@@ -1347,12 +1370,38 @@ def run_single_instrument_nautilus_backtest(
 
         trades: list[NautilusTrade] = []
         open_positions: list[NautilusOpenPosition] = []
+        closed_positions = list(strategy.closed_position_events)
+        seen_closed_positions = {
+            (
+                str(item["position"].get("position_id")),
+                int(item["position"].get("ts_opened") or 0),
+                int(item["position"].get("ts_closed") or 0),
+            )
+            for item in closed_positions
+        }
+        for position in engine.cache.positions_closed():
+            payload = position.to_dict()
+            position_key = (
+                str(payload.get("position_id")),
+                int(payload.get("ts_opened") or 0),
+                int(payload.get("ts_closed") or 0),
+            )
+            if position_key in seen_closed_positions:
+                continue
+            closed_positions.append(
+                {
+                    "position": payload,
+                    "plan": dict(strategy.position_plans.get(position_key[0], {})),
+                    "exit_reason": strategy.exit_reasons.get(position_key[0], "session_close"),
+                }
+            )
+            seen_closed_positions.add(position_key)
         last_ts = int(nautilus_bars[-1].ts_event) if nautilus_bars else 0
         current_at = _nanos_to_iso(last_ts) or ""
         current_price = float(bars[-1].close) if bars else 0.0
         last_index = len(nautilus_bars) - 1
-        for position in engine.cache.positions_closed():
-            payload = position.to_dict()
+        for closed_position in closed_positions:
+            payload = closed_position["position"]
             position_id = str(payload["position_id"])
             entry_price = float(payload["avg_px_open"])
             exit_price = float(payload["avg_px_close"])
@@ -1366,7 +1415,7 @@ def run_single_instrument_nautilus_backtest(
                 adjusted_exit = exit_price * (1.0 + slippage_bps / 10000.0)
 
             quantity = float(payload.get("peak_qty") or payload.get("quantity") or 0.0)
-            plan = strategy.position_plans.get(position_id, {})
+            plan = closed_position["plan"]
             stop_price = float(plan.get("stop_price") or 0.0)
             initial_stop_price = float(plan.get("initial_stop_price") or stop_price or 0.0)
             target_price = float(plan.get("target_price") or 0.0)
@@ -1385,7 +1434,7 @@ def run_single_instrument_nautilus_backtest(
             exit_ts = int(payload["ts_closed"])
             entry_index = ts_index_map.get(entry_ts, 0)
             exit_index = ts_index_map.get(exit_ts, entry_index)
-            exit_reason = strategy.exit_reasons.get(position_id, "session_close")
+            exit_reason = closed_position["exit_reason"]
             if exit_reason == "session_close" and not close_open_positions_at_end:
                 unrealized_pnl = pnl
                 open_positions.append(

@@ -34138,3 +34138,8 @@ The previous e750 frontend context remains archived in its existing manifest and
 ## 2026-11-08 — consume TC common runtime context 1379d956
 
 Root released TC source `1379d9567a27c7262ea0bc62a1c3e04352916029` for exact development consumption. Verified the contract SHA-256, all 114 manifest rows (SHA-256/Git blob/mode), all 18 Provider old guards, and imported only the 18 declared Provider paths. The active common pointer now names this source; the previous DB4 common manifest remains archived, and Provider, ETF, and Strategy domain pins are preserved. This is compatible development context only; no producer suite, browser, provider HTTP, runtime, quota, or release gate was run. Exact-source CI and combined qualification remain Root-owned.
+
+
+## 2026-11-08 — consume Strategy Nautilus lifecycle fix 0875336e
+
+Root authorized exact development consumption of `0875336efeafd2339ed609e7bb1ec781fd5682d5`. Verified both declared source blobs, SHA-256 values, Git mode `100644`, and Provider old guards before import; copied only `backend/app/services/strategy_lab_nautilus.py` and `backend/tests/unit/services/test_strategy_lab_nautilus.py`. The full contract is retained at `ops/workstreams/feat-market-data-provider-platform/development-dependency-imports/strategy0875336efeafd2339ed609e7bb1ec781fd5682d5.json`. Producer reports 16 focused Nautilus tests plus style/type checks passing; not rerun here. Local Ruff check/format and diff checks pass. No browser, DB, Docker, native/provider HTTP, CI, quota or runtime action. Development context only; Root owns exact build and combined qualification.
