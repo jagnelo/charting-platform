@@ -20403,3 +20403,14 @@ Root's rendered 280px Study catalogue case failed the preserved physical-bound a
 Focused StudyLabTool unit tests pass 69/69, frontend type-check passes, lifecycle Playwright discovery lists all four bodies, and `git diff --check` passes. Strategy did not run the browser; the exact rendered containment and scroll behavior remain for Root's next render. No backend, fixture, provider, native, full-suite, CI, staging, or deployment action was performed. The complete 18-criterion roadmap and all operation holds remain open.
 
 Changed paths: `frontend/src/components/workstation/StudyLabTool.vue`, `frontend/tests/e2e/workstation_lifecycle_journey.spec.ts`, `ops/workstreams/feat-strategy-lab-v2/handoff.md`, and `ops/workstreams/feat-strategy-lab-v2/validation.jsonl`.
+
+
+### Legacy backtest position accounting and zero-position guidance (2026-11-08)
+
+Root's bounded pure-engine result (`root-6c31-provider-raw-engine-249-result.json`) recorded 249 SPY entries with no portfolio cap, but the adapter returned no closed trades and only the final open position. The Nautilus close callback now archives each completed event with its stop/exit plan before clearing cycle state, so a reused NETTING position ID cannot retain a prior cycle's plan or exit reason. The adapter deduplicates those events against the cache fallback used for end-of-run closes. Position hold age now advances once per distinct bar timestamp even though `on_bar` synchronizes both before and after order handling.
+
+New Strategy definitions start at 0.5% risk per trade, which at the existing 2% stop implies 25% notional under the unchanged 35% per-symbol cap. Hydration keeps explicit saved risk settings and the existing fallback for older definitions. Completed zero-position runs with portfolio rejections now show the rejected count, symbol allocation versus the saved cap when present, and review guidance; the underlying execution log and portfolio limits are unchanged.
+
+Focused evidence: Nautilus unit module 16/16, StrategyLabView unit module 42/42, frontend type-check, and locked Ruff 0.4.7 check/format pass. The new engine regression covers two timed closes and re-entries with distinct stop plans, per-cycle R multiples, nonzero P&L, and varied equity. No browser/full profile, database fixture, provider/native operation, or release qualification was run by Strategy; Root owns the actual RSI journey and exact-source qualification. The complete 18-criterion roadmap and existing operational holds remain open.
+
+Changed paths: `backend/app/services/strategy_lab_nautilus.py`, `backend/tests/unit/services/test_strategy_lab_nautilus.py`, `frontend/src/views/StrategyLabView.vue`, `frontend/tests/unit/views/test_strategy_lab_view.test.ts`, `ops/workstreams/feat-strategy-lab-v2/handoff.md`, and `ops/workstreams/feat-strategy-lab-v2/validation.jsonl`.

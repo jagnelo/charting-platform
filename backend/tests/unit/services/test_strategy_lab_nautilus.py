@@ -130,7 +130,9 @@ def test_nautilus_backtest_supports_multiple_commission_models():
         condition_tree=None,
         stop_loss_pct=2.0,
         take_profit_rr=0.0,
-        max_bars_in_trade=1,
+        # Keep this fee comparison open through run end; time-exit timing is
+        # covered by the separate re-entry lifecycle regression.
+        max_bars_in_trade=0,
         capital_base=100000.0,
         position_sizing_mode="fixed_quantity",
         position_sizing_value=1.0,
@@ -251,6 +253,68 @@ def test_nautilus_backtest_replays_signal_events():
     assert result.trades
     assert result.trades[0].side == "long"
     assert result.trades[0].entry_at >= signal_at.isoformat()
+
+
+def test_nautilus_backtest_keeps_each_closed_position_across_reentries():
+    instrument = Instrument(
+        id=1,
+        instrument_type_id=1,
+        symbol="AAPL",
+        name="Apple Inc.",
+        currency="USD",
+        is_active=True,
+    )
+    start = datetime(2024, 1, 1, tzinfo=UTC)
+    bars = []
+    for index in range(18):
+        close = 100.0 + index
+        bars.append(_bar(start + timedelta(days=index), close, close + 0.5, close - 0.5, close))
+
+    result = run_single_instrument_nautilus_backtest(
+        instrument=instrument,
+        bars=bars,
+        timeframe=Timeframe.D1,
+        direction="long",
+        entry_logic="all",
+        conditions=[],
+        condition_tree=None,
+        stop_loss_pct=2.0,
+        take_profit_rr=0,
+        max_bars_in_trade=2,
+        capital_base=100000.0,
+        risk_per_trade_pct=1.0,
+        slippage_bps=5.0,
+        commission_per_trade=1.0,
+        signal_events=[
+            {
+                "signal_at": bars[index].ts,
+                "side": "long",
+                "entry_price": float(bars[index].close),
+                "stop_price": float(bars[index].close) * 0.98,
+                "target_price": 0.0,
+            }
+            for index in (1, 8)
+        ],
+    )
+
+    assert len(result.trades) == 2
+    assert result.trades[0].entry_at != result.trades[1].entry_at
+    assert all(trade.exit_at > trade.entry_at for trade in result.trades)
+    assert all(trade.pnl != 0 for trade in result.trades)
+    assert [trade.exit_reason for trade in result.trades] == ["time_exit", "time_exit"]
+    # The reported hold includes the entry and exit bars; the two-bar limit
+    # must not be advanced again by the post-action sync on the same timestamp.
+    assert [trade.bars_held for trade in result.trades] == [4, 4]
+    assert [round(trade.stop_price, 1) for trade in result.trades] == [99.0, 105.8]
+    assert all(
+        abs(
+            trade.r_multiple
+            - trade.pnl / (abs(trade.entry_price - trade.stop_price) * trade.quantity)
+        )
+        < 0.0001
+        for trade in result.trades
+    )
+    assert len({point["equity"] for point in result.equity_curve}) > 1
 
 
 def test_nautilus_backtest_supports_nested_condition_trees():

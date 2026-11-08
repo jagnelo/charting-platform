@@ -1063,8 +1063,58 @@ describe('StrategyLabView', () => {
           timeframe: 'D1',
         }),
         universe_config: { symbols: ['NVDA', 'AMD'] },
+        execution_model: expect.objectContaining({
+          max_symbol_allocation_pct: 35,
+          run_defaults: expect.objectContaining({ risk_per_trade_pct: 0.5 }),
+        }),
       }),
     }))
+  })
+
+  it('explains completed runs with zero positions rejected by the allocation cap', async () => {
+    const rejectedDefinition = clone(definition)
+    const rejectedRun = rejectedDefinition.runs[0]
+    rejectedRun.result_summary = {
+      ...rejectedRun.result_summary,
+      performance: {
+        ...rejectedRun.result_summary.performance,
+        trade_count: 0,
+        closed_trade_count: 0,
+        open_position_count: 0,
+      },
+      execution_assumptions: { max_symbol_allocation_pct: 35 },
+      portfolio: {
+        rejected_trade_count: 1,
+        rejection_breakdown: { max_symbol_allocation_pct: 1 },
+      },
+      rejected_trades: [
+        {
+          instrument_symbol: 'SPY',
+          reason: 'max_symbol_allocation_pct',
+          allocation_pct: 49.8259,
+        },
+      ],
+    }
+    const defaultGet = (api.get as ReturnType<typeof vi.fn>).getMockImplementation()
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string, ...args: any[]) => {
+      if (path === '/strategy-lab/definitions') {
+        return Promise.resolve([clone(rejectedDefinition)])
+      }
+      if (path === '/strategy-lab/definitions/4') {
+        return Promise.resolve(clone(rejectedDefinition))
+      }
+      return defaultGet?.(path, ...args) ?? Promise.resolve([])
+    })
+
+    const wrapper = mountView()
+    await flushPromises()
+    await ensurePanelExpanded(wrapper, 'Results')
+
+    const notice = wrapper.get('[role="status"]')
+    expect(notice.text()).toContain('No positions were opened.')
+    expect(notice.text()).toContain('SPY required 49.8% of capital')
+    expect(notice.text()).toContain('35.0% per-symbol limit')
+    expect(notice.text()).toContain('Review risk per trade, stop distance, and the allocation limit.')
   })
 
   it('names manual-universe symbol removal controls and removes the selected symbol', async () => {
