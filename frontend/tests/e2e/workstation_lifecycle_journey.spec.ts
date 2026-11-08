@@ -666,6 +666,34 @@ async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUT
       expect(control.left, `${control.label} should remain within the Study panel's content edge`).toBeGreaterThanOrEqual(control.contentLeft - 1)
       expect(control.right, `${control.label} should remain within the Study panel's content edge`).toBeLessThanOrEqual(control.contentRight + 1)
     }
+
+    const studyRoot = tool.locator('.study-lab-tool')
+    await studyRoot.hover()
+    await page.mouse.wheel(0, 600)
+    await expect.poll(() => studyRoot.evaluate(root => root.scrollTop)).toBeGreaterThan(0)
+    const editorFitsInStudyViewport = await studyRoot.evaluate(root => {
+      const editor = root.querySelector<HTMLElement>('[aria-label="Study Python source"]')
+      if (!editor) return false
+      const rootRect = root.getBoundingClientRect()
+      const editorRect = editor.getBoundingClientRect()
+      const visibleTop = rootRect.top + root.clientTop
+      const visibleBottom = visibleTop + root.clientHeight
+      return editorRect.top >= visibleTop - 1 && editorRect.bottom <= visibleBottom + 1
+    })
+    expect(editorFitsInStudyViewport, 'ordinary wheel scrolling should expose the Study editor inside the dock').toBe(true)
+
+    await page.mouse.wheel(0, -1200)
+    await expect.poll(() => studyRoot.evaluate(root => root.scrollTop)).toBe(0)
+    const studyName = tool.getByRole('textbox', { name: 'Study name', exact: true })
+    await studyName.click()
+    await page.keyboard.press('Tab')
+    await page.keyboard.press('Tab')
+    await page.keyboard.press('Tab')
+    const validateButton = tool.getByRole('button', { name: 'Validate study', exact: true })
+    const runButton = tool.getByRole('button', { name: 'Run study', exact: true })
+    await expect(validateButton).toBeFocused()
+    await page.keyboard.press('Tab')
+    await expect(runButton).toBeFocused()
   } else if (kind === 'results') {
     await expect(tool.locator('.research-results-tool__run-select').first()).toBeVisible({ timeout: 30_000 })
     await expect(tool.locator('.research-results-tool__artifacts article').first()).toBeVisible({ timeout: 20_000 })
