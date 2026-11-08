@@ -235,12 +235,16 @@ async function request<T>(
   if (session.signal.aborted) abortForSession()
   if (options?.signal?.aborted) abortForCaller()
   const opts: RequestInit = { method, headers, signal: controller.signal }
-  if (options?.priority) opts.priority = options.priority
+  // User-initiated writes must reach transport while high-priority
+  // preparation creation occupies the bounded non-interactive lane.
+  // Background writes can still explicitly choose auto/low.
+  const requestPriority = options?.priority ?? (method.toUpperCase() === 'GET' ? 'auto' : 'high')
+  if (options?.priority || method.toUpperCase() !== 'GET') opts.priority = requestPriority
   if (body !== undefined) opts.body = JSON.stringify(body)
 
   let admitted: AdmittedApiResponse | undefined
   try {
-    admitted = await admittedApiFetch(url, opts, options?.priority ?? 'auto', options?.queueKey)
+    admitted = await admittedApiFetch(url, opts, requestPriority, options?.queueKey)
     const res = admitted.response
     assertAuthSessionCurrent(session)
 

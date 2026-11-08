@@ -139,6 +139,36 @@ describe('api.get', () => {
     await Promise.all([...preparations, foreground])
   })
 
+  it('admits default user mutations through the reserved slot while preparations are active', async () => {
+    setTokens('tok', 'ref')
+    const deferredResponses: Array<{ resolve: (response: unknown) => void }> = []
+    ;(global.fetch as ReturnType<typeof vi.fn>).mockImplementation(() => new Promise(resolve => {
+      deferredResponses.push({ resolve })
+    }))
+    const { api } = await import('@/lib/api')
+    const response = () => ({ ok: true, status: 200, json: () => Promise.resolve({}), text: () => Promise.resolve('') })
+    const preparations = Array.from({ length: 6 }, (_, index) => api.post('/data/ensure', { index }, { priority: 'high' }))
+
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(5))
+    const setDefault = api.put('/presets/17', { is_default: true })
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(6))
+    expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[5]?.[0])).toContain('/presets/17')
+    expect((fetch as ReturnType<typeof vi.fn>).mock.calls[5]?.[1]).toEqual(expect.objectContaining({ method: 'PUT', priority: 'high' }))
+
+    deferredResponses[0]!.resolve(response())
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(7))
+    expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[6]?.[0])).toContain('/data/ensure')
+
+    for (let index = 1; index < 7; index += 1) deferredResponses[index]!.resolve(response())
+    await Promise.all([...preparations, setDefault])
+
+    const backgroundWrite = api.patch('/background-settings', { value: true }, { priority: 'low' })
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(8))
+    expect((fetch as ReturnType<typeof vi.fn>).mock.calls[7]?.[1]).toEqual(expect.objectContaining({ method: 'PATCH', priority: 'low' }))
+    deferredResponses[7]!.resolve(response())
+    await backgroundWrite
+  })
+
   it('promotes one already queued local read when its docked list becomes visible', async () => {
     setTokens('tok', 'ref')
     const deferredResponses: Array<{ resolve: (response: unknown) => void }> = []

@@ -2135,23 +2135,29 @@ onMounted(async () => {
   componentMounted = true
   window.addEventListener('resize', scheduleCanvasDraw)
   const requestPriority = props.requestPriority
-  await userSettingsStore.loadSettings(requestPriority)
+  const settingsLoad = userSettingsStore.loadSettings(requestPriority)
   if (!componentMounted) return
   const needsDefaultUniverse = !sourceId.value && !explicitSymbols.value.trim()
   // A blank new tool needs a fresh list before choosing a default. A list
   // loaded for another panel may still put a pending zero-member ETF first.
-  if (needsDefaultUniverse || !sources.value.length) await watchlistStore.loadWatchlistSources(requestPriority)
-  if (!componentMounted) return
-  if (!watchlistStore.watchlists.length) await watchlistStore.loadWatchlists(requestPriority)
-  if (!componentMounted) return
-  await loadPythonAssets()
-  if (!componentMounted) return
-  try {
-    snapshots.value = await fetchMarketMapSnapshots()
-  } catch (cause) {
-    if (!componentMounted) return
-    snapshotError.value = cause instanceof Error ? cause.message : 'Unable to load Market Map snapshots'
+  const sourcesLoad = needsDefaultUniverse || !sources.value.length
+    ? watchlistStore.loadWatchlistSources(requestPriority)
+    : Promise.resolve()
+
+  // Personal publication targets and saved-snapshot metadata are useful
+  // controls, but neither is needed to paint the selected universe. Let them
+  // hydrate independently instead of holding the first local Market Map read.
+  if (!watchlistStore.watchlists.length) {
+    void Promise.resolve().then(() => watchlistStore.loadWatchlists(requestPriority)).catch(() => undefined)
   }
+  void fetchMarketMapSnapshots().then(result => {
+    if (componentMounted) snapshots.value = result
+  }).catch(cause => {
+    if (componentMounted) snapshotError.value = cause instanceof Error ? cause.message : 'Unable to load Market Map snapshots'
+  })
+  const pythonAssetsLoad = loadPythonAssets()
+
+  await Promise.all([settingsLoad, sourcesLoad])
   if (!componentMounted) return
   if (!sourceId.value && !explicitSymbols.value.trim() && !sourcesError.value) {
     const preferred = chooseInitialUniverse()
@@ -2169,6 +2175,13 @@ onMounted(async () => {
     }
   }
   if (!componentMounted) return
+  const needsPythonAssets = colorMetric.value === 'python' || areaMetric.value === 'python' || breadthUsesPython.value
+  if (needsPythonAssets) {
+    // Saved Python-backed analyses need their selected asset before run() can
+    // resolve the canonical server request. Ordinary/default maps do not.
+    await pythonAssetsLoad
+    if (!componentMounted) return
+  }
   // Initialization can finish after a user refresh or source-watcher run.
   // That run already owns the map (and any subsequent selection); replaying
   // it here would clear the map and erase interaction after it was painted.

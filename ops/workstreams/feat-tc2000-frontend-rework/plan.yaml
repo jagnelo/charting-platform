@@ -330,8 +330,8 @@ on_demand_consumer_implementation: 'Current TC-owned mocked implementation at th
   tree and passed its full required CI40656688915. This feature-branch adoption records ancestry only; its exact branch CI
   is pending Root. Controlled tests are not genuine Provider/issuer proof; target/deployment and the complete roadmap remain
   open.'
-current_blocker: "Root's exact 9ec4d783/9e2de159 two-journey run passed factory recreation but the BWET journey showed its controlled response used generic test_fixture_hold instead of the expected future_dated_source. The TC fixture contract is corrected; Root must rebuild and rerun the affected journey. Full platform acceptance and release gates remain pending."
-current_checkpoint_status: "Current source contains bounded API admission, promotion-only priority for shared queued reads, visible-dock WatchList quote promotion, selected holdings preparation independent of chart/technical hydration, durable EasyScan unmount behavior, and dataset-specific preparation reasons. Provider 9e2de159 is pinned. Root's first exact-source two-journey run found a BWET fixture reason mismatch (not a product-code failure) and passed full factory recreation; the fixture is corrected for requalification."
+current_blocker: "Root's e6d9 affected-surface run passed Alerts and exposed foreground request starvation, delayed Market Map initialization, and cached WatchList progress presentation. TC has added bounded non-interactive admission, independent optional Market Map metadata hydration, and separate refresh messaging while retaining cached rows. Focused tests and type-check pass; Root's exact-source browser requalification is pending. Full platform acceptance and release gates remain open."
+current_checkpoint_status: "Current source contains bounded API admission, promotion-only priority for shared queued reads, visible-dock WatchList quote promotion with cached rows independent of unrelated refresh state, selected holdings preparation independent of chart/technical hydration, durable EasyScan unmount behavior, dataset-specific preparation reasons, and first-map rendering independent of optional snapshot/personal-watchlist metadata. Provider 9e2de159, ETF 9ef3be0c, and Strategy 2ec3221 are pinned. Focused unit/type checks pass; Root exact-source browser requalification and full platform/release gates remain pending."
 
 ordinary_ticker_latest_update: 'Root accepted the exact combined served profile at backend source 6eae00eb8380438da771fed0c42d19587e9520ce
   / image sha256:6c962aad753959c2ecdd79f0a1d6057d77f2ba6b829ec85b99404b009a42e76a and frontend source 36e7ad2cb08c769a242773ab2b6be69fcc350774
@@ -1993,9 +1993,9 @@ status: in_progress
 progress:
   completed: []
   total: 9
-  current_phase: "Close the focused frontend-unit and Provider operator/test dependency batch while Root completes the frozen-source browser profile."
-  current_blocker: "The BWET fixture correction is committed as c1171103. Root's full profile on 9ec4d783/c1171103 remains active and currently reports nine findings across J12 drawings, basket member preparation, on-demand lineage/discovery/ETF cases, Market Map initialization, and WatchList readiness; terminal traces are pending, so product/browser sources remain frozen. Root's full frontend-unit run on 9ec4d783 was 1903 passed/5 failed in MarketGaugeTool and test_stores; focused repairs now pass 77/77. Full-unit exact-source requalification and platform acceptance remain pending."
-  next_action: "Freeze this focused unit/operator import batch. After Root's active browser profile is terminal, use its exact traces to triage shared causes and make only evidence-backed repairs; keep full-unit, full-platform, exact-CI and release gates pending."
+  current_phase: "Close shared foreground request admission and cached-first analysis presentation after the e6d9 surface review."
+  current_blocker: "The e6d9 run confirmed that queued user mutations and interactive reads were blocked behind preparation traffic, while WatchList cached rows were marked busy by unrelated workspace analysis and Market Map waited for optional startup metadata before its first request. TC's bounded API, WatchList, and Market Map repairs pass the affected focused tests; exact-source browser requalification, full platform acceptance, and release gates remain pending."
+  next_action: "Freeze the coherent focused repair and exact ETF/Strategy imports after strict scope/workstream checks. Root owns browser requalification, full-unit/final-CI gates, and remaining platform acceptance."
   updated_at: '2026-11-08'
 historical_checkpoint_status_archive: 'Current boundary (2026-10-22): published HEAD is a7c8ecba208ce6c79d8f1a5d7294500122e462e5;
   one test-only change in workstation_performance.spec.ts and the four owned records are pending review. Exact hosted CI39693019337
@@ -4271,7 +4271,7 @@ correction_summary:
     recorded.
 
 ordinary_ticker_snapshot_followup_20261105: {"kind": "corrective followup within existing ordinary ticker checkpoint; no roadmap replan", "baseline": "45cc8206602d7823ca29e132d991d88b0bcbbc25", "previous_goal": "Repair exact discovered ticker Enter/Go in Workstation and shared chart SearchBar, and isolate superseded selection errors while preserving exact-local precedence, explicit choices, expressions, identity verification, ambiguity safeguards, picker scopes, stale-query fencing, current ETF context, and genuine workspace conflict recovery.", "Root_acceptance": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/TC-same-snapshot-implementation-root-acceptance.json", "accepted_file_hashes": {"frontend/src/components/workstation/WorkstationToolContent.vue": "3ff06c38e10066f15e4bca78b49833ec109d6e4443a4302106c6acdc1a813db2", "frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts": "b28994b75748976ef4658f74a79379909bb76fad5c7e8077b4e9b45a5e331c7e"}, "local_evidence": "4/4 mounted component tests, type-check and diff checks; prior failing CI retained", "release_state": "Root correct-bundle browser, exact closing-tip CI and combined full profile remain pending", "boundaries": "No self-integration/deployment; no source requests or quota/policy/dataset changes; all old roadmap criteria and accepted archives preserved"}
-next_action: "Freeze this focused fixture correction after scope/workstream checks; Root owns its exact-source rerun and all remaining combined qualification. Preserve all full-platform criteria and release gates."
+next_action: "Freeze this focused foreground-admission/analysis-presentation checkpoint after scope/workstream checks; Root owns exact-source browser qualification and all remaining combined gates. Preserve all full-platform criteria and release gates."
 current_exact_ci:
   head_sha: null
   run_id: null
@@ -5519,9 +5519,9 @@ approved_development_dependency_imports:
   - backend/tests/unit/tasks/test_data_tasks.py
   - backend/tests/unit/tasks/test_native_usage_prerequisite.py
   - backend/tests/unit/workers/test_arq_worker.py
-- source_sha: 44bb7a538241ca6d5388c5a200a3cf9811ec19ec
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/44bb7a538241ca6d5388c5a200a3cf9811ec19ec.json
-  manifest_sha256: a12c67e348fdd38e68c120cf74f933ac31e70a7cab9ab58acf70db7a207fe300
+- source_sha: 9ef3be0c2387ac173efae81ec3018863d49d3554
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/9ef3be0c2387ac173efae81ec3018863d49d3554.json
+  manifest_sha256: cfa68abc8ad9772b55e050da4d7f6db42a13901bfee320a53fb3bd99ba2017ee
   paths:
   - frontend/src/components/workstation/InstrumentNoteTool.vue
   - frontend/src/views/BasketsView.vue
@@ -5533,9 +5533,9 @@ approved_development_dependency_imports:
   - frontend/tests/unit/components/test_instrument_note_tool.test.ts
   - frontend/tests/unit/views/test_baskets_view.test.ts
   - frontend/tests/unit/views/test_etf_holdings_view.test.ts
-- source_sha: f1c4c0aa6dae80e4415880d45b633ba3b9ccef98
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/f1c4c0aa6dae80e4415880d45b633ba3b9ccef98.json
-  manifest_sha256: c7d01e5199d8accd90412418ca0701953c6779899ea6ce82af22b44f3d101a53
+- source_sha: 2ec3221df8d6e4ae5216572b9353a2c986e02902
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/2ec3221df8d6e4ae5216572b9353a2c986e02902.json
+  manifest_sha256: ab331a27394b77e904f948981c8b1ffa86605f4e34b450660aa65c37f2ee6904
   paths:
   - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
   - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
