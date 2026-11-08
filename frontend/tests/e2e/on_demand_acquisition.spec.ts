@@ -77,6 +77,17 @@ async function expectSelectionHoldingsDetails(page: Page, symbol: string, detail
   await expect(notice.locator('.compact-status__detail')).toContainText(detailText)
 }
 
+async function expectSelectionHistoryDetails(page: Page, detailText: string) {
+  const notice = page.locator('.workstation__selection-acquisition')
+    .filter({ has: page.locator('summary[aria-label^="History"]') }).last()
+  const summary = notice.locator('summary')
+  const details = notice.locator('details')
+  await expect(summary).toBeVisible()
+  await expect(notice.getByRole('status')).toHaveText(detailText)
+  if (!await details.evaluate(element => (element as HTMLDetailsElement).open)) await summary.click()
+  await expect(notice.locator('.compact-status__detail')).toHaveText(detailText)
+}
+
 function resolvedIdentity(request: InstrumentRequestBody, instrumentId: number, instrumentType = 'ETF'): InstrumentAcquireResponse {
   return {
     request_id: request.request_id,
@@ -447,7 +458,7 @@ test('Workstation search resolves an unknown ticker and reports shared history p
   await expect(selectedChart.locator('.sr-only')).toContainText('chart; no OHLCV bars loaded.')
   expect(await selectedChart.locator('.sr-only').innerText()).not.toBe(previousChartProvenanceText)
   await expect(search).toHaveValue('TCNEW')
-  await expect(page.locator('.workstation__selection-acquisition').filter({ hasText: 'No reviewed data source can provide this request.' })).toBeVisible()
+  await expectSelectionHistoryDetails(page, 'Some requested data is unavailable. Available results remain usable.')
   expect(legacyHistoryRequests).toEqual([])
   await browserDiagnostics.expectNoCriticalIssues()
 })
@@ -2034,6 +2045,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
       id: instruments[symbol].id,
       symbol,
       name: instruments[symbol].name,
+      instrument_type: symbol === 'BWET' ? 'Exchange Traded Vehicle' : 'ETF',
       currency: 'USD',
       is_active: true,
     } })
@@ -2419,22 +2431,18 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     const priorIgvHolding = igvContextWidget.getByRole('option', { name: /UNXQ Unlisted Example Software Corp/ })
     await expect(igvContextGroup).toContainText('IGV')
     await expect(priorIgvHolding).toBeVisible()
-    const bwetIdentityResponseReady = page.waitForResponse(response => {
+    const bwetCanonicalMetadataReady = page.waitForResponse(response => {
       const url = new URL(response.url())
-      return response.request().method() === 'POST' && url.pathname === '/api/v1/instruments/acquire'
-        && (response.request().postDataJSON() as InstrumentRequestBody).symbol === 'BWET'
+      return response.request().method() === 'GET' && url.pathname === '/api/v1/instruments/BWET'
+        && url.searchParams.get('canonical_only') === 'true'
     })
     const bwetHistoryResponseReady = waitForDatasetEnsure('BWET', 'history')
     const bwetHoldingsResponseReady = waitForDatasetEnsure('BWET', 'holdings')
     await chooseETF('BWET')
-    expect(await (await bwetIdentityResponseReady).json()).toMatchObject({
-      status: 'resolved',
-      instrument: {
-        instrument_id: instruments.BWET.id,
-        symbol: 'BWET',
-        identity_status: 'resolved',
-        instrument_type: 'Exchange Traded Vehicle',
-      },
+    expect(await (await bwetCanonicalMetadataReady).json()).toMatchObject({
+      id: instruments.BWET.id,
+      symbol: 'BWET',
+      instrument_type: 'Exchange Traded Vehicle',
     })
     expect((await bwetHistoryResponseReady).status()).toBe(200)
     const bwetHoldingsResponse = await bwetHoldingsResponseReady
@@ -2444,7 +2452,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
       has_pending_work: false,
       dependencies: [{ dataset: 'holdings', status: 'unavailable' }],
     })
-    expect(identityRequests.filter(request => request.symbol === 'BWET')).toHaveLength(1)
+    expect(identityRequests.filter(request => request.symbol === 'BWET')).toHaveLength(0)
     expect(holdingsEnsureRequests.filter(request => request.symbol === 'BWET').map(request => request.body)).toEqual([
       expect.objectContaining({ target: { kind: 'instrument', instrument_id: instruments.BWET.id }, datasets: ['holdings'] }),
     ])

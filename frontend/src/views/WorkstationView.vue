@@ -1346,6 +1346,7 @@ async function selectSymbol(
   const acquisitionController = new AbortController()
   selectedAcquisitionAbortController = acquisitionController
   const generation = ++symbolSelectionGeneration
+  let resolvedInstrumentType = confirmedIdentity?.instrument?.instrument_type?.trim() || instrumentType
   if (!preserveETFContext) {
     const requestedSymbol = requested.toUpperCase()
     const sectorSymbols = new Set(
@@ -1402,6 +1403,7 @@ async function selectSymbol(
     // queued request. Trust only the matching resolved symbol and positive ID.
     symbol = confirmedInstrument.symbol.trim().toUpperCase()
     resolvedInstrumentId = confirmedInstrument.instrument_id
+    resolvedInstrumentType = confirmedInstrument.instrument_type?.trim() || resolvedInstrumentType
   } else if (knownWorkstationSymbols.has(requested.toUpperCase())) {
     // These symbols are already canonical members of a loaded workstation
     // universe. Publish them synchronously so an in-flight initial request
@@ -1414,6 +1416,10 @@ async function selectSymbol(
       const resolved = await resolveKnownInstrument(requested, 'Workstation symbol', { canonicalOnly: true })
       symbol = resolved.symbol
       resolvedInstrumentId = resolved.id
+      // The local picker may have an older or coarse security classification.
+      // Use the canonical metadata returned by this already-needed lookup to
+      // update dataset-specific panels without re-acquiring the identity.
+      resolvedInstrumentType = resolved.instrumentType || resolvedInstrumentType
     } catch (cause: any) {
       if (generation !== symbolSelectionGeneration) return
       if (allowNavigationFallback && navigationFallbacks.has(requested.toUpperCase())) {
@@ -1470,7 +1476,7 @@ async function selectSymbol(
     (workspaceStore.marketGroups['sp500-sectors']?.members ?? [])
       .map(member => member.instrument.symbol.trim().toUpperCase()),
   )
-  const selectedType = confirmedIdentity?.instrument?.instrument_type ?? instrumentType
+  const selectedType = resolvedInstrumentType
   const isETF = sectorSymbols.has(symbol) || isEligibleETFHoldingsInstrumentType(selectedType)
   if (!preserveETFContext) {
     if (isETF) workspaceStore.setConstituentETF(symbol)
@@ -1503,7 +1509,7 @@ async function selectSymbol(
   try {
     const localDataReady = loadSymbolData(symbol, comparisonETF, false, preserveETFContext)
     const selectedAcquisition = acquisitionIntent
-      ? acquireSelectedTickerData(symbol, generation, localDataReady, confirmedIdentity, acquisitionController.signal, canonicalInstrumentId)
+      ? acquireSelectedTickerData(symbol, generation, localDataReady, confirmedIdentity, acquisitionController.signal, canonicalInstrumentId, resolvedInstrumentType)
       : Promise.resolve()
     await Promise.all([localDataReady, selectedAcquisition])
     if (generation !== symbolSelectionGeneration) return
@@ -1531,6 +1537,7 @@ async function acquireSelectedTickerData(
   confirmedIdentity?: InstrumentAcquireResponse,
   signal?: AbortSignal,
   knownInstrumentId?: number | null,
+  resolvedInstrumentType = '',
 ) {
   const timeframe = chartStore.timeframe
   const normalizedSymbol = symbol.trim().toUpperCase()
@@ -1567,7 +1574,7 @@ async function acquireSelectedTickerData(
   if (confirmedIdentity?.status === 'resolved' && confirmedIdentity.instrument?.symbol.trim().toUpperCase() === normalizedSymbol) {
     finishIdentity(confirmedIdentity)
   } else if (targetInstrumentId !== null) {
-    finishIdentity(makeResolvedIdentity(targetInstrumentId, confirmedIdentity?.instrument?.instrument_type ?? ''))
+      finishIdentity(makeResolvedIdentity(targetInstrumentId, confirmedIdentity?.instrument?.instrument_type ?? resolvedInstrumentType))
   }
 
   const refreshQueue = new PreparationProgressRefreshQueue()

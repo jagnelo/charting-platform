@@ -2632,7 +2632,10 @@ describe('WorkstationView pop-out bindings', () => {
   it('renders an initially empty deep-linked chart from preparation progress without another interaction', async () => {
     routeState.path = '/chart/NVDA'
     routeState.params = { symbol: 'NVDA' }
-    vi.mocked(resolveKnownInstrument).mockResolvedValueOnce({ symbol: 'NVDA', id: 77001 })
+    // Keep this request key distinct from the preceding cold-chart case. The
+    // shared coordinator intentionally coalesces a still-settling request
+    // across a rapid unmount/remount of the same instrument.
+    vi.mocked(resolveKnownInstrument).mockResolvedValueOnce({ symbol: 'NVDA', id: 77002 })
     harness.chart.bars = []
     harness.chart.refreshLocalBars.mockImplementation(async () => {
       harness.chart.bars = [{ time: '2026-11-06', open: 100, high: 102, low: 99, close: 101, volume: 10 }]
@@ -2658,7 +2661,7 @@ describe('WorkstationView pop-out bindings', () => {
     })
     try {
       await vi.waitFor(() => expect(dataPreparationPost).toHaveBeenCalledTimes(1))
-      expect(dataPreparationPost.mock.calls[0]?.[0]).toMatchObject({ target: { kind: 'instrument', instrument_id: 77001 } })
+      expect(dataPreparationPost.mock.calls[0]?.[0]).toMatchObject({ target: { kind: 'instrument', instrument_id: 77002 } })
       expect(dataPreparationPost.mock.calls[0]?.[0]).not.toHaveProperty('start_at')
       expect(dataPreparationPost.mock.calls[0]?.[0]).not.toHaveProperty('end_at')
       await vi.waitFor(() => expect(harness.chart.refreshLocalBars).toHaveBeenCalled())

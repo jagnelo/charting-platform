@@ -330,8 +330,8 @@ on_demand_consumer_implementation: 'Current TC-owned mocked implementation at th
   tree and passed its full required CI40656688915. This feature-branch adoption records ancestry only; its exact branch CI
   is pending Root. Controlled tests are not genuine Provider/issuer proof; target/deployment and the complete roadmap remain
   open.'
-current_blocker: "The cold-IHI trace showed nonempty local D1 bars arriving while the primary Workstation chart was still awaiting instrument metadata. The TC chart store now publishes a nonempty current-scope local refresh independently; focused unit/type checks pass. Root-rendered confirmation, exact-tip CI, full route/action coverage, combined acceptance, and release gates remain pending."
-current_checkpoint_status: "TC source successor from c3d46ab adds early publication of nonempty current-scope local OHLCV during force-fresh Workstation refreshes, retaining identity/indicator follow-up and existing bars on empty refreshes. It also includes the current workspace-save priority and corrected shared-ensure/holding browser contracts. The active Provider dependency remains 19d34d0b3e875b29b276ee80e471311586e6023f; the exact Strategy 88b70230 private journey import is recorded. Store/workspace unit modules passed 166/166, frontend type-check passed, and browser reference preflight found no actionable unbound references. Root must verify the native IHI plot and affected journeys; broader release criteria remain open."
+current_blocker: "Root is reviewing the 921 exact-source run. This TC successor adds bounded same-symbol local WatchList quote hydration, auth-session stale-response fencing, canonical instrument-type propagation for BWET, truthful D1 unavailable feedback, and exact Notes-tab activation after re-login. Focused checks pass; rendered WatchList/auth/selection verification, full qualification, and release gates remain pending Root."
+current_checkpoint_status: "Current TC successor based on 921e0124 adds per-symbol/mode WatchList local-price request coalescing and auth-boundary cleanup, canonical instrument type from confirmed metadata, truthful unavailable D1 detail, and visible Notes activation in J12. The exact bounded shared-diagnostics ownership transfer is recorded; Strategy private paths remain byte-preserved under a24d4c0f (25 paths). Focused tests passed 141/141, frontend type-check passed, E2E unbound-reference preflight found no actionable names, and journey mapping passed. Root owns browser/native/build qualification; wider platform criteria remain open."
 
 ordinary_ticker_latest_update: 'Root accepted the exact combined served profile at backend source 6eae00eb8380438da771fed0c42d19587e9520ce
   / image sha256:6c962aad753959c2ecdd79f0a1d6057d77f2ba6b829ec85b99404b009a42e76a and frontend source 36e7ad2cb08c769a242773ab2b6be69fcc350774
@@ -1829,6 +1829,12 @@ shared_path_exceptions:
   reason: TC user-scoped watchlist state reset at authenticated session boundaries only.
 - path: frontend/tests/e2e/auth_session_boundary.spec.ts
   reason: Exact deterministic test-owned account boundary and expired-refresh browser journey; no real human account switching.
+- path: frontend/tests/e2e/helpers.ts
+  reason: "TC-owned shared browser diagnostics only: retain the exact request-attributed 503 behavior and add a single explicitly armed exact auth-session AbortError classification; unrelated or excess errors remain fatal, covered by test_browser_diagnostics.test.ts."
+- path: frontend/tests/unit/e2e/test_browser_diagnostics.test.ts
+  reason: "TC-owned focused regression for the exact shared diagnostic seam; the armed auth-session cancellation is count-bounded and leaves unrelated or excess errors fatal."
+- path: frontend/src/lib/instruments.ts
+  reason: "TC shared frontend identity resolver exposes canonical instrument_type from its existing canonical metadata read so Workstation can correct a coarse picker hint without a duplicate acquire request."
 dependencies:
 - Prior accepted green staging 173745205692acd3fca650eeeafcd6de38f29fed imports the accepted Provider/ETF on-demand contracts
   from producer source95a93f0b932f58018d4f0d40f17f8fdb9eecdb20. Provider owns candidate discovery, canonical identity, bounded
@@ -4050,13 +4056,11 @@ prior_frontend_consumer_adaptations_4de:
 - path: frontend/tests/e2e/helpers.ts
   source_sha: 4de1365cec4bc5897c2a76d16a0004853d747f9c
   accepted_blob: 0acf9b94424a8cecafe59d3c7a447cdd0554e4d7
-  delta: Add one explicitly armed controlled-API-fault attribution in the existing BrowserDiagnostics class. A single 503
-    is expected only when its observed POST URL and request_id match the armed values, and at most one resource console entry
-    is attributed only when msg.location().url matches that URL. Unarmed, mismatched, duplicate, and unrelated 503 diagnostics
-    remain fatal.
-  rationale: Root's exact 2026-11-04 disposition authorizes this minimal adaptation of the imported helper for the existing
-    delayed OIH failure test. The frozen import remains pinned to its exact green 4d source/blob; no global 503 allow-list
-    or suppression of unrelated browser diagnostics is introduced.
+  delta: Keep the exact armed controlled-API-fault attribution for the existing OIH failure test. Also classify only the explicitly
+    armed count of exact authenticated-session-change AbortErrors; unarmed, mismatched, duplicate, and unrelated errors remain fatal.
+  rationale: The existing 2026-11-04 OIH disposition remains intact. Root's 2026-11-08 ownership transfer authorizes only these two
+    shared diagnostic files for the same-origin session-boundary journey; the matching unit regression proves the allowance is
+    count-bounded and unrelated or excess AbortErrors remain critical. No broad console suppression is introduced.
 prior_accepted_typed_enter_checkpoint_archive:
   goal: 'Repair ordinary typed-ticker Enter behavior in Workstation and shared chart SearchBar: submit the exact typed ticker
     or its exact local match instead of implicitly selecting a fuzzy prefix, while deliberate arrow navigation and suggestion
@@ -5318,6 +5322,39 @@ development_dependency_import_history:
     - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts
     state: superseded_development_import
     superseded_by: 2689c2c64996b1588dd764adcef2e7d570b15096
+  - source_sha: 88b70230f03cab3f45b2817033892e4c9e1ea9f5
+    manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/88b70230f03cab3f45b2817033892e4c9e1ea9f5.json
+    manifest_sha256: dc55c639f7984ec5102b81c00358a9d0e5c7e906b820526ef23839da05655b5c
+    paths:
+    - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
+    - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
+    - frontend/src/components/dashboard/DashboardInstrumentSearch.vue
+    - frontend/src/components/dashboard/DashboardLineChartWidget.vue
+    - frontend/src/components/dashboard/DashboardQuoteWidget.vue
+    - frontend/src/components/workstation/CodeLibraryTool.vue
+    - frontend/src/components/workstation/PythonSourceEditor.vue
+    - frontend/src/components/workstation/ResearchResultsTool.vue
+    - frontend/src/components/workstation/StudyLabTool.vue
+    - frontend/src/lib/workstation/researchQueryKeys.ts
+    - frontend/src/stores/dashboard.ts
+    - frontend/src/views/DashboardView.vue
+    - frontend/tests/e2e/dashboard_usability_journey.spec.ts
+    - frontend/tests/e2e/helpers.ts
+    - frontend/tests/e2e/strategy_study_journey.spec.ts
+    - frontend/tests/e2e/workstation_lifecycle_journey.spec.ts
+    - frontend/tests/unit/components/test_code_library_tool.test.ts
+    - frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts
+    - frontend/tests/unit/components/test_dashboard_instrument_search.test.ts
+    - frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts
+    - frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts
+    - frontend/tests/unit/components/test_python_source_editor.test.ts
+    - frontend/tests/unit/components/test_research_results_tool.test.ts
+    - frontend/tests/unit/components/test_study_lab_tool.test.ts
+    - frontend/tests/unit/e2e/test_browser_diagnostics.test.ts
+    - frontend/tests/unit/stores/test_dashboard_store.test.ts
+    - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts
+    state: superseded_development_import
+    superseded_by: a24d4c0f08b6eaffe364ef4d670c6889463000ad
 approved_development_dependency_imports:
 - source_sha: 19d34d0b3e875b29b276ee80e471311586e6023f
   manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/19d34d0b3e875b29b276ee80e471311586e6023f.json
@@ -5416,9 +5453,9 @@ approved_development_dependency_imports:
   - frontend/tests/unit/components/test_instrument_note_tool.test.ts
   - frontend/tests/unit/views/test_baskets_view.test.ts
   - frontend/tests/unit/views/test_etf_holdings_view.test.ts
-- source_sha: 88b70230f03cab3f45b2817033892e4c9e1ea9f5
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/88b70230f03cab3f45b2817033892e4c9e1ea9f5.json
-  manifest_sha256: dc55c639f7984ec5102b81c00358a9d0e5c7e906b820526ef23839da05655b5c
+- source_sha: a24d4c0f08b6eaffe364ef4d670c6889463000ad
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/a24d4c0f08b6eaffe364ef4d670c6889463000ad.json
+  manifest_sha256: 7fed3377c2c837d36416ceab94d288a27eaa63a091c353a8092f3f7ce56e8249
   paths:
   - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
   - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
@@ -5433,7 +5470,6 @@ approved_development_dependency_imports:
   - frontend/src/stores/dashboard.ts
   - frontend/src/views/DashboardView.vue
   - frontend/tests/e2e/dashboard_usability_journey.spec.ts
-  - frontend/tests/e2e/helpers.ts
   - frontend/tests/e2e/strategy_study_journey.spec.ts
   - frontend/tests/e2e/workstation_lifecycle_journey.spec.ts
   - frontend/tests/unit/components/test_code_library_tool.test.ts
@@ -5444,6 +5480,5 @@ approved_development_dependency_imports:
   - frontend/tests/unit/components/test_python_source_editor.test.ts
   - frontend/tests/unit/components/test_research_results_tool.test.ts
   - frontend/tests/unit/components/test_study_lab_tool.test.ts
-  - frontend/tests/unit/e2e/test_browser_diagnostics.test.ts
   - frontend/tests/unit/stores/test_dashboard_store.test.ts
   - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts

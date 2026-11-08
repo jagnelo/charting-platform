@@ -103,8 +103,8 @@
     "status": "pending Root observation after publication"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "Current working-tree successor based on 2a8dc9e4 includes strict confirmedIdentity reuse for the selected canonical ticker (including supplied-ID conflict rejection), truthful pending/high-priority My Favorites mutations, visible Notes-tab activation in J12, and corrected IGV holdings status matching. Exact Provider b1929300 5-of-78 backend imports and Strategy 2689c2c6 one-of-27 private test import are recorded. Focused confirmation/acquisition, API, favorites, ToolWindow and type checks pass; the visibility-return duplicate query trigger is repaired and its focused one-refresh regression passes; Root rendered qualification remains pending. Root exact-source rebuild/browser rerun and all wider qualification remain pending.",
-  "current_checkpoint_status": "Bounded common critical-smoke follow-up: do not block a resolved exact ticker selection on a redundant canonical GET; reject symbol/status/identity-ID disagreement; retain ordinary J12 tab activation and existing holdings feedback semantics; give favorite writes high browser fetch priority without optimistic server-state changes. Root owns rendered rerun and full release acceptance.",
+  "current_candidate_ci_status": "Current shared-source successor is under focused local validation. Root owns exact-source build, affected browser/native journeys, exact CI, combined qualification, and release acceptance; none is claimed green.",
+  "current_checkpoint_status": "Focused TC successor for Root’s 921 findings: coalesced local WatchList quote reads with session-generation fencing; canonical instrument type from already-needed metadata; truthful D1 unavailable details; ordinary Notes activation; exact bounded auth-cancellation diagnostics. 141 focused tests and type-check pass. Root browser/native qualification pending.",
   "current_exact_ci": {
     "head_sha": null,
     "run_id": null,
@@ -414,7 +414,7 @@
   "local_candidate_capture": "exact current branch HEAD after staging16 remediation and one-case proof; Root push and exact full staging104 pending",
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
-  "next_action": "Freeze this coherent checkpoint for Root exact-source build and critical journey qualification; continue only on concrete new Root evidence while preserving full platform criteria and release gates.",
+  "next_action": "Complete cheap strict scope/workstream/journey/reference checks, commit this coherent successor, and freeze it for Root’s affected browser and native verification. Continue only on concrete Root evidence.",
   "owned_runtime_cleanup": {
     "after_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-after.json (SHA256 3696bb48051e0e6cf11d45af99ac118d302f454337b6fbd48df8dbeae57d157b)",
     "before_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-before.json (SHA256 8f1eeb19f585da67cfea43f8c35a4aa11baa3aa6d3510a065afd0f95498505bf)",
@@ -445,7 +445,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "97d5aff8eeb231ce7d71ae74c20c4e59b0d17d08fc0419567ddd5435c037c923",
+  "plan_hash": "a3feb4cb4b93655887ea3a3b465b52160741e3f3383ea840c40a0a3ab3653568",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
