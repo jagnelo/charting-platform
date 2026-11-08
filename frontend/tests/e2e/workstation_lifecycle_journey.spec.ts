@@ -410,7 +410,7 @@ async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUT
     await expect(visibleResult).toContainText(`${passed}/${eligible} eligible`)
     await expect(visibleResult).toContainText(`${(Number(passed) / Number(eligible) * 100).toFixed(1)}%`)
     const memberState = Number(passed) > 0 ? 'pass' : 'fail'
-    await breadth.locator('.breadth-tool__generic-drilldown').getByRole('button', { name: new RegExp(`^${memberState === 'pass' ? 'Pass' : 'Fail'} `) }).first().click()
+    await breadth.locator('.breadth-tool__generic-drilldown').getByRole('button', { name: new RegExp(`^${memberState === 'pass' ? 'Pass' : 'Fail'} `) }).first().click({ timeout: 5_000 })
     const evaluatedMember = breadth.locator('.breadth-tool__generic-drilldown').getByRole('button', { name: /^Select / }).first()
     await expect(evaluatedMember).toBeVisible()
     await expect(evaluatedMember.locator('strong')).toHaveText(/^[A-Z0-9._-]+$/)
