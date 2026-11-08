@@ -2799,7 +2799,8 @@
         "TC08-gauge",
         "TC08-plot-save-recovery",
         "TC04-basket-preparation",
-        "TC09-dashboard-advanced-details"
+        "TC09-dashboard-advanced-details",
+        "TC08-study-saved-context"
       ],
       "critical_review_slot": "TC08-critical-review"
     },
@@ -6542,6 +6543,16 @@
       "test_name": "F9d — workspace layouts round-trip through the real export and import controls",
       "execution_status": "authored_pending_root_run",
       "critical_review_slot": "TC07-critical-review"
+    },
+    {
+      "id": "TC08-study-saved-context",
+      "journey_ids": [
+        "TC08"
+      ],
+      "test_path": "frontend/tests/e2e/strategy_study_journey.spec.ts",
+      "test_name": "Study journey keeps saved identity, refreshes Results, and returns from Python Library on the immutable version",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC08-critical-review"
     },
     {
       "id": "TC08-study-run",
