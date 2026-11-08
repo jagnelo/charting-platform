@@ -5777,6 +5777,41 @@ development_dependency_import_history:
     state: superseded_development_import
     superseded_by: 7aa843efeec7b5a37e1ecc52fa5392069cda9326
 
+  - source_sha: 7aa843efeec7b5a37e1ecc52fa5392069cda9326
+    manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/7aa843efeec7b5a37e1ecc52fa5392069cda9326.json
+    manifest_sha256: 74f456831181fbbdd5c48939e8122a4798cfecd6e5c799acb7b5e227ea952617
+    paths:
+    - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
+    - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
+    - frontend/src/components/dashboard/DashboardInstrumentSearch.vue
+    - frontend/src/components/dashboard/DashboardLineChartWidget.vue
+    - frontend/src/components/dashboard/DashboardQuoteWidget.vue
+    - frontend/src/components/workstation/CodeLibraryTool.vue
+    - frontend/src/components/workstation/PythonSourceEditor.vue
+    - frontend/src/components/workstation/ResearchResultsTool.vue
+    - frontend/src/components/workstation/StudyLabTool.vue
+    - frontend/src/lib/workstation/researchQueryKeys.ts
+    - frontend/src/lib/workstation/researchRunCancellation.ts
+    - frontend/src/stores/dashboard.ts
+    - frontend/src/views/DashboardView.vue
+    - frontend/src/views/StrategyLabView.vue
+    - frontend/tests/e2e/dashboard_usability_journey.spec.ts
+    - frontend/tests/e2e/strategy_study_journey.spec.ts
+    - frontend/tests/e2e/workstation_lifecycle_journey.spec.ts
+    - frontend/tests/unit/components/test_code_library_tool.test.ts
+    - frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts
+    - frontend/tests/unit/components/test_dashboard_instrument_search.test.ts
+    - frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts
+    - frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts
+    - frontend/tests/unit/components/test_python_source_editor.test.ts
+    - frontend/tests/unit/components/test_research_results_tool.test.ts
+    - frontend/tests/unit/components/test_study_lab_tool.test.ts
+    - frontend/tests/unit/stores/test_dashboard_store.test.ts
+    - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts
+    - frontend/tests/unit/views/test_strategy_lab_view.test.ts
+    state: superseded_development_import
+    superseded_by: 0875336efeafd2339ed609e7bb1ec781fd5682d5
+
 approved_development_dependency_imports:
 - source_sha: 4b9f53bca2097501e7c2843cb2f92567c8f74ea5
   manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/4b9f53bca2097501e7c2843cb2f92567c8f74ea5.json
@@ -5881,9 +5916,9 @@ approved_development_dependency_imports:
   - frontend/tests/unit/components/test_instrument_note_tool.test.ts
   - frontend/tests/unit/views/test_baskets_view.test.ts
   - frontend/tests/unit/views/test_etf_holdings_view.test.ts
-- source_sha: 7aa843efeec7b5a37e1ecc52fa5392069cda9326
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/7aa843efeec7b5a37e1ecc52fa5392069cda9326.json
-  manifest_sha256: 74f456831181fbbdd5c48939e8122a4798cfecd6e5c799acb7b5e227ea952617
+- source_sha: 0875336efeafd2339ed609e7bb1ec781fd5682d5
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/0875336efeafd2339ed609e7bb1ec781fd5682d5.json
+  manifest_sha256: 9823d4b119a37dc87dfaac31a06ed3a1064a7d3d12c530042c284ebe3d8ae72f
   paths:
   - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
   - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
@@ -5993,3 +6028,11 @@ shared_instrument_calendar_readiness_v1_20261108:
   behavior: Preserve cached events immediately; show truthful compact queued/deferred/held/unavailable/ready status; poll status only while visible; honor an actual retry_at; invalidate and refetch the exact calendar range on ready/partial completion or newer updated_at; retain events on refresh failure and reject stale symbol/instrument/session results.
   validation: Focused calendar and browser-diagnostics unit modules pass 22/22; frontend type-check passes; E2E reference-only preflight has no actionable unbound names; journey matrix and strict scope/workstream/diff checks pass.
   pending: The queued-to-ready no-reload journey case is authored in the existing TC-owned TCNEW flow but was not browser-run here. Root owns combined backend/frontend build and rendered qualification; provider genuine-service and all full-suite/release gates remain open.
+strategy_0875336efeafd2339ed609e7bb1ec781fd5682d5_private_successor_20261108:
+  source: 0875336efeafd2339ed609e7bb1ec781fd5682d5
+  manifest: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/0875336efeafd2339ed609e7bb1ec781fd5682d5.json
+  manifest_sha256: 9823d4b119a37dc87dfaac31a06ed3a1064a7d3d12c530042c284ebe3d8ae72f
+  imported_consumer_delta: frontend/src/views/StrategyLabView.vue, frontend/tests/e2e/strategy_study_journey.spec.ts, and frontend/tests/unit/views/test_strategy_lab_view.test.ts only; all 28 Strategy manifest rows match exact source blobs, hashes, and modes, and the other 25 private paths remain byte/mode-identical.
+  previous_private_pin: Strategy 7aa843efeec7b5a37e1ecc52fa5392069cda9326 is archived unchanged in development_dependency_import_history and superseded only in the active pin.
+  validation: Exact three old guards passed; frontend type-check passed; reference-only preflight found zero actionable unbound names (four non-actionable E2E type advisories remain outside its qualification mode); discovery listed 116 cases across the two files; strict TC scope, 28-route/action journey matrix, workstream, and staged/unstaged diff checks passed.
+  pending: Root owns combined build, actual positive Legacy replay, complete mapped journeys, and full release qualification.

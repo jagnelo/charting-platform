@@ -1261,6 +1261,10 @@
             </div>
           </div>
 
+          <p v-if="noPositionRejectionNotice" class="run-rejection-notice" role="status">
+            {{ noPositionRejectionNotice }}
+          </p>
+
           <div class="coverage-detail-panel">
             <div class="subsection-head">
               <div class="subsection-title">
@@ -1765,6 +1769,7 @@ const STRATEGY_SIDEBAR_MAX_WIDTH = 420
 const STRATEGY_SIDEBAR_DEFAULT_WIDTH = 308
 const STRATEGY_SIDEBAR_COLLAPSED_WIDTH = 16
 const STRATEGY_SECTION_STORAGE_KEY = 'strategyLab.sections.v1'
+const NEW_STRATEGY_DEFAULT_RISK_PER_TRADE_PCT = 0.5
 const PYTHON_SIGNAL_REVISION_GUIDANCE = 'Python signal code and version lineage are immutable in Strategy Lab. Make signal changes in Study Lab and promote a new signal.'
 const initialSidebarState = loadStrategySidebarState()
 const initialSectionStates = loadStrategySectionStates()
@@ -1959,7 +1964,7 @@ const runDraft = reactive({
   date_from: '',
   date_to: '',
   initial_capital: 100000,
-  risk_per_trade_pct: 1,
+  risk_per_trade_pct: NEW_STRATEGY_DEFAULT_RISK_PER_TRADE_PCT,
   slippage_bps: 5 as OptionalNumberInput,
   commission_model: 'fixed_round_trip' as 'fixed_round_trip' | 'fixed_per_order' | 'percent_of_notional',
   commission_value: '' as OptionalNumberInput,
@@ -2259,6 +2264,63 @@ const paperForwardCurve = computed<any[]>(() =>
 const performance = computed<Record<string, number | null>>(() =>
   selectedRunDetail.value?.result_summary?.performance ?? {}
 )
+
+const noPositionRejectionNotice = computed(() => {
+  const run = selectedRunDetail.value
+  if (!run || run.status !== 'completed') return null
+
+  const summary = run.result_summary ?? {}
+  const runPerformance = summary.performance ?? {}
+  const closedTrades = Number(runPerformance.closed_trade_count ?? runPerformance.trade_count ?? 0)
+  const openPositions = Number(runPerformance.open_position_count ?? 0)
+  if (closedTrades > 0 || openPositions > 0) return null
+
+  const rejectedRows = Array.isArray(summary.rejected_trades) ? summary.rejected_trades : []
+  const rejectionBreakdown = summary.portfolio?.rejection_breakdown ?? {}
+  const rejectionCounts = Object.values(rejectionBreakdown)
+    .map((count: any) => Number(count))
+    .filter((count: number) => Number.isFinite(count) && count > 0)
+  const allocationRows = rejectedRows.filter((row: any) => row.reason === 'max_symbol_allocation_pct')
+  const rejectedCount = Math.max(
+    Number(summary.portfolio?.rejected_trade_count ?? 0) || 0,
+    rejectionCounts.reduce((total, count) => total + count, 0),
+    rejectedRows.length,
+  )
+  if (rejectedCount <= 0) return null
+
+  const allocationRejectedCount = Number(rejectionBreakdown.max_symbol_allocation_pct ?? 0) || allocationRows.length
+  if (allocationRejectedCount > 0) {
+    const allocationLimit = Number(
+      summary.execution_assumptions?.max_symbol_allocation_pct
+        ?? run.execution_assumptions?.max_symbol_allocation_pct,
+    )
+    const allocationDetails = allocationRows
+      .slice(0, 3)
+      .map((row: any) => {
+        const symbol = String(row.instrument_symbol ?? row.symbol ?? '').trim()
+        const allocation = Number(row.allocation_pct)
+        if (!symbol || !Number.isFinite(allocation) || !Number.isFinite(allocationLimit)) return null
+        return `${symbol} required ${allocation.toFixed(1)}% of capital against a ${allocationLimit.toFixed(1)}% per-symbol limit`
+      })
+      .filter((detail: string | null): detail is string => Boolean(detail))
+    const countLabel = `${allocationRejectedCount} ${allocationRejectedCount === 1 ? 'candidate was' : 'candidates were'}`
+    const detail = allocationDetails.length ? ` ${allocationDetails.join('; ')}.` : ''
+    const otherRejectedCount = Math.max(0, rejectedCount - allocationRejectedCount)
+    const otherReasons = otherRejectedCount > 0
+      ? ` ${otherRejectedCount} other ${otherRejectedCount === 1 ? 'candidate was' : 'candidates were'} also rejected; see the execution log for details.`
+      : ''
+    return `No positions were opened. ${countLabel} rejected by the per-symbol allocation cap.${detail}${otherReasons} Review risk per trade, stop distance, and the allocation limit.`
+  }
+
+  const reasonNames = Object.keys(rejectionBreakdown).filter(reason => Number(rejectionBreakdown[reason]) > 0)
+  if (!reasonNames.length) {
+    reasonNames.push(...new Set(rejectedRows.map((row: any) => String(row.reason ?? '')).filter(Boolean)))
+  }
+  const reasons = reasonNames.length
+    ? reasonNames.map(reason => humanizeToken(reason).toLowerCase()).join(', ')
+    : 'portfolio controls'
+  return `No positions were opened. ${rejectedCount} ${rejectedCount === 1 ? 'candidate was' : 'candidates were'} rejected by ${reasons}. Review the execution log for details.`
+})
 
 const initialCapital = computed(() => {
   const value = Number(performance.value.initial_capital)
@@ -3483,7 +3545,7 @@ function startNew() {
   runDraft.date_from = ''
   runDraft.date_to = ''
   runDraft.initial_capital = 100000
-  runDraft.risk_per_trade_pct = 1
+  runDraft.risk_per_trade_pct = NEW_STRATEGY_DEFAULT_RISK_PER_TRADE_PCT
   runDraft.slippage_bps = 5
   runDraft.commission_model = 'fixed_round_trip'
   runDraft.commission_value = ''
@@ -6080,6 +6142,17 @@ function humanizeBarSpan(barCount: number, timeframe: string | null | undefined)
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
+}
+
+.run-rejection-notice {
+  margin: 12px 0;
+  padding: 10px 12px;
+  border: 1px solid #8b6b35;
+  border-radius: 4px;
+  background: #241c10;
+  color: #f2d49a;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .summary-card {
