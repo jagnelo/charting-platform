@@ -2428,3 +2428,21 @@ approved_development_dependency_imports:
   paths:
   - backend/app/services/etf_holdings.py
   - backend/tests/unit/services/test_etf_holdings_catalogue.py
+- source_sha: 837c9d81a6f6de0177f153a3caa5ab7cf5d886ee
+  manifest_path: ops/workstreams/feat-strategy-lab-v2/development-dependency-imports/tc-837c9d81-full-frontend-context.json
+  manifest_sha256: e9443c426cce3b905fac1f90f3a6c4a5304711c8f6ce90c9d5cea21e175e3f11
+  paths:
+  - frontend/src/components/workstation/RatioUPlot.vue
+  - frontend/src/components/workstation/RelativeRotationTool.vue
+  - frontend/tests/e2e/auth_session_boundary.spec.ts
+  - frontend/tests/e2e/flows.spec.ts
+  - frontend/tests/e2e/on_demand_acquisition.spec.ts
+  - frontend/tests/unit/components/test_ratio_uplot.test.ts
+  - frontend/tests/unit/components/test_relative_rotation_tool.test.ts
+  - frontend/tests/e2e/sp500_analysis_journey.spec.ts
+  source_manifest_rows_verified: 150
+  foreign_context_paths: 124
+  private_paths_excluded: 26
+  old_guards_verified: 8
+  imported_paths_verified: 8
+  qualification: Root-released TC development context only; no profile, exact CI, integration, deployment, or full-roadmap acceptance.

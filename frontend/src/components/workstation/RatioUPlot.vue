@@ -389,6 +389,7 @@ function draw() {
   if (!host.value || !hasPoints.value) return
   const width = host.value.clientWidth
   const height = host.value.clientHeight
+  const compactPlot = height < 160
   // Golden Layout can briefly report a zero-sized inactive pane. Wait for the
   // host's ResizeObserver instead of creating an oversized chart that clips
   // its axes when the pane is revealed.
@@ -415,11 +416,21 @@ function draw() {
     // default HTML legend would render below the canvas and collide with the
     // warning/footer row in compact docked windows.
     legend: { show: false },
+    // Keep the date/value labels accurate while reclaiming default padding and
+    // gaps for the ratio data plane in compact docks.
+    padding: compactPlot ? [2, 4, 2, 4] : [4, 8, 4, 8],
     cursor: { drag: { x: true, y: false } },
     scales: { x: { time: true }, y: { auto: true } },
     axes: [
-      { stroke: '#70808b', grid: { stroke: '#26313a', width: 1 }, ticks: { stroke: '#40505a', width: 1 }, font: '10px Segoe UI' },
-      { stroke: '#9aabb6', grid: { stroke: '#26313a', width: 1 }, ticks: { stroke: '#40505a', width: 1 }, font: '10px Segoe UI' },
+      { stroke: '#70808b', size: compactPlot ? 14 : 18, gap: compactPlot ? 1 : 2, grid: { stroke: '#26313a', width: 1 }, ticks: { stroke: '#40505a', width: 1, size: compactPlot ? 2 : 3 }, font: compactPlot ? '9px Segoe UI' : '10px Segoe UI' },
+      {
+        stroke: '#9aabb6',
+        size: (_u, values) => Math.ceil(Math.max(0, ...(values ?? []).map(value => _u.ctx.measureText(value).width)) + (compactPlot ? 6 : 8)),
+        gap: compactPlot ? 1 : 2,
+        grid: { stroke: '#26313a', width: 1 },
+        ticks: { stroke: '#40505a', width: 1, size: compactPlot ? 2 : 3 },
+        font: compactPlot ? '9px Segoe UI' : '10px Segoe UI',
+      },
     ],
     series: [{}, ...series.value.map((item, index) => ({ label: `${props.symbol}/${item.benchmark}`, stroke: colors[index % colors.length], width: 1.5 }))],
     hooks: {
@@ -498,4 +509,7 @@ onBeforeUnmount(() => {
 .ratio-chart__state { display: grid; place-items: center; color: #8fa0aa; font: 11px "Segoe UI", Arial, sans-serif; }
 .ratio-chart__state--error { color: #ec8f8f; }
 .ratio-chart__warning { padding: 3px 7px; color: #d0ae6d; font: 9px "Segoe UI", Arial, sans-serif; }
+@media (max-height: 680px) {
+  .ratio-chart__legend { padding-block: 0; }
+}
 </style>
