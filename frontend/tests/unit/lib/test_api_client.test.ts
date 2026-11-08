@@ -5,7 +5,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { setTokens, clearTokens, ApiError } from '@/lib/api'
-import { currentAuthSessionEpoch, beginAuthSessionBoundary } from '@/lib/authSession'
+import { currentAuthSessionEpoch, beginAuthSessionBoundary, AuthSessionChangedError } from '@/lib/authSession'
 import { useAuthStore } from '@/stores/auth'
 import { router } from '@/router'
 
@@ -127,6 +127,20 @@ describe('api.get', () => {
     expect(fetch).toHaveBeenLastCalledWith(expect.stringContaining('/private/results'), expect.objectContaining({
       headers: expect.objectContaining({ Authorization: 'Bearer user-b-access' }),
     }))
+  })
+
+  it('normalizes a fetch abort caused by the auth boundary to the typed session-change error', async () => {
+    setTokens('user-a-access', 'user-a-refresh')
+    let rejectFetch!: (reason: unknown) => void
+    ;(global.fetch as ReturnType<typeof vi.fn>).mockReturnValueOnce(new Promise((_resolve, reject) => { rejectFetch = reject }))
+    const { api } = await import('@/lib/api')
+    const request = api.get('/private/results')
+
+    beginAuthSessionBoundary()
+    rejectFetch(new DOMException('signal is aborted without reason', 'AbortError'))
+
+    await expect(request).rejects.toBeInstanceOf(AuthSessionChangedError)
+    await expect(request).rejects.toMatchObject({ name: 'AbortError', message: 'The authenticated session changed while this request was in flight.' })
   })
 
   it('preserves the authenticated session generation during token refresh', async () => {

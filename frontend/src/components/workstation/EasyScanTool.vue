@@ -298,60 +298,7 @@ async function run() {
     const priorResult = result.value
     const submitted = await api.post<ScanResult>(`/screeners/${scan.id}/run`, {})
     if (!isCurrentRun()) return
-    const submittedStatus = scanResultStatus(submitted)
-    activeResearchRunId.value = scanResearchRunId(submitted)
-    const submittedResultId = scanResultRowId(submitted)
-    const submittedIsSynchronous = !submittedStatus && activeResearchRunId.value == null
-    if (submittedStatus === 'completed' || submittedIsSynchronous) {
-      result.value = submitted
-      activeRunStatus.value = 'Scan completed.'
-      activeResearchRunId.value = null
-    } else if (submittedStatus === 'failed' || submittedStatus === 'canceled') {
-      // A failed attempt is not a replacement for the last useful result.
-      result.value = priorResult
-      activeRunStatus.value = submittedStatus === 'failed' ? 'Scan failed.' : 'Scan canceled.'
-      activeResearchRunId.value = null
-      if (submitted.error) error.value = submitted.error
-    } else {
-      activeRunStatus.value = scanProgressMessage(submittedStatus)
-      if (activeResearchRunId.value == null && submittedResultId == null) {
-        result.value = priorResult
-        activeRunStatus.value = 'Scan submitted; its status identifier is unavailable.'
-        error.value = 'The scan status could not be tracked. The last completed result remains available.'
-      } else {
-        while (isCurrentRun()) {
-          await new Promise(resolve => setTimeout(resolve, 250))
-          if (!isCurrentRun()) return
-          const retained = await queryClient.fetchQuery<ScanResult[]>({
-            queryKey: ['workstation', 'screener-results', scan.id],
-            queryFn: async () => (await api.get<ScanResult[]>(`/screeners/${scan.id}/results`, { limit: 1 })) ?? [],
-            staleTime: 0,
-          })
-          if (!isCurrentRun()) return
-          const runId = activeResearchRunId.value
-          const matching = retained.find(item => runId != null
-            ? scanResearchRunId(item) === runId
-            : scanResultRowId(item) === submittedResultId)
-          if (!matching) continue
-          const currentStatus = scanResultStatus(matching)
-          if (currentStatus === 'completed') {
-            result.value = matching
-            activeRunStatus.value = 'Scan completed.'
-            activeResearchRunId.value = null
-            break
-          }
-          if (currentStatus === 'failed' || currentStatus === 'canceled') {
-            result.value = priorResult
-            activeRunStatus.value = currentStatus === 'failed' ? 'Scan failed.' : 'Scan canceled.'
-            activeResearchRunId.value = null
-            if (matching.error) error.value = matching.error
-            break
-          }
-          activeRunStatus.value = scanProgressMessage(currentStatus)
-        }
-        // Keep the last completed result visible while this run is queued/running.
-      }
-    }
+    await followSubmittedScan(scan.id, submitted, isCurrentRun, priorResult)
     if (!isCurrentRun()) return
     await queryClient.invalidateQueries({ queryKey: ['workstation', 'screener-history', scan.id] })
     await loadResultHistory(scan.id, { selectLatest: activeRunStatus.value === 'Scan completed.' })
@@ -361,6 +308,19 @@ async function run() {
 
 function scanResultStatus(scanResult: ScanResult): string {
   return String(scanResult.result_data?._status ?? '').toLowerCase()
+}
+
+function scanResultIsPending(scanResult: ScanResult): boolean {
+  return ['queued', 'pending', 'running', 'leased'].includes(scanResultStatus(scanResult))
+}
+
+function scanResultIsCompleted(scanResult: ScanResult): boolean {
+  return scanResultStatus(scanResult) === 'completed'
+    || (!scanResultStatus(scanResult) && scanResult.result_data?._coverage != null)
+}
+
+function mostUsefulResult(results: ScanResult[]): ScanResult | undefined {
+  return results.find(scanResultIsCompleted) ?? results[0]
 }
 
 function scanResearchRunId(scanResult: ScanResult): number | null {
@@ -376,6 +336,70 @@ function scanProgressMessage(value: string): string {
   if (value === 'queued' || value === 'pending') return 'Scan queued; waiting for results…'
   if (value === 'running' || value === 'leased') return 'Scan running…'
   return value ? `Scan status: ${value}.` : 'Scan submitted; waiting for results…'
+}
+
+async function followSubmittedScan(
+  savedScanId: number,
+  submitted: ScanResult,
+  isCurrent: () => boolean,
+  previousResult: ScanResult | null,
+): Promise<void> {
+  if (!isCurrent()) return
+  void queryClient.invalidateQueries({ queryKey: ['workstation', 'screener-history', savedScanId] })
+  const submittedStatus = scanResultStatus(submitted)
+  const researchRunId = scanResearchRunId(submitted)
+  const resultId = scanResultRowId(submitted)
+  if (scanResultIsCompleted(submitted) || (!submittedStatus && researchRunId == null)) {
+    result.value = submitted
+    activeRunStatus.value = 'Scan completed.'
+    activeResearchRunId.value = null
+    return
+  }
+  if (submittedStatus === 'failed' || submittedStatus === 'canceled') {
+    result.value = previousResult
+    activeRunStatus.value = submittedStatus === 'failed' ? 'Scan failed.' : 'Scan canceled.'
+    activeResearchRunId.value = null
+    if (submitted.error) error.value = submitted.error
+    return
+  }
+  if (researchRunId == null && resultId == null) {
+    result.value = previousResult
+    activeRunStatus.value = 'Scan submitted; its status identifier is unavailable.'
+    error.value = 'The scan status could not be tracked. The last completed result remains available.'
+    return
+  }
+
+  activeResearchRunId.value = researchRunId
+  activeRunStatus.value = scanProgressMessage(submittedStatus)
+  while (isCurrent()) {
+    await new Promise(resolve => setTimeout(resolve, 250))
+    if (!isCurrent()) return
+    const retained = await queryClient.fetchQuery<ScanResult[]>({
+      queryKey: ['workstation', 'screener-results', savedScanId],
+      queryFn: async () => (await api.get<ScanResult[]>(`/screeners/${savedScanId}/results`, { limit: 20 })) ?? [],
+      staleTime: 0,
+    })
+    if (!isCurrent()) return
+    const matching = retained.find(item => researchRunId != null
+      ? scanResearchRunId(item) === researchRunId
+      : scanResultRowId(item) === resultId)
+    if (!matching) continue
+    const currentStatus = scanResultStatus(matching)
+    if (scanResultIsCompleted(matching)) {
+      result.value = matching
+      activeRunStatus.value = 'Scan completed.'
+      activeResearchRunId.value = null
+      return
+    }
+    if (currentStatus === 'failed' || currentStatus === 'canceled') {
+      result.value = previousResult
+      activeRunStatus.value = currentStatus === 'failed' ? 'Scan failed.' : 'Scan canceled.'
+      activeResearchRunId.value = null
+      if (matching.error) error.value = matching.error
+      return
+    }
+    activeRunStatus.value = scanProgressMessage(currentStatus)
+  }
 }
 
 function canonicalValue(value: unknown): unknown {
@@ -414,12 +438,14 @@ function startSavedScreenerPreparation(saved: SavedScanDefinition, contextKey: s
   if (!isPreparationTimeframe(saved.timeframe)) throw new Error('The saved scan timeframe is not supported for history preparation.')
   preparationController?.abort()
   const controller = new AbortController()
+  const actionGeneration = runGeneration
   preparationController = controller
   preparationContextKey = contextKey
   preparationRefreshQueue = new PreparationProgressRefreshQueue()
   let receivedInitialProgress = false
   preparationNotice.value = `Preparing saved scan “${saved.name}”…`
   const isCurrent = () => mounted && preparationController === controller && preparationContextKey === contextKey
+    && runGeneration === actionGeneration
   void dataPreparationCoordinator.ensure({
     target: { kind: 'screener', screener_id: saved.id },
     datasets: ['history'],
@@ -437,9 +463,13 @@ function startSavedScreenerPreparation(saved: SavedScanDefinition, contextKey: s
           if (!isCurrent() || resultContextKey.value !== contextKey) return
           const refreshed = await api.post<ScanResult>(`/screeners/${saved.id}/run`, {})
           if (!isCurrent() || resultContextKey.value !== contextKey) return
-          result.value = refreshed
+          const priorCompleted = result.value && scanResultIsCompleted(result.value) ? result.value : mostUsefulResult(resultHistory.value) ?? null
+          await followSubmittedScan(saved.id, refreshed, isCurrent, priorCompleted)
+          if (!isCurrent() || resultContextKey.value !== contextKey) return
           await queryClient.invalidateQueries({ queryKey: ['workstation', 'screener-history', saved.id] })
-          if (isCurrent() && resultContextKey.value === contextKey) await loadResultHistory(saved.id)
+          if (isCurrent() && resultContextKey.value === contextKey) {
+            await loadResultHistory(saved.id, { selectLatest: activeRunStatus.value === 'Scan completed.' })
+          }
         })
       }
     },
@@ -462,10 +492,15 @@ async function loadResultHistory(id: number, options: { selectLatest?: boolean }
       queryFn: async () => (await api.get<ScanResult[]>(`/screeners/${id}/results`, { limit: 20 })) ?? [],
       staleTime: 5_000,
     })
-    const latest = resultHistory.value[0]
-    if (latest && options.selectLatest !== false) {
-      result.value = latest
-      selectedResultId.value = latest.id == null ? '' : String(latest.id)
+    const preferred = mostUsefulResult(resultHistory.value)
+    if (preferred && options.selectLatest !== false) {
+      result.value = preferred
+      selectedResultId.value = preferred.id == null ? '' : String(preferred.id)
+    } else if (selectedResultId.value) {
+      const selected = resultHistory.value.find(item => String(item.id) === selectedResultId.value)
+      if (selected && !(scanResultIsPending(selected) && result.value && scanResultIsCompleted(result.value))) {
+        result.value = selected
+      }
     }
   } catch (cause: any) {
     // A completed scan remains usable when retention is unavailable.
@@ -491,7 +526,12 @@ watch(selectedPythonVersion, version => { if (version && !scanName.value) scanNa
 watch(selectedResultId, id => {
   if (!id) return
   const selected = resultHistory.value.find(item => String(item.id) === id)
-  if (selected) result.value = selected
+  if (!selected) return
+  if (scanResultIsPending(selected) && result.value && scanResultIsCompleted(result.value)) {
+    activeRunStatus.value = scanProgressMessage(scanResultStatus(selected))
+    return
+  }
+  result.value = selected
 })
 onMounted(() => {
   mounted = true

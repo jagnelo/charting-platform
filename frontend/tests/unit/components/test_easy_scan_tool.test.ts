@@ -432,6 +432,7 @@ describe('EasyScanTool', () => {
 
   it('follows a queued visual-condition run and keeps the last completed result until completion', async () => {
     let runCount = 0
+    let replacementQueued = false
     let resolveQueuedPoll!: (value: unknown) => void
     const queuedPoll = new Promise(resolve => { resolveQueuedPoll = resolve })
     apiGet.mockImplementation((path: string, options?: { limit?: number }) => {
@@ -441,7 +442,9 @@ describe('EasyScanTool', () => {
       }])
       if (path === '/code/assets') return Promise.resolve([])
       if (path === '/screeners/6') return Promise.resolve(savedScreener(6, { conditions: { type: 'python_condition', code_version_id: 77 } }))
-      if (path === '/screeners/6/results' && options?.limit === 1) return queuedPoll
+      if (path === '/screeners/6/results' && options?.limit === 20) return replacementQueued
+        ? queuedPoll
+        : Promise.resolve([{ id: 70, matched_ids: [3], result_data: { _status: 'completed', _python_research_run_id: 71, _coverage: { evaluated_count: 1, universe_count: 1, excluded: {} } }, error: null }])
       if (path === '/screeners/6/results') return Promise.resolve([])
       return Promise.resolve([])
     })
@@ -449,9 +452,9 @@ describe('EasyScanTool', () => {
       if (path === '/screeners/from-condition/visual-saved') return Promise.resolve({ id: 6 })
       if (path === '/screeners/6/run') {
         runCount += 1
-        return Promise.resolve(runCount === 1
-          ? { matched_ids: [3], result_data: { _status: 'completed', _coverage: { evaluated_count: 1, universe_count: 1, excluded: {} } }, error: null }
-          : { matched_ids: [], result_data: { _status: 'queued', _python_research_run_id: 72 }, error: null })
+        if (runCount === 1) return Promise.resolve({ matched_ids: [3], result_data: { _status: 'completed', _coverage: { evaluated_count: 1, universe_count: 1, excluded: {} } }, error: null })
+        replacementQueued = true
+        return Promise.resolve({ matched_ids: [], result_data: { _status: 'queued', _python_research_run_id: 72 }, error: null })
       }
       return Promise.resolve({})
     })
@@ -466,9 +469,10 @@ describe('EasyScanTool', () => {
     await runButton().trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('1 matches'))
     expect(wrapper.text()).toContain('1/1 evaluated')
+    await vi.waitFor(() => expect((runButton().element as HTMLButtonElement).disabled).toBe(false))
     await runButton().trigger('click')
-    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/screeners/6/results', { limit: 1 }))
-    expect(wrapper.text()).toContain('Scan queued; waiting for results…')
+    await vi.waitFor(() => expect(apiPost.mock.calls.filter(([path]) => path === '/screeners/6/run')).toHaveLength(2))
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Scan queued; waiting for results…'))
     expect(wrapper.text()).toContain('1 matches')
     expect(wrapper.text()).toContain('1/1 evaluated')
     expect(wrapper.text()).not.toContain('0 matches')
@@ -477,6 +481,69 @@ describe('EasyScanTool', () => {
     await vi.waitFor(() => expect(wrapper.text()).toContain('Scan completed.'))
     expect(wrapper.text()).toContain('1 matches')
     expect(apiPost).toHaveBeenCalledWith('/screeners/6/run', {})
+    wrapper.unmount()
+  })
+
+  it('follows a preparation-triggered replacement run and preserves the completed result until its matching coverage arrives', async () => {
+    let runCount = 0
+    let replacementSubmitted = false
+    let replacementPolls = 0
+    let resolveReplacement!: (value: unknown) => void
+    const replacementCompletion = new Promise(resolve => { resolveReplacement = resolve })
+    const originalCompleted = {
+      id: 70, matched_ids: [3], result_data: { _status: 'completed', _python_research_run_id: 71, _coverage: { evaluated_count: 1, universe_count: 1, excluded: {} } }, error: null,
+    }
+    const replacementQueued = {
+      id: 72, matched_ids: [], result_data: { _status: 'queued', _python_research_run_id: 73 }, error: null,
+    }
+    const replacementCompleted = {
+      id: 72, matched_ids: [3, 4], result_data: { _status: 'completed', _python_research_run_id: 73, _coverage: { evaluated_count: 2, universe_count: 2, excluded: {} } }, error: null,
+    }
+    apiGet.mockImplementation((path: string, options?: { limit?: number }) => {
+      if (path === '/workspaces/library/conditions') return Promise.resolve([{
+        stable_key: 'visual-saved', name: 'Visual saved', version: 1,
+        payload: { condition: { type: 'price_threshold', field: 'close', op: 'gt', value: 50 }, python_code_version_id: 77 },
+      }])
+      if (path === '/code/assets') return Promise.resolve([])
+      if (path === '/screeners/6') return Promise.resolve(savedScreener(6, { conditions: { type: 'python_condition', code_version_id: 77 } }))
+      if (path.startsWith('/data/requests/')) return Promise.resolve({ ...screenerPreparationResponse(6), status: 'partial', version: 2, has_pending_work: false })
+      if (path === '/screeners/6/results' && options?.limit === 20) {
+        if (!replacementSubmitted) return Promise.resolve([originalCompleted])
+        replacementPolls += 1
+        return replacementPolls === 1 ? Promise.resolve([replacementQueued, originalCompleted]) : replacementCompletion
+      }
+      return Promise.resolve([])
+    })
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/screeners/from-condition/visual-saved') return Promise.resolve({ id: 6 })
+      if (path === '/data/ensure') return Promise.resolve({ ...screenerPreparationResponse(6), status: 'queued', completed: 0, total: 1, has_pending_work: true })
+      if (path === '/screeners/6/run') {
+        runCount += 1
+        if (runCount === 1) return Promise.resolve(originalCompleted)
+        replacementSubmitted = true
+        return Promise.resolve(replacementQueued)
+      }
+      return Promise.resolve({})
+    })
+
+    const wrapper = mount(EasyScanTool)
+    await flushPromises()
+    await wrapper.get('select[aria-label="Saved condition"]').setValue('visual-saved')
+    await wrapper.get('input[aria-label="Scan name"]').setValue('Visual saved scan')
+    const runButton = () => wrapper.findAll('button').find(button => button.text() === 'Run')!
+    await runButton().trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('1/1 evaluated'))
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Scan queued; waiting for results…'), { timeout: 3_000 })
+    expect(wrapper.text()).toContain('1 matches')
+    expect(wrapper.text()).toContain('1/1 evaluated')
+    expect(wrapper.text()).not.toContain('0 matches')
+
+    const completedHistory = [replacementCompleted, originalCompleted]
+    await vi.waitFor(() => expect(replacementPolls).toBeGreaterThanOrEqual(2))
+    resolveReplacement(completedHistory)
+    await vi.waitFor(() => expect(wrapper.text()).toContain('2/2 evaluated'))
+    expect(wrapper.text()).toContain('2 matches')
+    expect(wrapper.text()).toContain('Scan completed.')
     wrapper.unmount()
   })
 
@@ -490,7 +557,7 @@ describe('EasyScanTool', () => {
       }])
       if (path === '/code/assets') return Promise.resolve([])
       if (path === '/screeners/7') return Promise.resolve(savedScreener(7, { conditions: { type: 'python_condition', code_version_id: 78 } }))
-      if (path === '/screeners/7/results' && options?.limit === 1) return pendingPoll
+      if (path === '/screeners/7/results' && options?.limit === 20) return pendingPoll
       return Promise.resolve([])
     })
     apiPost.mockImplementation((path: string) => {
@@ -504,7 +571,7 @@ describe('EasyScanTool', () => {
     await wrapper.get('select[aria-label="Saved condition"]').setValue('visual-pending')
     await wrapper.get('input[aria-label="Scan name"]').setValue('Visual pending scan')
     await wrapper.findAll('button').find(button => button.text() === 'Run')!.trigger('click')
-    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/screeners/7/results', { limit: 1 }))
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/screeners/7/results', { limit: 20 }))
 
     wrapper.unmount()
     resolvePoll([{ matched_ids: [99], result_data: { _status: 'completed', _python_research_run_id: 73 }, error: null }])

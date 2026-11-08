@@ -33891,3 +33891,8 @@ mismatch; the expectation was corrected to include the already-present
 Ruff 0.4.7 check/format, workstream validation, and diff checks passed. No
 provider HTTP, runtime/database write, quota-ledger, policy, or hold mutation
 occurred. The full Provider/platform roadmaps remain open.
+
+
+## 2026-11-08 — consume TC common runtime context 2a8dc9e4
+
+Root released `2a8dc9e4c28a9632ffdf8f484ad12a985df70cd3` for exact development consumption. Imported only the 33 Provider-declared paths after all old guards matched; verified all 91 manifest rows and imported SHA-256/Git blobs/modes against the source. All 91 source paths are mode(s) 100644; imported files use the same mode. The current common dependency pointer now names `2a8dc9e4c28a9632ffdf8f484ad12a985df70cd3` while retaining the active ETF and Strategy domain pins. This is compatible-source development context, not release acceptance. Producer tests were not rerun; Root owns combined qualification.

@@ -1,14 +1,17 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import AlertsView from '@/views/AlertsView.vue'
+import SettingsView from '@/views/SettingsView.vue'
+import WatchlistView from '@/views/WatchlistView.vue'
 
 const LoginView = () => import('@/views/LoginView.vue')
 const WorkstationView = () => import('@/views/WorkstationView.vue')
 const DashboardView = () => import('@/views/DashboardView.vue')
 const ChartView = () => import('@/views/ChartView.vue')
-const AlertsView = () => import('@/views/AlertsView.vue')
-const SettingsView = () => import('@/views/SettingsView.vue')
+// These three routes are primary destinations from the application menu.
+// Eagerly load their small view entrypoints so an initial Workstation API burst
+// cannot leave an ordinary navigation click waiting behind queued lazy chunks.
 const ScreenerView = () => import('@/views/ScreenerView.vue')
-const WatchlistView = () => import('@/views/WatchlistView.vue')
 const RadarView = () => import('@/views/RadarView.vue')
 const StrategyLabView = () => import('@/views/StrategyLabView.vue')
 const StrategyLabV2View = () => import('@/views/StrategyLabV2View.vue')

@@ -15,6 +15,29 @@ function runFor(user: 'A' | 'B') {
   }
 }
 
+function activeWorkspaceSnapshotContainsTools(value: unknown, toolTypes: string[], activeToolType?: string): boolean {
+  if (!value || typeof value !== 'object') return false
+  const snapshot = value as { settings?: { active_tab_key?: unknown }; tabs?: Array<{
+    stable_key?: unknown
+    active_window_key?: unknown
+    windows?: Array<{ instance_key?: unknown; tool_type?: unknown }>
+  }> }
+  const activeKey = snapshot.settings?.active_tab_key
+  const activeTab = snapshot.tabs?.find(tab => tab.stable_key === activeKey)
+  if (!activeTab || !Array.isArray(activeTab.windows)) return false
+  const required = new Set(toolTypes)
+  const hasRequired = [...required].every(type => activeTab.windows?.some(window => window.tool_type === type))
+  const activeWindow = activeTab.windows.find(window => window.instance_key === activeTab.active_window_key)
+  return hasRequired && !!activeWindow && (!activeToolType || activeWindow.tool_type === activeToolType)
+}
+
+async function activateDockToolTab(page: import('@playwright/test').Page, title: string) {
+  const tab = page.locator(`.lm_tab[title="${title}"]`).last()
+  await expect(tab).toBeVisible()
+  if (!await tab.evaluate(element => element.classList.contains('lm_active'))) await tab.click()
+  await expect(tab).toHaveClass(/lm_active/)
+}
+
 test('J12 session boundary isolates test-owned same-origin accounts, expired refresh, stores and late responses', async ({ page, request, loggedIn, browserDiagnostics }, testInfo) => {
   void loggedIn
   const nonce = `${testInfo.workerIndex}_${Date.now().toString(36)}`
@@ -124,19 +147,36 @@ test('J12 session boundary isolates test-owned same-origin accounts, expired ref
 
   await page.getByRole('button', { name: 'Add tool' }).click()
   const noteToolSnapshotA = page.waitForResponse(response => response.request().method() === 'PUT'
-    && /\/api\/v1\/workspaces\/\d+\/snapshot$/.test(new URL(response.url()).pathname) && response.ok())
+    && /\/api\/v1\/workspaces\/\d+\/snapshot$/.test(new URL(response.url()).pathname)
+    && activeWorkspaceSnapshotContainsTools(response.request().postDataJSON(), ['notes'], 'notes'))
   await page.getByRole('menuitem', { name: 'Notes', exact: true }).click()
-  await noteToolSnapshotA
+  const acknowledgedNotesSnapshot = await noteToolSnapshotA
+  expect(acknowledgedNotesSnapshot.ok()).toBe(true)
+  expect(activeWorkspaceSnapshotContainsTools(await acknowledgedNotesSnapshot.json(), ['notes'], 'notes')).toBe(true)
   const notesA = page.getByRole('region', { name: /notes$/i })
   await expect(notesA).toBeVisible()
   await expect(notesA.getByRole('textbox', { name: 'Instrument note' })).toHaveValue('private-note-A')
 
   await page.getByRole('button', { name: 'Add tool' }).click()
   const resultsToolSnapshotA = page.waitForResponse(response => response.request().method() === 'PUT'
-    && /\/api\/v1\/workspaces\/\d+\/snapshot$/.test(new URL(response.url()).pathname) && response.ok())
+    && /\/api\/v1\/workspaces\/\d+\/snapshot$/.test(new URL(response.url()).pathname)
+    && activeWorkspaceSnapshotContainsTools(response.request().postDataJSON(), ['notes', 'research_results'], 'research_results'))
   await page.getByRole('menuitem', { name: 'Study Results', exact: true }).click()
-  await resultsToolSnapshotA
-  await expect(page.getByRole('region', { name: 'Study Lab research results' })).toContainText('Run #91501')
+  const acknowledgedResultsSnapshot = await resultsToolSnapshotA
+  expect(acknowledgedResultsSnapshot.ok()).toBe(true)
+  const acknowledgedResultsBody = await acknowledgedResultsSnapshot.json()
+  expect(activeWorkspaceSnapshotContainsTools(acknowledgedResultsBody, ['notes', 'research_results'], 'research_results')).toBe(true)
+  const workspaceId = Number(new URL(acknowledgedResultsSnapshot.url()).pathname.match(/workspaces\/(\d+)\/snapshot$/)?.[1])
+  expect(workspaceId).toBeGreaterThan(0)
+  await expect(page.getByRole('status', { name: 'Workspace save status' })).toHaveText('Workspace saved')
+  const persistedWorkspaceResponse = await request.get(`/api/v1/workspaces/${workspaceId}`, {
+    headers: { authorization: `Bearer ${tokenA}` },
+  })
+  expect(persistedWorkspaceResponse.ok()).toBe(true)
+  expect(activeWorkspaceSnapshotContainsTools(await persistedWorkspaceResponse.json(), ['notes', 'research_results'], 'research_results')).toBe(true)
+  const resultsA = page.getByRole('region', { name: 'Study Lab research results' })
+  await expect(resultsA).toBeVisible()
+  await expect(resultsA).toContainText('Run #91501')
 
   // A failed refresh is one terminal session boundary: tokens clear, private
   // UI unmounts, and the app settles at login instead of looping unauthenticated
@@ -153,18 +193,31 @@ test('J12 session boundary isolates test-owned same-origin accounts, expired ref
 
   await loginA.loginAs(userA, PASSWORD)
   await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
-  await expect(page.getByRole('region', { name: 'Study Lab research results' })).toContainText('Run #91501')
+  const restoredResultsA = page.getByRole('region', { name: 'Study Lab research results' })
+  await expect(restoredResultsA).toBeVisible()
+  await expect(restoredResultsA).toContainText('Run #91501')
+  // Results is the saved active tab. Notes remains in the same saved stack and
+  // must be activated as an ordinary dock tab before its editor is visible.
+  await activateDockToolTab(page, 'Notes')
   await expect(page.getByRole('region', { name: /notes$/i }).getByRole('textbox', { name: 'Instrument note' }))
     .toHaveValue('private-note-A')
+  await activateDockToolTab(page, 'Study Results')
+  await expect(restoredResultsA).toContainText('Run #91501')
 
   // A second same-origin window holds its own A session cache. Cross-window
   // logout must clear that cache and return it to the login route as well.
   const secondWindow = await context.newPage()
   await secondWindow.goto('/chart')
   await expect(secondWindow.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
+  const restoredResultsInSecondWindow = secondWindow.getByRole('region', { name: 'Study Lab research results' })
+  await expect(restoredResultsInSecondWindow).toBeVisible()
+  await expect(restoredResultsInSecondWindow).toContainText('Run #91501')
+  await activateDockToolTab(secondWindow, 'Notes')
   await expect(secondWindow.getByRole('region', { name: /notes$/i }).getByRole('textbox', { name: 'Instrument note' }))
     .toHaveValue('private-note-A')
-  await expect(secondWindow.getByRole('region', { name: 'Study Lab research results' })).toContainText('Run #91501')
+  await activateDockToolTab(secondWindow, 'Study Results')
+  await expect(restoredResultsInSecondWindow).toBeVisible()
+  await expect(restoredResultsInSecondWindow).toContainText('Run #91501')
 
   const firstWindowAuthenticatedUsers: string[] = []
   page.on('response', async response => {

@@ -33,7 +33,6 @@
             role="menuitem"
             tabindex="-1"
             :aria-current="isApplicationNavigationItemActive(item) ? 'page' : undefined"
-            @click="closeShellMenus()"
           >
             <span aria-hidden="true">{{ item.icon }}</span>
             <span>{{ item.label }}</span>
@@ -381,13 +380,14 @@ import { isActiveVirtualToolRoot } from '@/lib/workstation/toolActivation'
 import {
   isConfirmedETFHoldingIdentity,
   isSameETFHoldingDrilldownContext,
+  holdingDrilldownRouteQuery,
   parseETFHoldingDrilldownRouteQuery,
   type ETFHoldingDrilldownContext,
 } from '@/lib/etfHoldingDrilldown'
 import { isSharedNavigationItemActive, sharedShellNavigation } from '@/router'
 import CompactStatusNotice from '@/components/common/CompactStatusNotice.vue'
 import type { Timeframe } from '@/types'
-import { dataPreparationCoordinator, instrumentHistoryPreparationRequest, PreparationProgressRefreshQueue, preparationMessageSummary, preparationStatusMessage, type DataEnsureResponse } from '@/lib/dataPreparation'
+import { dataPreparationCoordinator, historyPreparationStatusMessage, instrumentHistoryPreparationRequest, PreparationProgressRefreshQueue, preparationMessageSummary, preparationStatusMessage, type DataEnsureResponse } from '@/lib/dataPreparation'
 
 const BLOCKED_POPOUT_ERROR = 'Browser blocked the pop-out. The tool remains docked.'
 const CHART_TIMEFRAME_ORDER: readonly Timeframe[] = ['M1', 'M5', 'M15', 'M30', 'H1', 'H2', 'H4', 'H12', 'D1', 'W1', 'MN']
@@ -575,6 +575,10 @@ const openableTools = computed(() => workspaceStore.toolCatalogue ?? [])
 const applicationNavigation = sharedShellNavigation
 const isApplicationNavigationItemActive = (item: typeof applicationNavigation[number]) =>
   isSharedNavigationItemActive(route.path, item.match)
+// Keep RouterLink mounted until its own navigation handler has committed the
+// destination. Closing the v-if menu during pointerdown/click can detach the
+// link before Vue Router processes the ordinary activation.
+watch(() => route.fullPath, () => closeShellMenus())
 const documentVisible = ref(typeof document === 'undefined' || document.visibilityState === 'visible')
 let removeVisibilityListener: (() => void) | null = null
 const popoutGeometryPollers = new Map<string, ReturnType<typeof window.setInterval>>()
@@ -1132,6 +1136,7 @@ function selectWorkspaceTab(stableKey: string) {
   // responses cannot reinstall the previous layout over the newly selected tab.
   workspaceStore.activeTabKey = stableKey
   workspaceStore.scheduleSnapshot()
+  void workspaceStore.saveSnapshot()
   void nextTick(() => {
     workspaceTabSwitchPending.value = false
   })
@@ -1139,11 +1144,12 @@ function selectWorkspaceTab(stableKey: string) {
 
 async function replaceDockAfterWorkspaceChange() {
   if (isPopout.value) return
+  const alreadyReplacingWorkspace = workspaceReplacementPending.value
   workspaceReplacementPending.value = true
   await nextTick()
   workspaceReloadKey.value += 1
   await nextTick()
-  workspaceReplacementPending.value = false
+  workspaceReplacementPending.value = alreadyReplacingWorkspace
   await nextTick()
 }
 
@@ -1261,6 +1267,58 @@ function selectHoldingInDashboard(
   // provenance source while linked dashboard panels follow the selected equity.
   void selectSymbol(canonical, undefined, false, context.instrumentId, true, true,
     confirmedIdentity?.instrument?.instrument_type ?? '', true, confirmedIdentity, context)
+}
+
+let pendingChartRouteSync: string | null = null
+function syncChartRouteToSelection(
+  rawSymbol: string,
+  instrumentId?: number | null,
+  candidateContext?: ETFHoldingDrilldownContext | null,
+  markHoldingSelection = false,
+) {
+  if (isPopout.value || !/^\/chart(?:\/|$)/.test(route.path)) return
+  const symbol = rawSymbol.trim().toUpperCase()
+  if (!symbol) return
+  const candidateHoldingContext = candidateContext
+    ?? (!isPrivateBasketToken(symbol) && activeHoldingContext.value?.symbol === symbol
+      ? activeHoldingContext.value.context
+      : null)
+  const context = candidateHoldingContext
+    && candidateHoldingContext.canonicalSymbol.trim().toUpperCase() === symbol
+    && (instrumentId == null || candidateHoldingContext.instrumentId === instrumentId)
+    ? candidateHoldingContext
+    : null
+  const nextQuery: Record<string, unknown> = { ...route.query }
+  for (const key of Object.keys(nextQuery)) {
+    if (key.startsWith('holding_')) delete nextQuery[key]
+  }
+  if (typeof nextQuery.symbol === 'string' && nextQuery.symbol.trim().toUpperCase() !== symbol) {
+    delete nextQuery.symbol
+  }
+  if (context) {
+    Object.assign(nextQuery, holdingDrilldownRouteQuery(context))
+    if (markHoldingSelection || route.query.holding_history_intent === 'selected') {
+      nextQuery.holding_history_intent = 'selected'
+    }
+  }
+  const path = `/chart/${encodeURIComponent(symbol)}`
+  if (route.path === path && JSON.stringify(nextQuery) === JSON.stringify(route.query)) return
+  const requestKey = JSON.stringify({ path, query: nextQuery })
+  if (pendingChartRouteSync === requestKey) return
+  pendingChartRouteSync = requestKey
+  void router.replace({ path, query: nextQuery as typeof route.query }).then(failure => {
+      if (failure && pendingChartRouteSync === requestKey) {
+      pendingChartRouteSync = null
+      setSymbolSelectionError(`Selected ${symbol}, but the chart URL could not be updated; a reload may restore a different symbol.`)
+    }
+  }).catch(() => {
+    if (pendingChartRouteSync === requestKey) {
+      pendingChartRouteSync = null
+      setSymbolSelectionError(`Selected ${symbol}, but the chart URL could not be updated; a reload may restore a different symbol.`)
+    }
+  }).finally(() => {
+    if (pendingChartRouteSync === requestKey) pendingChartRouteSync = null
+  })
 }
 
 async function selectSymbol(
@@ -1417,6 +1475,12 @@ async function selectSymbol(
     group: 'blue',
     sourceWindowKey: 'workstation',
   })
+  syncChartRouteToSelection(
+    symbol,
+    canonicalInstrumentId,
+    contextMatchesResolvedIdentity ? displayContext : null,
+    Boolean(holdingContext),
+  )
   // Update linked ratio state at publish time. Data hydration can take much
   // longer than the user's next click and must not delay the visible target.
   if (!privateBasketSelection) updateAutoRatioExpression(symbol, comparisonETF)
@@ -1529,9 +1593,7 @@ async function acquireSelectedTickerData(
           || (dependency.covered_start !== null && dependency.covered_end !== null))
         selectionHistoryMessage.value = response.status === 'ready'
           ? `Refreshing the available ${timeframe} history for ${symbol}…`
-          : response.status === 'partial' && response.has_pending_work === false
-            ? preparationStatusMessage(response)
-            : `Preparing the admitted ${timeframe} history for ${symbol} (${completed}/${total})…`
+          : historyPreparationStatusMessage(response, symbol, timeframe, completed, total)
         if (hasHistoryOutput) {
           void refreshQueue.request(response, refreshVisibleSelection).catch(() => {
             if (isCurrent()) selectionHistoryError.value = `Available ${timeframe} history for ${symbol} could not be refreshed; saved bars remain visible.`
@@ -1549,10 +1611,8 @@ async function acquireSelectedTickerData(
       if (result.status === 'ready') {
         selectionHistoryError.value = ''
         selectionHistoryMessage.value = `The admitted ${timeframe} history for ${symbol} is available locally.`
-      } else if (result.status === 'partial') {
-        selectionHistoryMessage.value = preparationStatusMessage(result)
       } else {
-        selectionHistoryMessage.value = preparationStatusMessage(result)
+        selectionHistoryMessage.value = historyPreparationStatusMessage(result, symbol, timeframe, result.completed, result.total)
       }
       const hasHistoryOutput = result.dependencies.some(dependency => dependency.dataset === 'history'
         && (dependency.covered_ranges.length > 0 || (dependency.covered_start !== null && dependency.covered_end !== null)))
@@ -1637,7 +1697,7 @@ async function acquireSelectedTickerData(
           }
           if (progress.response.status === 'waiting' || progress.response.status === 'unavailable'
             || progress.response.status === 'failed') {
-            selectionHoldingsMessage.value = preparationStatusMessage(progress.response)
+            selectionHoldingsMessage.value = `Holdings for ${symbol}: ${preparationStatusMessage(progress.response)}`
           } else if (progress.response.has_pending_work !== false) {
             selectionHoldingsMessage.value = `Preparing holdings for ${symbol} (${progress.completed}/${progress.total})…`
           }
@@ -1652,7 +1712,7 @@ async function acquireSelectedTickerData(
         selectionHoldingsMessage.value = `Current holdings for ${symbol} are available locally.`
       } else if (holdingsResult.status === 'partial' || holdingsResult.status === 'waiting'
         || holdingsResult.status === 'unavailable' || holdingsResult.status === 'failed') {
-        const detail = preparationStatusMessage(holdingsResult)
+        const detail = `Holdings for ${symbol}: ${preparationStatusMessage(holdingsResult)}`
         selectionHoldingsMessage.value = finalSnapshot
           ? `Last-known holdings for ${symbol} remain visible. ${detail}`
           : detail
@@ -2143,7 +2203,18 @@ async function openTool(tool: OpenableToolDefinition, configurationOverride: Rec
     // The host contract already applies active_window_key through its layout
     // watcher, so waiting for or clicking a nonexistent `.lm_tab` only adds a
     // multi-second delay to ordinary Add-tool and Market Map actions.
-    if (isActiveVirtualToolRoot(toolRoot, opened.instance_key, workspaceStore.activeTab?.active_window_key)) return opened
+    if (isActiveVirtualToolRoot(toolRoot, opened.instance_key, workspaceStore.activeTab?.active_window_key)) {
+      // Opening a tool mutates both the active tab's window list and its
+      // active-window selection. Flush that exact active-layout snapshot once
+      // the user-visible tool is active so a fast sign-out/reload cannot leave
+      // the panel in memory but restore an older workspace context.
+      const persisted = await workspaceStore.saveSnapshot()
+      if (!componentMounted) return
+      if (!persisted && workspaceStore.snapshotSaveStatus === 'error') {
+        workspaceStore.error = workspaceStore.snapshotSaveError ?? 'The tool opened, but its workspace selection could not be saved.'
+      }
+      return opened
+    }
     const stack = toolRoot?.closest<HTMLElement>('.lm_stack')
     const stackItems = stack ? [...stack.querySelectorAll<HTMLElement>('.lm_items > div')] : []
     const itemIndex = toolRoot
@@ -2362,6 +2433,7 @@ async function importWorkspace(event: Event) {
   const file = input.files?.[0]
   input.value = ''
   if (!file) return
+  const alreadyReplacingWorkspace = workspaceReplacementPending.value
   workspaceReplacementPending.value = true
   await nextTick()
   try {
@@ -2374,7 +2446,7 @@ async function importWorkspace(event: Event) {
   } catch {
     workspaceStore.error = 'The workspace file is not valid JSON.'
   } finally {
-    workspaceReplacementPending.value = false
+    workspaceReplacementPending.value = alreadyReplacingWorkspace
     await nextTick()
   }
 }
@@ -2407,8 +2479,50 @@ async function remountDockAfterSnapshot(
   // completed layout from the server-confirmed workspace.
   for (const key of Object.keys(mountedConfiguration)) delete mountedConfiguration[key]
   Object.assign(mountedConfiguration, publishedConfiguration)
-  workspaceReloadKey.value += 1
+  // A virtual root can emit one final layout callback as it is destroyed.
+  // Keep the host out of the DOM until that callback is fenced, then mount it
+  // from the server-confirmed workspace snapshot and configuration.
+  const wasReplacing = workspaceReplacementPending.value
+  workspaceReplacementPending.value = true
+  try {
+    await nextTick()
+    workspaceReloadKey.value += 1
+    await nextTick()
+  } finally {
+    workspaceReplacementPending.value = wasReplacing
+    await nextTick()
+  }
+}
+
+async function saveToolConfigurationAndRemount(
+  windowKey: string,
+  mountedConfiguration: Record<string, unknown>,
+  publishedConfiguration: Record<string, unknown>,
+) {
+  // Fence virtual-root layout callbacks for the entire publish/save/remount
+  // transaction. A callback from the old root must not replace an accepted
+  // selected-member source with the factory's previous group configuration.
+  const wasReplacing = workspaceReplacementPending.value
+  workspaceReplacementPending.value = true
   await nextTick()
+  try {
+    updateToolConfiguration(windowKey, publishedConfiguration)
+    await saveWorkspaceSnapshotIfSupported()
+    // Saving can replace the canonical workspace object with the API response.
+    // Keep the just-accepted semantic source on that current object before the
+    // dock remounts, even if a delayed stateChanged event raced the response.
+    const savedWindow = workspaceStore.workspace?.tabs
+      .flatMap(tab => tab.windows)
+      .find(window => window.instance_key === windowKey)
+    if (savedWindow) {
+      for (const key of Object.keys(savedWindow.configuration)) delete savedWindow.configuration[key]
+      Object.assign(savedWindow.configuration, publishedConfiguration)
+    }
+    await remountDockAfterSnapshot(mountedConfiguration, publishedConfiguration)
+  } finally {
+    workspaceReplacementPending.value = wasReplacing
+    await nextTick()
+  }
 }
 
 type StudyDefinitionOpen = {
@@ -2432,7 +2546,7 @@ async function openStudyDefinition(definition: StudyDefinitionOpen) {
     parameter_schema: JSON.stringify(definition.parameterSchema ?? {}),
     study_default_parameters: defaults,
   }
-  const stringDefaults = ['universe_source_id', 'symbols', 'timeframe', 'benchmark', 'adjustment', 'session', 'start_date', 'end_date', 'as_of']
+  const stringDefaults = ['symbol', 'universe_source_id', 'symbols', 'timeframe', 'benchmark', 'adjustment', 'session', 'start_date', 'end_date', 'as_of']
   for (const key of stringDefaults) {
     if (typeof defaults[key] === 'string' && defaults[key].trim()) configuration[key] = defaults[key]
   }
@@ -2484,19 +2598,7 @@ async function publishMapAnalysis(publication: MapAnalysisPublication) {
         custom_universe_watchlist_id: analysisSourceId,
         ...selectedConfiguration,
       }
-      updateToolConfiguration(existing.window.instance_key, publishedConfiguration)
-      await saveWorkspaceSnapshotIfSupported()
-      // saveSnapshot replaces the canonical workspace object with the server
-      // response. Golden Layout may still hold the pre-save tool object, so
-      // mirror the accepted configuration into that mounted object as well.
-      for (const key of Object.keys(mountedConfiguration)) delete mountedConfiguration[key]
-      Object.assign(mountedConfiguration, publishedConfiguration)
-      // A snapshot replacement can leave Golden Layout's virtual root bound
-      // to the pre-save object. Reinstall this completed layout from the
-      // server-confirmed workspace so the visible breadth controls and the
-      // persisted configuration cannot diverge.
-      workspaceReloadKey.value += 1
-      await nextTick()
+      await saveToolConfigurationAndRemount(existing.window.instance_key, mountedConfiguration, publishedConfiguration)
       return
     }
     const definition = await catalogueTool('breadth')
@@ -2845,7 +2947,7 @@ function persistGoldenLayout(layout: Record<string, unknown>, visibleToolKeys: s
   // Vue is switching the active tab. Never write that old tree into the newly
   // selected tab; the host will emit a fresh snapshot after its replacement
   // install completes.
-  if (sourceTabKey && sourceTabKey !== workspaceStore.activeTabKey) return
+  if (workspaceReplacementPending.value || (sourceTabKey && sourceTabKey !== workspaceStore.activeTabKey)) return
   workspaceStore.applyActiveLayout(layout, visibleToolKeys)
 }
 
@@ -3143,6 +3245,10 @@ function cycleChartTimeframe(windowKey: string, direction: 1 | -1) {
 watch(activeSymbol, symbol => {
   if (!symbol) return
   const privateBasketSelection = isPrivateBasketToken(symbol)
+  const activeRouteContext = activeHoldingContext.value?.symbol === symbol
+    ? activeHoldingContext.value.context
+    : null
+  syncChartRouteToSelection(symbol, activeRouteContext?.instrumentId, activeRouteContext)
   const isHistoryNavigation = historyNavigationTarget === symbol
   if (!privateBasketSelection) recentStore.add(symbol, undefined, !isHistoryNavigation)
   if (isHistoryNavigation) historyNavigationTarget = null

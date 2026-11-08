@@ -54,6 +54,8 @@ describe('MarketMapTool', () => {
     fetchQuery.mockReset().mockImplementation(({ queryFn }: { queryFn: () => unknown }) => queryFn())
     sourceState.sources = [...defaultSources]
     sourceState.watchlists = []
+    sourceState.loading = false
+    sourceState.error = ''
     apiPost.mockResolvedValue(response)
     apiGet.mockResolvedValue([])
     ensurePreparation = vi.spyOn(dataPreparationCoordinator, 'ensure').mockImplementation(async (_request, options) => {
@@ -64,12 +66,52 @@ describe('MarketMapTool', () => {
 
   afterEach(() => ensurePreparation.mockRestore())
 
-  it('runs an automatically selected initial source only once', async () => {
+  it('refreshes sources and defaults a blank Market Map to a populated S&P universe ahead of pending ETFs', async () => {
+    sourceState.sources = [
+      { ...defaultSources[0]!, source_id: 'etf-holdings:IBB', source_kind: 'etf_holdings', name: 'IBB holdings', member_count: 0, provenance: { availability: 'holdings_snapshot_not_loaded' } },
+      { ...defaultSources[0]!, source_id: 'market-group:sp500', source_kind: 'index_membership', name: 'S&P 500', member_count: 500, provenance: { availability: 'available' } },
+    ]
+    apiPost.mockImplementation((path: string, body: Record<string, unknown>) => path === '/analysis/market-map'
+      ? Promise.resolve({ ...response, source: sourceState.sources.find(source => source.source_id === body.source_id) })
+      : Promise.resolve(response))
     const wrapper = mount(MarketMapTool)
     await flushPromises()
 
+    expect(loadWatchlistSources).toHaveBeenCalledTimes(1)
     expect(apiPost.mock.calls.filter(([path]) => path === '/analysis/market-map')).toHaveLength(1)
+    expect(apiPost).toHaveBeenCalledWith('/analysis/market-map', expect.objectContaining({ source_id: 'market-group:sp500', area_metric: 'equal', color_metric: 'return' }))
+    expect(ensurePreparation).toHaveBeenCalledWith(expect.objectContaining({ target: { kind: 'market_group', group_key: 'sp500' } }), expect.any(Object))
+    expect(wrapper.findAll('.market-map-tool__tile')).toHaveLength(2)
     wrapper.unmount()
+  })
+
+  it('preserves an explicitly configured pending source instead of replacing it with the default', async () => {
+    const pending = { ...defaultSources[0]!, source_id: 'etf-holdings:IBB', source_kind: 'etf_holdings' as const, name: 'IBB holdings', member_count: 0, provenance: { availability: 'holdings_snapshot_not_loaded' } }
+    sourceState.sources = [pending, { ...defaultSources[0]!, member_count: 500 }]
+    const wrapper = mount(MarketMapTool, { props: { configuration: { source_id: pending.source_id, area_metric: 'volume' } } })
+    await flushPromises()
+
+    expect(loadWatchlistSources).not.toHaveBeenCalled()
+    expect(apiPost).toHaveBeenCalledWith('/analysis/market-map', expect.objectContaining({ source_id: pending.source_id, area_metric: 'volume' }))
+    wrapper.unmount()
+  })
+
+  it('keeps a blank Market Map unselected when the refreshed list contains only pending empty sources', async () => {
+    sourceState.sources = [{
+      ...defaultSources[0]!, source_id: 'etf-holdings:IBB', source_kind: 'etf_holdings', name: 'IBB holdings',
+      member_count: 0, provenance: { availability: 'holdings_snapshot_not_loaded' },
+    }]
+    const wrapper = mount(MarketMapTool)
+    try {
+      await flushPromises()
+      expect(loadWatchlistSources).toHaveBeenCalledTimes(1)
+      expect(wrapper.get('[role="status"]').text()).toContain('No populated current universe is available yet')
+      expect(apiPost).not.toHaveBeenCalledWith('/analysis/market-map', expect.any(Object))
+      expect(ensurePreparation).not.toHaveBeenCalled()
+      expect(wrapper.find('.market-map-tool__tile').exists()).toBe(false)
+    } finally {
+      wrapper.unmount()
+    }
   })
 
   it('starts shared preparation even when the first analysis read is pending and recovers its failure from the prepared result', async () => {
