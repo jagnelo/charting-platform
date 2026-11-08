@@ -53,6 +53,24 @@ export interface InstrumentAcquireResponse {
   source_outcomes: AcquisitionSourceOutcome[]
   retry_at?: string | null
 }
+
+/** Trust only the exact canonical result returned for this selected symbol. */
+export function isConfirmedInstrumentSelection(
+  response: InstrumentAcquireResponse | null | undefined,
+  requestedSymbol: string,
+  suppliedInstrumentId?: number | null,
+): response is InstrumentAcquireResponse {
+  const instrument = response?.instrument
+  const instrumentId = instrument?.instrument_id
+  const identityStatus = instrument?.identity_status?.trim().toLowerCase()
+  return response?.status === 'resolved'
+    && ['resolved', 'verified'].includes(identityStatus ?? '')
+    && instrument?.symbol.trim().toUpperCase() === requestedSymbol.trim().toUpperCase()
+    && Number.isSafeInteger(instrumentId)
+    && Number(instrumentId) > 0
+    && (suppliedInstrumentId == null || suppliedInstrumentId === instrumentId)
+}
+
 export interface InstrumentAcquireRequest {
   symbol: string
   provider_candidate?: ProviderCandidateBinding | null

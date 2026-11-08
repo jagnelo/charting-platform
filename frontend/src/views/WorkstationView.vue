@@ -363,7 +363,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useWorkspaceStore, type LinkGroup, type OpenableToolDefinition, type WorkspaceTabRecovery } from '@/stores/workspace'
 import type { LayoutConfig } from 'golden-layout'
 import { resolveKnownInstrument } from '@/lib/instruments'
-import { createKnownTemporaryRetryLifecycle, isCurrentETFHoldingsCapability, isEligibleETFHoldingsInstrumentType, readETFHoldingsCapability, resolveExistingInstrument, type InstrumentDiscoveryResponse } from '@/lib/onDemandAcquisition'
+import { createKnownTemporaryRetryLifecycle, isConfirmedInstrumentSelection, isCurrentETFHoldingsCapability, isEligibleETFHoldingsInstrumentType, readETFHoldingsCapability, resolveExistingInstrument, type InstrumentDiscoveryResponse } from '@/lib/onDemandAcquisition'
 import { scheduleTickerDiscovery, shouldDiscoverTicker, tickerDiscoveryMessage } from '@/lib/workstationSymbolSearch'
 import { autoRatioExpression } from '@/lib/workstation/ratioExpression'
 import { api } from '@/lib/api'
@@ -1073,6 +1073,10 @@ const marketAnalysisQuery = useQuery({
   },
   enabled: computed(() => !isPopout.value && documentVisible.value && Boolean(workspaceStore.workspace) && workspaceStore.isPersistenceLeader),
   staleTime: 60_000,
+  // The visibility handler below is the single refresh owner. Vue Query also
+  // observes document visibility as window focus; disabling its parallel
+  // focus refetch prevents two shell refreshes for the same foreground return.
+  refetchOnWindowFocus: false,
   refetchInterval: 5 * 60 * 1000,
   refetchIntervalInBackground: false,
 })
@@ -1386,6 +1390,18 @@ async function selectSymbol(
     // a different listing.
     symbol = holdingContext.canonicalSymbol.trim().toUpperCase()
     resolvedInstrumentId = holdingContext.instrumentId
+  } else if (confirmedIdentity) {
+    if (!isConfirmedInstrumentSelection(confirmedIdentity, requested, instrumentId)) {
+      setSymbolSelectionError('Ticker confirmation did not match the selected listing. No chart was opened.')
+      return
+    }
+    const confirmedInstrument = confirmedIdentity.instrument!
+    // Candidate confirmation already returned the exact canonical identity.
+    // Re-resolving it adds a second metadata dependency after successful
+    // confirmation and can leave the user's selection/URL stuck behind a
+    // queued request. Trust only the matching resolved symbol and positive ID.
+    symbol = confirmedInstrument.symbol.trim().toUpperCase()
+    resolvedInstrumentId = confirmedInstrument.instrument_id
   } else if (knownWorkstationSymbols.has(requested.toUpperCase())) {
     // These symbols are already canonical members of a loaded workstation
     // universe. Publish them synchronously so an in-flight initial request

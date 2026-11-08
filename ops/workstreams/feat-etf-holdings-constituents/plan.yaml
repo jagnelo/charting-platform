@@ -6885,6 +6885,106 @@ approved_development_dependency_imports:
   - backend/tests/unit/tasks/test_data_tasks.py
   - backend/tests/unit/tasks/test_native_usage_prerequisite.py
   - backend/tests/unit/workers/test_arq_worker.py
+- source_sha: 8d96cf3bd702459c4eef2ced93ec1dfb8db3dc2f
+  manifest_path: ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/8d96cf3bd702459c4eef2ced93ec1dfb8db3dc2f.json
+  manifest_sha256: 2959432285dd2d58271261d539b4e30700bb38f2bf4b7b84727887a91078d4a1
+  paths:
+  - frontend/package-lock.json
+  - frontend/package.json
+  - frontend/src/App.vue
+  - frontend/src/components/chart/ChartPanel.vue
+  - frontend/src/components/chart/HistoryAcquisitionControl.vue
+  - frontend/src/components/chart/UPlotChart.vue
+  - frontend/src/components/common/CompactStatusNotice.vue
+  - frontend/src/components/common/Notification.vue
+  - frontend/src/components/common/SearchBar.vue
+  - frontend/src/components/radar/RadarDetailPreviewChart.vue
+  - frontend/src/components/workstation/ChartPlotLibrary.vue
+  - frontend/src/components/workstation/EasyScanTool.vue
+  - frontend/src/components/workstation/MarketGaugeTool.vue
+  - frontend/src/components/workstation/MarketMapTool.vue
+  - frontend/src/components/workstation/RatioUPlot.vue
+  - frontend/src/components/workstation/RelativeRotationTool.vue
+  - frontend/src/components/workstation/ToolWindow.vue
+  - frontend/src/components/workstation/VirtualWatchlistTool.vue
+  - frontend/src/components/workstation/WorkspaceLayoutHost.vue
+  - frontend/src/components/workstation/WorkstationToolContent.vue
+  - frontend/src/lib/api.ts
+  - frontend/src/lib/authSession.ts
+  - frontend/src/lib/dataPreparation.ts
+  - frontend/src/lib/etfHoldingDrilldown.ts
+  - frontend/src/lib/onDemandAcquisition.ts
+  - frontend/src/lib/workstation/benchmarkFamilySources.ts
+  - frontend/src/lib/workstation/instrumentCalendar.ts
+  - frontend/src/lib/workstation/marketMap.ts
+  - frontend/src/lib/workstation/ohlcvRequests.ts
+  - frontend/src/lib/workstation/sourceCapability.ts
+  - frontend/src/lib/workstation/toolActivation.ts
+  - frontend/src/main.ts
+  - frontend/src/router/index.ts
+  - frontend/src/stores/alerts.ts
+  - frontend/src/stores/auth.ts
+  - frontend/src/stores/chart.ts
+  - frontend/src/stores/favorites.ts
+  - frontend/src/stores/layout.ts
+  - frontend/src/stores/panelLinks.ts
+  - frontend/src/stores/radar.ts
+  - frontend/src/stores/recentInstruments.ts
+  - frontend/src/stores/userSettings.ts
+  - frontend/src/stores/watchlist.ts
+  - frontend/src/stores/workspace.ts
+  - frontend/src/views/AlertsView.vue
+  - frontend/src/views/ChartView.vue
+  - frontend/src/views/ScreenerView.vue
+  - frontend/src/views/SettingsView.vue
+  - frontend/src/views/WatchlistView.vue
+  - frontend/src/views/WorkstationView.vue
+  - frontend/tests/e2e/auth_session_boundary.spec.ts
+  - frontend/tests/e2e/flows.spec.ts
+  - frontend/tests/e2e/helpers.ts
+  - frontend/tests/e2e/on_demand_acquisition.spec.ts
+  - frontend/tests/e2e/tc2000_visual.spec.ts
+  - frontend/tests/e2e/tc_secondary_routes_journey.spec.ts
+  - frontend/tests/unit/components/test_chart_panel_lifecycle.test.ts
+  - frontend/tests/unit/components/test_chart_plot_library.test.ts
+  - frontend/tests/unit/components/test_compact_status_notice.test.ts
+  - frontend/tests/unit/components/test_easy_scan_tool.test.ts
+  - frontend/tests/unit/components/test_history_acquisition_control.test.ts
+  - frontend/tests/unit/components/test_market_gauge_tool.test.ts
+  - frontend/tests/unit/components/test_market_map_tool.test.ts
+  - frontend/tests/unit/components/test_radar_detail_preview_chart.test.ts
+  - frontend/tests/unit/components/test_ratio_uplot.test.ts
+  - frontend/tests/unit/components/test_relative_rotation_tool.test.ts
+  - frontend/tests/unit/components/test_search_bar.test.ts
+  - frontend/tests/unit/components/test_tool_window.test.ts
+  - frontend/tests/unit/components/test_uplot_chart_context.test.ts
+  - frontend/tests/unit/components/test_workspace_layout_host.test.ts
+  - frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts
+  - frontend/tests/unit/e2e/test_browser_diagnostics.test.ts
+  - frontend/tests/unit/lib/test_api_client.test.ts
+  - frontend/tests/unit/lib/test_auth_session.test.ts
+  - frontend/tests/unit/lib/test_benchmark_family_sources.test.ts
+  - frontend/tests/unit/lib/test_data_preparation.test.ts
+  - frontend/tests/unit/lib/test_instrument_calendar.test.ts
+  - frontend/tests/unit/lib/test_market_map.test.ts
+  - frontend/tests/unit/lib/test_on_demand_acquisition.test.ts
+  - frontend/tests/unit/lib/test_tool_activation.test.ts
+  - frontend/tests/unit/lib/workstation_ohlcv_requests.test.ts
+  - frontend/tests/unit/lib/workstation_source_capability.test.ts
+  - frontend/tests/unit/router/test_app_shell.test.ts
+  - frontend/tests/unit/router/test_application_routes.test.ts
+  - frontend/tests/unit/setup.ts
+  - frontend/tests/unit/stores/test_drawings_store.test.ts
+  - frontend/tests/unit/stores/test_favorites_store.test.ts
+  - frontend/tests/unit/stores/test_stores.test.ts
+  - frontend/tests/unit/stores/test_workspace_store.test.ts
+  - frontend/tests/unit/views/test_alerts_view_creation_path.test.ts
+  - frontend/tests/unit/views/test_chart_view_radar_handoff.test.ts
+  - frontend/tests/unit/views/test_screener_view_accessibility.test.ts
+  - frontend/tests/unit/views/test_settings_view.test.ts
+  - frontend/tests/unit/views/test_workstation_capabilities.test.ts
+  - frontend/tests/unit/views/test_workstation_popout_bindings.test.ts
+
 historical_tc_common_runtime_dependency_a2e22225:
   authority: Root released exact TC source a2e222251d4ea796d0d4bfb6b0e8705f503c1e4d for development consumption only; final combined browser/CI/release acceptance remains Root-owned.
   previous_active_dependency: 1fdc92f1a1628d191ad1d5b2f0ba071a80df5052
@@ -7142,7 +7242,7 @@ provider_runtime_dependency_active_cc31077c:
   qualification: The XHB/IGV browser attempt used predecessor spec bd3a and failed at its duplicate-close date assertion; successor source 74fa binds tooltip date and OHLC. MSFT browser-closed receipt remains failed/unattended with no bars and deferred price jobs; Root owns the same durable job's worker-restart proof.
   state: Root-released development dependency only; no native replay, HTTP, production mutation, acceptance, integration, or deployment is claimed.
 
-tc_common_runtime_dependency_active_2a8dc9e4:
+tc_common_runtime_dependency_historical_2a8dc9e4:
   authority: Root released exact TC source for development consumption only; exact
     CI, combined browser qualification, acceptance, and promotion remain Root-owned.
   source: 2a8dc9e4c28a9632ffdf8f484ad12a985df70cd3
@@ -7293,3 +7393,38 @@ provider_runtime_dependency_active_19d34d0b:
     proof remains pending.
   state: Development dependency only; no native/provider request, fixture replay,
     quota/production change, or release acceptance is implied.
+
+tc_common_runtime_dependency_active_8d96cf3b:
+  authority: Root released exact TC source for development consumption only; exact
+    CI, combined browser qualification, acceptance, and promotion remain Root-owned.
+  source: 8d96cf3bd702459c4eef2ced93ec1dfb8db3dc2f
+  previous_active_dependency: 2a8dc9e4c28a9632ffdf8f484ad12a985df70cd3
+  manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-8d96cf3b-common-runtime-development-consumption-contract.json
+  manifest_sha256: 2959432285dd2d58271261d539b4e30700bb38f2bf4b7b84727887a91078d4a1
+  local_manifest_copy: ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/8d96cf3bd702459c4eef2ced93ec1dfb8db3dc2f.json
+  current_manifest_records_verified: 95
+  consumer_import_paths:
+  - frontend/src/components/workstation/ToolWindow.vue
+  - frontend/src/components/workstation/WorkstationToolContent.vue
+  - frontend/src/lib/api.ts
+  - frontend/src/lib/dataPreparation.ts
+  - frontend/src/lib/onDemandAcquisition.ts
+  - frontend/src/stores/favorites.ts
+  - frontend/src/views/WorkstationView.vue
+  - frontend/tests/e2e/auth_session_boundary.spec.ts
+  - frontend/tests/e2e/on_demand_acquisition.spec.ts
+  - frontend/tests/unit/components/test_tool_window.test.ts
+  - frontend/tests/unit/lib/test_api_client.test.ts
+  - frontend/tests/unit/lib/test_data_preparation.test.ts
+  - frontend/tests/unit/lib/test_on_demand_acquisition.test.ts
+  - frontend/tests/unit/stores/test_favorites_store.test.ts
+  - frontend/tests/unit/views/test_workstation_popout_bindings.test.ts
+  verification: All95 source status/Git-blob/SHA256 records verified; all15 ETF paths
+    passed their 7ac old guards and match released source with Git executable-bit
+    semantics.
+  scope: Common frontend runtime for panel retention, responsive navigation, usable
+    price/indicator panes, Results restoration, automatic ensure journeys, typed future-source/partial-history
+    feedback and shared chart behavior. This release transfers on_demand_acquisition.spec.ts
+    to TC ownership; ETF private-domain paths remain separately owned.
+  state: Root-released development dependency only; actual combined browser qualification,
+    exact CI and final release acceptance remain pending.

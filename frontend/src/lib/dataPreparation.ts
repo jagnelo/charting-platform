@@ -173,6 +173,7 @@ export interface PreparationOptions {
 }
 
 const ACTIVE_POLL_MS = 750
+const SUBSCRIBER_HANDOFF_GRACE_MS = 50
 const MAX_TIMER_DELAY_MS = 2_147_000_000
 const ALL_STATUSES = new Set<PreparationStatus>(['queued', 'running', 'partial', 'ready', 'waiting', 'unavailable', 'failed'])
 const TERMINAL_STATUSES = new Set<PreparationStatus>(['ready', 'unavailable', 'failed'])
@@ -389,6 +390,7 @@ interface InFlightRequest {
   controller: AbortController
   subscribers: Set<Subscriber>
   promise: Promise<void> | null
+  abortTimer: ReturnType<typeof setTimeout> | null
 }
 
 /** Shared durable preparation lifecycle for charts, groups, and analysis tools. */
@@ -405,6 +407,8 @@ export class DataPreparationCoordinator {
   cancelAll(): void {
     for (const [key, entry] of [...this.inFlight]) {
       this.inFlight.delete(key)
+      if (entry.abortTimer !== null) clearTimeout(entry.abortTimer)
+      entry.abortTimer = null
       entry.controller.abort()
       for (const subscriber of [...entry.subscribers]) {
         entry.subscribers.delete(subscriber)
@@ -424,18 +428,31 @@ export class DataPreparationCoordinator {
     const key = stableValue([request, options.contextKey ?? null])
     let entry = this.inFlight.get(key)
     if (!entry) {
-      entry = { request, controller: new AbortController(), subscribers: new Set(), promise: null }
+      entry = { request, controller: new AbortController(), subscribers: new Set(), promise: null, abortTimer: null }
       this.inFlight.set(key, entry)
     }
     const current = entry
+    if (current.abortTimer !== null) {
+      clearTimeout(current.abortTimer)
+      current.abortTimer = null
+    }
     const result = new Promise<DataEnsureResponse>((resolve, reject) => {
       const subscriber: Subscriber = { signal: options.signal, onProgress: options.onProgress, resolve, reject }
       const detach = () => {
         if (!current.subscribers.delete(subscriber)) return
         if (subscriber.abortListener) subscriber.signal?.removeEventListener('abort', subscriber.abortListener)
         if (current.subscribers.size === 0 && this.inFlight.get(key) === current) {
-          this.inFlight.delete(key)
-          current.controller.abort()
+          // A tool can unmount and its replacement can subscribe in the same
+          // layout update. Keep the shared creation briefly attachable; if no
+          // observer returns, abort the browser request while the durable job
+          // (if accepted) continues on the server.
+          current.abortTimer = setTimeout(() => {
+            current.abortTimer = null
+            if (current.subscribers.size === 0 && this.inFlight.get(key) === current) {
+              this.inFlight.delete(key)
+              current.controller.abort()
+            }
+          }, SUBSCRIBER_HANDOFF_GRACE_MS)
         }
       }
       subscriber.abortListener = () => {
@@ -456,6 +473,8 @@ export class DataPreparationCoordinator {
   }
 
   private settle(key: string, entry: InFlightRequest, error: unknown, response?: DataEnsureResponse): void {
+    if (entry.abortTimer !== null) clearTimeout(entry.abortTimer)
+    entry.abortTimer = null
     for (const subscriber of [...entry.subscribers]) {
       entry.subscribers.delete(subscriber)
       if (subscriber.abortListener) subscriber.signal?.removeEventListener('abort', subscriber.abortListener)

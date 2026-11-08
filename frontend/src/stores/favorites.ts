@@ -11,6 +11,11 @@ export const useFavoritesStore = defineStore('favorites', () => {
   let loadGeneration = 0
   const pendingAdds = new Map<number, Promise<FavoriteInstrument | null>>()
   const pendingToggles = new Map<number, Promise<boolean>>()
+  const pendingToggleCounts = ref<Record<number, number>>({})
+
+  function isPending(instrumentId: number | null | undefined): boolean {
+    return instrumentId != null && (pendingToggleCounts.value[instrumentId] ?? 0) > 0
+  }
 
   function invalidateLoadAndCheckRefresh(): boolean {
     const needsReload = !loaded.value
@@ -47,7 +52,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
     const operation = (async () => {
       error.value = ''
       try {
-        const favorite = await api.put<FavoriteInstrument>(`/favorites/instruments/${instrumentId}`, {})
+        const favorite = await api.put<FavoriteInstrument>(`/favorites/instruments/${instrumentId}`, {}, { priority: 'high' })
         const hadLoadedList = loaded.value
         const refreshIncompleteList = invalidateLoadAndCheckRefresh()
         favorites.value = [...favorites.value.filter(item => item.instrument_id !== instrumentId), favorite]
@@ -72,7 +77,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
     if (!Number.isInteger(instrumentId) || instrumentId <= 0) return false
     error.value = ''
     try {
-      await api.delete(`/favorites/instruments/${instrumentId}`)
+      await api.delete(`/favorites/instruments/${instrumentId}`, { priority: 'high' })
       const hadLoadedList = loaded.value
       const refreshIncompleteList = invalidateLoadAndCheckRefresh()
       favorites.value = favorites.value.filter(item => item.instrument_id !== instrumentId)
@@ -87,6 +92,10 @@ export const useFavoritesStore = defineStore('favorites', () => {
 
   async function toggle(instrumentId: number): Promise<boolean> {
     if (!Number.isInteger(instrumentId) || instrumentId <= 0) return false
+    pendingToggleCounts.value = {
+      ...pendingToggleCounts.value,
+      [instrumentId]: (pendingToggleCounts.value[instrumentId] ?? 0) + 1,
+    }
     const previous = pendingToggles.get(instrumentId) ?? Promise.resolve(true)
     const operation = previous.catch(() => false).then(async () => {
       if (favorites.value.some(item => item.instrument_id === instrumentId)) return remove(instrumentId)
@@ -97,6 +106,11 @@ export const useFavoritesStore = defineStore('favorites', () => {
       return await operation
     } finally {
       if (pendingToggles.get(instrumentId) === operation) pendingToggles.delete(instrumentId)
+      const remaining = (pendingToggleCounts.value[instrumentId] ?? 1) - 1
+      const next = { ...pendingToggleCounts.value }
+      if (remaining > 0) next[instrumentId] = remaining
+      else delete next[instrumentId]
+      pendingToggleCounts.value = next
     }
   }
 
@@ -104,5 +118,5 @@ export const useFavoritesStore = defineStore('favorites', () => {
     return instrumentId != null && favorites.value.some(item => item.instrument_id === instrumentId)
   }
 
-  return { favorites, loaded, loading, error, load, add, remove, toggle, isFavorite }
+  return { favorites, loaded, loading, error, load, add, remove, toggle, isFavorite, isPending }
 })
