@@ -1937,6 +1937,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
   let delayedOihFailureUrl: string | null = null
   let delayedOihFailureRequestId: string | null = null
   const pendingHoldings = new Map<string, { symbol: FixtureSymbol; terminal: 'ready' | 'unavailable' | 'failed'; response: DataEnsureResponse }>()
+  const holdingsReasonOverrides = new Map<number, string>()
   let igvSnapshotAvailable = false
   const capabilityReads: FixtureETF[] = []
   let unxqDiscoveryCount = 0
@@ -2107,6 +2108,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     const id = ensureInstrumentId(body)
     const symbol = (Object.keys(instruments) as FixtureSymbol[]).find(key => instruments[key].id === id)
     if (!symbol) return route.continue()
+    const instrumentId = instruments[symbol].id
     const datasets = body.datasets ?? ['history']
     expect(datasets.length, 'each preparation request must identify its independent dataset work').toBeGreaterThan(0)
     if (!datasets.includes('history')) {
@@ -2139,17 +2141,19 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
           queuedTerminal = 'ready'
         } else outcome = 'ready'
       }
-      const response = historyPreparation(body, id, symbol, outcome === 'ready' ? 'partial' : 'unavailable')
+      const response = historyPreparation(body, instrumentId, symbol, outcome === 'ready' ? 'partial' : 'unavailable')
       response.request_id = requestId
       response.status = queuedTerminal ? 'queued' : outcome
       response.has_pending_work = queuedTerminal !== null
       response.completed = queuedTerminal ? 0 : outcome === 'ready' ? response.total : 0
+      const unavailableReasonCode = !queuedTerminal && outcome === 'unavailable'
+        ? holdingsReasonOverrides.get(instrumentId) ?? 'test_fixture_hold'
+        : null
+      if (unavailableReasonCode && holdingsReasonOverrides.has(instrumentId)) holdingsReasonOverrides.delete(instrumentId)
       response.dependencies = response.dependencies.map(dependency => ({
         ...dependency,
         status: queuedTerminal ? 'queued' : outcome,
-        reason_code: !queuedTerminal && outcome === 'unavailable'
-          ? symbol === 'BWET' ? 'future_dated_source' : 'test_fixture_hold'
-          : null,
+        reason_code: unavailableReasonCode,
       }))
       if (queuedTerminal) pendingHoldings.set(requestId, { symbol, terminal: queuedTerminal, response })
       await route.fulfill({ status: 200, json: response })
@@ -2171,7 +2175,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     }
     bars.set(symbol, bar)
     acquired.add(symbol)
-    const response = historyPreparation(body, id, symbol, 'partial', bar)
+    const response = historyPreparation(body, instrumentId, symbol, 'partial', bar)
     preparationResponseIds.push(response.request_id)
     await route.fulfill({ status: 200, json: response })
   })
@@ -2438,6 +2442,9 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
       return response.request().method() === 'GET' && url.pathname === '/api/v1/instruments/BWET'
         && url.searchParams.get('canonical_only') === 'true'
     })
+    // Give this exact controlled holdings response the documented typed
+    // future-source reason; generic unavailable fixtures remain test_fixture_hold.
+    holdingsReasonOverrides.set(instruments.BWET.id, 'future_dated_source')
     const bwetHistoryResponseReady = waitForDatasetEnsure('BWET', 'history')
     const bwetHoldingsResponseReady = waitForDatasetEnsure('BWET', 'holdings')
     await chooseETF('BWET')

@@ -1,3 +1,11 @@
+# 2026-11-08 — Scope future-source reason to the intended BWET fixture stage
+
+Root's exact 9ec4d783/9e2de159 affected run passed catalogue recreation. The BWET journey reached its future-warning assertion, but the controlled holdings response actually carried `reason_code: test_fixture_hold`; the generic unavailable UI was correct for that input. The test now arms a one-use typed `future_dated_source` override only at the intended BWET future-warning stage. All generic unavailable holdings cases keep `test_fixture_hold`, and the journey's identity, independent history/holdings, future-date, current-holdings, numeric, context, and delayed-response assertions are unchanged. No product code was modified.
+
+Scoped E2E reference preflight reports no actionable unbound names; remaining semantic advisories are pre-existing elsewhere in the long spec. Root's exact-source rerun is pending. This fixture correction does not establish browser acceptance or close the broader platform roadmap.
+
+---
+
 # 2026-11-07 — ETF 96ca input and RRG rendering repair candidate
 
 Imported only ETF four released TC paths from 96ca7e5be2a949babb098bd5c413c468d878a5e1; all four local SHA256 values and the source manifest digest match the frozen release. The active dependency pin now uses the reviewed four-entry, 98-path fragment. Preserved the prior c49 RRG marker draw-order/laptop sizing fix and aed9 chart-range behavior. Focused ETF Holdings tests passed 29/29, RRG tests passed 19/19, and frontend typecheck passed. Root owns rendered RRG and downstream browser qualification; these local checks do not establish browser, CI, integration, or release acceptance. The full PU roadmap remains open.

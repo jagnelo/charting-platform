@@ -1987,9 +1987,9 @@ status: in_progress
 progress:
   completed: []
   total: 9
-  current_phase: "Correct the typed future-dated BWET holdings response in the TC-owned controlled journey fixture and requalify the exact affected case."
-  current_blocker: "The 9ec4d783/9e2de159 run passed the full catalogue recreation journey. BWET's test interceptor returned test_fixture_hold, contradicting the journey's future_dated_source contract; the fixture correction is ready for Root's next exact build/run."
-  next_action: "Run scoped source/workstream checks and freeze the fixture-only correction for Root to rebuild and rerun the selected ETF journey; keep full platform criteria and release gates pending."
+  current_phase: "Freeze the test-only BWET future-source fixture correction after scoped checks; Root owns the exact-source rerun."
+  current_blocker: "The 9ec4d783/9e2de159 affected run passed catalogue recreation but failed BWET because the fixture returned test_fixture_hold instead of the documented future_dated_source. The test-only correction is frozen locally; Root's exact-source rerun is pending. No product regression was demonstrated; full platform acceptance remains open."
+  next_action: "Root rebuilds and reruns the BWET future-source journey on the committed test-only candidate. Preserve the prior red receipt and all full-platform criteria and release gates as pending."
   updated_at: '2026-11-08'
 historical_checkpoint_status_archive: 'Current boundary (2026-10-22): published HEAD is a7c8ecba208ce6c79d8f1a5d7294500122e462e5;
   one test-only change in workstation_performance.spec.ts and the four owned records are pending review. Exact hosted CI39693019337
