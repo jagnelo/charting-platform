@@ -418,6 +418,15 @@ test('controlled snapshot basket materializes through the normal API and display
   await expect(page.getByRole('button', { name: 'Delete' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled()
 
+  // Source baskets use the same dashboard route as user-created baskets; the
+  // provenance/read-only context above must not strand the user on the legacy
+  // basket page or require editing the basket first.
+  await page.getByTestId('basket-open-chart').click()
+  await expect(page).toHaveURL(new RegExp(`/chart/BASKET%3A${sourceBasket!.id}$`))
+  const primaryChart = page.locator('.tool-window[data-window-key="primary-chart"]')
+  await expect(primaryChart).toBeVisible()
+  await expect(primaryChart.locator('.chart-root')).toBeVisible()
+
   const editAttempt = await request.patch(`/api/v1/baskets/${sourceBasket!.id}`, {
     headers,
     data: { name: 'Must remain read-only' },

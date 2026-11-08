@@ -28,7 +28,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
-import { api } from '@/lib/api'
+import { api, setQueuedApiRequestPriority, type ApiRequestPriority } from '@/lib/api'
 import { formatWorkstationFreshness, normalizeWorkstationFreshness } from '@/lib/workstation/freshness'
 import { PreparationProgressRefreshQueue, dataPreparationCoordinator, isPreparationTimeframe, preparationStatusMessage, savedScreenerPreparationContextKey, shouldRefreshAnalysisProgress } from '@/lib/dataPreparation'
 type Scan = { id: number; name: string }
@@ -60,6 +60,7 @@ type Gauge = {
 }
 type ScanResult = { id?: number; run_at?: string | null; result_data?: Record<string, unknown> }
 const selectedId = ref('')
+const props = withDefaults(defineProps<{ requestPriority?: ApiRequestPriority }>(), { requestPriority: 'auto' })
 const gaugeRoot = ref<HTMLElement | null>(null)
 const surfaceVisible = ref(true)
 const documentVisible = ref(typeof document === 'undefined' || document.visibilityState !== 'hidden')
@@ -77,14 +78,19 @@ const gaugeRefreshNotice = ref('')
 function updateDocumentVisibility() { documentVisible.value = document.visibilityState !== 'hidden' }
 const scansQuery = useQuery({
   queryKey: ['workstation', 'screeners'],
-  queryFn: async () => (await api.get<Scan[]>('/screeners')) ?? [],
+  queryFn: async ({ signal }) => (await api.get<Scan[]>('/screeners', undefined, {
+    signal, priority: props.requestPriority, queueKey: 'market-gauge:screeners',
+  })) ?? [],
   staleTime: 60_000,
   refetchOnWindowFocus: true,
 })
 const savedScanQuery = useQuery({
   queryKey: computed(() => ['workstation', 'screener-definition', selectedId.value]),
-  queryFn: async () => {
-    const definition = await api.get<SavedScanDefinition>(`/screeners/${encodeURIComponent(selectedId.value)}`)
+  queryFn: async ({ signal }) => {
+    const id = selectedId.value
+    const definition = await api.get<SavedScanDefinition>(`/screeners/${encodeURIComponent(id)}`, undefined, {
+      signal, priority: props.requestPriority, queueKey: `market-gauge:definition:${id}`,
+    })
     if (!definition) throw new Error('The saved EasyScan definition is unavailable.')
     return definition
   },
@@ -94,7 +100,12 @@ const savedScanQuery = useQuery({
 })
 const scanResultsQuery = useQuery({
   queryKey: computed(() => ['workstation', 'screener-history', selectedId.value]),
-  queryFn: async () => (await api.get<ScanResult[]>(`/screeners/${encodeURIComponent(selectedId.value)}/results`, { limit: 20 })) ?? [],
+  queryFn: async ({ signal }) => {
+    const id = selectedId.value
+    return (await api.get<ScanResult[]>(`/screeners/${encodeURIComponent(id)}/results`, { limit: 20 }, {
+      signal, priority: props.requestPriority, queueKey: `market-gauge:history:${id}`,
+    })) ?? []
+  },
   enabled: computed(() => Boolean(selectedId.value) && surfaceVisible.value && documentVisible.value),
   staleTime: 0,
   refetchOnWindowFocus: true,
@@ -109,8 +120,11 @@ const latestScanStatus = computed(() => String(latestScanResult.value?.result_da
 const scanReplacementPending = computed(() => ['queued', 'pending', 'running', 'leased'].includes(latestScanStatus.value))
 const gaugeQuery = useQuery({
   queryKey: computed(() => ['workstation', 'market-gauge', selectedId.value]),
-  queryFn: async () => {
-    const result = await api.get<Gauge>(`/analysis/gauges/${selectedId.value}`)
+  queryFn: async ({ signal }) => {
+    const id = selectedId.value
+    const result = await api.get<Gauge>(`/analysis/gauges/${id}`, undefined, {
+      signal, priority: props.requestPriority, queueKey: `market-gauge:metrics:${id}`,
+    })
     if (!result) throw new Error('Market gauge refresh returned no data')
     return result
   },
@@ -133,6 +147,15 @@ const error = computed(() => {
 const percentage = computed(() => gauge.value?.percentage == null ? '—' : `${(gauge.value.percentage * 100).toFixed(1)}%`)
 const freshnessKind = computed(() => normalizeWorkstationFreshness(gauge.value?.freshness) || 'unavailable')
 const freshnessLabel = computed(() => formatWorkstationFreshness(gauge.value?.freshness))
+watch(() => [props.requestPriority, selectedId.value] as const, ([priority, id]) => {
+  if (priority !== 'high') return
+  setQueuedApiRequestPriority('market-gauge:screeners', 'high')
+  if (id) {
+    setQueuedApiRequestPriority(`market-gauge:definition:${id}`, 'high')
+    setQueuedApiRequestPriority(`market-gauge:history:${id}`, 'high')
+    setQueuedApiRequestPriority(`market-gauge:metrics:${id}`, 'high')
+  }
+})
 watch(() => gaugeQuery.data.value, value => {
   if (value && !scanReplacementPending.value && !latestGaugeRefreshPending.value) lastCompletedGauge.value = value
 })
@@ -227,6 +250,7 @@ watch([() => savedScanQuery.data.value, surfaceVisible, documentVisible], ([defi
     timeframe: definition.timeframe,
   }, {
     signal: controller.signal,
+    priority: props.requestPriority,
     contextKey,
     onProgress: progress => {
       if (!isCurrent()) return

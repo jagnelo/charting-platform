@@ -1,5 +1,5 @@
 import type { QueryClient } from '@tanstack/vue-query'
-import { api } from '@/lib/api'
+import { api, setQueuedApiRequestPriority, type ApiRequestOptions } from '@/lib/api'
 
 export type CodeAssetSummary = {
   kind: string
@@ -14,10 +14,13 @@ export type CodeAssetSummary = {
 
 export const CODE_ASSETS_QUERY_KEY = ['workstation', 'code-assets'] as const
 
-export function fetchCodeAssets(queryClient: QueryClient) {
+export function fetchCodeAssets(queryClient: QueryClient, options: ApiRequestOptions = {}) {
+  if (options.priority === 'high') setQueuedApiRequestPriority('workstation:code-assets', 'high')
   return queryClient.fetchQuery<CodeAssetSummary[]>({
     queryKey: CODE_ASSETS_QUERY_KEY,
-    queryFn: async () => (await api.get<CodeAssetSummary[]>('/code/assets')) ?? [],
+    queryFn: async ({ signal }) => (await api.get<CodeAssetSummary[]>('/code/assets', undefined, {
+      ...options, signal, queueKey: options.queueKey ?? 'workstation:code-assets',
+    })) ?? [],
     staleTime: 30_000,
   })
 }

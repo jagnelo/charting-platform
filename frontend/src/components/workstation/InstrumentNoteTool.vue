@@ -8,10 +8,12 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
-import { api } from '@/lib/api'
+import { api, setQueuedApiRequestPriority, type ApiRequestPriority } from '@/lib/api'
 import { assertAuthSessionCurrent, captureAuthSession, type AuthSessionSnapshot } from '@/lib/authSession'
 
-const props = defineProps<{ instrumentId: number | null | undefined; symbol: string }>()
+const props = withDefaults(defineProps<{ instrumentId: number | null | undefined; symbol: string; requestPriority?: ApiRequestPriority }>(), {
+  requestPriority: 'auto',
+})
 const queryClient = useQueryClient()
 const content = ref('')
 const loading = ref(false)
@@ -96,9 +98,20 @@ async function load() {
       status.value = 'Unsaved draft retained'
       return
     }
+    // A visible Notes panel can join the hidden Notes query already in flight
+    // for this key. TanStack Query reuses that pending queryFn, so the new
+    // fetch options cannot promote the queued HTTP request. Promote by queue
+    // key before joining it; the watcher below handles later priority changes.
+    if (props.requestPriority === 'high') {
+      setQueuedApiRequestPriority(`instrument-note:${instrumentId}`, 'high')
+    }
     const note = await queryClient.fetchQuery<NoteCacheValue | null>({
       queryKey: key,
-      queryFn: () => api.get<{ content: string; updated_at: string } | null>(`/notes/instruments/${instrumentId}`),
+      queryFn: ({ signal }) => api.get<{ content: string; updated_at: string } | null>(
+        `/notes/instruments/${instrumentId}`,
+        undefined,
+        { signal, priority: props.requestPriority, queueKey: `instrument-note:${instrumentId}` },
+      ),
       staleTime: 30_000,
     })
     if (!mounted || generation !== loadGeneration || props.instrumentId !== instrumentId) return
@@ -115,6 +128,11 @@ async function load() {
 }
 
 watch(() => props.instrumentId, () => { void load() }, { immediate: true })
+watch(() => props.requestPriority, priority => {
+  if (priority === 'high' && props.instrumentId) {
+    setQueuedApiRequestPriority(`instrument-note:${props.instrumentId}`, 'high')
+  }
+})
 watch(content, () => {
   if (hydrating || !props.instrumentId || loadedId !== props.instrumentId || loading.value) return
   if (saveTimer) clearTimeout(saveTimer)

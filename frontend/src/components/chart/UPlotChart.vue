@@ -3465,7 +3465,7 @@ onMounted(async () => {
     })
     chartVisibilityObserver.observe(rootRef.value)
   }
-  try { await userSettingsStore.loadSettings() } catch {}
+  try { await userSettingsStore.loadSettings('high') } catch {}
   const initialType = effectiveChartType.value
   if (chartStore.symbol && chartStore.barType !== initialType) {
     await chartStore.loadBars(chartStore.symbol, chartStore.timeframe, initialType)

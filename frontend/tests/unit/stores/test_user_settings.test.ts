@@ -3,8 +3,10 @@ import { createPinia, setActivePinia } from 'pinia'
 import { api } from '@/lib/api'
 import { useUserSettingsStore } from '@/stores/userSettings'
 
+const setQueuedApiRequestPriority = vi.hoisted(() => vi.fn())
 vi.mock('@/lib/api', () => ({
   api: { get: vi.fn(), patch: vi.fn() },
+  setQueuedApiRequestPriority,
 }))
 
 describe('user settings market-map source preferences', () => {
@@ -30,6 +32,22 @@ describe('user settings market-map source preferences', () => {
 
     expect(store.followedSourceIds).toEqual(['market-group:sp500'])
     expect(store.pinnedSourceIds).toEqual(['etf-holdings:spy'])
+  })
+
+  it('promotes one pending settings read when a Market Map becomes foreground', async () => {
+    let resolveSettings!: (value: any) => void
+    ;(api.get as ReturnType<typeof vi.fn>).mockReturnValueOnce(new Promise(resolve => { resolveSettings = resolve }))
+    const store = useUserSettingsStore()
+
+    const backgroundRead = store.loadSettings('low')
+    const foregroundRead = store.loadSettings('high')
+
+    expect(api.get).toHaveBeenCalledTimes(1)
+    expect(api.get).toHaveBeenCalledWith('/auth/settings', undefined, { priority: 'low', queueKey: 'user-settings:load' })
+    expect(setQueuedApiRequestPriority).toHaveBeenCalledWith('user-settings:load', 'high')
+    resolveSettings({ marketMap: { followedSourceIds: ['market-group:sp500'], pinnedSourceIds: [] } })
+    await Promise.all([backgroundRead, foregroundRead])
+    expect(store.followedSourceIds).toEqual(['market-group:sp500'])
   })
 
   it('persists follow and pin changes without changing canonical membership', async () => {

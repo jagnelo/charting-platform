@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import type { OHLCVBar, Timeframe, Instrument, IndicatorConfig, ChartBarType } from '@/types'
-import { api } from '@/lib/api'
+import { api, type ApiRequestPriority } from '@/lib/api'
 import { acquireSelectedHistory, defaultHistoryRange, olderHistoryRange } from '@/lib/onDemandAcquisition'
 import { dedupeOhlcvRequest } from '@/lib/workstation/ohlcvRequests'
 import { hasActiveAnalysisDrag } from '@/lib/workstation/plotDrag'
@@ -157,9 +157,12 @@ function createChartStore(storeId: string) {
       return [barIndex, opens, highs, lows, closes, volumes]
     })
 
-    async function fetchInstrument(sym: string): Promise<Instrument | null> {
+    async function fetchInstrument(sym: string, priority?: ApiRequestPriority): Promise<Instrument | null> {
       try {
-        return await api.get<Instrument>(`/instruments/${encodeURIComponent(sym)}`)
+        const path = `/instruments/${encodeURIComponent(sym)}`
+        return await (priority
+          ? api.get<Instrument>(path, undefined, { priority })
+          : api.get<Instrument>(path))
       } catch {
         return null
       }
@@ -171,9 +174,12 @@ function createChartStore(storeId: string) {
       return loaded
     }
 
-    async function fetchIndicatorsForInstrument(instrumentId: number): Promise<IndicatorConfig[]> {
+    async function fetchIndicatorsForInstrument(instrumentId: number, priority?: ApiRequestPriority): Promise<IndicatorConfig[]> {
       try {
-        const res = await api.get<{ indicators: IndicatorConfig[] }>(`/instrument-indicators/${instrumentId}`)
+        const path = `/instrument-indicators/${instrumentId}`
+        const res = await (priority
+          ? api.get<{ indicators: IndicatorConfig[] }>(path, undefined, { priority })
+          : api.get<{ indicators: IndicatorConfig[] }>(path))
         return res.indicators
       } catch { return [] }
     }
@@ -216,32 +222,49 @@ function createChartStore(storeId: string) {
 
       const encoded = encodeURIComponent(sym)
       const basketId = basketIdFromSymbol(sym)
+      // The active workstation chart is a foreground cache read. Keep it in
+      // the reserved API lane so unrelated analysis panels cannot occupy all
+      // five ordinary HTTP/1.1 slots ahead of visible local candles.
+      const requestOptions = opts.localOnly ? { priority: 'high' as const } : undefined
       const requestKey = JSON.stringify({ sym: sym.toUpperCase(), tf, type, transformParams: opts.transformParams ?? {}, adjusted: true, before: opts.before ?? null, limit: opts.limit ?? PAGE_SIZE, localOnly: Boolean(opts.localOnly), basketId })
       const request = async () => {
         if (basketId == null && opts.localOnly && !SERVER_TRANSFORMED_TYPES.has(type)) {
-          const raw = await api.get<any[]>(`/ohlcv/local/${encoded}/${tf}`, {
+          const params = {
             ...(opts.before ? { before: opts.before } : {}),
             limit: opts.limit ?? PAGE_SIZE,
-          })
+          }
+          const raw = requestOptions
+            ? await api.get<any[]>(`/ohlcv/local/${encoded}/${tf}`, params, requestOptions)
+            : await api.get<any[]>(`/ohlcv/local/${encoded}/${tf}`, params)
           return _mapBars(raw)
         }
         if (basketId != null) {
-          const raw = await api.get<any[]>(`/baskets/${basketId}/ohlcv/${tf}`, {
+          const basketPath = `/baskets/${basketId}/ohlcv/${tf}`
+          const basketParams = {
             ...params,
             limit: opts.limit ?? PAGE_SIZE,
-          })
+          }
+          const raw = requestOptions
+            ? await api.get<any[]>(basketPath, basketParams, requestOptions)
+            : await api.get<any[]>(basketPath, basketParams)
           return _mapBars(raw)
         }
-        const raw = SERVER_TRANSFORMED_TYPES.has(type)
-          ? await api.get<any[]>(`/ohlcv/${encoded}/${tf}/transformed`, {
+        const path = SERVER_TRANSFORMED_TYPES.has(type)
+          ? `/ohlcv/${encoded}/${tf}/transformed`
+          : `/ohlcv/${encoded}/${tf}`
+        const query = SERVER_TRANSFORMED_TYPES.has(type)
+          ? {
             ...params,
             ...(opts.localOnly ? { local_only: true } : {}),
             bar_type: type,
-          })
-          : await api.get<any[]>(`/ohlcv/${encoded}/${tf}`, {
+          }
+          : {
             ...params,
             ...(opts.localOnly ? { local_only: true } : {}),
-          })
+          }
+        const raw = requestOptions
+          ? await api.get<any[]>(path, query, requestOptions)
+          : await api.get<any[]>(path, query)
         return _mapBars(raw)
       }
       return dedupeOhlcvRequest(requestKey, request, undefined, {
@@ -267,7 +290,7 @@ function createChartStore(storeId: string) {
 
       void (async () => {
         try {
-          const basket = await api.get<Basket>(`/baskets/${basketId}`)
+          const basket = await api.get<Basket>(`/baskets/${basketId}`, undefined, { priority: 'high', signal: controller.signal })
           if (!isCurrent()) return
           if (basket.id !== basketId || !Array.isArray(basket.members) || !basket.members.length
             || basket.members.some(member => !Number.isSafeInteger(member.instrument_id) || member.instrument_id <= 0)) {
@@ -335,6 +358,7 @@ function createChartStore(storeId: string) {
                 adjusted: true,
               }, {
                 signal: controller.signal,
+                priority: 'high',
                 onProgress: progress => {
                   if (!isCurrent()) return
                   const state = states.get(member.instrument_id)!
@@ -498,7 +522,7 @@ function createChartStore(storeId: string) {
         })
       }
 
-      const loadedInstrument = await fetchInstrument(sym)
+      const loadedInstrument = await fetchInstrument(sym, localOnly ? 'high' : undefined)
       if (!isCurrent()) return
       if (loadedInstrument || !refreshesRenderedSelection) instrument.value = loadedInstrument
 
@@ -528,7 +552,7 @@ function createChartStore(storeId: string) {
         return
       }
 
-      const indicatorsPromise = fetchIndicatorsForInstrument(loadedInstrument.id)
+      const indicatorsPromise = fetchIndicatorsForInstrument(loadedInstrument.id, localOnly ? 'high' : undefined)
       try {
         const prefetchedBars = localBarsPromise ? await localBarsPromise : null
         if (prefetchedBars?.error) throw prefetchedBars.error

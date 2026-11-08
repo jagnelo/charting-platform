@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { api } from '@/lib/api'
+import { api, setQueuedApiRequestPriority, type ApiRequestPriority } from '@/lib/api'
 import type { FavoriteInstrument } from '@/types'
 
 export const useFavoritesStore = defineStore('favorites', () => {
@@ -9,6 +9,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
   const loading = ref(false)
   const error = ref('')
   let loadGeneration = 0
+  let favoritesLoadPromise: Promise<void> | null = null
   const pendingAdds = new Map<number, Promise<FavoriteInstrument | null>>()
   const pendingToggles = new Map<number, Promise<boolean>>()
   const pendingToggleCounts = ref<Record<number, number>>({})
@@ -20,17 +21,25 @@ export const useFavoritesStore = defineStore('favorites', () => {
   function invalidateLoadAndCheckRefresh(): boolean {
     const needsReload = !loaded.value
     loadGeneration += 1
+    favoritesLoadPromise = null
     loading.value = false
     return needsReload
   }
 
-  async function load(): Promise<void> {
-    if (loading.value || loaded.value) return
+  async function load(priority: ApiRequestPriority = 'auto'): Promise<void> {
+    if (loaded.value) return
+    if (favoritesLoadPromise) {
+      if (priority === 'high') setQueuedApiRequestPriority('favorites:list', 'high')
+      return favoritesLoadPromise
+    }
     loading.value = true
     error.value = ''
     const generation = ++loadGeneration
-    try {
-      const rows = await api.get<FavoriteInstrument[]>('/favorites')
+    let request!: Promise<void>
+    request = (async () => { try {
+      const rows = await api.get<FavoriteInstrument[]>('/favorites', undefined, {
+        priority, queueKey: 'favorites:list',
+      })
       if (generation !== loadGeneration) return
       favorites.value = [...(rows ?? [])].sort((a, b) => a.position - b.position || a.id - b.id)
       loaded.value = true
@@ -41,6 +50,11 @@ export const useFavoritesStore = defineStore('favorites', () => {
     } finally {
       if (generation === loadGeneration) loading.value = false
     }
+    })().finally(() => {
+      if (favoritesLoadPromise === request) favoritesLoadPromise = null
+    })
+    favoritesLoadPromise = request
+    return request
   }
 
   async function add(instrumentId: number): Promise<FavoriteInstrument | null> {

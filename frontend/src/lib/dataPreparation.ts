@@ -1,4 +1,4 @@
-import { api } from '@/lib/api'
+import { api, setQueuedApiRequestPriority, type ApiRequestOptions } from '@/lib/api'
 import { onAuthSessionBoundary } from '@/lib/authSession'
 
 export type PreparationDataset = 'identity' | 'profile' | 'history' | 'holdings' | 'fundamentals'
@@ -167,6 +167,7 @@ export class PreparationProgressRefreshQueue {
 
 export interface PreparationOptions {
   signal?: AbortSignal
+  priority?: ApiRequestOptions['priority']
   onProgress?: (progress: PreparationProgress) => void
   /** Local-only identity for mutable saved definitions; never sent as wire data. */
   contextKey?: string
@@ -388,6 +389,8 @@ interface Subscriber {
 interface InFlightRequest {
   request: DataEnsureRequest
   controller: AbortController
+  priority: NonNullable<ApiRequestOptions['priority']>
+  queueKey: string
   subscribers: Set<Subscriber>
   promise: Promise<void> | null
   abortTimer: ReturnType<typeof setTimeout> | null
@@ -428,10 +431,22 @@ export class DataPreparationCoordinator {
     const key = stableValue([request, options.contextKey ?? null])
     let entry = this.inFlight.get(key)
     if (!entry) {
-      entry = { request, controller: new AbortController(), subscribers: new Set(), promise: null, abortTimer: null }
+      entry = {
+        request,
+        controller: new AbortController(),
+        priority: options.priority ?? 'auto',
+        queueKey: `data-preparation:${key}`,
+        subscribers: new Set(),
+        promise: null,
+        abortTimer: null,
+      }
       this.inFlight.set(key, entry)
     }
     const current = entry
+    if (options.priority === 'high' && current.priority !== 'high') {
+      current.priority = 'high'
+      setQueuedApiRequestPriority(current.queueKey, 'high')
+    }
     if (current.abortTimer !== null) {
       clearTimeout(current.abortTimer)
       current.abortTimer = null
@@ -496,7 +511,11 @@ export class DataPreparationCoordinator {
 
   private async run(entry: InFlightRequest): Promise<DataEnsureResponse> {
     const signal = entry.controller.signal
-    const initial = await this.client.post<DataEnsureResponse>('/data/ensure', entry.request, { signal })
+    const initial = await this.client.post<DataEnsureResponse>('/data/ensure', entry.request, {
+      signal,
+      priority: entry.priority,
+      queueKey: entry.queueKey,
+    })
     validateResponse(initial)
     const requestId = initial.request_id
     let response = initial
@@ -515,7 +534,11 @@ export class DataPreparationCoordinator {
       } else {
         await abortableDelay(this.pollIntervalMs, signal)
       }
-      const next = await this.client.get<DataEnsureResponse>(`/data/requests/${encodeURIComponent(requestId)}`, undefined, { signal })
+      const next = await this.client.get<DataEnsureResponse>(`/data/requests/${encodeURIComponent(requestId)}`, undefined, {
+        signal,
+        priority: entry.priority,
+        queueKey: entry.queueKey,
+      })
       validateResponse(next, requestId, version)
       version = next.version
       response = next

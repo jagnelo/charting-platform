@@ -96,7 +96,7 @@ describe('CodeLibraryTool', () => {
     await assetRow.get('[aria-label="Python source for Streak study"]').setValue(source)
     await assetRow.findAll('button').find(button => button.text() === 'Validate')!.trigger('click')
 
-    expect(apiPost).toHaveBeenCalledWith('/code/validate', { source })
+    expect(apiPost).toHaveBeenCalledWith('/code/validate', { source }, expect.objectContaining({ priority: 'high' }))
     expect(assetRow.text()).toContain('Validating…')
     validation.resolve({ valid: true, diagnostics: [], dependencies: [], output_contracts: ['study', 'scalar'] })
     await flushPromises()
@@ -519,7 +519,7 @@ describe('CodeLibraryTool', () => {
     await wrapper.findAll('button').find(button => button.text() === 'Validate')!.trigger('click')
     await flushPromises()
 
-    expect(apiPost).toHaveBeenCalledWith('/code/validate', { source })
+    expect(apiPost).toHaveBeenCalledWith('/code/validate', { source }, expect.objectContaining({ priority: 'high' }))
     expect(wrapper.get('.code-library-tool__validation').text()).toContain('Validated')
     expect(wrapper.text()).not.toContain('source or base version changed while validation was running')
     wrapper.unmount()
@@ -559,7 +559,7 @@ describe('CodeLibraryTool', () => {
     apiGet.mockReturnValue(new Promise(resolve => { resolveAssets = resolve }))
     const wrapper = mount(CodeLibraryTool)
     await Promise.resolve()
-    expect(apiGet).toHaveBeenCalledWith('/code/assets')
+    expect(apiGet).toHaveBeenCalledWith('/code/assets', undefined, expect.objectContaining({ priority: 'high' }))
 
     wrapper.unmount()
     resolveAssets([asset])

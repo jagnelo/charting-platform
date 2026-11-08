@@ -603,17 +603,17 @@ function checkboxValue(event: Event) {
   return (event.target as HTMLInputElement).checked
 }
 
-async function loadProviderPolicies(generation = lifecycleGeneration) {
+async function loadProviderPolicies(generation = lifecycleGeneration, priority: 'auto' | 'high' = 'auto') {
   if (!isCurrentLifecycle(generation)) return
   const sequence = ++providerLoadSequence
   providersLoading.value = true
   providerError.value = null
   try {
     const [policies, usage, availability, runs] = await Promise.all([
-      api.get<ProviderPolicyStatus[]>('/providers/policies'),
-      api.get<ProviderUsageSummary[]>('/providers/usage'),
-      api.get<typeof availabilityRows.value>('/providers/availability'),
-      api.get<typeof availabilityRuns.value>('/providers/availability/runs?limit=8'),
+      api.get<ProviderPolicyStatus[]>('/providers/policies', undefined, { priority, queueKey: 'settings:provider-policies' }),
+      api.get<ProviderUsageSummary[]>('/providers/usage', undefined, { priority, queueKey: 'settings:provider-usage' }),
+      api.get<typeof availabilityRows.value>('/providers/availability', undefined, { priority, queueKey: 'settings:provider-availability' }),
+      api.get<typeof availabilityRuns.value>('/providers/availability/runs?limit=8', undefined, { priority, queueKey: 'settings:provider-availability-runs' }),
     ])
     if (!isCurrentLifecycle(generation) || sequence !== providerLoadSequence) return
     providerPolicies.value = policies
@@ -640,14 +640,16 @@ async function patchPolicy(policy: ProviderPolicyStatus, patch: Record<string, u
   }
 }
 
-async function loadReconciliationIssues(generation = lifecycleGeneration) {
+async function loadReconciliationIssues(generation = lifecycleGeneration, priority: 'auto' | 'high' = 'auto') {
   if (!isCurrentLifecycle(generation)) return
   if (!authStore.user?.is_admin) return
   const sequence = ++reconciliationLoadSequence
   reconciliationLoading.value = true
   reconciliationError.value = null
   try {
-    const rows = await api.get<ReconciliationIssue[]>('/providers/reconciliation/issues?status=open&limit=200')
+    const rows = await api.get<ReconciliationIssue[]>('/providers/reconciliation/issues?status=open&limit=200', undefined, {
+      priority, queueKey: 'settings:reconciliation-issues',
+    })
     if (!isCurrentLifecycle(generation) || sequence !== reconciliationLoadSequence) return
     reconciliationIssues.value = rows.map((row) => ({
       ...row,
@@ -678,9 +680,9 @@ async function reviewIssue(issue: ReconciliationIssue, status: 'resolved' | 'ign
 }
 
 onMounted(async () => {
-  presetsStore.loadPresets()
+  presetsStore.loadPresets('high')
   const generation = lifecycleGeneration
-  await Promise.all([loadProviderPolicies(generation), loadReconciliationIssues(generation)])
+  await Promise.all([loadProviderPolicies(generation, 'high'), loadReconciliationIssues(generation, 'high')])
 })
 
 onUnmounted(() => {

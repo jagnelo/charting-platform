@@ -275,7 +275,9 @@ describe('linked instrument tool stale-response guards', () => {
     })
     const wrapper = mountAlerts({ props: { instrumentId: null, symbol: 'SPY' } })
     await vi.waitFor(() => expect(wrapper.text()).toContain('Breadth'))
-    expect(apiGet).toHaveBeenCalledWith('/alerts/screener')
+    expect(apiGet).toHaveBeenCalledWith('/alerts/screener', undefined, expect.objectContaining({
+      priority: 'auto', queueKey: 'workstation-alerts:screener', signal: expect.any(AbortSignal),
+    }))
   })
 
   it('deduplicates the shared alert bundle across linked tool windows', async () => {

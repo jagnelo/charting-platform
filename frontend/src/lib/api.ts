@@ -4,14 +4,15 @@ import { assertAuthSessionCurrent, AuthSessionChangedError, beginAuthSessionBoun
  * Authenticated API client with automatic token refresh on 401.
  */
 const BASE = '/api/v1'
-export type ApiRequestOptions = { signal?: AbortSignal; priority?: RequestPriority }
+export type ApiRequestPriority = RequestPriority
+export type ApiRequestOptions = { signal?: AbortSignal; priority?: ApiRequestPriority; queueKey?: string }
 
 // Chromium only admits a small number of same-origin HTTP/1.1 requests at a
-// time. Admit work here so queued background reads cannot occupy every slot
-// ahead of a visible user action. The spare slot is available to explicit
-// high-priority requests; lower-priority local hydration has a smaller cap.
+// time. Admit work here so preparation creation and other non-interactive work
+// cannot occupy every slot ahead of a visible user action. Preparation keeps
+// its high queue/durable-job priority, but uses bounded background capacity.
 const API_TRANSPORT_LIMIT = 6
-const API_NON_HIGH_LIMIT = 5
+const API_NON_INTERACTIVE_LIMIT = 5
 const API_LOW_PRIORITY_LIMIT = 4
 type ApiFetchPriority = NonNullable<ApiRequestOptions['priority']>
 interface AdmittedApiResponse { response: Response; release: () => void }
@@ -20,6 +21,7 @@ interface QueuedApiFetch {
   input: RequestInfo | URL
   init: RequestInit
   priority: ApiFetchPriority
+  queueKey?: string
   resolve: (response: AdmittedApiResponse) => void
   reject: (error: unknown) => void
   abortListener?: () => void
@@ -27,8 +29,36 @@ interface QueuedApiFetch {
 
 const queuedApiFetches: QueuedApiFetch[] = []
 let activeApiFetches = 0
-let activeNonHighApiFetches = 0
+let activeNonInteractiveApiFetches = 0
 let activeLowApiFetches = 0
+
+function usesNonInteractiveCapacity(queued: Pick<QueuedApiFetch, 'input' | 'init' | 'priority'>): boolean {
+  if (queued.priority !== 'high') return true
+  const method = (queued.init.method ?? 'GET').toUpperCase()
+  const input = typeof queued.input === 'string'
+    ? queued.input
+    : queued.input instanceof URL ? queued.input.href : queued.input.url
+  const url = new URL(input, window.location.href)
+  const pathname = url.pathname
+  if (method === 'POST') return pathname === `${BASE}/data/ensure`
+
+  // Preserve the caller's high scheduling priority, but keep expensive
+  // analysis, universe and candle reads from occupying the interactive slot
+  // alongside the five ordinary same-origin requests. Instrument lookups and
+  // small local quote batches plus interactive Notes/Results reads stay
+  // eligible for that reserved slot.
+  if (method !== 'GET') return false
+  if (pathname.startsWith(`${BASE}/ohlcv/local/`)) {
+    // Watchlist quote refreshes request a short 31-bar window; keep those
+    // visible cached-row reads interactive while bounding full chart history.
+    const limit = Number(url.searchParams.get('limit'))
+    return Number.isFinite(limit) && limit >= 100
+  }
+  return pathname.startsWith(`${BASE}/analysis/`)
+    || pathname.startsWith(`${BASE}/ohlcv/`)
+    || pathname.startsWith(`${BASE}/market-groups/`)
+    || /^\/api\/v1\/baskets\/\d+\/ohlcv\//.test(pathname)
+}
 
 function apiAbortReason(signal: AbortSignal): unknown {
   return signal.reason ?? new DOMException('The operation was aborted.', 'AbortError')
@@ -37,9 +67,10 @@ function apiAbortReason(signal: AbortSignal): unknown {
 function nextAdmissibleFetchIndex(): number {
   const priorityOrder: ApiFetchPriority[] = ['high', 'auto', 'low']
   for (const priority of priorityOrder) {
-    if (priority === 'auto' && activeNonHighApiFetches >= API_NON_HIGH_LIMIT) continue
-    if (priority === 'low' && (activeNonHighApiFetches >= API_NON_HIGH_LIMIT || activeLowApiFetches >= API_LOW_PRIORITY_LIMIT)) continue
-    const index = queuedApiFetches.findIndex(item => item.priority === priority)
+    if (priority === 'auto' && activeNonInteractiveApiFetches >= API_NON_INTERACTIVE_LIMIT) continue
+    if (priority === 'low' && (activeNonInteractiveApiFetches >= API_NON_INTERACTIVE_LIMIT || activeLowApiFetches >= API_LOW_PRIORITY_LIMIT)) continue
+    const index = queuedApiFetches.findIndex(item => item.priority === priority
+      && (!usesNonInteractiveCapacity(item) || activeNonInteractiveApiFetches < API_NON_INTERACTIVE_LIMIT))
     if (index !== -1) return index
   }
   return -1
@@ -57,15 +88,16 @@ function drainApiFetchQueue(): void {
       continue
     }
     if (queued.abortListener) signal?.removeEventListener('abort', queued.abortListener)
+    const usesNonInteractive = usesNonInteractiveCapacity(queued)
     activeApiFetches += 1
-    if (queued.priority !== 'high') activeNonHighApiFetches += 1
+    if (usesNonInteractive) activeNonInteractiveApiFetches += 1
     if (queued.priority === 'low') activeLowApiFetches += 1
     let released = false
     const release = () => {
       if (released) return
       released = true
       activeApiFetches -= 1
-      if (queued.priority !== 'high') activeNonHighApiFetches -= 1
+      if (usesNonInteractive) activeNonInteractiveApiFetches -= 1
       if (queued.priority === 'low') activeLowApiFetches -= 1
       drainApiFetchQueue()
     }
@@ -79,11 +111,11 @@ function drainApiFetchQueue(): void {
   }
 }
 
-function admittedApiFetch(input: RequestInfo | URL, init: RequestInit, priority: ApiFetchPriority = 'auto'): Promise<AdmittedApiResponse> {
+function admittedApiFetch(input: RequestInfo | URL, init: RequestInit, priority: ApiFetchPriority = 'auto', queueKey?: string): Promise<AdmittedApiResponse> {
   const signal = init.signal
   if (signal?.aborted) return Promise.reject(apiAbortReason(signal))
   return new Promise((resolve, reject) => {
-    const queued: QueuedApiFetch = { input, init, priority, resolve, reject }
+    const queued: QueuedApiFetch = { input, init, priority, queueKey, resolve, reject }
     if (signal) {
       queued.abortListener = () => {
         const index = queuedApiFetches.indexOf(queued)
@@ -98,6 +130,16 @@ function admittedApiFetch(input: RequestInfo | URL, init: RequestInit, priority:
     queuedApiFetches.push(queued)
     drainApiFetchQueue()
   })
+}
+
+/** Promote an already queued exact request when its docked surface becomes visible. */
+export function setQueuedApiRequestPriority(queueKey: string, priority: ApiRequestPriority): boolean {
+  const queued = queuedApiFetches.find(item => item.queueKey === queueKey)
+  const priorityRank: Record<ApiRequestPriority, number> = { low: 0, auto: 1, high: 2 }
+  if (!queued || priorityRank[priority] <= priorityRank[queued.priority]) return false
+  queued.priority = priority
+  drainApiFetchQueue()
+  return true
 }
 
 export class ApiError extends Error {
@@ -212,12 +254,16 @@ async function request<T>(
   if (session.signal.aborted) abortForSession()
   if (options?.signal?.aborted) abortForCaller()
   const opts: RequestInit = { method, headers, signal: controller.signal }
-  if (options?.priority) opts.priority = options.priority
+  // User-initiated writes must reach transport while high-priority
+  // preparation creation occupies the bounded non-interactive lane.
+  // Background writes can still explicitly choose auto/low.
+  const requestPriority = options?.priority ?? (method.toUpperCase() === 'GET' ? 'auto' : 'high')
+  if (options?.priority || method.toUpperCase() !== 'GET') opts.priority = requestPriority
   if (body !== undefined) opts.body = JSON.stringify(body)
 
   let admitted: AdmittedApiResponse | undefined
   try {
-    admitted = await admittedApiFetch(url, opts, options?.priority ?? 'auto')
+    admitted = await admittedApiFetch(url, opts, requestPriority, options?.queueKey)
     const res = admitted.response
     assertAuthSessionCurrent(session)
 

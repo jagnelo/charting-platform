@@ -150,7 +150,9 @@ describe('WorkstationToolContent missing chart history entrypoint', () => {
 
     expect(wrapper.get('select[aria-label="Benchmark family"]').element).toHaveProperty('value', 'sp500')
     expect(wrapper.get('[aria-label="Selected benchmark family roles"]').text()).toContain('SPY')
-    expect(apiGet).toHaveBeenCalledWith('/market-groups/sp500')
+    expect(apiGet).toHaveBeenCalledWith('/market-groups/sp500', undefined, {
+      priority: 'low', queueKey: 'top-down:market-group:sp500',
+    })
     wrapper.unmount()
 
     // Opening/closing a docked tool may remount virtual roots. The same
@@ -264,7 +266,9 @@ describe('WorkstationToolContent missing chart history entrypoint', () => {
     await shellGroupRead
     await vi.waitFor(() => expect(workspaceStore.marketGroups['sp500-sectors']?.members).toHaveLength(11))
     expect(wrapper.get('[data-test="sector-catalogue-rows"]').text()).toContain('XLB')
-    expect(apiGet).toHaveBeenCalledWith('/market-groups/sp500-sectors')
+    expect(apiGet).toHaveBeenCalledWith('/market-groups/sp500-sectors', undefined, {
+      priority: 'auto', queueKey: 'top-down:market-group:sp500-sectors',
+    })
     expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/snapshot', { benchmark: 'SPY' })
     expect(workspaceStore.groupSnapshots['sp500-sectors']).toBeUndefined()
 

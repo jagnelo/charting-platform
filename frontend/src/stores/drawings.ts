@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { ChartDrawing, DrawingType, Timeframe } from '@/types'
 import type { AnyDrawing } from '@/lib/drawings/types'
-import { api } from '@/lib/api'
+import { api, setQueuedApiRequestPriority, type ApiRequestPriority } from '@/lib/api'
 
 export const useDrawingsStore = defineStore('drawings', () => {
   const drawings = ref<ChartDrawing[]>([])
@@ -12,6 +12,7 @@ export const useDrawingsStore = defineStore('drawings', () => {
   const editRequestId = ref<number | null>(null)
   const instrumentId = ref<number | null>(null)
   const currentTimeframe = ref<Timeframe | null>(null)
+  let pendingDrawingsLoad: { instrumentId: number; promise: Promise<void> } | null = null
 
   function renderableDrawingsFor(indicatorKey: string | null): AnyDrawing[] {
     return [...drawings.value].reverse()
@@ -33,7 +34,7 @@ export const useDrawingsStore = defineStore('drawings', () => {
   // Reversed so that index 0 (top of UI list) is rendered last → highest z-index.
   const renderableDrawings = computed<AnyDrawing[]>(() => renderableDrawingsFor(null))
 
-  async function loadDrawings(instId: number, tf: Timeframe) {
+  async function loadDrawings(instId: number, tf: Timeframe, priority: ApiRequestPriority = 'auto') {
     // A chart tool can still finish its symbol hydration while logout is
     // routing the application away. Do not start a protected request after
     // the token has been cleared, and reset the cache so the next session
@@ -44,6 +45,12 @@ export const useDrawingsStore = defineStore('drawings', () => {
       currentTimeframe.value = null
       return
     }
+    const queueKey = `drawings:${instId}`
+    if (pendingDrawingsLoad?.instrumentId === instId) {
+      if (priority === 'high') setQueuedApiRequestPriority(queueKey, 'high')
+      currentTimeframe.value = tf
+      return pendingDrawingsLoad.promise
+    }
     // Skip fetch if we already have this instrument's drawings loaded
     if (instrumentId.value === instId) {
       currentTimeframe.value = tf
@@ -51,17 +58,23 @@ export const useDrawingsStore = defineStore('drawings', () => {
     }
     instrumentId.value = instId
     currentTimeframe.value = tf
-    try {
+    let promise!: Promise<void>
+    promise = (async () => { try {
       // No timeframe filter — drawings belong to the symbol, not a specific timeframe.
       // The creation timeframe is stored as metadata only.
-      drawings.value = await api.get('/drawings', { instrument_id: instId })
+      drawings.value = await api.get('/drawings', { instrument_id: instId }, { priority, queueKey })
     } catch (e) {
       // Logout can invalidate an in-flight request after the fetch has been
       // issued. That is an expected auth-boundary race, not a drawing failure
       // and must not surface as a console error during redirect.
       if (e instanceof Error && e.message === 'Authentication required') return
       console.error('Failed to load drawings', e)
+    } finally {
+      if (pendingDrawingsLoad?.promise === promise) pendingDrawingsLoad = null
     }
+    })()
+    pendingDrawingsLoad = { instrumentId: instId, promise }
+    return promise
   }
 
   async function saveDrawing(drawing: AnyDrawing, pinToAll = false, indicatorKey: string | null = null): Promise<ChartDrawing | null> {

@@ -81,6 +81,11 @@ describe('ResearchResultsTool', () => {
 
       onIntersection?.(true, observedTarget!)
       await vi.waitFor(() => expect(apiGet).toHaveBeenCalledOnce())
+      expect(apiGet).toHaveBeenCalledWith(
+        '/research/runs',
+        { limit: 26, include_artifacts: false },
+        expect.objectContaining({ priority: 'high' }),
+      )
       await flushPromises()
       expect(wrapper.text()).toContain('No persisted studies yet. Run a study in the adjacent Study Lab pane.')
     } finally {
@@ -149,7 +154,7 @@ describe('ResearchResultsTool', () => {
     expect(apiGet).toHaveBeenCalledWith(
       '/research/runs',
       { limit: 26, include_artifacts: false },
-      { signal: expect.any(AbortSignal) },
+      { signal: expect.any(AbortSignal), priority: 'high' },
     )
     expect(wrapper.text()).toContain('Run #9')
     expect(wrapper.text()).toContain('current_streak')
@@ -277,7 +282,7 @@ describe('ResearchResultsTool', () => {
       include_artifacts: false,
       before_created_at: firstPage[24].created_at,
       before_id: firstPage[24].id,
-    })
+    }, expect.objectContaining({ priority: 'high' }))
     expect(wrapper.findAll('[role="listitem"]')).toHaveLength(50)
     expect(wrapper.get('[role="listitem"].research-results-tool__run[aria-current="true"]').text()).toContain('Run #77')
     expect((wrapper.get('input[aria-label="Compare run 100"]').element as HTMLInputElement).checked).toBe(true)
@@ -415,15 +420,15 @@ describe('ResearchResultsTool', () => {
     const wrapper = mountTool()
     await flushPromises()
 
-    expect(apiGet).toHaveBeenCalledWith('/research/runs/10')
-    expect(apiGet).not.toHaveBeenCalledWith('/research/runs/11')
+    expect(apiGet).toHaveBeenCalledWith('/research/runs/10', undefined, expect.objectContaining({ priority: 'high' }))
+    expect(apiGet.mock.calls.some(([path]) => path === '/research/runs/11')).toBe(false)
     await wrapper.get('input[aria-label="Compare run 10"]').setValue(true)
     await wrapper.get('input[aria-label="Compare run 11"]').setValue(true)
     await wrapper.findAll('button').find(button => button.text() === 'Compare')!.trigger('click')
     await flushPromises()
 
-    expect(apiGet).toHaveBeenCalledWith('/research/runs/10')
-    expect(apiGet).toHaveBeenCalledWith('/research/runs/11')
+    expect(apiGet).toHaveBeenCalledWith('/research/runs/10', undefined, expect.objectContaining({ priority: 'high' }))
+    expect(apiGet).toHaveBeenCalledWith('/research/runs/11', undefined, expect.objectContaining({ priority: 'high' }))
     const comparison = wrapper.get('[aria-label="Study output comparison"]')
     expect(comparison.text()).toContain('sample_size')
     expect(comparison.text()).toContain('Value: 4')
@@ -559,6 +564,64 @@ describe('ResearchResultsTool', () => {
     }
   })
 
+  it('keeps typed occurrence filters available after loading older rows and reselecting a compact summary', async () => {
+    const summary = {
+      id: 9,
+      created_at: '2026-01-03T00:00:00Z',
+      status: 'completed',
+      code_version_id: 7,
+      output_contract: 'study',
+      run_config: {},
+      dataset_manifest: {},
+      artifact_count: 1,
+      artifacts: [],
+    }
+    const detail = {
+      ...summary,
+      artifacts: [{ id: 12, name: 'occurrences', artifact_type: 'events', payload: { value: [
+        { symbol: 'SPY', timestamp: '2026-01-02T00:00:00Z', kind: 'member_entered', instrument_id: 7 },
+        { symbol: 'SPY', timestamp: '2026-01-01T00:00:00Z', kind: 'member_exited', instrument_id: 7 },
+        { symbol: 'AAPL', timestamp: '2025-12-31T00:00:00Z', kind: 'member_entered', instrument_id: 8 },
+      ] } }],
+    }
+    const firstPage = [
+      summary,
+      ...Array.from({ length: 25 }, (_, index) => ({
+        ...summary,
+        id: 100 - index,
+        created_at: new Date(Date.UTC(2026, 0, 2) - index * 60_000).toISOString(),
+        artifact_count: 0,
+      })),
+    ]
+    const olderPage = [{ ...summary, id: 50, created_at: '2025-12-01T00:00:00Z', artifact_count: 0 }]
+    apiGet.mockImplementation((path: string, params?: Record<string, unknown>) => {
+      if (path === '/research/runs') return Promise.resolve(params?.before_id ? olderPage : firstPage)
+      if (path === '/research/runs/9') return Promise.resolve(detail)
+      return Promise.reject(new Error(`Unexpected Research Results request: ${path}`))
+    })
+    const wrapper = mountTool()
+    try {
+      await vi.waitFor(() => expect(wrapper.find('[aria-label="occurrences symbol filter"]').exists()).toBe(true))
+      expect(wrapper.findAll('[role="list"][aria-label="occurrences filtered occurrences"] [role="listitem"]')).toHaveLength(3)
+
+      await wrapper.findAll('button').find(button => button.text() === 'Load older runs')!.trigger('click')
+      await flushPromises()
+      expect(wrapper.text()).toContain('Run #50')
+      expect(wrapper.get('[aria-label="occurrences symbol filter"]').exists()).toBe(true)
+      expect(wrapper.findAll('[role="list"][aria-label="occurrences filtered occurrences"] [role="listitem"]')).toHaveLength(3)
+
+      await wrapper.get('button[aria-label="Run 9, completed, 1 artifacts"]').trigger('click')
+      expect(wrapper.get('[aria-label="occurrences symbol filter"]').exists()).toBe(true)
+      const symbolFilter = wrapper.get('[aria-label="occurrences symbol filter"]')
+      await symbolFilter.setValue('SPY')
+      await wrapper.get('[aria-label="occurrences event type filter"]').setValue('member_entered')
+      expect(wrapper.findAll('[role="list"][aria-label="occurrences filtered occurrences"] [role="listitem"]')).toHaveLength(1)
+      expect(wrapper.find('[role="list"][aria-label="occurrences filtered occurrences"]').text()).toContain('SPY')
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
   it('shows detail-load failure and allows an explicit retry', async () => {
     let detailAttempt = 0
     let resolveRetry!: (value: unknown) => void
@@ -596,7 +659,7 @@ describe('ResearchResultsTool', () => {
     expect(cancel).toBeDefined()
     await cancel!.trigger('click')
     await flushPromises()
-    expect(apiPost).toHaveBeenCalledWith('/research/runs/12/cancel', {})
+    expect(apiPost).toHaveBeenCalledWith('/research/runs/12/cancel', {}, expect.objectContaining({ priority: 'high' }))
     expect(wrapper.text()).toContain('canceled')
   })
 
@@ -614,8 +677,8 @@ describe('ResearchResultsTool', () => {
     await wrapper.get('[aria-label="Research run 27 details"]').get('button').trigger('click')
     await vi.waitFor(() => expect(wrapper.get('[aria-label="Run 27, completed, 0 artifacts"]').exists()).toBe(true))
 
-    expect(apiPost).toHaveBeenCalledWith('/research/runs/27/cancel', {})
-    expect(apiGet).toHaveBeenCalledWith('/research/runs/27')
+    expect(apiPost).toHaveBeenCalledWith('/research/runs/27/cancel', {}, expect.objectContaining({ priority: 'high' }))
+    expect(apiGet).toHaveBeenCalledWith('/research/runs/27', undefined, expect.objectContaining({ priority: 'high' }))
     expect(wrapper.text()).not.toContain('canceled')
     expect(wrapper.find('[role="alert"]').exists()).toBe(false)
     expect(queryClient.getQueryData(['workstation', 'research-run', 27])).toMatchObject({ id: 27, status: 'completed' })
@@ -636,7 +699,7 @@ describe('ResearchResultsTool', () => {
     await wrapper.get('[aria-label="Research run 28 details"]').get('button').trigger('click')
     await vi.waitFor(() => expect(wrapper.get('[role="alert"]').text()).toContain('cancel_not_admitted'))
 
-    expect(apiGet).not.toHaveBeenCalledWith('/research/runs/28')
+    expect(apiGet.mock.calls.some(([path]) => path === '/research/runs/28')).toBe(false)
     expect(wrapper.get('[aria-label="Research run 28 details"]').find('button').text()).toBe('Cancel')
     wrapper.unmount()
   })
@@ -815,7 +878,7 @@ describe('ResearchResultsTool', () => {
     await flushPromises()
 
     await wrapper.findAll('button').find(button => button.text() === 'Cancel')!.trigger('click')
-    expect(apiPost).toHaveBeenCalledWith('/research/runs/26/cancel', {})
+    expect(apiPost).toHaveBeenCalledWith('/research/runs/26/cancel', {}, expect.objectContaining({ priority: 'high' }))
     wrapper.unmount()
     cancel.resolve({ ...run, status: 'canceled' })
     await flushPromises()

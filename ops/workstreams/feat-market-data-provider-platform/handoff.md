@@ -34110,3 +34110,12 @@ rollback isolation. Three existing execute/quota unit regressions passed. Ruff
 HTTP, retained runtime/database access, native ledger, policy, or hold mutation
 occurred. Exact-source CI and Root's runtime replay remain pending; all wider
 Provider criteria remain open.
+
+
+## 2026-11-08 — consume TC e750 complete frontend context
+
+Root released TC source `e7500fb2905ed217c96d3ac8b32a19d719ee9564` for exact development consumption. Verified all 145 manifest rows against the source tree SHA-256/Git blobs/modes, all 57 Provider old guards, and imported only those 57 guarded consumer paths. The remaining foreign context paths were already byte-identical; all 145 now match the release. The exact contract is retained at `ops/workstreams/feat-market-data-provider-platform/development-dependency-imports/e7500fb2905ed217c96d3ac8b32a19d719ee9564-full-frontend-context.json`.
+
+The active Provider runtime pin was refreshed from `b1929300` to `9e2de159`; all 79 released backend paths were already byte/mode-identical. The three aed0 operator/test paths were also verified identical, so none needed copying. Current pins now comprise e750 frontend (145 foreign context paths), 9e2 backend (79 paths), aed0 operator/test (3 paths), and the existing ETF/Strategy domain pins. Superseded 3055946 and b192 manifests and prior evidence remain archived.
+
+This is development context only. Root's full browser profile, exact-tip CI, combined acceptance and release gates remain pending; no product implementation, tests, provider HTTP, Docker, quota, policy or runtime changes were made in this checkpoint.

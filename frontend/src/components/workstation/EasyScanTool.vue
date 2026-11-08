@@ -55,7 +55,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
-import { api } from '@/lib/api'
+import { api, setQueuedApiRequestPriority, type ApiRequestPriority } from '@/lib/api'
 import { PreparationProgressRefreshQueue, dataPreparationCoordinator, isPreparationTimeframe, preparationStatusMessage, savedScreenerPreparationContextKey, shouldRefreshAnalysisProgress } from '@/lib/dataPreparation'
 import ConditionGroupEditor from '@/components/workstation/ConditionGroupEditor.vue'
 import { createDefaultTechnicalCondition } from '@/lib/technicalConditions'
@@ -81,7 +81,10 @@ type SavedScanDefinition = {
   updated_at: string
 }
 
-const props = withDefaults(defineProps<{ sourceWindowKey?: string }>(), { sourceWindowKey: 'easy-scan' })
+const props = withDefaults(defineProps<{ sourceWindowKey?: string; requestPriority?: ApiRequestPriority }>(), {
+  sourceWindowKey: 'easy-scan',
+  requestPriority: 'auto',
+})
 const queryClient = useQueryClient()
 const easyScanInstanceId = useId()
 const advancedConditionId = `${easyScanInstanceId}-advanced-conditions`
@@ -142,10 +145,12 @@ async function load() {
     const [saved, assets] = await Promise.all([
       queryClient.fetchQuery<ConditionAsset[]>({
         queryKey: ['workstation', 'library-items', 'condition'],
-        queryFn: () => api.get<ConditionAsset[]>('/workspaces/library/conditions'),
+        queryFn: ({ signal }) => api.get<ConditionAsset[]>('/workspaces/library/conditions', undefined, {
+          signal, priority: props.requestPriority, queueKey: 'easy-scan:conditions',
+        }),
         staleTime: 30_000,
       }),
-      fetchCodeAssets(queryClient),
+      fetchCodeAssets(queryClient, { priority: props.requestPriority }),
     ])
     if (!mounted || generation !== loadGeneration) return
     conditions.value = saved
@@ -206,7 +211,7 @@ async function saveCondition() {
       name: conditionName.value,
       condition,
       dependency_metadata: { source: 'workstation-easyscan-builder', version: 1 },
-    })
+    }, { priority: 'high' })
     const index = conditions.value.findIndex(item => item.stable_key === saved.stable_key)
     if (index >= 0) conditions.value.splice(index, 1, saved); else conditions.value.push(saved)
     conditions.value.sort((left, right) => left.name.localeCompare(right.name))
@@ -252,12 +257,14 @@ async function run() {
     try {
       scan = await api.post<{ id: number }>(selectedPythonVersion.value
         ? `/screeners/from-python-condition/${encodeURIComponent(selectedPythonVersion.value)}`
-        : `/screeners/from-condition/${encodeURIComponent(selectedKey.value)}`, { name: scanName.value, ...universe })
+        : `/screeners/from-condition/${encodeURIComponent(selectedKey.value)}`, { name: scanName.value, ...universe }, { priority: 'high' })
     } catch (cause: any) {
       if (!String(cause?.message ?? '').includes('→ 409:')) throw cause
       const existing = await queryClient.fetchQuery<Array<{ id: number; name: string }>>({
         queryKey: ['workstation', 'screeners'],
-        queryFn: async () => (await api.get<Array<{ id: number; name: string }>>('/screeners')) ?? [],
+        queryFn: async ({ signal }) => (await api.get<Array<{ id: number; name: string }>>('/screeners', undefined, {
+          signal, priority: 'high', queueKey: 'easy-scan:screener-list',
+        })) ?? [],
         staleTime: 0,
       })
       const found = existing.find(item => item.name.toLowerCase() === scanName.value.toLowerCase())
@@ -276,7 +283,9 @@ async function run() {
       next.push({ id: scan.id, name: scanName.value })
       return next.sort((left, right) => left.name.localeCompare(right.name))
     })
-    const savedDefinition = await api.get<SavedScanDefinition>(`/screeners/${scan.id}`)
+    const savedDefinition = await api.get<SavedScanDefinition>(`/screeners/${scan.id}`, undefined, {
+      priority: 'high', queueKey: `easy-scan:definition:${scan.id}`,
+    })
     if (!savedDefinition) throw new Error('The saved scan definition is unavailable; no scan was run.')
     if (!isCurrentRun()) return
     assertSavedScanMatchesIntent(savedDefinition, universe)
@@ -296,12 +305,12 @@ async function run() {
     if (!isCurrentRun()) return
     status.value = 'Evaluating canonical local data…'
     const priorResult = result.value
-    const submitted = await api.post<ScanResult>(`/screeners/${scan.id}/run`, {})
+    const submitted = await api.post<ScanResult>(`/screeners/${scan.id}/run`, {}, { priority: 'high' })
     if (!isCurrentRun()) return
     await followSubmittedScan(scan.id, submitted, isCurrentRun, priorResult)
     if (!isCurrentRun()) return
     await queryClient.invalidateQueries({ queryKey: ['workstation', 'screener-history', scan.id] })
-    await loadResultHistory(scan.id, { selectLatest: activeRunStatus.value === 'Scan completed.' })
+    await loadResultHistory(scan.id, { selectLatest: activeRunStatus.value === 'Scan completed.', priority: 'high' })
   } catch (cause: any) { if (isCurrentRun()) error.value = cause?.message ?? 'Unable to run scan' }
   finally { if (isCurrentRun()) busy.value = false }
 }
@@ -376,7 +385,9 @@ async function followSubmittedScan(
     if (!isCurrent()) return
     const retained = await queryClient.fetchQuery<ScanResult[]>({
       queryKey: ['workstation', 'screener-results', savedScanId],
-      queryFn: async () => (await api.get<ScanResult[]>(`/screeners/${savedScanId}/results`, { limit: 20 })) ?? [],
+      queryFn: async ({ signal }) => (await api.get<ScanResult[]>(`/screeners/${savedScanId}/results`, { limit: 20 }, {
+        signal, priority: 'high', queueKey: `easy-scan:poll:${savedScanId}`,
+      })) ?? [],
       staleTime: 0,
     })
     if (!isCurrent()) return
@@ -452,6 +463,7 @@ function startSavedScreenerPreparation(saved: SavedScanDefinition, contextKey: s
     timeframe: saved.timeframe,
   }, {
     signal: controller.signal,
+    priority: 'high',
     contextKey,
     onProgress: progress => {
       if (!isCurrent()) return
@@ -461,14 +473,14 @@ function startSavedScreenerPreparation(saved: SavedScanDefinition, contextKey: s
       if (refreshAnalysis) {
         void preparationRefreshQueue.request(progress.response, async () => {
           if (!isCurrent() || resultContextKey.value !== contextKey) return
-          const refreshed = await api.post<ScanResult>(`/screeners/${saved.id}/run`, {})
+          const refreshed = await api.post<ScanResult>(`/screeners/${saved.id}/run`, {}, { priority: 'high' })
           if (!isCurrent() || resultContextKey.value !== contextKey) return
           const priorCompleted = result.value && scanResultIsCompleted(result.value) ? result.value : mostUsefulResult(resultHistory.value) ?? null
           await followSubmittedScan(saved.id, refreshed, isCurrent, priorCompleted)
           if (!isCurrent() || resultContextKey.value !== contextKey) return
           await queryClient.invalidateQueries({ queryKey: ['workstation', 'screener-history', saved.id] })
           if (isCurrent() && resultContextKey.value === contextKey) {
-            await loadResultHistory(saved.id, { selectLatest: activeRunStatus.value === 'Scan completed.' })
+            await loadResultHistory(saved.id, { selectLatest: activeRunStatus.value === 'Scan completed.', priority: 'high' })
           }
         })
       }
@@ -485,11 +497,13 @@ function startSavedScreenerPreparation(saved: SavedScanDefinition, contextKey: s
 function savedScreenerContextKey(saved: SavedScanDefinition): string {
   return savedScreenerPreparationContextKey(saved)
 }
-async function loadResultHistory(id: number, options: { selectLatest?: boolean } = {}) {
+async function loadResultHistory(id: number, options: { selectLatest?: boolean; priority?: ApiRequestPriority } = {}) {
   try {
     resultHistory.value = await queryClient.fetchQuery<ScanResult[]>({
       queryKey: ['workstation', 'screener-history', id],
-      queryFn: async () => (await api.get<ScanResult[]>(`/screeners/${id}/results`, { limit: 20 })) ?? [],
+      queryFn: async ({ signal }) => (await api.get<ScanResult[]>(`/screeners/${id}/results`, { limit: 20 }, {
+        signal, priority: options.priority ?? props.requestPriority, queueKey: `easy-scan:history:${id}`,
+      })) ?? [],
       staleTime: 5_000,
     })
     const preferred = mostUsefulResult(resultHistory.value)
@@ -511,13 +525,13 @@ async function cancelPythonRun() {
   if (!activeResearchRunId.value || cancelRequested.value) return
   cancelRequested.value = true
   activeRunStatus.value = 'Cancel requested…'
-  try { await api.post(`/research/runs/${activeResearchRunId.value}/cancel`, {}) }
+  try { await api.post(`/research/runs/${activeResearchRunId.value}/cancel`, {}, { priority: 'high' }) }
   catch (cause: any) { cancelRequested.value = false; error.value = cause?.message ?? 'Unable to cancel scan' }
 }
 async function createAlert() {
   if (!scanId.value || alertCreated.value) return
   busy.value = true; error.value = ''; status.value = 'Creating scan alert…'
-  try { await api.post('/alerts/screener', { screener_id: scanId.value, trigger_type: alertTrigger.value, repeat: true }); alertCreated.value = true }
+  try { await api.post('/alerts/screener', { screener_id: scanId.value, trigger_type: alertTrigger.value, repeat: true }, { priority: 'high' }); alertCreated.value = true }
   catch (cause: any) { error.value = cause?.message ?? 'Unable to create scan alert' }
   finally { busy.value = false }
 }
@@ -532,6 +546,17 @@ watch(selectedResultId, id => {
     return
   }
   result.value = selected
+})
+watch(() => [props.requestPriority, scanId.value] as const, ([priority, id]) => {
+  if (priority !== 'high') return
+  setQueuedApiRequestPriority('workstation:code-assets', 'high')
+  setQueuedApiRequestPriority('easy-scan:conditions', priority)
+  setQueuedApiRequestPriority('easy-scan:screener-list', priority)
+  if (id) {
+    setQueuedApiRequestPriority(`easy-scan:definition:${id}`, priority)
+    setQueuedApiRequestPriority(`easy-scan:history:${id}`, priority)
+    setQueuedApiRequestPriority(`easy-scan:poll:${id}`, priority)
+  }
 })
 onMounted(() => {
   mounted = true

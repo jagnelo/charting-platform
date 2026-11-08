@@ -524,7 +524,9 @@ describe('ChartPlotLibrary', () => {
     expect(wrapper.get('button[aria-label="Add selected Python plot"]').exists()).toBe(true)
     await wrapper.get('button[aria-label="Add selected Python plot"]').trigger('click')
     expect(wrapper.emitted('update:python-plots')?.at(-1)).toEqual([[{ code_version_id: 91, name: 'Breadth plot v2', color: '#ffb74d', timeframe: chart.timeframe, instance_key: expect.any(String) }]])
-    expect(apiMock.get).toHaveBeenCalledWith('/code/assets')
+    expect(apiMock.get).toHaveBeenCalledWith('/code/assets', undefined, expect.objectContaining({
+      queueKey: 'workstation:code-assets', signal: expect.any(AbortSignal),
+    }))
   })
 
   it('retains aggregate breadth universe lineage when adding a promoted plot', async () => {
@@ -985,7 +987,9 @@ describe('ChartPlotLibrary', () => {
     await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
     await wrapper.findAll('button').find(button => button.text() === 'Load Python plots')!.trigger('click')
     await Promise.resolve()
-    expect(apiMock.get).toHaveBeenCalledWith('/code/assets')
+    expect(apiMock.get).toHaveBeenCalledWith('/code/assets', undefined, expect.objectContaining({
+      queueKey: 'workstation:code-assets', signal: expect.any(AbortSignal),
+    }))
 
     wrapper.unmount()
     resolveAssets([{ kind: 'plot', name: 'Late plot', versions: [{ id: 91, version_number: 1 }] }])

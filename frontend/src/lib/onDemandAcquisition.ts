@@ -1,4 +1,4 @@
-import { api } from '@/lib/api'
+import { api, type ApiRequestOptions } from '@/lib/api'
 import type { ETFHoldingsCapability, ETFHoldingsSnapshot, ETFProfile, OHLCVBar, Timeframe } from '@/types'
 
 export interface AcquisitionSourceOutcome {
@@ -517,7 +517,12 @@ export function makeAcquisitionRequestId(): string {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
 }
 
-export function discoverInstruments(query: string, types: string[] = [], limit = 10): Promise<InstrumentDiscoveryResponse> {
+export function discoverInstruments(
+  query: string,
+  types: string[] = [],
+  limit = 10,
+  options: ApiRequestOptions = { priority: 'high' },
+): Promise<InstrumentDiscoveryResponse> {
   const normalizedQuery = query.trim()
   if (!normalizedQuery || normalizedQuery.length > 100 || types.length > 8) {
     throw new RangeError('Discovery requires a nonblank query up to 100 characters and at most 8 types.')
@@ -527,10 +532,13 @@ export function discoverInstruments(query: string, types: string[] = [], limit =
     types,
     limit: Math.min(Math.max(limit, 1), 10),
     request_id: makeAcquisitionRequestId(),
-  })
+  }, options)
 }
 
-export function resolveDiscoveredInstrument(candidate: InstrumentDiscoveryCandidate): Promise<InstrumentAcquireResponse> {
+export function resolveDiscoveredInstrument(
+  candidate: InstrumentDiscoveryCandidate,
+  options: ApiRequestOptions = { priority: 'high' },
+): Promise<InstrumentAcquireResponse> {
   return api.post('/instruments/acquire', {
     symbol: candidate.symbol,
     provider_candidate: {
@@ -539,7 +547,7 @@ export function resolveDiscoveredInstrument(candidate: InstrumentDiscoveryCandid
       exchange: candidate.exchange || null,
     },
     request_id: makeAcquisitionRequestId(),
-  })
+  }, options)
 }
 
 export function resolveExistingInstrument(symbol: string): Promise<InstrumentAcquireResponse> {
@@ -600,11 +608,12 @@ export function acquireETFHoldings(symbol: string, refresh: boolean, instrumentI
 }
 
 /** Read the producer's authoritative freshness/admission view for one ETF. */
-export async function readETFHoldingsCapability(symbol: string): Promise<ETFHoldingsCapability | null> {
+export async function readETFHoldingsCapability(symbol: string, options?: Pick<ApiRequestOptions, 'priority' | 'queueKey' | 'signal'>): Promise<ETFHoldingsCapability | null> {
   const normalized = symbol.trim().toUpperCase()
   if (!normalized) return null
   try {
-    return await api.get<ETFHoldingsCapability>(`/etf-holdings/${encodeURIComponent(normalized)}/capability`)
+    const path = `/etf-holdings/${encodeURIComponent(normalized)}/capability`
+    return await (options ? api.get<ETFHoldingsCapability>(path, undefined, options) : api.get<ETFHoldingsCapability>(path))
   } catch {
     // An unavailable capability read is unknown, not evidence that a saved
     // snapshot is current. The caller may make one ordinary admitted refresh.

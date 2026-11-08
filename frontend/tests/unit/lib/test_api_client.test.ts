@@ -4,7 +4,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
-import { setTokens, clearTokens, ApiError } from '@/lib/api'
+import { setTokens, clearTokens, ApiError, setQueuedApiRequestPriority } from '@/lib/api'
 import { currentAuthSessionEpoch, beginAuthSessionBoundary, AuthSessionChangedError } from '@/lib/authSession'
 import { useAuthStore } from '@/stores/auth'
 import { router } from '@/router'
@@ -108,6 +108,165 @@ describe('api.get', () => {
       await new Promise(resolve => setTimeout(resolve, 0))
     }
     await Promise.all([...ordinary, low, highFirst, highSecond])
+  })
+
+  it('keeps foreground reads admissible when high-priority preparation creation fills its bounded lane', async () => {
+    setTokens('tok', 'ref')
+    const deferredResponses: Array<{ resolve: (response: unknown) => void }> = []
+    ;(global.fetch as ReturnType<typeof vi.fn>).mockImplementation(() => new Promise(resolve => {
+      deferredResponses.push({ resolve })
+    }))
+    const { api } = await import('@/lib/api')
+    const response = () => ({ ok: true, status: 202, json: () => Promise.resolve({ request_id: 'req' }), text: () => Promise.resolve('') })
+    const preparations = Array.from({ length: 6 }, (_, index) => api.post('/data/ensure', { index }, { priority: 'high' }))
+
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(5))
+    for (const [, init] of (fetch as ReturnType<typeof vi.fn>).mock.calls) {
+      expect(init).toEqual(expect.objectContaining({ method: 'POST', priority: 'high' }))
+    }
+    const foreground = api.get('/workspaces/library/items', undefined, { priority: 'high' })
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(6))
+    expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[5]?.[0])).toContain('/workspaces/library/items')
+
+    deferredResponses[0]!.resolve(response())
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(7))
+    expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[6]?.[0])).toContain('/data/ensure')
+    expect((fetch as ReturnType<typeof vi.fn>).mock.calls[6]?.[1]).toEqual(expect.objectContaining({ priority: 'high' }))
+
+    for (let index = 1; index < 7; index += 1) {
+      deferredResponses[index]!.resolve(response())
+    }
+    await Promise.all([...preparations, foreground])
+  })
+
+  it('bounds high-priority analysis and market-data reads while admitting Notes, Results, and canonical identity lookups', async () => {
+    setTokens('tok', 'ref')
+    const deferredResponses: Array<{ resolve: (response: unknown) => void }> = []
+    ;(global.fetch as ReturnType<typeof vi.fn>).mockImplementation(() => new Promise(resolve => {
+      deferredResponses.push({ resolve })
+    }))
+    const { api } = await import('@/lib/api')
+    const response = () => ({ ok: true, status: 200, json: () => Promise.resolve({}), text: () => Promise.resolve('') })
+    const dataReads = [
+      api.get('/analysis/groups/sp500-sectors/snapshot', undefined, { priority: 'high' }),
+      api.get('/ohlcv/local/SPY/D1', { limit: 500 }, { priority: 'high' }),
+      api.get('/market-groups/us-benchmarks', undefined, { priority: 'high' }),
+      api.get('/baskets/17/ohlcv/D1', { limit: 500 }, { priority: 'high' }),
+      api.get('/analysis/benchmark-families/readiness', undefined, { priority: 'high' }),
+    ]
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(5))
+    const queuedAnalysis = api.get('/analysis/groups/us-benchmarks/snapshot', undefined, { priority: 'high' })
+    const results = api.get('/research/runs', undefined, { priority: 'high' })
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(6))
+    expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[5]?.[0])).toContain('/research/runs')
+    expect((fetch as ReturnType<typeof vi.fn>).mock.calls[5]?.[1]).toEqual(expect.objectContaining({ priority: 'high' }))
+
+    const notes = api.get('/notes/instruments/17', undefined, { priority: 'high' })
+    const identity = api.get('/instruments/TCNEW', { canonical_only: true }, { priority: 'high' })
+    deferredResponses[5]!.resolve(response())
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(7))
+    expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[6]?.[0])).toContain('/notes/instruments/17')
+    deferredResponses[6]!.resolve(response())
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(8))
+    expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[7]?.[0])).toContain('/instruments/TCNEW?canonical_only=true')
+    deferredResponses[7]!.resolve(response())
+
+    // Releasing a bounded data read opens capacity for the next queued data
+    // request after interactive reads have used the reserved slot.
+    deferredResponses[0]!.resolve(response())
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(9))
+    expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[8]?.[0])).toContain('/analysis/groups/us-benchmarks/snapshot')
+
+    for (let index = 1; index < 9; index += 1) {
+      await vi.waitFor(() => expect(deferredResponses.length).toBeGreaterThan(index))
+      deferredResponses[index]!.resolve(response())
+      await new Promise(resolve => setTimeout(resolve, 0))
+    }
+    await Promise.all([...dataReads, queuedAnalysis, results, notes, identity])
+  })
+
+  it('admits default user mutations through the reserved slot while preparations are active', async () => {
+    setTokens('tok', 'ref')
+    const deferredResponses: Array<{ resolve: (response: unknown) => void }> = []
+    ;(global.fetch as ReturnType<typeof vi.fn>).mockImplementation(() => new Promise(resolve => {
+      deferredResponses.push({ resolve })
+    }))
+    const { api } = await import('@/lib/api')
+    const response = () => ({ ok: true, status: 200, json: () => Promise.resolve({}), text: () => Promise.resolve('') })
+    const preparations = Array.from({ length: 6 }, (_, index) => api.post('/data/ensure', { index }, { priority: 'high' }))
+
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(5))
+    const setDefault = api.put('/presets/17', { is_default: true })
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(6))
+    expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[5]?.[0])).toContain('/presets/17')
+    expect((fetch as ReturnType<typeof vi.fn>).mock.calls[5]?.[1]).toEqual(expect.objectContaining({ method: 'PUT', priority: 'high' }))
+
+    deferredResponses[0]!.resolve(response())
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(7))
+    expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[6]?.[0])).toContain('/data/ensure')
+
+    for (let index = 1; index < 7; index += 1) deferredResponses[index]!.resolve(response())
+    await Promise.all([...preparations, setDefault])
+
+    const backgroundWrite = api.patch('/background-settings', { value: true }, { priority: 'low' })
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(8))
+    expect((fetch as ReturnType<typeof vi.fn>).mock.calls[7]?.[1]).toEqual(expect.objectContaining({ method: 'PATCH', priority: 'low' }))
+    deferredResponses[7]!.resolve(response())
+    await backgroundWrite
+  })
+
+  it('promotes one already queued local read when its docked list becomes visible', async () => {
+    setTokens('tok', 'ref')
+    const deferredResponses: Array<{ resolve: (response: unknown) => void }> = []
+    ;(global.fetch as ReturnType<typeof vi.fn>).mockImplementation(() => new Promise(resolve => {
+      deferredResponses.push({ resolve })
+    }))
+    const { api } = await import('@/lib/api')
+    const response = () => ({ ok: true, status: 200, json: () => Promise.resolve([]), text: () => Promise.resolve('') })
+    const ordinary = Array.from({ length: 5 }, (_, index) => api.get(`/analysis-${index}`))
+    const queueKey = 'watchlist-price:local:SPY'
+    const localRead = api.get('/ohlcv/local/SPY/D1', { limit: 31 }, { priority: 'low', queueKey })
+
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(5))
+    expect((fetch as ReturnType<typeof vi.fn>).mock.calls.some(([url]) => String(url).includes('/ohlcv/local/SPY/D1'))).toBe(false)
+    expect(setQueuedApiRequestPriority(queueKey, 'high')).toBe(true)
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(6))
+    expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[5]?.[0])).toContain('/ohlcv/local/SPY/D1')
+
+    for (let index = 0; index < 6; index += 1) {
+      await vi.waitFor(() => expect(deferredResponses.length).toBeGreaterThan(index))
+      deferredResponses[index]!.resolve(response())
+      await new Promise(resolve => setTimeout(resolve, 0))
+    }
+    await Promise.all([...ordinary, localRead])
+    expect(fetch).toHaveBeenCalledTimes(6)
+  })
+
+  it('keeps a visible queued read high when a hidden consumer joins at low priority', async () => {
+    setTokens('tok', 'ref')
+    const deferredResponses: Array<{ resolve: (response: unknown) => void }> = []
+    ;(global.fetch as ReturnType<typeof vi.fn>).mockImplementation(() => new Promise(resolve => {
+      deferredResponses.push({ resolve })
+    }))
+    const { api } = await import('@/lib/api')
+    const response = () => ({ ok: true, status: 200, json: () => Promise.resolve([]), text: () => Promise.resolve('') })
+    const active = Array.from({ length: 6 }, (_, index) => api.get(`/active-${index}`, undefined, { priority: 'high' }))
+    const queueKey = 'watchlist-price:local:SPY'
+    const visibleRead = api.get('/ohlcv/local/SPY/D1', { limit: 31 }, { priority: 'high', queueKey })
+    const background = api.get('/hidden-analysis', undefined, { priority: 'low' })
+
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(6))
+    expect(setQueuedApiRequestPriority(queueKey, 'low')).toBe(false)
+    deferredResponses[0]!.resolve(response())
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(7))
+    expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[6]?.[0])).toContain('/ohlcv/local/SPY/D1')
+
+    for (let index = 1; index < 8; index += 1) {
+      await vi.waitFor(() => expect(deferredResponses.length).toBeGreaterThan(index))
+      deferredResponses[index]!.resolve(response())
+      await new Promise(resolve => setTimeout(resolve, 0))
+    }
+    await Promise.all([...active, visibleRead, background])
   })
 
   it('holds transport admission until the response body has been consumed', async () => {
