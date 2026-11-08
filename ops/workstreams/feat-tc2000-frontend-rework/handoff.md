@@ -26704,3 +26704,10 @@ The same successor carries the actual 921 fixes: J12 activates the visible Notes
 Imported Strategy’s exact25-path private view `a24d4c0f08b6eaffe364ef4d670c6889463000ad`; all25 source SHA/blob/mode entries were verified unchanged. The prior full Strategy manifest remains in history. Root’s exact shared-diagnostics transfer allows TC changes only in `frontend/tests/e2e/helpers.ts` and `frontend/tests/unit/e2e/test_browser_diagnostics.test.ts`; the active pin now covers the25 unchanged Strategy-owned paths, with the two named TC seams recorded as exact exceptions.
 
 Focused unit checks passed 141/141 across instrument resolution, WatchList state, browser diagnostic attribution, and the full Workstation bindings module. `vue-tsc --noEmit` passed. The selected E2E reference preflight reported no actionable unbound names; journey mapping passed for 28 routes/aliases, 21 Add-tool definitions, eight factory layouts/38 instances, and all currently mapped actions. Root browser/native/build qualification is pending; no browser or live source was run in this worktree.
+
+
+## 2026-11-08 — Bind the real seeded chart response in the cold-selection journey
+
+Root’s exact-source review found that the real-API journey observer accepted the first D1 OHLCV response by path alone. That could bind a WatchList `limit=31` quote or the chart’s initial empty `limit=500` read, then incorrectly fail even after preparation produced usable history. The observer now requires the primary `limit=500` D1 request, the current adjusted scope, HTTP 200, and a nonempty set of finite OHLC values; empty initial pages are ignored. The captured successful payload is the one asserted by the journey. This changes only the TC-owned E2E observer and does not prewarm, retry, or alter product data.
+
+Frontend type-check, E2E reference-only preflight, Playwright discovery for the seven on-demand cases, and staged diff checks passed. The browser journey itself remains pending Root; no browser or runtime was started here.
