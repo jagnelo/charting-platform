@@ -502,6 +502,7 @@ describe('WorkstationToolContent missing chart history entrypoint', () => {
     workspaceStore.linkedSymbol = 'SPY'
     workspaceStore.linkedTimeframe = 'D1'
     const tool = mountedChartTool('workstation-explicit-weekly-history')
+    tool.configuration = { timeframe_link_group: 'red' }
     workspaceStore.workspace = {
       id: 1, user_id: 1, name: 'Test', is_default: true, position: 0, revision: 1, schema_version: 1, settings: { linked_timeframe: 'D1' },
       tabs: [{ id: 1, stable_key: 'main', name: 'Main', position: 0, layout_config: {}, active_window_key: tool.instance_key, windows: [tool] }],
