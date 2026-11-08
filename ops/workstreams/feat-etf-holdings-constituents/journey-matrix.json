@@ -646,7 +646,12 @@
             "case": "controlled snapshot basket materializes through the normal API and displays read-only source lineage",
             "mode": "authenticated actual API with exact not-found mutation denials and unchanged readback",
             "body_run": true,
-            "status": "R20 reached the read-only mutation check after source-lineage/readback assertions; actual PATCH returned404, while the predecessor expected403. Current test source1fe692f asserts exact404 body and unchanged readback; corrected body replay remains pending."
+            "status": "R20 reached the read-only mutation check after source-lineage/readback assertions; actual PATCH returned404, while the predecessor expected403. Current test source1fe692f asserts exact404 body and unchanged readback; corrected body replay remains pending.",
+            "current_source_basket_chart_assertion": {
+              "source_sha256": "61a380015d6ee85410942ace6b1ce7939dfc549f291609500285bb30983fa511",
+              "coverage": "After verifying source lineage and read-only controls, the ordinary Open chart click must navigate to /chart/BASKET%3A{id} and show the current primary chart tool.",
+              "evidence": "Playwright discovery passed; actual browser body remains pending Root's combined fixture."
+            }
           }
         },
         {

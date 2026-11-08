@@ -18937,3 +18937,14 @@ diagnostics. `git diff --check` passed. No browser, full suite, provider/native
 HTTP, database, quota, or production operation ran. TC's shared caller remains
 the owner of passing foreground priority into the component; that caller was
 not changed here. Root retains the combined browser and final release gates.
+
+### Read-only source basket chart entry — 2026-11-08
+
+The owned source-basket E2E already verifies dated lineage and rejects edit or
+delete attempts, but stopped before its ordinary chart action. It now clicks
+`Open chart`, requires the canonical `/chart/BASKET%3A{id}` route, and verifies
+the primary dashboard chart is visible. This complements the existing manual
+basket CRUD/chart browser journey and the source-member retention unit case;
+it does not claim the shared TC loader's member preparation passed in a browser.
+Playwright discovery listed all three basket cases and `git diff --check`
+passed. The browser body remains pending Root's combined fixture.
