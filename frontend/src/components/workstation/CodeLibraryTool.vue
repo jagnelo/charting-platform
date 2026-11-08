@@ -157,7 +157,7 @@ async function refresh() {
   loading.value = true
   error.value = ''
   try {
-    const nextAssets = await queryClient.fetchQuery<CodeAsset[]>({ queryKey: ['workstation', 'code-assets'], queryFn: async () => (await api.get<CodeAsset[]>('/code/assets')) ?? [], staleTime: 30_000 })
+    const nextAssets = await queryClient.fetchQuery<CodeAsset[]>({ queryKey: ['workstation', 'code-assets'], queryFn: async () => (await api.get<CodeAsset[]>('/code/assets', undefined, { priority: 'high' })) ?? [], staleTime: 30_000 })
     if (mounted && generation === refreshGeneration) assets.value = nextAssets
   }
   catch (cause: any) {
@@ -194,7 +194,7 @@ function formatDiagnostics(diagnostics: unknown[]) {
 }
 async function validateSource(source: string): Promise<ValidationResult | null> {
   try {
-    return await api.post<ValidationResult>('/code/validate', { source })
+    return await api.post<ValidationResult>('/code/validate', { source }, { priority: 'high' })
   } catch (cause: any) {
     error.value = cause?.message ?? 'Unable to validate Python source'
     return null

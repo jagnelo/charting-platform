@@ -1835,6 +1835,12 @@ shared_path_exceptions:
   reason: "TC-owned focused regression for the exact shared diagnostic seam; the armed auth-session cancellation is count-bounded and leaves unrelated or excess errors fatal."
 - path: frontend/src/lib/instruments.ts
   reason: "TC shared frontend identity resolver exposes canonical instrument_type from its existing canonical metadata read so Workstation can correct a coarse picker hint without a duplicate acquire request."
+- path: frontend/src/stores/drawings.ts
+  reason: "TC workstation visible-intent repair promotes the existing drawing read for the foreground chart and deduplicates it by instrument/timeframe; no drawing data or persistence contract changes."
+- path: frontend/src/stores/presets.ts
+  reason: "TC workstation visible-intent repair prioritizes the existing layout/template reads used by explicit foreground lifecycle actions; no preset ownership or persistence contract changes."
+- path: frontend/src/stores/screener_alerts.ts
+  reason: "TC workstation visible-intent repair prioritizes the existing screener-alert reads for visible alert panels; no alert creation or server policy changes."
 dependencies:
 - Prior accepted green staging 173745205692acd3fca650eeeafcd6de38f29fed imports the accepted Provider/ETF on-demand contracts
   from producer source95a93f0b932f58018d4f0d40f17f8fdb9eecdb20. Provider owns candidate discovery, canonical identity, bounded
@@ -5513,9 +5519,9 @@ approved_development_dependency_imports:
   - backend/tests/unit/tasks/test_data_tasks.py
   - backend/tests/unit/tasks/test_native_usage_prerequisite.py
   - backend/tests/unit/workers/test_arq_worker.py
-- source_sha: 55c0e52d4afdf7703fe23fab2fda9e81b2c40bf8
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/55c0e52d4afdf7703fe23fab2fda9e81b2c40bf8.json
-  manifest_sha256: e8624734b3d6d0088cdb06432647d5aaca625f81246c9562fddc2e25ae9e4e54
+- source_sha: 44bb7a538241ca6d5388c5a200a3cf9811ec19ec
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/44bb7a538241ca6d5388c5a200a3cf9811ec19ec.json
+  manifest_sha256: a12c67e348fdd38e68c120cf74f933ac31e70a7cab9ab58acf70db7a207fe300
   paths:
   - frontend/src/components/workstation/InstrumentNoteTool.vue
   - frontend/src/views/BasketsView.vue
@@ -5527,9 +5533,9 @@ approved_development_dependency_imports:
   - frontend/tests/unit/components/test_instrument_note_tool.test.ts
   - frontend/tests/unit/views/test_baskets_view.test.ts
   - frontend/tests/unit/views/test_etf_holdings_view.test.ts
-- source_sha: 68c5f5ef9fe2f0903476b1cb813d57695f2481ec
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/68c5f5ef9fe2f0903476b1cb813d57695f2481ec.json
-  manifest_sha256: af08a1749f07c6d3d34eed01992991c5de91286921b137aaa73289c0b7ab55d8
+- source_sha: f1c4c0aa6dae80e4415880d45b633ba3b9ccef98
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/f1c4c0aa6dae80e4415880d45b633ba3b9ccef98.json
+  manifest_sha256: c7d01e5199d8accd90412418ca0701953c6779899ea6ce82af22b44f3d101a53
   paths:
   - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
   - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue

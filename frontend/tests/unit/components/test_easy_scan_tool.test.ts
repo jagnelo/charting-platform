@@ -149,8 +149,8 @@ describe('EasyScanTool', () => {
       name: 'Qualifies scan',
       universe_type: 'all',
       timeframe: 'D1',
-    })
-    expect(apiPost).toHaveBeenCalledWith('/screeners/7/run', {})
+    }, expect.objectContaining({ priority: 'high' }))
+    expect(apiPost).toHaveBeenCalledWith('/screeners/7/run', {}, expect.objectContaining({ priority: 'high' }))
     expect(setQueryData).toHaveBeenCalledWith(['workstation', 'screeners'], expect.any(Function))
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['workstation', 'screeners'] })
     expect(wrapper.text()).toContain('1 matches')
@@ -159,7 +159,7 @@ describe('EasyScanTool', () => {
     expect(alertButton).toBeDefined()
     await alertButton!.trigger('click')
     await flushPromises()
-    expect(apiPost).toHaveBeenCalledWith('/alerts/screener', { screener_id: 7, trigger_type: 'entered', repeat: true })
+    expect(apiPost).toHaveBeenCalledWith('/alerts/screener', { screener_id: 7, trigger_type: 'entered', repeat: true }, expect.objectContaining({ priority: 'high' }))
     expect(wrapper.text()).toContain('Alert active')
     invalidateQueries.mockRestore()
     setQueryData.mockRestore()
@@ -198,7 +198,7 @@ describe('EasyScanTool', () => {
     expect(apiPost).toHaveBeenCalledWith('/data/ensure', {
       target: { kind: 'screener', screener_id: 31 }, datasets: ['history'], timeframe: 'D1',
     }, expect.any(Object))
-    expect(apiPost).toHaveBeenCalledWith('/screeners/31/run', {})
+    expect(apiPost).toHaveBeenCalledWith('/screeners/31/run', {}, expect.objectContaining({ priority: 'high' }))
 
     ensureResolvers.forEach(resolve => resolve(screenerPreparationResponse(31)))
     await vi.waitFor(() => expect(wrapper.text()).toContain('Requested data is ready. Scan coverage will report any missing local data.'))
@@ -261,7 +261,7 @@ describe('EasyScanTool', () => {
 
     wrapper.unmount()
     await vi.waitFor(() => expect(requestSignal?.aborted).toBe(true), { timeout: 1_000 })
-    expect(apiPost).toHaveBeenCalledWith('/screeners/41/run', {})
+    expect(apiPost).toHaveBeenCalledWith('/screeners/41/run', {}, expect.objectContaining({ priority: 'high' }))
   })
 
   it('prepares the saved watchlist scan definition without client-side member fan-out', async () => {
@@ -291,7 +291,7 @@ describe('EasyScanTool', () => {
     expect(apiPost).toHaveBeenCalledWith('/data/ensure', {
       target: { kind: 'screener', screener_id: 32 }, datasets: ['history'], timeframe: 'D1',
     }, expect.any(Object))
-    expect(apiPost).toHaveBeenCalledWith('/screeners/32/run', {})
+    expect(apiPost).toHaveBeenCalledWith('/screeners/32/run', {}, expect.objectContaining({ priority: 'high' }))
     expect(wrapper.text()).toContain('Some requested data is unavailable')
     expect(wrapper.text()).toContain('1/2 evaluated')
     wrapper.unmount()
@@ -349,7 +349,7 @@ describe('EasyScanTool', () => {
     const cancel = wrapper.findAll('button').find(button => button.text() === 'Cancel')
     expect(cancel).toBeDefined()
     await cancel!.trigger('click')
-    expect(apiPost).toHaveBeenCalledWith('/research/runs/99/cancel', {})
+    expect(apiPost).toHaveBeenCalledWith('/research/runs/99/cancel', {}, expect.objectContaining({ priority: 'high' }))
   })
 
   it('keeps a queued Python research run alive when the EasyScan tool is unmounted', async () => {
@@ -375,7 +375,7 @@ describe('EasyScanTool', () => {
     await wrapper.findAll('button').find(button => button.text() === 'Run')!.trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Cancel'))
     wrapper.unmount()
-    expect(apiPost).not.toHaveBeenCalledWith('/research/runs/100/cancel', {})
+    expect(apiPost.mock.calls.some(([path]) => path === '/research/runs/100/cancel')).toBe(false)
   })
 
   it('does not cancel a Python run when the tool unmounts after completed results are visible', async () => {
@@ -404,7 +404,7 @@ describe('EasyScanTool', () => {
     expect(wrapper.text()).toContain('1 matches')
 
     wrapper.unmount()
-    expect(apiPost).not.toHaveBeenCalledWith('/research/runs/74/cancel', {})
+    expect(apiPost.mock.calls.some(([path]) => path === '/research/runs/74/cancel')).toBe(false)
   })
 
   it('saves an advanced technical condition tree through the shared condition contract', async () => {
@@ -422,7 +422,7 @@ describe('EasyScanTool', () => {
     expect(apiPut).toHaveBeenCalledWith('/workspaces/library/conditions/rsi-tree', expect.objectContaining({
       name: 'RSI tree',
       condition: expect.objectContaining({ operator: 'OR', conditions: [expect.objectContaining({ type: 'indicator_threshold' })] }),
-    }))
+    }), expect.objectContaining({ priority: 'high' }))
   })
 
   it('uses the immutable Python version returned by a visual save for the first scan run', async () => {
@@ -456,7 +456,7 @@ describe('EasyScanTool', () => {
     await flushPromises()
     expect(apiPost).toHaveBeenCalledWith('/screeners/from-python-condition/77', {
       name: 'Visual close Scan', universe_type: 'all', timeframe: 'D1',
-    })
+    }, expect.objectContaining({ priority: 'high' }))
   })
 
   it('follows a queued visual-condition run and keeps the last completed result until completion', async () => {
@@ -509,7 +509,7 @@ describe('EasyScanTool', () => {
     resolveQueuedPoll([{ matched_ids: [11], result_data: { _status: 'completed', _python_research_run_id: 72, _coverage: { evaluated_count: 1, universe_count: 1, excluded: {} } }, error: null }])
     await vi.waitFor(() => expect(wrapper.text()).toContain('Scan completed.'))
     expect(wrapper.text()).toContain('1 matches')
-    expect(apiPost).toHaveBeenCalledWith('/screeners/6/run', {})
+    expect(apiPost).toHaveBeenCalledWith('/screeners/6/run', {}, expect.objectContaining({ priority: 'high' }))
     wrapper.unmount()
   })
 
@@ -600,12 +600,14 @@ describe('EasyScanTool', () => {
     await wrapper.get('select[aria-label="Saved condition"]').setValue('visual-pending')
     await wrapper.get('input[aria-label="Scan name"]').setValue('Visual pending scan')
     await wrapper.findAll('button').find(button => button.text() === 'Run')!.trigger('click')
-    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/screeners/7/results', { limit: 20 }))
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/screeners/7/results', { limit: 20 }, expect.objectContaining({
+      priority: 'high', queueKey: 'easy-scan:poll:7', signal: expect.any(AbortSignal),
+    })))
 
     wrapper.unmount()
     resolvePoll([{ matched_ids: [99], result_data: { _status: 'completed', _python_research_run_id: 73 }, error: null }])
     await flushPromises()
-    expect(apiPost).not.toHaveBeenCalledWith('/research/runs/73/cancel', {})
+    expect(apiPost.mock.calls.some(([path]) => path === '/research/runs/73/cancel')).toBe(false)
     expect(apiPost.mock.calls.filter(([path]) => path === '/screeners/7/run')).toHaveLength(1)
   })
 
@@ -692,7 +694,7 @@ describe('EasyScanTool', () => {
 
     expect(apiPost).toHaveBeenCalledWith('/screeners/from-condition/close-test', {
       name: 'Basket scan', universe_type: 'basket', universe_basket_id: 44, timeframe: 'W1', schedule: '0 16 * * 1-5',
-    })
+    }, expect.objectContaining({ priority: 'high' }))
   })
 
   it('reconciles a duplicate scan through the shared screeners query', async () => {
@@ -718,7 +720,7 @@ describe('EasyScanTool', () => {
     // One fresh lookup reconciles the 409 and the second is the intentional
     // post-create refresh shared with Market Gauge roots.
     expect(apiGet.mock.calls.filter(([path]) => path === '/screeners')).toHaveLength(2)
-    expect(apiPost).toHaveBeenCalledWith('/screeners/12/run', {})
+    expect(apiPost).toHaveBeenCalledWith('/screeners/12/run', {}, expect.objectContaining({ priority: 'high' }))
     expect(wrapper.text()).toContain('0 matches')
   })
 
@@ -770,7 +772,9 @@ describe('EasyScanTool', () => {
       : Promise.resolve([]))
     const wrapper = mount(EasyScanTool)
     await Promise.resolve()
-    expect(apiGet).toHaveBeenCalledWith('/workspaces/library/conditions')
+    expect(apiGet).toHaveBeenCalledWith('/workspaces/library/conditions', undefined, expect.objectContaining({
+      priority: 'auto', queueKey: 'easy-scan:conditions', signal: expect.any(AbortSignal),
+    }))
 
     wrapper.unmount()
     resolveConditions([{ stable_key: 'late', name: 'Late condition', version: 1 }])

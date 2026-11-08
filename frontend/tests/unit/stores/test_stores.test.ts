@@ -350,10 +350,12 @@ describe('useChartStore', () => {
 
     const store = useChartStore()
     const chartRead = store.loadBars('BASKET:9', 'D1', 'candles', true)
-    await vi.waitFor(() => expect(api.get).toHaveBeenCalledWith('/baskets/9'))
+    await vi.waitFor(() => expect(api.get).toHaveBeenCalledWith('/baskets/9', undefined, expect.objectContaining({
+      priority: 'high', signal: expect.any(AbortSignal),
+    })))
     await vi.waitFor(() => expect(api.post.mock.calls.filter(([path]) => path === '/data/ensure')).toHaveLength(2))
     expect(store.loading).toBe(true)
-    expect(api.get).toHaveBeenCalledWith('/baskets/9/ohlcv/D1', expect.any(Object))
+    expect(api.get).toHaveBeenCalledWith('/baskets/9/ohlcv/D1', expect.any(Object), expect.objectContaining({ priority: 'high' }))
 
     resolveBars([{ ts: '2026-11-06T00:00:00Z', open: 100, high: 102, low: 99, close: 101, volume: 1000 }])
     await chartRead
@@ -674,7 +676,7 @@ describe('useChartStore', () => {
     await loading
 
     expect(store.bars).toHaveLength(1)
-    expect(api.get).toHaveBeenCalledWith('/instrument-indicators/42')
+    expect(api.get).toHaveBeenCalledWith('/instrument-indicators/42', undefined, { priority: 'high' })
   })
 
   it('keeps a valid cached chart visible when instrument metadata fails', async () => {

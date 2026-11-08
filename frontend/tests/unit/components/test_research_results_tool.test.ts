@@ -81,6 +81,11 @@ describe('ResearchResultsTool', () => {
 
       onIntersection?.(true, observedTarget!)
       await vi.waitFor(() => expect(apiGet).toHaveBeenCalledOnce())
+      expect(apiGet).toHaveBeenCalledWith(
+        '/research/runs',
+        { limit: 26, include_artifacts: false },
+        expect.objectContaining({ priority: 'high' }),
+      )
       await flushPromises()
       expect(wrapper.text()).toContain('No persisted studies yet. Run a study in the adjacent Study Lab pane.')
     } finally {
@@ -149,7 +154,7 @@ describe('ResearchResultsTool', () => {
     expect(apiGet).toHaveBeenCalledWith(
       '/research/runs',
       { limit: 26, include_artifacts: false },
-      { signal: expect.any(AbortSignal) },
+      { signal: expect.any(AbortSignal), priority: 'high' },
     )
     expect(wrapper.text()).toContain('Run #9')
     expect(wrapper.text()).toContain('current_streak')
@@ -277,7 +282,7 @@ describe('ResearchResultsTool', () => {
       include_artifacts: false,
       before_created_at: firstPage[24].created_at,
       before_id: firstPage[24].id,
-    })
+    }, expect.objectContaining({ priority: 'high' }))
     expect(wrapper.findAll('[role="listitem"]')).toHaveLength(50)
     expect(wrapper.get('[role="listitem"].research-results-tool__run[aria-current="true"]').text()).toContain('Run #77')
     expect((wrapper.get('input[aria-label="Compare run 100"]').element as HTMLInputElement).checked).toBe(true)
@@ -415,15 +420,15 @@ describe('ResearchResultsTool', () => {
     const wrapper = mountTool()
     await flushPromises()
 
-    expect(apiGet).toHaveBeenCalledWith('/research/runs/10')
-    expect(apiGet).not.toHaveBeenCalledWith('/research/runs/11')
+    expect(apiGet).toHaveBeenCalledWith('/research/runs/10', undefined, expect.objectContaining({ priority: 'high' }))
+    expect(apiGet.mock.calls.some(([path]) => path === '/research/runs/11')).toBe(false)
     await wrapper.get('input[aria-label="Compare run 10"]').setValue(true)
     await wrapper.get('input[aria-label="Compare run 11"]').setValue(true)
     await wrapper.findAll('button').find(button => button.text() === 'Compare')!.trigger('click')
     await flushPromises()
 
-    expect(apiGet).toHaveBeenCalledWith('/research/runs/10')
-    expect(apiGet).toHaveBeenCalledWith('/research/runs/11')
+    expect(apiGet).toHaveBeenCalledWith('/research/runs/10', undefined, expect.objectContaining({ priority: 'high' }))
+    expect(apiGet).toHaveBeenCalledWith('/research/runs/11', undefined, expect.objectContaining({ priority: 'high' }))
     const comparison = wrapper.get('[aria-label="Study output comparison"]')
     expect(comparison.text()).toContain('sample_size')
     expect(comparison.text()).toContain('Value: 4')
@@ -596,7 +601,7 @@ describe('ResearchResultsTool', () => {
     expect(cancel).toBeDefined()
     await cancel!.trigger('click')
     await flushPromises()
-    expect(apiPost).toHaveBeenCalledWith('/research/runs/12/cancel', {})
+    expect(apiPost).toHaveBeenCalledWith('/research/runs/12/cancel', {}, expect.objectContaining({ priority: 'high' }))
     expect(wrapper.text()).toContain('canceled')
   })
 
@@ -614,8 +619,8 @@ describe('ResearchResultsTool', () => {
     await wrapper.get('[aria-label="Research run 27 details"]').get('button').trigger('click')
     await vi.waitFor(() => expect(wrapper.get('[aria-label="Run 27, completed, 0 artifacts"]').exists()).toBe(true))
 
-    expect(apiPost).toHaveBeenCalledWith('/research/runs/27/cancel', {})
-    expect(apiGet).toHaveBeenCalledWith('/research/runs/27')
+    expect(apiPost).toHaveBeenCalledWith('/research/runs/27/cancel', {}, expect.objectContaining({ priority: 'high' }))
+    expect(apiGet).toHaveBeenCalledWith('/research/runs/27', undefined, expect.objectContaining({ priority: 'high' }))
     expect(wrapper.text()).not.toContain('canceled')
     expect(wrapper.find('[role="alert"]').exists()).toBe(false)
     expect(queryClient.getQueryData(['workstation', 'research-run', 27])).toMatchObject({ id: 27, status: 'completed' })
@@ -636,7 +641,7 @@ describe('ResearchResultsTool', () => {
     await wrapper.get('[aria-label="Research run 28 details"]').get('button').trigger('click')
     await vi.waitFor(() => expect(wrapper.get('[role="alert"]').text()).toContain('cancel_not_admitted'))
 
-    expect(apiGet).not.toHaveBeenCalledWith('/research/runs/28')
+    expect(apiGet.mock.calls.some(([path]) => path === '/research/runs/28')).toBe(false)
     expect(wrapper.get('[aria-label="Research run 28 details"]').find('button').text()).toBe('Cancel')
     wrapper.unmount()
   })
@@ -815,7 +820,7 @@ describe('ResearchResultsTool', () => {
     await flushPromises()
 
     await wrapper.findAll('button').find(button => button.text() === 'Cancel')!.trigger('click')
-    expect(apiPost).toHaveBeenCalledWith('/research/runs/26/cancel', {})
+    expect(apiPost).toHaveBeenCalledWith('/research/runs/26/cancel', {}, expect.objectContaining({ priority: 'high' }))
     wrapper.unmount()
     cancel.resolve({ ...run, status: 'canceled' })
     await flushPromises()

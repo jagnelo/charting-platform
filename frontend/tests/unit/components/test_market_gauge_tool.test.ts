@@ -66,11 +66,15 @@ describe('MarketGaugeTool', () => {
 
     const wrapper = mountTool()
     await flushPromises()
-    expect(apiGet).toHaveBeenCalledWith('/screeners')
+    expect(apiGet).toHaveBeenCalledWith('/screeners', undefined, expect.objectContaining({
+      priority: 'auto', queueKey: 'market-gauge:screeners', signal: expect.any(AbortSignal),
+    }))
 
     await wrapper.find('select').setValue('7')
     await flushPromises()
-    expect(apiGet).toHaveBeenCalledWith('/analysis/gauges/7')
+    expect(apiGet).toHaveBeenCalledWith('/analysis/gauges/7', undefined, expect.objectContaining({
+      priority: 'auto', queueKey: 'market-gauge:metrics:7', signal: expect.any(AbortSignal),
+    }))
     expect(apiPost).toHaveBeenCalledWith('/data/ensure', {
       target: { kind: 'screener', screener_id: 7 }, datasets: ['history'], timeframe: 'D1',
     }, expect.any(Object))
@@ -85,7 +89,9 @@ describe('MarketGaugeTool', () => {
     await wrapper.find('button').trigger('click')
     await flushPromises()
     expect(apiGet.mock.calls.length).toBeGreaterThan(callsBeforeRefresh)
-    expect(apiGet).toHaveBeenCalledWith('/analysis/gauges/7')
+    expect(apiGet).toHaveBeenCalledWith('/analysis/gauges/7', undefined, expect.objectContaining({
+      priority: 'auto', queueKey: 'market-gauge:metrics:7', signal: expect.any(AbortSignal),
+    }))
   })
 
   it('exposes empty and failed gauge states as status and alert regions', async () => {

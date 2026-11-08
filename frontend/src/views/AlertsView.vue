@@ -321,9 +321,9 @@ function indAlertExpr(a: IndicatorAlert): string {
 
 onMounted(async () => {
   await Promise.all([
-    alertsStore.loadAlerts(),
-    screenerAlertsStore.loadAlerts(),
-    alertsStore.loadHistory(),
+    alertsStore.loadAlerts(undefined, 'high'),
+    screenerAlertsStore.loadAlerts('high'),
+    alertsStore.loadHistory({ priority: 'high' }),
   ])
 })
 </script>

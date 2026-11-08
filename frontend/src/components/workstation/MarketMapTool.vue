@@ -307,7 +307,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
-import { api } from '@/lib/api'
+import { api, type ApiRequestPriority } from '@/lib/api'
 import { formatSourceFailureClass as formatFailureClass, initialMarketMapSource, sourceAvailability, sourceAvailabilitySuffix, sourceIsNotCurrent } from '@/lib/workstation/sourceCapability'
 import { useWatchlistStore } from '@/stores/watchlist'
 import { useUserSettingsStore } from '@/stores/userSettings'
@@ -323,7 +323,10 @@ import type { MarketMap, MarketMapAreaMetric, MarketMapCell, MarketMapColorMetri
 type MarketMapSort = 'area_desc' | 'color_desc' | 'symbol_asc'
 type MarketMapSource = WatchlistSource & { pinned: boolean }
 
-const props = withDefaults(defineProps<{ configuration?: Record<string, unknown> }>(), { configuration: () => ({}) })
+const props = withDefaults(defineProps<{ configuration?: Record<string, unknown>; requestPriority?: ApiRequestPriority }>(), {
+  configuration: () => ({}),
+  requestPriority: 'auto',
+})
 const emit = defineEmits<{
   configuration: [value: Record<string, unknown>]
   select: [symbol: string, instrumentId: number]
@@ -996,7 +999,7 @@ async function bootstrapEtfSource() {
     // This is an explicit, user-triggered bootstrap. It does not turn ordinary
     // source reads into provider fan-out; the canonical source catalog remains
     // the only map input after this action completes.
-    await watchlistStore.loadWatchlistSources()
+    await watchlistStore.loadWatchlistSources('high')
     if (!componentMounted || generation !== sourceActionGeneration) return
     const source = watchlistStore.watchlistSources.find(item => item.source_id === `etf-holdings:${symbol}`)
     if (!source) throw new Error(`${symbol} was registered but is not available as a canonical ETF source.`)
@@ -1595,7 +1598,7 @@ async function saveLockedSource(memberIds: number[], name: string) {
       parent_membership_version: map.value?.membership_version ?? map.value?.source.membership_version ?? activeSource.value?.membership_version ?? null,
     })
     if (!componentMounted || generation !== sourcePublicationGeneration || sourceId.value !== requestSourceId) return
-    await watchlistStore.loadWatchlistSources()
+    await watchlistStore.loadWatchlistSources('high')
     if (!componentMounted || generation !== sourcePublicationGeneration || sourceId.value !== requestSourceId) return
     skipNextSourceRun.value = true
     sourcePublicationTargetId = saved.source_id
@@ -1937,7 +1940,7 @@ function prepareMarketMapData(
       const targets = await marketMapPreparationTargets(requestSourceId, generation)
       if (!isCurrent()) return
       if (activeSource.value && !isSourceSelectable(activeSource.value) && canRefreshCanonicalSource(activeSource.value)) {
-        void watchlistStore.loadWatchlistSources()
+        void watchlistStore.loadWatchlistSources('high')
       }
       const datasets: NonNullable<DataEnsureRequest['datasets']> = ['history']
       const requiredProfileFields: NonNullable<DataEnsureRequest['required_profile_fields']> = []
@@ -1977,7 +1980,7 @@ function prepareMarketMapData(
       if (request.reference_source_id) {
         startTargets(await marketMapPreparationTargets(request.reference_source_id, generation))
       } else if (request.reference_symbol) {
-        const [resolvedReference] = await resolveCanonicalSymbols([request.reference_symbol], 'Market Map comparison reference')
+        const [resolvedReference] = await resolveCanonicalSymbols([request.reference_symbol], 'Market Map comparison reference', { priority: 'high' })
         if (!isCurrent()) return
         if (resolvedReference?.id != null) startTargets([{ kind: 'instrument', instrument_id: resolvedReference.id }])
         else preparationStatus.value = 'The Market Map comparison reference could not be resolved; preparing the selected universe only.'
@@ -2023,7 +2026,7 @@ async function run() {
     if (explicitSymbols.value.trim()) {
       const symbols = [...new Set(explicitSymbols.value.split(/[\s,]+/).map(item => item.trim().toUpperCase()).filter(Boolean))]
       if (symbols.length > 500) throw new Error('Explicit Market Map selections are limited to 500 symbols; save a larger universe as a watchlist.')
-      const resolved = await resolveCanonicalSymbols(symbols, 'Explicit symbol')
+      const resolved = await resolveCanonicalSymbols(symbols, 'Explicit symbol', { priority: 'high' })
       const ids = resolved.map(item => item.id)
       if (ids.some(id => id == null)) throw new Error('Every explicit symbol must resolve to a canonical instrument.')
       requestSourceId = `explicit:${ids.join(',')}`
@@ -2131,14 +2134,15 @@ watch(snapshotSelectionId, () => { void loadSnapshot() })
 onMounted(async () => {
   componentMounted = true
   window.addEventListener('resize', scheduleCanvasDraw)
-  await userSettingsStore.loadSettings()
+  const requestPriority = props.requestPriority
+  await userSettingsStore.loadSettings(requestPriority)
   if (!componentMounted) return
   const needsDefaultUniverse = !sourceId.value && !explicitSymbols.value.trim()
   // A blank new tool needs a fresh list before choosing a default. A list
   // loaded for another panel may still put a pending zero-member ETF first.
-  if (needsDefaultUniverse || !sources.value.length) await watchlistStore.loadWatchlistSources()
+  if (needsDefaultUniverse || !sources.value.length) await watchlistStore.loadWatchlistSources(requestPriority)
   if (!componentMounted) return
-  if (!watchlistStore.watchlists.length) await watchlistStore.loadWatchlists()
+  if (!watchlistStore.watchlists.length) await watchlistStore.loadWatchlists(requestPriority)
   if (!componentMounted) return
   await loadPythonAssets()
   if (!componentMounted) return
@@ -2172,6 +2176,11 @@ onMounted(async () => {
   if (!componentMounted) return
   if (sourceId.value) await loadHistoryStatus()
   if (sourceId.value) await loadBenchmarkCoverage()
+})
+watch(() => props.requestPriority, priority => {
+  if (priority !== 'high') return
+  if (!watchlistStore.watchlistSources.length) void watchlistStore.loadWatchlistSources('high')
+  if (!watchlistStore.watchlists.length) void watchlistStore.loadWatchlists('high')
 })
 onUnmounted(() => {
   componentMounted = false

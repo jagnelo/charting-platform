@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import type { AlertFiringEvent, PriceAlert, IndicatorAlert, AlertCondition } from '@/types'
-import { api } from '@/lib/api'
+import { api, setQueuedApiRequestPriority, type ApiRequestPriority } from '@/lib/api'
 
 export interface IndicatorAlertCreate {
   instrument_id: number
@@ -28,15 +28,37 @@ export const useAlertsStore = defineStore('alerts', () => {
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null
   let pingTimer: ReturnType<typeof setInterval> | null = null
   let _loadedInstrumentId: number | undefined = undefined
+  let pendingAlertLoad: { key: string; promise: Promise<void> } | null = null
 
-  async function loadAlerts(instrumentId?: number) {
+  async function loadAlerts(instrumentId?: number, priority?: ApiRequestPriority) {
+    const key = instrumentId == null ? 'all' : String(instrumentId)
+    const priceQueueKey = `alerts:price:${key}`
+    const indicatorQueueKey = `alerts:indicator:${key}`
+    if (pendingAlertLoad?.key === key) {
+      if (priority === 'high') {
+        setQueuedApiRequestPriority(priceQueueKey, 'high')
+        setQueuedApiRequestPriority(indicatorQueueKey, 'high')
+      }
+      return pendingAlertLoad.promise
+    }
     // Skip fetch if we already have alerts loaded for this instrument
     if (instrumentId !== undefined && instrumentId === _loadedInstrumentId) return
-    _loadedInstrumentId = instrumentId
     const params: Record<string, any> = {}
     if (instrumentId) params.instrument_id = instrumentId
-    alerts.value = await api.get('/alerts/price', params)
-    indicatorAlerts.value = await api.get('/alerts/indicator', params)
+    _loadedInstrumentId = instrumentId
+    let promise!: Promise<void>
+    promise = (async () => {
+      const options = { priority: priority ?? 'auto', queueKey: priceQueueKey }
+      const indicatorOptions = { priority: priority ?? 'auto', queueKey: indicatorQueueKey }
+      try {
+        alerts.value = await api.get('/alerts/price', params, options)
+        indicatorAlerts.value = await api.get('/alerts/indicator', params, indicatorOptions)
+      } finally {
+        if (pendingAlertLoad?.promise === promise) pendingAlertLoad = null
+      }
+    })()
+    pendingAlertLoad = { key, promise }
+    return promise
   }
 
   async function createAlert(
@@ -106,11 +128,13 @@ export const useAlertsStore = defineStore('alerts', () => {
 
   // ── Firing history ──────────────────────────────────────────────────────────
 
-  async function loadHistory(opts: { instrumentId?: number; unviewedOnly?: boolean } = {}) {
+  async function loadHistory(opts: { instrumentId?: number; unviewedOnly?: boolean; priority?: ApiRequestPriority } = {}) {
     const params: Record<string, any> = { limit: 200 }
     if (opts.instrumentId) params.instrument_id = opts.instrumentId
     if (opts.unviewedOnly) params.unviewed_only = true
-    firingHistory.value = await api.get('/alerts/history', params)
+    firingHistory.value = await (opts.priority
+      ? api.get('/alerts/history', params, { priority: opts.priority })
+      : api.get('/alerts/history', params))
   }
 
   async function loadInstrumentHistory(instrumentId: number): Promise<AlertFiringEvent[]> {

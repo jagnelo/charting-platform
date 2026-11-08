@@ -142,7 +142,7 @@ describe('SearchBar', () => {
 
     expect(api.post).toHaveBeenNthCalledWith(2, '/instruments/acquire', expect.objectContaining({
       symbol: 'UNXQ', provider_candidate: { provider: 'fixture', symbol: 'UNXQ', exchange: 'XNYS' },
-    }))
+    }), expect.objectContaining({ priority: 'high' }))
     expect(wrapper.emitted('select')?.[0]?.[1]).toMatchObject({ symbol: 'UNXQ', instrument_id: 77, explicitlyResolved: true })
     expect(preparationMock.ensure).toHaveBeenCalledWith(expect.objectContaining({
       target: { kind: 'instrument', instrument_id: 77 },
@@ -207,7 +207,7 @@ describe('SearchBar', () => {
     expect(wrapper.emitted('update:modelValue')).toEqual([['F']])
     expect(wrapper.emitted('select')).toEqual([['F', undefined]])
     expect(api.post).toHaveBeenCalledTimes(1)
-    expect(api.post).toHaveBeenCalledWith('/instruments/discover', expect.objectContaining({ query: 'F' }))
+    expect(api.post).toHaveBeenCalledWith('/instruments/discover', expect.objectContaining({ query: 'F' }), expect.objectContaining({ priority: 'high' }))
   })
 
   it('submits the exact local ticker even when it is not the first fuzzy result', async () => {
@@ -639,7 +639,7 @@ describe('SearchBar', () => {
     await flushPromises()
 
     expect(api.post).toHaveBeenCalledTimes(2)
-    expect(api.post).toHaveBeenLastCalledWith('/instruments/discover', expect.objectContaining({ query: 'BWET' }))
+    expect(api.post).toHaveBeenLastCalledWith('/instruments/discover', expect.objectContaining({ query: 'BWET' }), expect.objectContaining({ priority: 'high' }))
     await vi.waitFor(() => expect(wrapper.text()).toContain('No matching ticker listing was found.'))
     finishOldDiscovery({
       request_id: 'old-query', status: 'complete',
@@ -681,12 +681,12 @@ describe('SearchBar', () => {
     await flushPromises()
     expect(api.post).toHaveBeenNthCalledWith(1, '/instruments/discover', {
       query: 'OIH', types: [], limit: 10, request_id: 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d',
-    })
+    }, expect.objectContaining({ priority: 'high' }))
     await vi.waitFor(() => expect(preparationMock.ensure).toHaveBeenCalled())
     expect(api.post).toHaveBeenNthCalledWith(2, '/instruments/acquire', {
       symbol: 'OIH', provider_candidate: { provider: 'free-source', symbol: 'OIH', exchange: 'NYSE Arca' },
       request_id: 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d',
-    })
+    }, expect.objectContaining({ priority: 'high' }))
     expect(wrapper.emitted('select')).toBeUndefined()
     expect(wrapper.get('.result-item').text()).toContain('OIH')
     expect(preparationMock.ensure).toHaveBeenCalledWith(expect.objectContaining({
@@ -764,10 +764,10 @@ describe('SearchBar', () => {
 
     expect(api.post).toHaveBeenNthCalledWith(1, '/instruments/discover', expect.objectContaining({
       query: 'EVOL', types: ['ETF', 'Fund', 'ETV', 'Exchange Traded Vehicle'], limit: 10,
-    }))
+    }), expect.objectContaining({ priority: 'high' }))
     expect(api.post).toHaveBeenNthCalledWith(2, '/instruments/acquire', expect.objectContaining({
       symbol: 'EVOL', provider_candidate: { provider: 'free-source', symbol: 'EVOL', exchange: 'XNYS' },
-    }))
+    }), expect.objectContaining({ priority: 'high' }))
     expect(wrapper.emitted('select')).toBeUndefined()
     expect(preparationMock.ensure.mock.lastCall?.[0]).toMatchObject({
       target: { kind: 'instrument', instrument_id: 991 },
@@ -808,7 +808,7 @@ describe('SearchBar', () => {
     await vi.waitFor(() => expect(wrapper.find('.search-source-candidate').exists()).toBe(true))
     expect(api.post).toHaveBeenCalledWith('/instruments/discover', {
       query: 'UNXQ', types: ['Equity', 'Stock'], limit: 10, request_id: 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d',
-    })
+    }, expect.objectContaining({ priority: 'high' }))
     expect(wrapper.text()).toContain('Uncached Example Equity')
     expect(wrapper.text()).not.toContain('ETF-shaped collision')
   })
@@ -885,7 +885,7 @@ describe('SearchBar', () => {
     expect(api.post).toHaveBeenCalledTimes(2)
     expect(api.post).toHaveBeenNthCalledWith(2, '/instruments/acquire', expect.objectContaining({
       symbol: 'F', provider_candidate: { provider: 'fixture', symbol: 'F', exchange: 'XNYS' },
-    }))
+    }), expect.objectContaining({ priority: 'high' }))
     expect(wrapper.emitted('select')?.[0]).toHaveLength(3)
     expect(wrapper.emitted('select')?.[0]?.[1]).toMatchObject({ symbol: 'F', instrument_id: 83, explicitlyResolved: true })
     expect(wrapper.emitted('select')?.[0]?.[2]).toMatchObject({ status: 'resolved', instrument: { instrument_id: 83, symbol: 'F' } })

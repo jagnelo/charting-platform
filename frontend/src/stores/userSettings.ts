@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
-import { api } from '@/lib/api'
+import { api, setQueuedApiRequestPriority, type ApiRequestPriority } from '@/lib/api'
 import type { ChartBarType } from '@/types'
 
 const VALID_BAR_TYPES: ChartBarType[] = ['hlc','candles','line','ohlc','heikin_ashi','area','baseline','renko','kagi','point_figure']
@@ -29,23 +29,37 @@ export const useUserSettingsStore = defineStore('userSettings', () => {
   const pinnedSourceIds = ref<string[]>([])
   const loaded = ref(false)
   let saveTimer: ReturnType<typeof setTimeout> | null = null
+  let pendingSettingsLoad: Promise<void> | null = null
 
   function sourceIds(value: unknown): string[] {
     if (!Array.isArray(value)) return []
     return [...new Set(value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0))]
   }
 
-  async function loadSettings() {
+  async function loadSettings(priority: ApiRequestPriority = 'auto') {
     if (loaded.value) return
-    const settings = await api.get<UserSettings>('/auth/settings')
-    showCurrentPriceProjection.value = !!settings.chart?.showCurrentPriceProjection
-    showHighLowProjection.value = !!settings.chart?.showHighLowProjection
-    showApproxVolumeProfile.value = !!settings.chart?.showApproxVolumeProfile
-    const saved = settings.chart?.chartType
-    chartType.value = saved && VALID_BAR_TYPES.includes(saved) ? saved : 'candles'
-    followedSourceIds.value = sourceIds(settings.marketMap?.followedSourceIds)
-    pinnedSourceIds.value = sourceIds(settings.marketMap?.pinnedSourceIds)
-    loaded.value = true
+    if (pendingSettingsLoad) {
+      if (priority === 'high') setQueuedApiRequestPriority('user-settings:load', 'high')
+      return pendingSettingsLoad
+    }
+    let request!: Promise<void>
+    request = (async () => {
+      const settings = await api.get<UserSettings>('/auth/settings', undefined, {
+        priority, queueKey: 'user-settings:load',
+      })
+      showCurrentPriceProjection.value = !!settings.chart?.showCurrentPriceProjection
+      showHighLowProjection.value = !!settings.chart?.showHighLowProjection
+      showApproxVolumeProfile.value = !!settings.chart?.showApproxVolumeProfile
+      const saved = settings.chart?.chartType
+      chartType.value = saved && VALID_BAR_TYPES.includes(saved) ? saved : 'candles'
+      followedSourceIds.value = sourceIds(settings.marketMap?.followedSourceIds)
+      pinnedSourceIds.value = sourceIds(settings.marketMap?.pinnedSourceIds)
+      loaded.value = true
+    })().finally(() => {
+      if (pendingSettingsLoad === request) pendingSettingsLoad = null
+    })
+    pendingSettingsLoad = request
+    return request
   }
 
   async function saveSettings() {

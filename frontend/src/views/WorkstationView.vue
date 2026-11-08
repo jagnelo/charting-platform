@@ -1435,7 +1435,11 @@ async function selectSymbol(
     symbol = requested.toUpperCase()
   } else {
     try {
-      const resolved = await resolveKnownInstrument(requested, 'Workstation symbol', { canonicalOnly: true })
+      const resolved = await resolveKnownInstrument(requested, 'Workstation symbol', {
+        canonicalOnly: true,
+        priority: 'high',
+        signal: acquisitionController.signal,
+      })
       symbol = resolved.symbol
       resolvedInstrumentId = resolved.id
       // The local picker may have an older or coarse security classification.
@@ -1454,7 +1458,11 @@ async function selectSymbol(
         // ticker alias. Keep the limitation visible in the shell status bar.
         const proxy = sp500TradableProxy()
         try {
-          const resolved = await resolveKnownInstrument(proxy, 'S&P 500 tradable proxy', { canonicalOnly: true })
+          const resolved = await resolveKnownInstrument(proxy, 'S&P 500 tradable proxy', {
+            canonicalOnly: true,
+            priority: 'high',
+            signal: acquisitionController.signal,
+          })
           symbol = resolved.symbol
           resolvedInstrumentId = resolved.id
           if (generation !== symbolSelectionGeneration) return
@@ -1690,7 +1698,7 @@ async function acquireSelectedTickerData(
       if (!resolvedType) {
         const localOptions = await queryClient.fetchQuery<Array<{ symbol: string; type: string; instrument_id?: number | null }>>({
           queryKey: ['workstation', 'instrument-search', normalizedSymbol, instrumentId],
-          queryFn: () => api.get('/instruments/search', { q: normalizedSymbol, canonical_only: true }, { priority: 'high' }),
+          queryFn: () => api.get('/instruments/search', { q: normalizedSymbol, canonical_only: true }, { priority: 'high', signal }),
           staleTime: 0,
         })
         if (!isCurrent()) return
@@ -1704,7 +1712,7 @@ async function acquireSelectedTickerData(
       if (!isCurrent()) return
       if (workspaceStore.constituentETF !== normalizedSymbol) workspaceStore.setConstituentETF(symbol)
       let stored = workspaceStore.etfHoldings[normalizedSymbol]
-      const capability = await readETFHoldingsCapability(symbol, { priority: 'high' })
+      const capability = await readETFHoldingsCapability(symbol, { priority: 'high', signal })
       if (!isCurrent()) return
       if (isCurrentETFHoldingsCapability(capability)) {
         // Only the selected fund's saved holdings read is required to describe
@@ -1727,7 +1735,7 @@ async function acquireSelectedTickerData(
       const holdingsRefreshQueue = new PreparationProgressRefreshQueue()
       const refreshHoldings = () => Promise.allSettled([
         workspaceStore.loadETFHoldings(symbol, 'high'),
-        workspaceStore.loadETFIndustries(symbol),
+        workspaceStore.loadETFIndustries(symbol, 'high'),
       ]).then(() => undefined)
       const holdingsResult = await dataPreparationCoordinator.ensure({
         target: { kind: 'instrument', instrument_id: instrumentId },
@@ -1802,7 +1810,7 @@ async function loadSymbolData(
   await Promise.all([
     chartStore.loadBars(symbol, chartStore.timeframe, chartStore.barType, true),
     holdingsRead,
-    ...(preserveETFContext || privateBasketSelection ? [] : [workspaceStore.loadETFIndustries(symbol)]),
+    ...(preserveETFContext || privateBasketSelection ? [] : [workspaceStore.loadETFIndustries(symbol, 'high')]),
     ...(!privateBasketSelection ? [workspaceStore.loadTechnical(symbol, 'high')] : []),
   ])
   if (updateRatio && !privateBasketSelection) updateAutoRatioExpression(symbol, comparisonETF)
@@ -1943,7 +1951,7 @@ async function discoverSymbolDraft(rawQuery = symbolDraft.value, requestGenerati
     while (isCurrent()) {
       sourceDiscoveryLoading.value = true
       sourceDiscoveryMessage.value = ''
-      const result = await discoverInstruments(query, [], 10)
+      const result = await discoverInstruments(query, [], 10, { priority: 'high', signal: controller.signal })
       if (!isCurrent()) return
       const retryAt = result.retry_at
         ?? result.source_outcomes.find(outcome => outcome.status === 'held' && outcome.retry_at)?.retry_at
@@ -2001,7 +2009,7 @@ async function resolveSourceCandidate(candidate: InstrumentDiscoveryCandidate) {
     while (isCurrent()) {
       sourceResolving.value = true
       sourceDiscoveryMessage.value = ''
-      result = await resolveDiscoveredInstrument(candidate)
+      result = await resolveDiscoveredInstrument(candidate, { priority: 'high', signal: controller.signal })
       if (!isCurrent()) return
       const retryAt = result.retry_at
         ?? result.source_outcomes.find(outcome => outcome.status === 'held' && outcome.retry_at)?.retry_at
@@ -2163,7 +2171,7 @@ async function selectIndustryProxy(symbol: string, instrumentId?: number | null)
   // Proxy rows normally carry their canonical identity, but keep direct or
   // keyboard-triggered proxy navigation identity-safe as well. This avoids
   // publishing a ticker-only link when a valid local instrument exists.
-  const resolved = await resolveKnownInstrument(symbol, 'Industry ETF proxy', { canonicalOnly: true })
+  const resolved = await resolveKnownInstrument(symbol, 'Industry ETF proxy', { canonicalOnly: true, priority: 'high' })
   const normalized = resolved.symbol
   if (generation !== drilldownSelectionGeneration) return
   const resolvedInstrumentId = typeof instrumentId === 'number' ? instrumentId : resolved.id
@@ -3337,7 +3345,7 @@ watch(activeSymbol, symbol => {
   if (!documentVisible.value) return
   void Promise.all([
     chartStore.loadBars(symbol, chartStore.timeframe, chartStore.barType, true),
-    ...(preserveDrilldown || privateBasketSelection ? [] : [workspaceStore.loadETFHoldings(symbol), workspaceStore.loadETFIndustries(symbol)]),
+    ...(preserveDrilldown || privateBasketSelection ? [] : [workspaceStore.loadETFHoldings(symbol, 'high'), workspaceStore.loadETFIndustries(symbol, 'high')]),
     ...(!privateBasketSelection ? [workspaceStore.loadTechnical(symbol)] : []),
   ])
 })

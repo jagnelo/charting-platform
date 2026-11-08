@@ -385,7 +385,7 @@ async function fetchResearchRun(runId: number, staleTime = 0) {
   return queryClient.fetchQuery<Run>({
     queryKey: researchRunQueryKey(runId),
     queryFn: async () => {
-      const refreshed = await api.get<Run>(`/research/runs/${runId}`)
+      const refreshed = await api.get<Run>(`/research/runs/${runId}`, undefined, { priority: 'high' })
       if (!refreshed) throw new Error('Study run refresh returned no data')
       return refreshed
     },
@@ -1228,7 +1228,7 @@ async function validate() {
       if (!preparationStatus.value) preparationStatus.value = 'Study data is not ready. Resolve the preparation status before validating this study.'
       return
     }
-    validation.value = await api.post<Validation>('/code/validate', { source: sourceToValidate })
+    validation.value = await api.post<Validation>('/code/validate', { source: sourceToValidate }, { priority: 'high' })
     if (disposed || !studyDatasetIntentMatches(datasetIntent)) return
     validatedSource.value = sourceToValidate
   }
@@ -1300,7 +1300,7 @@ async function saveAndRun() {
       code_version_id: codeVersionId,
       run_config: runConfig,
       dataset_manifest: { source: 'canonical_database', requested_at: new Date().toISOString(), ...datasetControls },
-    })
+    }, { priority: 'high' })
     // Run creation is durable even if this virtual tool closes while the
     // request is in flight. Publish the exact created row to shared caches and
     // refresh any still-open Results surface; closing a view is not a cancel
@@ -1417,7 +1417,7 @@ async function promote(target: PromotionTarget, selectedOutputName?: string) {
           parameter_schema?: Record<string, unknown>
           default_parameters?: Record<string, unknown>
         }>
-      }>>('/code/assets')
+      }>>('/code/assets', undefined, { priority: 'high' })
       const sourceVersion = (sourceVersions ?? [])
         .flatMap(asset => asset.versions ?? [])
         .find(version => version.id === selectedRunSnapshot?.code_version_id)
@@ -1937,7 +1937,7 @@ async function rerun(snapshot: boolean) {
   error.value = ''
   promotionStatus.value = ''
   try {
-    const rerunResult = await api.post<Run>(`/research/runs/${run.value.id}/rerun?snapshot=${snapshot}`, {})
+    const rerunResult = await api.post<Run>(`/research/runs/${run.value.id}/rerun?snapshot=${snapshot}`, {}, { priority: 'high' })
     queryClient.setQueryData(researchRunQueryKey(rerunResult.id), rerunResult)
     cacheResearchRunInList(rerunResult)
     void queryClient.invalidateQueries({ queryKey: researchRunsQueryKey })
@@ -1966,7 +1966,7 @@ async function cancel() {
   const generation = runGeneration
   cancelBusy.value = true
   try {
-    const canceled = await api.post<Run>(`/research/runs/${runId}/cancel`, {})
+    const canceled = await api.post<Run>(`/research/runs/${runId}/cancel`, {}, { priority: 'high' })
     queryClient.setQueryData(researchRunQueryKey(canceled.id), canceled)
     cacheResearchRunInList(canceled)
     void queryClient.invalidateQueries({ queryKey: researchRunsQueryKey })
@@ -1979,7 +1979,7 @@ async function cancel() {
   catch (cause: any) {
     if (disposed || generation !== runGeneration) return
     try {
-      const terminal = await readTerminalRunAfterCancelConflict(cause, runId, () => api.get<Run>(`/research/runs/${runId}`))
+      const terminal = await readTerminalRunAfterCancelConflict(cause, runId, () => api.get<Run>(`/research/runs/${runId}`, undefined, { priority: 'high' }))
       if (terminal) {
         queryClient.setQueryData(researchRunQueryKey(runId), terminal)
         cacheResearchRunInList(terminal)

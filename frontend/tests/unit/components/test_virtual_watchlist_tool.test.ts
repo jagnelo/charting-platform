@@ -343,7 +343,9 @@ describe('VirtualWatchlistTool', () => {
       : Promise.resolve([]))
     const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Late assets', rows } })
     await Promise.resolve()
-    expect(apiGet).toHaveBeenCalledWith('/code/assets')
+    expect(apiGet).toHaveBeenCalledWith('/code/assets', undefined, expect.objectContaining({
+      queueKey: 'workstation:code-assets', signal: expect.any(AbortSignal),
+    }))
 
     wrapper.unmount()
     resolveAssets([{ kind: 'column', name: 'Late column', versions: [{ id: 7, version_number: 1 }] }])

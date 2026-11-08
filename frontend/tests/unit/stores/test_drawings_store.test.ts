@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
+const setQueuedApiRequestPriority = vi.hoisted(() => vi.fn())
 vi.mock('@/lib/api', () => ({
   api: {
     get: vi.fn(),
@@ -8,6 +9,7 @@ vi.mock('@/lib/api', () => ({
     patch: vi.fn(),
     delete: vi.fn(),
   },
+  setQueuedApiRequestPriority,
 }))
 
 import { api } from '@/lib/api'
@@ -41,6 +43,22 @@ describe('useDrawingsStore authentication-boundary handling', () => {
 
     expect(consoleError).not.toHaveBeenCalled()
     consoleError.mockRestore()
+  })
+
+  it('promotes a drawing read when its tool becomes foreground', async () => {
+    localStorage.setItem('access_token', 'user-a')
+    let resolveDrawings!: (value: any[]) => void
+    ;(api.get as ReturnType<typeof vi.fn>).mockReturnValueOnce(new Promise(resolve => { resolveDrawings = resolve }))
+    const store = useDrawingsStore()
+
+    const backgroundRead = store.loadDrawings(7, 'D1', 'low')
+    const foregroundRead = store.loadDrawings(7, 'D1', 'high')
+
+    expect(api.get).toHaveBeenCalledTimes(1)
+    expect(api.get).toHaveBeenCalledWith('/drawings', { instrument_id: 7 }, { priority: 'low', queueKey: 'drawings:7' })
+    expect(setQueuedApiRequestPriority).toHaveBeenCalledWith('drawings:7', 'high')
+    resolveDrawings([])
+    await Promise.all([backgroundRead, foregroundRead])
   })
 
   it('reloads the same instrument after a user boundary instead of reusing the previous owner cache', async () => {
