@@ -13,10 +13,12 @@ from uuid import NAMESPACE_URL, uuid4, uuid5
 from fastapi import HTTPException
 from sqlalchemy import inspect, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.asset_class import AssetClass, InstrumentType
 from app.models.data_source import DataSource
 from app.models.instrument import Instrument
+from app.models.listing import InstrumentListing
 from app.models.market_data_foundation import MarketRefreshJob, MarketSeries, MarketSeriesDefault
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_observation import InstrumentProfileSnapshot
@@ -171,7 +173,13 @@ async def _persisted_derived_coverage_ranges(
             MarketSeriesDefault.is_adjusted.is_(adjusted),
         )
     )
-    instrument = await db.get(Instrument, instrument_id)
+    instrument = (
+        await db.execute(
+            select(Instrument)
+            .options(selectinload(Instrument.listings).selectinload(InstrumentListing.exchange))
+            .where(Instrument.id == instrument_id)
+        )
+    ).scalar_one_or_none()
     if instrument is None:
         return []
     calendar = _coverage_calendar(instrument)
@@ -263,7 +271,13 @@ async def _retained_history_coverage(
     """Assess only the ordinary selected series before requiring a provider."""
     from app.services.market_data import _coverage_calendar, _default_series_bar_condition
 
-    instrument = await db.get(Instrument, instrument_id)
+    instrument = (
+        await db.execute(
+            select(Instrument)
+            .options(selectinload(Instrument.listings).selectinload(InstrumentListing.exchange))
+            .where(Instrument.id == instrument_id)
+        )
+    ).scalar_one_or_none()
     if instrument is None:
         return None, []
     start = _as_utc(requested_start) if requested_start is not None else None

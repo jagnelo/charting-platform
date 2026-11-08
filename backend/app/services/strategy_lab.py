@@ -20,6 +20,7 @@ from app.models.etf_holdings import (
     ETFProfile,
 )
 from app.models.instrument import Instrument
+from app.models.listing import InstrumentListing
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.radar import (
     RadarDetection,
@@ -43,6 +44,11 @@ from app.services.etf_consumer_types import (
 )
 from app.services.etf_holdings_capability import evaluate_capability
 from app.services.evaluator_preflight import EvaluatorPreflight, preflight_ohlcv
+from app.services.ohlcv_coverage import (
+    CalendarName,
+    coverage_calendar_for_instrument,
+    observed_daily_session_bounds,
+)
 from app.services.research_jobs import collect_research_result, enqueue_research_run
 from app.services.strategy_lab_nautilus import (
     NautilusOpenPosition,
@@ -539,9 +545,15 @@ def _requested_range_fits(
         return None
     if date_from is None and date_to is None:
         return None
-    starts_ok = date_from is None or available_from <= date_from
-    ends_ok = date_to is None or available_to >= date_to
+    starts_ok = date_from is None or _coverage_utc(available_from) <= _coverage_utc(date_from)
+    ends_ok = date_to is None or _coverage_utc(available_to) >= _coverage_utc(date_to)
     return starts_ok and ends_ok
+
+
+def _coverage_utc(value: datetime) -> datetime:
+    if value.tzinfo is None or value.utcoffset() is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
 
 
 def _instrument_requested_status(
@@ -556,8 +568,8 @@ def _instrument_requested_status(
         return "missing"
     if requested_bars <= 0:
         return "none"
-    starts_ok = date_from is None or available_from <= date_from
-    ends_ok = date_to is None or available_to >= date_to
+    starts_ok = date_from is None or _coverage_utc(available_from) <= _coverage_utc(date_from)
+    ends_ok = date_to is None or _coverage_utc(available_to) >= _coverage_utc(date_to)
     return "full" if starts_ok and ends_ok else "partial"
 
 
@@ -575,14 +587,14 @@ def _instrument_coverage_note(
 
     notes: list[str] = []
     ipo_date = getattr(instrument.equity_detail, "ipo_date", None)
-    if date_from is not None and available_from > date_from:
+    if date_from is not None and _coverage_utc(available_from) > _coverage_utc(date_from):
         if ipo_date is not None and available_from.date() >= ipo_date >= date_from.date():
             notes.append(f"Coverage begins after IPO ({ipo_date.isoformat()}).")
         else:
             notes.append(
                 "Coverage begins after the requested start; earlier local history may be missing."
             )
-    if date_to is not None and available_to < date_to:
+    if date_to is not None and _coverage_utc(available_to) < _coverage_utc(date_to):
         notes.append("Coverage ends before the requested end.")
     if requested_bars > 0 and requested_bars < 3:
         notes.append(f"Only {requested_bars} bars fall inside the requested window.")
@@ -671,6 +683,8 @@ async def _build_universe_coverage_summary(
     available_ends: list[datetime] = []
     requested_starts: list[datetime] = []
     requested_ends: list[datetime] = []
+    assessment_starts: list[datetime] = []
+    assessment_ends: list[datetime] = []
 
     for instrument in sorted(instrument_rows, key=lambda row: row.symbol):
         full = full_map.get(instrument.id, {})
@@ -679,22 +693,31 @@ async def _build_universe_coverage_summary(
         available_to = full.get("available_to")
         requested_first_bar_at = requested.get("requested_first_bar_at")
         requested_last_bar_at = requested.get("requested_last_bar_at")
+        calendar = coverage_calendar_for_instrument(instrument)
+        assessment_start, assessment_end = observed_daily_session_bounds(
+            timeframe,
+            date_from,
+            date_to,
+            requested_first_bar_at,
+            requested_last_bar_at,
+            calendar=calendar,
+        )
         total_bars = int(full.get("total_bars") or 0)
         requested_bars = int(requested.get("requested_bars") or 0)
         requested_status = _instrument_requested_status(
             available_from=available_from,
             available_to=available_to,
             requested_bars=requested_bars,
-            date_from=date_from,
-            date_to=date_to,
+            date_from=assessment_start,
+            date_to=assessment_end,
         )
         note = _instrument_coverage_note(
             instrument,
             available_from=available_from,
             available_to=available_to,
             requested_bars=requested_bars,
-            date_from=date_from,
-            date_to=date_to,
+            date_from=assessment_start,
+            date_to=assessment_end,
         )
         if available_from is not None:
             available_starts.append(available_from)
@@ -704,6 +727,10 @@ async def _build_universe_coverage_summary(
             requested_starts.append(requested_first_bar_at)
         if requested_last_bar_at is not None:
             requested_ends.append(requested_last_bar_at)
+        if assessment_start is not None:
+            assessment_starts.append(assessment_start)
+        if assessment_end is not None:
+            assessment_ends.append(assessment_end)
         instrument_summaries.append(
             {
                 "instrument_id": instrument.id,
@@ -780,8 +807,8 @@ async def _build_universe_coverage_summary(
         "collective_coverage_from": _wire_datetime(collective_coverage_from),
         "collective_coverage_to": _wire_datetime(collective_coverage_to),
         "requested_fits_collective_range": _requested_range_fits(
-            date_from=date_from,
-            date_to=date_to,
+            date_from=max(assessment_starts) if assessment_starts else date_from,
+            date_to=min(assessment_ends) if assessment_ends else date_to,
             available_from=collective_coverage_from,
             available_to=collective_coverage_to,
         ),
@@ -1017,6 +1044,7 @@ async def _resolve_universe_instruments(
     def instrument_stmt():
         return select(Instrument).options(
             selectinload(Instrument.equity_detail),
+            selectinload(Instrument.listings).selectinload(InstrumentListing.exchange),
             selectinload(Instrument.stats),
         )
 
@@ -1364,7 +1392,11 @@ async def _resolve_dynamic_etf_universe(
 
     stmt = (
         select(Instrument)
-        .options(selectinload(Instrument.equity_detail), selectinload(Instrument.stats))
+        .options(
+            selectinload(Instrument.equity_detail),
+            selectinload(Instrument.listings).selectinload(InstrumentListing.exchange),
+            selectinload(Instrument.stats),
+        )
         .where(Instrument.id.in_(instrument_ids))
     )
     rows = list((await db.execute(stmt)).scalars().all())
@@ -1438,7 +1470,11 @@ async def _resolve_dynamic_basket_snapshot_universe(
 
     stmt = (
         select(Instrument)
-        .options(selectinload(Instrument.equity_detail), selectinload(Instrument.stats))
+        .options(
+            selectinload(Instrument.equity_detail),
+            selectinload(Instrument.listings).selectinload(InstrumentListing.exchange),
+            selectinload(Instrument.stats),
+        )
         .where(Instrument.id.in_(instrument_ids))
     )
     rows = list((await db.execute(stmt)).scalars().all())
@@ -1486,6 +1522,7 @@ async def _strategy_coverage_preflight(
     date_from: datetime | None,
     date_to: datetime | None,
     queue_repairs: bool,
+    calendar_by_instrument: dict[int, CalendarName | None] | None = None,
 ) -> tuple[frozenset[int], dict[str, Any]]:
     """Run shared local-data preflight for every dataset a strategy needs."""
 
@@ -1500,6 +1537,7 @@ async def _strategy_coverage_preflight(
             timeframe=timeframe,
             date_from=date_from,
             date_to=date_to,
+            calendar_by_instrument=calendar_by_instrument,
             queue_repairs=queue_repairs,
         )
         preflights.append(preflight)
@@ -2842,6 +2880,10 @@ async def _run_rules_backtest(
         date_from=run.date_from,
         date_to=run.date_to,
         queue_repairs=run.execution_assumptions.get("queue_coverage_repairs") is True,
+        calendar_by_instrument={
+            instrument.id: coverage_calendar_for_instrument(instrument)
+            for instrument in instrument_rows
+        },
     )
     coverage["preflight"] = coverage_preflight
 
@@ -3443,6 +3485,7 @@ async def _run_radar_signal_research(
                     .where(Instrument.id.in_(list(signal_groups.keys())))
                     .options(
                         selectinload(Instrument.equity_detail),
+                        selectinload(Instrument.listings).selectinload(InstrumentListing.exchange),
                         selectinload(Instrument.stats),
                     )
                     .order_by(Instrument.symbol.asc())
@@ -3528,6 +3571,10 @@ async def _run_radar_signal_research(
         date_from=run.date_from,
         date_to=run.date_to,
         queue_repairs=run.execution_assumptions.get("queue_coverage_repairs") is True,
+        calendar_by_instrument={
+            instrument.id: coverage_calendar_for_instrument(instrument)
+            for instrument in instrument_rows
+        },
     )
     coverage["preflight"] = coverage_preflight
 

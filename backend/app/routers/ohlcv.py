@@ -4,12 +4,14 @@ from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.auth.dependencies import get_current_user
 from app.config import settings
 from app.database import get_db
 from app.models.data_source import DataSource
 from app.models.instrument import Instrument
+from app.models.listing import InstrumentListing
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.user import User
 from app.schemas.ohlcv import LocalSplitMaterializationOut, OHLCVBarOut
@@ -258,7 +260,11 @@ async def get_ohlcv_transformed(
             400, f"Unknown bar_type '{bar_type}'. Valid: {list(TRANSFORM_REGISTRY)}"
         )
 
-    result = await db.execute(select(Instrument).where(Instrument.symbol == symbol.upper()))
+    result = await db.execute(
+        select(Instrument)
+        .options(selectinload(Instrument.listings).selectinload(InstrumentListing.exchange))
+        .where(Instrument.symbol == symbol.upper())
+    )
     instrument = result.scalar_one_or_none()
     if instrument is None:
         raise HTTPException(404, f"Instrument '{symbol}' not found.")
@@ -381,7 +387,11 @@ async def get_ohlcv(
     current_user: User = Depends(get_current_user),
 ):
     local_only = local_only or settings.PROVIDER_REQUEST_DRIVEN_ONLY
-    result = await db.execute(select(Instrument).where(Instrument.symbol == symbol.upper()))
+    result = await db.execute(
+        select(Instrument)
+        .options(selectinload(Instrument.listings).selectinload(InstrumentListing.exchange))
+        .where(Instrument.symbol == symbol.upper())
+    )
     instrument = result.scalar_one_or_none()
     if instrument is None:
         raise HTTPException(
