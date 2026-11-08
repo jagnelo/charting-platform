@@ -20385,6 +20385,17 @@ Focused StudyLabTool unit tests pass 69/69; frontend type-check passes; Playwrig
 Changed paths: `frontend/src/components/workstation/StudyLabTool.vue`, `frontend/tests/e2e/strategy_study_journey.spec.ts`, `frontend/tests/e2e/workstation_lifecycle_journey.spec.ts`, `ops/workstreams/feat-strategy-lab-v2/handoff.md`, and `ops/workstreams/feat-strategy-lab-v2/validation.jsonl`.
 
 
+### 1379 rule-editor and nested Study output containment repair (2026-11-08)
+
+Root's 1379 legacy trace exposed no product problem in the RSI editor: all six controls were present, but the nested label structure did not resolve through the former exact `getByLabel` calls. The E2E now targets the observed `combobox`, `spinbutton`, and `textbox` accessible names and uses visible option labels for “Indicator vs Value”, “RSI - Relative Strength Index”, and `>`; it asserts the serialized values and RSI(14) > 50 draft before publishing. Real SPY simulation/trade/equity assertions are unchanged.
+
+Root's 1379 dock render also found the structured scalar threshold select at 397.59px in the 280px Study pane. The run's general direct-child flex selector had higher specificity than the metrics grid, leaving nested cards/forms at intrinsic widths. The metrics row now explicitly overrides that flex rule with shrinkable grid tracks, switches to one column in a narrow dock, and applies min/max/box sizing and wrapping through nested labels, fields, and buttons. The physical bound assertions remain unchanged and now include textareas/buttons. The wheel check derives its delta from the measured editor and dock centers, waits for measured containment, and wheels back by the observed scroll position; the keyboard checks still reach Validate and Run.
+
+Focused StudyLabTool unit tests pass 69/69 and frontend type-check passes. Playwright discovery lists all 16 Strategy/workstation bodies. The reference preflight has no actionable unbound references; its existing separate E2E semantic advisories remain unqualified. Workstream validation and diff checks pass. Strategy did not run a browser; Root owns the next 280px output and full-journal render. Full roadmap criteria and operational holds remain open.
+
+Changed paths: `frontend/src/components/workstation/StudyLabTool.vue`, `frontend/tests/e2e/strategy_study_journey.spec.ts`, `frontend/tests/e2e/workstation_lifecycle_journey.spec.ts`, `ops/workstreams/feat-strategy-lab-v2/handoff.md`, and `ops/workstreams/feat-strategy-lab-v2/validation.jsonl`.
+
+
 ### Narrow Study dock containment and access correction (2026-11-08)
 
 Root's rendered 280px Study catalogue case failed the preserved physical-bound assertion: the Study name input measured 413px wide while the tool content edge was 280px. The prior narrow breakpoint changed the inner form layout, but the header still used an implicit grid column whose min-content sizing could overflow the dock. The header now has an explicit `minmax(0,1fr)` track, its grid children and form controls may shrink to the available width, and the long tool body scrolls vertically. The exact native-control containment oracle remains intact. The same ordinary catalogue journey now checks a real wheel scroll reaches the Python editor and keyboard Tab navigation reaches Validate and Run; it still performs its real validation/run before those geometry checks. The preceding Run-results/input-preservation repair remains in the branch through `a85fc643a5f64d80701c243b734d170b712ca07b`.
