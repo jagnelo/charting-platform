@@ -708,9 +708,15 @@ function createChartStore(storeId: string) {
         isLoading.value = false
         return
       }
-      bars.value = mapped
+      const refreshedBars = preserveCurrentBars
+        ? [...new Map([...bars.value, ...mapped].map(bar => [bar.ts, bar])).values()]
+          .sort((left, right) => Date.parse(left.ts) - Date.parse(right.ts))
+        : mapped
+      bars.value = refreshedBars
       renderedLoadScopeKey = localScopeKey
-      hasReachedStart.value = !mapped.length
+      // A refresh of the latest page must not forget that the user already
+      // loaded the older range (or reached its confirmed beginning).
+      if (!preserveCurrentBars) hasReachedStart.value = !mapped.length
       isLoading.value = false
     }
 

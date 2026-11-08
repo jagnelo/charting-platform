@@ -3796,7 +3796,24 @@ onBeforeUnmount(() => {
 .workstation__leader { color: #63bd85; }
 .workstation__data-state--fetching { color:#80bce8; }.workstation__data-state--unavailable { color:#ed9696; }.workstation__data-state--current { color:#91d5a7; }.workstation__data-state--delayed,.workstation__data-state--stale { color:#e8c06b; }.workstation__data-state--partial,.workstation__data-state--coverage-limited { color:#e8b879; }
 @media (max-width: 1100px) {
-  .workstation__menu { gap: 5px; padding-inline: 5px; }
+  .workstation { min-width: 0; grid-template-rows: auto var(--tc-tab-height) minmax(0, 1fr) var(--tc-status-height); }
+  .workstation:has(.workstation__popout) { min-width: 320px; grid-template-rows: minmax(0, 1fr); }
+  .workstation__menu {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 2fr);
+    grid-template-areas: "application navigation navigation" "search timeframe status";
+    align-content: center;
+    align-items: center;
+    gap: 4px 8px;
+    min-width: 0;
+    padding: 5px;
+  }
+  .workstation__application-navigation { grid-area: application; }
+  .workstation__menu > nav { grid-area: navigation; min-width: 0; overflow-x: auto; overflow-y: hidden; }
+  .workstation__menu nav button { flex: 0 0 auto; }
+  .workstation__search { grid-area: search; width: max-content; max-width: 100%; }
+  .workstation__timeframe { grid-area: timeframe; }
+  .workstation__status { grid-area: status; width: 100%; max-width: none; min-width: 0; flex-wrap: wrap; }
   .workstation__menu nav button { padding-inline: 5px; font-size: 10px; }
   .workstation__search { margin-left: 0; }
   .workstation__search input { width: 72px; }
@@ -3808,11 +3825,12 @@ onBeforeUnmount(() => {
   .workstation__refresh, .workstation__sign-out { flex: 0 0 auto; padding-inline: 4px; white-space: nowrap; }
 }
 .workstation__tabs { display: flex; align-items: stretch; background: var(--tc-panel-bg); border-bottom: 1px solid var(--tc-border); }
+.workstation__tabs { min-width: 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
 .workstation__tool-library { position: relative; display: flex; }
 .workstation__tool-library-menu { position: fixed; z-index: 60; display: grid; min-width: 118px; padding: 2px; border: 1px solid #42505a; background: #1b2228; box-shadow: 0 3px 10px #000a; overflow: auto; }
 .workstation__tool-library-menu button { border: 0; background: transparent; color: #cbd6dc; padding: 5px 8px; font: 11px "Segoe UI", Arial, sans-serif; text-align: left; cursor: pointer; }
 .workstation__tool-library-menu button:hover { background: #31424d; color: #fff; }
-.workstation__tabs > button:not(.workstation__tab-add) { min-width: 112px; padding: 0 11px; border: 0; border-right: 1px solid #303940; background: #1b2126; color: #9facb5; font: 11px "Segoe UI", Arial, sans-serif; cursor: grab; }
+.workstation__tabs > button:not(.workstation__tab-add) { flex: 0 0 auto; min-width: 112px; padding: 0 11px; border: 0; border-right: 1px solid #303940; background: #1b2126; color: #9facb5; font: 11px "Segoe UI", Arial, sans-serif; cursor: grab; }
 .workstation__tabs > button:not(.workstation__tab-add):active { cursor: grabbing; }
 .workstation__tabs > button.workstation__tab--active { background: #28333b; color: #eaf2f6; box-shadow: inset 0 2px #68b6e9; }
 .workstation__tabs > button.workstation__tab--drag-over { box-shadow: inset 2px 0 #f0c66d, inset -2px 0 #f0c66d; }

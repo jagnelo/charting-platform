@@ -437,6 +437,40 @@ describe('useChartStore', () => {
     expect(api.get).not.toHaveBeenCalledWith('/ohlcv/SPY/D1', expect.anything())
   })
 
+  it('retains the loaded older range when a latest-page refresh returns overlap updates', async () => {
+    const older = [
+      { ts: '2026-01-01T00:00:00Z', open: 1, high: 2, low: 1, close: 1.5, volume: 10 },
+      { ts: '2026-01-02T00:00:00Z', open: 2, high: 3, low: 2, close: 2.5, volume: 20 },
+    ]
+    const initialLatest = { ts: '2026-01-03T00:00:00Z', open: 3, high: 4, low: 3, close: 3.5, volume: 30 }
+    let latestReads = 0
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string, params?: Record<string, unknown>) => {
+      if (path === '/instruments/RANGE-REFRESH') return Promise.resolve({ id: 77, symbol: 'RANGE-REFRESH', stats: { week52_high: 5 } }) as any
+      if (path === '/instrument-indicators/77') return Promise.resolve({ indicators: [] }) as any
+      if (path === '/ohlcv/local/RANGE-REFRESH/D1') {
+        if (params?.before) return Promise.resolve(older) as any
+        latestReads += 1
+        return Promise.resolve(latestReads === 1 ? [initialLatest] : [
+          { ...older[1], close: 2.75 },
+          { ...initialLatest, close: 3.75 },
+        ]) as any
+      }
+      return Promise.resolve([]) as any
+    })
+
+    const store = useChartStore()
+    await store.loadBars('RANGE-REFRESH', 'D1', 'candles', true)
+    await store.loadMoreBars()
+    expect(store.bars.map(bar => bar.ts)).toEqual(older.map(bar => bar.ts).concat(initialLatest.ts))
+
+    await store.refreshLocalBars()
+
+    expect(store.bars.map(bar => bar.ts)).toEqual(older.map(bar => bar.ts).concat(initialLatest.ts))
+    expect(store.bars.map(bar => bar.close)).toEqual([1.5, 2.75, 3.75])
+    expect(store.hasReachedStart).toBe(false)
+    expect(store.uplotData[0]).toHaveLength(3)
+  })
+
   it('fills older missing daily history from a short local cache in one bounded admitted request', async () => {
     const now = Date.now()
     const cached = {
@@ -875,7 +909,7 @@ describe('useChartStore', () => {
     expect(store.bars).toMatchObject([{ ts: '2026-01-02T00:00:00Z', close: 2.5 }])
   })
 
-  it('keeps matching rendered bars through an empty refresh and replaces them on later progress without leaking them to a new timeframe', async () => {
+  it('keeps matching bars through empty and positive refreshes without leaking them to a new timeframe', async () => {
     let dailyReads = 0
     ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
       if (path === '/instruments/REFRESH-EMPTY') return Promise.resolve({ id: 51, symbol: 'REFRESH-EMPTY', stats: { week52_high: 1 } }) as any
@@ -903,7 +937,10 @@ describe('useChartStore', () => {
     expect(store.hasReachedStart).toBe(false)
 
     await store.refreshLocalBars()
-    expect(store.bars).toMatchObject([{ ts: '2026-01-03T00:00:00Z', close: 3.5 }])
+    expect(store.bars).toMatchObject([
+      { ts: '2026-01-01T00:00:00Z', close: 1.5 },
+      { ts: '2026-01-03T00:00:00Z', close: 3.5 },
+    ])
     expect(store.hasReachedStart).toBe(false)
 
     await store.loadBars('REFRESH-EMPTY', 'M1', 'candles', true)

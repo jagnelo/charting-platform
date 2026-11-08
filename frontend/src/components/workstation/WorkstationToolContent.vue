@@ -1389,6 +1389,12 @@ function syncWorkstationToolVisibility() {
   if (visible === workstationToolVisible.value) return
   workstationToolVisible.value = visible
   const priority = visible ? 'high' : 'low'
+  if (visible && isBenchmarkUniverse.value) {
+    // The shell starts market analysis in the background. Join that exact
+    // deduplicated universe read when the benchmark list becomes visible so
+    // its queued fetch is promoted into the existing foreground lane.
+    void workspaceStore.loadMarketGroup('us-benchmarks', { useCache: true, priority: 'high' })
+  }
   if (visible && isPersonalWatchlistTool.value) {
     setQueuedApiRequestPriority('workstation:combo-lists', 'high')
   }
@@ -1969,6 +1975,9 @@ onMounted(async () => {
   observeWorkstationToolVisibility()
   const requestPriority = workstationToolVisible.value ? 'high' : 'low'
   void loadBreadthPythonSeriesAssets()
+  if (isBenchmarkUniverse.value && !workspaceStore.marketGroups['us-benchmarks']) {
+    void workspaceStore.loadMarketGroup('us-benchmarks', { useCache: true, priority: requestPriority })
+  }
   // Sector membership is already a local curated catalogue. Load it directly
   // for the visible list so a slow snapshot/breadth refresh cannot leave the
   // ordinary symbol choices empty. The store coalesces this with the shell's
