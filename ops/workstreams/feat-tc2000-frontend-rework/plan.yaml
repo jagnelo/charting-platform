@@ -5435,6 +5435,22 @@ development_dependency_import_history:
     - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts
     state: superseded_development_import
     superseded_by: 68c5f5ef9fe2f0903476b1cb813d57695f2481ec
+  - source_sha: 27e360de1057368bb49da11662d33e268ed999b9
+    manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/27e360de1057368bb49da11662d33e268ed999b9.json
+    manifest_sha256: 7c727c676fba6e760e51891c92bdc1345a32ff0abf6a62e3eb248de38327b01c
+    paths:
+      - frontend/src/components/workstation/InstrumentNoteTool.vue
+      - frontend/src/views/BasketsView.vue
+      - frontend/src/views/ETFHoldingsView.vue
+      - frontend/tests/e2e/baskets_journey.spec.ts
+      - frontend/tests/e2e/etf_holdings_preparation.spec.ts
+      - frontend/tests/e2e/sp500_analysis_journey.spec.ts
+      - frontend/tests/e2e/supporting_features_journey.spec.ts
+      - frontend/tests/unit/components/test_instrument_note_tool.test.ts
+      - frontend/tests/unit/views/test_baskets_view.test.ts
+      - frontend/tests/unit/views/test_etf_holdings_view.test.ts
+    state: superseded_development_import
+    superseded_by: 52b8e74999a3e4ae8feedb551bc6ef5a2eb95b3b
 approved_development_dependency_imports:
 - source_sha: fc220242ff9ff8be603c632dc80350a90708bec7
   manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/fc220242ff9ff8be603c632dc80350a90708bec7.json
@@ -5521,9 +5537,9 @@ approved_development_dependency_imports:
   - backend/tests/unit/workers/test_arq_worker.py
   - backend/app/services/etf_holdings.py
   - backend/tests/unit/services/test_etf_holdings_catalogue.py
-- source_sha: 27e360de1057368bb49da11662d33e268ed999b9
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/27e360de1057368bb49da11662d33e268ed999b9.json
-  manifest_sha256: 7c727c676fba6e760e51891c92bdc1345a32ff0abf6a62e3eb248de38327b01c
+- source_sha: 52b8e74999a3e4ae8feedb551bc6ef5a2eb95b3b
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/52b8e74999a3e4ae8feedb551bc6ef5a2eb95b3b.json
+  manifest_sha256: 4c31d41077f12166c3aeee5726bcedf943e5f7b49b5d7455a20b0d9306a0c85f
   paths:
   - frontend/src/components/workstation/InstrumentNoteTool.vue
   - frontend/src/views/BasketsView.vue
