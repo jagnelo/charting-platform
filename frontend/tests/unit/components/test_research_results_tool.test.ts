@@ -641,6 +641,23 @@ describe('ResearchResultsTool', () => {
     wrapper.unmount()
   })
 
+  it('does not adopt a terminal status when the canonical run read contradicts the 409 payload', async () => {
+    const running = { id: 29, status: 'running', code_version_id: 4, run_config: {}, dataset_manifest: {}, diagnostics: [], artifact_count: 0, artifacts: [] }
+    apiGet.mockImplementation((path: string) => path === '/research/runs/29' ? Promise.resolve(running) : Promise.resolve([running]))
+    apiPost.mockRejectedValueOnce(terminalCancelConflict(29, 'completed'))
+    const wrapper = mountTool()
+    await flushPromises()
+
+    await wrapper.get('[aria-label="Run 29, running, 0 artifacts"]').trigger('click')
+    await wrapper.get('[aria-label="Research run 29 details"]').get('button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.get('[role="alert"]').text()).toContain('could not be confirmed'))
+
+    const detail = wrapper.get('[aria-label="Research run 29 details"]')
+    expect(detail.text()).toContain('isolated runner is evaluating')
+    expect(detail.find('button').text()).toBe('Cancel')
+    wrapper.unmount()
+  })
+
   it('reports a cancellation failure and leaves the selected run retryable', async () => {
     const running = { id: 13, status: 'running', code_version_id: 4, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [] }
     apiGet.mockResolvedValue([running])
