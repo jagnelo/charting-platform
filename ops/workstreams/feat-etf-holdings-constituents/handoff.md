@@ -18750,3 +18750,8 @@ receipt shows no bars and deferred price jobs. Root owns the durable-job worker
 restart proof. No native retry, Source HTTP, quota/ledger, production, database,
 or runtime mutation was performed by ETF. This is a development import only;
 all combined, native and release gates remain pending.
+
+
+## TC 2a8 and Provider b192 development dependency coalescing — 2026-11-08
+
+Root released exact TC source `2a8dc9e4c28a9632ffdf8f484ad12a985df70cd3` and Provider source `b19293006ea624a4f0c05a4fd91152ffd650a426` for development consumption only. ETF imported only the58 and15 paths in their respective consumer `import_paths`, after all old guards passed; equal-byte files were left untouched. Full source contracts are preserved under `development-dependency-imports/`: TC2a8 manifest SHA256 `46b99b84e501358e1f3c83780c8b72d7e9e41d107aacbb8e5b56c864f924c521`, Provider b192 manifest SHA256 `97b429b3d99e4f8da78edcc10ed13178a17b482e31a136941f8acff14290457d`. All126 TC and78 Provider source rows passed Git blob/SHA256 verification; all73 resulting ETF imports match exact source bytes and executable-bit semantics. The previous active TC2666 and Provider cc310 pins are archived in session history. No producer suite, ETF test suite, browser, fixture, Source HTTP, native request, quota/production operation, staging change, or push was performed. Root owns final combined qualification and release.

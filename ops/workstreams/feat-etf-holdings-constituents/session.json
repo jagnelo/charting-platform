@@ -1141,8 +1141,8 @@
     "status": "Root-delegated bounded software checkpoint accepted; exact final-source CI pending.",
     "validated_implementation_sha": "b6d67ce93104a0a2cf83b1c41f385513b3c230f8"
   },
-  "plan_hash": "4ffd88d6fc2ad4d88ad86ca3911b43b7775d2dc5732e74b58483ad155dabd663",
-  "plan_sha256": "4ffd88d6fc2ad4d88ad86ca3911b43b7775d2dc5732e74b58483ad155dabd663",
+  "plan_hash": "bcc1087ab38a7f1425e8ef67aca148c8595e200b0416973ddb87cc6976421ad2",
+  "plan_sha256": "bcc1087ab38a7f1425e8ef67aca148c8595e200b0416973ddb87cc6976421ad2",
   "planning_required": false,
   "planning_state": "ready",
   "previous_active_changeset": {
@@ -3554,7 +3554,7 @@
   "progress": {
     "completed": [],
     "current_blocker": "Root combined seeded-backend browser qualification and final release gates remain pending; the full 15 Tier-0/156 Tier-1 and broader ETF/platform roadmaps remain open.",
-    "current_phase": "Provider464 and TC5a are exact development imports. Five changed TC unit modules pass207/207 and type-check passes. Basket journey now proves the actual cached basket series is visible while first-member preparation is held, matching its ordinary OHLC/date tooltip to backend bars. Four owned browser cases discovered; bodies await Root combined execution.",
+    "current_phase": "Consumed exact TC2a8 and Provider b192 development dependencies: all126+78 source rows verified;58+15 declared ETF paths imported under old guards; frontend type-check passed. Root combined/native qualification and final release gates remain pending.",
     "total": 5
   },
   "provider_release": {
@@ -3825,7 +3825,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for ETF returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-11-07T13:43:10Z",
+  "updated_at": "2026-11-08T01:02:53Z",
   "validation_tier": "full_integration",
   "whole_frontend_presentation_reconciliation": {
     "authority": "/home/m920q/charting-platform/.ai/staging-attempts/human-whole-frontend-tc2000-reconciliation-20261026.md",
@@ -4353,16 +4353,76 @@
     "state": "Root-released development dependency only; full RRG/Results browser qualification and final release gates remain pending."
   },
   "current_tc_common_runtime_dependency": {
-    "source": "2666aa559afbff7cff8dff6b50ead357ae1f654f",
-    "previous_source": "c9fc3bbbfa9cc92ad037040fa3e610dd95bbf0ec",
-    "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-2666aa55-common-runtime-development-consumption-contract.json",
-    "manifest_sha256": "f0784a8337d3d53add381b0f06f9fd37e7e27fa861bca70d97e78ba341f3a10a",
-    "local_manifest_copy": "ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/2666aa559afbff7cff8dff6b50ead357ae1f654f.json",
-    "current_manifest_records_verified": 86,
-    "consumer_import_paths_verified": 6,
-    "verification": "All86 status_from139/SHA256/Git blob/executable-bit rows match the source; the exact6 ETF paths passed released old guards and match source.",
-    "state": "Root-released development dependency only; normal full RRG D1/W1/MN and lifecycle, Results, exact CI, and release gates remain pending."
-  },
+                                            "source": "2a8dc9e4c28a9632ffdf8f484ad12a985df70cd3",
+                                            "previous_source": "2666aa559afbff7cff8dff6b50ead357ae1f654f",
+                                            "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/frontend2a8dc9e4-complete-development-consumption-contract.json",
+                                            "manifest_sha256": "46b99b84e501358e1f3c83780c8b72d7e9e41d107aacbb8e5b56c864f924c521",
+                                            "local_manifest_copy": "ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/2a8dc9e4c28a9632ffdf8f484ad12a985df70cd3-complete-frontend.json",
+                                            "consumer_import_paths_verified": 58,
+                                            "current_manifest_records_verified": 126,
+                                            "imported_paths": [
+                                              "frontend/src/components/chart/UPlotChart.vue",
+                                              "frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue",
+                                              "frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue",
+                                              "frontend/src/components/dashboard/DashboardInstrumentSearch.vue",
+                                              "frontend/src/components/dashboard/DashboardLineChartWidget.vue",
+                                              "frontend/src/components/dashboard/DashboardQuoteWidget.vue",
+                                              "frontend/src/components/workstation/ChartPlotLibrary.vue",
+                                              "frontend/src/components/workstation/CodeLibraryTool.vue",
+                                              "frontend/src/components/workstation/EasyScanTool.vue",
+                                              "frontend/src/components/workstation/MarketGaugeTool.vue",
+                                              "frontend/src/components/workstation/MarketMapTool.vue",
+                                              "frontend/src/components/workstation/PythonSourceEditor.vue",
+                                              "frontend/src/components/workstation/ResearchResultsTool.vue",
+                                              "frontend/src/components/workstation/StudyLabTool.vue",
+                                              "frontend/src/components/workstation/WorkspaceLayoutHost.vue",
+                                              "frontend/src/components/workstation/WorkstationToolContent.vue",
+                                              "frontend/src/lib/api.ts",
+                                              "frontend/src/lib/dataPreparation.ts",
+                                              "frontend/src/lib/workstation/researchQueryKeys.ts",
+                                              "frontend/src/lib/workstation/sourceCapability.ts",
+                                              "frontend/src/router/index.ts",
+                                              "frontend/src/stores/dashboard.ts",
+                                              "frontend/src/stores/workspace.ts",
+                                              "frontend/src/views/ChartView.vue",
+                                              "frontend/src/views/DashboardView.vue",
+                                              "frontend/src/views/WorkstationView.vue",
+                                              "frontend/tests/e2e/auth_session_boundary.spec.ts",
+                                              "frontend/tests/e2e/dashboard_usability_journey.spec.ts",
+                                              "frontend/tests/e2e/flows.spec.ts",
+                                              "frontend/tests/e2e/on_demand_acquisition.spec.ts",
+                                              "frontend/tests/e2e/strategy_study_journey.spec.ts",
+                                              "frontend/tests/e2e/tc2000_visual.spec.ts",
+                                              "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts",
+                                              "frontend/tests/unit/components/test_chart_plot_library.test.ts",
+                                              "frontend/tests/unit/components/test_code_library_tool.test.ts",
+                                              "frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts",
+                                              "frontend/tests/unit/components/test_dashboard_instrument_search.test.ts",
+                                              "frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts",
+                                              "frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts",
+                                              "frontend/tests/unit/components/test_easy_scan_tool.test.ts",
+                                              "frontend/tests/unit/components/test_market_gauge_tool.test.ts",
+                                              "frontend/tests/unit/components/test_market_map_tool.test.ts",
+                                              "frontend/tests/unit/components/test_python_source_editor.test.ts",
+                                              "frontend/tests/unit/components/test_research_results_tool.test.ts",
+                                              "frontend/tests/unit/components/test_study_lab_tool.test.ts",
+                                              "frontend/tests/unit/components/test_workspace_layout_host.test.ts",
+                                              "frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts",
+                                              "frontend/tests/unit/lib/test_api_client.test.ts",
+                                              "frontend/tests/unit/lib/test_data_preparation.test.ts",
+                                              "frontend/tests/unit/lib/workstation_source_capability.test.ts",
+                                              "frontend/tests/unit/router/test_app_shell.test.ts",
+                                              "frontend/tests/unit/router/test_application_routes.test.ts",
+                                              "frontend/tests/unit/stores/test_dashboard_store.test.ts",
+                                              "frontend/tests/unit/stores/test_workspace_store.test.ts",
+                                              "frontend/tests/unit/views/test_chart_view_radar_handoff.test.ts",
+                                              "frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts",
+                                              "frontend/tests/unit/views/test_workstation_capabilities.test.ts",
+                                              "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts"
+                                            ],
+                                            "verification": "All126 manifest source rows verified; exact58 ETF consumer paths passed old guards, preserved equal bytes, and match released source/blob with executable-bit semantics.",
+                                            "state": "Root-released development dependency only; exact CI, combined browser qualification and release remain Root-owned/pending."
+                                          },
   "historical_tc_common_runtime_dependency_45ea51bf": {
     "source": "45ea51bfa78b6ae167462b518358164a5a3e29f4",
     "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-45ea51bf-common-runtime-development-consumption-contract.json",
@@ -4604,23 +4664,34 @@
     "state": "Root-released development dependency only. No native request, production mutation, integration, deployment, or combined acceptance is claimed; Root owns release qualification."
 },
   "current_provider_runtime_dependency": {
-    "authority": "Root released exact Provider source cc31077c60545e8455d1f064411fbddae7d21fe1 for ETF development consumption only; native worker restart proof and full release acceptance remain Root-owned.",
-    "source": "cc31077c60545e8455d1f064411fbddae7d21fe1",
-    "previous_source": "9b196304b573e323fb349fe4d7badfe2d8208f95",
-    "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providercc31077c-runtime-development-consumption-contract.json",
-    "manifest_sha256": "ef257b2871ebfe5fafb9b3bd2ee6994e9c9c3faea9ba9aaa7d295facae2a0574",
-    "local_manifest_copy": "ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/cc31077c60545e8455d1f064411fbddae7d21fe1.json",
-    "changed_paths_imported": [
-      "backend/app/tasks/data_tasks.py",
-      "backend/tests/unit/tasks/test_data_tasks.py"
-    ],
-    "source_manifest_records_verified": 76,
-    "consumer_import_paths_verified": 2,
-    "verification": "All76 manifest status/Git-blob/SHA256 rows match the exact source; both ETF paths passed old-byte guards and match source bytes, with executable-bit semantics preserved.",
-    "provider_evidence": "Root reports the exact two-path native-prerequisite rollback repair; pinned style is green and the image is building. No Provider suite was rerun by ETF.",
-    "latest_native_attempts": "The XHB/IGV browser attempt used predecessor test source bd3a and failed only at duplicate-close tooltip date matching; frozen successor 74fa binds date and independently verifies OHLC. MSFT browser-closed attempt is failed/unattended with no bars and deferred price jobs; Root owns the same durable job restart proof.",
-    "state": "Root-released development dependency only; no native replay, HTTP, production mutation, acceptance, integration, or deployment is claimed."
-  },
+                                           "source": "b19293006ea624a4f0c05a4fd91152ffd650a426",
+                                           "previous_source": "cc31077c60545e8455d1f064411fbddae7d21fe1",
+                                           "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providerb1929300-runtime-development-consumption-contract.json",
+                                           "manifest_sha256": "97b429b3d99e4f8da78edcc10ed13178a17b482e31a136941f8acff14290457d",
+                                           "local_manifest_copy": "ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/b19293006ea624a4f0c05a4fd91152ffd650a426.json",
+                                           "consumer_import_paths_verified": 15,
+                                           "current_manifest_records_verified": 78,
+                                           "imported_paths": [
+                                             "backend/app/routers/instruments.py",
+                                             "backend/app/services/data_preparation.py",
+                                             "backend/app/services/instrument_mastering.py",
+                                             "backend/app/services/market_data.py",
+                                             "backend/app/services/provider_routing.py",
+                                             "backend/app/services/provider_runtime.py",
+                                             "backend/app/tasks/data_tasks.py",
+                                             "backend/app/workers/arq_worker.py",
+                                             "backend/tests/unit/routers/test_instruments_router.py",
+                                             "backend/tests/unit/services/test_data_preparation_contracts.py",
+                                             "backend/tests/unit/services/test_provider_persistence.py",
+                                             "backend/tests/unit/services/test_provider_routing.py",
+                                             "backend/tests/unit/services/test_provider_runtime.py",
+                                             "backend/tests/unit/tasks/test_data_tasks.py",
+                                             "backend/tests/unit/workers/test_arq_worker.py"
+                                           ],
+                                           "verification": "All78 manifest source rows verified; exact15 ETF consumer paths passed old guards and match released source/blob with executable-bit semantics.",
+                                           "scope": "Recover native identity persistence and rollback-safe worker retry; preserve historical identifier values without repeated suffix growth. Retain first-series, partial coverage, deeper coherent defaults and known local refill repairs. Recover completed negative holdings children through normal bounded deduplicated requests; flush derived W1/MN before state projection, inherit source freshness and preserve adjustment lineage, and recover existing pending/null-signature caches through ordinary reads. All prior source fallback, canonical identity, quotas, source lineage, independent datasets and background preparation retained. Preserve all native quotas, prior held outcomes, provider eligibility, compatible series and all earlier shared backend contracts. Actual native, combined, exact CI and release proof remains pending.",
+                                           "state": "Root-released development dependency only; native/combined/exact-CI/release proof remains Root-owned."
+                                         },
   "current_checkpoint_2026_11_07_notes_lifecycle": {
     "source_parent": "369f0c8d051d8d7e17ea0dfe7478860f51218368",
     "owned_paths": [
@@ -4689,5 +4760,35 @@
     "ETF_bridge_review": "prepare_etf_holdings passes context.request_id to acquire_etf_holdings_profile. The refresh path binds the exact issuer acquisition and retains request-scoped rejection evidence; ETF acquisition/bridge code has no held-result memoization or result-cache lookup.",
     "dedupe_location": "Provider-owned data_preparation._enqueue_etf_holdings_job uses request_key prep-holdings plus a digest of instrument_id and hourly freshness_scope, then enqueue_refresh_job reuses the durable child. This shared hourly idempotency key is the observed stale-negative reuse point.",
     "owner_action": "Provider owns reevaluation/recovery of a completed negative child after eligibility changes, with original jobs and concurrency guards preserved. No ETF edit, queue reset, native request, source query, browser run, or runtime mutation occurred."
+  }
+,
+  "historical_tc_common_runtime_dependency_2666aa55": {
+    "source": "2666aa559afbff7cff8dff6b50ead357ae1f654f",
+    "previous_source": "c9fc3bbbfa9cc92ad037040fa3e610dd95bbf0ec",
+    "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-2666aa55-common-runtime-development-consumption-contract.json",
+    "manifest_sha256": "f0784a8337d3d53add381b0f06f9fd37e7e27fa861bca70d97e78ba341f3a10a",
+    "local_manifest_copy": "ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/2666aa559afbff7cff8dff6b50ead357ae1f654f.json",
+    "current_manifest_records_verified": 86,
+    "consumer_import_paths_verified": 6,
+    "verification": "All86 status_from139/SHA256/Git blob/executable-bit rows match the source; the exact6 ETF paths passed released old guards and match source.",
+    "state": "Root-released development dependency only; normal full RRG D1/W1/MN and lifecycle, Results, exact CI, and release gates remain pending."
+  },
+  "historical_provider_runtime_dependency_cc31077c": {
+    "authority": "Root released exact Provider source cc31077c60545e8455d1f064411fbddae7d21fe1 for ETF development consumption only; native worker restart proof and full release acceptance remain Root-owned.",
+    "source": "cc31077c60545e8455d1f064411fbddae7d21fe1",
+    "previous_source": "9b196304b573e323fb349fe4d7badfe2d8208f95",
+    "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providercc31077c-runtime-development-consumption-contract.json",
+    "manifest_sha256": "ef257b2871ebfe5fafb9b3bd2ee6994e9c9c3faea9ba9aaa7d295facae2a0574",
+    "local_manifest_copy": "ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/cc31077c60545e8455d1f064411fbddae7d21fe1.json",
+    "changed_paths_imported": [
+      "backend/app/tasks/data_tasks.py",
+      "backend/tests/unit/tasks/test_data_tasks.py"
+    ],
+    "source_manifest_records_verified": 76,
+    "consumer_import_paths_verified": 2,
+    "verification": "All76 manifest status/Git-blob/SHA256 rows match the exact source; both ETF paths passed old-byte guards and match source bytes, with executable-bit semantics preserved.",
+    "provider_evidence": "Root reports the exact two-path native-prerequisite rollback repair; pinned style is green and the image is building. No Provider suite was rerun by ETF.",
+    "latest_native_attempts": "The XHB/IGV browser attempt used predecessor test source bd3a and failed only at duplicate-close tooltip date matching; frozen successor 74fa binds date and independently verifies OHLC. MSFT browser-closed attempt is failed/unattended with no bars and deferred price jobs; Root owns the same durable job restart proof.",
+    "state": "Root-released development dependency only; no native replay, HTTP, production mutation, acceptance, integration, or deployment is claimed."
   }
 }

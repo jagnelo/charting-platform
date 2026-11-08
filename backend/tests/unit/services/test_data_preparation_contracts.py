@@ -186,7 +186,9 @@ async def test_identity_outcome_refreshes_expired_job_metadata_asynchronously(db
     )
     db.add(job)
     db.flush()
-    db.expire(job, ["metadata_payload"])
+    # A database rollback expires every mapped field, including the primary
+    # key; the async outcome recorder must refresh required JSON explicitly.
+    db.expire(job)
     session = AsyncSessionAdapter(db)
     await record_identity_preparation_outcome(
         session,
@@ -196,3 +198,48 @@ async def test_identity_outcome_refreshes_expired_job_metadata_asynchronously(db
     )
 
     assert job.metadata_payload == {"data_preparation_child": {"parent_refs": []}}
+
+
+@pytest.mark.asyncio
+async def test_identity_outcome_uses_state_identity_when_primary_key_is_expired(
+    monkeypatch,
+) -> None:
+    from types import SimpleNamespace
+
+    from app.services import data_preparation
+
+    class IdentityJob:
+        metadata_payload = None
+
+        @property
+        def id(self):
+            raise AssertionError("expired primary key must not be read synchronously")
+
+    identity_job = IdentityJob()
+    state = SimpleNamespace(
+        identity=(741,),
+        expired_attributes={"id", "metadata_payload"},
+    )
+    recorded = []
+
+    class Session:
+        async def refresh(self, job, *, attribute_names):
+            assert job is identity_job
+            assert attribute_names == ["metadata_payload"]
+            job.metadata_payload = {
+                "data_preparation_child": {"parent_refs": [{"parent_job_id": 91}]}
+            }
+
+    async def _record_parent_outcome(_db, **kwargs):
+        recorded.append(kwargs)
+
+    monkeypatch.setattr(data_preparation, "inspect", lambda _job, raiseerr=False: state)
+    monkeypatch.setattr(data_preparation, "_record_parent_identity_outcome", _record_parent_outcome)
+    await data_preparation.record_identity_preparation_outcome(
+        Session(),
+        identity_job=identity_job,
+        status="unavailable",
+        reason_code="identity_not_resolved",
+    )
+    assert recorded[0]["identity_job_id"] == 741
+    assert recorded[0]["parent_id"] == 91

@@ -22,15 +22,15 @@ const routerLinkStub = {
 
 function deferred<T>() {
   let resolve!: (value: T) => void
-  const promise = new Promise<T>(res => { resolve = res })
-  return { promise, resolve }
+  let reject!: (reason?: unknown) => void
+  const promise = new Promise<T>((res, rej) => { resolve = res; reject = rej })
+  return { promise, resolve, reject }
 }
 
 describe('ResearchResultsTool', () => {
   beforeEach(() => { apiGet.mockReset(); apiPost.mockReset() })
 
-  function mountTool() {
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+  function mountTool(queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })) {
     return mount(ResearchResultsTool, {
       global: {
         plugins: [[VueQueryPlugin, { queryClient }]],
@@ -39,12 +39,104 @@ describe('ResearchResultsTool', () => {
     })
   }
 
+  it('waits until a dock-mounted Results pane is observed visible before fetching runs', async () => {
+    let onIntersection: ((isIntersecting: boolean, target: Element) => void) | undefined
+    let observedTarget: Element | undefined
+    class ControlledIntersectionObserver {
+      constructor(callback: IntersectionObserverCallback) {
+        onIntersection = (isIntersecting, target) => callback([
+          { isIntersecting, intersectionRatio: isIntersecting ? 1 : 0, target } as IntersectionObserverEntry,
+        ], this as unknown as IntersectionObserver)
+      }
+      observe(target: Element) { observedTarget = target }
+      disconnect() {}
+      unobserve() {}
+      takeRecords() { return [] }
+    }
+    vi.stubGlobal('IntersectionObserver', ControlledIntersectionObserver)
+    apiGet.mockResolvedValue([])
+    const wrapper = mountTool()
+    try {
+      await flushPromises()
+      expect(observedTarget).toBe(wrapper.find('.research-results-tool').element)
+      expect(apiGet).not.toHaveBeenCalled()
+
+      onIntersection?.(false, observedTarget!)
+      await flushPromises()
+      expect(apiGet).not.toHaveBeenCalled()
+
+      onIntersection?.(true, observedTarget!)
+      await vi.waitFor(() => expect(apiGet).toHaveBeenCalledOnce())
+      await flushPromises()
+      expect(wrapper.text()).toContain('No persisted studies yet. Run a study in the adjacent Study Lab pane.')
+    } finally {
+      wrapper.unmount()
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('ends a stalled initial list read with a visible retry instead of loading forever', async () => {
+    vi.useFakeTimers()
+    apiGet
+      .mockImplementationOnce((_path: string, _params: unknown, options: { signal?: AbortSignal }) => new Promise((_resolve, reject) => {
+        options.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')), { once: true })
+      }))
+      .mockResolvedValueOnce([])
+    const wrapper = mountTool()
+    try {
+      await vi.advanceTimersByTimeAsync(0)
+      await Promise.resolve()
+      expect(apiGet).toHaveBeenCalledOnce()
+      const requestSignal = apiGet.mock.calls[0][2].signal as AbortSignal
+      expect(requestSignal.aborted).toBe(false)
+
+      await vi.advanceTimersByTimeAsync(15_000)
+      await vi.advanceTimersByTimeAsync(0)
+      await Promise.resolve()
+      expect(requestSignal.aborted).toBe(true)
+      expect(wrapper.get('[role="alert"]').text()).toContain('Loading persisted research runs timed out')
+      expect(wrapper.get('button[aria-label="Retry loading runs"]')).toBeTruthy()
+
+      await wrapper.get('button[aria-label="Retry loading runs"]').trigger('click')
+      await vi.advanceTimersByTimeAsync(0)
+      await Promise.resolve()
+      expect(apiGet).toHaveBeenCalledTimes(2)
+      expect(wrapper.get('[role="status"]').text()).toContain('No persisted studies yet')
+    } finally {
+      wrapper.unmount()
+      vi.useRealTimers()
+    }
+  })
+
+  it('clears a list-load error when another Study publishes successful cached runs', async () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    apiGet.mockRejectedValueOnce(new Error('temporary list failure'))
+    const wrapper = mountTool(queryClient)
+    try {
+      await flushPromises()
+      expect(wrapper.get('[role="alert"]').text()).toContain('temporary list failure')
+
+      queryClient.setQueryData(['workstation', 'research-runs'], [])
+      await flushPromises()
+
+      expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+      expect(wrapper.get('[role="status"]').text()).toContain('No persisted studies yet')
+    } finally {
+      wrapper.unmount()
+      queryClient.clear()
+    }
+  })
+
   it('loads persisted runs and exposes selected structured artifacts', async () => {
     apiGet.mockResolvedValue([{ id: 9, status: 'completed', reproducibility_hash: 'abc', diagnostics: [], artifacts: [{ id: 3, name: 'current_streak', artifact_type: 'scalar', payload: { value: 4 } }, { id: 4, name: 'distribution', artifact_type: 'histogram', payload: { value: { bins: [{ start: 1, end: 2, count: 1 }] } } }, { id: 5, name: 'ranking', artifact_type: 'bar', payload: { value: { labels: ['XLK'], values: [12] } } }, { id: 6, name: 'confidence', artifact_type: 'range', payload: { value: { timestamps: ['2026-01-01'], lower: [1], upper: [3], center: [2] } } }] }])
     const wrapper = mountTool()
     await flushPromises()
 
-    expect(apiGet).toHaveBeenCalledWith('/research/runs', { limit: 26, include_artifacts: false })
+    expect(apiGet).toHaveBeenCalledWith(
+      '/research/runs',
+      { limit: 26, include_artifacts: false },
+      { signal: expect.any(AbortSignal) },
+    )
     expect(wrapper.text()).toContain('Run #9')
     expect(wrapper.text()).toContain('current_streak')
     expect(wrapper.find('.histogram-chart').exists()).toBe(true)
@@ -55,8 +147,32 @@ describe('ResearchResultsTool', () => {
     expect(wrapper.find(`#${summaryId}`).text()).toContain('confidence range result with 1 observations')
   })
 
+  it('automatically refreshes the persisted-run list when a Study run is created elsewhere', async () => {
+    let listReads = 0
+    apiGet.mockImplementation((path: string) => {
+      if (path !== '/research/runs') return Promise.resolve({})
+      listReads += 1
+      return Promise.resolve(listReads === 1
+        ? [{ id: 6, status: 'completed', code_version_id: 42, run_config: {}, dataset_manifest: {}, artifact_count: 0, artifacts: [] }]
+        : [
+            { id: 7, status: 'completed', code_version_id: 43, run_config: {}, dataset_manifest: {}, artifact_count: 8, artifacts: [] },
+            { id: 6, status: 'completed', code_version_id: 42, run_config: {}, dataset_manifest: {}, artifact_count: 0, artifacts: [] },
+          ])
+    })
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    const wrapper = mount(ResearchResultsTool, {
+      global: { plugins: [[VueQueryPlugin, { queryClient }]], stubs: { RouterLink: routerLinkStub } },
+    })
+    await flushPromises()
+    expect(wrapper.find('[aria-label="Run 7, completed, 8 artifacts"]').exists()).toBe(false)
+
+    await queryClient.invalidateQueries({ queryKey: ['workstation', 'research-runs'] })
+    await vi.waitFor(() => expect(wrapper.find('[aria-label="Run 7, completed, 8 artifacts"]').exists()).toBe(true))
+    expect(listReads).toBe(2)
+  })
+
   it('links completed Study outputs to the read-only v2 inspector with their persisted IDs', async () => {
-    apiGet.mockResolvedValue([{ id: 29, status: 'completed', output_contract: 'study', reproducibility_hash: 'abc', diagnostics: [], artifacts: [
+    apiGet.mockResolvedValue([{ id: 29, status: 'completed', evaluation_status: 'completed', output_contract: 'study', reproducibility_hash: 'abc', diagnostics: [], artifacts: [
       { id: 73, name: 'score', artifact_type: 'scalar', payload: { type: 'scalar', value: 6 } },
       { id: 74, name: 'unsupported', artifact_type: 'custom', payload: { type: 'custom', value: 6 } },
       { id: 75, name: 'mismatched', artifact_type: 'scalar', payload: { type: 'series', value: 6 } },
@@ -73,10 +189,33 @@ describe('ResearchResultsTool', () => {
     expect(apiPost).not.toHaveBeenCalled()
   })
 
-  it('does not offer the v2 Study inspector for running or non-Study outputs', async () => {
+  it('shows a deferred evaluation as no-results rather than completed output', async () => {
+    apiGet.mockResolvedValue([{
+      id: 31,
+      status: 'completed',
+      evaluation_status: 'deferred',
+      output_contract: 'study',
+      code_version_id: 4,
+      run_config: {},
+      dataset_manifest: {},
+      diagnostics: [{ code: 'coverage_preflight_blocked' }],
+      artifact_count: 0,
+      artifacts: [],
+    }])
+    const wrapper = mountTool()
+    await flushPromises()
+
+    const status = wrapper.get('[aria-label="Run 31 status: Evaluation deferred"]')
+    expect(status.attributes('data-status')).toBe('completed')
+    expect(wrapper.get('.research-results-tool__run-guidance').text()).toContain('No artifacts were produced')
+    expect(wrapper.find('a[aria-label*="immutable Study lineage"]').exists()).toBe(false)
+  })
+
+  it('does not offer the v2 Study inspector for running, non-Study, or deferred outputs', async () => {
     apiGet.mockResolvedValue([
       { id: 29, status: 'running', output_contract: 'study', diagnostics: [], artifacts: [{ id: 73, name: 'score', artifact_type: 'scalar', payload: { value: 6 } }] },
       { id: 30, status: 'completed', output_contract: 'events', diagnostics: [], artifacts: [{ id: 74, name: 'events', artifact_type: 'events', payload: { value: [] } }] },
+      { id: 31, status: 'completed', evaluation_status: 'deferred', output_contract: 'study', diagnostics: [], artifacts: [{ id: 75, name: 'deferred-score', artifact_type: 'scalar', payload: { type: 'scalar', value: 6 } }] },
     ])
     const wrapper = mountTool()
     await flushPromises()
@@ -350,6 +489,62 @@ describe('ResearchResultsTool', () => {
     expect(wrapper.text()).not.toContain('Loading selected run details…')
   })
 
+  it('keeps full selected-run artifacts across summary refresh, reselection, and remount', async () => {
+    const summary = {
+      id: 9,
+      status: 'completed',
+      code_version_id: 7,
+      run_config: {},
+      dataset_manifest: {},
+      artifact_count: 8,
+      artifacts: [],
+    }
+    const detail = {
+      ...summary,
+      run_config: { symbol: 'SPY' },
+      dataset_manifest: { symbol: 'SPY', bar_count: 520 },
+      artifacts: Array.from({ length: 8 }, (_, index) => ({
+        id: index + 1,
+        name: `metric_${index + 1}`,
+        artifact_type: 'scalar',
+        payload: { value: index + 1 },
+      })),
+    }
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/research/runs') return Promise.resolve([{ ...summary, artifacts: [] }])
+      if (path === '/research/runs/9') return Promise.resolve(detail)
+      return Promise.reject(new Error(`Unexpected Research Results request: ${path}`))
+    })
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 60_000 } } })
+    const showAllEightArtifacts = (wrapper: ReturnType<typeof mountTool>) => {
+      expect(wrapper.find('[aria-label="Research run 9 details"]').exists()).toBe(true)
+      expect(wrapper.findAll('.research-results-tool__artifacts > article')).toHaveLength(8)
+      expect(wrapper.text()).toContain('metric_1')
+      expect(wrapper.text()).toContain('metric_8')
+    }
+
+    const first = mountTool(queryClient)
+    await vi.waitFor(() => showAllEightArtifacts(first))
+
+    await queryClient.invalidateQueries({ queryKey: ['workstation', 'research-runs'] })
+    await vi.waitFor(() => expect(apiGet.mock.calls.filter(([path]) => path === '/research/runs')).toHaveLength(2))
+    showAllEightArtifacts(first)
+
+    await first.get('button.research-results-tool__run-select').trigger('click')
+    await flushPromises()
+    showAllEightArtifacts(first)
+
+    first.unmount()
+    const remounted = mountTool(queryClient)
+    try {
+      await vi.waitFor(() => showAllEightArtifacts(remounted))
+      expect(apiGet.mock.calls.filter(([path]) => path === '/research/runs/9')).toHaveLength(1)
+    } finally {
+      remounted.unmount()
+      queryClient.clear()
+    }
+  })
+
   it('shows detail-load failure and allows an explicit retry', async () => {
     let detailAttempt = 0
     let resolveRetry!: (value: unknown) => void
@@ -389,6 +584,84 @@ describe('ResearchResultsTool', () => {
     await flushPromises()
     expect(apiPost).toHaveBeenCalledWith('/research/runs/12/cancel', {})
     expect(wrapper.text()).toContain('canceled')
+  })
+
+  it('reports a cancellation failure and leaves the selected run retryable', async () => {
+    const running = { id: 13, status: 'running', code_version_id: 4, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [] }
+    apiGet.mockResolvedValue([running])
+    apiPost.mockRejectedValueOnce(new Error('cancel endpoint unavailable')).mockResolvedValue({ ...running, status: 'canceled' })
+    const wrapper = mountTool()
+    await flushPromises()
+
+    await wrapper.get('[aria-label="Research run 13 details"]').get('button').trigger('click')
+    await flushPromises()
+    expect(wrapper.get('[role="alert"]').text()).toContain('cancel endpoint unavailable')
+
+    const cancel = wrapper.get('[aria-label="Research run 13 details"]').get('button')
+    expect(cancel.attributes('disabled')).toBeUndefined()
+    await cancel.trigger('click')
+    await flushPromises()
+    expect(apiPost).toHaveBeenCalledTimes(2)
+    expect(wrapper.text()).toContain('canceled')
+    wrapper.unmount()
+  })
+
+  it('reports a rerun failure without disabling a subsequent retry', async () => {
+    const completed = { id: 14, status: 'completed', code_version_id: 4, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [] }
+    apiGet.mockResolvedValue([completed])
+    apiPost.mockRejectedValueOnce(new Error('rerun endpoint unavailable')).mockResolvedValue({ ...completed, id: 15, status: 'queued' })
+    const wrapper = mountTool()
+    await flushPromises()
+
+    const rerun = wrapper.findAll('button').find(button => button.text() === 'Rerun snapshot')!
+    await rerun.trigger('click')
+    await flushPromises()
+    expect(wrapper.get('[role="alert"]').text()).toContain('rerun endpoint unavailable')
+    expect(rerun.attributes('disabled')).toBeUndefined()
+
+    await rerun.trigger('click')
+    await flushPromises()
+    expect(apiPost).toHaveBeenCalledTimes(2)
+    expect(wrapper.text()).toContain('Run #15')
+    wrapper.unmount()
+  })
+
+  it('identifies the source run when a delayed cancellation fails after selection changes', async () => {
+    const sourceRun = { id: 13, status: 'running', code_version_id: 4, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [] }
+    const otherRun = { id: 14, status: 'running', code_version_id: 5, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [] }
+    const cancellation = deferred<typeof sourceRun>()
+    apiGet.mockResolvedValue([sourceRun, otherRun])
+    apiPost.mockImplementation((path: string) => path === '/research/runs/13/cancel' ? cancellation.promise : Promise.resolve({}))
+    const wrapper = mountTool()
+    await flushPromises()
+
+    await wrapper.get('[aria-label="Research run 13 details"]').get('button').trigger('click')
+    await wrapper.findAll('button.research-results-tool__run-select')[1].trigger('click')
+    cancellation.reject(new Error('cancel endpoint unavailable'))
+    await flushPromises()
+
+    expect(wrapper.get('[aria-label="Research run 14 details"]').exists()).toBe(true)
+    expect(wrapper.get('[role="alert"]').text()).toContain('Unable to cancel run #13: cancel endpoint unavailable')
+    wrapper.unmount()
+  })
+
+  it('identifies the source run when a delayed rerun fails after selection changes', async () => {
+    const sourceRun = { id: 15, status: 'completed', code_version_id: 4, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [] }
+    const otherRun = { id: 16, status: 'completed', code_version_id: 5, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [] }
+    const rerun = deferred<typeof sourceRun>()
+    apiGet.mockResolvedValue([sourceRun, otherRun])
+    apiPost.mockImplementation((path: string) => path === '/research/runs/15/rerun?snapshot=true' ? rerun.promise : Promise.resolve({}))
+    const wrapper = mountTool()
+    await flushPromises()
+
+    await wrapper.get('[aria-label="Research run 15 details"]').findAll('button').find(button => button.text() === 'Rerun snapshot')!.trigger('click')
+    await wrapper.findAll('button.research-results-tool__run-select')[1].trigger('click')
+    rerun.reject(new Error('rerun endpoint unavailable'))
+    await flushPromises()
+
+    expect(wrapper.get('[aria-label="Research run 16 details"]').exists()).toBe(true)
+    expect(wrapper.get('[role="alert"]').text()).toContain('Unable to queue rerun for run #15: rerun endpoint unavailable')
+    wrapper.unmount()
   })
 
   it('propagates rerun and cancel mutations through the shared results cache', async () => {
@@ -439,12 +712,13 @@ describe('ResearchResultsTool', () => {
     expect(wrapper.find('[aria-label="Research run 23 details"]').exists()).toBe(false)
   })
 
-  it('does not publish a late rerun response after the tool unmounts', async () => {
+  it('keeps an accepted rerun in shared Results cache after the tool unmounts', async () => {
     const run = { id: 24, status: 'completed', code_version_id: 4, run_config: {}, dataset_manifest: {}, artifacts: [] }
     const rerun = deferred<typeof run>()
     apiGet.mockResolvedValue([run])
     apiPost.mockImplementation((path: string) => path === '/research/runs/24/rerun?snapshot=true' ? rerun.promise : Promise.resolve({}))
-    const wrapper = mountTool()
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 60_000 } } })
+    const wrapper = mountTool(queryClient)
     await flushPromises()
 
     await wrapper.findAll('button').find(button => button.text() === 'Rerun snapshot')!.trigger('click')
@@ -452,7 +726,33 @@ describe('ResearchResultsTool', () => {
     rerun.resolve({ ...run, id: 25, status: 'queued' })
     await flushPromises()
 
-    expect((wrapper.vm as unknown as { runs: typeof run[] }).runs).toEqual([run])
+    await vi.waitFor(() => expect(queryClient.getQueryData<typeof run[]>(['workstation', 'research-runs'])).toEqual(expect.arrayContaining([expect.objectContaining({ id: 25, status: 'queued' })])))
+    const returnedResults = mountTool(queryClient)
+    await vi.waitFor(() => expect(returnedResults.find('[aria-label="Run 25, queued, 0 artifacts"]').exists()).toBe(true))
+    returnedResults.unmount()
+    queryClient.clear()
+  })
+
+  it('keeps an accepted cancellation in shared Results cache after the tool unmounts', async () => {
+    const run = { id: 26, status: 'running', code_version_id: 4, run_config: {}, dataset_manifest: {}, artifacts: [] }
+    const cancel = deferred<typeof run>()
+    apiGet.mockResolvedValue([run])
+    apiPost.mockImplementation((path: string) => path === '/research/runs/26/cancel' ? cancel.promise : Promise.resolve({}))
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 60_000 } } })
+    const wrapper = mountTool(queryClient)
+    await flushPromises()
+
+    await wrapper.findAll('button').find(button => button.text() === 'Cancel')!.trigger('click')
+    expect(apiPost).toHaveBeenCalledWith('/research/runs/26/cancel', {})
+    wrapper.unmount()
+    cancel.resolve({ ...run, status: 'canceled' })
+    await flushPromises()
+
+    await vi.waitFor(() => expect(queryClient.getQueryData<typeof run[]>(['workstation', 'research-runs'])).toEqual(expect.arrayContaining([expect.objectContaining({ id: 26, status: 'canceled' })])))
+    const returnedResults = mountTool(queryClient)
+    await vi.waitFor(() => expect(returnedResults.find('[aria-label="Run 26, canceled, 0 artifacts"]').exists()).toBe(true))
+    returnedResults.unmount()
+    queryClient.clear()
   })
 
   it('does not publish a late breadth promotion after the tool unmounts', async () => {
@@ -472,6 +772,29 @@ describe('ResearchResultsTool', () => {
 
     expect((wrapper.vm as unknown as { promotedScans: Record<number, unknown> }).promotedScans).toEqual({})
     expect((wrapper.vm as unknown as { promotionMessage: string }).promotionMessage).toBe('')
+  })
+
+  it('keeps a late promotion result attached to its source run after selection changes', async () => {
+    const sourceRun = { id: 25, status: 'completed', code_version_id: 4, run_config: { execution_mode: 'breadth_history' }, dataset_manifest: {}, diagnostics: [], artifacts: [
+      { id: 12, name: 'breadth_history', artifact_type: 'breadth_history', payload: { value: { points: [], occurrences: [] } } },
+    ] }
+    const otherRun = { id: 26, status: 'completed', code_version_id: 5, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [] }
+    const promotion = deferred<{ id: number; name: string }>()
+    apiGet.mockResolvedValue([sourceRun, otherRun])
+    apiPost.mockImplementation((path: string) => path === '/analysis/breadth/python/runs/25/promote-scan' ? promotion.promise : Promise.resolve({}))
+    const wrapper = mountTool()
+    await flushPromises()
+
+    await wrapper.findAll('button').find(button => button.text() === 'Promote to EasyScan')!.trigger('click')
+    await wrapper.findAll('button.research-results-tool__run-select')[1].trigger('click')
+    promotion.resolve({ id: 56, name: 'Source run scan' })
+    await flushPromises()
+
+    expect(wrapper.get('[aria-label="Research run 26 details"]').exists()).toBe(true)
+    expect(wrapper.text()).not.toContain('EasyScan “Source run scan” (#56) created')
+
+    await wrapper.findAll('button.research-results-tool__run-select')[0].trigger('click')
+    expect(wrapper.text()).toContain('EasyScan “Source run scan” (#56) created')
   })
 
   it('renders persisted scatter and heatmap artifacts with native result surfaces', async () => {

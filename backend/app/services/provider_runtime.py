@@ -1061,6 +1061,15 @@ class ResolvedProvider:
     support_status: str = SUPPORT_STATUS_UNKNOWN
     has_symbol_binding: bool = False
     entitlement: ProviderEntitlement | None = None
+    routing_score: Decimal | None = None
+
+    @property
+    def effective_score(self) -> Decimal:
+        """Return the live routing score without requiring an ORM write."""
+
+        if self.routing_score is not None:
+            return self.routing_score
+        return _effective_score(self.policy, self.health)
 
 
 @dataclass(slots=True)
@@ -3132,6 +3141,7 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
                     )
                 )
             ).scalar_one_or_none()
+            policy_was_new = policy is None
             rate_seed = provider_rate_limit_seed(provider_name)
             freshness = settings.PROVIDER_FRESHNESS_SEEDS.get(
                 capability.value,
@@ -3352,6 +3362,7 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
                     )
                 )
             ).scalar_one_or_none()
+            health_was_new = health is None
             if health is None:
                 health = ProviderHealthState(
                     data_source_id=data_source.id,
@@ -3370,9 +3381,18 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
             if health.ewma_consistency is None:
                 health.ewma_consistency = Decimal("1")
             if health.observed_score is None:
-                health.observed_score = Decimal("0")
-            policy.effective_score = _effective_score(policy, health)
-            health.observed_score = policy.effective_score
+                health.observed_score = (
+                    _effective_score(policy, health)
+                    if policy_was_new or health_was_new
+                    else Decimal("0")
+                )
+            if policy_was_new or health_was_new:
+                # Seed the persisted display value once when the score rows are
+                # first created. Recomputing it on every request dirties shared
+                # policy/health rows before provider transport and can hold
+                # their locks throughout a slow source call.
+                policy.effective_score = _effective_score(policy, health)
+                health.observed_score = policy.effective_score
 
     # ETF publisher adapters are intentionally outside the generic Provider
     # registry, so the normal capability loop above cannot create their
@@ -3468,8 +3488,9 @@ async def resolve_provider_chain(
         and str(provider_symbol or "").strip().upper() == native_etf_qualification.provider_symbol
     )
     # The selected-history-bound endpoint uses this resolver to inspect the
-    # current reviewed chain without seeding rows or updating health scores.
-    # Runtime callers keep the established seed/update behavior by default.
+    # current reviewed chain without seeding rows. Routing scores are computed
+    # in memory for every caller; persisting a score during selection would
+    # dirty shared rows before the provider request starts.
     if not read_only:
         await seed_provider_runtime(db)
     if not settings.PROVIDER_ROUTING_ENABLED:
@@ -3846,9 +3867,7 @@ async def resolve_provider_chain(
         )
         if effective_support == SUPPORT_STATUS_UNSUPPORTED:
             continue
-        if not read_only:
-            policy.effective_score = _effective_score(policy, health)
-            health.observed_score = policy.effective_score
+        routing_score = _effective_score(policy, health)
         resolved.append(
             ResolvedProvider(
                 provider_name=data_source.name,
@@ -3859,6 +3878,7 @@ async def resolve_provider_chain(
                 support_status=effective_support,
                 has_symbol_binding=data_source.id in binding_ids,
                 entitlement=entitlement,
+                routing_score=routing_score,
             )
         )
     resolved.sort(
@@ -3866,7 +3886,7 @@ async def resolve_provider_chain(
             0 if item.policy.is_pinned else 1,
             0 if item.support_status == SUPPORT_STATUS_SUPPORTED else 1,
             0 if item.has_symbol_binding else 1,
-            -float(item.policy.effective_score),
+            -float(item.effective_score),
             item.policy.base_priority,
             item.provider_name,
         )
@@ -3949,6 +3969,7 @@ async def execute_provider_call(
     capture_response_payloads: bool = True,
     etf_holdings_adapters: dict[str, Any] | None = None,
     request_log_id_callback: Callable[[int], None] | None = None,
+    seed_runtime: bool = True,
 ) -> ProviderExecutionResult:
     if inspect.iscoroutinefunction(invoke):
         raise TypeError(
@@ -4002,6 +4023,10 @@ async def execute_provider_call(
         "adjusted": adjusted,
         "history_start": history_start,
         "etf_holdings_adapters": etf_holdings_adapters,
+        # Explicit discovery first resolves the already-seeded runtime once,
+        # then executes each candidate in order. Avoid replaying the full
+        # provider seed/reconciliation pass for every candidate.
+        "read_only": not seed_runtime,
     }
     if (
         _ETF_INITIAL_QUALIFICATION_CONTEXT.get() is not None

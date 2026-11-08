@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { workspaceToolRole, type OpenableToolDefinition } from '@/stores/workspace'
 
@@ -28,6 +30,47 @@ const supported: OpenableToolDefinition[] = [
 ]
 
 describe('primary workstation capability boundary', () => {
+  it('classifies all current catalogue and factory panels by concrete type and semantic configuration', () => {
+    const matrix = JSON.parse(readFileSync(resolve(process.cwd(), '../ops/workstreams/feat-tc2000-frontend-rework/journey-matrix.json'), 'utf8')) as {
+      add_tool_definitions: Array<{ key: string; tool_type: string; configuration: Record<string, unknown> }>
+      factory_layouts: Array<{ panels: Array<{ instance_key: string; tool_type: string; configuration: Record<string, unknown> }> }>
+    }
+    const panels = matrix.factory_layouts.flatMap(layout => layout.panels)
+    expect(matrix.add_tool_definitions).toHaveLength(21)
+    expect(panels).toHaveLength(38)
+    const records = [
+      ...matrix.add_tool_definitions.map(tool => ({ instance_key: tool.key, tool_type: tool.tool_type, configuration: tool.configuration })),
+      ...panels,
+    ]
+    const expectedRole = (tool: typeof records[number]) => {
+      if (tool.tool_type === 'chart') return tool.configuration.auto_ratio === true || tool.instance_key.startsWith('ratio-chart') ? 'relative-strength' : null
+      if (tool.tool_type !== 'watchlist') return null
+      const role = tool.configuration.workspace_role
+      if (['benchmark-universe', 'sector-universe', 'industry-universe', 'constituent-universe'].includes(String(role))) return role
+      const group = tool.configuration.market_group
+      if (group === 'us-benchmarks') return 'benchmark-universe'
+      if (group === 'sp500-sectors') return 'sector-universe'
+      if (group === 'selected-sector-industries') return 'industry-universe'
+      if (group === 'selected-industry-constituents') return 'constituent-universe'
+      const key = tool.instance_key.toLowerCase()
+      if (['benchmark-list'].includes(key)) return 'benchmark-universe'
+      if (['sector-list', 'sectors'].includes(key)) return 'sector-universe'
+      if (['industry-list', 'industries'].includes(key)) return 'industry-universe'
+      if (['constituent-list', 'components'].includes(key)) return 'constituent-universe'
+      return null
+    }
+    for (const tool of records) {
+      expect(workspaceToolRole(tool), `${tool.tool_type}:${tool.instance_key}`).toBe(expectedRole(tool))
+    }
+    expect(workspaceToolRole({
+      instance_key: 'sector-comparison', tool_type: 'chart',
+      configuration: { workspace_role: 'sector-universe', market_group: 'sp500-sectors' },
+    })).toBeNull()
+    expect(workspaceToolRole({
+      instance_key: 'industry-list-snapshot-copy', tool_type: 'watchlist', configuration: {},
+    })).toBe('industry-universe')
+  })
+
   it('keeps supported analysis and research tool types represented by the canonical contract', () => {
     const registered = new Set(supported.map(tool => tool.tool_type))
     expect(registered).toEqual(new Set([

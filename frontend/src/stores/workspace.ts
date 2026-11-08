@@ -111,16 +111,22 @@ const WORKSPACE_TOOL_ROLES = new Set(['benchmark-universe', 'sector-universe', '
  * workspaces are recognized once by their historical key; new and cloned
  * windows carry the role in serializable configuration instead. */
 export function workspaceToolRole(tool: Pick<WorkspaceWindowState, 'instance_key' | 'tool_type' | 'configuration'>): string | null {
-  const configured = typeof tool.configuration.workspace_role === 'string' ? tool.configuration.workspace_role : ''
-  if (WORKSPACE_TOOL_ROLES.has(configured)) return configured
-  if (tool.tool_type === 'chart' && (tool.instance_key === 'ratio-chart' || tool.instance_key.startsWith('ratio-chart-')
-    || tool.configuration.auto_ratio === true)) return 'relative-strength'
+  // The concrete catalogue type owns the renderer contract. A copied chart
+  // must never become a specialized watchlist because of a stale role field.
+  if (tool.tool_type === 'chart') {
+    if (tool.instance_key === 'ratio-chart' || tool.instance_key.startsWith('ratio-chart-')
+      || tool.configuration.auto_ratio === true) return 'relative-strength'
+    return null
+  }
   if (tool.tool_type !== 'watchlist') return null
+  const configured = typeof tool.configuration.workspace_role === 'string' ? tool.configuration.workspace_role : ''
+  if (WORKSPACE_TOOL_ROLES.has(configured) && configured !== 'relative-strength') return configured
   const group = typeof tool.configuration.market_group === 'string' ? tool.configuration.market_group.toLowerCase() : ''
-  if (group === 'us-benchmarks' || tool.instance_key === 'benchmark-list') return 'benchmark-universe'
-  if (group === 'sp500-sectors' || tool.instance_key === 'sector-list' || tool.instance_key === 'sectors') return 'sector-universe'
-  if (group === 'selected-sector-industries' || tool.instance_key === 'industry-list' || tool.instance_key === 'industries') return 'industry-universe'
-  if (group === 'selected-industry-constituents' || tool.instance_key === 'constituent-list' || tool.instance_key === 'components') return 'constituent-universe'
+  const key = tool.instance_key.toLowerCase()
+  if (group === 'us-benchmarks' || key === 'benchmark-list' || key.startsWith('benchmark-list-')) return 'benchmark-universe'
+  if (group === 'sp500-sectors' || ['sector-list', 'sectors'].some(prefix => key === prefix || key.startsWith(`${prefix}-`))) return 'sector-universe'
+  if (group === 'selected-sector-industries' || ['industry-list', 'industries'].some(prefix => key === prefix || key.startsWith(`${prefix}-`))) return 'industry-universe'
+  if (group === 'selected-industry-constituents' || ['constituent-list', 'components'].some(prefix => key === prefix || key.startsWith(`${prefix}-`))) return 'constituent-universe'
   return null
 }
 
@@ -1069,6 +1075,12 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const workspace = ref<WorkspaceState | null>(null)
   const workspaces = ref<WorkspaceSummary[]>([])
   const activeTabKey = ref<string>('us-top-down')
+  function workspaceActiveTabKey(state: WorkspaceState): string {
+    const saved = typeof state.settings.active_tab_key === 'string' ? state.settings.active_tab_key : null
+    return state.tabs.some(tab => tab.stable_key === saved)
+      ? saved!
+      : state.tabs[0]?.stable_key ?? 'us-top-down'
+  }
   const linkedSymbol = ref('SPY')
   /**
    * Shared selection is keyed by link group. `linkedSymbol` remains the blue/default
@@ -1457,7 +1469,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       workspace.value = latest
       persistedWorkspace = cloneSerializable(latest)
       if (!latest.tabs.some(tab => tab.stable_key === activeTabKey.value)) {
-        activeTabKey.value = latest.tabs[0]?.stable_key ?? 'us-top-down'
+        activeTabKey.value = workspaceActiveTabKey(latest)
       }
       error.value = null
     } catch (cause: any) {
@@ -1815,7 +1827,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       persistedWorkspace = cloneSerializable(workspace.value)
       snapshotSaveStatus.value = 'saved'
       snapshotSaveError.value = null
-      activeTabKey.value = workspace.value.tabs[0]?.stable_key ?? 'us-top-down'
+      activeTabKey.value = workspaceActiveTabKey(workspace.value)
       // Link selections are shared workspace state. Restore each concrete
       // group's last symbol plus Yellow's last received symbol from settings;
       // older workspaces fall back to the persisted symbols on their tools.
@@ -1925,7 +1937,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       persistedWorkspace = cloneSerializable(next)
       snapshotSaveStatus.value = 'saved'
       snapshotSaveError.value = null
-      activeTabKey.value = next.tabs[0]?.stable_key ?? 'us-top-down'
+      activeTabKey.value = workspaceActiveTabKey(next)
       error.value = null
       await refreshWorkspaces()
       return next
@@ -2003,10 +2015,16 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   function snapshotPayload(current: WorkspaceState) {
+    const activeTab = current.tabs.find(tab => tab.stable_key === activeTabKey.value)
     return {
       base_revision: current.revision,
       name: current.name,
-      settings: current.settings,
+      // Active layout is part of the user's workspace context. Older snapshots
+      // simply omit this key and continue to open the first available tab.
+      settings: {
+        ...current.settings,
+        active_tab_key: activeTab?.stable_key ?? current.tabs[0]?.stable_key ?? 'us-top-down',
+      },
       schema_version: current.schema_version,
       tabs: current.tabs.map(tab => ({
         stable_key: tab.stable_key,
@@ -3236,7 +3254,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
             const recovery = await preserveConflictRecovery(current)
             workspace.value = latest
             persistedWorkspace = cloneSerializable(latest)
-            activeTabKey.value = latest.tabs[0]?.stable_key ?? 'us-top-down'
+            activeTabKey.value = workspaceActiveTabKey(latest)
             error.value = `Workspace changed elsewhere. Your local changes were preserved as '${recovery.name}'.`
             snapshotSaveStatus.value = 'error'
             snapshotSaveError.value = error.value

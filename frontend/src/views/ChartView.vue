@@ -627,9 +627,12 @@ async function selectChartSymbol(
   }
   if (layoutStore.layout === '1') {
     // Single panel: load into the global chart store
-    await chartStore.loadBars(symbol, currentTf.value, chartStore.barType, true)
-    if (!isCurrentSelection()) return
+    const localLoad = chartStore.loadBars(symbol, currentTf.value, chartStore.barType, true)
+    // Submit shared preparation as soon as the local read is underway. A slow
+    // local request must not postpone durable preparation for this visible chart.
     if (acquireHistory) void acquireSelectedChartHistory(symbol, selectedChartStore, isCurrentSelection, confirmedIdentity, historyController.signal)
+    await localLoad
+    if (!isCurrentSelection()) return
     const inst = chartStore.instrument
     if (inst) {
       await drawStore.loadDrawings(inst.id, currentTf.value)
@@ -648,15 +651,23 @@ async function selectChartSymbol(
   } else {
     // Multi-panel: broadcast symbol to panels in the same colour link group.
     const targetIds = panelLinksStore.linkedPanelIds(layoutStore.activePanelId, layoutStore.panels.map(p => p.id))
+    let preparationStarted = false
     for (const panelId of targetIds) {
       const p = layoutStore.panels.find(item => item.id === panelId)
       if (!p) continue
       const pStore = usePanelStore(p.id)
       layoutStore.updatePanel(p.id, { symbol })
-      await pStore.loadBars(symbol, p.timeframe, pStore.barType, true)
+      const localLoad = pStore.loadBars(symbol, p.timeframe, pStore.barType, true)
+      if (pStore === selectedChartStore && acquireHistory) {
+        preparationStarted = true
+        void acquireSelectedChartHistory(symbol, selectedChartStore, isCurrentSelection, confirmedIdentity, historyController.signal)
+      }
+      await localLoad
       if (!isCurrentSelection()) return
     }
-    if (acquireHistory) void acquireSelectedChartHistory(symbol, selectedChartStore, isCurrentSelection, confirmedIdentity, historyController.signal)
+    if (acquireHistory && !preparationStarted) {
+      void acquireSelectedChartHistory(symbol, selectedChartStore, isCurrentSelection, confirmedIdentity, historyController.signal)
+    }
     const activeStore = usePanelStore(layoutStore.activePanelId)
     const activeInst = activeStore.instrument
     if (activeInst) {

@@ -657,13 +657,13 @@ async def select_provider(
         )
         db.add(lease)
         candidates.append(
-            {"provider": resolved.provider_name, "score": str(resolved.policy.effective_score)}
+            {"provider": resolved.provider_name, "score": str(resolved.effective_score)}
         )
         selected = (resolved, lease)
         break
     if selected is None:
         candidates.extend(
-            {"provider": item.provider_name, "score": str(item.policy.effective_score)}
+            {"provider": item.provider_name, "score": str(item.effective_score)}
             for item in providers
         )
     decision = ProviderRoutingDecision(

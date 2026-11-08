@@ -512,8 +512,14 @@ onAuthSessionBoundary(() => dataPreparationCoordinator.cancelAll())
 /** User-facing status language deliberately omits provider/policy reason codes. */
 export function preparationStatusMessage(response: DataEnsureResponse, now = Date.now()): string {
   if (response.status === 'ready') return 'Requested data is ready.'
-  const reasonCodes = [...new Set(response.dependencies.map(dependency => dependency.reason_code).filter((code): code is string => Boolean(code)))]
-  const reasonMessage = reasonCodes.map(userSafeReasonMessage).find(Boolean)
+  const reasonMessage = response.dependencies
+    .map(dependency => userSafeReasonMessage(dependency.reason_code, dependency.dataset))
+    .find(Boolean)
+  const futureDatedHoldings = response.dependencies.some(dependency => dependency.dataset === 'holdings'
+    && dependency.reason_code?.toLowerCase() === 'future_dated_source')
+  if (futureDatedHoldings) {
+    return `${userSafeReasonMessage('future_dated_source', 'holdings')} Your current view remains usable.`
+  }
   if (response.status === 'waiting') {
     const retryAt = responseRetryAt(response, now)
     const reason = reasonMessage ?? 'This data request is temporarily paused.'
@@ -524,6 +530,67 @@ export function preparationStatusMessage(response: DataEnsureResponse, now = Dat
   if (response.status === 'unavailable') return `${reasonMessage ?? 'Some requested data is unavailable.'} Available results remain usable.`
   if (response.status === 'failed') return `${reasonMessage ?? 'The data request could not be completed.'} Your current view remains usable.`
   return 'Preparing requested data…'
+}
+
+/** Report history independently when identity/profile dependencies are still progressing. */
+export function historyPreparationStatusMessage(
+  response: DataEnsureResponse,
+  symbol: string,
+  timeframe: PreparationTimeframe,
+  completed: number,
+  total: number,
+  now = Date.now(),
+): string {
+  if (response.status === 'ready') return `The admitted ${timeframe} history for ${symbol} is available locally.`
+
+  const history = response.dependencies.filter(dependency => dependency.dataset === 'history')
+  if (!history.length) return `Confirming instrument details for ${symbol} before preparing ${timeframe} history…`
+
+  const hasHistoryCoverage = history.some(dependency => dependency.covered_ranges.length > 0
+    || (dependency.covered_start !== null && dependency.covered_end !== null))
+  const pendingWork = response.has_pending_work !== false
+  const historyBackfillPending = pendingWork && history.some(dependency =>
+    ['queued', 'running', 'waiting'].includes(dependency.status)
+      || dependency.reason_code === 'history_backfill_pending'
+      || (dependency.status === 'partial' && dependency.retry_at !== null))
+
+  if (historyBackfillPending) {
+    const isWaiting = history.some(dependency => dependency.status === 'waiting'
+      || (dependency.status === 'partial' && dependency.retry_at !== null))
+    if (isWaiting) {
+      const detail = preparationStatusMessage({ ...response, status: 'waiting', dependencies: history }, now)
+      return `Older ${timeframe} history for ${symbol} is not yet complete. ${detail}`
+    }
+    return `Preparing older ${timeframe} history for ${symbol}; request progress ${completed}/${total}…`
+  }
+
+  const otherPending = pendingWork
+    ? response.dependencies.filter(dependency => dependency.dataset !== 'history'
+      && ['queued', 'running', 'partial', 'waiting'].includes(dependency.status))
+    : []
+  const identityPending = otherPending.some(dependency => dependency.dataset === 'identity')
+  const profilePending = otherPending.some(dependency => dependency.dataset === 'profile')
+  const otherProgress = identityPending && profilePending
+    ? 'Instrument identity and profile details are still being checked.'
+    : identityPending
+      ? 'Instrument identity is still being confirmed.'
+      : profilePending
+        ? 'Instrument details are still being checked.'
+        : otherPending.length ? 'Other requested data is still being prepared.' : ''
+
+  if (hasHistoryCoverage && history.some(dependency => dependency.status === 'partial')) {
+    const suffix = otherProgress
+      ? ` ${otherProgress}`
+      : ' Additional history is not currently available.'
+    return `Partial ${timeframe} price history for ${symbol} remains available.${suffix}`
+  }
+  if (history.every(dependency => dependency.status === 'ready')) {
+    return `The available ${timeframe} history for ${symbol} is ready to use.${otherProgress ? ` ${otherProgress}` : ''}`
+  }
+  if (response.status === 'partial' && otherProgress && hasHistoryCoverage) {
+    return `Available ${timeframe} history for ${symbol} remains usable. ${otherProgress}`
+  }
+  return preparationStatusMessage(response, now)
 }
 
 /** Keep dense toolbars short while the full honest result remains in details. */
@@ -544,8 +611,15 @@ export function preparationMessageSummary(message: string, subject: string): str
   return `${subject} status`
 }
 
-function userSafeReasonMessage(reasonCode: string): string | null {
+function userSafeReasonMessage(reasonCode: string | null, dataset?: PreparationDataset): string | null {
+  if (!reasonCode) return null
   const code = reasonCode.toLowerCase()
+  if (code === 'future_dated_source') {
+    return dataset === 'holdings'
+      ? 'Current holdings are unavailable because the latest source snapshot is dated in the future.'
+      : 'The latest source data is dated in the future and cannot be used as current data.'
+  }
+  if (code === 'history_backfill_pending') return 'Additional price history is still being prepared.'
   if (code.includes('quota') || code.includes('capacity')) return 'The data source is temporarily at its request capacity.'
   if (code.includes('credential') || code.includes('not_configured')) return 'The required source credentials are not available for this request.'
   if (code.includes('entitlement') || code.endsWith('_not_entitled')) return 'The current data-source entitlement does not include this request.'
