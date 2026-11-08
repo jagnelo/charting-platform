@@ -18850,3 +18850,16 @@ runtime, database, quota, production or shared-product operation ran. The
 separate strict proof and BWET future-source boundary remain unchanged. Root
 owns actual native browser qualification. Current successor SHA256
 `850904227597b32ceeb6423bd84f56a868124f645d9a3a2d3f4c29977fa2a8c7`.
+
+
+## ETF view preparation-subscriber cancellation regressions — 2026-11-08
+
+The focused ETF holdings view tests now observe the signal passed by
+`ETFHoldingsView` to `dataPreparationCoordinator.ensure`. They assert that the
+view subscriber is aborted on unmount or fund switch and that a late result
+cannot refresh or replace the newly selected fund. They do not require the
+coordinator's shared transport signal to abort synchronously while a request
+may still have other subscribers. The ETF holdings view module passes29/29 and
+the existing frontend type-check passes. No browser, backend, Source, quota,
+or production operation ran. Test file SHA256
+`abbf877da26e1547e4b0ab8c0304706effa2b24fd1caad7a29e3125d698cf84e`.

@@ -9,6 +9,7 @@ import {
   holdingDrilldownRouteState,
   type ETFHoldingDrilldownContext,
 } from '@/lib/etfHoldingDrilldown'
+import { dataPreparationCoordinator } from '@/lib/dataPreparation'
 
 const routerPush = vi.fn()
 
@@ -482,6 +483,7 @@ function overlapMatrixPayload() {
 
 describe('ETFHoldingsView', () => {
   beforeEach(() => {
+    vi.restoreAllMocks()
     vi.mocked(api.get).mockReset()
     vi.mocked(api.post).mockReset()
     routerPush.mockReset()
@@ -730,8 +732,9 @@ describe('ETFHoldingsView', () => {
   it('aborts the selected holdings observer and ignores a late response after unmount', async () => {
     let resolvePreparation!: (response: unknown) => void
     vi.mocked(api.get).mockResolvedValue([])
-    vi.mocked(api.post).mockImplementation((path) => {
-      if (path !== '/data/ensure') return Promise.reject(new Error(`Unexpected request: ${path}`)) as never
+    let ensureSignal: AbortSignal | undefined
+    const ensureSpy = vi.spyOn(dataPreparationCoordinator, 'ensure').mockImplementation((_request, options) => {
+      ensureSignal = options.signal
       return new Promise(resolve => { resolvePreparation = resolve }) as never
     })
 
@@ -740,14 +743,13 @@ describe('ETFHoldingsView', () => {
     await wrapper.findComponent({ name: 'SearchBar' }).vm.$emit('select', 'OIH', {
       symbol: 'OIH', name: 'Oil Services ETF', exchange: 'NYSE Arca', type: 'ETF',
     })
-    await vi.waitFor(() => expect(api.post).toHaveBeenCalledWith('/data/ensure', {
+    await vi.waitFor(() => expect(ensureSpy).toHaveBeenCalledWith({
       target: { kind: 'instrument', symbol: 'OIH' }, datasets: ['holdings'],
     }, expect.objectContaining({ signal: expect.any(AbortSignal) })))
     expect(api.get).toHaveBeenCalledWith('/etf-holdings', { q: 'OIH' })
     const exactProfileLookupCount = vi.mocked(api.get).mock.calls.filter(([path, params]) =>
       path === '/etf-holdings' && (params as { q?: string } | undefined)?.q === 'OIH',
     ).length
-    const ensureSignal = vi.mocked(api.post).mock.calls[0]?.[2]?.signal
     expect(ensureSignal?.aborted).toBe(false)
 
     await wrapper.unmount()
@@ -1806,20 +1808,24 @@ describe('ETFHoldingsView', () => {
       if (path.endsWith('/transitions')) return transitionTimelinePayload()
       return []
     })
-    vi.mocked(api.post).mockImplementation((path, body) => {
-      if (path !== '/data/ensure' || (body as { target?: { symbol?: string } }).target?.symbol !== 'SPY') {
-        return Promise.reject(new Error(`Unexpected request: ${path}`)) as never
+    let stalePreparationSignal: AbortSignal | undefined
+    const ensureSpy = vi.spyOn(dataPreparationCoordinator, 'ensure').mockImplementation((request, options) => {
+      const target = request.target
+      if (target.kind === 'instrument' && (target.symbol === 'SPY' || target.instrument_id === 10)) {
+        stalePreparationSignal = options.signal
+        return new Promise(resolve => { resolveSpyPreparation = resolve }) as never
       }
-      return new Promise(resolve => { resolveSpyPreparation = resolve }) as never
+      const symbol = target.kind === 'instrument' ? target.symbol ?? 'QQQ' : 'QQQ'
+      return Promise.resolve(preparationResponse(symbol)) as never
     })
 
     const wrapper = mount(ETFHoldingsView)
     await vi.waitFor(() => expect(wrapper.text()).toContain('MSFT'))
     await wrapper.findAll('button.profile-card').find(button => button.text().includes('SPY'))!.trigger('click')
-    await vi.waitFor(() => expect(api.post).toHaveBeenCalledWith('/data/ensure', {
-      target: { kind: 'instrument', symbol: 'SPY' }, datasets: ['holdings'],
-    }, expect.objectContaining({ signal: expect.any(AbortSignal) })))
-    const stalePreparationSignal = vi.mocked(api.post).mock.calls[0]?.[2]?.signal
+    await vi.waitFor(() => expect(ensureSpy.mock.calls.some(([request]) => {
+      const target = request.target
+      return target.kind === 'instrument' && (target.symbol === 'SPY' || target.instrument_id === 10)
+    })).toBe(true))
     await wrapper.findAll('button.profile-card').find(button => button.text().includes('QQQ'))!.trigger('click')
     await vi.waitFor(() => expect(wrapper.get('.panel-title-row h2').text()).toBe('QQQ'))
     expect(stalePreparationSignal?.aborted).toBe(true)
