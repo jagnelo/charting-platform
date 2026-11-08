@@ -76,46 +76,14 @@
           </div>
         </div>
 
-        <dl v-if="page" class="snapshot-lineage" data-testid="etf-snapshot-lineage">
-          <div>
-            <dt>Provenance</dt>
-            <dd>{{ formatProvenance(page.snapshot.provenance) }}</dd>
-          </div>
-          <div>
-            <dt>Source provider</dt>
-            <dd data-testid="etf-snapshot-source-provider">{{ page.snapshot.source_provider || 'Not established' }}</dd>
-          </div>
-          <div>
-            <dt>Source identifier</dt>
-            <dd data-testid="etf-snapshot-source-identifier">{{ page.snapshot.source_identifier || 'Not established' }}</dd>
-          </div>
-          <div>
-            <dt>Source document</dt>
-            <dd data-testid="etf-snapshot-source-url">{{ page.snapshot.source_url || 'Not established' }}</dd>
-          </div>
-          <div>
-            <dt>Observed / known at</dt>
-            <dd>
-              <time
-                v-if="page.snapshot.known_at"
-                data-testid="etf-snapshot-known-at"
-                :datetime="page.snapshot.known_at"
-              >{{ formatDateTime(page.snapshot.known_at) }}</time>
-              <span v-else>Unknown</span>
-            </dd>
-          </div>
-          <div>
-            <dt>Source-reported publication</dt>
-            <dd>
-              <time
-                v-if="page.snapshot.published_at"
-                data-testid="etf-snapshot-published-at"
-                :datetime="page.snapshot.published_at"
-              >{{ formatDateTime(page.snapshot.published_at) }}</time>
-              <span v-else>Not established</span>
-            </dd>
-          </div>
-        </dl>
+        <p v-if="page" class="snapshot-source-summary" data-testid="etf-snapshot-lineage">
+          ETF {{ page.snapshot.etf_symbol || page.snapshot.etf_name }} ·
+          Source <strong data-testid="etf-snapshot-source-provider">{{ page.snapshot.source_provider || 'Not established' }}</strong>
+          · {{ formatProvenance(page.snapshot.provenance) }}
+          <template v-if="page.snapshot.known_at">
+            · Observed <time data-testid="etf-snapshot-known-at" :datetime="page.snapshot.known_at">{{ formatDateTime(page.snapshot.known_at) }}</time>
+          </template>
+        </p>
 
         <div v-if="loadError" class="notice notice--error">{{ loadError }}</div>
 
@@ -701,6 +669,43 @@
             </div>
           </div>
         </section>
+
+        <details v-if="page" class="snapshot-source-details" data-testid="etf-snapshot-details">
+          <summary>Source details</summary>
+          <dl class="snapshot-lineage">
+            <div>
+              <dt>Provenance</dt>
+              <dd>{{ formatProvenance(page.snapshot.provenance) }}</dd>
+            </div>
+            <div>
+              <dt>Source provider</dt>
+              <dd>{{ page.snapshot.source_provider || 'Not established' }}</dd>
+            </div>
+            <div>
+              <dt>Source identifier</dt>
+              <dd data-testid="etf-snapshot-source-identifier">{{ page.snapshot.source_identifier || 'Not established' }}</dd>
+            </div>
+            <div>
+              <dt>Source document</dt>
+              <dd data-testid="etf-snapshot-source-url">{{ page.snapshot.source_url || 'Not established' }}</dd>
+            </div>
+            <div>
+              <dt>Observed / known at</dt>
+              <dd>{{ page.snapshot.known_at ? formatDateTime(page.snapshot.known_at) : 'Unknown' }}</dd>
+            </div>
+            <div>
+              <dt>Source-reported publication</dt>
+              <dd>
+                <time
+                  v-if="page.snapshot.published_at"
+                  data-testid="etf-snapshot-published-at"
+                  :datetime="page.snapshot.published_at"
+                >{{ formatDateTime(page.snapshot.published_at) }}</time>
+                <span v-else>Not established</span>
+              </dd>
+            </div>
+          </dl>
+        </details>
 
         <div v-if="!selectedProfile && !pendingFund && !loadError" class="empty-state">
           Select an ETF to inspect its saved holdings or check for an update.
@@ -1884,6 +1889,27 @@ onBeforeUnmount(() => {
   background: #0e1720;
   color: #9ccdf7;
   font-size: 11px;
+}
+.snapshot-source-summary {
+  margin: 0;
+  padding: 6px 9px;
+  border: 1px solid var(--tc-border-strong);
+  border-radius: var(--tc-radius);
+  background: var(--tc-control-bg);
+  color: var(--tc-text-muted);
+  font-size: 11px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.snapshot-source-summary strong {
+  color: var(--tc-text);
+}
+.snapshot-source-details {
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--tc-border-strong);
+  border-radius: var(--tc-radius);
+  background: var(--tc-control-bg);
 }
 .snapshot-lineage div {
   display: flex;

@@ -1,6 +1,7 @@
 import { test, expect } from './helpers'
 import type { ETFHoldingsDate, ETFHoldingsPage, ETFProfile } from '../../src/types'
 import type { DataEnsureRequest } from '../../src/lib/dataPreparation'
+import type { Page } from '@playwright/test'
 
 type EnsureStatus = 'waiting' | 'ready'
 type EnsureRequest = DataEnsureRequest
@@ -89,6 +90,14 @@ function profile(symbol: string, instrumentId: number, profileId: number, snapsh
       symbol_audit: { tier: 0, outcome: 'not_run', evidence_state: 'fixture', next_action: '', evidence_refs: [] },
     },
   }
+}
+
+async function openSnapshotSourceDetails(page: Page) {
+  const details = page.getByTestId('etf-snapshot-details')
+  await expect(details).toBeVisible()
+  await expect(details).not.toHaveAttribute('open', '')
+  await details.locator('summary').click()
+  await expect(details).toHaveAttribute('open', '')
 }
 
 function fixtureSnapshot(symbol: string, instrumentId: number, profileId: number, snapshotId: number) {
@@ -301,6 +310,7 @@ test.describe('ETF holdings preparation', () => {
     await expect(page.locator('.holdings-table')).toContainText('LIN')
     await expect(page.locator('.holdings-table')).toContainText('APD')
     await expect(page.getByTestId('etf-snapshot-lineage')).toContainText('e2e_reference')
+    await openSnapshotSourceDetails(page)
     await expect(page.getByTestId('etf-snapshot-source-identifier')).toHaveText(snapshot.source_identifier!)
     await expect(page.getByTestId('etf-snapshot-known-at')).toHaveAttribute('datetime', snapshot.known_at!)
     await expect(page.getByTestId('etf-selected-snapshot-kind')).toHaveText('Latest stored snapshot')
@@ -375,6 +385,7 @@ test.describe('ETF holdings preparation', () => {
     await expect(page.getByTestId('etf-preparation-status')).toHaveText('Requested data is ready.')
     await expect(page.locator('.holdings-table')).toContainText('FNEW1')
     await expect(page.getByTestId('etf-snapshot-lineage')).toContainText('controlled-fixture')
+    await openSnapshotSourceDetails(page)
     await expect(page.getByTestId('etf-snapshot-source-identifier')).toHaveText('fixture:FNEW:2026-11-05')
     await expect(page.getByTestId('etf-snapshot-source-url')).toHaveText('https://fixture.invalid/holdings')
     await expect(page.getByTestId('etf-snapshot-known-at')).toHaveAttribute('datetime', '2026-11-06T10:15:00Z')
@@ -723,6 +734,7 @@ test.describe('ETF holdings preparation', () => {
     await expect(page.getByTestId('etf-selected-snapshot-kind')).toHaveText('Historical snapshot')
     await expect(page.locator('.snapshot-date-line')).toContainText('2026-10-15')
     await expect(page.locator('.snapshot-date-line')).toContainText('Historical snapshot')
+    await openSnapshotSourceDetails(page)
     await expect(page.getByTestId('etf-snapshot-known-at')).toHaveAttribute('datetime', '2026-10-16T09:20:00Z')
     await expect(page.getByTestId('etf-snapshot-published-at')).toHaveAttribute('datetime', '2026-10-16T08:00:00Z')
     await expect(page.getByTestId('etf-snapshot-lineage')).toContainText('ishares:239771:2026-10-15')

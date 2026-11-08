@@ -19112,3 +19112,19 @@ The coordinate-only S&P correction is committed at `bd5129cea81774a5799768e4027e
 Playwright discovery lists both S&P journeys and `git diff --check` passes. No
 browser was run; Root owns exact-source RRG and combined browser qualification.
 The full ETF/platform roadmap remains open.
+
+## Visible data before technical provenance — 2026-11-08
+
+Root assignment `root-837-visible-data-before-technical-provenance-ETF-assignment.json`
+is addressed in the two ETF-owned views. Baskets now keeps a compact ETF/source,
+as-of, stored-snapshot freshness, and separate current-eligibility note visible;
+membership and editing controls precede a native, keyboard-accessible collapsed
+Source details disclosure containing every prior lineage field and snapshot
+history entry. ETF Holdings keeps fund/source/provenance/observed-at summary,
+composition date, latest-vs-historical state, source quality, row count, and
+current eligibility visible with the controls and rows; complete identifiers,
+document URL, and publication metadata remain in a collapsed Source details
+disclosure after holdings, history, turnover, and overlap content. No API, data,
+provider, or S&P DPR changes were made. Focused view units, type-check, and
+Playwright discovery pass; browser execution and final combined qualification
+remain Root-owned.
