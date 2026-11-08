@@ -5294,5 +5294,15 @@
       "frontend/tests/unit/views/test_baskets_view.test.ts",
       "frontend/tests/unit/views/test_etf_holdings_view.test.ts"
     ]
+  },
+  "current_etf_historical_snapshot_lineage_browser_contract_2026_11_08": {
+    "root_assignment": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/root-3413-ETF-historical-lineage-journey-failure.json",
+    "base_source_sha": "2bf4dad5bf9495af0b646238ee531e168f0d173a",
+    "browser_failure_source": "626213a3b973fdd48fc235dea4f51a6de1defb7c",
+    "diagnosis": "The compact snapshot-lineage sentence intentionally contains source provider and observed date; the exact selected-snapshot source identifier and source URL remain in the expanded Source details disclosure. The journey already opens that disclosure, so its source-identifier assertion targeted the wrong field.",
+    "correction": "Assert the exact historical source identifier from etf-snapshot-source-identifier; retain expanded Source details, known-at, published-at, exact source URL, selected historical snapshot and ACME member assertions.",
+    "source_sha256": "c263621b9592a63e99d7a386085c6e214fa4ea53c7c491f852a13f7b5dbde0f0",
+    "verification": "Playwright discovery lists all5 ETF holdings preparation cases; git diff --check passes. No browser executed by ETF; Root full68 remains Root-owned.",
+    "state": "Focused test-contract correction ready for Root exact-source qualification; compact layout and historical provenance data unchanged."
   }
 }

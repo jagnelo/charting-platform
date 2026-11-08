@@ -19173,3 +19173,14 @@ ETF Holdings and Baskets view modules passed54/54 and frontend type-check passed
 Root owns the next rendered compact-basket check; no browser, fixture, provider,
 or data operation was run by ETF. Prior validation journal rows and full
 roadmap remain intact.
+
+## Historical snapshot lineage assertion correction — 2026-11-08
+
+Root's exact 3413 full-profile failure showed the historical snapshot's date,
+known-at and publication time were correct; its source identifier and URL are
+retained in the already-open Source details disclosure. The E2E assertion had
+looked for the source identifier in the compact summary. It now asserts the
+exact `etf-snapshot-source-identifier` field while retaining the selected
+snapshot, known-at, published-at, exact source URL and ACME member checks.
+Playwright discovery lists all5 ETF preparation cases and `git diff --check`
+passes. ETF did not run a browser; Root owns the active full-profile result.
