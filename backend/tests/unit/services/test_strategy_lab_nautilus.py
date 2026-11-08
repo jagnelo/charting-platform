@@ -300,11 +300,24 @@ def test_nautilus_backtest_keeps_each_closed_position_across_reentries():
     assert len(result.trades) == 2
     assert result.trades[0].entry_at != result.trades[1].entry_at
     assert all(trade.exit_at > trade.entry_at for trade in result.trades)
+    # The signal and market entry fill on bars 1 and 8. max_bars_in_trade
+    # counts the two subsequent observed bars (2/3 and 9/10), then the close
+    # order fills on the following bar (4/11).
+    # This pins the actual execution timing, not just the reported hold count.
+    expected_entry_indices = (1, 8)
+    expected_exit_indices = (4, 11)
+    assert [
+        datetime.fromisoformat(trade.entry_at.replace("Z", "+00:00")) for trade in result.trades
+    ] == [bars[index].ts for index in expected_entry_indices]
+    assert [
+        datetime.fromisoformat(trade.exit_at.replace("Z", "+00:00")) for trade in result.trades
+    ] == [bars[index].ts for index in expected_exit_indices]
     assert all(trade.pnl != 0 for trade in result.trades)
     assert [trade.exit_reason for trade in result.trades] == ["time_exit", "time_exit"]
-    # The reported hold includes the entry and exit bars; the two-bar limit
-    # must not be advanced again by the post-action sync on the same timestamp.
+    # Holding period includes entry and exit fill bars, while the exit trigger
+    # is evaluated after exactly two later market bars.
     assert [trade.bars_held for trade in result.trades] == [4, 4]
+    assert [trade.target_price for trade in result.trades] == [0.0, 0.0]
     assert [round(trade.stop_price, 1) for trade in result.trades] == [99.0, 105.8]
     assert all(
         abs(
