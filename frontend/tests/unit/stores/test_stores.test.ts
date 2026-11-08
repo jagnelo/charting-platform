@@ -824,7 +824,48 @@ describe('useChartStore', () => {
     expect((api.get as ReturnType<typeof vi.fn>).mock.calls.filter(call => call[0] === '/ohlcv/local/ACQUIRED-RACE/M1')).toHaveLength(2)
   })
 
-  it('refreshes a settled identical selection without replacing its rendered state', async () => {
+  it('publishes newly cached local bars before a slow metadata refresh completes', async () => {
+    let barsRequest = 0
+    let instrumentRequest = 0
+    let finishRefreshedInstrument!: (value: { id: number; symbol: string; stats: { week52_high: number } }) => void
+    const cachedBars = [
+      { ts: '2026-11-06T00:00:00Z', open: 20, high: 22, low: 19, close: 21, volume: 100 },
+      { ts: '2026-11-07T00:00:00Z', open: 21, high: 23, low: 20, close: 22, volume: 120 },
+    ]
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/instruments/COLD-CACHE') {
+        instrumentRequest += 1
+        if (instrumentRequest === 1) {
+          return Promise.resolve({ id: 904, symbol: 'COLD-CACHE', stats: { week52_high: 30 } }) as any
+        }
+        return new Promise(resolve => { finishRefreshedInstrument = resolve }) as any
+      }
+      if (path === '/ohlcv/local/COLD-CACHE/D1') {
+        barsRequest += 1
+        return Promise.resolve(barsRequest === 1 ? [] : cachedBars) as any
+      }
+      if (path === '/instrument-indicators/904') return Promise.resolve({ indicators: [] }) as any
+      return Promise.resolve([]) as any
+    })
+
+    const store = useChartStore()
+    await store.loadBars('COLD-CACHE', 'D1', 'candles', true)
+    expect(store.bars).toEqual([])
+
+    const refresh = store.refreshLocalBars()
+    await vi.waitFor(() => expect(finishRefreshedInstrument).toBeTypeOf('function'))
+    await vi.waitFor(() => expect(store.bars).toEqual(cachedBars))
+
+    expect(store.loading).toBe(false)
+    expect(store.uplotData[0]).toEqual([0, 1])
+
+    finishRefreshedInstrument({ id: 904, symbol: 'COLD-CACHE', stats: { week52_high: 30 } })
+    await refresh
+    expect(store.bars).toEqual(cachedBars)
+    expect(barsRequest).toBe(2)
+  })
+
+  it('publishes refreshed OHLCV before indicator hydration and preserves the current indicator stack', async () => {
     let barsRequest = 0
     let indicatorRequest = 0
     let releaseRefreshedIndicators!: (value: { indicators: any[] }) => void
@@ -859,7 +900,8 @@ describe('useChartStore', () => {
     await vi.waitFor(() => expect(releaseRefreshedIndicators).toBeTypeOf('function'))
 
     expect(store.loading).toBe(false)
-    expect(store.bars).toBe(renderedBars)
+    expect(store.bars).not.toBe(renderedBars)
+    expect(store.bars[0].close).toBe(2.5)
     expect(store.indicators).toBe(renderedIndicators)
 
     releaseRefreshedIndicators({ indicators: [{ ...indicator, params: { ...indicator.params }, style: { ...indicator.style } }] })

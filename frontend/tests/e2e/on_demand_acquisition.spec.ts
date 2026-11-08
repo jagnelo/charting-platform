@@ -314,6 +314,11 @@ test('Workstation search resolves an unknown ticker and reports shared history p
   const preparationRequests: DataEnsureRequest[] = []
   const legacyHistoryRequests: string[] = []
   const canonicalInstrumentLookups: Array<{ symbol: string; canonicalOnly: string | null }> = []
+  let releaseCanonicalLookup!: () => void
+  let notifyCanonicalLookupStarted!: () => void
+  let canonicalLookupWasDelayed = false
+  const canonicalLookupGate = new Promise<void>(resolve => { releaseCanonicalLookup = resolve })
+  const canonicalLookupStarted = new Promise<void>(resolve => { notifyCanonicalLookupStarted = resolve })
   const search = page.getByRole('combobox', { name: 'Active symbol' })
   await expect(search).toBeVisible()
   await expect(search).toHaveValue('SPY')
@@ -355,11 +360,28 @@ test('Workstation search resolves an unknown ticker and reports shared history p
     canonicalInstrumentResolved = true
     await route.fulfill({ status: 200, json: resolvedIdentity(body, fixtureInstrumentId, 'Common Stock') })
   })
+  await page.route(url => url.pathname === '/api/v1/instruments/TCNEW'
+    && url.searchParams.get('canonical_only') === 'true', async route => {
+    if (route.request().method() !== 'GET') return route.continue()
+    if (!canonicalLookupWasDelayed) {
+      canonicalLookupWasDelayed = true
+      notifyCanonicalLookupStarted()
+      await canonicalLookupGate
+    }
+    await route.fulfill({ status: 200, json: {
+      id: fixtureInstrumentId,
+      symbol: 'TCNEW',
+      name: 'Unknown ticker (controlled test fixture)',
+      currency: 'USD',
+      is_active: true,
+      stats: { week52_high: 12 },
+    } })
+  })
   await page.route('**/api/v1/data/ensure', async route => {
     const request = route.request().postDataJSON() as DataEnsureRequest
     const isTCNEW = request.target.kind === 'instrument' && (
       ('instrument_id' in request.target && request.target.instrument_id === fixtureInstrumentId)
-      || ('symbol' in request.target && request.target.symbol.toUpperCase() === 'TCNEW')
+      || ('symbol' in request.target && request.target.symbol?.toUpperCase() === 'TCNEW')
     )
     if (!isTCNEW) return route.continue()
     preparationRequests.push(request)
@@ -383,17 +405,30 @@ test('Workstation search resolves an unknown ticker and reports shared history p
   expect(discoveryRequests).toHaveLength(1)
   const resolveReady = page.waitForResponse(response => response.request().method() === 'POST'
     && new URL(response.url()).pathname === '/api/v1/instruments/acquire')
+  const preparationStarted = page.waitForRequest(request => request.method() === 'POST'
+    && new URL(request.url()).pathname === '/api/v1/data/ensure'
+    && (() => {
+      const body = request.postDataJSON() as DataEnsureRequest
+      return body.target.kind === 'instrument'
+        && (('instrument_id' in body.target && body.target.instrument_id === fixtureInstrumentId)
+          || ('symbol' in body.target && body.target.symbol?.toUpperCase() === 'TCNEW'))
+    })())
   await page.getByRole('button', { name: /Use TCNEW · TEST/ }).click()
   const identityResponse = await resolveReady
   expect(identityResponse.status()).toBe(200)
   expect(await identityResponse.json()).toMatchObject({ instrument: { instrument_id: fixtureInstrumentId, symbol: 'TCNEW', identity_status: 'resolved' } })
+  // Stop the independent metadata read before checking that selection has
+  // already updated the active chart and URL.
+  await canonicalLookupStarted
   await expect(search).toHaveValue('TCNEW')
   await expect(page).toHaveURL(/\/chart\/TCNEW$/)
   expect(identityRequests).toHaveLength(1)
-  // The confirmed acquisition already carries the canonical identity. The
-  // selection must not wait for a redundant instrument lookup before updating
-  // the active chart and URL.
-  expect(canonicalInstrumentLookups).toEqual([])
+  // Hold one independent canonical metadata lookup open. Selection and the
+  // governed history request must still proceed from the confirmed identity.
+  await preparationStarted
+  expect(canonicalLookupWasDelayed).toBe(true)
+  expect(canonicalInstrumentLookups).toContainEqual({ symbol: 'TCNEW', canonicalOnly: 'true' })
+  releaseCanonicalLookup()
   expect(identityRequests[0]).toMatchObject({ symbol: 'TCNEW', provider_candidate: { provider: 'test-fixture', exchange: 'TEST' } })
 
   await expect.poll(() => preparationRequests.length).toBeGreaterThan(0)
@@ -747,7 +782,6 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
   const legacyHistoryRequests: string[] = []
   const directOhlcvWrites: string[] = []
   const canonicalSearchRequests: string[] = []
-  const canonicalInstrumentLookups: Array<{ symbol: string; canonicalOnly: string | null }> = []
   const localBarReadbacks: Array<{ symbol: string; timeframe: string; rows: OHLCVBar[]; afterAcquisition: boolean }> = []
   const calendarRequests: string[] = []
   page.on('request', request => {
@@ -800,11 +834,6 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
 
   await page.route('**/api/v1/instruments/TCNEW**', async route => {
     if (route.request().method() !== 'GET') return route.continue()
-    const lookupUrl = new URL(route.request().url())
-    canonicalInstrumentLookups.push({
-      symbol: lookupUrl.pathname.split('/').at(-1) ?? '',
-      canonicalOnly: lookupUrl.searchParams.get('canonical_only'),
-    })
     if (!canonicalInstrumentResolved) {
       await route.fulfill({ status: 404, json: { detail: 'Not present before explicit fixture resolution.' } })
       return
@@ -876,7 +905,7 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
     const target = body.target
     const isTCNEWTarget = target.kind === 'instrument' && (
       'instrument_id' in target && target.instrument_id === fixtureInstrumentId
-      || 'symbol' in target && target.symbol.trim().toUpperCase() === 'TCNEW'
+      || 'symbol' in target && target.symbol?.trim().toUpperCase() === 'TCNEW'
     )
     if (!isTCNEWTarget) {
       await route.continue()
@@ -1042,7 +1071,6 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
       covered_ranges: [{ is_adjusted: true }],
     }],
   })
-  expect(canonicalInstrumentLookups).toEqual([])
   expect(tcnewPreparationRequests.filter(request => request.timeframe === 'M1'
     && request.target.kind === 'instrument'
     && 'instrument_id' in request.target
@@ -2386,7 +2414,8 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     // A locally misclassified Stock hint must not preserve the prior IGV
     // constituents after canonical identity confirms this selected ticker as ETV.
     const igvContextGroup = page.getByRole('group', { name: 'Constituents' })
-    const igvContextWidget = igvContextGroup.getByRole('listbox', { name: 'Constituents symbols' })
+    const igvContextWidget = igvContextGroup.getByRole('listbox').first()
+    await expect(igvContextWidget).toHaveAccessibleName(/^IGV holdings .* symbols$/)
     const priorIgvHolding = igvContextWidget.getByRole('option', { name: /UNXQ Unlisted Example Software Corp/ })
     await expect(igvContextGroup).toContainText('IGV')
     await expect(priorIgvHolding).toBeVisible()
@@ -2425,6 +2454,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     await expectSelectionHoldingsDetails(page, 'BWET', 'Current holdings are unavailable because the latest source snapshot is dated in the future.')
     await expect(igvContextGroup).toContainText('BWET')
     await expect(igvContextWidget).toBeVisible()
+    await expect(igvContextWidget).toHaveAccessibleName(/^BWET holdings .* symbols$/)
     await expect(priorIgvHolding).toHaveCount(0)
 
     await chooseETF('OIH')
