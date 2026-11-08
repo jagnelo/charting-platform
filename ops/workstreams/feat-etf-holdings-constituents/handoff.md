@@ -18907,3 +18907,14 @@ this 305 context or the complete release. Two TC priority-coupling defects,
 combined qualification, exact CI, and final release gates remain open. This
 context import ran no browser, test suite, source request, fixture, Docker,
 quota, or production operation.
+
+
+## Notes foreground-priority repair and exact shared contexts — 2026-11-08
+
+Root assigned the ETF-owned `InstrumentNoteTool.vue` repair from the saved TC foreground proposal. The component accepts an optional shared request-priority prop, sends its authenticated note read with the query abort signal and stable `instrument-note:<id>` queue key, and promotes that queued read when the surface becomes high priority. Existing debounced save, auth-epoch, context-generation, late-acknowledgement, and cache guards were preserved. The existing Notes unit module keeps its autosave/auth/context regressions and now mocks the shared queue-promotion export required by the component.
+
+Focused validation passed: `frontend/tests/unit/components/test_instrument_note_tool.test.ts` **4/4**, and `npm run type-check` passed against the exact TC9ec context. No browser, database, provider/native HTTP, full suite, or production operation ran. Component SHA256 `4e099ff611a9e7609ae59a6c2cc9452a5fd71028e9b012398de967acf01f50b4`; Notes test SHA256 `57b51b7bdd1327bceff2e692bb4967c8eedae9e31eea86178211986bf32d6506`.
+
+Consumed Root-released TC source `9ec4d7833c45cd2fc51916a2378445f7761b425e` using exactly12 ETF-declared old-guarded imports. Its complete136-row manifest verifies; the active foreign pin is126 paths and excludes all10 ETF-private paths. The previous305 dependency is retained as historical. Separately consumed exactly3 old-guarded Provider operator-test paths from `aed0d62c7e93ee6bd320c6b7a22791bb8d3d8b87`; the current Provider runtime pin9e2 (79 rows) was not changed. Exact manifest copies and current plan pins are recorded.
+
+Remaining integration requirement: the imported shared `WorkstationToolContent.vue` still renders `InstrumentNoteTool` without binding `requestPriority`; it must pass the actual foreground/visibility priority for the component's high-priority path to activate in the live caller. That shared caller remains TC-owned and was not edited. Root owns the combined browser profile, exact CI, publication, and release gates; no browser acceptance is claimed. The complete ETF roadmap and all prior evidence remain open/preserved.

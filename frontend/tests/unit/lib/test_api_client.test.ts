@@ -4,7 +4,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
-import { setTokens, clearTokens, ApiError } from '@/lib/api'
+import { setTokens, clearTokens, ApiError, setQueuedApiRequestPriority } from '@/lib/api'
 import { currentAuthSessionEpoch, beginAuthSessionBoundary, AuthSessionChangedError } from '@/lib/authSession'
 import { useAuthStore } from '@/stores/auth'
 import { router } from '@/router'
@@ -108,6 +108,60 @@ describe('api.get', () => {
       await new Promise(resolve => setTimeout(resolve, 0))
     }
     await Promise.all([...ordinary, low, highFirst, highSecond])
+  })
+
+  it('promotes one already queued local read when its docked list becomes visible', async () => {
+    setTokens('tok', 'ref')
+    const deferredResponses: Array<{ resolve: (response: unknown) => void }> = []
+    ;(global.fetch as ReturnType<typeof vi.fn>).mockImplementation(() => new Promise(resolve => {
+      deferredResponses.push({ resolve })
+    }))
+    const { api } = await import('@/lib/api')
+    const response = () => ({ ok: true, status: 200, json: () => Promise.resolve([]), text: () => Promise.resolve('') })
+    const ordinary = Array.from({ length: 5 }, (_, index) => api.get(`/analysis-${index}`))
+    const queueKey = 'watchlist-price:local:SPY'
+    const localRead = api.get('/ohlcv/local/SPY/D1', { limit: 31 }, { priority: 'low', queueKey })
+
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(5))
+    expect((fetch as ReturnType<typeof vi.fn>).mock.calls.some(([url]) => String(url).includes('/ohlcv/local/SPY/D1'))).toBe(false)
+    expect(setQueuedApiRequestPriority(queueKey, 'high')).toBe(true)
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(6))
+    expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[5]?.[0])).toContain('/ohlcv/local/SPY/D1')
+
+    for (let index = 0; index < 6; index += 1) {
+      await vi.waitFor(() => expect(deferredResponses.length).toBeGreaterThan(index))
+      deferredResponses[index]!.resolve(response())
+      await new Promise(resolve => setTimeout(resolve, 0))
+    }
+    await Promise.all([...ordinary, localRead])
+    expect(fetch).toHaveBeenCalledTimes(6)
+  })
+
+  it('keeps a visible queued read high when a hidden consumer joins at low priority', async () => {
+    setTokens('tok', 'ref')
+    const deferredResponses: Array<{ resolve: (response: unknown) => void }> = []
+    ;(global.fetch as ReturnType<typeof vi.fn>).mockImplementation(() => new Promise(resolve => {
+      deferredResponses.push({ resolve })
+    }))
+    const { api } = await import('@/lib/api')
+    const response = () => ({ ok: true, status: 200, json: () => Promise.resolve([]), text: () => Promise.resolve('') })
+    const active = Array.from({ length: 6 }, (_, index) => api.get(`/active-${index}`, undefined, { priority: 'high' }))
+    const queueKey = 'watchlist-price:local:SPY'
+    const visibleRead = api.get('/ohlcv/local/SPY/D1', { limit: 31 }, { priority: 'high', queueKey })
+    const background = api.get('/hidden-analysis', undefined, { priority: 'low' })
+
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(6))
+    expect(setQueuedApiRequestPriority(queueKey, 'low')).toBe(false)
+    deferredResponses[0]!.resolve(response())
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(7))
+    expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[6]?.[0])).toContain('/ohlcv/local/SPY/D1')
+
+    for (let index = 1; index < 8; index += 1) {
+      await vi.waitFor(() => expect(deferredResponses.length).toBeGreaterThan(index))
+      deferredResponses[index]!.resolve(response())
+      await new Promise(resolve => setTimeout(resolve, 0))
+    }
+    await Promise.all([...active, visibleRead, background])
   })
 
   it('holds transport admission until the response body has been consumed', async () => {

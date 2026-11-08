@@ -11,6 +11,7 @@ from __future__ import annotations
 import os
 import time
 from datetime import UTC, date, datetime, timedelta
+from math import isfinite
 
 import pytest
 
@@ -2061,6 +2062,34 @@ def test_eodhd_credentialed_account_usage_snapshot():
         assert minute_reconciliation["status"] == "reconciled"
     else:
         assert minute_reconciliation is None or minute_reconciliation["status"] == "not_reconciled"
+
+
+@pytest.mark.live
+def test_eodhd_free_recent_daily_history():
+    """Prove one recent raw EOD read inside the Free-plan history window."""
+
+    _require("EODHD_API_KEY")
+    start, end = _bounds()
+    rows, measurement = _observed_read(
+        lambda: EODHDProvider().fetch_ohlcv("AAPL", Timeframe.D1, start, end, adjusted=False),
+        "eodhd",
+        "fetch_ohlcv",
+        usage_identity="AAPL",
+    )
+
+    assert rows
+    assert measurement.http_requests == 1
+    timestamps = [row.ts for row in rows]
+    assert timestamps == sorted(set(timestamps))
+    for row in rows:
+        assert row.ts.tzinfo is not None and row.ts.utcoffset() is not None
+        assert start <= row.ts < end
+        ohlc = (row.open, row.high, row.low, row.close)
+        assert all(isfinite(value) and value > 0 for value in ohlc)
+        assert row.high >= max(row.open, row.low, row.close)
+        assert row.low <= min(row.open, row.high, row.close)
+        if row.volume is not None:
+            assert isfinite(row.volume) and row.volume >= 0
 
 
 @pytest.mark.live

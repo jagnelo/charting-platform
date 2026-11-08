@@ -1529,9 +1529,12 @@ async function selectSymbol(
   // longer than the user's next click and must not delay the visible target.
   if (!privateBasketSelection) updateAutoRatioExpression(symbol, comparisonETF)
   try {
-    const localDataReady = loadSymbolData(symbol, comparisonETF, false, preserveETFContext)
+    let localHoldingsReady: Promise<unknown> = Promise.resolve(null)
+    const localDataReady = loadSymbolData(symbol, comparisonETF, false, preserveETFContext, promise => {
+      localHoldingsReady = promise
+    })
     const selectedAcquisition = acquisitionIntent
-      ? acquireSelectedTickerData(symbol, generation, localDataReady, confirmedIdentity, acquisitionController.signal, canonicalInstrumentId, resolvedInstrumentType)
+      ? acquireSelectedTickerData(symbol, generation, localHoldingsReady, confirmedIdentity, acquisitionController.signal, canonicalInstrumentId, resolvedInstrumentType)
       : Promise.resolve()
     await Promise.all([localDataReady, selectedAcquisition])
     if (generation !== symbolSelectionGeneration) return
@@ -1555,7 +1558,7 @@ async function selectSymbol(
 async function acquireSelectedTickerData(
   symbol: string,
   generation: number,
-  localDataReady: Promise<void>,
+  localHoldingsReady: Promise<unknown>,
   confirmedIdentity?: InstrumentAcquireResponse,
   signal?: AbortSignal,
   knownInstrumentId?: number | null,
@@ -1605,7 +1608,7 @@ async function acquireSelectedTickerData(
     await Promise.allSettled([
       chartStore.refreshLocalBars(),
       refreshMountedWorkstationChartPanels(symbol, timeframe, isCurrent),
-      workspaceStore.loadTechnical(symbol),
+      workspaceStore.loadTechnical(symbol, 'high'),
     ])
   }
   const publishIdentityFromProgress = (result: DataEnsureResponse) => {
@@ -1630,6 +1633,7 @@ async function acquireSelectedTickerData(
     instrumentHistoryPreparationRequest(target, timeframe, true),
     {
       signal,
+      priority: 'high',
       onProgress: ({ response, completed, total }) => {
         if (!isCurrent()) return
         publishIdentityFromProgress(response)
@@ -1686,7 +1690,7 @@ async function acquireSelectedTickerData(
       if (!resolvedType) {
         const localOptions = await queryClient.fetchQuery<Array<{ symbol: string; type: string; instrument_id?: number | null }>>({
           queryKey: ['workstation', 'instrument-search', normalizedSymbol, instrumentId],
-          queryFn: () => api.get('/instruments/search', { q: normalizedSymbol, canonical_only: true }),
+          queryFn: () => api.get('/instruments/search', { q: normalizedSymbol, canonical_only: true }, { priority: 'high' }),
           staleTime: 0,
         })
         if (!isCurrent()) return
@@ -1699,31 +1703,30 @@ async function acquireSelectedTickerData(
       }
       if (!isCurrent()) return
       if (workspaceStore.constituentETF !== normalizedSymbol) workspaceStore.setConstituentETF(symbol)
-      await localDataReady
-      if (!isCurrent()) return
-
-      const stored = workspaceStore.etfHoldings[normalizedSymbol]
-      const capability = await readETFHoldingsCapability(symbol)
+      let stored = workspaceStore.etfHoldings[normalizedSymbol]
+      const capability = await readETFHoldingsCapability(symbol, { priority: 'high' })
       if (!isCurrent()) return
       if (isCurrentETFHoldingsCapability(capability)) {
-        const currentPage = await workspaceStore.loadETFHoldings(symbol)
+        // Only the selected fund's saved holdings read is required to describe
+        // this current snapshot. Chart bars, technicals, and industry analysis
+        // hydrate independently and must not hold that status behind them.
+        await localHoldingsReady
         if (!isCurrent()) return
-        const latest = currentPage?.snapshot ?? workspaceStore.etfHoldings[normalizedSymbol]?.snapshot
-        selectionHoldingsMessage.value = currentPage?.snapshot
+        stored = workspaceStore.etfHoldings[normalizedSymbol]
+        const latest = stored?.snapshot
+        selectionHoldingsMessage.value = latest
           ? `Current holdings for ${symbol} are available locally.`
-          : latest
-            ? `The holdings feed for ${symbol} is current; showing saved holdings while the latest local snapshot is unavailable.`
             : `Holdings for ${symbol} are current, but no saved snapshot was returned.`
         return
       }
 
-      const hasLastKnown = Boolean(stored?.snapshot)
+      const hasLastKnown = Boolean(stored?.snapshot ?? workspaceStore.etfHoldings[normalizedSymbol]?.snapshot)
       selectionHoldingsMessage.value = hasLastKnown
         ? `Showing last-known holdings for ${symbol}; preparing a current local update…`
         : `Preparing holdings for ${symbol}…`
       const holdingsRefreshQueue = new PreparationProgressRefreshQueue()
       const refreshHoldings = () => Promise.allSettled([
-        workspaceStore.loadETFHoldings(symbol),
+        workspaceStore.loadETFHoldings(symbol, 'high'),
         workspaceStore.loadETFIndustries(symbol),
       ]).then(() => undefined)
       const holdingsResult = await dataPreparationCoordinator.ensure({
@@ -1733,6 +1736,7 @@ async function acquireSelectedTickerData(
         adjusted: true,
       }, {
         signal,
+        priority: 'high',
         onProgress: progress => {
           if (!isCurrent()) return
           const datasetProgress = selectedDatasetPreparationResponse(progress.response, 'holdings', instrumentId, symbol)
@@ -1781,14 +1785,25 @@ async function acquireSelectedTickerData(
   await Promise.all([historyTask, holdingsTask])
 }
 
-async function loadSymbolData(symbol: string, comparisonETF = workspaceStore.constituentETF, updateRatio = true, preserveETFContext = false) {
+async function loadSymbolData(
+  symbol: string,
+  comparisonETF = workspaceStore.constituentETF,
+  updateRatio = true,
+  preserveETFContext = false,
+  onHoldingsRead?: (promise: Promise<unknown>) => void,
+) {
   if (!preserveActiveUserSymbolDraft(symbol)) symbolDraft.value = symbol
   if (!documentVisible.value) return
   const privateBasketSelection = isPrivateBasketToken(symbol)
+  const holdingsRead = preserveETFContext || privateBasketSelection
+    ? Promise.resolve(null)
+    : workspaceStore.loadETFHoldings(symbol, 'high')
+  onHoldingsRead?.(holdingsRead)
   await Promise.all([
     chartStore.loadBars(symbol, chartStore.timeframe, chartStore.barType, true),
-    ...(preserveETFContext || privateBasketSelection ? [] : [workspaceStore.loadETFHoldings(symbol), workspaceStore.loadETFIndustries(symbol)]),
-    ...(!privateBasketSelection ? [workspaceStore.loadTechnical(symbol)] : []),
+    holdingsRead,
+    ...(preserveETFContext || privateBasketSelection ? [] : [workspaceStore.loadETFIndustries(symbol)]),
+    ...(!privateBasketSelection ? [workspaceStore.loadTechnical(symbol, 'high')] : []),
   ])
   if (updateRatio && !privateBasketSelection) updateAutoRatioExpression(symbol, comparisonETF)
 }

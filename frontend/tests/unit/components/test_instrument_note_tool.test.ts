@@ -4,7 +4,10 @@ import { createPinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { apiGet, apiPut } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPut: vi.fn() }))
-vi.mock('@/lib/api', () => ({ api: { get: apiGet, put: apiPut } }))
+vi.mock('@/lib/api', () => ({
+  api: { get: apiGet, put: apiPut },
+  setQueuedApiRequestPriority: vi.fn(() => true),
+}))
 
 import InstrumentNoteTool from '@/components/workstation/InstrumentNoteTool.vue'
 import { beginAuthSessionBoundary, installAuthSessionCleanup } from '@/lib/authSession'
@@ -167,4 +170,5 @@ describe('InstrumentNoteTool draft lifecycle', () => {
     wrapper.unmount()
     queryClient.clear()
   })
+
 })

@@ -1,4 +1,4 @@
-import { api } from '@/lib/api'
+import { api, type ApiRequestOptions } from '@/lib/api'
 import type { ETFHoldingsCapability, ETFHoldingsSnapshot, ETFProfile, OHLCVBar, Timeframe } from '@/types'
 
 export interface AcquisitionSourceOutcome {
@@ -600,11 +600,12 @@ export function acquireETFHoldings(symbol: string, refresh: boolean, instrumentI
 }
 
 /** Read the producer's authoritative freshness/admission view for one ETF. */
-export async function readETFHoldingsCapability(symbol: string): Promise<ETFHoldingsCapability | null> {
+export async function readETFHoldingsCapability(symbol: string, options?: Pick<ApiRequestOptions, 'priority' | 'queueKey'>): Promise<ETFHoldingsCapability | null> {
   const normalized = symbol.trim().toUpperCase()
   if (!normalized) return null
   try {
-    return await api.get<ETFHoldingsCapability>(`/etf-holdings/${encodeURIComponent(normalized)}/capability`)
+    const path = `/etf-holdings/${encodeURIComponent(normalized)}/capability`
+    return await (options ? api.get<ETFHoldingsCapability>(path, undefined, options) : api.get<ETFHoldingsCapability>(path))
   } catch {
     // An unavailable capability read is unknown, not evidence that a saved
     // snapshot is current. The caller may make one ordinary admitted refresh.

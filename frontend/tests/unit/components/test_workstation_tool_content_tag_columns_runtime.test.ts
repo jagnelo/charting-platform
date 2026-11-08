@@ -4,12 +4,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { defineComponent, h } from 'vue'
 
-const { apiGet, apiPost, apiPatch, apiDelete, apiPut } = vi.hoisted(() => ({
+const { apiGet, apiPost, apiPatch, apiDelete, apiPut, setQueuedApiRequestPriority } = vi.hoisted(() => ({
   apiGet: vi.fn(),
   apiPost: vi.fn(),
   apiPatch: vi.fn(),
   apiDelete: vi.fn(),
   apiPut: vi.fn(),
+  setQueuedApiRequestPriority: vi.fn(),
 }))
 
 vi.mock('@/lib/api', () => ({
@@ -20,6 +21,7 @@ vi.mock('@/lib/api', () => ({
     delete: apiDelete,
     put: apiPut,
   },
+  setQueuedApiRequestPriority,
 }))
 
 import WorkstationToolContent from '@/components/workstation/WorkstationToolContent.vue'
@@ -82,6 +84,7 @@ function setupParent(
   targets: Array<Record<string, unknown>>,
   tagWatchlistIds: number[],
   toolConfiguration: Record<string, unknown> = {},
+  mountContext: { attachTo?: Element; activeWindowKey?: string | null } = {},
 ) {
   const pinia = createPinia()
   setActivePinia(pinia)
@@ -99,7 +102,9 @@ function setupParent(
         tag_watchlist_ids: tagWatchlistIds,
         column_keys: ['symbol', ...tagWatchlistIds.map(id => `tag-watchlist:${id}`)],
       }),
+      activeWindowKey: mountContext.activeWindowKey,
     },
+    attachTo: mountContext.attachTo,
     global: {
       plugins: [pinia, [VueQueryPlugin, { queryClient }]],
       stubs: { ToolWindow: ToolWindowShell },
@@ -115,6 +120,47 @@ describe('WorkstationToolContent Tag Column parent mutation path', () => {
     apiPatch.mockReset()
     apiDelete.mockReset().mockResolvedValue(undefined)
     apiPut.mockReset().mockResolvedValue(undefined)
+    setQueuedApiRequestPriority.mockReset()
+  })
+
+  it('promotes a queued local quote when a non-focused watchlist becomes visible', async () => {
+    const host = document.createElement('div')
+    host.className = 'lm_item'
+    host.style.display = 'none'
+    document.body.append(host)
+    const rectSpy = vi.spyOn(HTMLElement.prototype, 'getClientRects').mockImplementation(function () {
+      if (this.closest('.lm_item')?.style.display === 'none') return [] as unknown as DOMRectList
+      return [{} as DOMRect] as unknown as DOMRectList
+    })
+    let resolveBars!: (bars: Array<{ open: number; high: number; low: number; close: number; volume: number }>) => void
+    apiGet.mockImplementation((path: string) => path === '/ohlcv/local/SPY/D1'
+      ? new Promise(resolve => { resolveBars = resolve })
+      : Promise.resolve([]))
+    const { queryClient, wrapper } = setupParent([], [], { personal: true, watchlist_id: 3 }, {
+      attachTo: host,
+      activeWindowKey: 'chart-main',
+    })
+    try {
+      await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith(
+        '/ohlcv/local/SPY/D1', { limit: 31 }, { priority: 'low', queueKey: 'watchlist-price:local:SPY' },
+      ))
+      expect(apiGet.mock.calls.filter(([path]) => path === '/ohlcv/local/SPY/D1')).toHaveLength(1)
+
+      host.style.display = 'block'
+      await vi.waitFor(() => expect(setQueuedApiRequestPriority).toHaveBeenCalledWith('watchlist-price:local:SPY', 'high'))
+      expect(apiGet.mock.calls.filter(([path]) => path === '/ohlcv/local/SPY/D1')).toHaveLength(1)
+
+      resolveBars([
+        { open: 99, high: 101, low: 98, close: 100, volume: 1000 },
+        { open: 100, high: 103, low: 99, close: 102, volume: 1200 },
+      ])
+      await flushPromises()
+    } finally {
+      wrapper.unmount()
+      queryClient.clear()
+      rectSpy.mockRestore()
+      host.remove()
+    }
   })
 
   afterEach(() => {
