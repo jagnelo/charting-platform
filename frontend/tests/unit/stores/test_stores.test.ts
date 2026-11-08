@@ -784,19 +784,24 @@ describe('useChartStore', () => {
     expect((api.get as ReturnType<typeof vi.fn>).mock.calls.filter(call => call[0] === '/instrument-indicators/42')).toHaveLength(2)
   })
 
-  it('queues a fresh local read after an in-flight initial load when history was acquired', async () => {
+  it('reads acquired local bars without waiting on initial indicators or optional instrument stats', async () => {
     let localBarsRequests = 0
     let indicatorRequests = 0
+    let instrumentRequests = 0
     let finishInitialIndicators!: (value: { indicators: any[] }) => void
+    let finishOptionalStats!: (value: { id: number; symbol: string; stats: { week52_high: number } }) => void
     ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
       if (path === '/instruments/ACQUIRED-RACE') {
-        return Promise.resolve({ id: 42, symbol: 'ACQUIRED-RACE', stats: { week52_high: 1 } }) as any
+        instrumentRequests += 1
+        if (instrumentRequests === 1) return Promise.resolve({ id: 42, symbol: 'ACQUIRED-RACE', stats: {} }) as any
+        return new Promise(resolve => { finishOptionalStats = resolve }) as any
       }
       if (path === '/ohlcv/local/ACQUIRED-RACE/M1') {
         localBarsRequests += 1
-        return Promise.resolve(localBarsRequests === 1 ? [] : [
-          { ts: '2026-10-27T12:34:00Z', open: 2, high: 3, low: 1, close: 2.5, volume: 10 },
-        ]) as any
+        return Promise.resolve(localBarsRequests === 1 ? [] : [{
+          ts: '2026-10-27T12:34:00Z', open: 2, high: 3, low: 1,
+          close: localBarsRequests === 2 ? 2.5 : 3.5, volume: 10,
+        }]) as any
       }
       if (path === '/instrument-indicators/42') {
         indicatorRequests += 1
@@ -813,23 +818,103 @@ describe('useChartStore', () => {
     await vi.waitFor(() => expect(store.loading).toBe(false))
     expect(localBarsRequests).toBe(1)
 
-    const refreshed = store.refreshLocalBars()
-    await Promise.resolve()
-    expect(localBarsRequests).toBe(1)
+    const indicatorIndependentRefresh = store.refreshLocalBars()
+    await vi.waitFor(() => expect(store.bars).toMatchObject([{ ts: '2026-10-27T12:34:00Z', close: 2.5 }]))
+    expect(localBarsRequests).toBe(2)
+    expect(indicatorRequests).toBe(1)
 
     finishInitialIndicators({ indicators: [] })
-    await Promise.all([initialHydration, refreshed])
+    await vi.waitFor(() => expect(finishOptionalStats).toBeTypeOf('function'))
 
-    expect(localBarsRequests).toBe(2)
-    expect(store.bars).toMatchObject([{ ts: '2026-10-27T12:34:00Z', close: 2.5 }])
+    const statsIndependentRefresh = store.refreshLocalBars()
+    await vi.waitFor(() => expect(store.bars).toMatchObject([{ ts: '2026-10-27T12:34:00Z', close: 3.5 }]))
+    expect(localBarsRequests).toBe(3)
+    expect(instrumentRequests).toBe(2)
+
+    finishOptionalStats({ id: 42, symbol: 'ACQUIRED-RACE', stats: { week52_high: 4 } })
+    await Promise.all([initialHydration, indicatorIndependentRefresh, statsIndependentRefresh])
+
+    expect(store.bars).toMatchObject([{ ts: '2026-10-27T12:34:00Z', close: 3.5 }])
     expect(store.loading).toBe(false)
-    expect((api.get as ReturnType<typeof vi.fn>).mock.calls.filter(call => call[0] === '/ohlcv/local/ACQUIRED-RACE/M1')).toHaveLength(2)
+    expect((api.get as ReturnType<typeof vi.fn>).mock.calls.filter(call => call[0] === '/ohlcv/local/ACQUIRED-RACE/M1')).toHaveLength(3)
   })
 
-  it('publishes newly cached local bars before a slow metadata refresh completes', async () => {
+  it('does not publish a delayed local-history refresh after the chart changes symbol', async () => {
+    let oldLocalReads = 0
+    let finishOldRefresh!: (value: any[]) => void
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/instruments/OLD-REFRESH') return Promise.resolve({ id: 41, symbol: 'OLD-REFRESH', stats: { week52_high: 1 } }) as any
+      if (path === '/instruments/NEW-CONTEXT') return Promise.resolve({ id: 42, symbol: 'NEW-CONTEXT', stats: { week52_high: 1 } }) as any
+      if (path === '/ohlcv/local/OLD-REFRESH/D1') {
+        oldLocalReads += 1
+        if (oldLocalReads === 1) return Promise.resolve([
+          { ts: '2026-01-01T00:00:00Z', open: 1, high: 2, low: 1, close: 1.5, volume: 10 },
+        ]) as any
+        return new Promise(resolve => { finishOldRefresh = resolve }) as any
+      }
+      if (path === '/ohlcv/local/NEW-CONTEXT/D1') return Promise.resolve([
+        { ts: '2026-01-02T00:00:00Z', open: 2, high: 3, low: 2, close: 2.5, volume: 20 },
+      ]) as any
+      if (path === '/instrument-indicators/41' || path === '/instrument-indicators/42') return Promise.resolve({ indicators: [] }) as any
+      return Promise.resolve([]) as any
+    })
+
+    const store = useChartStore()
+    await store.loadBars('OLD-REFRESH', 'D1', 'candles', true)
+    const staleRefresh = store.refreshLocalBars()
+    await vi.waitFor(() => expect(finishOldRefresh).toBeTypeOf('function'))
+
+    await store.loadBars('NEW-CONTEXT', 'D1', 'candles', true)
+    expect(store.symbol).toBe('NEW-CONTEXT')
+    expect(store.bars).toMatchObject([{ ts: '2026-01-02T00:00:00Z', close: 2.5 }])
+
+    finishOldRefresh([{ ts: '2026-01-03T00:00:00Z', open: 9, high: 10, low: 9, close: 9.5, volume: 90 }])
+    await staleRefresh
+
+    expect(store.symbol).toBe('NEW-CONTEXT')
+    expect(store.bars).toMatchObject([{ ts: '2026-01-02T00:00:00Z', close: 2.5 }])
+  })
+
+  it('keeps matching rendered bars through an empty refresh and replaces them on later progress without leaking them to a new timeframe', async () => {
+    let dailyReads = 0
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/instruments/REFRESH-EMPTY') return Promise.resolve({ id: 51, symbol: 'REFRESH-EMPTY', stats: { week52_high: 1 } }) as any
+      if (path === '/instrument-indicators/51') return Promise.resolve({ indicators: [] }) as any
+      if (path === '/ohlcv/local/REFRESH-EMPTY/D1') {
+        dailyReads += 1
+        if (dailyReads === 2) return Promise.resolve([]) as any
+        return Promise.resolve([{
+          ts: `2026-01-0${dailyReads}T00:00:00Z`, open: dailyReads, high: dailyReads + 1,
+          low: dailyReads, close: dailyReads + 0.5, volume: dailyReads * 10,
+        }]) as any
+      }
+      if (path === '/ohlcv/local/REFRESH-EMPTY/M1') return Promise.resolve([]) as any
+      return Promise.resolve([]) as any
+    })
+
+    const store = useChartStore()
+    await store.loadBars('REFRESH-EMPTY', 'D1', 'candles', true)
+    const originalBars = store.bars
+    expect(originalBars).toMatchObject([{ ts: '2026-01-01T00:00:00Z', close: 1.5 }])
+
+    await store.refreshLocalBars()
+    expect(store.bars).toBe(originalBars)
+    expect(store.bars).toMatchObject([{ ts: '2026-01-01T00:00:00Z', close: 1.5 }])
+    expect(store.hasReachedStart).toBe(false)
+
+    await store.refreshLocalBars()
+    expect(store.bars).toMatchObject([{ ts: '2026-01-03T00:00:00Z', close: 3.5 }])
+    expect(store.hasReachedStart).toBe(false)
+
+    await store.loadBars('REFRESH-EMPTY', 'M1', 'candles', true)
+    expect(store.timeframe).toBe('M1')
+    expect(store.bars).toEqual([])
+    expect(store.hasReachedStart).toBe(true)
+  })
+
+  it('publishes newly cached local bars without restarting instrument metadata hydration', async () => {
     let barsRequest = 0
     let instrumentRequest = 0
-    let finishRefreshedInstrument!: (value: { id: number; symbol: string; stats: { week52_high: number } }) => void
     const cachedBars = [
       { ts: '2026-11-06T00:00:00Z', open: 20, high: 22, low: 19, close: 21, volume: 100 },
       { ts: '2026-11-07T00:00:00Z', open: 21, high: 23, low: 20, close: 22, volume: 120 },
@@ -837,10 +922,7 @@ describe('useChartStore', () => {
     ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
       if (path === '/instruments/COLD-CACHE') {
         instrumentRequest += 1
-        if (instrumentRequest === 1) {
-          return Promise.resolve({ id: 904, symbol: 'COLD-CACHE', stats: { week52_high: 30 } }) as any
-        }
-        return new Promise(resolve => { finishRefreshedInstrument = resolve }) as any
+        return Promise.resolve({ id: 904, symbol: 'COLD-CACHE', stats: { week52_high: 30 } }) as any
       }
       if (path === '/ohlcv/local/COLD-CACHE/D1') {
         barsRequest += 1
@@ -855,13 +937,13 @@ describe('useChartStore', () => {
     expect(store.bars).toEqual([])
 
     const refresh = store.refreshLocalBars()
-    await vi.waitFor(() => expect(finishRefreshedInstrument).toBeTypeOf('function'))
     await vi.waitFor(() => expect(store.bars).toEqual(cachedBars))
+    expect(barsRequest).toBe(2)
+    expect(instrumentRequest).toBe(1)
 
     expect(store.loading).toBe(false)
     expect(store.uplotData[0]).toEqual([0, 1])
 
-    finishRefreshedInstrument({ id: 904, symbol: 'COLD-CACHE', stats: { week52_high: 30 } })
     await refresh
     expect(store.bars).toEqual(cachedBars)
     expect(barsRequest).toBe(2)
