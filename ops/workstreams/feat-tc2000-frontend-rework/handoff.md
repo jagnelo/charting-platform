@@ -27067,3 +27067,10 @@ The canonical matrix refreshed only the changed StrategyLabView control signatur
 ## 2026-11-08 — Scope on-demand chart provenance assertions to their accessible target
 
 Root’s exact 2f targeted pair found the M1 provenance check matching both the chart’s direct provenance and the nested Calendar full-description text. Updated all chart provenance checks in the TC-owned on-demand journey to resolve the provenance node named by the chart region’s `aria-describedby` reference. The full Calendar message remains checked through `calendarStatus.locator('.sr-only')`. Existing bar counts, timeframe, identity, readback, Calendar status geometry and journey assertions are unchanged. Frontend type-check and E2E reference-only preflight pass; no browser or full-suite rerun was performed. Root owns the next targeted qualification.
+
+
+## 2026-11-08 — Import Strategy a85 Study panel and retained-run successor
+
+Imported only the four guarded TC consumer paths from Strategy source `a85fc643a5f64d80701c243b734d170b712ca07b`: StudyLabTool.vue, StrategyLabView.vue, strategy_study_journey.spec.ts, and test_strategy_lab_view.test.ts. The exact 28-path manifest is archived at `development-dependency-imports/a85fc643a5f64d80701c243b734d170b712ca07b.json` (SHA256 `57bc5186dc6859d30abdb79fa8f7900c5ca9180a98cc88812e4af078e1dcac7d`). All 28 source blobs/hashes and Git modes were checked; the four old guards matched and the other 24 private paths were already exact. ETF 2bf private10 remains unchanged. The former Strategy 4a pin is preserved in import history and a85 is the active 28-path pin.
+
+The imported changes add the measured narrow Study control containment and preserve submitted run context through same-definition store refreshes. Type-check, E2E reference-only preflight, workstream validation and journey-matrix validation pass; the matrix confirms existing signatures and mappings. Root owns rendered containment and complete journey qualification. No producer tests, browser, backend, or release operation was run in TC; source import is development context, not acceptance.

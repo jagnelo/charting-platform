@@ -2041,7 +2041,9 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.study-lab-tool { display:grid; height:100%; min-height:0; min-width:0; container-type:inline-size; grid-template-rows:auto minmax(110px,1fr) auto auto auto; gap:5px; padding:6px; background:#11161b; color:#cbd5dc; font:10px "Segoe UI",Arial,sans-serif; }
+.study-lab-tool { display:grid; height:100%; min-height:0; min-width:0; grid-template-columns:minmax(0,1fr); container-type:inline-size; grid-template-rows:auto minmax(110px,1fr) auto auto auto; gap:5px; padding:6px; background:#11161b; color:#cbd5dc; font:10px "Segoe UI",Arial,sans-serif; }
+.study-lab-tool > * { min-width:0; }
+.study-lab-tool__header,.study-lab-tool__header-main,.study-lab-tool__dataset { min-width:0; }
 .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
 .study-lab-tool__editor-shell { min-height:0; }
 .study-lab-tool__sdk-reference { display:grid; gap:2px; color:#8195a3; }

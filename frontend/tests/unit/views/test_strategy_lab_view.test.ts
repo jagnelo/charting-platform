@@ -1650,6 +1650,87 @@ describe('StrategyLabView', () => {
     }))
   })
 
+  it('keeps the active draft through a same-definition run refresh and opens the new run results', async () => {
+    const run = {
+      ...clone(definition.runs[0]),
+      id: 15,
+      strategy_id: 4,
+      strategy_version_id: 8,
+      status: 'completed',
+      timeframe: 'D1',
+      date_from: '2024-01-02T00:00:00Z',
+      date_to: '2024-06-28T23:59:59Z',
+    }
+    const refreshedDefinition = {
+      ...clone(definition),
+      runs: [run, ...clone(definition.runs)],
+    }
+    let resolveDefinitionRefresh!: (value: typeof refreshedDefinition) => void
+    const definitionRefresh = new Promise<typeof refreshedDefinition>(resolve => {
+      resolveDefinitionRefresh = resolve
+    })
+
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/strategy-lab/definitions') return Promise.resolve([clone(definition)])
+      if (path === '/strategy-lab/definitions/4') return definitionRefresh
+      if (path === '/watchlists' || path === '/screeners' || path === '/baskets' || path === '/etf-holdings') {
+        return Promise.resolve([])
+      }
+      return Promise.resolve([])
+    })
+    ;(api.post as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/strategy-lab/coverage-preview') return Promise.resolve(clone(coveragePreviewResponse))
+      if (path === '/strategy-lab/versions/8/runs') return Promise.resolve(clone(run))
+      return Promise.resolve({})
+    })
+
+    const wrapper = mountView()
+    await flushPromises()
+    await ensurePanelExpanded(wrapper, 'Strategy profile')
+    await wrapper.get('input[placeholder="Momentum Continuation"]').setValue('Unsaved profile edit')
+    await ensurePanelExpanded(wrapper, 'Entry logic')
+    await findFieldByLabel(wrapper, 'Timeframe')!.get('select').setValue('W1')
+    await ensurePanelExpanded(wrapper, 'Research runs')
+    await findFieldByLabel(wrapper, 'Run timeframe')!.get('select').setValue('D1')
+    await findFieldByLabel(wrapper, 'Date from')!.get('input').setValue('2024-01-02')
+    await findFieldByLabel(wrapper, 'Date to')!.get('input').setValue('2024-06-28')
+
+    const runsPanel = wrapper.findAll('.panel').find(node => node.find('h3').text().trim() === 'Research runs')!
+    await runsPanel.get('.panel-head-heading__button').trigger('click')
+    const resultsPanel = wrapper.findAll('.panel').find(node => node.find('h3').text().trim() === 'Results')!
+    if (resultsPanel.find('.panel-body').exists()) {
+      await resultsPanel.get('.panel-head-heading__button').trigger('click')
+    }
+    const runButton = wrapper.findAll('button').find(button => button.text().trim() === 'Run backtest')
+    expect(runButton).toBeTruthy()
+
+    const runClick = runButton!.trigger('click')
+    await flushPromises()
+    expect(api.post).toHaveBeenCalledWith('/strategy-lab/versions/8/runs', expect.objectContaining({
+      timeframe: 'D1',
+      date_from: '2024-01-02T00:00:00Z',
+      date_to: '2024-06-28T23:59:59Z',
+    }))
+    expect(wrapper.get('.scroll-list-toggle').attributes('aria-expanded')).toBe('true')
+    expect(resultsPanel.get('.panel-head-heading__button').attributes('aria-expanded')).toBe('true')
+
+    resolveDefinitionRefresh(refreshedDefinition)
+    await runClick
+    await flushPromises()
+
+    expect((wrapper.get('input[placeholder="Momentum Continuation"]').element as HTMLInputElement).value)
+      .toBe('Unsaved profile edit')
+    expect((findFieldByLabel(wrapper, 'Timeframe')!.get('select').element as HTMLSelectElement).value).toBe('W1')
+    expect((findFieldByLabel(wrapper, 'Run timeframe')!.get('select').element as HTMLSelectElement).value).toBe('D1')
+    expect((findFieldByLabel(wrapper, 'Date from')!.get('input').element as HTMLInputElement).value).toBe('2024-01-02')
+    expect((findFieldByLabel(wrapper, 'Date to')!.get('input').element as HTMLInputElement).value).toBe('2024-06-28')
+    expect(runsPanel.find('.panel-body').exists()).toBe(true)
+    expect(wrapper.get('.scroll-list-toggle').attributes('aria-expanded')).toBe('true')
+    expect(wrapper.findAll('.run-item').filter(item => item.attributes('aria-pressed') === 'true')).toHaveLength(1)
+    expect(resultsPanel.find('.run-detail').exists()).toBe(true)
+    expect(resultsPanel.text()).toContain('Realized return')
+  })
+
   it('preserves promoted Python signal lineage during profile edits and runs its immutable version', async () => {
     let pythonSignal = clone(definition)
     pythonSignal.definition_type = 'python'

@@ -3320,10 +3320,14 @@ watch(coveragePreviewSignature, () => {
   scheduleCoveragePreview()
 }, { immediate: true })
 
-watch(() => strategyLab.selectedDefinition, value => {
-  hydrateFromSelection(value)
-  exportMenuOpen.value = false
-})
+watch(
+  [() => strategyLab.selectedDefinitionId, () => currentVersion.value?.id],
+  ([definitionId, versionId], [previousDefinitionId, previousVersionId]) => {
+    if (definitionId === previousDefinitionId && versionId === previousVersionId) return
+    hydrateFromSelection(strategyLab.selectedDefinition)
+    exportMenuOpen.value = false
+  },
+)
 
 function scheduleCoveragePreview() {
   void fetchCoveragePreview()
@@ -4334,6 +4338,12 @@ async function publishStrategy() {
 async function runCurrentVersion() {
   if (!currentVersion.value) return
   if (isPythonSignal.value && !pythonSignalRunReady.value) return
+  sectionExpanded.value = {
+    ...sectionExpanded.value,
+    runs: true,
+    results: true,
+  }
+  runHistoryExpanded.value = true
   const slippageBps = optionalNumberValue(runDraft.slippage_bps)
   const commissionValue = optionalNumberValue(runDraft.commission_value)
   const submitted = await strategyLab.runVersion(currentVersion.value.id, {
