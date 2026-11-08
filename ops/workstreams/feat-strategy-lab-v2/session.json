@@ -59,7 +59,20 @@
     "next_action": "Await Root review and replay of the workspace save/delete acknowledgment test correction; do not launch a browser, fixture, or native operation.",
     "status": "in_progress"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "frontend/src/components/workstation/ResearchResultsTool.vue",
+    "frontend/src/components/workstation/StudyLabTool.vue",
+    "frontend/src/lib/api.ts",
+    "frontend/src/views/WorkstationView.vue",
+    "frontend/tests/e2e/on_demand_acquisition.spec.ts",
+    "frontend/tests/e2e/strategy_study_journey.spec.ts",
+    "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts",
+    "frontend/tests/unit/components/test_research_results_tool.test.ts",
+    "frontend/tests/unit/lib/test_api_client.test.ts",
+    "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts",
+    "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
+    "ops/workstreams/feat-strategy-lab-v2/development-dependency-imports/tc-f57c45c7-common-runtime-development-consumption-contract.json"
+  ],
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
@@ -93,14 +106,14 @@
     }
   ],
   "goal_unavailable_reason": null,
-  "head": "6595b47a3d56220deda0e925901e4351df06cb1c",
+  "head": "011e2fc8b54360dbbe635440c12cce7146ca6b68",
   "implementation_sha": "55851d2b953ce38de5afe59ba90b613ffde08f87",
-  "last_checkpoint": "Consumed the Root-authorized TC837 frontend development context and added private workspace snapshot/delete/source-read acknowledgment barriers; focused static checks only, Root replay pending.",
+  "last_checkpoint": "Authored the legacy Strategy definition/version/SPY D1 local-backtest/results/export/return journey; added V2 owner-resource/detail and denied-pin recovery reads; strengthened Breadth, dock-fit, and catalogue screenshot evidence; consumed exact TC f57 foreground-read context. Focused units/type/discovery passed; Root browser remains pending.",
   "last_human_progress_update": "2026-11-08T16:11:41+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Await Root review and replay of the workspace save/delete acknowledgment test correction; do not launch a browser, fixture, or native operation.",
+  "next_action": "Root runs the exact pending Strategy/workstation browser bodies on this coherent checkpoint. Do not launch a duplicate browser/fixture or native operation; preserve the full roadmap and operational holds.",
   "parent_branch": "staging",
-  "plan_hash": "8ce8dba46df771981e234e8019f20ab13db4a16d825b905f13edf38c8ce67ba8",
+  "plan_hash": "939eb960080814953cf60696dc1f7b8533f6705123fedd0dc6d6561bbc8569d5",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -129,11 +142,11 @@
       "SU3",
       "SU4"
     ],
-    "current_blocker": "Root owns the next combined browser qualification; the focused Results fix is unit-verified, but profile acceptance remains pending.",
-    "current_phase": "strategy-results-artifact-filter-preservation",
-    "next_action": "Freeze this private Results pagination/detail repair for Root’s private26 successor and combined browser qualification; preserve all remaining Strategy criteria and holds.",
+    "current_blocker": "Root browser execution is pending; local focused checks do not establish browser or release acceptance.",
+    "current_phase": "strategy-exposed-legacy-v2-and-catalogue-journeys",
+    "next_action": "Root runs the exact pending Strategy/workstation browser bodies on this coherent checkpoint. Do not launch a duplicate browser/fixture or native operation; preserve the full roadmap and operational holds.",
     "total": 9,
-    "updated_at": "2026-11-08T06:57:41.615922+00:00"
+    "updated_at": "2026-11-08T17:55:51Z"
   },
   "remote": "b555268b8237d1c50e34b39320b4cb18a8bd9a03",
   "remote_sha": "b555268b8237d1c50e34b39320b4cb18a8bd9a03",
@@ -240,7 +253,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for Strategy Lab v2 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-11-08T16:11:41Z",
+  "updated_at": "2026-11-08T17:55:51Z",
   "validation_tier": "full_integration",
   "workstream": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2",
   "workstream_files": [

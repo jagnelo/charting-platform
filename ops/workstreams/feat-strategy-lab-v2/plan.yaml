@@ -1181,7 +1181,7 @@ acceptance_criteria:
 progress:
   completed: [SU1, SU2, SU3, SU4]
   total: 9
-  current_phase: strategy-e750-context-results-library-repair
+  current_phase: strategy-exposed-legacy-v2-and-catalogue-journeys
   active_changeset:
     id: strategy-study-usability-2026-11-06
     scope: >-
@@ -1254,23 +1254,23 @@ progress:
       - ops/workstreams/feat-strategy-lab-v2/validation.jsonl
     status: in_progress
   current_blocker: >-
-    The frozen R57 predecessor remains terminal5pass/4fail and is not accepted. Current Strategy
-    repairs include exact cached-ticker selection without waiting on held discovery, useful cached
-    Dashboard content during independent preparation, canonical My Favorites metrics, terminal
-    EasyScan assertions, and the Python editor suggestion popup placed above its component so
-    outside dismissal cannot shift or cover Validate/Save. R58b proves the original cause but is not
-    full-flow acceptance. Focused Search/editor tests pass17/17, type-check passes, and the owned
-    Dashboard/workstation specs discover nine cases. Root owns the actual cold Study-to-Library,
-    Dashboard, and workstation browser execution plus the combined profile and exact-source CI.
-    All18 roadmap criteria and native, broker, capital, paid/trial, and provider-live holds remain.
+    The current candidate now covers the advertised legacy Strategy lifecycle with ordinary
+    definition creation/profile save, version publication/reload, one SPY D1 local historical
+    backtest over the retained 2024-01-01 through 2025-12-29 window, persisted result readback,
+    summary export, deletion cancel/confirm, and return. Strategy Lab v2 coverage now selects and
+    reads an owner resource, exercises empty Trials/Artifacts collections, recovers from a denied
+    immutable pin reference, and returns to Workstation without writes or execution. The canonical
+    result schema uses strategy_version_id and UTC timestamp bounds. These browser bodies have not
+    run. Root owns their execution and full combined profile; no API resource execution or native,
+    broker, capital, paid/trial, or provider-live operation is authorized. Preserve all18 roadmap
+    criteria and prior red evidence.
   next_action: >-
-    Freeze this coherent Strategy candidate and hand Root the exact e902 TC import, current Provider22c
-    dependency, cached-search/widget and editor overlay repairs, plus current test/matrix evidence.
-    Root should run the full Study-to-Library path and affected Dashboard/workstation journeys without
-    weakening assertions or retry policy. Treat R56 as an isolated pass, R57 as historical red, and
-    R58b as causal diagnostic evidence; none replaces current-source browser acceptance. Preserve all
-    18 roadmap criteria and disabled operational holds.
-  updated_at: '2026-11-08T09:20:00Z'
+    Freeze this coherent Strategy candidate with the exact TC f57 foreground-read dependency, the
+    supported legacy local-backtest journey, the controlled V2 owner-resource/pin recovery journey,
+    and the current Breadth/dock/screenshot assertions. Root runs the browser bodies and owns
+    acceptance. Keep results pending until that exact source is exercised; preserve the complete
+    18-criterion roadmap and all disabled operational holds.
+  updated_at: '2026-11-08T17:55:51Z'
 roadmap_goal: >-
   Implement the production-grade, local-first Strategy Lab v2 backend for
   reproducible portfolio backtesting, walk-forward and search experiments, and
@@ -2446,3 +2446,16 @@ approved_development_dependency_imports:
   old_guards_verified: 8
   imported_paths_verified: 8
   qualification: Root-released TC development context only; no profile, exact CI, integration, deployment, or full-roadmap acceptance.
+- source_sha: f57c45c79b33d3511d1c286000c92fa94249c560
+  manifest_path: ops/workstreams/feat-strategy-lab-v2/development-dependency-imports/tc-f57c45c7-common-runtime-development-consumption-contract.json
+  manifest_sha256: 4ef54ccee53aa44a58694f9abac64dfdf3855f4c401856ce2835d80319c18153
+  paths:
+  - frontend/src/lib/api.ts
+  - frontend/src/views/WorkstationView.vue
+  - frontend/tests/e2e/on_demand_acquisition.spec.ts
+  - frontend/tests/unit/lib/test_api_client.test.ts
+  - frontend/tests/unit/views/test_workstation_popout_bindings.test.ts
+  source_manifest_rows_verified: 114
+  imported_paths_verified: 5
+  old_guards_verified: 5
+  qualification: Root-released TC development dependency only; exact CI, combined browser acceptance, integration, deployment, and full-roadmap completion remain pending.

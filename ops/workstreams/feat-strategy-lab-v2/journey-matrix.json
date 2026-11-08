@@ -36,7 +36,7 @@
     "status": "pending",
     "spec": "frontend/tests/e2e/strategy_study_journey.spec.ts",
     "dashboard_spec": "frontend/tests/e2e/dashboard_usability_journey.spec.ts",
-    "qualification": "Root's earlier R26 terminal result remains historical1pass/2fail on frontend77190340/backenddcd3c823. Root R46 then ran the Strategy/Workstation predecessor source frontend84b88fa8/backend182173f3: 1pass/3fail/zero retries. The immutable Study draft and saved run survived reload and the complete layout duplicate/rename/reorder/delete/cancel/Undo-only acknowledgement/reload journey passed. The Research Results GET detail contained8 artifacts but the selected UI rendered0; Strategy now merges summary projections with full cached detail and has a focused regression. RRG displayed points in the captured frame, but the previous boolean audit did not expose current centers/pixels; the candidate now reports per-frame center/RGBA evidence while retaining the same strong assertion. Root R49 ran the Dashboard predecessor on frontend84b/backend182:1pass/3fail/100.73s; failed-save Cancel+Retry passed, while a request-limit expectation and two controlled layout failures were test-authoring errors, and an ambiguous candidate was dismissed by the document mousedown handler because the menu is teleported. Strategy corrected the request limit and one-failure-per-phase setup, and made outside-click/focus containment portal-aware with mouse, keyboard, and stale-resolution unit regressions. These current corrections are unexecuted. Root owns their next combined browser run and all release gates; no predecessor result is current-source acceptance.",
+    "qualification": "Root's earlier R26 terminal result remains historical1pass/2fail on frontend77190340/backenddcd3c823. Root R46 then ran the Strategy/Workstation predecessor source frontend84b88fa8/backend182173f3: 1pass/3fail/zero retries. The immutable Study draft and saved run survived reload and the complete layout duplicate/rename/reorder/delete/cancel/Undo-only acknowledgement/reload journey passed. The Research Results GET detail contained8 artifacts but the selected UI rendered0; Strategy now merges summary projections with full cached detail and has a focused regression. RRG displayed points in the captured frame, but the previous boolean audit did not expose current centers/pixels; the candidate now reports per-frame center/RGBA evidence while retaining the same strong assertion. Root R49 ran the Dashboard predecessor on frontend84b/backend182:1pass/3fail/100.73s; failed-save Cancel+Retry passed, while a request-limit expectation and two controlled layout failures were test-authoring errors, and an ambiguous candidate was dismissed by the document mousedown handler because the menu is teleported. Strategy corrected the request limit and one-failure-per-phase setup, and made outside-click/focus containment portal-aware with mouse, keyboard, and stale-resolution unit regressions. These current corrections are unexecuted. Root owns their next combined browser run and all release gates; no predecessor result is current-source acceptance. The current candidate adds the authored legacy SPY/D1 local backtest lifecycle, V2 controlled owner-row/detail and denied-reference recovery, positive real Study-pin handoff, and per-tool catalogue screenshots; these new browser bodies are pending Root execution.",
     "workstation_spec": "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts"
   },
   "journeys": [
@@ -328,13 +328,17 @@
       "surface": "StrategyLabView",
       "route": "/legacy/strategy-lab (also linked from /strategy-lab).",
       "actions": [
-        "create/edit/save/delete definition",
-        "publish version",
-        "backtest/walk-forward",
-        "review/filter/sort run history and results",
-        "preview coverage"
+        "create a definition and select SPY through the public symbol picker",
+        "edit and save the definition profile",
+        "add a supported rule and publish a new immutable version",
+        "reload and select the saved definition/version",
+        "run one SPY D1 local historical backtest for 2024-01-01 through 2025-12-29",
+        "read the persisted completed result and its coverage/performance data",
+        "export the run summary",
+        "cancel then confirm definition deletion",
+        "return to the workstation"
       ],
-      "visible_outcome": "The selected definition/version is clear; saves/runs preserve immutable Python signal lineage; history and result state remain navigable; unsupported data/capability states stay explicit.",
+      "visible_outcome": "The definition profile and published version survive reload. The ordinary Run backtest action submits test_mode=backtest, SPY D1 and the selected retained date bounds to the existing local historical engine; the persisted owner run is completed with a rules_backtest summary, SPY coverage, equity curve and finite performance fields. The run summary downloads under its run-specific filename. Delete cancellation preserves the definition, confirmation removes it, and Back returns to Workstation. This does not exercise Paper forward, broker, capital or native execution.",
       "unit_evidence": [
         "frontend/tests/unit/views/test_strategy_lab_view.test.ts :: exposes the selected strategy and names the new-strategy action",
         "frontend/tests/unit/views/test_strategy_lab_view.test.ts :: creates a strategy from the visual builder without JSON payload editing",
@@ -342,13 +346,15 @@
         "frontend/tests/unit/views/test_strategy_lab_view.test.ts :: publishes revisions and runs backtests from the current visual state",
         "frontend/tests/unit/views/test_strategy_lab_view.test.ts :: preserves promoted Python signal lineage during profile edits and runs its immutable version",
         "frontend/tests/unit/views/test_strategy_lab_view.test.ts :: supports walk-forward mode, watchlist universes, and implicit parameter batches from original inputs",
-        "frontend/tests/unit/views/test_strategy_lab_view.test.ts :: deletes strategies from the current selection"
+        "frontend/tests/unit/views/test_strategy_lab_view.test.ts :: deletes strategies from the current selection",
+        "frontend/tests/e2e/strategy_study_journey.spec.ts :: legacy Strategy definition, immutable version, local SPY backtest, persisted results, export, delete and return journey (browser pending)"
       ],
       "api_evidence": [
         "Definition/version/run lifecycle: backend/tests/integration/api/test_strategy_lab.py :: test_create_list_version_and_run_strategy, test_update_version_persists_strategy_draft_defaults, test_delete_definition_removes_strategy, and test_walk_forward_run_supports_watchlist_universe",
-        "Results cursor: backend/tests/integration/api/test_strategy_lab.py :: test_research_run_listing_uses_stable_created_at_id_cursor"
+        "Results cursor: backend/tests/integration/api/test_strategy_lab.py :: test_research_run_listing_uses_stable_created_at_id_cursor",
+        "POST /strategy-lab/definitions, POST /definitions/{id}/versions, POST /versions/{version_id}/runs and GET /runs/{run_id}; this journey asserts strategy_version_id and canonical result fields. The selected Backtest mode is the local historical engine, not Paper forward."
       ],
-      "browser_evidence": "Pending current-source browser acceptance; the Study-only journey does not navigate into this view.",
+      "browser_evidence": "New Strategy-owned browser body is authored but not executed. It uses ordinary public controls for create/profile save, version publication/reload, SPY D1 local backtest, persisted API readback, summary export, delete cancel/confirm, and return. The request and persisted read assert the canonical strategy_version_id field, exact UTC date bounds, completed rules_backtest summary, SPY coverage, equity curve and performance values. Root owns browser execution; no result is claimed yet.",
       "approved_journey": [
         "J11 supporting: every reachable secondary page, with Strategy execution limits explicit"
       ]
@@ -369,7 +375,7 @@
       "api_evidence": [
         "No paper-forward acceptance is claimed in this usability matrix; retain existing forward/native/broker/capital holds."
       ],
-      "browser_evidence": "Not run and outside current approval. Do not launch Paper forward from this task.",
+      "browser_evidence": "The new legacy Strategy browser body covers the ordinary Backtest mode only, using one bounded local SPY D1 historical run. Walk-forward remains unexercised by this body; Paper forward is not activated or qualified and remains under its existing Root/roadmap boundary.",
       "approved_journey": [
         "J11 supporting: every reachable secondary page, with Strategy execution limits explicit"
       ]
@@ -378,13 +384,13 @@
       "surface": "StrategyLabV2View",
       "route": "/legacy/strategy-lab-v2 (also linked from /strategy-lab-v2).",
       "actions": [
-        "read-only resource tabs",
-        "paginate owner-scoped collection",
-        "select resource",
-        "inspect normal-user Study pin from persisted run/artifact IDs",
-        "retry failed collection/reference read"
+        "read Strategies, Trials and Artifacts collections",
+        "select a listed owner resource and inspect its persisted detail",
+        "submit an invalid/foreign immutable pin reference and inspect the denial",
+        "correct the reference and retry the owner-scoped pin read",
+        "return to Workstation"
       ],
-      "visible_outcome": "The exact owner/run/CodeVersion/artifact reference is displayed read-only; only authenticated GET is issued; malformed, mismatched, nonpositive, incomplete or failed references remain denied/retryable; no native execution dispatch is offered.",
+      "visible_outcome": "The selected resource detail is visible. A deterministic read fixture supplies one explicitly controlled owner-resource row/detail, empty Trials/Artifacts and a denied 404 reference; the user corrects the artifact ID and resolves the read-only immutable pin. No write or API resource execution is issued. A separate full Study journey reads the positive owner pin from the actual persisted run/artifact.",
       "unit_evidence": [
         "frontend/tests/unit/views/test_strategy_lab_v2_view.test.ts :: lists owner-scoped v2 strategies and re-reads immutable Study lineage on selection",
         "frontend/tests/unit/views/test_strategy_lab_v2_view.test.ts :: keeps server cursor pagination explicit and appends only the next owner-scoped page",
@@ -393,12 +399,13 @@
         "frontend/tests/unit/views/test_strategy_lab_v2_view.test.ts :: rejects incomplete or malformed immutable digests from a Study pin response",
         "frontend/tests/unit/views/test_strategy_lab_v2_view.test.ts :: rejects a Study pin response whose returned identity does not match the request",
         "frontend/tests/unit/views/test_strategy_lab_v2_view.test.ts :: does not request a Study pin for non-positive or non-integer identifiers",
-        "frontend/tests/unit/views/test_strategy_lab_v2_view.test.ts :: shows a failed collection read and allows an explicit retry"
+        "frontend/tests/unit/views/test_strategy_lab_v2_view.test.ts :: shows a failed collection read and allows an explicit retry",
+        "frontend/tests/e2e/strategy_study_journey.spec.ts :: controlled V2 collection/detail selection, denied-reference recovery, valid read-only pin and return (browser pending)"
       ],
       "api_evidence": [
         "GET /strategy-lab/v2/study-artifact-references/{run_id}/{artifact_id}; backend/tests/integration/strategy_lab_v2/test_study_artifact_resolution_postgres.py :: test_strategy_api_authenticates_exact_study_reference_before_persistence, test_study_resolver_rejects_persisted_run_version_and_output_drift, and test_reconstructed_worker_hydrator_rechecks_study_after_persisted_drift"
       ],
-      "browser_evidence": "Pending current-source whole-profile browser acceptance. Current Study journey does not open this route; Root owns genuine target positive/negative proof and its deployment ordering.",
+      "browser_evidence": "A controlled read-only route story is authored but not executed: it selects the fixture-backed resource row/detail, reads empty collections, verifies an invalid/foreign reference denial, retries with the correct existing IDs, asserts zero writes, and returns to Workstation. The ordinary Study journey separately checks an actual API-positive immutable pin. Root owns both browser proofs; neither is claimed passed here.",
       "approved_journey": [
         "J10 Study: read-only persisted result handoff",
         "J11 supporting: every reachable secondary page",
@@ -534,7 +541,7 @@
   ],
   "known_coverage_gaps": [
     "Root R57 is terminal 5 pass / 4 fail in 396.66s on its frozen predecessor: two Strategy-owned failures were the cached exact-XLB selection path and the whole Study-to-Library cold-flow source witness; TC owns the asynchronous EasyScan lifecycle repair. The current cached-search and five-case Dashboard source changes are focused-checked/discovered only; Root must execute them on a new combined candidate.",
-    "The new Library-to-Study return is specified in the Study E2E but remains unexecuted until Root's compatible Producer API and combined profile are available.",
+    "The Library-to-Study return, legacy Strategy local-backtest lifecycle, and V2 read-only resource/pin recovery journeys are now authored but not executed. Root owns exact-source browser execution. The controlled V2 resource/denial fixture is not real owner-negative API proof; the positive Study pin uses the actual persisted run/artifact path.",
     "The visible Paper forward mode is not activated or qualified by this usability scope; retain existing forward/native/broker/capital holds and report the boundary rather than treating UI presence as support."
   ],
   "safety": "No native-engine trial, broker/capital action, provider-live request, forward activation, or target/deployment claim is included.",
@@ -598,13 +605,14 @@
           "seed My Favorites through the Chart window star action before reading its rows",
           "verify chart and ratio series-color pixels, Market Map tile selection, and Relative Rotation marker-arc centers plus keyboard tooltip"
         ],
-        "visible_outcome": "The spec derives tool titles and the eight factory layouts from the authenticated canonical endpoints; missing catalogue/factory mappings fail. The factory Breadth window is mapped to the canonical breadth outcome, and the recreation flow closes alias panels by canonical catalogue key plus tool_type (for example breadth/breadth-summary and chart/primary-chart) before opening the public catalogue entry. All21 catalogue entries have visible outcomes including My Favorites populated by the public Chart star action, actual EasyScan coverage and finite Gauge reading, ordinary Study output in Results, saved validated Python Library asset, Market Map selection, chart/ratio series-color paint, and Relative Rotation markers captured from the current document's latest canvas frame: only arcs at least 3.4 DPR are eligible, centers must be finite, and each center pixel must be opaque and match a canonical state color. The failure report retains canvas bounds, frame counter, centers and RGBA values. Keyboard plot interaction remains asserted. My Favorites Last and Chg % are compared to the latest two real canonical local SPY D1 bars; benchmark/sector configured-return checks remain. The EasyScan assertion waits for its exact run ID to appear as completed with nonzero evaluated coverage, then requires the visible counts and match total to agree with that terminal API result. The broad catalogue story retains its240-second test timeout. Root R57 terminal evidence includes full RRG graph/math/tails/selection/resize/maximize/copy/tab restore pass; TC's separate EasyScan async-polling defect remains assigned and this stricter recreated-tool journey is pending Root execution.",
+        "visible_outcome": "The spec derives tool titles and the eight factory layouts from the authenticated canonical endpoints; missing catalogue/factory mappings fail. The factory Breadth window is mapped to the canonical breadth outcome, and the recreation flow closes alias panels by canonical catalogue key plus tool_type (for example breadth/breadth-summary and chart/primary-chart) before opening the public catalogue entry. All21 catalogue entries have visible outcomes including My Favorites populated by the public Chart star action, actual EasyScan coverage and finite Gauge reading, ordinary Study output in Results, saved validated Python Library asset, Market Map selection, chart/ratio series-color paint, and Relative Rotation markers captured from the current document's latest canvas frame: only arcs at least 3.4 DPR are eligible, centers must be finite, and each center pixel must be opaque and match a canonical state color. The failure report retains canvas bounds, frame counter, centers and RGBA values. Keyboard plot interaction remains asserted. My Favorites Last and Chg % are compared to the latest two real canonical local SPY D1 bars; benchmark/sector configured-return checks remain. The EasyScan assertion waits for its exact run ID to appear as completed with nonzero evaluated coverage, then requires the visible counts and match total to agree with that terminal API result. The broad catalogue story retains its240-second test timeout. Root R57 terminal evidence includes full RRG graph/math/tails/selection/resize/maximize/copy/tab restore pass; TC's separate EasyScan async-polling defect remains assigned and this stricter recreated-tool journey is pending Root execution. Each successful one-of-21 catalogue panel assertion also attaches a named screenshot for Root review. Breadth requires actual successful evaluation with positive eligible members; pass count, pass percentage, excluded/requested counts and coverage are checked against the response members and independent arithmetic before selecting a result row.",
         "evidence": [
           "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts :: closes and recreates every canonical catalogue tool with a per-family useful-content witness",
           "backend/app/services/workstation_tool_catalogue.py :: authenticated canonical 21-tool catalogue",
           "backend/app/routers/workspaces.py::_factory_tabs :: eight canonical factory layouts and their window definitions",
           "frontend/src/components/workstation/RelativeRotationTool.vue :: 3.5-DPR latest-point arcs and keyboard tooltip interaction",
-          "frontend/src/components/workstation/MarketGaugeTool.vue and EasyScanTool.vue :: retained scan selection and evaluated/universe coverage"
+          "frontend/src/components/workstation/MarketGaugeTool.vue and EasyScanTool.vue :: retained scan selection and evaluated/universe coverage",
+          "The Strategy-owned catalogue journey attaches one named screenshot immediately after each of the21 successful useful-content assertions, preserving the final user-visible panel state as review evidence."
         ],
         "browser_evidence": "Root R57 terminal 5 pass / 4 fail: the full RRG graph/math/tail/selection/resize/maximize/copy/tab-restore journey passed. The independent EasyScan result was queued and TC owns the async polling product repair. The Strategy My Favorites canonical Last/Chg % comparison and exact terminal EasyScan browser assertion are authored but not run; Root owns the next combined run."
       },
@@ -642,7 +650,7 @@
         "browser_evidence": "Root R33 screenshot and R34 exact-source bounded diagnostic show the Chart renders after resize/maximize/restore: .chart-tool canvas.first() is canvas.drawing-canvas with0 nontransparent/0 exact series pixels; .chart-tool .uplot canvas has4223 nontransparent/1696 exact series-color pixels. The test oracle now reads .chart-tool .uplot canvas and still requires >20 actual series-color pixels. R35 passed the Chart paint assertion but failed workspace comparison because initial rows were loading placeholders while later rows had live quotes. The candidate compares stable member names/order/count and visible columns, separately requiring at least two finite numeric result cells for source, duplicate, restored source and reload; it does not freeze changing quote text. R38 showed responsive YTD visibility differed because the test compared the source layout at its initial viewport with restored content at1100px; the candidate keeps the useful narrow-width Chart check and restores the original viewport before comparing source columns. The browser journey remains pending Root."
       }
     ],
-    "execution_boundary": "The changed StudyLabTool component module passed67/67 focused Vitest cases; frontend vue-tsc, Playwright --list discovery and workstream validation pass. Four Playwright bodies and runtime content witnesses remain unexecuted pending Root combined qualification. No browser session or fixture was started."
+    "execution_boundary": "Focused Vitest checks passed 196/196 across Research Results, Strategy Lab v1, Strategy Lab v2, and Study Lab modules; frontend vue-tsc passes. Playwright discovery lists16 owned Study/workstation browser bodies. The E2E reference preflight reports no actionable unbound references; its separate existing fixture/type and missing Node ambient diagnostics are not a full E2E type pass. The current Breadth evaluation, Study dock-fit, per-tool screenshots, legacy SPY/D1 backtest, V2 controlled resource/pin recovery, and existing Study/Results/Library/workstation journeys remain unexecuted in a browser. Root owns the exact-source combined browser/profile and release gates. No Strategy browser fixture, Docker, native, provider, or production action ran."
   },
   "shared_source_consumptions": [
     {

@@ -457,7 +457,7 @@ const runsQuery = useQuery({
       const serverRuns = (await api.get<ResearchRunSummary[]>(
         '/research/runs',
         { limit: RESEARCH_RUN_FETCH_SIZE, include_artifacts: false },
-        { signal: requestController.signal, priority: 'high' },
+        { signal: requestController.signal, priority: 'high', foreground: true },
       )) ?? []
       const cachedRuns = queryClient.getQueryData<ResearchRunSummary[]>(runsQueryKey) ?? []
       return reconcileResearchRunsWithCache(serverRuns, cachedRuns)
@@ -544,7 +544,7 @@ async function loadOlderRuns() {
       include_artifacts: false,
       before_created_at: cursor.created_at,
       before_id: cursor.id,
-    }, { priority: 'high' })) ?? []
+    }, { priority: 'high', foreground: true })) ?? []
     const visiblePage = page.slice(0, RESEARCH_RUN_PAGE_SIZE)
     const previousCount = runs.value.length
     runs.value = mergeResearchRuns(runs.value, visiblePage)
