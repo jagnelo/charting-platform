@@ -658,6 +658,10 @@ describe('StrategyLabView', () => {
     expect(wrapper.text()).toContain('Realized return')
     expect(wrapper.text()).toContain('Realized')
     expect(wrapper.text()).toContain('Unrealized')
+    expect(wrapper.get('.summary-basis-note').attributes('role')).toBe('note')
+    expect(wrapper.get('.summary-basis-note').text()).toContain(
+      'Marked total uses the latest raw market price. Open P&L estimates closing costs and slippage',
+    )
     expect(wrapper.text()).toContain('$312.45')
     expect(wrapper.text()).toContain('+0.31%')
     expect(wrapper.text()).toContain('Open At End')

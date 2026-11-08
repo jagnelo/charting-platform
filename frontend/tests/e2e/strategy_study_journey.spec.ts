@@ -65,6 +65,7 @@ function isStudyHistoryEnsure(
   symbols: ReadonlySet<string>,
   startAt: string | null = null,
   endAt: string | null = null,
+  allowCoordinatorPrerequisites = false,
 ) {
   if (request.method() !== 'POST' || new URL(request.url()).pathname !== '/api/v1/data/ensure') return false
   let body: {
@@ -80,17 +81,22 @@ function isStudyHistoryEnsure(
   } catch {
     return false
   }
+  const datasets = body.datasets ?? []
+  const matchesRequestedHistory = datasets.includes('history')
+    && (allowCoordinatorPrerequisites
+      ? datasets.every(dataset => ['identity', 'profile', 'history'].includes(dataset))
+      : datasets.length === 1)
+  const matchesDate = (actual: string | null | undefined, expected: string | null) => expected === null
+    ? actual == null
+    : actual === expected
   return body.target?.kind === 'instrument'
     && typeof body.target.symbol === 'string'
     && symbols.has(body.target.symbol.toUpperCase())
-    && body.datasets?.length === 1
-    && body.datasets[0] === 'history'
+    && matchesRequestedHistory
     && body.timeframe === 'D1'
     && body.adjusted === true
-    && Object.prototype.hasOwnProperty.call(body, 'start_at')
-    && Object.prototype.hasOwnProperty.call(body, 'end_at')
-    && body.start_at === startAt
-    && body.end_at === endAt
+    && matchesDate(body.start_at, startAt)
+    && matchesDate(body.end_at, endAt)
 }
 
 function isWorkspaceSnapshotWithStudyVersion(
@@ -837,49 +843,59 @@ test('Strategy Lab v2 reads a selected owner resource and recovers from a denied
 
 test('Study preparation submits every universe member and benchmark while one member is held', async ({ page, loggedIn, browserDiagnostics }) => {
   const submittedTargets: Array<{ kind: string; symbol?: string }> = []
+  const requestedDatasets = new Map<string, string[]>()
   let resolveAllSubmitted!: () => void
   const allSubmitted = new Promise<void>(resolve => { resolveAllSubmitted = resolve })
   let resolveHeldPrimary!: () => void
   const heldPrimary = new Promise<void>(resolve => { resolveHeldPrimary = resolve })
-  const responseFor = (requestId: string, status: 'queued' | 'ready' | 'unavailable', version: number, symbol: string) => ({
-    request_id: requestId,
-    status,
-    has_pending_work: status === 'queued',
-    created_at: '2026-11-06T12:00:00Z',
-    updated_at: '2026-11-06T12:00:01Z',
-    version,
-    target: { kind: 'instrument', symbol },
-    dependencies: [{
-      dependency_id: `${requestId}:history`,
-      depends_on: [],
-      instrument_id: null,
-      symbol,
-      dataset: 'history',
+  const responseFor = (requestId: string, status: 'queued' | 'ready' | 'unavailable', version: number, symbol: string, datasets: readonly string[]) => {
+    const dependencies = datasets.map(dataset => {
+      const dependencyStatus = status === 'unavailable' && dataset === 'history' ? 'unavailable' : status === 'unavailable' ? 'ready' : status
+      return {
+        dependency_id: `${requestId}:${dataset}`,
+        depends_on: [],
+        instrument_id: null,
+        symbol,
+        dataset,
+        status: dependencyStatus,
+        requested_start: null,
+        requested_end: null,
+        covered_start: null,
+        covered_end: null,
+        reason_code: dependencyStatus === 'unavailable' ? 'no_eligible_history_provider' : null,
+        retry_at: null,
+        updated_at: '2026-11-06T12:00:01Z',
+        covered_ranges: [],
+      }
+    })
+    const completed = dependencies.filter(dependency => !['queued', 'running', 'partial'].includes(dependency.status)).length
+    return {
+      request_id: requestId,
       status,
-      requested_start: null,
-      requested_end: null,
-      covered_start: null,
-      covered_end: null,
-      reason_code: status === 'unavailable' ? 'no_eligible_history_provider' : null,
-      retry_at: null,
+      has_pending_work: status === 'queued',
+      created_at: '2026-11-06T12:00:00Z',
       updated_at: '2026-11-06T12:00:01Z',
-      covered_ranges: [],
-    }],
-    completed: status === 'queued' ? 0 : 1,
-    total: 1,
-    last_progress_at: '2026-11-06T12:00:01Z',
-  })
+      version,
+      target: { kind: 'instrument', symbol },
+      dependencies,
+      completed,
+      total: dependencies.length,
+      last_progress_at: '2026-11-06T12:00:01Z',
+    }
+  }
 
   const studySymbols = new Set(['SPY', 'XLK', 'QQQ'])
   await page.route('**/api/v1/data/**', async route => {
     const request = route.request()
     const url = new URL(request.url())
-    if (isStudyHistoryEnsure(request, studySymbols)) {
-      const body = request.postDataJSON() as { target: { kind: string; symbol?: string } }
+    if (isStudyHistoryEnsure(request, studySymbols, null, null, true)) {
+      const body = request.postDataJSON() as { target: { kind: string; symbol?: string }; datasets?: string[] }
       submittedTargets.push(body.target)
       if (submittedTargets.length === 3) resolveAllSubmitted()
       const symbol = body.target.symbol ?? `target-${submittedTargets.length}`
-      await route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify(responseFor(`study-${symbol}`, 'queued', 1, symbol)) })
+      const datasets = body.datasets ?? ['history']
+      requestedDatasets.set(`study-${symbol}`, datasets)
+      await route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify(responseFor(`study-${symbol}`, 'queued', 1, symbol, datasets)) })
       return
     }
     const poll = url.pathname.match(/\/api\/v1\/data\/requests\/(study-[^/]+)$/)
@@ -888,7 +904,7 @@ test('Study preparation submits every universe member and benchmark while one me
       const symbol = requestId.replace(/^study-/, '')
       if (symbol === 'SPY') await heldPrimary
       const status = symbol === 'SPY' ? 'unavailable' : 'ready'
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(responseFor(requestId, status, 2, symbol)) })
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(responseFor(requestId, status, 2, symbol, requestedDatasets.get(requestId) ?? ['history'])) })
       return
     }
     await route.continue()

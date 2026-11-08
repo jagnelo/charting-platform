@@ -20430,3 +20430,12 @@ Changed paths: `backend/app/services/strategy_lab_nautilus.py`, `backend/tests/u
 ### Run History singular/plural accessible name (2026-11-08)
 
 Root's 3413/e949 replay completed the legacy positive engine assertions and exposed that the prior selector's `batches?` fragment missed the singular label “Run history 1 batch.” The owned E2E now matches `batch` with optional `es`, retaining the expanded-state assertion and all selected-run/results/export/delete checks. A direct singular/plural matcher check, Playwright discovery (12 bodies), workstream validation, and diff check pass. Browser execution remains Root-owned.
+
+
+### Study held-member predicate and Library return triage (2026-11-08)
+
+The all-members Study timeout was a controlled-route mismatch, not evidence of a preparation deadlock. In the exact 3413 trace, the first unmatched POST was `/data/ensure` for SPY with `identity`, `profile`, and `history`; the fixture accepted only exactly `history` and required explicit null date fields, while the request omitted unbounded date fields. The owned matcher now permits only those known coordinator prerequisite datasets for this case, treats omitted and null unbounded dates equivalently, and builds matching per-dataset controlled responses. All target symbols and the held SPY history outcome remain asserted. Root must execute the case; no browser body was run here.
+
+The Library return failure is a shared workspace persistence/reconciliation issue, not a missing asset. Trace evidence: `/code/assets` returns the created Study asset; workspace snapshot revision 9 (200) contains and selects `code_library`, then revision 10 (200) omits it and selects Results. The final screen has no Library tool. TC owns the shared layout writer; Strategy made no shared-product edit and retained the ordinary Library journey assertions.
+
+The legacy result summary now explains raw-marked total versus estimated open P&L basis, with an accessible note and focused unit assertion. Focused StrategyLab view tests pass 42/42, Vue type-check passes, Playwright lists all 12 Study journey bodies, and reference preflight reports no actionable unbound references (existing semantic/Node ambient advisories remain unqualified). No browser, full suite, fixture, native/provider operation, or release qualification was run.
