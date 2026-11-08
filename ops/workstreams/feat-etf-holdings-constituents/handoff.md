@@ -19128,3 +19128,25 @@ disclosure after holdings, history, turnover, and overlap content. No API, data,
 provider, or S&P DPR changes were made. Focused view units, type-check, and
 Playwright discovery pass; browser execution and final combined qualification
 remain Root-owned.
+
+## Compact content readiness and capability wording — 2026-11-08
+
+Root's `root-ETF-compact-content-readiness-repair-assignment.json` exposed a
+1024x640 CSS layout where the stacked ETF selector pushed the holdings table
+below the visible area. At tablet widths above600px through1100px the ETF page keeps the
+selector in a scrollable side column, compacts the toolbar, and keeps all six
+holding fields in a horizontally scrollable table; none are hidden. Baskets
+uses a compact data-first stack so selected members precede the basket selector.
+
+When a saved snapshot is actually displayed but the current-analysis capability
+returns the generic no-snapshot reason, the view now explains that the check
+found no eligible snapshot while the selected saved snapshot remains available
+for historical review. The current-unverified warning, capability state,
+composition date, source, known-at, and full lineage remain intact. If latest
+snapshot identity is absent, the UI labels the displayed snapshot as saved with
+current status unverified instead of “Snapshot status unknown.”
+
+Focused ETF Holdings and Baskets view tests passed54/54; `npm run type-check`
+and `git diff --check` passed. Root owns the rendered 1024x640 DPR1.25
+recheck; no browser, API, native source, fixture, or data operation was run by
+ETF. The full roadmap and all previous acceptance evidence remain open/intact.

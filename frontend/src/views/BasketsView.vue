@@ -1199,14 +1199,22 @@ function humanize(value: string) {
   margin-top: 16px;
 }
 
-@media (max-width: 920px) {
+@media (max-width: 1100px) {
   .basket-view {
     flex-direction: column;
   }
 
+  .basket-main {
+    order: 0;
+    min-height: 0;
+  }
+
   .basket-sidebar {
+    order: 1;
     width: 100%;
-    max-height: 280px;
+    max-height: 180px;
+    flex: 0 0 auto;
+    overflow: auto;
     border-right: 0;
     border-bottom: 1px solid #1a1a1a;
   }

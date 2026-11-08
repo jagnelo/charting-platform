@@ -8592,3 +8592,19 @@ tc_common_runtime_dependency_active_db4b1f55:
   scope: Current Root-released DB4 shared frontend context for ETF; the already-current Provider fc220 dependency
     is unchanged.
   state: Development context only. Root owns the compact RRG rerun, combined qualification, CI, and release gates.
+
+root_allocated_etf_compact_content_readiness_2026_11_08:
+  authority: Root assigned this bounded ETF-owned responsive/content repair; no staging, deployment, or product-release acceptance is implied.
+  assignment: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/root-ETF-compact-content-readiness-repair-assignment.json
+  scope:
+  - frontend/src/views/ETFHoldingsView.vue
+  - frontend/src/views/BasketsView.vue
+  - frontend/tests/unit/views/test_etf_holdings_view.test.ts
+  repair: At compact widths, keep ETF selection alongside the holdings content, retain all table columns with horizontal scrolling, and put basket member content before its selector. When a saved snapshot is displayed, explain that a generic no-current-eligible-snapshot capability result does not mean no saved snapshot exists; retain the unavailable/current-eligibility warning and provenance.
+  validation: ETF holdings and basket view unit modules passed54/54; frontend vue-tsc type-check passed; git diff --check passed.
+  browser: Pending Root's exact rendered successor review at1024x640 CSS DPR1.25; no local browser was run.
+  source_sha256:
+    frontend/src/views/ETFHoldingsView.vue: ae599ab2b8cf4b2cef171a53af621768b6108b60aaa5f94dac0a7ef9c3af3ca2
+    frontend/src/views/BasketsView.vue: 5cc51e921085e771249241c1b18a5fcffa508bad350cc0c2a88d9494fd2cea27
+    frontend/tests/unit/views/test_etf_holdings_view.test.ts: e36acb3123d1b0909273143b520d8b9a2d2b886b74ad2e932c89565effa098af
+  state: Bounded implementation checkpoint; full roadmap remains open and Root owns browser, CI, integration, and release qualification.
