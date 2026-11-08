@@ -597,14 +597,18 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
     }
     await route.fulfill({ status: 200, json: resolvedIdentity(body, instrumentId, 'Common Stock') })
   })
-  await page.route('**/api/v1/instruments/UNXQ', async route => {
+  await page.route(url => url.pathname === '/api/v1/instruments/UNXQ', async route => {
+    const request = route.request()
+    const url = new URL(request.url())
+    if (request.method() !== 'GET' || url.searchParams.get('canonical_only') !== 'true') return route.continue()
     if (!resolved) {
       await route.fulfill({ status: 404, json: { detail: 'No pre-existing instrument in this controlled fixture.' } })
       return
     }
     await route.fulfill({ status: 200, json: {
-      id: instrumentId, symbol, name: holding.reported_name, currency: 'USD',
-      is_active: true, is_synthetic: false, stats: { week52_high: 30 },
+      id: instrumentId, instrument_id: instrumentId, symbol, identity_status: 'resolved',
+      name: holding.reported_name, currency: 'USD', is_active: true, is_synthetic: false,
+      stats: { week52_high: 30 },
     } })
   })
   await page.route('**/api/v1/instrument-indicators/779004**', route => route.fulfill({ status: 200, json: { indicators: [] } }))
@@ -773,14 +777,31 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
       body: await response.json(),
     }
   })
+  const canonicalIdentityAfterReloadReady = page.waitForResponse(response => {
+    const request = response.request()
+    const url = new URL(request.url())
+    return request.frame() === mainFrame
+      && (requestDocumentEpoch.get(request) ?? 0) > documentEpochBeforeReload
+      && request.method() === 'GET'
+      && url.pathname === `/api/v1/instruments/${symbol}`
+      && url.searchParams.get('canonical_only') === 'true'
+  })
   await page.reload()
   const calendarResponseAfterReload = await calendarResponseAfterReloadReady
+  const canonicalIdentityAfterReload = await canonicalIdentityAfterReloadReady
   page.off('framenavigated', recordMainFrameNavigation)
   page.off('request', recordMainFrameRequest)
   expect(calendarResponseAfterReload.method).toBe('GET')
   expect(calendarResponseAfterReload.pathname).toBe(`/api/v1/calendar/instruments/${symbol}/calendar`)
   expect(calendarResponseAfterReload.status).toBe(200)
   expect(calendarResponseAfterReload.body).toEqual(noInstrumentCalendarEvents)
+  expect(canonicalIdentityAfterReload.status()).toBe(200)
+  expect(await canonicalIdentityAfterReload.json()).toMatchObject({
+    id: instrumentId,
+    instrument_id: instrumentId,
+    symbol,
+    identity_status: 'resolved',
+  })
   await expect(page).toHaveURL(/\/chart\/UNXQ\?/)
   await expect(page.getByTestId('active-holding-lineage')).toHaveText(`UNXQ from ${profile.symbol} dated holdings · ${snapshot.composition_date}`)
   await expect.poll(() => localReadCount).toBeGreaterThan(readsBeforeReload)
@@ -1435,8 +1456,12 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
   expect(iwmLineageDetails).toContain('controlled_fixture')
   expect(iwmLineageDetails).toContain('does not establish current ETF analysis eligibility')
 
-  const chartCanvases = page.locator('.chart-body canvas')
-  await expect(chartCanvases.first()).toBeVisible()
+  const priceChart = page.locator('.chart-tool:visible').getByRole('region', { name: 'Chart workspace' }).first()
+  const pricePlot = priceChart.locator('.uplot')
+  await expect(pricePlot).toBeVisible()
+  const pricePlotCountBefore = await pricePlot.count()
+  expect(pricePlotCountBefore).toBe(1)
+  await expect(priceChart.locator('.sr-only')).toContainText('D1 chart; 500 bars; adjusted;')
   const m1HistoryReady = page.waitForResponse(response => {
     const url = new URL(response.url())
     if (response.request().method() !== 'POST' || url.pathname !== '/api/v1/data/ensure') return false
@@ -1457,8 +1482,10 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
     return response.request().method() === 'GET'
       && url.pathname === '/api/v1/instruments/AMD/data-coverage'
   })
-  await page.locator('.tf-select').selectOption('M1')
-  await expect(page.locator('.tf-select')).toHaveValue('M1')
+  const linkedTimeframe = page.getByLabel('Linked timeframe')
+  await expect(linkedTimeframe).toBeVisible()
+  await linkedTimeframe.selectOption('M1')
+  await expect(linkedTimeframe).toHaveValue('M1')
   const [m1History, m1LocalBars, m1Coverage] = await Promise.all([m1HistoryReady, m1LocalBarsReady, m1CoverageReady])
   expect(m1History.status()).toBe(200)
   expect(await m1History.json()).toMatchObject({
@@ -1474,11 +1501,10 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
   expect(m1Coverage.status()).toBe(200)
   expect(await m1Coverage.json()).toMatchObject({ symbol: 'AMD', is_fetching: false })
   await expect(page.locator('.chart-root').first()).toHaveAttribute('aria-busy', 'false')
-  await expect(chartCanvases.first()).toBeVisible()
-  const canvasCountBefore = await chartCanvases.count()
+  await expect(pricePlot).toBeVisible()
+  await expect(pricePlot).toHaveCount(pricePlotCountBefore)
   await expect(page.getByRole('status').filter({ hasText: 'Some requested data is unavailable. Available results remain usable.' })).toBeVisible()
   await expect(historicalContext).toBeVisible()
-  await expect(chartCanvases).toHaveCount(canvasCountBefore)
   expect(identityRequests).toHaveLength(1)
   expect(identityRequests.map(request => request.symbol)).toEqual(['IWM'])
   expect(historyRequests).toHaveLength(2)
@@ -1979,8 +2005,10 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
     return response.request().method() === 'GET'
       && url.pathname === '/api/v1/instruments/AMD/data-coverage'
   })
-  await page.locator('.tf-select').selectOption('M1')
-  await expect(page.locator('.tf-select')).toHaveValue('M1')
+  const linkedTimeframe = page.getByLabel('Linked timeframe')
+  await expect(linkedTimeframe).toBeVisible()
+  await linkedTimeframe.selectOption('M1')
+  await expect(linkedTimeframe).toHaveValue('M1')
   const [m1History, m1LocalBars, m1Coverage, localReadback] = await Promise.all([m1HistoryReady, m1LocalBarsReady, m1CoverageReady, localReadbackReady])
   expect(m1History.status()).toBe(200)
   expect(await m1History.json()).toMatchObject({
