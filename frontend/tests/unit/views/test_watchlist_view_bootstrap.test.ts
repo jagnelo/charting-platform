@@ -127,4 +127,119 @@ describe('WatchlistView bootstrap selection', () => {
       wrapper.unmount()
     }
   })
+
+  it('does not let a pending create steal a newer list selection or close a newer create form', async () => {
+    const first = makeWatchlist(36, 'First list')
+    const second = makeWatchlist(37, 'Second list')
+    const created = makeWatchlist(38, 'Created list')
+    let resolveCreate!: (watchlist: ReturnType<typeof makeWatchlist>) => void
+    const createResponse = new Promise<ReturnType<typeof makeWatchlist>>(resolve => { resolveCreate = resolve })
+    const store = useWatchlistStore()
+    store.watchlists.push(first, second)
+    store.loading = false
+    store.loadWatchlists = vi.fn().mockResolvedValue(undefined)
+    store.fetchPrices = vi.fn()
+    store.createWatchlist = vi.fn(async () => {
+      const result = await createResponse
+      store.watchlists.push(result)
+      return result
+    })
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: '/', component: defineComponent({ template: '<div />' }) }],
+    })
+    const wrapper = mount(WatchlistView, {
+      global: {
+        plugins: [router],
+        stubs: {
+          VueDraggable: VueDraggableStub,
+          SearchBar: SearchBarStub,
+          Sparkline: true,
+          SparkTfSelector: true,
+        },
+      },
+    })
+
+    try {
+      await flushPromises()
+      await wrapper.get('.wls-new-btn').trigger('click')
+      await wrapper.get('input[aria-label="New watchlist name"]').setValue('Created list')
+      await wrapper.get('button[aria-label="Create watchlist"]').trigger('click')
+
+      await wrapper.get('button[aria-label="Cancel watchlist creation"]').trigger('click')
+      await wrapper.get('.wls-new-btn').trigger('click')
+      await wrapper.get('input[aria-label="New watchlist name"]').setValue('Created list')
+      await wrapper.findAll('.wls-item')[1]!.trigger('click')
+
+      resolveCreate(created)
+      await flushPromises()
+
+      expect(wrapper.get('.wlm-title').text()).toBe('Second list')
+      expect(wrapper.get('input[aria-label="New watchlist name"]').element.value).toBe('Created list')
+      expect(wrapper.findAll('.wlsi-name').map(name => name.text())).toContain('Created list')
+      expect(store.createWatchlist).toHaveBeenCalledWith('Created list')
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
+  it('does not let a pending copy steal a newer selection, but selects an acknowledged copy when no newer choice exists', async () => {
+    const first = makeWatchlist(36, 'First list')
+    const second = makeWatchlist(37, 'Second list')
+    const lateCopy = makeWatchlist(38, 'Late copy')
+    const immediateCopy = makeWatchlist(39, 'Immediate copy')
+    let resolveCopy!: (watchlist: ReturnType<typeof makeWatchlist>) => void
+    const copyResponse = new Promise<ReturnType<typeof makeWatchlist>>(resolve => { resolveCopy = resolve })
+    const store = useWatchlistStore()
+    store.watchlists.push(first, second)
+    store.loading = false
+    store.loadWatchlists = vi.fn().mockResolvedValue(undefined)
+    store.fetchPrices = vi.fn()
+    store.copyWatchlist = vi.fn()
+      .mockImplementationOnce(async () => {
+        const result = await copyResponse
+        store.watchlists.push(result)
+        return result
+      })
+      .mockImplementationOnce(async () => {
+        store.watchlists.push(immediateCopy)
+        return immediateCopy
+      })
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: '/', component: defineComponent({ template: '<div />' }) }],
+    })
+    const wrapper = mount(WatchlistView, {
+      global: {
+        plugins: [router],
+        stubs: {
+          VueDraggable: VueDraggableStub,
+          SearchBar: SearchBarStub,
+          Sparkline: true,
+          SparkTfSelector: true,
+        },
+      },
+    })
+
+    try {
+      await flushPromises()
+      await wrapper.findAll('.wlsi-menu-btn')[0]!.trigger('click')
+      await wrapper.findAll('.wlsi-dd-item').find(item => item.text() === 'Copy')!.trigger('click')
+      expect(store.copyWatchlist).toHaveBeenCalledWith(36)
+
+      await wrapper.findAll('.wls-item')[1]!.trigger('click')
+      resolveCopy(lateCopy)
+      await flushPromises()
+      expect(wrapper.get('.wlm-title').text()).toBe('Second list')
+      expect(wrapper.findAll('.wlsi-name').map(name => name.text())).toContain('Late copy')
+
+      await wrapper.findAll('.wlsi-menu-btn')[1]!.trigger('click')
+      await wrapper.findAll('.wlsi-dd-item').find(item => item.text() === 'Copy')!.trigger('click')
+      await flushPromises()
+      expect(store.copyWatchlist).toHaveBeenCalledWith(37)
+      expect(wrapper.get('.wlm-title').text()).toBe('Immediate copy')
+    } finally {
+      wrapper.unmount()
+    }
+  })
 })

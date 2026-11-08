@@ -349,7 +349,7 @@
         "frontend/tests/e2e/baskets_journey.spec.ts",
         "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json"
       ],
-      "pending_reason": "ETF-owned basket CRUD, provenance, immediate shared-dashboard navigation, and member-chart journeys are authored and mapped; browser bodies remain pending Root’s combined profile.",
+      "pending_reason": "ETF-owned basket CRUD, provenance, immediate shared-dashboard navigation, and member-chart journeys are authored and mapped; browser bodies remain pending Root\u2019s combined profile.",
       "source_owner": "feat-etf-holdings-constituents",
       "source_pin": {
         "source_commit": "35fe1722848a5538d285b7c82d481acfb8e20b88",
@@ -377,7 +377,7 @@
         "frontend/tests/e2e/on_demand_acquisition.spec.ts",
         "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json"
       ],
-      "pending_reason": "ETF-owned holdings discovery, dated snapshot, context-switch and history preparation journeys are authored and mapped; browser bodies remain pending Root’s combined profile.",
+      "pending_reason": "ETF-owned holdings discovery, dated snapshot, context-switch and history preparation journeys are authored and mapped; browser bodies remain pending Root\u2019s combined profile.",
       "source_owner": "feat-etf-holdings-constituents",
       "source_pin": {
         "source_commit": "35fe1722848a5538d285b7c82d481acfb8e20b88",
@@ -5168,7 +5168,7 @@
     {
       "source": "frontend/src/views/WatchlistView.vue",
       "control_count": 22,
-      "signature_sha256": "544c2e86a2029ec088563271724c7bfa07c077d79fb6afb61eb6cd34be43e43e",
+      "signature_sha256": "178f48d70a39b5c2576cd6c67fc20d2a7bfd6cd02f68718d58cdcaa5b8679dd5",
       "journeys": [
         "TC09"
       ],
@@ -6223,7 +6223,7 @@
         "TC09"
       ],
       "test_path": "frontend/tests/e2e/flows.spec.ts",
-      "test_name": "F1 — unauthenticated user is redirected to login",
+      "test_name": "F1 \u2014 unauthenticated user is redirected to login",
       "execution_status": "authored_pending_root_run",
       "critical_review_slot": "TC01-critical-review"
     },
@@ -6243,7 +6243,7 @@
         "TC01"
       ],
       "test_path": "frontend/tests/e2e/flows.spec.ts",
-      "test_name": "F6 — chart page loads with default state",
+      "test_name": "F6 \u2014 chart page loads with default state",
       "execution_status": "authored_pending_root_run",
       "critical_review_slot": "TC01-critical-review"
     },
@@ -6283,7 +6283,7 @@
         "TC03"
       ],
       "test_path": "frontend/tests/e2e/flows.spec.ts",
-      "test_name": "F8 — linked timeframe selector switches the chart timeframe",
+      "test_name": "F8 \u2014 linked timeframe selector switches the chart timeframe",
       "execution_status": "authored_pending_root_run",
       "critical_review_slot": "TC03-critical-review"
     },
@@ -6293,7 +6293,7 @@
         "TC03"
       ],
       "test_path": "frontend/tests/e2e/flows.spec.ts",
-      "test_name": "F8e.swing-analysis — trader can complete the top-down trend, ratio, drawing, and traversal flow",
+      "test_name": "F8e.swing-analysis \u2014 trader can complete the top-down trend, ratio, drawing, and traversal flow",
       "execution_status": "authored_pending_root_run",
       "critical_review_slot": "TC03-critical-review"
     },
@@ -6303,7 +6303,7 @@
         "TC03"
       ],
       "test_path": "frontend/tests/e2e/flows.spec.ts",
-      "test_name": "F8n-gesture — uPlot chart preserves its surface through wheel zoom, trackpad pan, and latest recovery",
+      "test_name": "F8n-gesture \u2014 uPlot chart preserves its surface through wheel zoom, trackpad pan, and latest recovery",
       "execution_status": "authored_pending_root_run",
       "critical_review_slot": "TC03-critical-review"
     },
@@ -6313,7 +6313,7 @@
         "TC03"
       ],
       "test_path": "frontend/tests/e2e/flows.spec.ts",
-      "test_name": "F8u — chart plots transfer into a watchlist numeric column through the real drag path",
+      "test_name": "F8u \u2014 chart plots transfer into a watchlist numeric column through the real drag path",
       "execution_status": "authored_pending_root_run",
       "critical_review_slot": "TC03-critical-review"
     },
@@ -6323,7 +6323,7 @@
         "TC03"
       ],
       "test_path": "frontend/tests/e2e/flows.spec.ts",
-      "test_name": "F8u-boolean — chart indicators promote into a persisted Boolean watchlist column",
+      "test_name": "F8u-boolean \u2014 chart indicators promote into a persisted Boolean watchlist column",
       "execution_status": "authored_pending_root_run",
       "critical_review_slot": "TC03-critical-review"
     },
@@ -6333,7 +6333,7 @@
         "TC03"
       ],
       "test_path": "frontend/tests/e2e/flows.spec.ts",
-      "test_name": "F8u-signal — single-output chart indicators promote into a Strategy signal",
+      "test_name": "F8u-signal \u2014 single-output chart indicators promote into a Strategy signal",
       "execution_status": "authored_pending_root_run",
       "critical_review_slot": "TC03-critical-review"
     },
@@ -6343,7 +6343,7 @@
         "TC03"
       ],
       "test_path": "frontend/tests/e2e/flows.spec.ts",
-      "test_name": "F8u-filter — chart indicators promote into a persisted watchlist filter",
+      "test_name": "F8u-filter \u2014 chart indicators promote into a persisted watchlist filter",
       "execution_status": "authored_pending_root_run",
       "critical_review_slot": "TC03-critical-review"
     },
@@ -6353,7 +6353,7 @@
         "TC03"
       ],
       "test_path": "frontend/tests/e2e/flows.spec.ts",
-      "test_name": "F8u-alert — chart indicators promote into an indicator alert for the active instrument",
+      "test_name": "F8u-alert \u2014 chart indicators promote into an indicator alert for the active instrument",
       "execution_status": "authored_pending_root_run",
       "critical_review_slot": "TC03-critical-review"
     },
@@ -6363,7 +6363,7 @@
         "TC03"
       ],
       "test_path": "frontend/tests/e2e/flows.spec.ts",
-      "test_name": "F8u-scan — chart indicators promote into a reusable EasyScan",
+      "test_name": "F8u-scan \u2014 chart indicators promote into a reusable EasyScan",
       "execution_status": "authored_pending_root_run",
       "critical_review_slot": "TC03-critical-review"
     },
@@ -6373,7 +6373,7 @@
         "TC03"
       ],
       "test_path": "frontend/tests/e2e/flows.spec.ts",
-      "test_name": "F8u-gauge — chart indicators promote into a Market Gauge through EasyScan",
+      "test_name": "F8u-gauge \u2014 chart indicators promote into a Market Gauge through EasyScan",
       "execution_status": "authored_pending_root_run",
       "critical_review_slot": "TC03-critical-review"
     },
@@ -6426,7 +6426,7 @@
         "TC04"
       ],
       "test_path": "frontend/tests/e2e/etf_holdings_preparation.spec.ts",
-      "test_name": "choosing an older snapshot shows that snapshot’s own date, known-at and source lineage",
+      "test_name": "choosing an older snapshot shows that snapshot\u2019s own date, known-at and source lineage",
       "execution_status": "authored_pending_root_run",
       "critical_review_slot": "TC04-critical-review"
     },
@@ -6540,7 +6540,7 @@
         "TC07"
       ],
       "test_path": "frontend/tests/e2e/flows.spec.ts",
-      "test_name": "F9d — workspace layouts round-trip through the real export and import controls",
+      "test_name": "F9d \u2014 workspace layouts round-trip through the real export and import controls",
       "execution_status": "authored_pending_root_run",
       "critical_review_slot": "TC07-critical-review"
     },
@@ -6623,7 +6623,7 @@
         "TC08"
       ],
       "test_path": "frontend/tests/e2e/flows.spec.ts",
-      "test_name": "F8s-market-map-watchlist — locked constituents and personal lists share one heatmap workflow",
+      "test_name": "F8s-market-map-watchlist \u2014 locked constituents and personal lists share one heatmap workflow",
       "execution_status": "authored_pending_root_run",
       "critical_review_slot": "TC08-critical-review"
     },
@@ -6633,7 +6633,7 @@
         "TC08"
       ],
       "test_path": "frontend/tests/e2e/flows.spec.ts",
-      "test_name": "F8s-breadth — Market Breadth exposes universe-scoped loading and failure semantics",
+      "test_name": "F8s-breadth \u2014 Market Breadth exposes universe-scoped loading and failure semantics",
       "execution_status": "authored_pending_root_run",
       "critical_review_slot": "TC08-critical-review"
     },
@@ -6643,7 +6643,7 @@
         "TC08"
       ],
       "test_path": "frontend/tests/e2e/flows.spec.ts",
-      "test_name": "F8w — an EasyScan result feeds a Market Gauge in the workstation",
+      "test_name": "F8w \u2014 an EasyScan result feeds a Market Gauge in the workstation",
       "execution_status": "authored_pending_root_run",
       "critical_review_slot": "TC08-critical-review"
     },
@@ -6704,7 +6704,7 @@
         "TC09"
       ],
       "test_path": "frontend/tests/e2e/supporting_features_journey.spec.ts",
-      "test_name": "supporting notes — save, edit, reload, and return without leaking between symbols",
+      "test_name": "supporting notes \u2014 save, edit, reload, and return without leaking between symbols",
       "execution_status": "authored_pending_root_run",
       "critical_review_slot": "TC09-critical-review"
     },
@@ -6714,7 +6714,7 @@
         "TC09"
       ],
       "test_path": "frontend/tests/e2e/supporting_features_journey.spec.ts",
-      "test_name": "supporting watchlists — keyboard create, membership, rename recovery, reload, and confirmed delete",
+      "test_name": "supporting watchlists \u2014 keyboard create, membership, rename recovery, reload, and confirmed delete",
       "execution_status": "authored_pending_root_run",
       "critical_review_slot": "TC09-critical-review"
     },
@@ -6724,7 +6724,7 @@
         "TC09"
       ],
       "test_path": "frontend/tests/e2e/supporting_features_journey.spec.ts",
-      "test_name": "supporting alerts — create a non-triggering rule, edit, pause/resume, reload, and delete",
+      "test_name": "supporting alerts \u2014 create a non-triggering rule, edit, pause/resume, reload, and delete",
       "execution_status": "authored_pending_root_run",
       "critical_review_slot": "TC09-critical-review"
     },
@@ -6734,7 +6734,7 @@
         "TC09"
       ],
       "test_path": "frontend/tests/e2e/supporting_features_journey.spec.ts",
-      "test_name": "supporting settings — discover preferences, manage an isolated preset, and leave browser notifications untouched",
+      "test_name": "supporting settings \u2014 discover preferences, manage an isolated preset, and leave browser notifications untouched",
       "execution_status": "authored_pending_root_run",
       "critical_review_slot": "TC09-critical-review"
     },
@@ -6744,7 +6744,7 @@
         "TC09"
       ],
       "test_path": "frontend/tests/e2e/flows.spec.ts",
-      "test_name": "F17 — radar page loads, can run a scan, and can open chart when detections exist",
+      "test_name": "F17 \u2014 radar page loads, can run a scan, and can open chart when detections exist",
       "execution_status": "authored_pending_root_run",
       "critical_review_slot": "TC09-critical-review"
     },
@@ -6754,7 +6754,7 @@
         "TC09"
       ],
       "test_path": "frontend/tests/e2e/flows.spec.ts",
-      "test_name": "F12 — create screener and run it",
+      "test_name": "F12 \u2014 create screener and run it",
       "execution_status": "authored_pending_root_run",
       "critical_review_slot": "TC09-critical-review"
     },
@@ -6764,7 +6764,7 @@
         "TC09"
       ],
       "test_path": "frontend/tests/e2e/flows.spec.ts",
-      "test_name": "F9e-shell-menus-keyboard — workstation shell menus support keyboard navigation and focus recovery",
+      "test_name": "F9e-shell-menus-keyboard \u2014 workstation shell menus support keyboard navigation and focus recovery",
       "execution_status": "authored_pending_root_run",
       "critical_review_slot": "TC09-critical-review"
     },
@@ -6774,7 +6774,7 @@
         "TC09"
       ],
       "test_path": "frontend/tests/e2e/flows.spec.ts",
-      "test_name": "F9c-keyboard — chart templates support bidirectional keyboard opening and focus recovery",
+      "test_name": "F9c-keyboard \u2014 chart templates support bidirectional keyboard opening and focus recovery",
       "execution_status": "authored_pending_root_run",
       "critical_review_slot": "TC09-critical-review"
     },
@@ -6785,7 +6785,7 @@
         "TC07"
       ],
       "test_path": "frontend/tests/e2e/flows.spec.ts",
-      "test_name": "F8h — simultaneous pop-outs retain both tools and recover independently",
+      "test_name": "F8h \u2014 simultaneous pop-outs retain both tools and recover independently",
       "execution_status": "authored_pending_root_run",
       "critical_review_slot": "TC01-critical-review"
     },
@@ -6921,7 +6921,7 @@
         "TC09"
       ],
       "test_path": "frontend/tests/e2e/flows.spec.ts",
-      "test_name": "F9e-shell-public-navigation — application menu activation mounts Watchlist, Alerts, and Settings",
+      "test_name": "F9e-shell-public-navigation \u2014 application menu activation mounts Watchlist, Alerts, and Settings",
       "execution_status": "authored_pending_root_run",
       "critical_review_slot": "TC09-critical-review"
     },
