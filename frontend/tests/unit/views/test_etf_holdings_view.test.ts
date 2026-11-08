@@ -138,6 +138,8 @@ function holdingsPage(overrides: Record<string, unknown> = {}) {
       published_at: null,
       provenance: 'issuer_current_holdings',
       source_provider: 'issuer-test',
+      source_identifier: 'issuer-test:SPY:2026-06-07',
+      source_url: 'https://issuer.example.test/holdings/spy',
       source_quality: 'issuer_current',
       completeness_status: 'complete',
       row_count: 2,
@@ -174,6 +176,39 @@ function holdingsPage(overrides: Record<string, unknown> = {}) {
     offset: 0,
     has_next: true,
     ...overrides,
+  }
+}
+
+function preparationResponse(symbol: string, status: 'ready' | 'unavailable' = 'ready') {
+  const now = '2026-11-06T12:00:00Z'
+  const instrumentIds: Record<string, number> = { EVOL: 991, SPY: 10, XLE: 30, XLF: 40 }
+  return {
+    request_id: `prepare-${symbol.toLowerCase()}`,
+    status,
+    created_at: now,
+    updated_at: now,
+    version: 1,
+    target: { kind: 'instrument', symbol },
+    dependencies: [{
+      dependency_id: `dep-${symbol.toLowerCase()}`,
+      depends_on: [],
+      instrument_id: instrumentIds[symbol] ?? null,
+      symbol,
+      dataset: 'holdings',
+      status,
+      requested_start: null,
+      requested_end: null,
+      covered_start: null,
+      covered_end: null,
+      reason_code: status === 'unavailable' ? 'no_eligible_provider_data' : null,
+      retry_at: null,
+      updated_at: now,
+      covered_ranges: [],
+    }],
+    completed: 1,
+    total: 1,
+    last_progress_at: now,
+    has_pending_work: false,
   }
 }
 
@@ -487,6 +522,11 @@ describe('ETFHoldingsView', () => {
     })
     expect(wrapper.get('[data-testid="etf-selected-snapshot-kind"]').text()).toBe('Latest stored snapshot')
     expect(wrapper.get('[data-testid="etf-snapshot-lineage"]').text()).toContain('issuer current holdings')
+    expect(wrapper.get('[data-testid="etf-snapshot-source-provider"]').text()).toBe('issuer-test')
+    expect(wrapper.get('[data-testid="etf-snapshot-source-identifier"]').text())
+      .toBe('issuer-test:SPY:2026-06-07')
+    expect(wrapper.get('[data-testid="etf-snapshot-source-url"]').text())
+      .toBe('https://issuer.example.test/holdings/spy')
     expect(wrapper.get('[data-testid="etf-snapshot-known-at"]').attributes('datetime'))
       .toBe('2026-06-07T04:15:00Z')
     expect(wrapper.get('[data-testid="etf-snapshot-lineage"]').text()).toContain('Source-reported publication')
@@ -536,7 +576,7 @@ describe('ETFHoldingsView', () => {
       'MSFT',
     )
     expect(routerPush).toHaveBeenCalledWith({
-      path: '/legacy/chart/MSFT',
+      path: '/chart/MSFT',
       query: { ...holdingDrilldownRouteQuery(selectedContext), holding_history_intent: 'selected' },
       state: holdingDrilldownRouteState(selectedContext),
     })
@@ -594,6 +634,175 @@ describe('ETFHoldingsView', () => {
     expect(wrapper.text()).toContain('No holdings match the current filters.')
   })
 
+  it('applies the visible row search, sort field, and direction to the selected snapshot request', async () => {
+    vi.mocked(api.get).mockImplementation(async (path: string) => {
+      if (path === '/etf-holdings') return [profile] as never
+      if (path === '/etf-holdings/SPY/dates') return dates as never
+      if (path === '/etf-holdings/SPY/holdings') return holdingsPage() as never
+      if (path === '/etf-holdings/SPY/diff') return diffPayload() as never
+      if (path === '/etf-holdings/SPY/weight-evolution') return weightEvolutionPayload() as never
+      if (path === '/etf-holdings/SPY/transitions') return transitionTimelinePayload() as never
+      return [] as never
+    })
+
+    const wrapper = mount(ETFHoldingsView)
+    await vi.waitFor(() => expect(wrapper.text()).toContain('MSFT'))
+    const expectedQuery = {
+      snapshot_id: '55',
+      q: undefined,
+      sort: 'weight',
+      direction: 'desc',
+      limit: 100,
+      offset: 0,
+    }
+
+    await wrapper.get('input[placeholder="Symbol, name, CUSIP, ISIN"]').setValue('Microsoft')
+    await vi.waitFor(() => expect(api.get).toHaveBeenLastCalledWith(
+      '/etf-holdings/SPY/holdings', { ...expectedQuery, q: 'Microsoft' },
+    ))
+
+    const sortControls = wrapper.findAll('.toolbar select')
+    await sortControls[0]!.setValue('symbol')
+    await vi.waitFor(() => expect(api.get).toHaveBeenLastCalledWith(
+      '/etf-holdings/SPY/holdings', { ...expectedQuery, q: 'Microsoft', sort: 'symbol' },
+    ))
+    await sortControls[1]!.setValue('asc')
+    await vi.waitFor(() => expect(api.get).toHaveBeenLastCalledWith(
+      '/etf-holdings/SPY/holdings', { ...expectedQuery, q: 'Microsoft', sort: 'symbol', direction: 'asc' },
+    ))
+  })
+
+  it('automatically prepares an uncached selected ETF and loads only its returned holdings', async () => {
+    const xleProfile = {
+      ...profile,
+      id: 3,
+      instrument_id: 30,
+      symbol: 'XLE',
+      name: 'Energy Select Sector SPDR Fund',
+      latest_snapshot_id: 95,
+      latest_composition_date: '2026-11-05',
+      holdings_capability: { ...profile.holdings_capability, availability: 'current', identity_verified: true, usable_for_current_analysis: true },
+    }
+    const xleSnapshot = {
+      ...holdingsPage().snapshot,
+      id: 95,
+      etf_profile_id: 3,
+      etf_instrument_id: 30,
+      etf_symbol: 'XLE',
+      etf_name: xleProfile.name,
+      composition_date: '2026-11-05',
+      known_at: '2026-11-06T09:00:00Z',
+    }
+    const xlePage = holdingsPage({
+      snapshot: xleSnapshot,
+      holdings: [{ ...holdingsPage().holdings[0], id: 301, snapshot_id: 95, reported_symbol: 'XOM', constituent_symbol: 'XOM' }],
+      total: 1,
+      has_next: false,
+    })
+    vi.mocked(api.get)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([xleProfile])
+      .mockResolvedValueOnce([{ ...dates[0], snapshot_id: 95, composition_date: '2026-11-05' }])
+      .mockResolvedValueOnce(xlePage)
+      .mockResolvedValueOnce(weightEvolutionPayload())
+      .mockResolvedValueOnce(transitionTimelinePayload())
+    vi.mocked(api.post).mockResolvedValueOnce(preparationResponse('XLE') as never)
+
+    const wrapper = mount(ETFHoldingsView)
+    const search = wrapper.find('.mock-search-bar input')
+    await search.setValue('XLE')
+    await wrapper.find('.mock-search-bar button').trigger('click')
+
+    await vi.waitFor(() => expect(wrapper.text()).toContain('XOM'))
+    expect(api.post).toHaveBeenCalledWith('/data/ensure', {
+      target: { kind: 'instrument', symbol: 'XLE' },
+      datasets: ['holdings'],
+    }, expect.objectContaining({ signal: expect.any(AbortSignal) }))
+    expect(api.get).toHaveBeenCalledWith('/etf-holdings', { q: 'XLE' })
+    expect(wrapper.get('[data-testid="etf-snapshot-known-at"]').attributes('datetime')).toBe('2026-11-06T09:00:00Z')
+    expect(wrapper.get('[data-testid="etf-snapshot-lineage"]').text()).toContain('issuer current holdings')
+    expect(wrapper.get('[data-testid="etf-preparation-status"]').text()).toBe('Requested data is ready.')
+    expect(wrapper.get('.holdings-table').text()).not.toContain('MSFT')
+    await wrapper.unmount()
+  })
+
+  it('aborts the selected holdings observer and ignores a late response after unmount', async () => {
+    let resolvePreparation!: (response: unknown) => void
+    vi.mocked(api.get).mockResolvedValue([])
+    vi.mocked(api.post).mockImplementation((path) => {
+      if (path !== '/data/ensure') return Promise.reject(new Error(`Unexpected request: ${path}`)) as never
+      return new Promise(resolve => { resolvePreparation = resolve }) as never
+    })
+
+    const wrapper = mount(ETFHoldingsView)
+    await vi.waitFor(() => expect(api.get).toHaveBeenCalledWith('/etf-holdings', { q: undefined }))
+    await wrapper.findComponent({ name: 'SearchBar' }).vm.$emit('select', 'OIH', {
+      symbol: 'OIH', name: 'Oil Services ETF', exchange: 'NYSE Arca', type: 'ETF',
+    })
+    await vi.waitFor(() => expect(api.post).toHaveBeenCalledWith('/data/ensure', {
+      target: { kind: 'instrument', symbol: 'OIH' }, datasets: ['holdings'],
+    }, expect.objectContaining({ signal: expect.any(AbortSignal) })))
+    expect(api.get).toHaveBeenCalledWith('/etf-holdings', { q: 'OIH' })
+    const exactProfileLookupCount = vi.mocked(api.get).mock.calls.filter(([path, params]) =>
+      path === '/etf-holdings' && (params as { q?: string } | undefined)?.q === 'OIH',
+    ).length
+    const ensureSignal = vi.mocked(api.post).mock.calls[0]?.[2]?.signal
+    expect(ensureSignal?.aborted).toBe(false)
+
+    await wrapper.unmount()
+    expect(ensureSignal?.aborted).toBe(true)
+
+    // A shared request may complete after this view has detached. It must not
+    // trigger a profile refresh or write a late selection into the disposed view.
+    resolvePreparation(preparationResponse('OIH'))
+    await flushPromises()
+    expect(vi.mocked(api.get).mock.calls.filter(([path, params]) =>
+      path === '/etf-holdings' && (params as { q?: string } | undefined)?.q === 'OIH',
+    )).toHaveLength(exactProfileLookupCount)
+  })
+
+  it('keeps rapid selected-fund preparations isolated when the user switches tickers', async () => {
+    let releaseFirst!: (value: unknown) => void
+    vi.mocked(api.post).mockImplementation((path, body) => {
+      const request = body as { target?: { symbol?: string } }
+      if (request.target?.symbol === 'XLE') return new Promise(resolve => { releaseFirst = resolve }) as never
+      return Promise.resolve(preparationResponse('XLF')) as never
+    })
+    vi.mocked(api.get)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ ...profile, id: 4, instrument_id: 40, symbol: 'XLF', name: 'Financial Select Sector SPDR Fund', latest_snapshot_id: null }])
+      .mockResolvedValueOnce([])
+
+    const wrapper = mount(ETFHoldingsView)
+    const search = wrapper.find('.mock-search-bar input')
+    await search.setValue('XLE')
+    await wrapper.find('.mock-search-bar button').trigger('click')
+    await vi.waitFor(() => expect(api.post).toHaveBeenCalledTimes(1))
+    const firstSignal = vi.mocked(api.post).mock.calls[0]?.[2]?.signal
+
+    await search.setValue('XLF')
+    await wrapper.find('.mock-search-bar button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Financial Select Sector SPDR Fund'))
+    expect(api.post).toHaveBeenCalledTimes(2)
+    expect(firstSignal?.aborted).toBe(true)
+    expect(api.get).toHaveBeenCalledWith('/etf-holdings', { q: 'XLF' })
+    expect(vi.mocked(api.get).mock.calls.filter(([path, params]) =>
+      path === '/etf-holdings' && (params as { q?: string } | undefined)?.q === 'XLE',
+    )).toHaveLength(1)
+    expect(wrapper.get('[data-testid="etf-preparation-status"]').text()).toBe('Requested data is ready.')
+
+    releaseFirst(preparationResponse('XLE'))
+    await flushPromises()
+    expect(vi.mocked(api.get).mock.calls.filter(([path, params]) =>
+      path === '/etf-holdings' && (params as { q?: string } | undefined)?.q === 'XLE',
+    )).toHaveLength(1)
+    expect(wrapper.get('.panel-title-row h2').text()).toBe('XLF')
+    await wrapper.unmount()
+  })
+
   it('opens resolved constituent history without promoting stale parent eligibility', async () => {
     const staleProfile = {
       ...profile,
@@ -628,7 +837,7 @@ describe('ETFHoldingsView', () => {
       'MSFT',
     )
     expect(routerPush).toHaveBeenCalledWith({
-      path: '/legacy/chart/MSFT',
+      path: '/chart/MSFT',
       query: { ...holdingDrilldownRouteQuery(selectedContext), holding_history_intent: 'selected' },
       state: holdingDrilldownRouteState(selectedContext),
     })
@@ -756,7 +965,7 @@ describe('ETFHoldingsView', () => {
     }, confirmedIdentity)
     await nextTick()
     expect(routerPush).toHaveBeenCalledWith({
-      path: '/legacy/chart/UNXQ',
+      path: '/chart/UNXQ',
       query: { ...holdingDrilldownRouteQuery(context), holding_history_intent: 'selected' },
       state: holdingDrilldownRouteState(context, confirmedIdentity),
     })
@@ -1065,29 +1274,231 @@ describe('ETFHoldingsView', () => {
     wrapper.unmount()
   })
 
+  it('selects an existing fund before unrelated startup profiles finish and preserves it through unavailable preparation', async () => {
+    const diaProfile = { ...profile, id: 16, instrument_id: 160, symbol: 'DIA', name: 'SPDR Dow Jones Industrial Average ETF Trust' }
+    const xlbCapability = {
+      ...profile.holdings_capability,
+      availability: 'stale',
+      usable_for_current_analysis: false,
+      reason: 'The retained XLB snapshot is not current for analysis.',
+    }
+    const xlbProfile = {
+      ...profile,
+      id: 17,
+      instrument_id: 701,
+      symbol: 'XLB',
+      name: 'State Street Materials Select Sector SPDR ETF',
+      latest_snapshot_id: 16,
+      latest_composition_date: '2026-01-02',
+      holdings_capability: xlbCapability,
+    }
+    const xlbDate = {
+      ...dates[0],
+      snapshot_id: 16,
+      composition_date: '2026-01-02',
+      as_of_date: '2026-01-02',
+      known_at: '2026-01-03T00:00:00Z',
+      provenance: 'controlled_fixture',
+      source_provider: 'e2e_reference',
+      source_quality: 'controlled_fixture',
+    }
+    const xlbPage = holdingsPage({
+      snapshot: {
+        ...holdingsPage().snapshot,
+        id: 16,
+        etf_profile_id: xlbProfile.id,
+        etf_instrument_id: xlbProfile.instrument_id,
+        etf_symbol: xlbProfile.symbol,
+        etf_name: xlbProfile.name,
+        composition_date: xlbDate.composition_date,
+        known_at: xlbDate.known_at,
+        provenance: 'controlled_fixture',
+        source_provider: 'e2e_reference',
+        source_quality: 'controlled_fixture',
+        source_identifier: 'e2e:XLB:2026-01-02',
+        source_url: 'https://issuer.example.test/holdings/xlb',
+      },
+      holdings: [{
+        ...holdingsPage().holdings[0],
+        id: 7010,
+        snapshot_id: 16,
+        constituent_symbol: 'LIN',
+        constituent_name: 'Linde plc',
+        reported_symbol: 'LIN',
+        reported_name: 'Linde plc',
+      }],
+      total: 1,
+      has_next: false,
+    })
+
+    let startupProfilesResolved = false
+    let finishStartupProfiles!: (value: unknown) => void
+    const startupProfiles = new Promise<unknown>(resolve => { finishStartupProfiles = resolve })
+    void startupProfiles.then(() => { startupProfilesResolved = true })
+    vi.mocked(api.get).mockImplementation((path, params) => {
+      if (path === '/etf-holdings' && (params as { q?: string } | undefined)?.q === undefined) {
+        return startupProfiles as never
+      }
+      if (path === '/etf-holdings' && (params as { q?: string } | undefined)?.q === 'XLB') {
+        return Promise.resolve([xlbProfile]) as never
+      }
+      if (path === '/etf-holdings/XLB/dates') return Promise.resolve([xlbDate]) as never
+      if (path === '/etf-holdings/XLB/holdings') return Promise.resolve(xlbPage) as never
+      if (path === '/etf-holdings/XLB/capability') return Promise.resolve(xlbCapability) as never
+      if (path === '/etf-holdings/XLB/weight-evolution') return Promise.resolve(weightEvolutionPayload()) as never
+      if (path === '/etf-holdings/XLB/transitions') return Promise.resolve(transitionTimelinePayload()) as never
+      return Promise.resolve([]) as never
+    })
+    let finishPreparation!: (response: unknown) => void
+    vi.mocked(api.post).mockImplementation(() => new Promise(resolve => { finishPreparation = resolve }) as never)
+
+    const wrapper = mount(ETFHoldingsView)
+    const picker = wrapper.findComponent({ name: 'SearchBar' })
+    await picker.vm.$emit('select', 'XLB', {
+      symbol: 'XLB',
+      name: xlbProfile.name,
+      exchange: 'NYSE Arca',
+      type: 'ETF',
+    })
+
+    await vi.waitFor(() => expect(api.get).toHaveBeenCalledWith('/etf-holdings', { q: 'XLB' }))
+    await vi.waitFor(() => expect(wrapper.get('.panel-title-row h2').text()).toBe('XLB'))
+    await vi.waitFor(() => expect(api.get).toHaveBeenCalledWith('/etf-holdings/XLB/holdings', expect.objectContaining({ snapshot_id: '16' })))
+    await vi.waitFor(() => expect(api.post).toHaveBeenCalledWith('/data/ensure', {
+      target: { kind: 'instrument', symbol: 'XLB' }, datasets: ['holdings'],
+    }, expect.objectContaining({ signal: expect.any(AbortSignal) })))
+    const exactProfileLookupIndex = vi.mocked(api.get).mock.calls.findIndex(([path, params]) =>
+      path === '/etf-holdings' && (params as { q?: string } | undefined)?.q === 'XLB',
+    )
+    expect(exactProfileLookupIndex).toBeGreaterThanOrEqual(0)
+    expect(vi.mocked(api.get).mock.invocationCallOrder[exactProfileLookupIndex])
+      .toBeLessThan(vi.mocked(api.post).mock.invocationCallOrder[0]!)
+    expect(startupProfilesResolved).toBe(false)
+    expect(wrapper.get('[data-testid="etf-preparation-status"]').text()).toContain('Preparing XLB holdings.')
+    expect(wrapper.get('.panel-title-row h2').text()).toBe('XLB')
+    expect(wrapper.get('.holdings-table').text()).toContain('LIN')
+    finishStartupProfiles([diaProfile])
+    await vi.waitFor(() => expect(startupProfilesResolved).toBe(true))
+    await flushPromises()
+    expect(wrapper.get('.panel-title-row h2').text()).toBe('XLB')
+    expect(wrapper.findAll('button.profile-card').some(card => card.text().includes('XLB'))).toBe(true)
+    finishPreparation(preparationResponse('XLB', 'unavailable'))
+    await vi.waitFor(() => expect(wrapper.get('[data-testid="etf-preparation-status"]').text()).toContain('No reviewed data source can provide this request.'))
+
+    expect(wrapper.get('.panel-title-row h2').text()).toBe('XLB')
+    expect(wrapper.get('.holdings-table').text()).toContain('LIN')
+    expect(api.get).not.toHaveBeenCalledWith('/etf-holdings/DIA/holdings', expect.anything())
+    expect(wrapper.get('[data-testid="etf-snapshot-source-identifier"]').text()).toBe('e2e:XLB:2026-01-02')
+    wrapper.unmount()
+  })
+
+  it('uses a loaded stored profile for an ordinary symbol selection without trusting its local ID', async () => {
+    const diaProfile = {
+      ...profile,
+      id: 16,
+      instrument_id: 160,
+      symbol: 'DIA',
+      name: 'SPDR Dow Jones Industrial Average ETF Trust',
+      latest_snapshot_id: 54,
+    }
+    const xlbCapability = {
+      ...profile.holdings_capability,
+      availability: 'stale',
+      usable_for_current_analysis: false,
+      reason: 'The retained XLB snapshot is not current for analysis.',
+    }
+    const xlbProfile = {
+      ...profile,
+      id: 17,
+      instrument_id: 701,
+      symbol: 'XLB',
+      name: 'State Street Materials Select Sector SPDR ETF',
+      latest_snapshot_id: 16,
+      latest_composition_date: '2026-01-02',
+      holdings_capability: xlbCapability,
+    }
+    const datedSnapshot = (source: { id: number; instrument_id: number; name: string }, snapshotId: number, symbol: string) => ({
+      ...holdingsPage().snapshot,
+      id: snapshotId,
+      etf_profile_id: source.id,
+      etf_instrument_id: source.instrument_id,
+      etf_symbol: symbol,
+      etf_name: source.name,
+      composition_date: '2026-01-02',
+      known_at: '2026-01-03T00:00:00Z',
+      provenance: 'controlled_fixture',
+      source_provider: 'e2e_reference',
+      source_quality: 'controlled_fixture',
+      source_identifier: `e2e:${symbol}:2026-01-02`,
+      source_url: `https://issuer.example.test/holdings/${symbol.toLowerCase()}`,
+    })
+    const pageFor = (source: { id: number; instrument_id: number; name: string }, snapshotId: number, symbol: string) => holdingsPage({
+      snapshot: datedSnapshot(source, snapshotId, symbol),
+      holdings: [{
+        ...holdingsPage().holdings[0],
+        id: snapshotId * 100,
+        snapshot_id: snapshotId,
+        constituent_symbol: symbol === 'XLB' ? 'LIN' : 'GS',
+        constituent_name: symbol === 'XLB' ? 'Linde plc' : 'Goldman Sachs Group',
+        reported_symbol: symbol === 'XLB' ? 'LIN' : 'GS',
+        reported_name: symbol === 'XLB' ? 'Linde plc' : 'Goldman Sachs Group',
+      }],
+      total: 1,
+      has_next: false,
+    })
+    const diaDate = { ...dates[0], snapshot_id: 54, composition_date: '2026-01-02' }
+    const xlbDate = { ...dates[0], snapshot_id: 16, composition_date: '2026-01-02' }
+
+    vi.mocked(api.get).mockImplementation(async (path, params) => {
+      if (path === '/etf-holdings' && (params as { q?: string } | undefined)?.q === undefined) {
+        return [diaProfile, xlbProfile] as never
+      }
+      if (path === '/etf-holdings/DIA/dates') return [diaDate] as never
+      if (path === '/etf-holdings/DIA/holdings') return pageFor(diaProfile, 54, 'DIA') as never
+      if (path === '/etf-holdings/DIA/diff') return diffPayload() as never
+      if (path === '/etf-holdings/DIA/weight-evolution') return weightEvolutionPayload() as never
+      if (path === '/etf-holdings/DIA/transitions') return transitionTimelinePayload() as never
+      if (path === '/etf-holdings/XLB/capability') return xlbCapability as never
+      if (path === '/etf-holdings/XLB/dates') return [xlbDate] as never
+      if (path === '/etf-holdings/XLB/holdings') return pageFor(xlbProfile, 16, 'XLB') as never
+      if (path === '/etf-holdings/XLB/diff') return diffPayload() as never
+      if (path === '/etf-holdings/XLB/weight-evolution') return weightEvolutionPayload() as never
+      if (path === '/etf-holdings/XLB/transitions') return transitionTimelinePayload() as never
+      return [] as never
+    })
+    let finishPreparation!: (response: unknown) => void
+    vi.mocked(api.post).mockImplementation(() => new Promise(resolve => { finishPreparation = resolve }) as never)
+
+    const wrapper = mount(ETFHoldingsView)
+    await vi.waitFor(() => expect(wrapper.get('.panel-title-row h2').text()).toBe('DIA'))
+    await vi.waitFor(() => expect(wrapper.findAll('button.profile-card')).toHaveLength(2))
+    await wrapper.findComponent({ name: 'SearchBar' }).vm.$emit('select', 'XLB', {
+      symbol: 'XLB', name: xlbProfile.name, exchange: 'NYSE Arca', type: 'ETF',
+    })
+
+    await vi.waitFor(() => expect(api.post).toHaveBeenCalledWith('/data/ensure', {
+      target: { kind: 'instrument', symbol: 'XLB' }, datasets: ['holdings'],
+    }, expect.objectContaining({ signal: expect.any(AbortSignal) })))
+    expect(wrapper.get('.panel-title-row h2').text()).toBe('XLB')
+    expect(wrapper.get('.holdings-table').text()).toContain('LIN')
+    expect(wrapper.get('[data-testid="etf-snapshot-source-identifier"]').text()).toBe('e2e:XLB:2026-01-02')
+    expect(api.get).not.toHaveBeenCalledWith('/etf-holdings', { q: 'XLB' })
+    expect(api.post).toHaveBeenCalledTimes(1)
+
+    finishPreparation(preparationResponse('XLB', 'unavailable'))
+    await vi.waitFor(() => expect(wrapper.get('[data-testid="etf-preparation-status"]').text())
+      .toContain('No reviewed data source can provide this request.'))
+    expect(wrapper.get('.panel-title-row h2').text()).toBe('XLB')
+    expect(wrapper.get('.holdings-table').text()).toContain('LIN')
+    wrapper.unmount()
+  })
+
   it('discovers and deliberately selects a confirmed Exchange Traded Vehicle without admitting ETNs', async () => {
     vi.mocked(api.get).mockImplementation(async (path: string) => {
       if (path === '/etf-holdings') return []
       return []
     })
-    vi.stubGlobal('crypto', { randomUUID: () => 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d' })
-    vi.mocked(api.post).mockImplementation(async (path: string, body: Record<string, unknown>) => {
-      if (path !== '/etf-holdings/EVOL/acquire') throw new Error(`Unexpected request: ${path}`)
-      return {
-        request_id: body.request_id,
-        instrument_id: 991,
-        symbol: 'EVOL',
-        outcome: 'unavailable',
-        refresh: true,
-        refresh_attempted: false,
-        refresh_succeeded: false,
-        profile: null,
-        snapshot: null,
-        capability: null,
-        provider_request_log_ids: [],
-        message: 'No issuer holdings source is currently available for EVOL.',
-      }
-    })
+    vi.mocked(api.post).mockResolvedValueOnce(preparationResponse('EVOL', 'unavailable') as never)
 
     const wrapper = mount(ETFHoldingsView)
     const picker = wrapper.findComponent({ name: 'SearchBar' })
@@ -1103,11 +1514,11 @@ describe('ETFHoldingsView', () => {
       identity_status: 'resolved',
       explicitlyResolved: true,
     })
-    await vi.waitFor(() => expect(api.post).toHaveBeenCalledWith('/etf-holdings/EVOL/acquire', {
-      request_id: expect.any(String), refresh: true, instrument_id: 991,
-    }))
+    await vi.waitFor(() => expect(api.post).toHaveBeenCalledWith('/data/ensure', {
+      target: { kind: 'instrument', instrument_id: 991 }, datasets: ['holdings'],
+    }, expect.objectContaining({ signal: expect.any(AbortSignal) })))
     expect(api.post).not.toHaveBeenCalledWith('/instruments/acquire', expect.anything())
-    await vi.waitFor(() => expect(wrapper.text()).toContain('No issuer holdings source is currently available for EVOL.'))
+    await vi.waitFor(() => expect(wrapper.get('[data-testid="etf-preparation-status"]').text()).toContain('No reviewed data source can provide this request.'))
     expect(wrapper.text()).toContain('EVOL')
     wrapper.unmount()
   })
@@ -1151,33 +1562,21 @@ describe('ETFHoldingsView', () => {
       if (path === '/etf-holdings/SPY/capability') return profile.holdings_capability
       return []
     })
-    vi.stubGlobal('crypto', { randomUUID: () => 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d' })
-    vi.mocked(api.post).mockImplementation(async (path: string, body: Record<string, unknown>) => {
-      if (path === '/instruments/acquire') return {
-        request_id: body.request_id, status: 'resolved',
-        instrument: { instrument_id: 10, symbol: 'SPY', identity_status: 'verified' }, source_outcomes: [],
-      }
-      if (path === '/etf-holdings/SPY/acquire') return {
-        request_id: body.request_id, instrument_id: 10, symbol: 'SPY', outcome: 'unavailable',
-        refresh: true, refresh_attempted: false, refresh_succeeded: false, profile: null, snapshot: null,
-        capability: null, provider_request_log_ids: [], message: 'No saved holdings are available for SPY yet.',
-      }
-      throw new Error(`Unexpected request: ${path}`)
-    })
+    vi.mocked(api.post).mockResolvedValueOnce(preparationResponse('SPY', 'unavailable') as never)
 
     const wrapper = mount(ETFHoldingsView)
     await vi.waitFor(() => expect(wrapper.get('.profile-card').text()).toContain('SPY'))
     expect(api.post).not.toHaveBeenCalled()
     await wrapper.get('.profile-card').trigger('click')
-    await vi.waitFor(() => expect(api.post).toHaveBeenCalledWith('/etf-holdings/SPY/acquire', {
-      request_id: expect.any(String), refresh: true, instrument_id: 10,
-    }))
-    await vi.waitFor(() => expect(wrapper.text()).toContain('No saved holdings are available for SPY yet.'))
-    expect(api.post).toHaveBeenCalledTimes(2)
+    await vi.waitFor(() => expect(api.post).toHaveBeenCalledWith('/data/ensure', {
+      target: { kind: 'instrument', symbol: 'SPY' }, datasets: ['holdings'],
+    }, expect.objectContaining({ signal: expect.any(AbortSignal) })))
+    await vi.waitFor(() => expect(wrapper.get('[data-testid="etf-preparation-status"]').text()).toContain('No reviewed data source can provide this request.'))
+    expect(api.post).toHaveBeenCalledTimes(1)
     wrapper.unmount()
   })
 
-  it('automatically refreshes a stale selected fund once and keeps its saved snapshot when held', async () => {
+  it('keeps a stale dated holdings cache visible while automatic preparation is pending and unavailable', async () => {
     const staleProfile = {
       ...profile,
       holdings_capability: {
@@ -1197,34 +1596,26 @@ describe('ETFHoldingsView', () => {
       if (path === '/etf-holdings/SPY/transitions') return transitionTimelinePayload()
       return []
     })
-    vi.stubGlobal('crypto', { randomUUID: () => 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d' })
-    vi.mocked(api.post).mockImplementation(async (path: string) => {
-      if (path === '/instruments/acquire') {
-        return {
-          request_id: 'identity-spy', status: 'resolved',
-          instrument: { instrument_id: 10, symbol: 'SPY', identity_status: 'verified' }, source_outcomes: [],
-        }
-      }
-      if (path === '/etf-holdings/SPY/acquire') {
-        return {
-          request_id: 'holdings-spy', instrument_id: 10, symbol: 'SPY', outcome: 'held',
-          refresh: true, refresh_attempted: false, refresh_succeeded: false,
-          profile: staleProfile, snapshot: null, capability: staleProfile.holdings_capability,
-          provider_request_log_ids: [], message: 'A holdings update is temporarily held.',
-        }
-      }
-      throw new Error(`Unexpected request: ${path}`)
-    })
+    let finishPreparation!: (value: unknown) => void
+    vi.mocked(api.post).mockImplementation(() => new Promise(resolve => { finishPreparation = resolve }) as never)
 
     const wrapper = mount(ETFHoldingsView)
     await vi.waitFor(() => expect(wrapper.text()).toContain('MSFT'))
     const originalKnownAt = wrapper.get('[data-testid="etf-snapshot-known-at"]').attributes('datetime')
     await wrapper.get('button.profile-card').trigger('click')
-    await vi.waitFor(() => expect(api.post).toHaveBeenCalledWith('/etf-holdings/SPY/acquire', {
-      request_id: expect.any(String), refresh: true, instrument_id: 10,
-    }))
-    await vi.waitFor(() => expect(wrapper.text()).toContain('A holdings update is temporarily held.'))
-    expect(api.post).toHaveBeenCalledTimes(2)
+    await vi.waitFor(() => expect(api.post).toHaveBeenCalledWith('/data/ensure', {
+      target: { kind: 'instrument', symbol: 'SPY' }, datasets: ['holdings'],
+    }, expect.objectContaining({ signal: expect.any(AbortSignal) })))
+    expect(wrapper.get('[data-testid="etf-preparation-status"]').text()).toContain('Preparing SPY holdings.')
+    expect(wrapper.get('.holdings-table').text()).toContain('MSFT')
+    expect(wrapper.get('[data-testid="etf-snapshot-known-at"]').attributes('datetime')).toBe(originalKnownAt)
+    expect(wrapper.get('.panel-meta').text()).toContain('Profile current eligibility: stale')
+    expect(wrapper.get('[data-testid="etf-check-stored"]').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('[data-testid="etf-request-issuer"]').attributes('disabled')).toBeDefined()
+
+    finishPreparation(preparationResponse('SPY', 'unavailable'))
+    await vi.waitFor(() => expect(wrapper.get('[data-testid="etf-preparation-status"]').text()).toContain('No reviewed data source can provide this request.'))
+    expect(api.post).toHaveBeenCalledTimes(1)
     expect(wrapper.text()).toContain('MSFT')
     expect(wrapper.get('[data-testid="etf-snapshot-known-at"]').attributes('datetime')).toBe(originalKnownAt)
     expect(wrapper.find('.panel-meta').text()).toContain('Profile current eligibility: stale')
@@ -1241,40 +1632,165 @@ describe('ETFHoldingsView', () => {
       if (path === '/etf-holdings/SPY/transitions') return transitionTimelinePayload()
       return []
     })
-    vi.stubGlobal('crypto', { randomUUID: () => 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d' })
-    vi.mocked(api.post).mockImplementation(async (path: string, body: Record<string, unknown>) => {
-      if (path === '/instruments/acquire') {
-        return {
-          request_id: body.request_id, status: 'resolved',
-          instrument: { instrument_id: 43, symbol: 'OIH', identity_status: 'verified' }, source_outcomes: [],
-        }
-      }
-      if (path === '/etf-holdings/OIH/acquire') {
-        return {
-          request_id: body.request_id, instrument_id: 43, symbol: 'OIH', outcome: 'unavailable',
-          refresh: true, refresh_attempted: false, refresh_succeeded: false, profile: null, snapshot: null,
-          capability: null, provider_request_log_ids: [], message: 'No saved holdings are available for this fund yet.',
-        }
-      }
-      throw new Error(`Unexpected request: ${path}`)
-    })
+    vi.mocked(api.post).mockResolvedValueOnce(preparationResponse('OIH', 'unavailable') as never)
     const wrapper = mount(ETFHoldingsView)
     await vi.waitFor(() => expect(wrapper.text()).toContain('MSFT'))
     await wrapper.findComponent({ name: 'SearchBar' }).vm.$emit('select', 'OIH', {
       symbol: 'OIH', name: 'Oil Services ETF', exchange: 'NYSE Arca', type: 'ETF',
     })
-    await vi.waitFor(() => expect(api.post).toHaveBeenCalledWith('/etf-holdings/OIH/acquire', {
-      request_id: expect.any(String), refresh: true, instrument_id: 43,
-    }))
-    await vi.waitFor(() => expect(wrapper.text()).toContain('No saved holdings are available for this fund yet.'))
-    expect(api.post).toHaveBeenCalledTimes(2)
+    await vi.waitFor(() => expect(api.post).toHaveBeenCalledWith('/data/ensure', {
+      target: { kind: 'instrument', symbol: 'OIH' }, datasets: ['holdings'],
+    }, expect.objectContaining({ signal: expect.any(AbortSignal) })))
+    await vi.waitFor(() => expect(wrapper.get('[data-testid="etf-preparation-status"]').text()).toContain('No reviewed data source can provide this request.'))
+    expect(api.post).toHaveBeenCalledTimes(1)
     expect(wrapper.find('.holdings-browser').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('fails closed when ready symbol preparation returns multiple exact stored listings', async () => {
+    const firstListing = {
+      ...profile,
+      id: 21,
+      instrument_id: 210,
+      symbol: 'OIH',
+      name: 'Oil Services ETF · NYSE Arca',
+    }
+    const secondListing = {
+      ...profile,
+      id: 22,
+      instrument_id: 220,
+      symbol: 'OIH',
+      name: 'Oil Services ETF · Cboe BZX',
+    }
+    let exactLookupCount = 0
+    vi.mocked(api.get).mockImplementation((path, params) => {
+      if (path !== '/etf-holdings') return Promise.resolve([]) as never
+      const query = (params as { q?: string } | undefined)?.q
+      if (query === undefined) return Promise.resolve([]) as never
+      if (query !== 'OIH') return Promise.resolve([]) as never
+      exactLookupCount += 1
+      return Promise.resolve(exactLookupCount === 1 ? [] : [firstListing, secondListing]) as never
+    })
+    vi.mocked(api.post).mockResolvedValueOnce(preparationResponse('OIH') as never)
+
+    const wrapper = mount(ETFHoldingsView)
+    await wrapper.findComponent({ name: 'SearchBar' }).vm.$emit('select', 'OIH', {
+      symbol: 'OIH', name: 'Oil Services ETF', exchange: 'NYSE Arca', type: 'ETF',
+    })
+
+    await vi.waitFor(() => expect(wrapper.get('[data-testid="etf-preparation-status"]').text())
+      .toContain('Multiple saved ETF profiles match OIH.'))
+    expect(api.post).toHaveBeenCalledWith('/data/ensure', {
+      target: { kind: 'instrument', symbol: 'OIH' }, datasets: ['holdings'],
+    }, expect.objectContaining({ signal: expect.any(AbortSignal) }))
+    expect(api.post).toHaveBeenCalledTimes(1)
+    expect(exactLookupCount).toBe(2)
+    expect(wrapper.get('.panel-title-row h2').text()).toBe('OIH')
+    expect(wrapper.find('.holdings-browser').exists()).toBe(false)
+    expect(api.get).not.toHaveBeenCalledWith('/etf-holdings/OIH/dates', expect.anything())
+    expect(api.get).not.toHaveBeenCalledWith('/etf-holdings/OIH/holdings', expect.anything())
+    wrapper.unmount()
+  })
+
+  it('does not promote a post-ensure stored profile ID into refresh authority', async () => {
+    const oihProfile = {
+      ...profile,
+      id: 21,
+      instrument_id: 210,
+      symbol: 'OIH',
+      name: 'Oil Services ETF',
+      latest_snapshot_id: 95,
+      latest_composition_date: '2026-11-05',
+    }
+    const oihPage = holdingsPage({
+      snapshot: {
+        ...holdingsPage().snapshot,
+        id: 95,
+        etf_profile_id: oihProfile.id,
+        etf_instrument_id: oihProfile.instrument_id,
+        etf_symbol: 'OIH',
+        etf_name: oihProfile.name,
+        composition_date: '2026-11-05',
+        source_identifier: 'e2e:OIH:2026-11-05',
+      },
+      holdings: [{ ...holdingsPage().holdings[0], id: 9501, snapshot_id: 95, constituent_symbol: 'HAL' }],
+      total: 1,
+      has_next: false,
+    })
+    const oihDate = { ...dates[0], snapshot_id: 95, composition_date: '2026-11-05' }
+    let exactLookupCount = 0
+    vi.mocked(api.get).mockImplementation((path, params) => {
+      if (path !== '/etf-holdings') {
+        if (path === '/etf-holdings/OIH/dates') return Promise.resolve([oihDate]) as never
+        if (path === '/etf-holdings/OIH/holdings') return Promise.resolve(oihPage) as never
+        if (path === '/etf-holdings/OIH/diff') return Promise.resolve(diffPayload()) as never
+        if (path === '/etf-holdings/OIH/weight-evolution') return Promise.resolve(weightEvolutionPayload()) as never
+        if (path === '/etf-holdings/OIH/transitions') return Promise.resolve(transitionTimelinePayload()) as never
+        return Promise.resolve([]) as never
+      }
+      const query = (params as { q?: string } | undefined)?.q
+      if (query === undefined) return Promise.resolve([]) as never
+      if (query !== 'OIH') return Promise.resolve([]) as never
+      exactLookupCount += 1
+      return Promise.resolve(exactLookupCount === 1 ? [] : [oihProfile]) as never
+    })
+    vi.mocked(api.post).mockImplementation((path) => {
+      if (path === '/data/ensure') return Promise.resolve(preparationResponse('OIH')) as never
+      if (path === '/instruments/acquire') {
+        return Promise.resolve({
+          request_id: 'verified-oih',
+          status: 'resolved',
+          instrument: { instrument_id: 210, symbol: 'OIH', identity_status: 'verified' },
+          source_outcomes: [],
+        }) as never
+      }
+      if (path === '/etf-holdings/OIH/acquire') {
+        return Promise.resolve({
+          request_id: 'oih-holdings',
+          instrument_id: 210,
+          symbol: 'OIH',
+          outcome: 'cached',
+          refresh: false,
+          refresh_attempted: false,
+          refresh_succeeded: false,
+          profile: oihProfile,
+          snapshot: oihPage.snapshot,
+          capability: oihProfile.holdings_capability,
+          source_provider: 'issuer-test',
+          source_operation: null,
+          provider_request_log_ids: [],
+        }) as never
+      }
+      return Promise.reject(new Error(`Unexpected POST ${path}`)) as never
+    })
+
+    const wrapper = mount(ETFHoldingsView)
+    await wrapper.findComponent({ name: 'SearchBar' }).vm.$emit('select', 'OIH', {
+      symbol: 'OIH', name: 'Oil Services ETF', exchange: 'NYSE Arca', type: 'ETF',
+    })
+    await vi.waitFor(() => expect(wrapper.get('.panel-title-row h2').text()).toBe('OIH'))
+    await vi.waitFor(() => expect(wrapper.get('.holdings-table').text()).toContain('HAL'))
+    expect(exactLookupCount).toBe(2)
+    expect(api.post).toHaveBeenCalledTimes(1)
+    expect(api.post).toHaveBeenCalledWith('/data/ensure', {
+      target: { kind: 'instrument', symbol: 'OIH' }, datasets: ['holdings'],
+    }, expect.objectContaining({ signal: expect.any(AbortSignal) }))
+
+    await wrapper.get('[data-testid="etf-check-stored"]').trigger('click')
+    await vi.waitFor(() => expect(api.post).toHaveBeenCalledWith('/instruments/acquire', expect.objectContaining({
+      symbol: 'OIH',
+    })))
+    await vi.waitFor(() => expect(api.post).toHaveBeenCalledWith('/etf-holdings/OIH/acquire', expect.objectContaining({
+      instrument_id: 210,
+      refresh: false,
+    })))
+    expect(wrapper.get('.holdings-table').text()).toContain('HAL')
     wrapper.unmount()
   })
 
   it('does not let a late failed refresh for one selected fund alter the next fund', async () => {
     const qqqDates = dates.map((date, index) => ({ ...date, snapshot_id: 77 - index }))
-    let rejectSpyRefresh: ((error: Error) => void) | undefined
+    let resolveSpyPreparation: ((value: unknown) => void) | undefined
     vi.mocked(api.get).mockImplementation(async (path: string) => {
       if (path === '/etf-holdings') return [profile, overlapProfile]
       if (path === '/etf-holdings/SPY/capability') return { ...profile.holdings_capability, availability: 'stale', usable_for_current_analysis: false }
@@ -1290,25 +1806,24 @@ describe('ETFHoldingsView', () => {
       if (path.endsWith('/transitions')) return transitionTimelinePayload()
       return []
     })
-    vi.stubGlobal('crypto', { randomUUID: () => 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d' })
-    vi.mocked(api.post).mockImplementation(async (path: string, body: Record<string, unknown>) => {
-      if (path === '/instruments/acquire') return {
-        request_id: body.request_id, status: 'resolved',
-        instrument: { instrument_id: 10, symbol: 'SPY', identity_status: 'verified' }, source_outcomes: [],
+    vi.mocked(api.post).mockImplementation((path, body) => {
+      if (path !== '/data/ensure' || (body as { target?: { symbol?: string } }).target?.symbol !== 'SPY') {
+        return Promise.reject(new Error(`Unexpected request: ${path}`)) as never
       }
-      if (path === '/etf-holdings/SPY/acquire') {
-        return new Promise((_resolve, reject) => { rejectSpyRefresh = reject })
-      }
-      throw new Error(`Unexpected request: ${path}`)
+      return new Promise(resolve => { resolveSpyPreparation = resolve }) as never
     })
 
     const wrapper = mount(ETFHoldingsView)
     await vi.waitFor(() => expect(wrapper.text()).toContain('MSFT'))
     await wrapper.findAll('button.profile-card').find(button => button.text().includes('SPY'))!.trigger('click')
-    await vi.waitFor(() => expect(api.post).toHaveBeenCalledWith('/etf-holdings/SPY/acquire', expect.any(Object)))
+    await vi.waitFor(() => expect(api.post).toHaveBeenCalledWith('/data/ensure', {
+      target: { kind: 'instrument', symbol: 'SPY' }, datasets: ['holdings'],
+    }, expect.objectContaining({ signal: expect.any(AbortSignal) })))
+    const stalePreparationSignal = vi.mocked(api.post).mock.calls[0]?.[2]?.signal
     await wrapper.findAll('button.profile-card').find(button => button.text().includes('QQQ'))!.trigger('click')
     await vi.waitFor(() => expect(wrapper.get('.panel-title-row h2').text()).toBe('QQQ'))
-    rejectSpyRefresh?.(new Error('late SPY response failed'))
+    expect(stalePreparationSignal?.aborted).toBe(true)
+    resolveSpyPreparation?.(preparationResponse('SPY', 'unavailable'))
     await flushPromises()
 
     expect(wrapper.get('.panel-title-row h2').text()).toBe('QQQ')
@@ -1442,6 +1957,54 @@ describe('ETFHoldingsView', () => {
     expect(wrapper.text()).toContain('Issuer profile is not available for this selected fund.')
     expect(wrapper.text()).not.toContain('Issuer refresh did not complete')
     expect(wrapper.text()).not.toContain('undefined')
+    wrapper.unmount()
+  })
+
+  it('does not display a returned profile bound to a different selected ETF', async () => {
+    const selectedProfile = {
+      ...profile,
+      id: 3,
+      instrument_id: 12,
+      symbol: 'IWM',
+      name: 'iShares Russell 2000 ETF',
+      latest_composition_date: null,
+      latest_snapshot_id: null,
+      resolved_count: 0,
+      unresolved_count: 0,
+    }
+    vi.mocked(api.get).mockResolvedValueOnce([selectedProfile]).mockResolvedValueOnce([])
+    vi.stubGlobal('crypto', { randomUUID: () => 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d' })
+    vi.mocked(api.post)
+      .mockResolvedValueOnce({
+        request_id: 'r',
+        status: 'resolved',
+        instrument: { instrument_id: 12, symbol: 'IWM', identity_status: 'resolved' },
+        source_outcomes: [],
+      })
+      .mockResolvedValueOnce({
+        request_id: 'r',
+        instrument_id: 12,
+        symbol: 'IWM',
+        outcome: 'cached',
+        refresh: false,
+        refresh_attempted: false,
+        refresh_succeeded: false,
+        profile,
+        snapshot: null,
+        capability: profile.holdings_capability,
+        source_provider: null,
+        source_operation: null,
+        provider_request_log_ids: [],
+      })
+
+    const wrapper = mount(ETFHoldingsView)
+    await vi.waitFor(() => expect(wrapper.text()).toContain('IWM'))
+    await wrapper.get('[data-testid="etf-request-issuer"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('The holdings profile did not match IWM')
+    expect(wrapper.text()).not.toContain('SPY')
+    expect(api.get).not.toHaveBeenCalledWith('/etf-holdings/SPY/holdings', expect.anything())
     wrapper.unmount()
   })
 

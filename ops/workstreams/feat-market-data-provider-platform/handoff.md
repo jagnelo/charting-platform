@@ -33896,3 +33896,15 @@ occurred. The full Provider/platform roadmaps remain open.
 ## 2026-11-08 — consume TC common runtime context 2a8dc9e4
 
 Root released `2a8dc9e4c28a9632ffdf8f484ad12a985df70cd3` for exact development consumption. Imported only the 33 Provider-declared paths after all old guards matched; verified all 91 manifest rows and imported SHA-256/Git blobs/modes against the source. All 91 source paths are mode(s) 100644; imported files use the same mode. The current common dependency pointer now names `2a8dc9e4c28a9632ffdf8f484ad12a985df70cd3` while retaining the active ETF and Strategy domain pins. This is compatible-source development context, not release acceptance. Producer tests were not rerun; Root owns combined qualification.
+
+
+## 2026-11-08 — compose combined TC2a8 and Provider b192 context
+
+Root released the complete 126-path TC `2a8dc9e4c28a9632ffdf8f484ad12a985df70cd3` snapshot and the exact 78-path Provider `b19293006ea624a4f0c05a4fd91152ffd650a426` runtime manifest for development. All old guards matched. Imported only the 35 differing Provider-declared frontend paths (35 authorized paths total); equal-byte files were preserved. The complete manifest rows, imported frontend blobs/hashes/modes, and the backend source contract were verified. Current dependency pointers now carry the complete TC snapshot, Provider b192 runtime, and existing ETF/Strategy pins. The only pre-existing local product-adjacent diff retained is the focused test-only score-update regression in `backend/tests/unit/services/test_provider_runtime.py`; Provider production code remains frozen at b192. Focused typecheck and required guards are recorded with this checkpoint; Root owns exact CI, concurrent native replay, and release qualification.
+
+
+## 2026-11-08 — shared health transaction boundaries and visible-job fairness
+
+Root captured shared provider-health result updates blocking concurrent work while a provider operation remained in an open transaction. Result telemetry and capacity-hold updates now use a short session on the caller's database bind for PostgreSQL; caller-owned request logs/business writes remain uncommitted by this path. First-use rows that are not yet committed are updated in the caller session, and SQLite retains its single-writer path. Same-session resolver checks see unknown-reset disablement and known-retry circuits immediately. The existing worker now claims one bounded job at a time and reselects, allowing newly queued visible work to precede remaining background jobs.
+
+The allocated real PostgreSQL regressions passed 5/5 in 44.91 seconds, covering concurrent outcome updates, caller rollback/isolation, first-use seeding, same-caller hold visibility, and progress during a blocked fallback transport. Focused unit tests passed 89/89 in 4.68 seconds; Ruff 0.4.7 and diff checks passed. No source HTTP or runtime/production quota, policy, ledger, or hold mutation occurred. Root owns the native replay, exact-source CI, and combined release qualification.

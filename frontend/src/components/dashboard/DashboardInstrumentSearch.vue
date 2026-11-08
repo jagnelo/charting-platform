@@ -1,5 +1,5 @@
 <template>
-  <div class="dash-search" ref="rootRef">
+  <div class="dash-search" ref="rootRef" @focusout="handleFocusOut">
     <input
       ref="inputRef"
       v-model="query"
@@ -14,7 +14,7 @@
     />
     <span v-if="loading" class="dash-search-spin">...</span>
     <Teleport to="body">
-      <div v-if="showDropdown" class="dash-search-results" :style="dropdownStyle">
+      <div v-if="showDropdown" ref="dropdownRef" class="dash-search-results" :style="dropdownStyle" @focusout="handleFocusOut">
         <button
           v-if="canResolveExpression"
           type="button"
@@ -29,7 +29,7 @@
         <template v-else-if="!isExpression">
           <button
             v-for="(result, i) in results"
-            :key="result.symbol"
+            :key="`${result.symbol}:${result.exchange}:${result.provider}:${result.instrument_id ?? 'new'}`"
             type="button"
             :class="['dash-search-item', { highlighted: i === highlightIdx }]"
             @click="selectResult(result)"
@@ -37,7 +37,7 @@
           >
             <b>{{ result.symbol }}</b>
             <span>{{ result.name }}</span>
-            <small>{{ result.type || result.exchange }}</small>
+            <small>{{ result.type || 'Instrument' }}<span v-if="result.exchange"> · {{ result.exchange }}</span></small>
           </button>
         </template>
         <div
@@ -54,7 +54,11 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, onUnmounted, ref, watch } from 'vue'
-import { api } from '@/lib/api'
+import {
+  discoverInstruments,
+  resolveDiscoveredInstrument,
+  type InstrumentDiscoveryCandidate,
+} from '@/lib/onDemandAcquisition'
 import {
   ensureKnownInstrumentSymbol,
   formatInstrumentLookupError,
@@ -62,13 +66,6 @@ import {
   isExpressionInput,
   isResolvableExpressionInput,
 } from '@/lib/instruments'
-
-interface SearchResult {
-  symbol: string
-  name: string
-  exchange: string
-  type: string
-}
 
 const props = withDefaults(defineProps<{
   modelValue?: string
@@ -84,12 +81,13 @@ const emit = defineEmits<{
 }>()
 
 const query = ref(props.modelValue)
-const results = ref<SearchResult[]>([])
+const results = ref<InstrumentDiscoveryCandidate[]>([])
 const loading = ref(false)
 const error = ref('')
 const dismissed = ref(true)
 const highlightIdx = ref(0)
 const rootRef = ref<HTMLDivElement | null>(null)
+const dropdownRef = ref<HTMLDivElement | null>(null)
 const inputRef = ref<HTMLInputElement | null>(null)
 let timer: ReturnType<typeof setTimeout> | null = null
 let searchSeq = 0
@@ -120,7 +118,16 @@ const showDropdown = computed(() =>
 )
 
 watch(() => props.modelValue, value => {
-  if (value !== query.value) query.value = value ?? ''
+  if (value !== query.value) {
+    query.value = value ?? ''
+    searchSeq++
+    resolveSeq++
+    if (timer) clearTimeout(timer)
+    timer = null
+    loading.value = false
+    results.value = []
+    error.value = ''
+  }
 })
 
 watch(showDropdown, (val) => {
@@ -139,6 +146,9 @@ function dismiss() {
 async function onInput() {
   dismissed.value = false
   error.value = ''
+  resolveSeq++
+  results.value = []
+  highlightIdx.value = 0
   if (timer) clearTimeout(timer)
   if (!trimmedQuery.value || isExpression.value) {
     searchSeq++
@@ -149,19 +159,46 @@ async function onInput() {
   const seq = ++searchSeq
   timer = setTimeout(async () => {
     if (!mounted || seq !== searchSeq) return
+    const requestedQuery = trimmedQuery.value
     loading.value = true
+    let localExactLookup: Promise<string | null> = Promise.resolve(null)
+    if (/^[A-Za-z0-9][A-Za-z0-9.-]{0,19}$/.test(requestedQuery)) {
+      // Query the canonical local instrument record independently from
+      // external discovery. This GET does not acquire or guess an identity;
+      // a held discovery source must not block a known exact local ticker.
+      const localResolveSeq = ++resolveSeq
+      localExactLookup = ensureKnownInstrumentSymbol(requestedQuery, 'Instrument', { canonicalOnly: true })
+        .then(symbol => {
+          if (!mounted || seq !== searchSeq || localResolveSeq !== resolveSeq
+            || symbol.trim().toUpperCase() !== requestedQuery.toUpperCase()) return null
+          commit(symbol)
+          return symbol
+        })
+        .catch(() => null)
+    }
     try {
-      const loaded = await api.get<SearchResult[]>('/instruments/search', {
-        q: trimmedQuery.value,
-        canonical_only: true,
-      })
+      const loaded = await discoverInstruments(requestedQuery, [], 10)
       if (mounted && seq === searchSeq) {
-        results.value = loaded
+        results.value = loaded.candidates
         highlightIdx.value = 0
+        if (!loaded.candidates.length) {
+          error.value = discoveryStatusMessage(loaded.status)
+        } else if (loaded.status === 'held' || loaded.status === 'unavailable' || loaded.status === 'partial') {
+          error.value = discoveryStatusMessage(loaded.status)
+        }
+        const exact = loaded.status === 'complete'
+          ? loaded.candidates.filter(candidate => candidate.symbol.trim().toUpperCase() === requestedQuery.toUpperCase())
+          : []
+        if (exact.length === 1) {
+          // Let the canonical local lookup finish first so an existing exact
+          // listing is selected without an unnecessary /instruments/acquire.
+          const localSymbol = await localExactLookup
+          if (mounted && seq === searchSeq && !localSymbol) await resolveCandidate(exact[0]!, seq)
+        }
       }
     } catch (e: any) {
       if (mounted && seq === searchSeq) {
-        error.value = e?.message ?? 'Search unavailable'
+        error.value = 'Instrument discovery is temporarily unavailable. Your current selection is unchanged.'
         results.value = []
       }
     } finally {
@@ -170,24 +207,49 @@ async function onInput() {
   }, 220)
 }
 
-async function selectResult(result: SearchResult) {
-  await selectSymbol(result.symbol)
+function discoveryStatusMessage(status: string) {
+  if (status === 'held') return 'Instrument discovery is temporarily held. Your current selection is unchanged.'
+  if (status === 'unavailable') return 'Instrument discovery is unavailable. Your current selection is unchanged.'
+  if (status === 'partial') return 'Some instrument candidates may be missing. Choose only a verified listing.'
+  return 'No matching instrument was found. Your current selection is unchanged.'
 }
 
-async function selectSymbol(symbol: string) {
+async function selectResult(candidate: InstrumentDiscoveryCandidate) {
+  await resolveCandidate(candidate)
+}
+
+async function resolveCandidate(
+  candidate: InstrumentDiscoveryCandidate,
+  expectedSearchSeq?: number,
+) {
+  if (expectedSearchSeq !== undefined && expectedSearchSeq !== searchSeq) return
   const seq = ++resolveSeq
   loading.value = true
+  error.value = ''
   try {
-    const resolved = await ensureKnownInstrumentSymbol(symbol, 'Instrument', { canonicalOnly: true })
-    if (mounted && seq === resolveSeq) commit(resolved)
-  } catch (e) {
+    const response = await resolveDiscoveredInstrument(candidate)
+    if (!mounted || seq !== resolveSeq || (expectedSearchSeq !== undefined && expectedSearchSeq !== searchSeq)) return
+    if (response.status !== 'resolved' || !response.instrument?.symbol) {
+      error.value = resolutionStatusMessage(response.status)
+      dismissed.value = false
+      return
+    }
+    commit(response.instrument.symbol)
+  } catch {
     if (mounted && seq === resolveSeq) {
-      error.value = formatInstrumentLookupError(symbol, e)
+      error.value = 'Instrument identity could not be confirmed. Your current selection is unchanged.'
       dismissed.value = false
     }
   } finally {
     if (mounted && seq === resolveSeq) loading.value = false
   }
+}
+
+function resolutionStatusMessage(status: string) {
+  if (status === 'held') return 'This instrument is temporarily unavailable for selection.'
+  if (status === 'identity_conflict') return 'Instrument identity could not be confirmed. Choose a different listing.'
+  if (status === 'no_match') return 'No verified instrument matched this selection. Choose a listed candidate.'
+  return 'Instrument could not be resolved. Your current selection is unchanged.'
 }
 
 async function selectExpression() {
@@ -208,9 +270,14 @@ async function selectExpression() {
 }
 
 function commit(value: string) {
+  searchSeq++
+  resolveSeq++
+  if (timer) clearTimeout(timer)
+  timer = null
   query.value = value
   results.value = []
   error.value = ''
+  loading.value = false
   dismissed.value = true
   emit('update:modelValue', value)
   emit('select', value)
@@ -225,6 +292,27 @@ function selectFirst() {
     void selectResult(results.value[highlightIdx.value])
     return
   }
+  if (/^[A-Za-z0-9][A-Za-z0-9.-]{0,19}$/.test(trimmedQuery.value)) void resolveTypedExisting()
+}
+
+async function resolveTypedExisting() {
+  const requested = trimmedQuery.value
+  const seq = ++resolveSeq
+  loading.value = true
+  error.value = ''
+  try {
+    const symbol = await ensureKnownInstrumentSymbol(requested, 'Instrument', { canonicalOnly: true })
+    if (!mounted || seq !== resolveSeq || requested !== trimmedQuery.value) return
+    if (symbol.trim().toUpperCase() === requested.toUpperCase()) commit(symbol)
+    else error.value = 'No exact canonical instrument matched. Your current selection is unchanged.'
+  } catch (cause) {
+    if (mounted && seq === resolveSeq) {
+      error.value = formatInstrumentLookupError(requested, cause, 'Instrument')
+      dismissed.value = false
+    }
+  } finally {
+    if (mounted && seq === resolveSeq) loading.value = false
+  }
 }
 
 function moveDown() {
@@ -237,7 +325,16 @@ function moveUp() {
 }
 
 function handleClickOutside(event: MouseEvent) {
-  if (rootRef.value && !rootRef.value.contains(event.target as Node)) dismiss()
+  if (!isInsideSearch(event.target)) dismiss()
+}
+
+function isInsideSearch(target: EventTarget | null) {
+  if (!(target instanceof Node)) return false
+  return Boolean(rootRef.value?.contains(target) || dropdownRef.value?.contains(target))
+}
+
+function handleFocusOut(event: FocusEvent) {
+  if (!isInsideSearch(event.relatedTarget)) dismiss()
 }
 
 onMounted(() => {

@@ -5,7 +5,11 @@
       <button v-if="comparisonRuns.length === 2" type="button" :aria-pressed="comparisonOpen ? 'true' : 'false'" @click="comparisonOpen = !comparisonOpen">{{ comparisonOpen ? 'Hide compare' : 'Compare' }}</button>
       <button type="button" :disabled="loading" @click="refresh">Refresh</button>
     </header>
-    <p v-if="error" class="research-results-tool__error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</p>
+    <p v-if="runsLoadError" class="research-results-tool__error" role="alert" aria-live="assertive" aria-atomic="true">
+      {{ runsLoadError }}
+      <button v-if="!runs.length" type="button" aria-label="Retry loading runs" :disabled="loading" @click="refresh">Retry loading runs</button>
+    </p>
+    <p v-else-if="error" class="research-results-tool__error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</p>
     <p v-else-if="loading && !runs.length" class="research-results-tool__notice" role="status" aria-live="polite" aria-atomic="true">Loading reproducible research runs…</p>
     <p v-else-if="!runs.length" class="research-results-tool__notice" role="status" aria-live="polite" aria-atomic="true">No persisted studies yet. Run a study in the adjacent Study Lab pane.</p>
     <div v-else class="research-results-tool__run-browser" :aria-busy="olderRunsLoading ? 'true' : 'false'">
@@ -22,13 +26,13 @@
           <button
             type="button"
             class="research-results-tool__run-select"
-            :aria-label="`Run ${run.id}, ${run.status}, ${run.artifact_count ?? run.artifacts.length} artifacts`"
+            :aria-label="`Run ${run.id}, ${run.status}, ${run.artifact_count ?? run.artifacts?.length ?? 0} artifacts`"
             :aria-pressed="selectedRun?.id === run.id ? 'true' : 'false'"
-            @click="selectedRun = run"
+            @click="selectRun(run)"
           >
             <strong>Run #{{ run.id }}</strong>
-            <span role="status" aria-live="polite" aria-atomic="true" :aria-label="`Run ${run.id} status: ${statusLabel(run.status)}`" :data-status="run.status" :class="`research-results-tool__status--${run.status}`">{{ statusLabel(run.status) }}</span>
-            <small>{{ run.artifact_count ?? run.artifacts.length }} artifact{{ (run.artifact_count ?? run.artifacts.length) === 1 ? '' : 's' }}</small>
+            <span role="status" aria-live="polite" aria-atomic="true" :aria-label="`Run ${run.id} status: ${runStatusLabel(run)}`" :data-status="run.status" :class="`research-results-tool__status--${runStatusClass(run)}`">{{ runStatusLabel(run) }}</span>
+            <small>{{ run.artifact_count ?? run.artifacts?.length ?? 0 }} artifact{{ (run.artifact_count ?? run.artifacts?.length ?? 0) === 1 ? '' : 's' }}</small>
           </button>
         </div>
       </div>
@@ -85,8 +89,8 @@
     </section>
     <article v-if="selectedRun" class="research-results-tool__detail" :aria-label="`Research run ${selectedRun.id} details`">
       <div class="research-results-tool__detail-header"><strong>Run #{{ selectedRun.id }}</strong><button v-if="canCancel(selectedRun)" type="button" :disabled="canceling" @click="cancel(selectedRun)">Cancel</button><button v-if="canPromoteBreadth(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteScan(selectedRun)">{{ promoting ? 'Promoting…' : 'Promote to EasyScan' }}</button><button v-if="canPromoteBreadthBoolean(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteAlert(selectedRun)">{{ promoting ? 'Promoting…' : 'Promote to alert' }}</button><button v-if="canPromoteBreadthBoolean(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteGauge(selectedRun)">{{ promoting ? 'Promoting…' : 'Use as Market Gauge' }}</button><button v-if="canPromoteBreadthBoolean(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteSignal(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as Strategy signal' }}</button><button v-if="canPromoteEventSignal(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteEventSignal(selectedRun)">{{ promoting ? 'Promoting…' : 'Save events as Strategy signal' }}</button><button v-if="canPromoteEventFilter(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteEventFilter(selectedRun)">{{ promoting ? 'Promoting…' : 'Save events as watchlist filter' }}</button><button v-if="canPromoteEventFilter(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteEventAlert(selectedRun)">{{ promoting ? 'Promoting…' : 'Promote events to alert' }}</button><button v-if="canPromoteBreadthStudy(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteStudy(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as Study Lab study' }}</button><button v-if="canPromoteBreadthPlot(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promotePlot(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as chart plot' }}</button><button v-if="canPromoteBreadthAggregatePlot(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteAggregatePlot(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as aggregate chart plot' }}</button><button v-if="canPromoteBreadthColumn(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteColumn(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as watchlist column' }}</button><button type="button" :disabled="rerunning || canceling || promoting" @click="rerun(selectedRun, true)">Rerun snapshot</button><button type="button" :disabled="rerunning || canceling || promoting" @click="rerun(selectedRun, false)">Rerun latest</button></div>
-      <p class="research-results-tool__run-guidance" role="status" aria-live="polite" aria-atomic="true">{{ statusGuidance(selectedRun.status) }}</p>
-      <p v-if="promotionMessage" class="research-results-tool__run-guidance" role="status" aria-live="polite" aria-atomic="true">{{ promotionMessage }}</p>
+      <p class="research-results-tool__run-guidance" role="status" aria-live="polite" aria-atomic="true">{{ statusGuidance(selectedRun) }}</p>
+      <p v-if="promotionMessage && promotionRunId === selectedRun.id" class="research-results-tool__run-guidance" role="status" aria-live="polite" aria-atomic="true">{{ promotionMessage }}</p>
       <small v-if="selectedRun.reproducibility_hash">{{ selectedRun.reproducibility_hash }}</small>
       <details v-if="selectedRun.diagnostics?.length" class="research-results-tool__run-details"><summary>Diagnostics ({{ selectedRun.diagnostics.length }})</summary><pre>{{ formatMessages(selectedRun.diagnostics) }}</pre></details>
       <details v-if="selectedRun.warnings?.length" class="research-results-tool__run-details"><summary>Warnings ({{ selectedRun.warnings.length }})</summary><pre>{{ formatMessages(selectedRun.warnings) }}</pre></details>
@@ -196,6 +200,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
+import { researchRunQueryKey, researchRunsQueryKey } from '@/lib/workstation/researchQueryKeys'
 import { normalizeStructuredNumericSeries } from '@/lib/workstation/numericSeries'
 import { normalizeStudyDashboardPanels } from '@/lib/workstation/studyArtifacts'
 import { studyArtifactCapability } from '@/lib/workstation/studyArtifactCapabilities'
@@ -214,6 +219,7 @@ interface ResearchRunSummary {
   id: number
   created_at?: string
   status: string
+  evaluation_status?: string | null
   code_version_id: number
   output_contract?: string | null
   run_config: Record<string, unknown>
@@ -242,6 +248,7 @@ interface ComparisonArtifactPair {
 
 const RESEARCH_RUN_PAGE_SIZE = 25
 const RESEARCH_RUN_FETCH_SIZE = RESEARCH_RUN_PAGE_SIZE + 1
+const RESEARCH_RUNS_LOAD_TIMEOUT_MS = 15_000
 const runs = ref<ResearchRunSummary[]>([])
 const hasMoreRuns = ref(false)
 const hasLoadedOlderRuns = ref(false)
@@ -263,6 +270,7 @@ const comparisonLoading = ref(false)
 const comparisonError = ref('')
 const comparisonAttempt = ref(0)
 const error = ref('')
+const runsLoadError = ref('')
 const rerunning = ref(false)
 const canceling = ref(false)
 const promoting = ref(false)
@@ -290,6 +298,78 @@ function mergeResearchRuns(...groups: ResearchRunSummary[][]) {
     }
   }
   return [...byId.values()]
+}
+function mergeRunSummaryWithDetail(summary: ResearchRunSummary, detail?: ResearchRunSummary | null) {
+  if (!detail || detail.id !== summary.id || !detail.artifacts?.length) return summary
+  const artifacts = summary.artifacts.length > detail.artifacts.length ? summary.artifacts : detail.artifacts
+  const summaryRunConfig = summary.run_config ?? {}
+  const summaryDatasetManifest = summary.dataset_manifest ?? {}
+  return {
+    ...detail,
+    ...summary,
+    run_config: Object.keys(summaryRunConfig).length ? summaryRunConfig : detail.run_config,
+    dataset_manifest: Object.keys(summaryDatasetManifest).length ? summaryDatasetManifest : detail.dataset_manifest,
+    artifacts,
+    artifact_count: Math.max(summary.artifact_count ?? 0, detail.artifact_count ?? detail.artifacts.length),
+  }
+}
+function publishAcceptedRunMutation(run: ResearchRunSummary) {
+  queryClient.setQueryData<ResearchRunSummary[]>(runsQueryKey, current =>
+    mergeResearchRuns([run], current ?? []).slice(0, RESEARCH_RUN_FETCH_SIZE),
+  )
+  void queryClient.invalidateQueries({ queryKey: runsQueryKey })
+}
+function reconcileResearchRunsWithCache(
+  serverRuns: ResearchRunSummary[],
+  cachedRuns: ResearchRunSummary[],
+) {
+  const cachedById = new Map(cachedRuns.map(run => [run.id, run]))
+  const mergedById = new Map<number, ResearchRunSummary>()
+  for (const serverRun of serverRuns) {
+    const cachedRun = cachedById.get(serverRun.id)
+    if (!cachedRun) {
+      mergedById.set(serverRun.id, serverRun)
+      continue
+    }
+    const serverArtifacts = serverRun.artifacts ?? []
+    const cachedArtifacts = cachedRun?.artifacts ?? []
+    const serverRunConfig = serverRun.run_config ?? {}
+    const serverDatasetManifest = serverRun.dataset_manifest ?? {}
+    const serverArtifactCount = serverRun.artifact_count ?? serverArtifacts.length
+    const cachedArtifactCount = cachedRun?.artifact_count ?? cachedArtifacts.length
+    const hasArtifactCount = serverRun.artifact_count !== undefined || cachedRun.artifact_count !== undefined
+    const serverIsTerminal = ['completed', 'failed', 'canceled'].includes(serverRun.status)
+    const serverHasRunConfig = Object.keys(serverRunConfig).length > 0
+    const serverHasManifest = Object.keys(serverDatasetManifest).length > 0
+    mergedById.set(serverRun.id, {
+      ...cachedRun,
+      ...serverRun,
+      status: cachedRun && ['completed', 'failed', 'canceled'].includes(cachedRun.status) && !serverIsTerminal
+        ? cachedRun.status
+        : serverRun.status,
+      run_config: serverHasRunConfig ? serverRunConfig : cachedRun?.run_config ?? serverRunConfig,
+      dataset_manifest: serverHasManifest ? serverDatasetManifest : cachedRun?.dataset_manifest ?? serverDatasetManifest,
+      ...(hasArtifactCount ? { artifact_count: Math.max(serverArtifactCount, cachedArtifactCount) } : {}),
+      artifacts: cachedArtifacts.length > serverArtifacts.length ? cachedArtifacts : serverArtifacts,
+    })
+  }
+  for (const cachedRun of cachedRuns) {
+    if (!mergedById.has(cachedRun.id)) mergedById.set(cachedRun.id, cachedRun)
+  }
+  const serverOrderedRuns = serverRuns.flatMap(serverRun => {
+    const reconciled = mergedById.get(serverRun.id)
+    return reconciled ? [reconciled] : []
+  })
+  const cachedOnlyRuns = [...mergedById.values()].filter(run => !serverRuns.some(serverRun => serverRun.id === run.id))
+  cachedOnlyRuns.sort((left, right) => {
+    const leftCreatedAt = left.created_at ? Date.parse(left.created_at) : Number.NaN
+    const rightCreatedAt = right.created_at ? Date.parse(right.created_at) : Number.NaN
+    if (Number.isFinite(leftCreatedAt) && Number.isFinite(rightCreatedAt) && leftCreatedAt !== rightCreatedAt) {
+      return rightCreatedAt - leftCreatedAt
+    }
+    return right.id - left.id
+  })
+  return [...cachedOnlyRuns, ...serverOrderedRuns].slice(0, RESEARCH_RUN_FETCH_SIZE)
 }
 const comparisonArtifacts = computed<ComparisonArtifactPair[]>(() => {
   const [leftRun, rightRun] = comparisonRuns.value.map(run => comparisonDetails.value[run.id] ?? run)
@@ -322,27 +402,69 @@ const comparisonArtifacts = computed<ComparisonArtifactPair[]>(() => {
 const comparisonLoadKey = computed(() => comparisonOpen.value && comparisonRuns.value.length === 2
   ? `${comparisonRuns.value.map(run => `${run.id}:${run.status}:${run.artifact_count ?? run.artifacts.length}`).join('|')}|retry:${comparisonAttempt.value}`
   : '')
-const surfaceVisible = ref(true)
+// Dock tools can mount while their tab is hidden. Do not start a query until
+// IntersectionObserver confirms the pane is visible; otherwise the first
+// request can race the hidden-tab transition and leave the empty state loading.
+const surfaceVisible = ref(typeof IntersectionObserver === 'undefined')
 const documentVisible = ref(typeof document === 'undefined' || document.visibilityState !== 'hidden')
-const runsQueryKey = ['workstation', 'research-runs'] as const
+const runsQueryKey = researchRunsQueryKey
 const queryClient = useQueryClient()
+function selectRun(run: ResearchRunSummary) {
+  const currentDetail = selectedRun.value?.id === run.id ? selectedRun.value : null
+  const cachedDetail = queryClient.getQueryData<ResearchRunSummary>(researchRunQueryKey(run.id))
+  selectedRun.value = mergeRunSummaryWithDetail(run, currentDetail ?? cachedDetail)
+}
 const artifactSummaryId = (artifactId: number) => `${resultsInstanceId}-research-artifact-${artifactId}-summary`
 let visibilityObserver: IntersectionObserver | null = null
 let mounted = false
 let mutationGeneration = 0
 let comparisonGeneration = 0
+const promotionRunId = ref<number | null>(null)
 function isCurrentMutation(generation: number) { return mounted && generation === mutationGeneration }
-function beginPromotion() {
+function beginPromotion(runId: number) {
   const generation = mutationGeneration
+  promotionRunId.value = runId
   promoting.value = true
   promotionMessage.value = ''
   return generation
 }
+function setPromotionMessage(runId: number, message: string) {
+  promotionRunId.value = runId
+  promotionMessage.value = message
+}
 function updateDocumentVisibility() { documentVisible.value = document.visibilityState !== 'hidden' }
 const runsQuery = useQuery({
   queryKey: runsQueryKey,
-  queryFn: async () => (await api.get<ResearchRunSummary[]>('/research/runs', { limit: RESEARCH_RUN_FETCH_SIZE, include_artifacts: false })) ?? [],
+  queryFn: async ({ signal }) => {
+    const requestController = new AbortController()
+    const abortForQuery = () => requestController.abort(signal.reason)
+    let timedOut = false
+    const timeout = setTimeout(() => {
+      timedOut = true
+      requestController.abort()
+    }, RESEARCH_RUNS_LOAD_TIMEOUT_MS)
+    signal.addEventListener('abort', abortForQuery, { once: true })
+    if (signal.aborted) abortForQuery()
+    try {
+      const serverRuns = (await api.get<ResearchRunSummary[]>(
+        '/research/runs',
+        { limit: RESEARCH_RUN_FETCH_SIZE, include_artifacts: false },
+        { signal: requestController.signal },
+      )) ?? []
+      const cachedRuns = queryClient.getQueryData<ResearchRunSummary[]>(runsQueryKey) ?? []
+      return reconcileResearchRunsWithCache(serverRuns, cachedRuns)
+    } catch (cause) {
+      if (timedOut && !signal.aborted) {
+        throw new Error('Loading persisted research runs timed out. Retry to try again.')
+      }
+      throw cause
+    } finally {
+      clearTimeout(timeout)
+      signal.removeEventListener('abort', abortForQuery)
+    }
+  },
   enabled: computed(() => surfaceVisible.value && documentVisible.value),
+  retry: false,
   staleTime: 5_000,
   refetchOnWindowFocus: true,
   refetchInterval: query => {
@@ -359,6 +481,9 @@ const selectedRunDetailQuery = useQuery({
     return api.get<ResearchRunSummary>(`/research/runs/${runId}`)
   },
   enabled: computed(() => Boolean(selectedRun.value?.id && selectedRun.value.artifacts.length === 0 && (selectedRun.value.artifact_count ?? 0) > 0)),
+  // Detail failures are recoverable through the visible Retry action below.
+  // Avoid background retries hiding that user-controlled recovery state.
+  retry: false,
   staleTime: 5_000,
 })
 const detailLoading = computed(() => selectedRunDetailQuery.isFetching.value)
@@ -369,20 +494,26 @@ const detailError = computed(() => {
 const detailRetrying = ref(false)
 const loading = computed(() => runsQuery.isFetching.value || rerunning.value || canceling.value)
 watch(() => runsQuery.data.value, next => {
-  if (!next) return
+  if (next === undefined) return
+  runsLoadError.value = ''
   const firstPage = next.slice(0, RESEARCH_RUN_PAGE_SIZE)
   const selectedId = selectedRun.value?.id
   runs.value = mergeResearchRuns(firstPage, hasLoadedOlderRuns.value ? runs.value : [])
   if (!hasLoadedOlderRuns.value) hasMoreRuns.value = next.length > RESEARCH_RUN_PAGE_SIZE
-  selectedRun.value = runs.value.find(run => run.id === selectedId) ?? runs.value[0] ?? null
+  const nextSelectedRun = runs.value.find(run => run.id === selectedId) ?? runs.value[0] ?? null
+  if (nextSelectedRun) {
+    const currentDetail = selectedRun.value?.id === nextSelectedRun.id ? selectedRun.value : null
+    const cachedDetail = queryClient.getQueryData<ResearchRunSummary>(researchRunQueryKey(nextSelectedRun.id))
+    selectedRun.value = mergeRunSummaryWithDetail(nextSelectedRun, currentDetail ?? cachedDetail)
+  } else selectedRun.value = null
   comparisonIds.value = comparisonIds.value.filter(id => runs.value.some(run => run.id === id))
 }, { immediate: true })
 watch(() => runsQuery.error.value, cause => {
-  if (cause) error.value = cause instanceof Error ? cause.message : 'Unable to load persisted research runs'
+  if (cause) runsLoadError.value = cause instanceof Error ? cause.message : 'Unable to load persisted research runs'
 })
 watch(() => selectedRunDetailQuery.data.value, detail => {
-  if (detail && detail.id === selectedRun.value?.id) selectedRun.value = detail
-})
+  if (detail && detail.id === selectedRun.value?.id) selectedRun.value = mergeRunSummaryWithDetail(selectedRun.value, detail)
+}, { immediate: true })
 watch([occurrenceSymbolFilter, occurrenceKindFilter, () => selectedRun.value?.id], () => {
   occurrencePageSizes.value = {}
 })
@@ -458,8 +589,21 @@ function statusLabel(status: string) {
   const labels: Record<string, string> = { queued: 'Queued', running: 'Running', completed: 'Completed', failed: 'Failed', canceled: 'Canceled' }
   return labels[status] ?? status.replace(/_/g, ' ')
 }
+function runStatusLabel(run: ResearchRunSummary) {
+  if (run.status === 'completed' && run.evaluation_status === 'deferred') return 'Evaluation deferred'
+  if (run.status === 'completed' && run.evaluation_status === 'failed') return 'Evaluation failed'
+  return statusLabel(run.status)
+}
+function runStatusClass(run: ResearchRunSummary) {
+  return run.status === 'completed' && run.evaluation_status === 'deferred'
+    ? 'deferred'
+    : run.status === 'completed' && run.evaluation_status === 'failed'
+      ? 'failed'
+      : run.status
+}
 function canInspectStudyArtifact(run: ResearchRunSummary | null, artifact: ResearchArtifact): boolean {
   return run?.status === 'completed'
+    && run.evaluation_status === 'completed'
     && run.output_contract === 'study'
     && Number.isSafeInteger(run.id)
     && run.id > 0
@@ -474,8 +618,14 @@ function studyArtifactInspectorLocation(run: ResearchRunSummary, artifact: Resea
     query: { researchRunId: String(run.id), artifactId: String(artifact.id) },
   }
 }
-function statusGuidance(status: string) {
-  switch (status) {
+function statusGuidance(run: ResearchRunSummary) {
+  if (run.status === 'completed' && run.evaluation_status === 'deferred') {
+    return 'The runner finished, but this Study was deferred because required local data coverage is incomplete. No artifacts were produced. Adjust the requested range or resolve the stated data gap, then rerun this saved attempt.'
+  }
+  if (run.status === 'completed' && run.evaluation_status === 'failed') {
+    return 'The runner finished, but Study evaluation failed. No successful result is available; inspect diagnostics before retrying the saved attempt.'
+  }
+  switch (run.status) {
     case 'queued': return 'The isolated runner is preparing the declared dataset.'
     case 'running': return 'The isolated runner is evaluating the study; results will refresh automatically.'
     case 'completed': return 'Study completed. Inspect artifacts or compare this run with another snapshot.'
@@ -949,9 +1099,10 @@ function canPromoteBreadthColumn(run: ResearchRunSummary) {
 
 async function refresh() {
   error.value = ''
+  runsLoadError.value = ''
   olderRunsError.value = ''
   try { await runsQuery.refetch() }
-  catch (cause: any) { error.value = cause?.message ?? 'Unable to load persisted research runs' }
+  catch (cause: any) { runsLoadError.value = cause?.message ?? 'Unable to load persisted research runs' }
 }
 async function retryDetail() {
   detailRetrying.value = true
@@ -965,21 +1116,14 @@ async function rerun(run: ResearchRunSummary, snapshot: boolean) {
   error.value = ''
   try {
     const queued = await api.post<ResearchRunSummary>(`/research/runs/${run.id}/rerun?snapshot=${snapshot}`, {})
+    publishAcceptedRunMutation(queued)
     if (!mounted || generation !== mutationGeneration) return
     const nextRuns = mergeResearchRuns([queued], runs.value)
-    queryClient.setQueryData<ResearchRunSummary[]>(runsQueryKey, current => mergeResearchRuns(
-      [queued],
-      (current ?? []).filter(item => item.id !== queued.id),
-    ).slice(0, RESEARCH_RUN_FETCH_SIZE))
     runs.value = nextRuns
     if (selectedRun.value?.id === selectedRunIdAtStart) selectedRun.value = queued
     await runsQuery.refetch()
-    queryClient.setQueryData<ResearchRunSummary[]>(runsQueryKey, current => mergeResearchRuns(
-      [queued],
-      (current ?? []).filter(item => item.id !== queued.id),
-    ).slice(0, RESEARCH_RUN_FETCH_SIZE))
   } catch (cause: any) {
-    if (mounted && generation === mutationGeneration) error.value = cause?.message ?? 'Unable to queue study rerun'
+    if (mounted && generation === mutationGeneration) error.value = `Unable to queue rerun for run #${run.id}: ${cause?.message ?? 'Request failed'}`
   } finally {
     if (mounted && generation === mutationGeneration) rerunning.value = false
   }
@@ -990,6 +1134,7 @@ async function cancel(run: ResearchRunSummary) {
   error.value = ''
   try {
     const canceled = await api.post<ResearchRunSummary>(`/research/runs/${run.id}/cancel`, {})
+    publishAcceptedRunMutation({ ...run, ...canceled, status: canceled.status ?? 'canceled' })
     if (!mounted || generation !== mutationGeneration) return
     const nextRuns = runs.value.map(item => item.id === run.id ? { ...item, ...canceled, status: canceled.status ?? 'canceled' } : item)
     queryClient.setQueryData<ResearchRunSummary[]>(runsQueryKey, current => (current ?? []).map(item => item.id === run.id ? { ...item, ...canceled, status: canceled.status ?? 'canceled' } : item))
@@ -998,13 +1143,13 @@ async function cancel(run: ResearchRunSummary) {
     await runsQuery.refetch()
     queryClient.setQueryData<ResearchRunSummary[]>(runsQueryKey, current => (current ?? []).map(item => item.id === run.id ? { ...item, ...canceled, status: canceled.status ?? 'canceled' } : item))
   } catch (cause: any) {
-    if (mounted && generation === mutationGeneration) error.value = cause?.message ?? 'Unable to cancel research run'
+    if (mounted && generation === mutationGeneration) error.value = `Unable to cancel run #${run.id}: ${cause?.message ?? 'Request failed'}`
   } finally {
     if (mounted && generation === mutationGeneration) canceling.value = false
   }
 }
 async function promoteScan(run: ResearchRunSummary) {
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     const promoted = await ensurePromotedScan(run, generation)
     if (!isCurrentMutation(generation)) return
@@ -1030,7 +1175,7 @@ async function ensurePromotedScan(run: ResearchRunSummary, generation = mutation
 }
 
 async function promoteAlert(run: ResearchRunSummary) {
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     const scan = await ensurePromotedScan(run, generation)
     if (!isCurrentMutation(generation)) return
@@ -1045,7 +1190,7 @@ async function promoteAlert(run: ResearchRunSummary) {
 }
 
 async function promoteGauge(run: ResearchRunSummary) {
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     const scan = await ensurePromotedScan(run, generation)
     if (!isCurrentMutation(generation)) return
@@ -1058,7 +1203,7 @@ async function promoteGauge(run: ResearchRunSummary) {
 }
 
 async function promoteSignal(run: ResearchRunSummary) {
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     const promoted = await api.post<{ id: number; name: string }>(`/analysis/breadth/python/runs/${run.id}/promote-signal`, {})
     if (!isCurrentMutation(generation)) return
@@ -1070,7 +1215,7 @@ async function promoteSignal(run: ResearchRunSummary) {
   }
 }
 async function promoteEventSignal(run: ResearchRunSummary) {
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     const promoted = await api.post<{ id: number; name: string }>(`/research/runs/${run.id}/promote-event-signal`, {})
     if (!isCurrentMutation(generation)) return
@@ -1090,7 +1235,7 @@ async function ensurePromotedEventFilter(run: ResearchRunSummary, generation = m
   return result
 }
 async function promoteEventFilter(run: ResearchRunSummary) {
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     const promoted = await ensurePromotedEventFilter(run, generation)
     if (!isCurrentMutation(generation)) return
@@ -1102,7 +1247,7 @@ async function promoteEventFilter(run: ResearchRunSummary) {
   }
 }
 async function promoteEventAlert(run: ResearchRunSummary) {
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     const promoted = await ensurePromotedEventFilter(run, generation)
     if (!isCurrentMutation(generation)) return
@@ -1116,7 +1261,7 @@ async function promoteEventAlert(run: ResearchRunSummary) {
   }
 }
 async function promoteEventArtifact(run: ResearchRunSummary, artifactName: string, target: 'filter' | 'alert' | 'signal') {
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     if (target === 'signal') {
       const assets = await api.get<Array<{ versions?: Array<{ id?: number; source?: string; output_contract?: string; parameter_schema?: Record<string, unknown>; default_parameters?: Record<string, unknown> }> }>>('/code/assets')
@@ -1221,10 +1366,10 @@ async function promoteStructuredStudySignal(
 async function promoteStructuredArtifact(run: ResearchRunSummary, artifact: ResearchRunSummary['artifacts'][number], target: 'column' | 'plot' | StructuredBooleanPromotionTarget) {
   if (!canPromoteStructuredArtifact(run, artifact) || promoting.value) return
   if (target === 'plot' && artifact.artifact_type === 'series' && !seriesCanBePlotted(artifact)) {
-    promotionMessage.value = 'Chart plot unavailable: this series needs valid aligned timestamps and at least one finite observation.'
+    setPromotionMessage(run.id, 'Chart plot unavailable: this series needs valid aligned timestamps and at least one finite observation.')
     return
   }
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     if (artifact.artifact_type === 'boolean' && target !== 'column' && target !== 'plot') {
       if (target === 'signal') {
@@ -1373,10 +1518,10 @@ async function promoteStructuredSeriesCondition(
   if (artifact.artifact_type !== 'series' || !hasFiniteSeriesValue(artifact) || promoting.value) return
   const draft = structuredConditionDraft(run, artifact)
   if (!Number.isFinite(draft.threshold)) {
-    promotionMessage.value = 'Enter a finite numeric threshold before promoting the series.'
+    setPromotionMessage(run.id, 'Enter a finite numeric threshold before promoting the series.')
     return
   }
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     if (target === 'signal') {
       const promoted = await promoteStructuredStudySignal(run, artifact.name, {
@@ -1475,10 +1620,10 @@ async function promoteStructuredScalarCondition(
   if (artifact.artifact_type !== 'scalar' || !hasFiniteScalarValue(artifact) || promoting.value) return
   const draft = structuredConditionDraft(run, artifact)
   if (!Number.isFinite(draft.threshold)) {
-    promotionMessage.value = 'Enter a finite numeric threshold before promoting the scalar.'
+    setPromotionMessage(run.id, 'Enter a finite numeric threshold before promoting the scalar.')
     return
   }
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     const seriesTarget = { operator: draft.operator, threshold: Number(draft.threshold) }
     if (target === 'signal') {
@@ -1578,10 +1723,10 @@ async function promoteStructuredRangeCenterCondition(
   if (artifact.artifact_type !== 'range' || !hasFiniteRangeCenterValue(artifact) || promoting.value) return
   const draft = structuredConditionDraft(run, artifact)
   if (!Number.isFinite(draft.threshold)) {
-    promotionMessage.value = 'Enter a finite numeric threshold before promoting the range center.'
+    setPromotionMessage(run.id, 'Enter a finite numeric threshold before promoting the range center.')
     return
   }
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     if (target === 'signal') {
       const promoted = await promoteStructuredStudySignal(run, artifact.name, {
@@ -1674,7 +1819,7 @@ async function promoteStructuredRangeCenterCondition(
   }
 }
 async function promoteStudy(run: ResearchRunSummary) {
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     const promoted = await api.post<{ id: number; name: string }>(`/analysis/breadth/python/runs/${run.id}/promote-study`, {})
     if (!isCurrentMutation(generation)) return
@@ -1686,7 +1831,7 @@ async function promoteStudy(run: ResearchRunSummary) {
   }
 }
 async function promotePlot(run: ResearchRunSummary) {
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     const promoted = await api.post<{ id: number; name: string }>(`/analysis/breadth/python/runs/${run.id}/promote-plot`, {})
     if (!isCurrentMutation(generation)) return
@@ -1698,7 +1843,7 @@ async function promotePlot(run: ResearchRunSummary) {
   }
 }
 async function promoteAggregatePlot(run: ResearchRunSummary) {
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     const promoted = await api.post<{ id: number; name: string }>(`/analysis/breadth/python/runs/${run.id}/promote-plot`, { aggregate: true })
     if (!isCurrentMutation(generation)) return
@@ -1710,7 +1855,7 @@ async function promoteAggregatePlot(run: ResearchRunSummary) {
   }
 }
 async function promoteColumn(run: ResearchRunSummary) {
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     const promoted = await api.post<{ id: number; name: string }>(`/analysis/breadth/python/runs/${run.id}/promote-column`, {})
     if (!isCurrentMutation(generation)) return
@@ -1745,6 +1890,7 @@ onBeforeUnmount(() => {
 <style scoped>
 .research-results-tool { display:grid; grid-template-rows:auto minmax(55px,.35fr) minmax(0,1fr); gap:6px; height:100%; min-height:0; padding:6px; color:#cbd5dc; background:#11161b; font:10px "Segoe UI",Arial,sans-serif; }.research-results-tool header { display:flex; align-items:center; gap:6px; }.research-results-tool header button { margin-left:auto; }.research-results-tool header button + button { margin-left:0; }.research-results-tool button { border:1px solid #3a4954; background:#172027; color:#dce6ed; font:inherit; cursor:pointer; }.research-results-tool button:disabled { opacity:.55; cursor:default; }.research-results-tool__runs { overflow:auto; display:grid; align-content:start; gap:3px; }.research-results-tool__run { display:grid; grid-template-columns:14px minmax(55px,1fr); gap:5px; padding:5px; border:1px solid #3a4954; background:#172027; }.research-results-tool__run:hover,.research-results-tool__run--selected { background:#1d3543; border-color:#52748a; }.research-results-tool .research-results-tool__run-select { display:grid; grid-template-columns:minmax(55px,1fr) auto auto; gap:5px; min-width:0; padding:0; border:0; background:transparent; text-align:left; }.research-results-tool__run-select:focus-visible { outline:2px solid #80bce8; outline-offset:1px; }.research-results-tool__run small,.research-results-tool__detail small,.research-results-tool__notice { color:#8195a3; }.research-results-tool__comparison { overflow:auto; border:1px solid #34424c; padding:5px; }.research-results-tool__comparison div { display:grid; grid-template-columns:70px 1fr; gap:5px; margin-top:3px; }.research-results-tool__comparison b { overflow-wrap:anywhere; font-weight:500; }.research-results-tool__same { color:#82c49b; }.research-results-tool__changed { color:#e7c274; }.research-results-tool__detail { border-top:1px solid #34424c; padding-top:5px; overflow:auto; }.research-results-tool__detail-header { display:flex; align-items:center; gap:4px; }.research-results-tool__detail-header button { padding:1px 4px; }.research-results-tool__detail-header button:first-of-type { margin-left:auto; }.research-results-tool__detail p { margin:4px 0; }.research-results-tool__artifacts { display:grid; gap:5px; }.research-results-tool__artifacts article { display:grid; gap:3px; border-top:1px solid #29343c; padding-top:4px; }.research-results-tool__artifact-header { display:flex; align-items:center; gap:4px; }.research-results-tool__artifact-header small { color:#8195a3; }.research-results-tool__artifact-header button { margin-left:auto; padding:1px 4px; }.research-results-tool__artifacts table { border-collapse:collapse; width:100%; }.research-results-tool__artifacts th,.research-results-tool__artifacts td { padding:2px 4px; border:1px solid #2c3943; text-align:left; }.research-results-tool__events { display:grid; gap:2px; }.research-results-tool__events button { display:grid; grid-template-columns:50px 1fr; padding:3px 4px; text-align:left; }.research-results-tool__events span { color:#91a8b4; }.research-results-tool__artifacts pre { margin:0; max-height:100px; overflow:auto; white-space:pre-wrap; }.research-results-tool__boolean--true { color:#80d5a5; }.research-results-tool__boolean--false { color:#f0a0a0; }.research-results-tool__error { color:#f0a2a2; }.research-results-tool__status--completed { color:#82c49b; }.research-results-tool__status--failed,.research-results-tool__status--canceled { color:#ed9696; }.research-results-tool__status--queued,.research-results-tool__status--running { color:#80bce8; }
 .research-results-tool__run-details { margin:4px 0; border-top:1px solid #29343c; padding-top:3px; }.research-results-tool__run-details summary { color:#9db0bc; cursor:pointer; }.research-results-tool__run-details pre { margin:3px 0 0; max-height:90px; overflow:auto; white-space:pre-wrap; }
+.research-results-tool__status--deferred { color:#e7c274; }
 .research-results-tool__run-guidance { margin:3px 0; color:#91a8b4; line-height:1.35; }.research-results-tool__status--failed,.research-results-tool__status--canceled { color:#ed9696; }
 .research-results-tool__events small { grid-column:2; color:#91a8b4; }.research-results-tool__events > [role="listitem"] { display:grid; }.research-results-tool__breadth-history > small,.research-results-tool__event-artifact > small { color:#91a8b4; }.research-results-tool__breadth-history { display:grid; gap:3px; }.research-results-tool__breadth-history :deep(.generic-breadth-history) { height:150px; }
 .research-results-tool__occurrence-filters { display:flex; align-items:center; flex-wrap:wrap; gap:5px; color:#91a8b4; }.research-results-tool__occurrence-filters label { display:flex; align-items:center; gap:3px; }.research-results-tool__occurrence-filters input,.research-results-tool__occurrence-filters select { min-width:80px; border:1px solid #3a4954; background:#121a20; color:#dce6ed; font:inherit; padding:2px 3px; }.research-results-tool__occurrence-filters span { margin-left:auto; }

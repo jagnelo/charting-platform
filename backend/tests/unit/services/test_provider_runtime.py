@@ -11,7 +11,7 @@ from unittest.mock import MagicMock, patch
 
 import httpx
 import pytest
-from sqlalchemy import select
+from sqlalchemy import event, select
 
 from app.config import provider_rate_limit_seed, settings
 from app.models.asset_class import AssetClass, InstrumentType
@@ -4448,10 +4448,26 @@ async def test_concurrent_provider_selection_uses_live_scores_without_score_row_
         health.observed_score = Decimal("100") if provider_name == "massive" else Decimal("0")
     db.commit()
 
-    chains = await asyncio.gather(
-        resolve_provider_chain(async_db, ProviderCapability.INSTRUMENT_SEARCH),
-        resolve_provider_chain(async_db, ProviderCapability.INSTRUMENT_SEARCH),
-    )
+    score_updates = []
+    connection = db.connection()
+
+    def record_score_update(_conn, _cursor, statement, _parameters, _context, _executemany):
+        normalized = statement.lstrip().lower()
+        if normalized.startswith(("update provider_policy", "update provider_health_state")) and (
+            "effective_score" in normalized or "observed_score" in normalized
+        ):
+            score_updates.append(statement)
+
+    event.listen(connection, "before_cursor_execute", record_score_update)
+    try:
+        chains = await asyncio.gather(
+            resolve_provider_chain(async_db, ProviderCapability.INSTRUMENT_SEARCH),
+            resolve_provider_chain(async_db, ProviderCapability.INSTRUMENT_SEARCH),
+        )
+    finally:
+        event.remove(connection, "before_cursor_execute", record_score_update)
+
+    assert score_updates == []
 
     assert all({item.provider_name for item in chain} == selected_names for chain in chains), [
         [item.provider_name for item in chain] for chain in chains
