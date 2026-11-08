@@ -18948,3 +18948,17 @@ basket CRUD/chart browser journey and the source-member retention unit case;
 it does not claim the shared TC loader's member preparation passed in a browser.
 Playwright discovery listed all three basket cases and `git diff --check`
 passed. The browser body remains pending Root's combined fixture.
+
+### Settings Indicators expansion race correction — 2026-11-08
+
+Root's `root-fac-seven-terminal-three-failures-owner-review.json` and its
+`fac5c2b0` trace show the Settings journey navigated to `/legacy/chart/SPY`,
+waited only for the chart shell, then clicked the Indicators disclosure while
+the chart instrument was still loading. The click occurred once; the visible
+`InstrumentInfoPanel` for SPY appeared only after it. `IndicatorPanel` resets
+its section state when `chartStore.instrument.id` changes, so that later
+initialization legitimately collapsed the section after the premature click.
+The owned E2E now waits for the exact `SPY instrument report` region before the
+existing ordinary panel/Indicators clicks and assertions. No shared UI source,
+assertion, or existing timeout was changed. Playwright discovery lists all four
+supporting-feature cases; the actual browser body remains Root-owned.
