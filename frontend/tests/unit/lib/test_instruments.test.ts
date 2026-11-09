@@ -5,9 +5,10 @@ vi.mock('@/lib/api', () => ({
     get: vi.fn(),
     post: vi.fn(),
   },
+  setQueuedApiRequestPriority: vi.fn(),
 }))
 
-import { api } from '@/lib/api'
+import { api, setQueuedApiRequestPriority } from '@/lib/api'
 import {
   classifyInstrumentInput,
   ensureKnownInstrumentSymbol,
@@ -46,6 +47,19 @@ describe('instrument helpers', () => {
     await expect(resolveKnownInstrument('nvda', 'Workstation symbol', { canonicalOnly: true }))
       .resolves.toEqual({ symbol: 'NVDA', id: 42, instrumentType: 'Exchange Traded Vehicle' })
     expect(api.get).toHaveBeenCalledWith('/instruments/NVDA', { canonical_only: true })
+  })
+
+  it('promotes a queued canonical lookup for an explicit foreground selection', async () => {
+    vi.mocked(api.get).mockResolvedValue({ id: 3, symbol: 'RSP', instrument_type: 'ETF' })
+    await expect(resolveKnownInstrument('rsp', 'Comparison symbol', {
+      canonicalOnly: true,
+      priority: 'high',
+      foreground: true,
+    })).resolves.toEqual({ symbol: 'RSP', id: 3, instrumentType: 'ETF' })
+    expect(setQueuedApiRequestPriority).toHaveBeenCalledWith('instrument-lookup:RSP:canonical', 'high', true)
+    expect(api.get).toHaveBeenCalledWith('/instruments/RSP', { canonical_only: true }, {
+      priority: 'high', foreground: true, queueKey: 'instrument-lookup:RSP:canonical',
+    })
   })
 
   it('resolves a bounded symbol batch through one canonical-only request', async () => {

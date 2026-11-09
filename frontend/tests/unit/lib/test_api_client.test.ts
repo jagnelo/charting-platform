@@ -91,8 +91,8 @@ describe('api.get', () => {
 
     const ordinary = Array.from({ length: 5 }, (_, index) => api.get(`/ordinary-${index}`))
     const low = api.get('/background', undefined, { priority: 'low' })
-    const highFirst = api.get('/visible-price-first', undefined, { priority: 'high' })
-    const highSecond = api.get('/visible-price-second', undefined, { priority: 'high' })
+    const highFirst = api.get('/visible-price-first', undefined, { priority: 'high', foreground: true })
+    const highSecond = api.get('/visible-price-second', undefined, { priority: 'high', foreground: true })
 
     await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(6))
     expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[5]?.[0])).toContain('/visible-price-first')
@@ -124,7 +124,7 @@ describe('api.get', () => {
     for (const [, init] of (fetch as ReturnType<typeof vi.fn>).mock.calls) {
       expect(init).toEqual(expect.objectContaining({ method: 'POST', priority: 'high' }))
     }
-    const foreground = api.get('/workspaces/library/items', undefined, { priority: 'high' })
+    const foreground = api.get('/workspaces/library/items', undefined, { priority: 'high', foreground: true })
     await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(6))
     expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[5]?.[0])).toContain('/workspaces/library/items')
 
@@ -175,6 +175,47 @@ describe('api.get', () => {
     await Promise.all([...startupData, lowStartup, startupLookup, ...queuedStartup])
   })
 
+  it('promotes one queued visible read through the reserved slot while five background reads remain held', async () => {
+    setTokens('tok', 'ref')
+    const deferredResponses: Array<{ resolve: (response: unknown) => void }> = []
+    ;(global.fetch as ReturnType<typeof vi.fn>).mockImplementation(() => new Promise(resolve => {
+      deferredResponses.push({ resolve })
+    }))
+    const { api } = await import('@/lib/api')
+    const response = () => ({ ok: true, status: 200, json: () => Promise.resolve({}), text: () => Promise.resolve('') })
+
+    const startup = Array.from({ length: 5 }, (_, index) => api.get(`/analysis/visible-startup-${index}`, undefined, { priority: 'high' }))
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(5))
+    const holdings = api.get('/etf-holdings/SPY/holdings', undefined, { priority: 'high', queueKey: 'startup-holdings:SPY' })
+    const sharedNotes = api.get('/notes/instruments/17', undefined, { priority: 'auto', queueKey: 'instrument-note:17' })
+    await Promise.resolve()
+    expect(fetch).toHaveBeenCalledTimes(5)
+
+    // A visible Notes consumer joins the same pending query. Promote its
+    // queued transport rather than issuing a duplicate request.
+    expect(setQueuedApiRequestPriority('instrument-note:17', 'high', true)).toBe(true)
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(6))
+    expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[5]?.[0])).toContain('/notes/instruments/17')
+    expect((fetch as ReturnType<typeof vi.fn>).mock.calls[5]?.[1]).toEqual(expect.objectContaining({ priority: 'high' }))
+    expect((fetch as ReturnType<typeof vi.fn>).mock.calls.filter(([url]) => String(url).includes('/notes/instruments/17'))).toHaveLength(1)
+
+    deferredResponses[5]!.resolve(response())
+    await sharedNotes
+    // Ordinary bounded work resumes only after one background body is read.
+    deferredResponses[0]!.resolve(response())
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(7))
+    expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[6]?.[0])).toContain('/etf-holdings/SPY/holdings')
+
+    for (let index = 0; index < 7; index += 1) {
+      if (index === 0 || index === 5) continue
+      await vi.waitFor(() => expect(deferredResponses.length).toBeGreaterThan(index))
+      deferredResponses[index]!.resolve(response())
+      await new Promise(resolve => setTimeout(resolve, 0))
+    }
+    await Promise.all([...startup, holdings])
+    expect(fetch).toHaveBeenCalledTimes(7)
+  })
+
   it('bounds high-priority analysis and market-data reads while admitting Notes, Results, and canonical identity lookups', async () => {
     setTokens('tok', 'ref')
     const deferredResponses: Array<{ resolve: (response: unknown) => void }> = []
@@ -192,13 +233,13 @@ describe('api.get', () => {
     ]
     await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(5))
     const queuedAnalysis = api.get('/analysis/groups/us-benchmarks/snapshot', undefined, { priority: 'high' })
-    const results = api.get('/research/runs', undefined, { priority: 'high' })
+    const results = api.get('/research/runs', undefined, { priority: 'high', foreground: true })
     await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(6))
     expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[5]?.[0])).toContain('/research/runs')
     expect((fetch as ReturnType<typeof vi.fn>).mock.calls[5]?.[1]).toEqual(expect.objectContaining({ priority: 'high' }))
 
-    const notes = api.get('/notes/instruments/17', undefined, { priority: 'high' })
-    const identity = api.get('/instruments/TCNEW', { canonical_only: true }, { priority: 'high' })
+    const notes = api.get('/notes/instruments/17', undefined, { priority: 'high', foreground: true })
+    const identity = api.get('/instruments/TCNEW', { canonical_only: true }, { priority: 'high', foreground: true })
     deferredResponses[5]!.resolve(response())
     await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(7))
     expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[6]?.[0])).toContain('/notes/instruments/17')
@@ -237,7 +278,7 @@ describe('api.get', () => {
     await Promise.resolve()
     expect(fetch).toHaveBeenCalledTimes(5)
 
-    const visibleResults = api.get('/research/runs?limit=26&include_artifacts=false', undefined, { priority: 'high' })
+    const visibleResults = api.get('/research/runs?limit=26&include_artifacts=false', undefined, { priority: 'high', foreground: true })
     await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(6))
     expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[5]?.[0])).toContain('/research/runs?limit=26')
     expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[5]?.[0])).not.toContain('/instruments/SPY')
@@ -324,7 +365,7 @@ describe('api.get', () => {
     }))
     const { api } = await import('@/lib/api')
     const response = () => ({ ok: true, status: 200, json: () => Promise.resolve([]), text: () => Promise.resolve('') })
-    const active = Array.from({ length: 6 }, (_, index) => api.get(`/active-${index}`, undefined, { priority: 'high' }))
+    const active = Array.from({ length: 6 }, (_, index) => api.get(`/active-${index}`, undefined, { priority: 'high', foreground: true }))
     const queueKey = 'watchlist-price:local:SPY'
     const visibleRead = api.get('/ohlcv/local/SPY/D1', { limit: 31 }, { priority: 'high', queueKey })
     const background = api.get('/hidden-analysis', undefined, { priority: 'low' })
@@ -382,7 +423,7 @@ describe('api.get', () => {
     const { api } = await import('@/lib/api')
     const response = () => ({ ok: true, status: 200, json: () => Promise.resolve({}), text: () => Promise.resolve('') })
     const ordinary = Array.from({ length: 5 }, (_, index) => api.get(`/ordinary-${index}`))
-    const high = api.get('/active-high', undefined, { priority: 'high' })
+    const high = api.get('/active-high', undefined, { priority: 'high', foreground: true })
     const controller = new AbortController()
     const cancelled = api.get('/cancel-before-send', undefined, { priority: 'high', signal: controller.signal })
 
@@ -406,7 +447,7 @@ describe('api.get', () => {
     const { api } = await import('@/lib/api')
     const response = () => ({ ok: true, status: 200, json: () => Promise.resolve({}), text: () => Promise.resolve('') })
     const ordinary = Array.from({ length: 5 }, (_, index) => api.get(`/ordinary-${index}`))
-    const high = api.get('/visible-price', undefined, { priority: 'high' })
+    const high = api.get('/visible-price', undefined, { priority: 'high', foreground: true })
     const queued = api.get('/private/queued-during-boundary')
 
     await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(6))

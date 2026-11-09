@@ -44,25 +44,24 @@ function usesNonInteractiveCapacity(queued: Pick<QueuedApiFetch, 'input' | 'init
   const pathname = url.pathname
   if (method === 'POST') return pathname === `${BASE}/data/ensure`
 
-  // Preserve the caller's high scheduling priority, but keep expensive
-  // analysis, universe and candle reads from occupying the interactive slot
-  // alongside the five ordinary same-origin requests. Non-canonical chart
-  // metadata and saved-indicator hydration also use this bounded lane: both
-  // can arrive in bursts during workspace startup, while local bars and the
-  // user's next visible pane remain independently usable. Canonical identity
-  // lookup and search stay eligible for the interactive slot.
+  // High remains a logical ordering priority. Known workspace fanout classes
+  // use bounded capacity unless the caller marks explicit foreground intent.
+  // Small cached-row reads keep their existing interactive treatment below.
   if (method !== 'GET') return false
-  if (/^\/api\/v1\/instruments\/[^/]+$/.test(pathname) && !url.searchParams.has('canonical_only')) return true
-  if (/^\/api\/v1\/instrument-indicators\/[^/]+$/.test(pathname)) return true
   if (pathname.startsWith(`${BASE}/ohlcv/local/`)) {
     // Watchlist quote refreshes request a short 31-bar window; keep those
     // visible cached-row reads interactive while bounding full chart history.
     const limit = Number(url.searchParams.get('limit'))
-    return Number.isFinite(limit) && limit >= 100
+    if (Number.isFinite(limit) && limit < 100) return false
   }
+  if (/^\/api\/v1\/instruments\/[^/]+$/.test(pathname) && !url.searchParams.has('canonical_only')) return true
+  if (/^\/api\/v1\/instrument-indicators\/[^/]+$/.test(pathname)) return true
   return pathname.startsWith(`${BASE}/analysis/`)
     || pathname.startsWith(`${BASE}/ohlcv/`)
     || pathname.startsWith(`${BASE}/market-groups/`)
+    // A visible family can still fan out sizable profile/history reads on
+    // mount; keep them in bounded capacity unless callers mark user intent.
+    || pathname.startsWith(`${BASE}/etf-holdings/`)
     || /^\/api\/v1\/baskets\/\d+\/ohlcv\//.test(pathname)
 }
 
@@ -152,11 +151,16 @@ function admittedApiFetch(
 }
 
 /** Promote an already queued exact request when its docked surface becomes visible. */
-export function setQueuedApiRequestPriority(queueKey: string, priority: ApiRequestPriority): boolean {
+export function setQueuedApiRequestPriority(queueKey: string, priority: ApiRequestPriority, foreground = false): boolean {
   const queued = queuedApiFetches.find(item => item.queueKey === queueKey)
   const priorityRank: Record<ApiRequestPriority, number> = { low: 0, auto: 1, high: 2 }
-  if (!queued || priorityRank[priority] <= priorityRank[queued.priority]) return false
-  queued.priority = priority
+  if (!queued) return false
+  const nextPriority = priorityRank[priority] > priorityRank[queued.priority] ? priority : queued.priority
+  const promoteForeground = foreground && nextPriority === 'high' && !queued.foreground
+  if (nextPriority === queued.priority && !promoteForeground) return false
+  queued.priority = nextPriority
+  queued.init.priority = nextPriority
+  queued.foreground ||= promoteForeground
   drainApiFetchQueue()
   return true
 }

@@ -2547,7 +2547,7 @@ async function loadScanPlots() {
   if (sequence === scanPlotRequestSequence) scanSeries.value = loaded.filter(item => item != null) as ChartPythonSeries[]
 }
 
-async function loadComparisonBars() {
+async function loadComparisonBars(options: { foreground?: boolean } = {}) {
   const symbols = comparisonTargets.value.map(target => target.symbol)
   if (!symbols.length || !chartStore.symbol) return
   const sequence = ++comparisonRequestSequence
@@ -2555,7 +2555,18 @@ async function loadComparisonBars() {
   const loaded = await Promise.all(symbols.map(async symbol => {
     try {
       const limit = Math.max(chartStore.bars.length, 500)
-      const raw = await dedupeOhlcvRequest(`raw:local:${symbol.toUpperCase()}:${timeframe}:adjusted:${limit}`, () => api.get<any[]>(`/ohlcv/local/${encodeURIComponent(symbol)}/${timeframe}`, { limit }))
+      const cacheKey = `raw:local:${symbol.toUpperCase()}:${timeframe}:adjusted:${limit}`
+      const queueKey = `workstation:comparison:${symbol.toUpperCase()}:${timeframe}:${limit}`
+      if (options.foreground) setQueuedApiRequestPriority(queueKey, 'high', true)
+      const raw = await dedupeOhlcvRequest(cacheKey, () => api.get<any[]>(
+        `/ohlcv/local/${encodeURIComponent(symbol)}/${timeframe}`,
+        { limit },
+        {
+          priority: options.foreground ? 'high' : 'auto',
+          foreground: options.foreground,
+          queueKey,
+        },
+      ))
       return { symbol, bars: raw.map(bar => ({
         ...bar,
         ts: String(bar.ts ?? bar.timestamp ?? ''),
@@ -2578,11 +2589,15 @@ async function addComparisonSymbol(raw: string) {
     return
   }
   try {
-    const canonical = await ensureKnownInstrumentSymbol(symbol, 'Comparison symbol', { canonicalOnly: true })
+    const canonical = await ensureKnownInstrumentSymbol(symbol, 'Comparison symbol', {
+      canonicalOnly: true,
+      priority: 'high',
+      foreground: true,
+    })
     comparisonTargets.value.push({ symbol: canonical, label: canonical, color: comparisonColors[comparisonTargets.value.length % comparisonColors.length], bars: [] })
     comparisonDraft.value = ''
     persistComparisonSymbols()
-    await loadComparisonBars()
+    await loadComparisonBars({ foreground: true })
   } catch (cause: any) {
     chartStore.error = cause?.message ?? 'Unable to resolve comparison symbol'
   }

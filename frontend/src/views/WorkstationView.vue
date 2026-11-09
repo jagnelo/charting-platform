@@ -1483,6 +1483,7 @@ async function selectSymbol(
       const resolved = await resolveKnownInstrument(requested, 'Workstation symbol', {
         canonicalOnly: true,
         priority: 'high',
+        foreground: true,
         signal: acquisitionController.signal,
       })
       symbol = resolved.symbol
@@ -1506,6 +1507,7 @@ async function selectSymbol(
           const resolved = await resolveKnownInstrument(proxy, 'S&P 500 tradable proxy', {
             canonicalOnly: true,
             priority: 'high',
+            foreground: true,
             signal: acquisitionController.signal,
           })
           symbol = resolved.symbol
@@ -2269,6 +2271,7 @@ async function prepareLinkedTimeframeHistory(symbol: string, timeframe: Timefram
       const resolved = await resolveKnownInstrument(symbol, 'Workstation timeframe history', {
         canonicalOnly: true,
         priority: 'high',
+        foreground: true,
         signal: controller.signal,
       })
       if (!isCurrent()) return
