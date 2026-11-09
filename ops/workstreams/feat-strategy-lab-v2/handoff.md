@@ -20439,3 +20439,15 @@ The all-members Study timeout was a controlled-route mismatch, not evidence of a
 The Library return failure is a shared workspace persistence/reconciliation issue, not a missing asset. Trace evidence: `/code/assets` returns the created Study asset; workspace snapshot revision 9 (200) contains and selects `code_library`, then revision 10 (200) omits it and selects Results. The final screen has no Library tool. TC owns the shared layout writer; Strategy made no shared-product edit and retained the ordinary Library journey assertions.
 
 The legacy result summary now explains raw-marked total versus estimated open P&L basis, with an accessible note and focused unit assertion. Focused StrategyLab view tests pass 42/42, Vue type-check passes, Playwright lists all 12 Study journey bodies, and reference preflight reports no actionable unbound references (existing semantic/Node ambient advisories remain unqualified). No browser, full suite, fixture, native/provider operation, or release qualification was run.
+
+
+### Compact Study catalogue witness precondition (2026-11-09)
+
+Root's exact e4ff/e949 rerun passed the real Study evaluation and result checks, then found the compact-panel witness still at 422px. The private lifecycle helper now captures the incoming viewport, resizes it through Playwright's ordinary viewport resize to 1000px before Study configuration/validation/run and the compact control/editor/result assertions, requires the rendered Study pane to be at most 360px, then restores the exact prior viewport and verifies the pane returns to its prior width. Existing control-containment, result/table, keyboard and scroll assertions are unchanged. The helper covers both duplicate and catalogue-recreation paths. Focused Playwright discovery lists all four lifecycle journeys; reference preflight has no actionable unbound references. Browser bodies remain Root-owned and were not run in this checkpoint.
+
+
+### Study held-member fixture corrected to action-only fan-out (2026-11-09)
+
+Root's e4ff terminal trace clarified the earlier all-members diagnosis: the expanded `identity/profile/history` SPY ensure was workstation shell startup, not Study Lab. The Study action itself emits a history-only request. The private controlled route now matches exactly one `history` dataset with the selected symbol/timeframe/adjustment and omitted-or-null unbounded dates; shell identity/profile/history requests continue through and cannot increment the three-target counter or become the held poll. The fixture still waits for SPY, XLK, and QQQ in order, keeps SPY history held, and requires XLK/QQQ ready before release.
+
+This correction is coalesced with the compact Study catalogue witness: the helper narrows the viewport before Study interaction and asserts the rendered pane is at most 360px, retains all native control bounds and actual Study result/editor/scroll assertions, then restores the incoming viewport. The 3413 Library asset/panel failure remains a TC-owned workspace snapshot reconciliation issue; no Library assertion was removed or hidden. No browser body was run by Strategy.

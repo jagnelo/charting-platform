@@ -65,7 +65,6 @@ function isStudyHistoryEnsure(
   symbols: ReadonlySet<string>,
   startAt: string | null = null,
   endAt: string | null = null,
-  allowCoordinatorPrerequisites = false,
 ) {
   if (request.method() !== 'POST' || new URL(request.url()).pathname !== '/api/v1/data/ensure') return false
   let body: {
@@ -82,10 +81,7 @@ function isStudyHistoryEnsure(
     return false
   }
   const datasets = body.datasets ?? []
-  const matchesRequestedHistory = datasets.includes('history')
-    && (allowCoordinatorPrerequisites
-      ? datasets.every(dataset => ['identity', 'profile', 'history'].includes(dataset))
-      : datasets.length === 1)
+  const matchesRequestedHistory = datasets.length === 1 && datasets[0] === 'history'
   const matchesDate = (actual: string | null | undefined, expected: string | null) => expected === null
     ? actual == null
     : actual === expected
@@ -888,7 +884,9 @@ test('Study preparation submits every universe member and benchmark while one me
   await page.route('**/api/v1/data/**', async route => {
     const request = route.request()
     const url = new URL(request.url())
-    if (isStudyHistoryEnsure(request, studySymbols, null, null, true)) {
+    // Workstation shell identity/profile/history startup requests pass through;
+    // only Study Lab's history-only fan-out is counted in this held-member fixture.
+    if (isStudyHistoryEnsure(request, studySymbols)) {
       const body = request.postDataJSON() as { target: { kind: string; symbol?: string }; datasets?: string[] }
       submittedTargets.push(body.target)
       if (submittedTargets.length === 3) resolveAllSubmitted()
