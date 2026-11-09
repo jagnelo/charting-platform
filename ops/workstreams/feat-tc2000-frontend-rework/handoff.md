@@ -27147,3 +27147,8 @@ The mobile F9c layout now installs a temporary single-stack tab projection below
 Ordinary visual captures now require a matching displayed ratio context, finite aligned data points, and pixels from the current ratio-series palette across the plot canvas. The stale/delayed helper no longer requires background aria-busy=false or an absent warning, so cached useful ratios remain valid while honest refresh or aligned-calendar warnings continue. Root pixel evidence showed 993 continuous series-color pixels for the near-constant 2.8 SPY/RSP line; ratio math/scales/data were not changed. Known local ticker and basket history API errors now have plain user-facing chart copy while the raw chartStore.error message remains intact.
 
 Focused host/ratio/error units pass 48/48; frontend type-check passes; Playwright discovery lists 295 tests across the affected flows and visual specs. Scope, workstream, journey-matrix and diff guards pass. No TC browser, fixture, full suite, backend, native or CI action ran. Root owns F9c replay, rendered capture review and final qualification.
+
+
+## 2026-11-09 — Strategy a1ffe2dd private source adoption
+
+Imported the exact eight TC consumer paths from Strategy source `a1ffe2ddc401c71c9874be7d11c6e8f73332b8d6` under manifest SHA256 `2316539deaa762d0c48ac4106ff692d5f96d705c5c63a1bdd696b51d8d149941`. All eight old guards matched before copying; all 33 producer manifest file hashes/Git blobs/modes were verified. The prior 1faab002 Strategy pin is archived in `development_dependency_import_history`; a1ffe2dd is the active exact four-key 33-path pin. No producer tests were rerun. Root owns the three functional journeys, eight desktop visual states, combined browser qualification and all final release gates.

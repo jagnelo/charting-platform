@@ -662,6 +662,8 @@ async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUT
             label: control.getAttribute('aria-label') ?? control.tagName.toLowerCase(),
             left: rect.left,
             right: rect.right,
+            width: rect.width,
+            selectedText: control instanceof HTMLSelectElement ? control.selectedOptions[0]?.textContent?.trim() ?? null : null,
             contentLeft,
             contentRight,
           }
@@ -675,6 +677,11 @@ async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUT
       expect(control.left, `${control.label} should remain within the Study panel's content edge`).toBeGreaterThanOrEqual(control.contentLeft - 1)
       expect(control.right, `${control.label} should remain within the Study panel's content edge`).toBeLessThanOrEqual(control.contentRight + 1)
     }
+    const universeSourceControl = studyControlBounds.controls.find(control => control.label === 'Study universe source')
+    const adjustmentControl = studyControlBounds.controls.find(control => control.label === 'Study adjustment')
+    expect(universeSourceControl?.width, 'the compact Study universe source selector should remain readable').toBeGreaterThan(180)
+    expect(adjustmentControl?.width, 'the compact Study adjustment selector should show its selected mode').toBeGreaterThan(180)
+    expect(adjustmentControl?.selectedText).toBe('Split adjusted')
 
     const editorViewportState = () => studyRoot.evaluate(root => {
       const editor = root.querySelector<HTMLElement>('[aria-label="Study Python source"]')
