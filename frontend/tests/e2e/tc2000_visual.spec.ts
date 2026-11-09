@@ -3,7 +3,7 @@
  * the backend manifest validator; the board variant uses the accepted composite board policy
  * and still requires deterministic local geometry and screenshot evidence.
  */
-import type { Page, Response } from '@playwright/test'
+import type { Locator, Page, Response } from '@playwright/test'
 import { test, expect } from './helpers'
 
 async function assertSeededBackend(page: Page) {
@@ -40,6 +40,65 @@ async function waitForSelectionPreparationToSettle(page: Page) {
   }, { timeout: 15_000 }).toEqual({ history: true, holdings: true, settled: true })
 }
 
+async function waitForRatioPlotToBePainted(ratio: Locator) {
+  await expect.poll(() => ratio.evaluate(root => {
+    let context: { symbol?: string; benchmarks?: string[]; timeframe?: string } | null = null
+    try {
+      context = JSON.parse(root.getAttribute('data-ratio-context') ?? 'null')
+    } catch {
+      context = null
+    }
+    const legs = (root.querySelector('.ratio-chart__legend strong')?.textContent ?? '')
+      .split('·').map(label => label.trim()).filter(Boolean)
+    const contextMatches = Boolean(context?.symbol && context.timeframe && context.benchmarks
+      && legs.length === context.benchmarks.length
+      && legs.every((leg, index) => {
+        const [symbol, benchmark] = leg.split('/').map(value => value.trim().toUpperCase())
+        return symbol === context?.symbol?.toUpperCase()
+          && benchmark === context?.benchmarks?.[index]?.toUpperCase()
+      }))
+    const finitePointCount = Number(root.getAttribute('data-ratio-point-count'))
+    const plot = root.querySelector('.uplot')
+    const palette = [[107, 192, 239], [231, 179, 91], [170, 134, 232], [95, 200, 162]]
+    let linePixels = 0
+    const lineColumns = new Set<number>()
+    for (const canvas of Array.from(plot?.querySelectorAll('canvas') ?? [])) {
+      const context = canvas.getContext('2d', { willReadFrequently: true })
+      if (!context || canvas.width <= 0 || canvas.height <= 0) continue
+      let pixels: ImageData
+      try {
+        pixels = context.getImageData(0, 0, canvas.width, canvas.height)
+      } catch {
+        continue
+      }
+      for (let pixel = 0; pixel < pixels.data.length; pixel += 4) {
+        const red = pixels.data[pixel]
+        const green = pixels.data[pixel + 1]
+        const blue = pixels.data[pixel + 2]
+        const alpha = pixels.data[pixel + 3]
+        if (alpha < 100 || !palette.some(([r, g, b]) => Math.abs(red - r) <= 30 && Math.abs(green - g) <= 30 && Math.abs(blue - b) <= 30)) continue
+        linePixels += 1
+        const pixelIndex = pixel / 4
+        lineColumns.add(pixelIndex % canvas.width)
+      }
+    }
+    const canvasWidth = Math.max(0, ...Array.from(plot?.querySelectorAll('canvas') ?? []).map(canvas => (canvas as HTMLCanvasElement).width))
+    const requiredColumns = Math.max(16, Math.min(32, Math.ceil(canvasWidth * 0.08)))
+    return {
+      contextMatches,
+      finitePoints: Number.isFinite(finitePointCount) && finitePointCount > 0,
+      paintedSeries: linePixels >= requiredColumns && lineColumns.size >= requiredColumns,
+      linePixels,
+      lineColumns: lineColumns.size,
+      requiredColumns,
+    }
+  }), { timeout: 15_000, intervals: [250, 500, 1000] }).toMatchObject({
+    contextMatches: true,
+    finitePoints: true,
+    paintedSeries: true,
+  })
+}
+
 async function waitForCachedChartAnalysisToRender(page: Page) {
   const chart = page.locator('.chart-tool:visible .chart-root:visible').first()
   await expect(chart).toBeVisible()
@@ -53,9 +112,8 @@ async function waitForCachedChartAnalysisToRender(page: Page) {
 
   const ratio = page.locator('.ratio-chart:visible').filter({ hasText: 'SPY/RSP' }).first()
   await expect(ratio).toBeVisible()
-  await expect(ratio).toHaveAttribute('aria-busy', 'false')
   await expect(ratio.locator('.uplot')).toBeVisible()
-  await expect(ratio.locator('.ratio-chart__warning')).toHaveCount(0)
+  await waitForRatioPlotToBePainted(ratio)
 
   const metrics = page.locator('.metrics:visible').first()
   await expect(metrics).toBeVisible()
@@ -131,6 +189,13 @@ async function waitForOrdinaryVisualCapture(page: Page, options: OrdinaryCapture
       const emptyState = await results.getByText('No persisted studies yet. Run a study in the adjacent Study Lab pane.', { exact: true }).count()
       return listedRuns + emptyState
     }, { timeout: 15_000 }).toBeGreaterThan(0)
+  }
+
+  const visibleRatios = page.locator('.ratio-chart:visible')
+  for (let index = 0; index < await visibleRatios.count(); index++) {
+    const ratio = visibleRatios.nth(index)
+    await expect(ratio.locator('.uplot')).toBeVisible()
+    await waitForRatioPlotToBePainted(ratio)
   }
 }
 

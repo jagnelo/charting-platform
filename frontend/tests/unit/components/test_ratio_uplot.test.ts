@@ -93,7 +93,7 @@ describe('RatioUPlot', () => {
           ],
       warnings: [],
     }))
-    mountTool({ props: { symbol: 'NVDA', benchmarks: ['XLK', 'SPY'] } })
+    const wrapper = mountTool({ props: { symbol: 'NVDA', benchmarks: ['XLK', 'SPY'] } })
 
     await vi.waitFor(() => expect(vi.mocked(uPlot)).toHaveBeenCalled())
     const data = vi.mocked(uPlot).mock.calls.at(-1)?.[1]
@@ -101,6 +101,31 @@ describe('RatioUPlot', () => {
     expect(data?.[0]).toEqual([Date.parse('2026-01-03T00:00:00Z') / 1000])
     expect(data?.[1]).toEqual([1.3])
     expect(data?.[2]).toEqual([1.0])
+    expect(wrapper.get('.ratio-chart').attributes('data-ratio-context')).toBe(JSON.stringify({
+      symbol: 'NVDA', benchmarks: ['XLK', 'SPY'], timeframe: 'D1', asOf: null,
+    }))
+    expect(wrapper.get('.ratio-chart').attributes('data-ratio-point-count')).toBe('1')
+  })
+
+  it('retains finite near-constant ratio input for the visible flat series', async () => {
+    vi.mocked(api.get).mockResolvedValue({
+      coverage: 0.285,
+      points: [
+        { timestamp: '2024-01-02T21:00:00Z', value: 2.7999999998972 },
+        { timestamp: '2025-12-29T21:00:00Z', value: 2.8000000001188 },
+      ],
+      warnings: [{ message: 'Only intersecting timestamps were used.' }],
+    })
+    const wrapper = mountTool({ props: { symbol: 'SPY', benchmarks: ['RSP'] } })
+
+    await vi.waitFor(() => expect(vi.mocked(uPlot)).toHaveBeenCalled())
+    expect(wrapper.get('.ratio-chart__host').exists()).toBe(true)
+    expect(wrapper.get('.ratio-chart__warning').text()).toContain('Only intersecting timestamps were used.')
+    expect(wrapper.get('.ratio-chart').attributes('data-ratio-point-count')).toBe('2')
+    expect(vi.mocked(uPlot).mock.calls.at(-1)?.[1]).toEqual([
+      [Date.parse('2024-01-02T21:00:00Z') / 1000, Date.parse('2025-12-29T21:00:00Z') / 1000],
+      [2.7999999998972, 2.8000000001188],
+    ])
   })
 
   it('reserves compact ratio plot area without clipping value labels', async () => {

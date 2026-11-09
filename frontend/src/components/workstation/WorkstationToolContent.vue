@@ -385,7 +385,7 @@
           @custom-date-sort-range="loadCustomDateSortRange"
         />
         <div v-if="chartStore.isLoading" class="tool-state chart-tool__status" role="status" aria-live="polite" aria-atomic="true">Loading {{ activeSymbol }}…</div>
-        <div v-else-if="chartStore.error" class="tool-state tool-state--error chart-tool__status" role="alert" aria-live="assertive" aria-atomic="true">{{ chartStore.error }}</div>
+        <div v-else-if="chartStore.error" class="tool-state tool-state--error chart-tool__status" role="alert" aria-live="assertive" aria-atomic="true">{{ chartErrorForUser }}</div>
         <div v-if="chartStore.isLoadingMore" class="chart-tool__history-boundary" role="status" aria-live="polite">{{ chartStore.historyBoundaryMessage || `Loading older ${chartStore.timeframe} history…` }}</div>
         <div v-else-if="chartStore.historyBoundaryMessage" class="chart-tool__history-boundary" role="status" aria-live="polite">{{ chartStore.historyBoundaryMessage }}</div>
         <div v-if="timeframeHistoryMessage" class="chart-tool__history-boundary" role="status" aria-live="polite">{{ timeframeHistoryMessage }}</div>
@@ -1132,6 +1132,7 @@ import { buildComboWatchlistRows, type ComboListDefinition } from '@/lib/worksta
 import { autoRatioBenchmarks, autoRatioExpression } from '@/lib/workstation/ratioExpression'
 import { indicatorColumnFromPlot, indicatorOutputFromConfig, pythonColumnFromPlot, type ChartAnalysisDragPayload, type ChartPlotDragPayload, type TechnicalConditionDragPayload } from '@/lib/workstation/plotDrag'
 import { formatWorkstationFreshness } from '@/lib/workstation/freshness'
+import { chartErrorPresentation } from '@/lib/workstation/chartErrorPresentation'
 import { benchmarkFamilyConstituentSourceId, benchmarkFamilyHistoryTargets, breadthSnapshotBenchmark } from '@/lib/workstation/benchmarkFamilySources'
 import { buildBreadthStudyAssetPayload, type BreadthDefinition } from '@/lib/workstation/breadthDefinitions'
 import { breadthReferenceTargetEvidence } from '@/lib/workstation/breadthReferenceEvidence'
@@ -2165,6 +2166,7 @@ const chartBarType = computed<ChartBarType>(() => {
     ? requested as ChartBarType
     : 'candles'
 })
+const chartErrorForUser = computed(() => chartErrorPresentation(chartStore.error))
 const chartTransformParams = computed(() => {
   // Template/settings changes are applied optimistically to the local
   // serialisable configuration before the parent workspace snapshot round-trip

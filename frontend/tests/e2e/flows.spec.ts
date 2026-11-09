@@ -537,6 +537,10 @@ test.describe('Chart', () => {
     await expect(tcClassic).toBeVisible({ timeout: 15_000 })
     await tcClassic.click()
     await expect(tcClassic).toHaveClass(/workstation__tab--active/)
+    const mobileChartTab = page.locator('.workspace-layout-host .lm_tab').filter({ hasText: 'Chart' }).last()
+    await expect(mobileChartTab).toBeVisible({ timeout: 15_000 })
+    await mobileChartTab.click()
+    await expect(mobileChartTab).toHaveClass(/lm_active/)
     const mobileChart = await findNarrowVisibleChart(page)
     await mobileChart.getByRole('textbox', { name: 'Comparison symbol', exact: true }).fill('RSP')
     await mobileChart.getByTitle('Add comparison').click()
@@ -549,6 +553,18 @@ test.describe('Chart', () => {
     await mobilePlotsMenu.getByRole('button', { name: 'Close chart plot library' }).click()
     await mobileRemoveRSP.click()
     await expect(mobileRemoveRSP).toHaveCount(0)
+
+    // The narrow dock is a temporary tabbed projection. Widening must restore
+    // the saved desktop panes and each tool's serialized configuration.
+    await page.setViewportSize({ width: 1920, height: 1080 })
+    await expect(tcClassic).toHaveClass(/workstation__tab--active/)
+    await expect.poll(() => page.locator('.tool-window:visible .tool-window__title').allTextContents())
+      .toEqual(expect.arrayContaining(['Chart', 'WatchList', 'Notes']))
+    const restoredDesktopChart = page.locator('.chart-tool:visible').first()
+    await restoredDesktopChart.getByRole('button', { name: 'Chart templates', exact: true }).click()
+    const desktopTemplateMenu = restoredDesktopChart.locator('.chart-template__menu:visible').last()
+    await expect(desktopTemplateMenu.getByRole('combobox', { name: 'Chart bar type' })).toHaveValue('line')
+    await desktopTemplateMenu.getByRole('button', { name: 'Close chart templates' }).click()
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
