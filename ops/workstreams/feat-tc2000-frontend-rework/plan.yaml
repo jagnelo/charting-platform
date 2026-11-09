@@ -5879,6 +5879,57 @@ development_dependency_import_history:
     - frontend/tests/unit/stores/test_dashboard_store.test.ts
     - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts
     - frontend/tests/unit/views/test_strategy_lab_view.test.ts
+  - source_sha: c3ba42b6d9b24a6f9c4bd32afb2eee3dcfaefc34
+    manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/c3ba42b6d9b24a6f9c4bd32afb2eee3dcfaefc34.json
+    manifest_sha256: 69be972d8086487d64b6e71724ce09e9f7d6acdd4d2c320b37a5f6338208deb9
+    paths:
+      - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
+      - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
+      - frontend/src/components/dashboard/DashboardInstrumentSearch.vue
+      - frontend/src/components/dashboard/DashboardLineChartWidget.vue
+      - frontend/src/components/dashboard/DashboardQuoteWidget.vue
+      - frontend/src/components/workstation/CodeLibraryTool.vue
+      - frontend/src/components/workstation/PythonSourceEditor.vue
+      - frontend/src/components/workstation/ResearchResultsTool.vue
+      - frontend/src/components/workstation/StudyLabTool.vue
+      - frontend/src/lib/workstation/researchQueryKeys.ts
+      - frontend/src/lib/workstation/researchRunCancellation.ts
+      - frontend/src/stores/dashboard.ts
+      - frontend/src/views/DashboardView.vue
+      - frontend/src/views/StrategyLabView.vue
+      - frontend/tests/e2e/dashboard_usability_journey.spec.ts
+      - frontend/tests/e2e/strategy_study_journey.spec.ts
+      - frontend/tests/e2e/workstation_lifecycle_journey.spec.ts
+      - frontend/tests/unit/components/test_code_library_tool.test.ts
+      - frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts
+      - frontend/tests/unit/components/test_dashboard_instrument_search.test.ts
+      - frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts
+      - frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts
+      - frontend/tests/unit/components/test_python_source_editor.test.ts
+      - frontend/tests/unit/components/test_research_results_tool.test.ts
+      - frontend/tests/unit/components/test_study_lab_tool.test.ts
+      - frontend/tests/unit/stores/test_dashboard_store.test.ts
+      - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts
+      - frontend/tests/unit/views/test_strategy_lab_view.test.ts
+    state: superseded_development_import
+    superseded_by: 1faab002aee3ee17f0df37625fe3a21ba8a1e1d5
+  - source_sha: efdcac2026f7987c89596b95dce372fa32a8068b
+    manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/efdcac2026f7987c89596b95dce372fa32a8068b.json
+    manifest_sha256: 03a4f53b6e7a301473c8bf9ec452f5d1cf947e5afabc1c1c2a7b58f022a0026e
+    paths:
+    - frontend/src/components/workstation/InstrumentNoteTool.vue
+    - frontend/src/views/BasketsView.vue
+    - frontend/src/views/ETFHoldingsView.vue
+    - frontend/tests/e2e/baskets_journey.spec.ts
+    - frontend/tests/e2e/etf_holdings_preparation.spec.ts
+    - frontend/tests/e2e/sp500_analysis_journey.spec.ts
+    - frontend/tests/e2e/supporting_features_journey.spec.ts
+    - frontend/tests/unit/components/test_instrument_note_tool.test.ts
+    - frontend/tests/unit/views/test_baskets_view.test.ts
+    - frontend/tests/unit/views/test_etf_holdings_view.test.ts
+    state: superseded_development_import
+    superseded_by: 4945aedd20e7cfa701b3a13cdfa637f1c3fb355f
+
 approved_development_dependency_imports:
 - source_sha: 4b9f53bca2097501e7c2843cb2f92567c8f74ea5
   manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/4b9f53bca2097501e7c2843cb2f92567c8f74ea5.json
@@ -5969,9 +6020,9 @@ approved_development_dependency_imports:
   - backend/tests/unit/tasks/test_data_tasks.py
   - backend/tests/unit/tasks/test_native_usage_prerequisite.py
   - backend/tests/unit/workers/test_arq_worker.py
-- source_sha: efdcac2026f7987c89596b95dce372fa32a8068b
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/efdcac2026f7987c89596b95dce372fa32a8068b.json
-  manifest_sha256: 03a4f53b6e7a301473c8bf9ec452f5d1cf947e5afabc1c1c2a7b58f022a0026e
+- source_sha: 4945aedd20e7cfa701b3a13cdfa637f1c3fb355f
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/4945aedd20e7cfa701b3a13cdfa637f1c3fb355f.json
+  manifest_sha256: d841d42704c0cb20462a54c36c91ba208db7cb92e0c650721fff94186736fc4d
   paths:
   - frontend/src/components/workstation/InstrumentNoteTool.vue
   - frontend/src/views/BasketsView.vue
@@ -5983,9 +6034,9 @@ approved_development_dependency_imports:
   - frontend/tests/unit/components/test_instrument_note_tool.test.ts
   - frontend/tests/unit/views/test_baskets_view.test.ts
   - frontend/tests/unit/views/test_etf_holdings_view.test.ts
-- source_sha: c3ba42b6d9b24a6f9c4bd32afb2eee3dcfaefc34
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/c3ba42b6d9b24a6f9c4bd32afb2eee3dcfaefc34.json
-  manifest_sha256: 69be972d8086487d64b6e71724ce09e9f7d6acdd4d2c320b37a5f6338208deb9
+- source_sha: 1faab002aee3ee17f0df37625fe3a21ba8a1e1d5
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/1faab002aee3ee17f0df37625fe3a21ba8a1e1d5.json
+  manifest_sha256: 8d1c2957498476710e5d50ad84f5963d34ea0d961b7a5963527e7ff79df85d96
   paths:
   - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
   - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue

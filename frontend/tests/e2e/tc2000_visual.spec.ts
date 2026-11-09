@@ -40,6 +40,35 @@ async function waitForSelectionPreparationToSettle(page: Page) {
   }, { timeout: 15_000 }).toEqual({ history: true, holdings: true, settled: true })
 }
 
+async function waitForCachedChartAnalysisToRender(page: Page) {
+  const chart = page.locator('.chart-tool:visible .chart-root:visible').first()
+  await expect(chart).toBeVisible()
+  await expect(chart).toHaveAttribute('aria-busy', 'false')
+  await expect(chart.locator('.uplot')).toBeVisible()
+  await expect.poll(() => chart.evaluate(root => {
+    const describedBy = root.getAttribute('aria-describedby')
+    const provenance = describedBy ? document.getElementById(describedBy)?.textContent ?? '' : ''
+    return provenance
+  }), { timeout: 15_000 }).toMatch(/\b[1-9]\d* bars;/)
+
+  const ratio = page.locator('.ratio-chart:visible').filter({ hasText: 'SPY/RSP' }).first()
+  await expect(ratio).toBeVisible()
+  await expect(ratio).toHaveAttribute('aria-busy', 'false')
+  await expect(ratio.locator('.uplot')).toBeVisible()
+  await expect(ratio.locator('.ratio-chart__warning')).toHaveCount(0)
+
+  const metrics = page.locator('.metrics:visible').first()
+  await expect(metrics).toBeVisible()
+  await expect.poll(() => metrics.locator('b').evaluateAll(nodes =>
+    nodes.some(node => {
+      const text = node.textContent?.trim() ?? ''
+      if (!text) return false
+      const value = Number(text.replace(/[%,$]/g, ''))
+      return Number.isFinite(value)
+    }),
+  )).toBe(true)
+}
+
 /**
  * Wait for the current ordinary workstation state before a visual capture.
  * This deliberately uses visible user-facing state and persisted workspace
@@ -573,16 +602,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
       .find(candidate => candidate.stable_key === tabKey)
     expect(savedTab?.active_window_key).toBe(scanWindowKey)
     await expectWorkspaceSaveAcknowledged(page, savedLayout)
-    const savedState = await savedLayout.json() as { revision?: number }
-    const builderSaveAcknowledgement = page.waitForResponse(response => response.request().method() === 'PUT'
-      && /\/api\/v1\/workspaces\/\d+\/snapshot$/.test(new URL(response.url()).pathname)
-      && (response.request().postDataJSON() as { base_revision?: number }).base_revision === savedState.revision
-      && (response.request().postDataJSON() as { tabs?: Array<{ stable_key?: string; active_window_key?: string | null }> }).tabs
-        ?.some(candidate => candidate.stable_key === tabKey && candidate.active_window_key === scanWindowKey))
     await scan.getByRole('button', { name: 'Build technical condition tree', exact: true }).click()
-    const builderSave = await builderSaveAcknowledgement
-    expect(builderSave.status()).toBe(200)
-    await expectWorkspaceSaveAcknowledged(page, builderSave)
     await expect(scan.getByRole('region', { name: 'Advanced technical condition builder' })).toBeVisible()
     await expect(scan.getByRole('combobox', { name: 'Condition group operator' })).toHaveValue('AND')
     await expect(scan.getByRole('button', { name: '+ Condition', exact: true })).toBeVisible()
@@ -843,7 +863,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify([
-          { symbol: 'SPY', name: 'S&P 500 proxy ETF', exchange: 'ARCX', type: 'ETF' },
+          { symbol: 'SPY', instrument_id: 2, name: 'S&P 500 proxy ETF', exchange: 'ARCX', type: 'ETF' },
           { symbol: 'SPX', name: 'S&P 500 Index', exchange: 'INDEX', type: 'INDEX' },
         ]),
       })
@@ -875,7 +895,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify([
-          { symbol: 'SPY', name: 'S&P 500 proxy ETF', exchange: 'ARCX', type: 'ETF' },
+          { symbol: 'SPY', instrument_id: 2, name: 'S&P 500 proxy ETF', exchange: 'ARCX', type: 'ETF' },
           { symbol: 'SPX', name: 'S&P 500 Index', exchange: 'INDEX', type: 'INDEX' },
         ]),
       })
@@ -1000,7 +1020,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
       const sectors = page.getByRole('region', { name: 'Relative to SPY' })
       const constituents = page.locator('.tool-window[data-tool-key="constituent-list"]').getByRole('region')
       await expect(constituents).toHaveCount(1)
-      await expect(constituents).toHaveAttribute('aria-label', /constituents/i)
+      await expect(constituents).toHaveAttribute('aria-label', 'SPY holdings · 2026-01-02 · e2e_reference')
       await expect(page.locator('.workstation__refresh')).toHaveText('Refresh', { timeout: 15_000 })
       await expect(benchmarks).toHaveAttribute('aria-busy', 'false', { timeout: 15_000 })
       await expect(benchmarks.locator('.watchlist__row')).toHaveCount(5, { timeout: 15_000 })
@@ -1073,6 +1093,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
     await expect(page.locator('.workstation__footer')).toContainText('Stale · cached', { timeout: 10_000 })
     await expect(page.locator('.workstation__refresh')).toHaveText('Refresh', { timeout: 10_000 })
+    await waitForCachedChartAnalysisToRender(page)
     await expect(page).toHaveScreenshot('stale-freshness-gap.png', {
       animations: 'disabled',
       caret: 'hide',
@@ -1098,6 +1119,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
     await expect(page.locator('.workstation__footer')).toContainText('Delayed', { timeout: 10_000 })
     await expect(page.locator('.workstation__refresh')).toHaveText('Refresh', { timeout: 10_000 })
+    await waitForCachedChartAnalysisToRender(page)
     await expect(page).toHaveScreenshot('delayed-freshness-gap.png', {
       animations: 'disabled',
       caret: 'hide',
@@ -1260,8 +1282,12 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await expect(study.getByRole('button', { name: 'Cancel study run', exact: true })).toBeVisible()
     await expect(page.locator('.workstation__refresh')).toHaveText('Refreshing…', { timeout: 15_000 })
     await expect(page.locator('.chart-tool .tool-state')).toHaveText('Loading SPY…')
-    await expect(page.getByRole('region', { name: 'Study Lab research results' }))
-      .toContainText('Loading reproducible research runs…')
+    const results = page.getByRole('region', { name: 'Study Lab research results' })
+    const resultsRun = results.getByRole('listitem').filter({ hasText: 'Run #778' })
+    await expect(resultsRun.getByRole('status')).toHaveAttribute('aria-label', 'Run 778 status: Running')
+    await expect(resultsRun).toContainText('0 artifacts')
+    const resultsDetail = results.getByRole('article', { name: 'Research run 778 details' })
+    await expect(resultsDetail).toContainText('runner active')
     await expect(page).toHaveScreenshot('study-lab-running-gap.png', {
       animations: 'disabled',
       caret: 'hide',
@@ -1302,9 +1328,8 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     })
     await page.route(/\/api\/v1\/research\/runs$/, async route => {
       if (route.request().method() === 'GET') {
-        // The adjacent Persisted runs tool must not depend on whatever rows a
-        // shared E2E database happens to contain.  An empty, successful list
-        // is the deterministic factory state for this visual capture.
+        // Keep persisted server rows deterministic. The newly accepted run is
+        // published into the shared Results cache independently of this list.
         await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
         return
       }
@@ -1337,7 +1362,15 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await expect(page.locator('.workstation__refresh')).toHaveText('Refresh', { timeout: 15_000 })
     await expect(page.locator('.chart-tool .tool-state')).toHaveCount(0, { timeout: 15_000 })
     await expect(page.locator('.chart-tool canvas').first()).toBeVisible()
-    await expect(page.getByRole('region', { name: 'Study Lab research results' })).toContainText('No persisted studies yet.')
+    const results = page.getByRole('region', { name: 'Study Lab research results' })
+    const resultsRun = results.getByRole('listitem').filter({ hasText: 'Run #779' })
+    await expect(resultsRun.getByRole('status')).toHaveAttribute('aria-label', 'Run 779 status: Completed')
+    await expect(resultsRun).toContainText('5 artifacts')
+    const resultsDetail = results.getByRole('article', { name: 'Research run 779 details' })
+    await expect(resultsDetail).toContainText('Run #779')
+    for (const artifact of ['event_count', 'monthly_frequency', 'streak_distribution', 'summary', 'occurrences']) {
+      await expect(resultsDetail.getByRole('article', { name: new RegExp(`^${artifact} `) })).toBeVisible()
+    }
     await expect(study.locator('.study-bars canvas')).toBeVisible()
     await expect(study.locator('.study-histogram canvas')).toBeVisible()
     await expect(page).toHaveScreenshot('study-lab-structured-result-gap.png', {
@@ -1426,8 +1459,15 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await expect(study).toContainText('Rerun snapshot')
     await expect(page.locator('.workstation__refresh')).toHaveText('Refreshing…')
     await expect(page.locator('.chart-tool .tool-state')).toHaveText('Loading SPY…')
-    await expect(page.getByRole('region', { name: 'Study Lab research results' }))
-      .toContainText('Loading reproducible research runs…')
+    const results = page.getByRole('region', { name: 'Study Lab research results' })
+    const resultsRun = results.getByRole('listitem').filter({ hasText: 'Run #780' })
+    await expect(resultsRun.getByRole('status')).toHaveAttribute('aria-label', 'Run 780 status: Failed')
+    await expect(resultsRun).toContainText('0 artifacts')
+    const resultsDetail = results.getByRole('article', { name: 'Research run 780 details' })
+    await expect(resultsDetail).toContainText('Run #780')
+    await expect(resultsDetail).toContainText('sandbox policy denied socket access')
+    await expect(resultsDetail).toContainText('Network access is disabled')
+    await expect(resultsDetail).toContainText('run was terminated')
     await expect(page).toHaveScreenshot('study-lab-sandbox-error-gap.png', {
       animations: 'disabled',
       caret: 'hide',

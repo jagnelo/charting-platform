@@ -2796,14 +2796,14 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     const igvSelectionHistory = await igvSelectionHistoryReady
     expect(igvSelectionHistory.status()).toBe(200)
     expect(historyRequests).toHaveLength(historyRequestsBeforeIgvSelection + 1)
-    expect(historyRequests.at(-1)).toMatchObject({
+    expect(historyRequests.at(-1)?.body).toMatchObject({
       target: { kind: 'instrument', instrument_id: instruments.IGV.id },
       timeframe: 'D1',
       adjusted: true,
     })
-    expect(historyRequests.at(-1)?.datasets).toContain('history')
-    expect(historyRequests.at(-1)?.start_at).toBeUndefined()
-    expect(historyRequests.at(-1)?.end_at).toBeUndefined()
+    expect(historyRequests.at(-1)?.body.datasets).toContain('history')
+    expect(historyRequests.at(-1)?.body.start_at).toBeUndefined()
+    expect(historyRequests.at(-1)?.body.end_at).toBeUndefined()
     await expect.poll(() => localReadbacks.some(readback => readback.symbol === 'IGV'
       && readback.timeframe === 'D1' && readback.bars.length === 1)).toBe(true)
     const igvGroup = page.getByRole('group', { name: 'Constituents' })

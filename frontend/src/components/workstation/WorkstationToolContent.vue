@@ -999,7 +999,7 @@
         <button v-for="member in genericBreadthMembers.slice(0, 100)" :key="member.instrument_id" type="button" :aria-label="`Select ${member.symbol} ${member.name}`" @click="emit('select', member.symbol, member.instrument_id)"><strong>{{ member.symbol }}</strong><span>{{ member.name }}</span><small v-if="member.metric != null">{{ member.metric.toFixed(3) }}</small><small v-if="member.diagnostics?.length" class="breadth-tool__member-diagnostics" :title="member.diagnostics.map(genericBreadthDiagnosticLabel).join(' · ')">{{ member.diagnostics.map(genericBreadthDiagnosticLabel).join(' · ') }}</small></button>
         <small v-if="!genericBreadthMembers.length">No {{ genericBreadthMemberState === 'pass' ? 'passing' : 'failing' }} members are eligible.</small>
       </div>
-      <GenericBreadthHistoryUPlot :history="genericBreadthHistory ?? undefined" />
+      <GenericBreadthHistoryUPlot v-if="genericBreadthHistory" :history="genericBreadthHistory" />
       <section v-if="genericBreadthHistory" class="breadth-tool__generic-history-events" aria-label="Generic breadth historical occurrences">
         <header>
           <strong>Member state changes</strong>
@@ -4988,13 +4988,13 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
   .chart-tool__templates { top: 25px; right: 4px; }
 }
 /* A desktop workstation can contain a much narrower chart pane than the
-   viewport. Use the chart container's actual width so comparison chips never
-   cover Plots in dense factory layouts. */
+   viewport. Reserve a separate compact controls row for every chart so Plots
+   and Templates remain distinct, hittable controls with or without comparisons. */
 @container chart-tool (max-width: 560px) {
-  .chart-tool__surface--comparisons { padding-top: 46px; }
+  .chart-tool__surface { padding-top: 46px; }
+  .chart-tool__plots { top: 25px; left: 4px; right: auto; }
+  .chart-tool__templates { top: 25px; right: 4px; }
   .chart-tool__surface--comparisons .chart-tool__compare { top: 3px; left: 4px; right: 4px; max-width: none; }
-  .chart-tool__surface--comparisons .chart-tool__plots { top: 25px; left: 4px; right: auto; }
-  .chart-tool__surface--comparisons .chart-tool__templates { top: 25px; right: 4px; }
 }
 .tool-state { display: grid; place-items: center; height: 100%; padding: 12px; color: #98a7b2; font: 11px "Segoe UI", Arial, sans-serif; text-align: center; }
 .tool-state--error { color: #ec8f8f; }

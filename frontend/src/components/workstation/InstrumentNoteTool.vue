@@ -160,9 +160,9 @@ async function load() {
 }
 
 watch(() => [props.instrumentId, props.symbol] as const, () => { void load() }, { immediate: true })
-watch(() => props.requestPriority, priority => {
-  if (priority === 'high' && props.instrumentId) {
-    setQueuedApiRequestPriority(`instrument-note:${props.instrumentId}`, 'high')
+watch([() => props.requestPriority, activeInstrumentId] as const, ([priority, instrumentId]) => {
+  if (priority === 'high' && instrumentId != null) {
+    setQueuedApiRequestPriority(`instrument-note:${instrumentId}`, 'high')
   }
 })
 watch(content, () => {

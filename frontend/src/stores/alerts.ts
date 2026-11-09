@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import type { AlertFiringEvent, PriceAlert, IndicatorAlert, AlertCondition } from '@/types'
 import { api, setQueuedApiRequestPriority, type ApiRequestPriority } from '@/lib/api'
+import { AuthSessionChangedError } from '@/lib/authSession'
 
 export interface IndicatorAlertCreate {
   instrument_id: number
@@ -203,7 +204,7 @@ export const useAlertsStore = defineStore('alerts', () => {
       // Fetch unviewed count on reconnect
       loadHistory().catch((e: unknown) => {
         const msg = e instanceof Error ? e.message : String(e ?? '')
-        if (/Authentication required/i.test(msg)) return
+        if (e instanceof AuthSessionChangedError || /Authentication required/i.test(msg)) return
         console.error(e)
       })
     }

@@ -511,6 +511,9 @@ describe('WorkstationToolContent missing chart history entrypoint', () => {
       },
     })
 
+    expect(wrapper.find('.breadth-tool__generic-history-events').exists()).toBe(false)
+    expect(wrapper.find('.generic-breadth-history-uplot').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('Historical breadth unavailable')
     await wrapper.get('.breadth-tool__custom button').trigger('click')
     const drilldown = wrapper.get('[aria-label="Generic breadth member drilldown"]')
     await vi.waitFor(() => expect(drilldown.text()).toContain('Pass 1'))

@@ -13,6 +13,7 @@ vi.mock('@/lib/api', () => ({
 }))
 
 import { api, setQueuedApiRequestPriority as promoteQueuedRequest } from '@/lib/api'
+import { AuthSessionChangedError } from '@/lib/authSession'
 import { useWatchlistStore } from '@/stores/watchlist'
 
 function makeWatchlist() {
@@ -378,6 +379,30 @@ describe('useWatchlistStore', () => {
 
     expect(store.watchlists).toHaveLength(1)
     expect(store.watchlists[0]?.items[0]?.symbol).toBe('NVDA')
+  })
+
+  it('keeps an auth-boundary abort quiet but still reports unrelated aborts', async () => {
+    const store = useWatchlistStore()
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    try {
+      ;(api.get as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new AuthSessionChangedError())
+      await store.loadWatchlists()
+
+      expect(consoleError).not.toHaveBeenCalled()
+      expect(store.loadError).toBe('')
+      expect(store.loading).toBe(false)
+
+      const unrelatedAbort = new Error('User cancelled the request.')
+      unrelatedAbort.name = 'AbortError'
+      ;(api.get as ReturnType<typeof vi.fn>).mockRejectedValueOnce(unrelatedAbort)
+      await store.loadWatchlists()
+
+      expect(consoleError).toHaveBeenCalledTimes(1)
+      expect(consoleError).toHaveBeenCalledWith('Failed to load watchlists', unrelatedAbort)
+      expect(store.loadError).toContain('User cancelled the request.')
+    } finally {
+      consoleError.mockRestore()
+    }
   })
 
   it('falls back to storage events when BroadcastChannel is unavailable', async () => {
