@@ -5930,6 +5930,23 @@ development_dependency_import_history:
     state: superseded_development_import
     superseded_by: 4945aedd20e7cfa701b3a13cdfa637f1c3fb355f
 
+  - source_sha: 4945aedd20e7cfa701b3a13cdfa637f1c3fb355f
+    manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/4945aedd20e7cfa701b3a13cdfa637f1c3fb355f.json
+    manifest_sha256: d841d42704c0cb20462a54c36c91ba208db7cb92e0c650721fff94186736fc4d
+    paths:
+      - frontend/src/components/workstation/InstrumentNoteTool.vue
+      - frontend/src/views/BasketsView.vue
+      - frontend/src/views/ETFHoldingsView.vue
+      - frontend/tests/e2e/baskets_journey.spec.ts
+      - frontend/tests/e2e/etf_holdings_preparation.spec.ts
+      - frontend/tests/e2e/sp500_analysis_journey.spec.ts
+      - frontend/tests/e2e/supporting_features_journey.spec.ts
+      - frontend/tests/unit/components/test_instrument_note_tool.test.ts
+      - frontend/tests/unit/views/test_baskets_view.test.ts
+      - frontend/tests/unit/views/test_etf_holdings_view.test.ts
+    state: superseded_development_import
+    superseded_by: d850a1c91f93f509e2b3a2f90c66887537b75362
+
 approved_development_dependency_imports:
 - source_sha: 4b9f53bca2097501e7c2843cb2f92567c8f74ea5
   manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/4b9f53bca2097501e7c2843cb2f92567c8f74ea5.json
@@ -6020,9 +6037,9 @@ approved_development_dependency_imports:
   - backend/tests/unit/tasks/test_data_tasks.py
   - backend/tests/unit/tasks/test_native_usage_prerequisite.py
   - backend/tests/unit/workers/test_arq_worker.py
-- source_sha: 4945aedd20e7cfa701b3a13cdfa637f1c3fb355f
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/4945aedd20e7cfa701b3a13cdfa637f1c3fb355f.json
-  manifest_sha256: d841d42704c0cb20462a54c36c91ba208db7cb92e0c650721fff94186736fc4d
+- source_sha: d850a1c91f93f509e2b3a2f90c66887537b75362
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/d850a1c91f93f509e2b3a2f90c66887537b75362.json
+  manifest_sha256: 3b6a0c883dee88a64b0fb8fe05521a381b62dd69af2db70509413ad749b21352
   paths:
   - frontend/src/components/workstation/InstrumentNoteTool.vue
   - frontend/src/views/BasketsView.vue
