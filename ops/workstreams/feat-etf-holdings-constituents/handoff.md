@@ -19184,3 +19184,16 @@ exact `etf-snapshot-source-identifier` field while retaining the selected
 snapshot, known-at, published-at, exact source URL and ACME member checks.
 Playwright discovery lists all5 ETF preparation cases and `git diff --check`
 passes. ETF did not run a browser; Root owns the active full-profile result.
+
+## Notes request-priority after canonical fallback — 2026-11-09
+
+Root's J12 trace showed the selected Notes request could remain queued after
+symbol fallback resolved a canonical instrument and the pane became visible.
+The priority watcher now observes both `requestPriority` and
+`activeInstrumentId`, promoting only the resolved instrument's
+`instrument-note:<id>` request when it is high priority. The owned regression
+holds identity and note reads, verifies the auto-priority queued read, then
+raises pane priority and confirms the existing request is promoted without a
+duplicate. Source and unit blobs match Root's reviewed proposal. The Notes
+unit module passes9/9, type-check and workstream validation pass; browser/J12
+replay and final private10 qualification remain Root-owned.

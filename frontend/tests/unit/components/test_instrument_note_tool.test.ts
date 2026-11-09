@@ -74,6 +74,32 @@ describe('InstrumentNoteTool draft lifecycle', () => {
     queryClient.clear()
   })
 
+  it('promotes a pending note read after fallback canonical identity resolves and priority becomes visible', async () => {
+    const identity = deferred<{ id: number; symbol: string }>()
+    const note = deferred<null>()
+    apiGet.mockReturnValueOnce(identity.promise).mockReturnValueOnce(note.promise)
+    const { wrapper, queryClient } = mountTool(null, 'SPY', { requestPriority: 'auto' })
+
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledTimes(1))
+    expect(apiGet).toHaveBeenNthCalledWith(1, '/instruments/SPY', { canonical_only: true }, { priority: 'high' })
+    identity.resolve({ id: 2, symbol: 'SPY' })
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledTimes(2))
+    expect(apiGet.mock.calls[1]?.[0]).toBe('/notes/instruments/2')
+    expect(apiGet.mock.calls[1]?.[2]).toMatchObject({ priority: 'auto', queueKey: 'instrument-note:2' })
+    expect(setPriority).not.toHaveBeenCalled()
+
+    await wrapper.setProps({ requestPriority: 'high' })
+    await flushPromises()
+    expect(setPriority).toHaveBeenCalledWith('instrument-note:2', 'high')
+    expect(apiGet).toHaveBeenCalledTimes(2)
+
+    note.resolve(null)
+    await waitForLoaded(wrapper)
+    expect(wrapper.get('textarea').element.disabled).toBe(false)
+    wrapper.unmount()
+    queryClient.clear()
+  })
+
   it('shows identity resolution while the selected symbol lookup is pending, then loads that symbol note', async () => {
     const identity = deferred<{ id: number; symbol: string }>()
     const note = deferred<null>()

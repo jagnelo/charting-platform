@@ -5304,5 +5304,17 @@
     "source_sha256": "c263621b9592a63e99d7a386085c6e214fa4ea53c7c491f852a13f7b5dbde0f0",
     "verification": "Playwright discovery lists all5 ETF holdings preparation cases; git diff --check passes. No browser executed by ETF; Root full68 remains Root-owned.",
     "state": "Focused test-contract correction ready for Root exact-source qualification; compact layout and historical provenance data unchanged."
+  },
+  "current_etf_notes_identity_priority_checkpoint_2026_11_09": {
+    "root_assignment": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/root-ETF-Notes-owned-source-checkpoint-assignment-20261109.json",
+    "reviewed_proposal": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/root-ETF-Notes-reviewed-proposal-20261109.diff",
+    "proposal_sha256": "ef9b2029161bc26954e4993d1ef3f99f22d24bc6e8e9bfa822b817a93c5cb980",
+    "base_source_sha": "efdcac2026f7987c89596b95dce372fa32a8068b",
+    "source_blob": "311d3b3196efbaf94710b31811e97753e9d31362",
+    "source_sha256": "69fd881d59b8f3ec7ac036b4629b85d8826950c84d114d8ab6c566cc4feb2719",
+    "unit_blob": "e2d24d735513859c44143f54227632377ae738a5",
+    "unit_sha256": "c40aa853b6815270501d5237d8c93bd7bca952f10b115a0b4a8ae39b4c55fc42",
+    "verification": "Notes component unit module passed9/9; frontend type-check, workstream validation and git diff --check passed. No browser, full suite, provider, fixture, native or CI run by ETF.",
+    "state": "ETF-owned source and regression checkpoint ready for Root private10 manifest; full roadmap and efdcac history preserved."
   }
 }
