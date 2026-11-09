@@ -1,5 +1,5 @@
 import { test, expect } from './helpers'
-import type { Page } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
 
 const retainedStudyStartDate = '2024-01-02'
 const retainedStudyEndDate = '2025-12-29'
@@ -9,6 +9,22 @@ async function activateDockToolTab(page: Page, title: string) {
   await expect(tab).toBeVisible()
   await tab.click()
   await expect(tab).toHaveClass(/lm_active/)
+}
+
+async function expectStudyPlotReadoutBeforeNextArtifact(chart: Locator, nextHeader: Locator) {
+  const readout = chart.locator('.study-series__legend, .study-bars__legend, .study-histogram__legend, .study-range__legend, .study-scatter__legend')
+  await expect(chart).toBeVisible()
+  await expect(readout).toBeVisible()
+  await expect.poll(async () => {
+    const [chartBox, readoutBox, nextHeaderBox] = await Promise.all([
+      chart.boundingBox(), readout.boundingBox(), nextHeader.boundingBox(),
+    ])
+    return Boolean(chartBox && readoutBox && nextHeaderBox
+      && readoutBox.x >= chartBox.x - 1
+      && readoutBox.x + readoutBox.width <= chartBox.x + chartBox.width + 1
+      && readoutBox.y + readoutBox.height <= chartBox.y + chartBox.height + 1
+      && chartBox.y + chartBox.height <= nextHeaderBox.y + 1)
+  }, { timeout: 5_000 }).toBe(true)
 }
 
 async function authenticatedJson(page: Page, path: string) {
@@ -190,6 +206,19 @@ test('Study journey keeps saved identity, refreshes Results, and returns from Py
   expect(codeAssetCreations).toBe(1)
   await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
 
+  const studyArtifacts = study.locator('.study-lab-tool__run > article')
+  const monthlyFrequencyArtifact = studyArtifacts.filter({ hasText: 'monthly_frequency' }).first()
+  const streakDistributionArtifact = studyArtifacts.filter({ hasText: 'streak_distribution' }).first()
+  const summaryArtifact = studyArtifacts.filter({ hasText: 'summary' }).first()
+  await expectStudyPlotReadoutBeforeNextArtifact(
+    monthlyFrequencyArtifact.locator('.study-bars'),
+    streakDistributionArtifact.locator('.study-lab-tool__artifact-header'),
+  )
+  await expectStudyPlotReadoutBeforeNextArtifact(
+    streakDistributionArtifact.locator('.study-histogram'),
+    summaryArtifact.locator('.study-lab-tool__artifact-header'),
+  )
+
   const runLabel = await study.locator('.study-lab-tool__run > div > strong').innerText()
   const runId = runLabel.match(/Run #(\d+)/)?.[1]
   expect(runId).toBeTruthy()
@@ -204,6 +233,18 @@ test('Study journey keeps saved identity, refreshes Results, and returns from Py
   const resultDetail = activeResults.locator(`article[aria-label="Research run ${runId} details"]`)
   await expect(resultDetail).toBeVisible()
   await expect(resultDetail.locator('.research-results-tool__artifacts > article')).toHaveCount(8, { timeout: 15_000 })
+  const resultArtifacts = resultDetail.locator('.research-results-tool__artifacts > article')
+  const resultMonthlyFrequency = resultArtifacts.filter({ hasText: 'monthly_frequency' }).first()
+  const resultStreakDistribution = resultArtifacts.filter({ hasText: 'streak_distribution' }).first()
+  const resultSummary = resultArtifacts.filter({ hasText: 'summary' }).first()
+  await expectStudyPlotReadoutBeforeNextArtifact(
+    resultMonthlyFrequency.locator('.study-bars'),
+    resultStreakDistribution.locator('.research-results-tool__artifact-header'),
+  )
+  await expectStudyPlotReadoutBeforeNextArtifact(
+    resultStreakDistribution.locator('.study-histogram'),
+    resultSummary.locator('.research-results-tool__artifact-header'),
+  )
 
   await activateDockToolTab(page, 'Study Lab')
   const savedDraft = page.waitForResponse(response => response.request().method() === 'PUT' && new URL(response.url()).pathname.endsWith('/snapshot'))

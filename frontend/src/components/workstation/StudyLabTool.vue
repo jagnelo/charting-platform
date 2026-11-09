@@ -2091,6 +2091,12 @@ input,textarea,button,select { min-width:0; border:1px solid #3a4954; background
 .study-lab-tool__metrics article button,
 .study-lab-tool__series-condition button,
 .study-lab-tool__artifact-threshold button { margin-left:0; }
+@container (max-width: 720px) {
+  .study-lab-tool__dataset { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .study-lab-tool__dataset label { grid-template-columns:minmax(0,1fr); gap:2px; white-space:normal; min-width:0; }
+  .study-lab-tool__dataset input,
+  .study-lab-tool__dataset select { box-sizing:border-box; width:100%; min-width:0; max-width:100%; }
+}
 @container (max-width: 560px) {
   .study-lab-tool { padding:4px; gap:4px; }
   .study-lab-tool__header-main { grid-template-columns:minmax(0,1fr) 52px; }
