@@ -1212,10 +1212,13 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   // generation so the duplicate cannot invalidate useful in-flight data.
   const sharedAnalysisLoads = new Map<string, Promise<unknown>>()
 
-  function shareAnalysisLoad<T>(resource: string, params: Record<string, unknown>, load: () => Promise<T | null>): Promise<T | null> {
+  function shareAnalysisLoad<T>(resource: string, params: Record<string, unknown>, load: () => Promise<T | null>, priority: ApiRequestPriority = 'auto'): Promise<T | null> {
     const key = JSON.stringify([resource, params])
     const existing = sharedAnalysisLoads.get(key) as Promise<T | null> | undefined
-    if (existing) return existing
+    if (existing) {
+      if (priority === 'high') setQueuedApiRequestPriority(`top-down:${resource}`, 'high')
+      return existing
+    }
 
     // Set the map before running the loader so another same-turn caller joins
     // instead of starting a second request for the same analysis inputs.
@@ -1820,22 +1823,62 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   async function loadDefault() {
+    const selectionGeneration = ++workspaceSelectionGeneration
+    const startingSnapshotGeneration = snapshotGeneration
+    const localAtStart = workspace.value ? cloneSerializable(workspace.value) : null
+    const baselineAtStart = persistedWorkspace ? cloneSerializable(persistedWorkspace) : null
     loading.value = true
     error.value = null
     try {
-      workspace.value = await api.get<WorkspaceState>('/workspaces/default')
-      recentClosedWindowOverrides.clear()
+      const loaded = await api.get<WorkspaceState>('/workspaces/default')
+      if (selectionGeneration !== workspaceSelectionGeneration) return
+
+      const local = workspace.value
+      const localMutationDuringLoad = snapshotGeneration !== startingSnapshotGeneration
+      let selected = loaded
+      if (localMutationDuringLoad && local) {
+        // A default-workspace hydration can overlap a user opening a tool or
+        // changing the active panel. Keep those local edits even if the GET
+        // response was queued before their snapshot acknowledgement.
+        if (local.id === loaded.id && local.revision > loaded.revision) {
+          selected = local
+        } else if (local.id === loaded.id) {
+          const merged = mergeDisjointWindowChanges(baselineAtStart ?? localAtStart, local, loaded)
+          if (merged) {
+            selected = merged
+            persistedWorkspace = cloneSerializable(loaded)
+            scheduleSnapshot()
+          } else {
+            // Do not replace a live user edit with an unmergeable hydration.
+            // The normal snapshot conflict path retains/reconciles the edit.
+            selected = local
+            scheduleSnapshot()
+          }
+        } else {
+          selected = local
+        }
+      } else if (localMutationDuringLoad && !local) {
+        // A workspace mutation cannot be reconciled without its current state.
+        // Leave the view untouched and let the caller's normal save path own it.
+        return
+      }
+
+      workspace.value = selected
       workspaces.value = [{
-        id: workspace.value.id,
-        name: workspace.value.name,
-        is_default: workspace.value.is_default,
-        position: workspace.value.position,
-        revision: workspace.value.revision,
+        id: selected.id,
+        name: selected.name,
+        is_default: selected.is_default,
+        position: selected.position,
+        revision: selected.revision,
       }]
-      persistedWorkspace = cloneSerializable(workspace.value)
-      snapshotSaveStatus.value = 'saved'
-      snapshotSaveError.value = null
-      activeTabKey.value = workspaceActiveTabKey(workspace.value)
+      if (selected === loaded) {
+        recentClosedWindowOverrides.clear()
+        persistedWorkspace = cloneSerializable(loaded)
+        snapshotSaveStatus.value = 'saved'
+        snapshotSaveError.value = null
+        activeTabKey.value = workspaceActiveTabKey(loaded)
+      }
+      if (selected !== loaded) return
       // Link selections are shared workspace state. Restore each concrete
       // group's last symbol plus Yellow's last received symbol from settings;
       // older workspaces fall back to the persisted symbols on their tools.
@@ -1904,9 +1947,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       linkedTimeframes.value = { ...restoredTimeframes, blue: linkedTimeframe.value }
       wildcardTimeframe.value = restoredTimeframes.yellow ?? linkedTimeframe.value
     } catch (cause: any) {
-      error.value = cause?.message ?? 'Unable to load workstation'
+      if (selectionGeneration === workspaceSelectionGeneration) error.value = cause?.message ?? 'Unable to load workstation'
     } finally {
-      loading.value = false
+      if (selectionGeneration === workspaceSelectionGeneration) loading.value = false
     }
   }
 
@@ -2304,7 +2347,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     return request
   }
 
-  function loadGroupSnapshot(stableKey: string, benchmark?: string, options: { timeframe?: string; adjusted?: boolean; as_of?: string; new_high_lookback?: number; near_threshold?: number } = {}) {
+  function loadGroupSnapshot(stableKey: string, benchmark?: string, options: { timeframe?: string; adjusted?: boolean; as_of?: string; new_high_lookback?: number; near_threshold?: number; priority?: ApiRequestPriority } = {}) {
     const params = {
       ...(benchmark ? { benchmark } : {}),
       ...(options.timeframe ? { timeframe: options.timeframe } : {}),
@@ -2317,7 +2360,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       if (!documentIsVisible()) return null
       groupSnapshotErrors.value = { ...groupSnapshotErrors.value, [stableKey]: null }
       try {
-        const snapshot = await api.get<GroupSnapshotState>(`/analysis/groups/${encodeURIComponent(stableKey)}/snapshot`, params)
+        const snapshot = await api.get<GroupSnapshotState>(`/analysis/groups/${encodeURIComponent(stableKey)}/snapshot`, params, {
+          priority: options.priority ?? 'auto', queueKey: requestKey,
+        })
         if (!isCurrentAnalysisRequest(requestKey, generation)) return null
         groupSnapshots.value = { ...groupSnapshots.value, [stableKey]: snapshot }
         return snapshot
@@ -2327,7 +2372,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         groupSnapshotErrors.value = { ...groupSnapshotErrors.value, [stableKey]: error.value }
         return null
       }
-    })
+    }, options.priority)
   }
 
   async function loadBenchmarkFamilyRatios(
@@ -2763,7 +2808,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
   }
 
-  function loadBreadth(stableKey: string, options: { timeframe?: string; adjusted?: boolean; as_of?: string; new_high_lookback?: number; near_threshold?: number } = {}) {
+  function loadBreadth(stableKey: string, options: { timeframe?: string; adjusted?: boolean; as_of?: string; new_high_lookback?: number; near_threshold?: number; priority?: ApiRequestPriority } = {}) {
     const params = {
       ...(options.timeframe ? { timeframe: options.timeframe } : {}),
       ...(typeof options.adjusted === 'boolean' ? { adjusted: options.adjusted } : {}),
@@ -2779,8 +2824,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       breadthErrors.value = { ...breadthErrors.value, [stableKey]: null }
       try {
         const snapshot = Object.keys(params).length
-          ? await api.get<BreadthState>(`/analysis/groups/${encodeURIComponent(stableKey)}/breadth`, params)
-          : await api.get<BreadthState>(`/analysis/groups/${encodeURIComponent(stableKey)}/breadth`)
+          ? await api.get<BreadthState>(`/analysis/groups/${encodeURIComponent(stableKey)}/breadth`, params, { priority: options.priority ?? 'auto', queueKey: requestKey })
+          : await api.get<BreadthState>(`/analysis/groups/${encodeURIComponent(stableKey)}/breadth`, undefined, { priority: options.priority ?? 'auto', queueKey: requestKey })
         if (!isCurrentAnalysisRequest(requestKey, generation)) return null
         breadth.value = { ...breadth.value, [stableKey]: snapshot }
         return snapshot
@@ -2793,10 +2838,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       } finally {
         if (isCurrentAnalysisRequest(requestKey, generation)) breadthLoading.value = { ...breadthLoading.value, [stableKey]: false }
       }
-    })
+    }, options.priority)
   }
 
-  function loadBreadthHistory(stableKey: string, options: { timeframe?: string; adjusted?: boolean; as_of?: string; new_high_lookback?: number; near_threshold?: number } = {}) {
+  function loadBreadthHistory(stableKey: string, options: { timeframe?: string; adjusted?: boolean; as_of?: string; new_high_lookback?: number; near_threshold?: number; priority?: ApiRequestPriority } = {}) {
     const params = {
       limit: 500,
       ...(options.timeframe ? { timeframe: options.timeframe } : {}),
@@ -2812,7 +2857,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       breadthHistoryLoading.value = { ...breadthHistoryLoading.value, [stableKey]: true }
       breadthHistoryErrors.value = { ...breadthHistoryErrors.value, [stableKey]: null }
       try {
-        const history = await api.get<BreadthHistoryState>(`/analysis/groups/${encodeURIComponent(stableKey)}/breadth/history`, params)
+        const history = await api.get<BreadthHistoryState>(`/analysis/groups/${encodeURIComponent(stableKey)}/breadth/history`, params, { priority: options.priority ?? 'auto', queueKey: requestKey })
         if (!isCurrentAnalysisRequest(requestKey, generation)) return null
         breadthHistory.value = { ...breadthHistory.value, [stableKey]: history }
         return history
@@ -2825,7 +2870,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       } finally {
         if (isCurrentAnalysisRequest(requestKey, generation)) breadthHistoryLoading.value = { ...breadthHistoryLoading.value, [stableKey]: false }
       }
-    })
+    }, options.priority)
   }
 
   async function loadGenericBreadth(
@@ -2944,16 +2989,26 @@ export const useWorkspaceStore = defineStore('workspace', () => {
    * A second caller joins the existing refresh, which keeps linked windows from
    * producing duplicate analysis requests.
    */
-  async function refreshMarketAnalysis() {
-    if (marketRefreshPromise) return marketRefreshPromise
+  async function refreshMarketAnalysis(priority: ApiRequestPriority = 'auto') {
+    if (marketRefreshPromise) {
+      if (priority === 'high') {
+        for (const key of ['us-benchmarks', 'sp500-sectors']) {
+          setQueuedApiRequestPriority(`top-down:market-group:${key}`, 'high')
+          setQueuedApiRequestPriority(`top-down:group-snapshot:${key}`, 'high')
+        }
+        setQueuedApiRequestPriority('top-down:breadth:sp500-sectors', 'high')
+        setQueuedApiRequestPriority('top-down:breadth-history:sp500-sectors', 'high')
+      }
+      return marketRefreshPromise
+    }
     marketAnalysisRefreshing.value = true
     marketRefreshPromise = Promise.all([
-      loadMarketGroup('us-benchmarks'),
-      loadMarketGroup('sp500-sectors'),
-      loadGroupSnapshot('us-benchmarks', 'SPY'),
-      loadGroupSnapshot('sp500-sectors', 'SPY'),
-      loadBreadth('sp500-sectors'),
-      loadBreadthHistory('sp500-sectors'),
+      loadMarketGroup('us-benchmarks', { priority }),
+      loadMarketGroup('sp500-sectors', { priority }),
+      loadGroupSnapshot('us-benchmarks', 'SPY', { priority }),
+      loadGroupSnapshot('sp500-sectors', 'SPY', { priority }),
+      loadBreadth('sp500-sectors', { priority }),
+      loadBreadthHistory('sp500-sectors', { priority }),
     ]).then(results => {
       // The individual loaders retain their error state and return null. Do not
       // advance the last-successful timestamp when any shared input failed.

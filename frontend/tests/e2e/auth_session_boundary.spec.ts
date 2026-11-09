@@ -158,7 +158,9 @@ test('J12 session boundary isolates test-owned same-origin accounts, expired ref
   await page.getByRole('menuitem', { name: 'Notes', exact: true }).click()
   const acknowledgedNotesSnapshot = await noteToolSnapshotA
   expect(acknowledgedNotesSnapshot.ok()).toBe(true)
-  expect(activeWorkspaceSnapshotContainsTools(await acknowledgedNotesSnapshot.json(), ['notes'], 'notes')).toBe(true)
+  const acknowledgedNotesBody = await acknowledgedNotesSnapshot.json() as { revision?: number }
+  expect(activeWorkspaceSnapshotContainsTools(acknowledgedNotesBody, ['notes'], 'notes')).toBe(true)
+  expect(acknowledgedNotesBody.revision).toEqual(expect.any(Number))
   const notesA = page.getByRole('region', { name: /notes$/i })
   await expect(notesA).toBeVisible()
   await expect(notesA.getByRole('textbox', { name: 'Instrument note' })).toHaveValue('private-note-A')
@@ -166,12 +168,14 @@ test('J12 session boundary isolates test-owned same-origin accounts, expired ref
   await page.getByRole('button', { name: 'Add tool' }).click()
   const resultsToolSnapshotA = page.waitForResponse(response => response.request().method() === 'PUT'
     && /\/api\/v1\/workspaces\/\d+\/snapshot$/.test(new URL(response.url()).pathname)
+    && (response.request().postDataJSON() as { base_revision?: number }).base_revision === acknowledgedNotesBody.revision
     && activeWorkspaceSnapshotContainsTools(response.request().postDataJSON(), ['notes', 'research_results'], 'research_results'))
   await page.getByRole('menuitem', { name: 'Study Results', exact: true }).click()
   const acknowledgedResultsSnapshot = await resultsToolSnapshotA
   expect(acknowledgedResultsSnapshot.ok()).toBe(true)
   const acknowledgedResultsBody = await acknowledgedResultsSnapshot.json()
   expect(activeWorkspaceSnapshotContainsTools(acknowledgedResultsBody, ['notes', 'research_results'], 'research_results')).toBe(true)
+  expect(acknowledgedResultsBody.revision).toBeGreaterThan(acknowledgedNotesBody.revision!)
   const workspaceId = Number(new URL(acknowledgedResultsSnapshot.url()).pathname.match(/workspaces\/(\d+)\/snapshot$/)?.[1])
   expect(workspaceId).toBeGreaterThan(0)
   await expect(page.getByRole('status', { name: 'Workspace save status' })).toHaveText('Workspace saved')
@@ -207,7 +211,13 @@ test('J12 session boundary isolates test-owned same-origin accounts, expired ref
   await activateDockToolTab(page, 'Notes')
   await expect(page.getByRole('region', { name: /notes$/i }).getByRole('textbox', { name: 'Instrument note' }))
     .toHaveValue('private-note-A')
+  const persistedResultsReactivation = page.waitForResponse(response => response.request().method() === 'PUT'
+    && new URL(response.url()).pathname === `/api/v1/workspaces/${workspaceId}/snapshot`
+    && activeWorkspaceSnapshotContainsTools(response.request().postDataJSON(), ['notes', 'research_results'], 'research_results'))
   await activateDockToolTab(page, 'Study Results')
+  const resultsReactivationSnapshot = await persistedResultsReactivation
+  expect(resultsReactivationSnapshot.ok()).toBe(true)
+  expect(activeWorkspaceSnapshotContainsTools(await resultsReactivationSnapshot.json(), ['notes', 'research_results'], 'research_results')).toBe(true)
   await expect(restoredResultsA).toContainText('Run #91501')
 
   // A second same-origin window holds its own A session cache. Cross-window

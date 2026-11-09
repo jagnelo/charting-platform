@@ -501,6 +501,15 @@ const workspaceDockPending = computed(() => workspaceReplacementPending.value ||
 const workspaceReady = ref(false)
 const pendingTimeframeSelections = new Map<LinkGroup, string>()
 let workspaceLoadPromise: Promise<void> | null = null
+let initialWorkspaceHydrationPending = false
+let pendingInitialWorkspaceSymbolIntent: {
+  generation: number
+  symbol: string
+  instrumentId: number | null
+  timestamp?: string
+  holdingContext: ETFHoldingDrilldownContext | null
+  selectedHolding: boolean
+} | null = null
 let resolveWorkspaceReady: (() => void) | null = null
 const workspaceReadyPromise = new Promise<void>(resolve => {
   resolveWorkspaceReady = resolve
@@ -1140,16 +1149,20 @@ async function refreshMarketData() {
     // its first paint changes the canonical readiness/status state behind the
     // visual workstation oracle without helping the chart itself.
     if (popoutTool.value?.tool_type === 'watchlist' && !hasSharedMarketAnalysis()) {
-      await workspaceStore.refreshMarketAnalysis()
+      await workspaceStore.refreshMarketAnalysis('high')
     }
     return
   }
   if (workspaceStore.isPersistenceLeader) {
+    // Mounting a visible analysis surface is user-visible work. If the shell's
+    // interval refresh already queued these same reads, the store promotes the
+    // existing requests rather than issuing duplicates.
+    void workspaceStore.refreshMarketAnalysis('high')
     await marketAnalysisQuery.refetch()
   } else {
     // Followers still hydrate once when they open. Subsequent periodic refreshes are
     // leader-owned and arrive through the cross-window refresh event.
-    await workspaceStore.refreshMarketAnalysis()
+    await workspaceStore.refreshMarketAnalysis('high')
   }
 }
 const popoutTool = computed(() => {
@@ -1360,6 +1373,22 @@ function syncChartRouteToSelection(
   })
 }
 
+function restoredWorkspaceBlueSymbol(): string {
+  const workspace = workspaceStore.workspace
+  const linkedSymbols = workspace?.settings?.linked_symbols
+  if (linkedSymbols && typeof linkedSymbols === 'object' && !Array.isArray(linkedSymbols)) {
+    const blue = (linkedSymbols as Record<string, unknown>).blue
+    if (blue && typeof blue === 'object' && !Array.isArray(blue)) {
+      const symbol = (blue as Record<string, unknown>).symbol
+      if (typeof symbol === 'string' && symbol.trim()) return symbol.trim().toUpperCase()
+    }
+  }
+  const configured = workspace?.tabs.flatMap(tab => tab.windows)
+    .find(tool => tool.link_group !== 'grey' && typeof tool.configuration.symbol === 'string')
+    ?.configuration.symbol
+  return typeof configured === 'string' && configured.trim() ? configured.trim().toUpperCase() : 'SPY'
+}
+
 async function selectSymbol(
   raw: string,
   timestamp?: string,
@@ -1454,6 +1483,7 @@ async function selectSymbol(
       const resolved = await resolveKnownInstrument(requested, 'Workstation symbol', {
         canonicalOnly: true,
         priority: 'high',
+        foreground: true,
         signal: acquisitionController.signal,
       })
       symbol = resolved.symbol
@@ -1477,6 +1507,7 @@ async function selectSymbol(
           const resolved = await resolveKnownInstrument(proxy, 'S&P 500 tradable proxy', {
             canonicalOnly: true,
             priority: 'high',
+            foreground: true,
             signal: acquisitionController.signal,
           })
           symbol = resolved.symbol
@@ -1536,6 +1567,16 @@ async function selectSymbol(
   // selection from a constituent list may itself have no holdings endpoint, but
   // its relevant ratio denominator is still the list's active ETF.
   const comparisonETF = workspaceStore.constituentETF
+  if (initialWorkspaceHydrationPending) {
+    pendingInitialWorkspaceSymbolIntent = {
+      generation,
+      symbol,
+      instrumentId: canonicalInstrumentId,
+      timestamp,
+      holdingContext: contextMatchesResolvedIdentity ? displayContext : null,
+      selectedHolding: Boolean(holdingContext),
+    }
+  }
   const explicitTimestampToken = workspaceStore.publishSymbol({
     symbol,
     ...(typeof canonicalInstrumentId === 'number' ? { instrumentId: canonicalInstrumentId } : {}),
@@ -2230,6 +2271,7 @@ async function prepareLinkedTimeframeHistory(symbol: string, timeframe: Timefram
       const resolved = await resolveKnownInstrument(symbol, 'Workstation timeframe history', {
         canonicalOnly: true,
         priority: 'high',
+        foreground: true,
         signal: controller.signal,
       })
       if (!isCurrent()) return
@@ -3442,6 +3484,20 @@ function cycleChartTimeframe(windowKey: string, direction: 1 | -1) {
 
 watch(activeSymbol, symbol => {
   if (!symbol) return
+  const pendingSelection = pendingInitialWorkspaceSymbolIntent
+  if (initialWorkspaceHydrationPending && pendingSelection
+    && pendingSelection.generation === symbolSelectionGeneration
+    && symbol !== pendingSelection.symbol) {
+    if (symbol === restoredWorkspaceBlueSymbol()) {
+      // The initial workspace response can arrive after the user has already
+      // selected a verified instrument. Do not let that stale persisted blue
+      // symbol replace the newer chart, route, or search-field context.
+      return
+    }
+    // A different linked selection arrived after the persisted restore; treat
+    // that newer publication as current rather than replaying the shell choice.
+    pendingInitialWorkspaceSymbolIntent = null
+  }
   cancelLinkedTimeframePreparation()
   const privateBasketSelection = isPrivateBasketToken(symbol)
   const activeRouteContext = activeHoldingContext.value?.symbol === symbol
@@ -3547,6 +3603,7 @@ onMounted(async () => {
     window.removeEventListener('keyup', handleModifierKeyup)
   }
   workspaceStore.connect()
+  initialWorkspaceHydrationPending = true
   workspaceLoadPromise = workspaceStore.loadDefault()
   try {
     await workspaceLoadPromise
@@ -3558,6 +3615,10 @@ onMounted(async () => {
       resolveReady?.()
     }
   }
+  // Let reactive watchers consume the workspace response while the intent
+  // guard is still active, then restore the latest committed selection once.
+  await nextTick()
+  initialWorkspaceHydrationPending = false
   if (!componentMounted) return
   // The initial snapshot restores persisted linked timeframes. Replay any
   // newer shell choices made while it loaded so hydration cannot discard
@@ -3570,6 +3631,26 @@ onMounted(async () => {
     // A newer explicit selection already synchronized the route while the
     // workspace loaded, so initial-route protection is no longer needed.
     holdingRouteHydrationPending.value = false
+  }
+  const pendingSelection = pendingInitialWorkspaceSymbolIntent
+  if (pendingSelection && pendingSelection.generation === symbolSelectionGeneration) {
+    pendingInitialWorkspaceSymbolIntent = null
+    symbolDraft.value = pendingSelection.symbol
+    if (activeSymbol.value !== pendingSelection.symbol) {
+      workspaceStore.publishSymbol({
+        symbol: pendingSelection.symbol,
+        ...(typeof pendingSelection.instrumentId === 'number' ? { instrumentId: pendingSelection.instrumentId } : {}),
+        ...(pendingSelection.timestamp ? { timestamp: pendingSelection.timestamp } : {}),
+        group: 'blue',
+        sourceWindowKey: 'workstation',
+      })
+    }
+    syncChartRouteToSelection(
+      pendingSelection.symbol,
+      pendingSelection.instrumentId,
+      pendingSelection.holdingContext,
+      pendingSelection.selectedHolding,
+    )
   }
   // A user can interact with the shell while the first snapshot is loading.
   // loadDefault hydrates the persisted blue link, so replay the newer explicit
@@ -3697,6 +3778,8 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   componentMounted = false
+  initialWorkspaceHydrationPending = false
+  pendingInitialWorkspaceSymbolIntent = null
   const resolveMount = resolveComponentMountSettled
   resolveComponentMountSettled = null
   resolveMount?.()

@@ -103,6 +103,26 @@ describe('RatioUPlot', () => {
     expect(data?.[2]).toEqual([1.0])
   })
 
+  it('reserves compact ratio plot area without clipping value labels', async () => {
+    vi.mocked(api.get).mockResolvedValue({
+      coverage: 1,
+      points: [{ timestamp: '2026-01-02T00:00:00Z', value: 1.025 }],
+      warnings: [],
+    })
+    mountTool({ props: { symbol: 'XLK', benchmarks: ['SPY'] } })
+
+    await vi.waitFor(() => expect(vi.mocked(uPlot)).toHaveBeenCalled())
+    const [options] = vi.mocked(uPlot).mock.calls.at(-1)!
+    expect(options.legend).toEqual({ show: false })
+    expect(options.padding).toEqual([2, 4, 2, 4])
+    expect(options.axes?.[0]).toMatchObject({ size: 14, gap: 1 })
+    const measuredWidth = options.axes?.[1].size as (chart: any, values: string[] | null, axisIndex: number, cycle: number) => number
+    const measureText = vi.fn((value: string) => ({ width: value.length * 6 }))
+    expect(measuredWidth({ ctx: { measureText } }, null, 1, 0)).toBe(6)
+    expect(measuredWidth({ ctx: { measureText } }, ['1.00', '100.00'], 1, 0)).toBe(42)
+    expect(measureText).toHaveBeenCalledWith('100.00')
+  })
+
   it('announces the empty ratio state politely', async () => {
     vi.mocked(api.get).mockResolvedValue({ coverage: 1, points: [], warnings: [] })
     const wrapper = mountTool({ props: { symbol: 'XLK', benchmarks: ['SPY'] } })

@@ -1,12 +1,18 @@
-import { api, type ApiRequestOptions } from '@/lib/api'
+import { api, setQueuedApiRequestPriority, type ApiRequestOptions } from '@/lib/api'
 import type { Instrument } from '@/types'
 
 const EXPR_RE = /^\s*=/
 const EXPR_OPERATOR_RE = /[+\-*/]/
 const EXPR_TRAILING_RE = /[+\-*/(]\s*$/
 
-function transportOptions(options: Pick<ApiRequestOptions, 'priority' | 'signal'>): Pick<ApiRequestOptions, 'priority' | 'signal'> | undefined {
-  return options.priority || options.signal ? options : undefined
+function transportOptions(options: Pick<ApiRequestOptions, 'priority' | 'signal' | 'foreground'>): Pick<ApiRequestOptions, 'priority' | 'signal' | 'foreground'> | undefined {
+  return options.priority || options.signal || options.foreground
+    ? { priority: options.priority, signal: options.signal, foreground: options.foreground }
+    : undefined
+}
+
+export function instrumentLookupQueueKey(symbol: string, canonicalOnly = false): string {
+  return `instrument-lookup:${symbol.trim().toUpperCase()}:${canonicalOnly ? 'canonical' : 'standard'}`
 }
 
 export type InstrumentInputKind = 'empty' | 'symbol' | 'expression' | 'pending_expression'
@@ -92,7 +98,7 @@ export function getInstrumentInputHint(raw: string): string {
 export async function resolveKnownInstrument(
   raw: string,
   feature = 'Instrument',
-  options: { canonicalOnly?: boolean } & Pick<ApiRequestOptions, 'priority' | 'signal'> = {},
+  options: { canonicalOnly?: boolean } & Pick<ApiRequestOptions, 'priority' | 'signal' | 'foreground'> = {},
 ): Promise<ResolvedInstrument> {
   const input = classifyInstrumentInput(raw)
   if (input.kind === 'empty') return { symbol: '', id: null }
@@ -119,8 +125,12 @@ export async function resolveKnownInstrument(
 
     const path = `/instruments/${encodeURIComponent(symbol)}`
     const params = options.canonicalOnly ? { canonical_only: true } : undefined
-    const instrument = await (requestOptions
-      ? api.get<Instrument>(path, params, requestOptions)
+    const queueKey = instrumentLookupQueueKey(symbol, options.canonicalOnly)
+    if (options.foreground && options.priority === 'high') setQueuedApiRequestPriority(queueKey, 'high', true)
+    const transport = transportOptions(options)
+    const queuedOptions = transport ? { ...transport, queueKey } : undefined
+    const instrument = await (queuedOptions
+      ? api.get<Instrument>(path, params, queuedOptions)
       : api.get<Instrument>(path, params))
     return {
       symbol: instrument.symbol,
@@ -163,7 +173,7 @@ export async function resolveCanonicalSymbols(
 export async function ensureKnownInstrumentSymbol(
   raw: string,
   feature = 'Instrument',
-  options: { canonicalOnly?: boolean } & Pick<ApiRequestOptions, 'priority' | 'signal'> = {},
+  options: { canonicalOnly?: boolean } & Pick<ApiRequestOptions, 'priority' | 'signal' | 'foreground'> = {},
 ): Promise<string> {
   const input = classifyInstrumentInput(raw)
   if (input.kind === 'empty') return ''
@@ -181,8 +191,12 @@ export async function ensureKnownInstrumentSymbol(
     }
     const path = `/instruments/${encodeURIComponent(input.value)}`
     const params = options.canonicalOnly ? { canonical_only: true } : undefined
-    const instrument = await (requestOptions
-      ? api.get<Instrument>(path, params, requestOptions)
+    const queueKey = instrumentLookupQueueKey(input.value, options.canonicalOnly)
+    if (options.foreground && options.priority === 'high') setQueuedApiRequestPriority(queueKey, 'high', true)
+    const transport = transportOptions(options)
+    const queuedOptions = transport ? { ...transport, queueKey } : undefined
+    const instrument = await (queuedOptions
+      ? api.get<Instrument>(path, params, queuedOptions)
       : api.get<Instrument>(path, params))
     return instrument.symbol
   } catch (error) {

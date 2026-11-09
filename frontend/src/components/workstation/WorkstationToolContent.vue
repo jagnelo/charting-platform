@@ -806,9 +806,11 @@
         </template>
         </template>
         <button type="button" :disabled="breadthWatchlistSourceNotCurrent || (breadthConditionKind === 'python_series' && breadthPythonSeriesCodeVersionId == null) || (breadthComposition === 'tree' && breadthTreePythonSeriesLeaf !== null && pythonLeafAnchorId(breadthTreePythonSeriesLeaf) == null)" @click="runGenericBreadth">Evaluate</button>
-        <span v-if="genericBreadthLoading" role="status" aria-live="polite">Evaluating…</span>
-        <span v-else-if="genericBreadthError" class="breadth-tool__status--error" role="alert">{{ genericBreadthError }}</span>
-        <span v-else-if="genericBreadth" class="breadth-tool__custom-result"><b>{{ genericBreadthPercentage }}</b> · {{ genericBreadth.pass_count }}/{{ genericBreadth.eligible_count }} eligible · {{ genericBreadth.excluded_count }} excluded · {{ genericBreadth.requested_count }} requested · {{ genericBreadthCoverage }} coverage<span v-if="genericBreadth.group_value != null"> · group {{ genericBreadth.group_value.toFixed(4) }}</span></span>
+        <span v-if="genericBreadthEvaluationLoading" role="status" aria-live="polite">Evaluating…</span>
+        <span v-if="genericBreadthHistoryLoading" role="status" aria-live="polite">Updating historical breadth…</span>
+        <span v-if="genericBreadthEvaluationError" class="breadth-tool__status--error" role="alert">{{ genericBreadthEvaluationError }}</span>
+        <span v-if="genericBreadthHistoryError" class="breadth-tool__status--error" role="alert">Historical breadth: {{ genericBreadthHistoryError }}</span>
+        <span v-if="genericBreadth" class="breadth-tool__custom-result"><b>{{ genericBreadthPercentage }}</b> · {{ genericBreadth.pass_count }}/{{ genericBreadth.eligible_count }} eligible · {{ genericBreadth.excluded_count }} excluded · {{ genericBreadth.requested_count }} requested · {{ genericBreadthCoverage }} coverage<span v-if="genericBreadth.group_value != null"> · group {{ genericBreadth.group_value.toFixed(4) }}</span></span>
         <details v-if="genericBreadth" class="breadth-tool__generic-evidence" aria-label="Generic breadth result evidence">
           <summary>Snapshot evidence</summary>
           <dl>
@@ -997,7 +999,7 @@
         <button v-for="member in genericBreadthMembers.slice(0, 100)" :key="member.instrument_id" type="button" :aria-label="`Select ${member.symbol} ${member.name}`" @click="emit('select', member.symbol, member.instrument_id)"><strong>{{ member.symbol }}</strong><span>{{ member.name }}</span><small v-if="member.metric != null">{{ member.metric.toFixed(3) }}</small><small v-if="member.diagnostics?.length" class="breadth-tool__member-diagnostics" :title="member.diagnostics.map(genericBreadthDiagnosticLabel).join(' · ')">{{ member.diagnostics.map(genericBreadthDiagnosticLabel).join(' · ') }}</small></button>
         <small v-if="!genericBreadthMembers.length">No {{ genericBreadthMemberState === 'pass' ? 'passing' : 'failing' }} members are eligible.</small>
       </div>
-      <GenericBreadthHistoryUPlot :history="genericBreadthHistory ?? undefined" />
+      <GenericBreadthHistoryUPlot v-if="genericBreadthHistory" :history="genericBreadthHistory" />
       <section v-if="genericBreadthHistory" class="breadth-tool__generic-history-events" aria-label="Generic breadth historical occurrences">
         <header>
           <strong>Member state changes</strong>
@@ -2545,7 +2547,7 @@ async function loadScanPlots() {
   if (sequence === scanPlotRequestSequence) scanSeries.value = loaded.filter(item => item != null) as ChartPythonSeries[]
 }
 
-async function loadComparisonBars() {
+async function loadComparisonBars(options: { foreground?: boolean } = {}) {
   const symbols = comparisonTargets.value.map(target => target.symbol)
   if (!symbols.length || !chartStore.symbol) return
   const sequence = ++comparisonRequestSequence
@@ -2553,7 +2555,18 @@ async function loadComparisonBars() {
   const loaded = await Promise.all(symbols.map(async symbol => {
     try {
       const limit = Math.max(chartStore.bars.length, 500)
-      const raw = await dedupeOhlcvRequest(`raw:local:${symbol.toUpperCase()}:${timeframe}:adjusted:${limit}`, () => api.get<any[]>(`/ohlcv/local/${encodeURIComponent(symbol)}/${timeframe}`, { limit }))
+      const cacheKey = `raw:local:${symbol.toUpperCase()}:${timeframe}:adjusted:${limit}`
+      const queueKey = `workstation:comparison:${symbol.toUpperCase()}:${timeframe}:${limit}`
+      if (options.foreground) setQueuedApiRequestPriority(queueKey, 'high', true)
+      const raw = await dedupeOhlcvRequest(cacheKey, () => api.get<any[]>(
+        `/ohlcv/local/${encodeURIComponent(symbol)}/${timeframe}`,
+        { limit },
+        {
+          priority: options.foreground ? 'high' : 'auto',
+          foreground: options.foreground,
+          queueKey,
+        },
+      ))
       return { symbol, bars: raw.map(bar => ({
         ...bar,
         ts: String(bar.ts ?? bar.timestamp ?? ''),
@@ -2576,11 +2589,15 @@ async function addComparisonSymbol(raw: string) {
     return
   }
   try {
-    const canonical = await ensureKnownInstrumentSymbol(symbol, 'Comparison symbol', { canonicalOnly: true })
+    const canonical = await ensureKnownInstrumentSymbol(symbol, 'Comparison symbol', {
+      canonicalOnly: true,
+      priority: 'high',
+      foreground: true,
+    })
     comparisonTargets.value.push({ symbol: canonical, label: canonical, color: comparisonColors[comparisonTargets.value.length % comparisonColors.length], bars: [] })
     comparisonDraft.value = ''
     persistComparisonSymbols()
-    await loadComparisonBars()
+    await loadComparisonBars({ foreground: true })
   } catch (cause: any) {
     chartStore.error = cause?.message ?? 'Unable to resolve comparison symbol'
   }
@@ -3532,14 +3549,16 @@ const genericBreadthHistory = computed<GenericBreadthHistoryState | null>(() => 
   }
   return workspaceStore.genericBreadthHistory[genericBreadthKey.value] ?? null
 })
-const genericBreadthLoading = computed(() => breadthUsesPython.value
+const genericBreadthEvaluationLoading = computed(() => breadthUsesPython.value
   ? breadthPythonSeriesLoading.value
-  : workspaceStore.genericBreadthLoading[genericBreadthKey.value] === true || workspaceStore.genericBreadthHistoryLoading[genericBreadthKey.value] === true)
+  : workspaceStore.genericBreadthLoading[genericBreadthKey.value] === true)
+const genericBreadthHistoryLoading = computed(() => !breadthUsesPython.value
+  && workspaceStore.genericBreadthHistoryLoading[genericBreadthKey.value] === true)
 const genericBreadthRunError = ref('')
 watch([breadthCustomUniverseKind, breadthWatchlistSourceId], () => {
   genericBreadthRunError.value = ''
 })
-const genericBreadthError = computed(() => {
+const genericBreadthEvaluationError = computed(() => {
   if (genericBreadthRunError.value) return genericBreadthRunError.value
   if (breadthUsesPython.value) {
     if (breadthPythonSeriesError.value) return breadthPythonSeriesError.value
@@ -3547,8 +3566,11 @@ const genericBreadthError = computed(() => {
     if (breadthPythonSeriesStatus.value === 'canceled') return 'The isolated Python breadth run was canceled.'
     return null
   }
-  return workspaceStore.genericBreadthErrors[genericBreadthKey.value] ?? workspaceStore.genericBreadthHistoryErrors[genericBreadthKey.value] ?? null
+  return workspaceStore.genericBreadthErrors[genericBreadthKey.value] ?? null
 })
+const genericBreadthHistoryError = computed(() => breadthUsesPython.value
+  ? null
+  : workspaceStore.genericBreadthHistoryErrors[genericBreadthKey.value] ?? null)
 const genericBreadthPercentage = computed(() => genericBreadth.value?.percentage == null ? 'Unavailable' : `${(genericBreadth.value.percentage * 100).toFixed(1)}%`)
 const genericBreadthCoverage = computed(() => genericBreadth.value == null ? 'Unavailable' : `${(genericBreadth.value.coverage * 100).toFixed(1)}%`)
 const genericBreadthReferenceTargetEvidence = computed(() => breadthReferenceTargetEvidence(genericBreadth.value?.condition))
@@ -4798,6 +4820,10 @@ watch([benchmarkFamilyKey, benchmarkFamilyCapProxy, activeTimeframe], async ([fa
   benchmarkFamilyPreparationAbort?.abort()
   benchmarkFamilyPreparationAbort = null
   benchmarkFamilyPreparationStatus.value = ''
+  // A prior family request may still be in flight when the user switches to
+  // the plain benchmark catalogue. Its finally block is generation-fenced, so
+  // release the foreground busy state for this new context before returning.
+  benchmarkFamilyLoading.value = false
   if (!familyKey) return
   if (!familyAsOf.value) {
     const preparationGeneration = ++benchmarkFamilyPreparationGeneration
@@ -4977,13 +5003,13 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
   .chart-tool__templates { top: 25px; right: 4px; }
 }
 /* A desktop workstation can contain a much narrower chart pane than the
-   viewport. Use the chart container's actual width so comparison chips never
-   cover Plots in dense factory layouts. */
+   viewport. Reserve a separate compact controls row for every chart so Plots
+   and Templates remain distinct, hittable controls with or without comparisons. */
 @container chart-tool (max-width: 560px) {
-  .chart-tool__surface--comparisons { padding-top: 46px; }
+  .chart-tool__surface { padding-top: 46px; }
+  .chart-tool__plots { top: 25px; left: 4px; right: auto; }
+  .chart-tool__templates { top: 25px; right: 4px; }
   .chart-tool__surface--comparisons .chart-tool__compare { top: 3px; left: 4px; right: 4px; max-width: none; }
-  .chart-tool__surface--comparisons .chart-tool__plots { top: 25px; left: 4px; right: auto; }
-  .chart-tool__surface--comparisons .chart-tool__templates { top: 25px; right: 4px; }
 }
 .tool-state { display: grid; place-items: center; height: 100%; padding: 12px; color: #98a7b2; font: 11px "Segoe UI", Arial, sans-serif; text-align: center; }
 .tool-state--error { color: #ec8f8f; }
@@ -5019,6 +5045,7 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 .breadth-tool__family-coverage { display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; padding:4px 7px; border-top:1px solid #2b3841; color:#9aabb6; }.breadth-tool__family-coverage > span { color:#778994; }.breadth-tool__family-coverage-roles { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); flex:1 0 100%; gap:3px; }.breadth-tool__family-coverage-roles span { min-width:0; padding:3px 4px; border:1px solid #2b3841; color:#8497a4; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }.breadth-tool__family-coverage-roles b { color:#cad4db; }.analysis { height: 100%; min-height: 0; }
 .breadth-tool { display:flex; flex-direction:column; height:100%; min-height:0; overflow:auto; container-type:inline-size; }.breadth-tool__universe { display:flex; flex-wrap:wrap; gap:5px; align-items:center; padding:5px 7px 0; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; min-width:0; }.breadth-tool__universe span { flex:0 0 auto; }.breadth-tool__universe select,.breadth-tool__universe input { border:1px solid #34434e; background:#172027; color:#d2dce3; font:inherit; min-width:0; max-width:100%; }.breadth-tool__universe select { flex:1 1 100px; }.breadth-tool__universe input { width:42px; flex:0 1 42px; }.breadth-tool__universe label { display:flex; flex:0 0 auto; align-items:center; gap:3px; white-space:nowrap; }.breadth-tool__custom { display:flex; flex-wrap:wrap; align-items:center; gap:4px; padding:5px 7px; border-top:1px solid #2b3841; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__custom select,.breadth-tool__custom input,.breadth-tool__custom button { border:1px solid #34434e; background:#172027; color:#d2dce3; font:inherit; min-width:0; }.breadth-tool__custom input { width:44px; }.breadth-tool__custom label { display:flex; align-items:center; gap:3px; }.breadth-tool__custom button { padding:2px 6px; cursor:pointer; }.breadth-tool__custom-result { color:#c3d2dc; white-space:nowrap; }.breadth-tool__composition-note { color:#74858f; }.breadth-tool__family-ratios { display:flex; flex-wrap:wrap; align-items:center; gap:4px; padding:5px 7px; border-top:1px solid #2b3841; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__family-ratios select,.breadth-tool__family-ratios input { border:1px solid #34434e; background:#172027; color:#d2dce3; font:inherit; min-width:0; }.breadth-tool__family-ratios input { width:44px; }.breadth-tool__family-ratio { display:inline-flex; align-items:center; gap:4px; padding-left:4px; border-left:1px solid #34434e; }.breadth-tool__family-ratio b { color:#d7e8f0; }.breadth-tool__family-ratio small { color:#778994; }.breadth-tool__family-overview { min-height:0; max-height:230px; overflow:auto; border-top:1px solid #2b3841; border-bottom:1px solid #2b3841; background:#131a20; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__family-overview-header,.breadth-tool__family-constituents-header { display:flex; justify-content:space-between; gap:8px; align-items:center; padding:4px 7px; position:sticky; top:0; z-index:1; background:#20282f; }.breadth-tool__family-overview-header span,.breadth-tool__family-constituents-header span { color:#778994; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }.breadth-tool__family-legs { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:3px; padding:4px 6px; }.breadth-tool__family-leg { min-width:0; padding:4px; border:1px solid #2b3841; background:#172027; }.breadth-tool__family-leg--selected { border-color:#5d9ab6; background:#1b3340; }.breadth-tool__family-leg div { display:flex; justify-content:space-between; gap:4px; }.breadth-tool__family-leg div span,.breadth-tool__family-leg small { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#778994; }.breadth-tool__family-leg button { margin-top:3px; padding:1px 4px; border:1px solid #34434e; background:#11181d; color:#c7d6df; font:inherit; cursor:pointer; }.breadth-tool__family-leg button:disabled { cursor:not-allowed; opacity:.55; }.breadth-tool__family-constituents { border-top:1px solid #2b3841; }.breadth-tool__family-constituents > button { display:flex; gap:8px; width:100%; border:0; border-bottom:1px solid #20282f; background:transparent; color:#cad4db; padding:3px 7px; text-align:left; cursor:pointer; }.breadth-tool__family-constituents > button:hover { background:#1d4057; }.breadth-tool__family-constituents > button span { color:#81929e; }.breadth-tool__family-constituents > button small { margin-left:auto; color:#9bb6c3; }.breadth-tool__status { margin:0; padding:5px 7px; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__status--error { color:#ff9b8a; }.metrics { display: grid; grid-template-columns: 1fr auto; gap: 5px 10px; padding: 9px; color: #99aabb; font: 10px "Segoe UI", Arial, sans-serif; }.breadth-tool__coverage-detail { padding:0 7px 4px; color:#778994; font:9px "Segoe UI",Arial,sans-serif; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }.breadth-tool__actions { display:flex; gap:3px; justify-content:flex-end; }.breadth-tool__actions button,.breadth-tool__drilldown header button,.breadth-tool__generic-drilldown header button { border:1px solid #34434e; background:#172027; color:#b9c8d1; font:inherit; padding:1px 4px; cursor:pointer; }.breadth-tool__actions button:hover,.breadth-tool__action--active { background:#1d4057; color:#e5f1f7; }.breadth-tool__drilldown,.breadth-tool__generic-drilldown { min-height:0; max-height:150px; overflow:auto; border-top:1px solid #2b3841; border-bottom:1px solid #2b3841; background:#131a20; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__drilldown header,.breadth-tool__generic-drilldown header,.breadth-tool__generic-history-events header { display:flex; justify-content:space-between; align-items:center; padding:4px 7px; color:#9aabb6; position:sticky; top:0; background:#20282f; }.breadth-tool__drilldown > button,.breadth-tool__generic-drilldown > button,.breadth-tool__generic-history-events > button { display:flex; gap:8px; width:100%; border:0; border-bottom:1px solid #20282f; background:transparent; color:#cad4db; padding:4px 7px; text-align:left; cursor:pointer; }.breadth-tool__drilldown > button:hover,.breadth-tool__generic-drilldown > button:hover,.breadth-tool__generic-history-events > button:hover { background:#1d4057; }.breadth-tool__drilldown > button span,.breadth-tool__generic-drilldown > button span,.breadth-tool__generic-history-events > button span { color:#81929e; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }.breadth-tool__generic-drilldown > button small,.breadth-tool__generic-history-events > button small { margin-left:auto; color:#9bb6c3; }.breadth-tool__drilldown > small,.breadth-tool__generic-drilldown > small,.breadth-tool__generic-history-events > small { display:block; padding:7px; color:#8497a4; }.breadth-tool__generic-history-events { min-height:0; max-height:150px; overflow:auto; border-top:1px solid #2b3841; border-bottom:1px solid #2b3841; background:#131a20; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__generic-history-events header span { color:#778994; }
 .breadth-tool__generic-history-events { position: relative; z-index: 2; }
+.breadth-tool__generic-drilldown { flex: 0 0 auto; }
 .breadth-tool__member-diagnostics { flex:1 1 100%; margin-left:0 !important; color:#d0a66a !important; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .breadth-tool__generic-diagnostics { max-height:110px; overflow:auto; border-top:1px solid #2b3841; border-bottom:1px solid #2b3841; background:#131a20; color:#d0a66a; font:9px "Segoe UI",Arial,sans-serif; }.breadth-tool__generic-diagnostics header { display:flex; justify-content:space-between; padding:4px 7px; position:sticky; top:0; background:#20282f; color:#9aabb6; }.breadth-tool__generic-diagnostics header span { color:#778994; }.breadth-tool__generic-diagnostics > div:not(header) { padding:2px 7px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .breadth-tool__generic-evidence { padding:2px 7px 4px; border-top:1px solid #2b3841; color:#8497a4; font:9px "Segoe UI",Arial,sans-serif; }.breadth-tool__generic-evidence summary { width:max-content; color:#9aabb6; cursor:pointer; }.breadth-tool__generic-evidence dl { display:grid; grid-template-columns:max-content minmax(0,1fr); gap:2px 8px; margin:5px 0; }.breadth-tool__generic-evidence dl > div { display:contents; }.breadth-tool__generic-evidence dt { color:#778994; }.breadth-tool__generic-evidence dd { min-width:0; margin:0; color:#b9c8d1; overflow-wrap:anywhere; }.breadth-tool__generic-evidence code { color:#9bb6c3; overflow-wrap:anywhere; }.breadth-tool__generic-evidence section > strong { color:#9aabb6; }.breadth-tool__generic-evidence ul { margin:3px 0 0; padding-left:18px; }.breadth-tool__generic-evidence li { margin-top:2px; }

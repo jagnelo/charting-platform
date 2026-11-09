@@ -1,3 +1,11 @@
+# ETF Notes foreground intent — 2026-11-09
+
+Consumed the Root-released TC common source `a10b07353246ecd1251c25742bb070803fbc02d5` (manifest SHA256 `7de1325559bfa69b56742a7a4a99377fc25b98159c03bc51e67e1987fed0ea4b`): all116 source rows were checked against the source Git tree/blob/SHA256, and all32 declared ETF imports passed old guards and match exact bytes/modes. The canonical full-SHA manifest is stored under `development-dependency-imports/`; the active approved import list now contains the exact released entry and nonempty prior path remainders, while the prior list is preserved under `historical_approved_development_dependency_imports`.
+
+Visible Notes now sends foreground intent for canonical identity and note reads. If visibility changes while canonical identity is still pending, the component rejoins the exact deduplicated canonical query with foreground intent; if identity is known, it promotes the pending note request. Hidden Notes remains background. Focused Notes unit module passed10/10; frontend type-check and workstream validation passed. The first focused run exposed three stale expected canonical queue-key options; assertions were updated to the released helper contract. Root owns actual J12 browser acceptance and all combined/release gates; no browser, native/provider, Docker or CI run was performed here.
+
+---
+
 # Current R37 follow-up — stored ETF selection and async preset delete — 2026-11-07
 
 Selection coverage now distinguishes both supported cache paths: an exact-symbol stored-profile query can resolve XLB while the broad startup catalogue remains pending, and an ordinary symbol search can select a cached XLB already present in the loaded profile list without `explicitlyResolved`. Both keep cached dated rows visible while ensure is pending/unavailable and send only the symbol when no verified ID exists. The two focused selection regressions passed; full ETF view module and Root browser requalification remain separate gates.

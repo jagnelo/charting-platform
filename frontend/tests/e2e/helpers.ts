@@ -15,6 +15,7 @@ const PASS  = process.env.TEST_PASS  ?? 'E2ePassword123!'
 // produce that response. Do not treat arbitrary 409s (workspace/watchlist
 // conflicts, malformed requests, or admin refresh conflicts) as expected.
 const EXPECTED_CURRENT_ANALYSIS_CONFLICT_PATH = /^\/api\/v1\/(?:analysis\/(?:benchmark-families\/[^/]+\/breadth(?:\/history)?|breadth(?:\/history)?|etf\/[^/]+\/(?:industries\/snapshot|constituents\/snapshot))|market-groups\/etf\/[^/]+\/industries|etf-holdings\/[^/]+\/basket)$/
+const EXPECTED_MISSING_STUDY_ARTIFACT_REFERENCE_PATH = /^\/api\/v1\/strategy-lab\/v2\/study-artifact-references\/[1-9]\d*\/[1-9]\d*$/
 
 export { expect }
 
@@ -222,6 +223,10 @@ export class BrowserDiagnostics {
       }
       if (response.status() !== 404) return
       const path = new URL(response.url()).pathname
+      if (response.request().method() === 'GET' && EXPECTED_MISSING_STUDY_ARTIFACT_REFERENCE_PATH.test(path)) {
+        this.expectedUnavailableApi404s += 1
+        return
+      }
       if (/^\/api\/v1\/(?:analysis\/(?:relative-strength|groups\/[^/]+\/(?:snapshot|relative-rotation)|instruments\/[^/]+\/technical|etf\/[^/]+\/constituents\/snapshot)|coverage\/instruments\/[^/]+|etf-holdings\/[^/]+\/(?:holdings|latest)|market-groups\/etf\/[^/]+\/industries|instruments\/[^/]+|ohlcv(?:\/local)?\/[^/]+\/[^/]+|watchlists(?:\/.*)?)$/.test(path)) {
         this.expectedUnavailableApi404s += 1
         if (path === '/api/v1/watchlists') this.expectedWatchlistLoadErrors += 1

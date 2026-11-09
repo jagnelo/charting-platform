@@ -65,12 +65,17 @@ function addGroup() { group.conditions.push({ operator: 'AND', conditions: [crea
 </script>
 
 <style scoped>
-.condition-group { display: grid; gap: 4px; padding: 5px; border: 1px solid #3d5360; background: #172027; }
-.condition-group--nested { border-color: #34434e; background: #141a1f; }
-.condition-group header, .condition-group footer { display: flex; align-items: center; gap: 4px; }
-.condition-group header span { color: #a9bbc5; }
+.condition-group { display: grid; gap: 5px; min-width: 0; padding: 5px; border: 1px solid var(--tc-border); background: var(--tc-panel-bg); color: var(--tc-text); }
+.condition-group--nested { border-color: var(--tc-border); background: var(--tc-window-bg); }
+.condition-group header, .condition-group footer { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+.condition-group header span { color: var(--tc-text-muted); font-size: 11px; font-weight: 600; }
 .condition-group header select { margin-left: auto; }
-.condition-group header button { padding: 0 5px; }
-.condition-group__children { display: grid; gap: 4px; }
-.condition-group footer button { padding: 2px 6px; }
+.condition-group select,
+.condition-group button { min-height: 26px; border: 1px solid var(--tc-border); border-radius: var(--tc-radius); background: var(--tc-control-bg); color: var(--tc-text); font: inherit; padding: 3px 7px; }
+.condition-group header button { display: inline-flex; align-items: center; justify-content: center; padding: 2px 6px; }
+.condition-group button:hover { border-color: var(--tc-border-strong); background: var(--tc-window-bg); }
+.condition-group button:focus-visible,
+.condition-group select:focus-visible { outline: 2px solid var(--tc-accent); outline-offset: 1px; }
+.condition-group__children { display: grid; gap: 5px; min-width: 0; }
+.condition-group footer button { padding: 3px 7px; }
 </style>

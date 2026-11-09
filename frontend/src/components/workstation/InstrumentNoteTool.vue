@@ -100,7 +100,10 @@ async function load() {
         return
       }
       status.value = 'Resolving canonical instrument…'
-      const instrument = await fetchCanonicalInstrument(queryClient, expectedSymbol)
+      const instrument = await fetchCanonicalInstrument(queryClient, expectedSymbol, {
+        priority: props.requestPriority,
+        foreground: props.requestPriority === 'high',
+      })
       assertAuthSessionCurrent(authSession)
       if (!mounted || generation !== loadGeneration || props.symbol.trim().toUpperCase() !== expectedSymbol) return
       if (instrument.symbol.trim().toUpperCase() !== expectedSymbol || !Number.isSafeInteger(instrument.id) || instrument.id <= 0) {
@@ -125,14 +128,19 @@ async function load() {
     // fetch options cannot promote the queued HTTP request. Promote by queue
     // key before joining it; the watcher below handles later priority changes.
     if (props.requestPriority === 'high') {
-      setQueuedApiRequestPriority(`instrument-note:${instrumentId}`, 'high')
+      setQueuedApiRequestPriority(`instrument-note:${instrumentId}`, 'high', true)
     }
     const note = await queryClient.fetchQuery<NoteCacheValue | null>({
       queryKey: key,
       queryFn: ({ signal }) => api.get<{ content: string; updated_at: string } | null>(
         `/notes/instruments/${instrumentId}`,
         undefined,
-        { signal, priority: props.requestPriority, queueKey: `instrument-note:${instrumentId}` },
+        {
+          signal,
+          priority: props.requestPriority,
+          foreground: props.requestPriority === 'high',
+          queueKey: `instrument-note:${instrumentId}`,
+        },
       ),
       staleTime: 30_000,
     })
@@ -161,8 +169,21 @@ async function load() {
 
 watch(() => [props.instrumentId, props.symbol] as const, () => { void load() }, { immediate: true })
 watch([() => props.requestPriority, activeInstrumentId] as const, ([priority, instrumentId]) => {
-  if (priority === 'high' && instrumentId != null) {
-    setQueuedApiRequestPriority(`instrument-note:${instrumentId}`, 'high')
+  if (priority !== 'high') return
+  if (instrumentId != null) {
+    setQueuedApiRequestPriority(`instrument-note:${instrumentId}`, 'high', true)
+    return
+  }
+
+  // The canonical identity GET can still be queued while Notes is hidden.
+  // Rejoin that exact deduplicated query with foreground intent so the helper
+  // promotes its existing queue entry; the original load owns the result.
+  const symbol = props.symbol.trim().toUpperCase()
+  if (symbol) {
+    void fetchCanonicalInstrument(queryClient, symbol, {
+      priority: 'high',
+      foreground: true,
+    }).catch(() => undefined)
   }
 })
 watch(content, () => {
