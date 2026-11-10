@@ -5,9 +5,11 @@ from __future__ import annotations
 import hashlib
 import importlib
 import json
+from contextvars import ContextVar
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from functools import wraps
 from uuid import NAMESPACE_URL, uuid4, uuid5
 
 from fastapi import HTTPException
@@ -259,7 +261,74 @@ async def _persisted_derived_coverage_ranges(
     return sorted(ranges, key=lambda item: (item.start_at, item.market_series_id or 0))
 
 
+# Per-request memo for retained-history coverage. It is set and cleared by the
+# ensure/maintenance entrypoints, so it never outlives one planning pass and
+# is never shared between requests or sessions. Outside those entrypoints
+# (for example GET responses) the memo is absent and nothing is cached.
+_RETAINED_COVERAGE_MEMO: ContextVar[dict | None] = ContextVar(
+    "retained_history_coverage_memo", default=None
+)
+
+
+def _request_scoped_coverage_memo(fn):
+    """Give one ensure/planning call its own retained-coverage memo."""
+
+    @wraps(fn)
+    async def wrapper(*args, **kwargs):
+        token = _RETAINED_COVERAGE_MEMO.set({})
+        try:
+            return await fn(*args, **kwargs)
+        finally:
+            _RETAINED_COVERAGE_MEMO.reset(token)
+
+    return wrapper
+
+
 async def _retained_history_coverage(
+    db: AsyncSession,
+    *,
+    instrument_id: int,
+    timeframe: Timeframe,
+    adjusted: bool,
+    requested_start: datetime | None,
+    requested_end: datetime | None,
+) -> tuple[OhlcvCoverageAssessment | None, list[PreparationCoveredRange]]:
+    """Return retained coverage, reusing one result per key inside a request.
+
+    Callers receive copies, so mutating a result cannot change the memo.
+    """
+
+    memo = _RETAINED_COVERAGE_MEMO.get()
+    if memo is None:
+        return await _retained_history_coverage_uncached(
+            db,
+            instrument_id=instrument_id,
+            timeframe=timeframe,
+            adjusted=adjusted,
+            requested_start=requested_start,
+            requested_end=requested_end,
+        )
+    key = (
+        instrument_id,
+        timeframe.value,
+        bool(adjusted),
+        _as_utc(requested_start).isoformat() if requested_start is not None else None,
+        _as_utc(requested_end).isoformat() if requested_end is not None else None,
+    )
+    if key not in memo:
+        memo[key] = await _retained_history_coverage_uncached(
+            db,
+            instrument_id=instrument_id,
+            timeframe=timeframe,
+            adjusted=adjusted,
+            requested_start=requested_start,
+            requested_end=requested_end,
+        )
+    assessment, ranges = memo[key]
+    return deepcopy(assessment), deepcopy(ranges)
+
+
+async def _retained_history_coverage_uncached(
     db: AsyncSession,
     *,
     instrument_id: int,
@@ -633,13 +702,65 @@ def _etf_holdings_preparer():
     return getattr(module, "prepare_etf_holdings", None)
 
 
-async def _append_parent_ref(db: AsyncSession, job: MarketRefreshJob, ref: dict) -> None:
+# A shared child keeps one ref per attached parent request. Only the newest
+# refs are retained. The bound stops a long-lived child from growing without
+# limit; refs for parents that no longer exist are dropped as well.
+_MAX_PARENT_REFS = 64
+
+
+def _parent_ref_key(ref: dict) -> str:
+    return json.dumps(ref, sort_keys=True, default=str)
+
+
+def _dedupe_parent_refs(refs: list[dict]) -> list[dict]:
+    """Keep the first occurrence of each ref, in order, in linear time."""
+
+    seen: set[str] = set()
+    unique: list[dict] = []
+    for ref in refs:
+        key = _parent_ref_key(ref)
+        if key not in seen:
+            seen.add(key)
+            unique.append(ref)
+    return unique
+
+
+async def _merge_parent_refs(db: AsyncSession, job: MarketRefreshJob, new_refs: list[dict]) -> None:
+    """Attach ``new_refs`` to a child with one payload write and one flush.
+
+    Existing refs are deduplicated and bounded in memory. Refs whose parent job
+    no longer exists are removed with one batched lookup. Refs being added are
+    never dropped. Terminal parents keep their refs: the worker's child-driven
+    parent updates and the stored dependency state still read them, and GET
+    recomputes only part of the state from child jobs. The newest
+    ``_MAX_PARENT_REFS`` refs are kept.
+    """
+
     payload = deepcopy(job.metadata_payload or {})
     child = deepcopy(payload.get("data_preparation_child") or {})
-    refs = list(child.get("parent_refs") or [])
-    if ref not in refs:
-        refs.append(ref)
-    child["parent_refs"] = refs
+    existing = _dedupe_parent_refs(list(child.get("parent_refs") or []))
+    added_keys = {_parent_ref_key(ref) for ref in new_refs}
+    merged = _dedupe_parent_refs([*existing, *new_refs])
+    parent_ids = {
+        int(ref["parent_job_id"]) for ref in merged if ref.get("parent_job_id") is not None
+    }
+    live_parent_ids: set[int] = set()
+    if parent_ids:
+        live_parent_ids = set(
+            (
+                await db.execute(
+                    select(MarketRefreshJob.id).where(MarketRefreshJob.id.in_(parent_ids))
+                )
+            ).scalars()
+        )
+    kept = [
+        ref
+        for ref in merged
+        if _parent_ref_key(ref) in added_keys
+        or ref.get("parent_job_id") is None
+        or int(ref["parent_job_id"]) in live_parent_ids
+    ]
+    child["parent_refs"] = kept[-_MAX_PARENT_REFS:]
     payload["data_preparation_child"] = child
     job.metadata_payload = payload
     await db.flush()
@@ -772,11 +893,17 @@ async def _enqueue_identity_profile_job(
         now=now,
         preserve_deferred_deadline=True,
     )
-    for ref in [
-        *prior_refs,
-        {"parent_job_id": parent_job_id, "owner_user_id": owner_user_id, "request_id": request_id},
-    ]:
-        await _append_parent_ref(db, job, ref)
+    await _merge_parent_refs(
+        db,
+        job,
+        [
+            {
+                "parent_job_id": parent_job_id,
+                "owner_user_id": owner_user_id,
+                "request_id": request_id,
+            }
+        ],
+    )
     return job
 
 
@@ -857,11 +984,17 @@ async def _enqueue_etf_holdings_job(
         now=now,
         preserve_deferred_deadline=True,
     )
-    for ref in [
-        *prior_refs,
-        {"parent_job_id": parent_job_id, "request_id": request_id, "dependency_id": dependency_id},
-    ]:
-        await _append_parent_ref(db, job, ref)
+    await _merge_parent_refs(
+        db,
+        job,
+        [
+            {
+                "parent_job_id": parent_job_id,
+                "request_id": request_id,
+                "dependency_id": dependency_id,
+            }
+        ],
+    )
     return job
 
 
@@ -1013,16 +1146,9 @@ async def _enqueue_history_dependency(
         now=now,
         preserve_deferred_deadline=True,
     )
-    job_payload = deepcopy(job.metadata_payload or {})
-    child_payload = deepcopy(job_payload.get("data_preparation_child") or {})
-    refs = list(child_payload.get("parent_refs") or prior_refs)
-    ref = {"parent_job_id": parent_job_id, "dependency_id": dependency_id}
-    if ref not in refs:
-        refs.append(ref)
-    child_payload["parent_refs"] = refs
-    job_payload["data_preparation_child"] = child_payload
-    job.metadata_payload = job_payload
-    await db.flush()
+    await _merge_parent_refs(
+        db, job, [{"parent_job_id": parent_job_id, "dependency_id": dependency_id}]
+    )
     return job
 
 
@@ -1070,15 +1196,7 @@ async def _enqueue_screener_expansion_job(
         "request_id": request_id,
         "dependency_id": dependency_id,
     }
-    payload = deepcopy(job.metadata_payload or {})
-    child = deepcopy(payload.get("data_preparation_child") or {})
-    refs = list(child.get("parent_refs") or prior_refs)
-    if ref not in refs:
-        refs.append(ref)
-    child["parent_refs"] = refs
-    payload["data_preparation_child"] = child
-    job.metadata_payload = payload
-    await db.flush()
+    await _merge_parent_refs(db, job, [ref])
     return job
 
 
@@ -1304,6 +1422,7 @@ async def _enqueue_instrument_dependencies(
     return dependencies
 
 
+@_request_scoped_coverage_memo
 async def create_data_preparation_request(
     db: AsyncSession,
     *,
@@ -1571,6 +1690,7 @@ async def create_data_preparation_request(
     return parent
 
 
+@_request_scoped_coverage_memo
 async def create_maintenance_data_preparation_request(
     db: AsyncSession,
     *,

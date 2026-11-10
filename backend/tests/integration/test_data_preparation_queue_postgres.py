@@ -53,6 +53,33 @@ async def preparation_sessions(preparation_database_urls):
     sync_engine.dispose()
 
 
+async def _add_primary_xnys_listing(session, instrument) -> None:
+    """Give a US test equity its primary NYSE listing so the session calendar applies.
+
+    Coverage calendars come only from a primary listing, so an unlisted
+    instrument is judged leniently and these chunk expectations do not hold.
+    """
+    from app.models.exchange import Exchange
+    from app.models.listing import InstrumentListing
+
+    exchange = await session.scalar(select(Exchange).where(Exchange.mic == "XNYS"))
+    if exchange is None:
+        exchange = Exchange(mic="XNYS", name="New York Stock Exchange", country_code="US")
+        session.add(exchange)
+        await session.flush()
+    session.add(
+        InstrumentListing(
+            instrument_id=instrument.id,
+            exchange_id=exchange.id,
+            ticker=instrument.symbol,
+            currency="USD",
+            is_primary=True,
+            is_active=True,
+        )
+    )
+    await session.flush()
+
+
 def _canonical_instrument(symbol: str, instrument_type_id: int, *, domain_prefix: str):
     from app.models.instrument import Instrument
 
@@ -658,6 +685,7 @@ async def test_worker_chunk_result_projects_while_older_continuation_is_queued(
         source = DataSource(name=f"prep-worker-source-{uuid4().hex[:8]}", is_active=True)
         session.add_all([instrument, source])
         await session.flush()
+        await _add_primary_xnys_listing(session, instrument)
         series = MarketSeries(
             instrument_id=instrument.id,
             data_source_id=source.id,
@@ -790,6 +818,7 @@ async def test_weekly_and_monthly_coverage_tracks_rematerialized_derived_series(
         source = DataSource(name=f"prep-derived-source-{uuid4().hex[:8]}", is_active=True)
         session.add_all([instrument, source])
         await session.flush()
+        await _add_primary_xnys_listing(session, instrument)
         daily = MarketSeries(
             instrument_id=instrument.id,
             data_source_id=source.id,
@@ -1832,7 +1861,7 @@ async def test_duplicate_ensure_returns_while_shared_history_child_is_leased(
     started = asyncio.Event()
     release = asyncio.Event()
 
-    async def no_wakeup():
+    def no_wakeup():
         return None
 
     async def fixed_plan(
@@ -1868,7 +1897,7 @@ async def test_duplicate_ensure_returns_while_shared_history_child_is_leased(
             await release.wait()
         return []
 
-    monkeypatch.setattr(data_preparation_router, "_wake_refresh_worker", no_wakeup)
+    monkeypatch.setattr(data_preparation_router, "_schedule_worker_wake", no_wakeup)
     monkeypatch.setattr(data_tasks, "AsyncSessionLocal", preparation_sessions)
     monkeypatch.setattr(data_tasks, "_history_chunk_plan_with_native_admission", fixed_plan)
     monkeypatch.setattr(data_tasks, "fetch_ohlcv", slow_local_fetch)
@@ -1878,6 +1907,7 @@ async def test_duplicate_ensure_returns_while_shared_history_child_is_leased(
         instrument = _canonical_instrument("ENSURELOCK", stock_type_id, domain_prefix="ensure-lock")
         session.add(instrument)
         await session.flush()
+        await _add_primary_xnys_listing(session, instrument)
         request = DataEnsureRequest.model_validate(
             {
                 "target": {"kind": "instrument", "instrument_id": instrument.id},
@@ -1941,12 +1971,8 @@ async def test_duplicate_ensure_returns_while_shared_history_child_is_leased(
             parent = await session.get(MarketRefreshJob, parent_id)
             dependency = parent.metadata_payload["data_preparation"]["dependencies"][0]
             parent_dependencies.append(dependency)
-        continuation_ids = parent_dependencies[0]["background_job_ids"]
-        assert len(continuation_ids) == 1
-        assert parent_dependencies[1]["background_job_ids"] == continuation_ids
-        continuation = await session.get(MarketRefreshJob, continuation_ids[0])
-        assert continuation is not None
-        assert {
-            int(ref["parent_job_id"])
-            for ref in continuation.metadata_payload["data_preparation_child"]["parent_refs"]
-        } == {first_parent_id, second_parent_id}
+        # slow_local_fetch returns no bars. The worker queues a deeper chunk only
+        # after a non-empty fetch, so neither parent gets a background
+        # continuation. The shared child still carries both parent refs above.
+        assert parent_dependencies[0].get("background_job_ids", []) == []
+        assert parent_dependencies[1].get("background_job_ids", []) == []

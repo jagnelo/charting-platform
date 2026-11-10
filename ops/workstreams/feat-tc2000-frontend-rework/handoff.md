@@ -1,3 +1,7 @@
+# 2026-11-10 — Adopt Provider 82850f7c data-preparation lock fix and integration test stabilisation
+
+Provider re-released the final adoption as 82850f7c (four-key manifest, sha256 fb8ab54c…4804, 98 files); 12 backend paths imported unchanged, including ETF's bridge runtime test. 254e83ed archived in plan history. No TC product change; pushed with the earlier Strategy and RRG commits.
+
 # 2026-11-10 — Keep the RRG plane when a duplicate's preparation fails
 
 The duplicated RRG tool joined the original's shared rotation read; the original's unmount aborted that fetch, so the survivor showed 'RRG update failed' with no plane. The shared query now owns its cancellation, and a failed preparation over loaded rows is a non-blocking 'RRG local results' notice. Unit reproduction added; no e2e assertion loosened; not pushed.

@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from uuid import uuid4
 
 from arq.connections import RedisSettings, create_pool
 from fastapi import APIRouter, Depends, Header, status
-from redis.exceptions import TimeoutError as RedisTimeoutError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
@@ -25,30 +25,69 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/data", tags=["data-preparation"])
 
 
-async def _wake_refresh_worker() -> None:
-    """Wake the registered queue consumer; durable DB rows survive Redis failure."""
+# The durable database queue is authoritative. The Redis wake is a best-effort
+# hint, so it must never hold a request, a transaction or a lock. One pool is
+# shared for the process lifetime, with short timeouts and no connect retries.
+_WAKE_TIMEOUT_SECONDS = 1.0
+_WAKE_CONNECT_TIMEOUT_SECONDS = 1.0
+_wake_pool = None
+_wake_pool_lock = asyncio.Lock()
+_wake_tasks: set[asyncio.Task] = set()
 
-    redis = None
+
+async def _get_wake_pool():
+    """Create the shared worker-wake pool once, on first use."""
+
+    global _wake_pool
+    if _wake_pool is None:
+        async with _wake_pool_lock:
+            if _wake_pool is None:
+                redis_settings = RedisSettings.from_dsn(settings.REDIS_URL)
+                redis_settings.conn_timeout = _WAKE_CONNECT_TIMEOUT_SECONDS
+                redis_settings.conn_retries = 0
+                redis_settings.conn_retry_delay = 0
+                _wake_pool = await create_pool(redis_settings)
+    return _wake_pool
+
+
+async def close_worker_wake_pool() -> None:
+    """Close the shared wake pool during application shutdown, if one exists."""
+
+    global _wake_pool
+    pool = _wake_pool
+    _wake_pool = None
+    if pool is None:
+        return
     try:
-        redis = await create_pool(RedisSettings.from_dsn(settings.REDIS_URL))
-        await redis.enqueue_job(
-            "task_process_refresh_jobs",
-            _job_id=f"data-preparation-wakeup:{uuid4().hex}",
-            _expires=600,
-        )
+        await pool.aclose()
+    except Exception as exc:  # shutdown must not fail on an optional hint
+        logger.warning("Could not close data-preparation wake pool: %s", type(exc).__name__)
+
+
+async def _enqueue_worker_wake() -> None:
+    pool = await _get_wake_pool()
+    await pool.enqueue_job(
+        "task_process_refresh_jobs",
+        _job_id=f"data-preparation-wakeup:{uuid4().hex}",
+        _expires=600,
+    )
+
+
+async def _wake_refresh_worker() -> None:
+    """Enqueue one worker wake within a fixed bound; failures are logged, never raised."""
+
+    try:
+        await asyncio.wait_for(_enqueue_worker_wake(), timeout=_WAKE_TIMEOUT_SECONDS)
     except Exception as exc:  # the committed database queue remains authoritative
         logger.warning("Could not prompt data-preparation worker: %s", type(exc).__name__)
-    finally:
-        if redis is not None:
-            try:
-                await redis.aclose()
-            except RedisTimeoutError as exc:
-                # The durable request was committed before this optional wake.
-                # A slow connection shutdown must not turn that acceptance into
-                # an HTTP error; the scheduled queue poll will still find it.
-                logger.warning(
-                    "Could not close data-preparation Redis pool: %s", type(exc).__name__
-                )
+
+
+def _schedule_worker_wake() -> None:
+    """Start the wake without delaying the HTTP response."""
+
+    task = asyncio.create_task(_wake_refresh_worker())
+    _wake_tasks.add(task)
+    task.add_done_callback(_wake_tasks.discard)
 
 
 @router.post(
@@ -70,8 +109,11 @@ async def ensure_data(
     )
     await db.commit()
     response = await get_data_preparation_response(db, parent=parent, owner_user_id=current_user.id)
+    # Close the read transaction before any Redis I/O, so no lock or
+    # transaction is held while the worker is woken.
+    await db.commit()
     if response.status in {"queued", "partial"}:
-        await _wake_refresh_worker()
+        _schedule_worker_wake()
     return response
 
 

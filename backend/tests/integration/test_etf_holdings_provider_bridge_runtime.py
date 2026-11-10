@@ -103,6 +103,16 @@ class _ProviderDB:
 
 def _freeze_vaneck_authentic_fixture_clock(monkeypatch):
     """Keep the authentic 2026-10-29 workbook inside its reviewed daily window."""
+    _freeze_etf_bridge_clock(monkeypatch, datetime(2026, 11, 1, 12, 0, tzinfo=UTC))
+
+
+def _freeze_etf_bridge_clock(monkeypatch, frozen_now: datetime | None = None):
+    """Pin one logical clock across the ETF bridge path.
+
+    Fixture compositions are dated 2026-10-29 to 2026-11-02. Freshness,
+    capability staleness, bridge deadlines and evidence checks must all judge
+    them at the same fixed instant, so the real date never changes outcomes.
+    """
 
     import sys
 
@@ -128,10 +138,18 @@ def _freeze_vaneck_authentic_fixture_clock(monkeypatch):
         provider_runtime,
     )
 
-    frozen_now = datetime(2026, 11, 1, 12, 0, tzinfo=UTC)
+    if frozen_now is None:
+        frozen_now = datetime(2026, 11, 3, 12, 0, tzinfo=UTC)
     real_datetime = datetime
 
-    class FixtureDateTime(real_datetime):
+    class _FrozenDateTimeMeta(type):
+        # Production code validates ``isinstance(value, datetime)`` against the
+        # pinned name, while values it receives are real datetimes. Keep that
+        # check truthful after pinning.
+        def __instancecheck__(cls, value):
+            return isinstance(value, real_datetime)
+
+    class FixtureDateTime(real_datetime, metaclass=_FrozenDateTimeMeta):
         @classmethod
         def now(cls, tz=None):
             return frozen_now.replace(tzinfo=None) if tz is None else frozen_now.astimezone(tz)
@@ -142,7 +160,7 @@ def _freeze_vaneck_authentic_fixture_clock(monkeypatch):
 
     # Keep fixture seeding, provider admission/logging, adapter parsing, and
     # snapshot freshness on one logical clock. The source workbook and its
-    # provider-reported 2026-10-29 composition date remain byte-identical.
+    # provider-reported composition dates remain byte-identical.
     monkeypatch.setattr(sys.modules[__name__], "datetime", FixtureDateTime)
     for module in (
         etf_holdings_service,
@@ -154,6 +172,25 @@ def _freeze_vaneck_authentic_fixture_clock(monkeypatch):
         provider_runtime,
     ):
         monkeypatch.setattr(module, "datetime", FixtureDateTime)
+    # Every ETF and provider service on the bridge path reads the same clock.
+    import importlib
+
+    for name in (
+        "app.services.etf_holdings_native_qualification",
+        "app.services.etf_holdings_capability",
+        "app.services.etf_holdings_preparation",
+        "app.services.etf_holdings_edgar",
+        "app.services.etf_issuer_catalog",
+        "app.services.provider_routing",
+        "app.services.provider_support",
+        "app.services.provider_availability",
+        "app.services.provider_usage",
+        "app.services.provider_recurring_costs",
+        "app.services.provider_observations",
+        # Shared unit helpers build the adapter request context for these tests.
+        "tests.unit.services.test_etf_holdings_native_qualification",
+    ):
+        monkeypatch.setattr(importlib.import_module(name), "datetime", FixtureDateTime)
 
 
 async def _canonical_equity_instrument_type(session: AsyncSession, name: str) -> InstrumentType:
@@ -2933,6 +2970,7 @@ async def test_native_spdr_qualification_persists_then_ordinary_refreshes_same_s
     from app.models.etf_holdings import ETFHoldingsBackfillJob
     from app.services.etf_holdings_native_qualification import qualify_native_etf_fund
 
+    _freeze_etf_bridge_clock(monkeypatch)
     monkeypatch.setattr(settings, "PROVIDER_ROUTING_ENABLED", True)
     monkeypatch.setattr(settings, "ALLOW_PAID_PROVIDER_ROUTING", False)
     monkeypatch.setattr(
@@ -3325,6 +3363,7 @@ async def test_retained_native_failure_continuation_persists_without_transport(
         _OfflineAdapterClient,
     )
 
+    _freeze_etf_bridge_clock(monkeypatch)
     monkeypatch.setattr(settings, "PROVIDER_ROUTING_ENABLED", True)
     monkeypatch.setattr(settings, "ALLOW_PAID_PROVIDER_ROUTING", False)
     monkeypatch.setattr(

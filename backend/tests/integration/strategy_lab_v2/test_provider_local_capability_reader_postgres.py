@@ -18,6 +18,7 @@ from app.models.asset_class import AssetClass, InstrumentType
 from app.models.data_source import DataSource
 from app.models.exchange import Exchange
 from app.models.instrument import Instrument
+from app.models.listing import InstrumentListing
 from app.models.market_data_foundation import AdjustmentBasis, Issuer, MarketSeries
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
@@ -33,6 +34,7 @@ from app.strategy_lab_v2.provider_series_contract import (
 _READER_TABLES = (
     InstrumentType.__table__,
     Instrument.__table__,
+    InstrumentListing.__table__,
     MarketSeries.__table__,
     InstrumentDatasetState.__table__,
     OHLCVBar.__table__,
@@ -43,6 +45,7 @@ _EXPECTED_FK_CLOSURE = {
     "asset_class",
     "data_source",
     "exchange",
+    "instrument_listing",
     "instrument",
     "instrument_dataset_state",
     "instrument_type",

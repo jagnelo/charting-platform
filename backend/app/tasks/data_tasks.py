@@ -2010,10 +2010,12 @@ async def _enqueue_older_history_chunk(
         )
     ).scalar_one_or_none()
     if existing is not None:
+        from app.services.data_preparation import _MAX_PARENT_REFS, _dedupe_parent_refs
+
         existing_child = (existing.metadata_payload or {}).get("data_preparation_child") or {}
-        for ref in existing_child.get("parent_refs") or []:
-            if ref not in refs:
-                refs.append(ref)
+        refs = _dedupe_parent_refs([*refs, *(existing_child.get("parent_refs") or [])])[
+            -_MAX_PARENT_REFS:
+        ]
     useful_start = _optional_datetime(preparation.get("analysis_required_start"))
     next_priority = _older_chunk_priority(
         current_priority=job.priority,
