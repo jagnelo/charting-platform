@@ -1604,6 +1604,8 @@ excluded_paths:
 - docs/data-providers.md
 - docs/project-todos.md
 shared_path_exceptions:
+- path: .github/workflows/ci.yml
+  reason: Root-directed 2026-11-10 change of the e2e job timeout-minutes from 45 to 120 only, because the grown TC journey+visual Playwright suite exceeded 45m (run 42888104152); no job, step, spec or gate change.
 - path: backend/app/main.py
   reason: Register the TC-owned authenticated Favorites router only; do not add provider, ETF, or generic service behavior.
 - path: backend/app/models/__init__.py
