@@ -34,6 +34,10 @@ class BasketValidationError(ValueError):
     """Raised when a user-owned basket payload is not valid."""
 
 
+class BasketNotFoundError(BasketValidationError):
+    """Raised when a user-owned basket does not exist for the requesting user."""
+
+
 class BasketReadOnlyError(PermissionError):
     """Raised when a caller tries to mutate a read-only/system basket."""
 
@@ -332,7 +336,7 @@ async def get_basket_synthetic_ohlcv(
 
     basket = await get_basket(db, basket_id, user_id)
     if basket is None:
-        raise BasketValidationError("Basket not found.")
+        raise BasketNotFoundError("Basket not found.")
     if not basket.members:
         return []
 
@@ -510,7 +514,7 @@ async def list_basket_snapshots(
 ) -> list[BasketSnapshot]:
     basket = await get_basket(db, basket_id, user_id)
     if basket is None:
-        raise BasketValidationError("Basket not found.")
+        raise BasketNotFoundError("Basket not found.")
     return list(
         (
             await db.execute(

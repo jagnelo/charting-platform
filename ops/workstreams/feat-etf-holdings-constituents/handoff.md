@@ -1,3 +1,9 @@
+# Basket synthetic history not-found → 404 — 2026-11-10
+
+After DELETE /api/v1/baskets/30, a late GET /ohlcv/D1 could pass the route check and then raise an unmapped `BasketValidationError` in the series read, returning 500. Added `BasketNotFoundError` (subclass) in `app/services/baskets.py`, raised for missing baskets in the synthetic series and snapshot reads. The ohlcv route maps it to 404 with "Basket not found.". The other basket routes already return 404 for a missing basket. Test: `backend/tests/unit/services/test_basket_not_found.py`.
+
+---
+
 # Native composition freshness clock (test-only) — 2026-11-10
 
 16 native qualification tests failed on every branch because the refresh freshness check read the real date against fixtures dated Oct 30–Nov 2, 2026. Added an autouse fixture in `backend/tests/unit/services/test_etf_holdings_native_qualification.py` that pins only `etf_holdings_refresh.datetime` to 2026-11-03. Target files: 107 passed. All ETF/basket unit files: 1360 passed, 1 failed on a record-text assertion that also fails on HEAD and is not date-dependent.
