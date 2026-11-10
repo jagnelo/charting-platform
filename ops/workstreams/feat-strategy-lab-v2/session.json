@@ -37,16 +37,16 @@
       "text": "Dashboard layout-save failures restore the saved arrangement, explain the failure, and allow a retry that reconciles the visible layout with the server."
     }
   ],
-  "active_session_id": "02d5ffaa-53b5-4dec-b39c-0f36612b5436",
+  "active_session_id": "40da6ae1-d1cc-4ad5-8513-b344ed5d1d6d",
   "branch": "feat/strategy-lab-v2",
   "claim": {
     "branch": "feat/strategy-lab-v2",
-    "displaced_session_id": "7319d459-2838-40e4-bee4-fded78f58e16",
+    "displaced_session_id": "02d5ffaa-53b5-4dec-b39c-0f36612b5436",
     "host": "m920q",
-    "session_id": "02d5ffaa-53b5-4dec-b39c-0f36612b5436",
+    "session_id": "40da6ae1-d1cc-4ad5-8513-b344ed5d1d6d",
     "started_at": "2026-10-02T10:58:52.537175+00:00",
-    "taken_over_at": "2026-10-19T00:02:35.411892+00:00",
-    "takeover_request": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for Strategy Lab v2 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging.",
+    "taken_over_at": "2026-11-10T00:00:23.672299+00:00",
+    "takeover_request": "Human-authorized 2026-11-09/10 runtime migration: the user moved this workflow from Codex to Claude Code ('do whatever you must, i authorize you'). The Codex session for this branch stopped at its usage limit on 2026-11-09 02:37Z and is retired. A new Claude Code worker session (Haiku 5.5, low effort) with the same chat name continues the same goal from the durable workstream; preserve all source, evidence, roadmap and boundaries.",
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
@@ -56,26 +56,32 @@
     "full_roadmap_preserved": true,
     "heavy_profile": "Root owns the next browser replay of the Strategy-private workspace lifecycle test correction on the imported TC837 context. Strategy ran only type-check, test discovery, workstream/scope, and diff guards; exact-source CI, full profile, and release acceptance remain pending.",
     "id": "strategy-study-usability-2026-11-06",
-    "next_action": "Await Root review and replay of the workspace save/delete acknowledgment test correction; do not launch a browser, fixture, or native operation.",
+    "next_action": "Release candidate 5d19e512b is frozen for publication: Root passed the real Study journey at TC 08a3c0c6b (frontend e68a0f407, backend e949552bc) and the structured-result visual. No product or test changes until Root releases the freeze; Root publishes and runs exact-source CI. Do not launch a browser, fixture, or native operation.",
     "status": "in_progress"
   },
   "dirty_paths": [
-    "frontend/src/components/workstation/ResearchResultsTool.vue",
-    "frontend/src/components/workstation/StudyLabTool.vue",
-    "frontend/src/lib/api.ts",
-    "frontend/src/views/WorkstationView.vue",
-    "frontend/tests/e2e/on_demand_acquisition.spec.ts",
-    "frontend/tests/e2e/strategy_study_journey.spec.ts",
-    "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts",
-    "frontend/tests/unit/components/test_research_results_tool.test.ts",
-    "frontend/tests/unit/lib/test_api_client.test.ts",
-    "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts",
-    "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
-    "ops/workstreams/feat-strategy-lab-v2/development-dependency-imports/tc-f57c45c7-common-runtime-development-consumption-contract.json"
+    "ops/workstreams/feat-strategy-lab-v2/session.json"
   ],
   "docker": {
-    "available": false,
-    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-feat-strategy-lab-v2-7794d9e5",
+      "charting-stack-feat-strategy-lab-v2-7794d9e5"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "docker_ready": {
     "ready": false,
@@ -90,7 +96,7 @@
     "objective": "Advance feat/strategy-lab-v2: Prepare strategy-lab-v2-integration-1 for human review, preserving the complete original roadmap. Prepare independent consumer evidence now, then reconcile synchronized green staging after Provider, ETF and TC2000 integration and validate the combined application. Stop at ready_for_human_review.. Acceptance criteria: SLICP1: Preserve original goal and all 18 criterion IDs/texts, exhaustive dispositions and pending human acceptance; reconcile stale session progress with later evidence.; SLICP2: Prepare independent API/migration/worker and immutable-input consumer success/rejection evidence without importing unstaged implementations.; SLICP3: After Provider, ETF and TC2000 reach synchronized green staging and this source is unfrozen, merge staging here and reconcile canonical identity/series/coverage, known-at ETF membership and immutable CodeVersion/Study outputs.; SLICP4: Reconcile routers, migrations, configuration and Compose workers; pass full application and exact-source CI gates with unsupported scopes explicit and Nautilus RC results qualified by exact build and scope.; SLICP5: Publish a clean pushed checkpoint with tested source, impacts, limitations and outstanding roadmap; stop at ready_for_human_review, closure pending human acceptance.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
   },
   "goal_request_state": "ready",
-  "goal_state": "active",
+  "goal_state": "resumed_after_takeover",
   "goal_state_observations": [
     {
       "budget": "unbounded",
@@ -106,12 +112,12 @@
     }
   ],
   "goal_unavailable_reason": null,
-  "head": "011e2fc8b54360dbbe635440c12cce7146ca6b68",
+  "head": "5d19e512bbf3858185cc2ad1c8e41eea7615c4b2",
   "implementation_sha": "55851d2b953ce38de5afe59ba90b613ffde08f87",
   "last_checkpoint": "Authored the legacy Strategy definition/version/SPY D1 local-backtest/results/export/return journey; added V2 owner-resource/detail and denied-pin recovery reads; strengthened Breadth, dock-fit, and catalogue screenshot evidence; consumed exact TC f57 foreground-read context. Focused units/type/discovery passed; Root browser remains pending.",
   "last_human_progress_update": "2026-11-08T16:11:41+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Root runs the exact pending Strategy/workstation browser bodies on this coherent checkpoint. Do not launch a duplicate browser/fixture or native operation; preserve the full roadmap and operational holds.",
+  "next_action": "Release candidate 5d19e512b is frozen for publication (Root PASS at TC 08a3c0c6b, frontend e68a0f407, backend e949552bc); Root publishes and runs exact-source CI. No product or test changes until Root releases the freeze. Previously: Root runs the exact pending Strategy/workstation browser bodies (including the 5d19e512b Study journey rerun) on this coherent checkpoint. Strategy runs no browser, fixture or native operation; the offline SU7-SU9 Dashboard and Study/Results/Library focused unit checks pass (29 + 185). Await Root's result, then record PASS/FAIL per the handoff.",
   "parent_branch": "staging",
   "plan_hash": "939eb960080814953cf60696dc1f7b8533f6705123fedd0dc6d6561bbc8569d5",
   "planning_required": false,
@@ -133,7 +139,8 @@
     "37c1903b-49d2-4458-be7c-2dd5fa1b1f3f",
     "08c08eb6-dc6c-4327-b960-fa027e9e3c8a",
     "35f63909-6dea-4459-9682-dc8eecc9c720",
-    "7319d459-2838-40e4-bee4-fded78f58e16"
+    "7319d459-2838-40e4-bee4-fded78f58e16",
+    "02d5ffaa-53b5-4dec-b39c-0f36612b5436"
   ],
   "progress": {
     "completed": [
@@ -144,7 +151,7 @@
     ],
     "current_blocker": "Root browser execution is pending; local focused checks do not establish browser or release acceptance.",
     "current_phase": "strategy-exposed-legacy-v2-and-catalogue-journeys",
-    "next_action": "Root runs the exact pending Strategy/workstation browser bodies on this coherent checkpoint. Do not launch a duplicate browser/fixture or native operation; preserve the full roadmap and operational holds.",
+    "next_action": "Release candidate 5d19e512b is frozen for publication (Root PASS at TC 08a3c0c6b); Root publishes and runs exact-source CI. No product or test changes until Root releases the freeze. Do not launch a duplicate browser/fixture or native operation; preserve the full roadmap and operational holds.",
     "total": 9,
     "updated_at": "2026-11-08T17:55:51Z"
   },
@@ -153,7 +160,7 @@
   "remote_synchronized": false,
   "retained_docker_resources": [],
   "schema": 2,
-  "session_id": "02d5ffaa-53b5-4dec-b39c-0f36612b5436",
+  "session_id": "40da6ae1-d1cc-4ad5-8513-b344ed5d1d6d",
   "state": "checkpointed",
   "takeover_history": [
     {
@@ -251,6 +258,12 @@
       "displaced_session_id": "7319d459-2838-40e4-bee4-fded78f58e16",
       "new_session_id": "02d5ffaa-53b5-4dec-b39c-0f36612b5436",
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for Strategy Lab v2 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
+    },
+    {
+      "at": "2026-11-10T00:00:23.672299+00:00",
+      "displaced_session_id": "02d5ffaa-53b5-4dec-b39c-0f36612b5436",
+      "new_session_id": "40da6ae1-d1cc-4ad5-8513-b344ed5d1d6d",
+      "reason": "Human-authorized 2026-11-09/10 runtime migration: the user moved this workflow from Codex to Claude Code ('do whatever you must, i authorize you'). The Codex session for this branch stopped at its usage limit on 2026-11-09 02:37Z and is retired. A new Claude Code worker session (Haiku 5.5, low effort) with the same chat name continues the same goal from the durable workstream; preserve all source, evidence, roadmap and boundaries."
     }
   ],
   "updated_at": "2026-11-08T17:55:51Z",

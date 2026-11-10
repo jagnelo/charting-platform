@@ -1,3 +1,7 @@
+## 2026-11-10 — Release candidate frozen for publication
+
+Root replayed the real Strategy Study journey at TC test source `08a3c0c6b`, whose `strategy_study_journey.spec.ts` is byte-identical to this branch's `5d19e512b`: PASS (frontend image `e68a0f407`, backend `e949552bc`). The controlled Study structured-result visual also passed at `08a3c0c6b` and again at `436ea8f4`, and Root reviewed the capture as good. Source `5d19e512b` is the Strategy release candidate and is frozen for publication: no product or test changes until Root releases the freeze. Root publishes and runs exact-source CI. The full roadmap, SU6 honest limits, and disabled native/provider/broker/capital scopes remain open. No browser, Docker or push was run in this record step.
+
 ## 2026-11-09 — Genuine Study artifact geometry witness
 
 Root's exact e68 functional review confirmed genuine factory run 194 produces eight artifacts: four scalar metrics, two tables, one events artifact, and the final `streak_distribution` histogram. It has no `monthly_frequency` bar or `summary` artifact; those names belong to a separate controlled visual fixture. The Strategy-owned journey now checks the real histogram readout is contained within its chart and its own artifact in both Study Lab and Results, without requiring a nonexistent next artifact header. The factory source, immutable run, eight-artifact count, dataset and return-navigation assertions remain intact.
