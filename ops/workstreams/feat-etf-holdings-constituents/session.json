@@ -4993,7 +4993,7 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "Root owns compatible cold IHI/IYW/IGV native browser proof and combined ETF/basket qualification; the full 15 Tier-0/156 Tier-1 and broader ETF/platform roadmaps remain open.",
+    "current_blocker": "Root owns compatible cold IHI/IYW/IGV native browser proof and combined ETF/basket qualification; the full 15 Tier-0 and 156 Tier-1 and broader ETF/platform roadmaps remain open.",
     "current_phase": "Consumed TC a49a5e05 on15 ETF-guarded paths after verifying99 source manifest rows. The native observer skips empty/smaller same-path responses and binds to successful nonempty finite D1 limit-500 data in the adjusted/default-adjusted scope. Focused compatibility checks only; Root owns browser execution.",
     "total": 5
   },
