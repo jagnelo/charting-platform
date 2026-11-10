@@ -1,3 +1,7 @@
+## 2026-11-10 — Study rerun cache assertions keep entries alive
+
+CI-only failure: the late durable rerun test read `['workstation','research-run',151]` from a QueryClient with `gcTime: 0`, so the entry could be collected before the assertion. The late-rerun test and its neighbour that reads `research-run` 91 now use `gcTime: Infinity` with `retry: false`. Every assertion is unchanged. Only `frontend/tests/unit/components/test_study_lab_tool.test.ts` changed, and the other `gcTime: 0` clients in the file are untouched because they do not assert cache entries after unmount. The file passes 5 of 5 consecutive runs (72 tests) and vue-tsc is clean. Locally the test already passed, so the repeated runs show stability, not a reproduced CI failure. No browser, Docker or push was run here.
+
 ## 2026-11-10 — Study plot readouts visible with latest value
 
 Root's TC 8316a65a run failed the Study journey readout containment check because S3 hid the bar/histogram legend until hover. The legend is now always rendered: at rest it shows the latest bar (bars) or the current observation's bin, falling back to the last bin (histogram); while hovering, uPlot shows the hovered value. The `:not(:hover)` hide rule is removed. Zero baseline, y-scale including zero, and the hover-only current-value marker are unchanged. Unit tests cover resting and hovering legend selection and the out-of-range fallback. Owned Study unit files pass (81 tests) and vue-tsc is clean. No E2E spec, browser, Docker or push was run here.

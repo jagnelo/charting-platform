@@ -2245,7 +2245,8 @@ describe('StudyLabTool', () => {
       if (path === '/research/runs/91/rerun?snapshot=false') return Promise.resolve({ id: 92, status: 'queued', artifacts: [] })
       return Promise.resolve({})
     })
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    // Keep cache entries alive so the getQueryData assertion below cannot race garbage collection on a slow runner.
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } })
     const wrapper = mountTool({ activeSymbol: 'SPY' }, queryClient)
     await wrapper.find('button').trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
@@ -2276,7 +2277,8 @@ describe('StudyLabTool', () => {
       if (path === '/research/runs/150/rerun?snapshot=true') return rerun.promise
       return Promise.resolve({})
     })
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    // Keep cache entries alive so the getQueryData assertion below cannot race garbage collection on a slow runner.
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } })
     const results = mount(ResearchResultsTool, {
       global: { plugins: [[VueQueryPlugin, { queryClient }]], stubs: { RouterLink: { props: ['to'], template: '<a><slot /></a>' } } },
     })
