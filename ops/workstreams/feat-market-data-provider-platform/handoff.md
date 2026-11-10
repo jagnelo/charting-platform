@@ -1,3 +1,14 @@
+## 2026-11-10 — Tiingo deep-history gates and 15c8bf3b4 focused check (Provider, Claude Code)
+
+Root decision root-Provider-Tiingo-deep-history-decision-20261110.json applied offline.
+
+- 15c8bf3b4 (default-series calendar from primary listing): focused test_market_series_defaults.py 9 passed. Not a release check.
+- Tiingo persistent-storage authority: tiingo_persistent_storage_authority_missing() was a no-op shim returning []. It now requires TIINGO_PERSISTENT_STORAGE_AUTHORIZED, a reference, an allowed written scope (same two perpetual-archive scopes as Alpaca), a past reviewed_at, and an unexpired expires_at if set. Code default stays not authorized. No routing caller existed before; the registry test was updated to the new semantics.
+- Tiingo custom plan: classified as reviewed custom when all four TIINGO_CUSTOM_* limits are > 0 and TIINGO_CUSTOM_QUOTA_EVIDENCE is non-empty, regardless of TIINGO_REVIEWED_PLAN. Partial values with plan custom stay non-routable. Partial values with starter/power keep the published profile. Note: a Power account that sets full custom values is overridden by the custom profile.
+- Native quota/baseline hold (config checkpoint dict, tiingo *) left in force. Releasing it would need a recorded current-window native baseline per dimension, not just the reset/evidence settings.
+- Checks: test_tiingo_deep_history_gates.py, test_market_series_defaults.py, test_provider_registry.py, test_provider_quota_contract.py: 191 passed. Ruff check and format clean.
+- No live HTTP, no Docker, no policy/quota/hold rows, no production config changed.
+
 ## 2026-11-08 — TC common runtime context 3055946 development import
 
 Imported only the 28 Provider-declared paths from `3055946ceabbfd51e51281f06c3f98f766f0d019` after all 28 old-byte

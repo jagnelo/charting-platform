@@ -455,9 +455,7 @@
     "root_acceptance": "Direct same-turn Root acceptance under existing standing authorization; no separate receipt supplied.",
     "status": "ready_for_integration"
   },
-  "dirty_paths": [
-    "ops/workstreams/feat-market-data-provider-platform/session.json"
-  ],
+  "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -541,7 +539,7 @@
   "goal_request_state": "active",
   "goal_state": "resumed_after_takeover",
   "goal_unavailable_reason": null,
-  "head": "e949552bc39f22a95e77b048ad62b71b700e883e",
+  "head": "15c8bf3b43646d12480d320ac3ae4292ce18059c",
   "historical_oih_closing_commit_ci_20261029": {
     "head_sha": "5e1aabdde44d7810d1cb286dee23d4f89a00b1ba",
     "owner": "Root",
@@ -658,7 +656,7 @@
     "root_review": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-314528-manifest-portability-CI-root-review-20261105.json",
     "source_sha": "314528777893f320f6e898085da3180561843f0c"
   },
-  "next_action": "resume from the durable handoff and inspect displaced session state",
+  "next_action": "Root reviews the Tiingo storage-authority and config-driven custom-plan checkpoint and the 15c8bf3b4 calendar fix, then decides native replay and deploy-time settings. Provider stays offline: no live HTTP, no quota/policy/hold mutation, no production config change. Tiingo's native-quota/baseline hold stays until a current-window baseline is recorded.",
   "parent_branch": "staging",
   "pg_profile_result": "/tmp/provider-etv-20261103-r4/artifacts/result.json",
   "pg_profile_result_sha256": "3c98a0a77d8b8f40f923d289a4564645149971929865ae71290eeffb25cc45cc",
