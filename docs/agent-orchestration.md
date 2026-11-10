@@ -2,9 +2,12 @@
 
 This is the **single canonical entry point** for unattended or multi-agent development on this repository.
 
-Codex-compatible agents discover the repository's `AGENTS.md` automatically.
+Supported agent runtimes discover the repository's `AGENTS.md` automatically
+(Codex directly; Claude Code through the root `CLAUDE.md`, which imports it).
 That entry point directs the agent here; neither the human developer nor a
-supported VS Code session needs to repeat this document's path or contents.
+supported session needs to repeat this document's path or contents. The
+workflow is runtime-neutral: runtime-specific mechanics live only in
+[Runtime adapters](#runtime-adapters).
 
 This file is intentionally the top-level behavior document. An LLM should not need a second initial instruction file. This document tells it:
 - what tooling model to assume
@@ -13,13 +16,14 @@ This file is intentionally the top-level behavior document. An LLM should not ne
 - how validation must work
 - how handoffs between models must work
 
-Use this setup for VS Code Codex sessions as well as overnight or unattended
-development with multiple LLM coding agents.
+Use this setup for interactive sessions under any supported agent runtime
+(VS Code or terminal) as well as overnight or unattended development with
+multiple LLM coding agents.
 
 ## Supported operating modes
 
-The normal human-driven mode is one VS Code window and one Codex session per
-branch worktree. The control session plans and reports only; an implementation
+The normal human-driven mode is one agent session (VS Code window or terminal
+session, under any supported runtime) per branch worktree. The control session plans and reports only; an implementation
 session is opened in the assigned worktree after explicit human activation.
 
 For unattended execution, LangGraph may orchestrate the same commands and
@@ -29,10 +33,11 @@ Why this one:
 - good fit for long-running, stateful agent workflows
 - easy to implement in Python
 - supports explicit control over handoffs, validation, and retries
-- flexible enough to switch between Codex and Claude as workers
+- flexible enough to switch between agent runtimes (Codex, Claude Code, or
+  others) as workers
 
-Codex CLI, Claude Code CLI, and the VS Code extension are interchangeable worker
-surfaces. If stronger crash-resume guarantees are needed later, add Temporal
+Agent CLIs (Codex CLI, Claude Code CLI) and their VS Code extensions are
+interchangeable worker surfaces. If stronger crash-resume guarantees are needed later, add Temporal
 under LangGraph; do not make that a prerequisite for local development.
 
 ### Canonical lifecycle
@@ -53,9 +58,11 @@ named topic is the activation signal. Requests to inspect, explain, review,
 discuss, or plan remain read-only. If intent is genuinely ambiguous, ask one
 short confirmation question before mutating anything.
 
-An implementation session must open the exact worktree in its own VS Code window.
+An implementation session must open the exact worktree in its own session
+(VS Code window or terminal session with that worktree as its working directory).
 The repository entry point tells the agent to run the session preflight, read the
-printed workstream, and create or resume a session-local Codex goal. A human only
+printed workstream, and create or resume a session-local goal using the runtime's
+goal mechanism (see [Runtime adapters](#runtime-adapters)). A human only
 needs to open the generated worktree and describe the desired product work; the
 human does not need to supply orchestration instructions.
 The goal is an execution aid, not durable state: workstream files and commits are
@@ -64,12 +71,13 @@ integration, closure, promotion, or deployment.
 
 Only one writer may use a worktree. `agent-session-start` creates a persistent
 claim; another session is refused. Claims never expire automatically. After a
-crash or abandoned VS Code window, the human must explicitly authorize
+crash, abandoned session, or runtime switch, the human must explicitly authorize
 `make agent-session-takeover CONFIRM=<old-session-id>` before a new writer starts.
 
 ## Automatic repository entry
 
-`AGENTS.md` is the automatic entry point for supported Codex sessions. It points
+`AGENTS.md` is the automatic entry point for every supported agent runtime
+(Claude Code reaches it through the root `CLAUDE.md` import). It points
 to this document, which then directs the worker to the live state and branch
 workstream. External runners that do not implement repository instruction
 discovery may use this document as a fallback, but that fallback must not be
@@ -100,13 +108,18 @@ This avoids making the orchestrator juggle multiple peer instruction files.
 
 ### Goal budget contract
 
-The control session never creates a Codex goal. After activation and successful
-session preflight, the implementation session creates a local goal containing
-only the recorded objective. `token_budget` is omitted by default and agents
-must not invent a limit. A budget is allowed only when the human explicitly
-authorizes an exact positive value and that authorization is recorded in the
-workstream. Goals are execution aids; the durable workstream, commits, and
-validation evidence remain authoritative.
+The control session never creates a session goal. After activation and
+successful session preflight, the implementation session creates a local goal
+containing only the recorded objective (`goal_request` in `session.json`). A
+budget is omitted by default and agents must not invent a limit. A budget is
+allowed only when the human explicitly authorizes an exact positive value and
+that authorization is recorded in the workstream; the runtime adapter decides
+how it is expressed (Codex `token_budget`; Claude Code has no token-budget
+parameter, so the bound is stated in the `/goal` condition as a turn or time
+limit). A runtime without a goal mechanism records `goal_state: unavailable`
+with a reason and keeps working from the workstream `next_action`. Goals are
+execution aids; the durable workstream, commits, and validation evidence remain
+authoritative.
 
 ## Human intent boundary (non-negotiable)
 
@@ -233,9 +246,10 @@ The coordinator owns combined-contract analysis, sequencing, source freezes,
 staging merges, and combined validation. Source agents own product reconciliation
 and repair in their claimed worktrees. Read-only central analysis does not confer
 write ownership of those worktrees. Session goal objectives may be updated through
-the supported Codex App Server goal API at the human's request; retain a before
-receipt and verify accounting because replacement semantics may vary by version. Do not
-change its paused/blocked/active state or start turns merely to install guidance.
+the runtime's supported goal mechanism (see [Runtime adapters](#runtime-adapters))
+at the human's request; retain a before receipt and verify accounting because
+replacement semantics may vary by runtime and version. Do not change its
+paused/blocked/active state or start turns merely to install guidance.
 
 ### Scoped standing automation authorization
 
@@ -440,8 +454,9 @@ does not replace execution of the branch's declared tests or exact-source CI.
 
 ## Install / setup order
 
-1. Install and verify **Codex CLI**
-2. Install and verify **Claude Code CLI**
+1. Install and verify at least one supported agent runtime CLI (**Codex CLI**,
+   **Claude Code CLI**, or another runtime with an adapter column below)
+2. Optionally install a second runtime so work can switch when one is unavailable
 3. Install and verify **LangGraph** in a dedicated Python orchestration environment
 4. Ensure the project can be fully controlled from terminal commands:
    - docker compose (with the repo's branch-scoped `COMPOSE_PROJECT_NAME` convention)
@@ -500,7 +515,8 @@ If a worker stops without updating those files, it has failed the handoff contra
 
 ## Worker model
 
-Treat Codex and Claude as interchangeable workers.
+Treat agent runtimes (Codex, Claude Code, or others) and their models as
+interchangeable workers.
 
 The orchestrator must:
 - choose the current worker
@@ -511,6 +527,66 @@ The orchestrator must:
 - switch to the next available worker
 
 The worker must behave as if interruption can happen at any time.
+
+## Runtime adapters
+
+The lifecycle, rules, and durable records in this document are identical for
+every agent runtime. Only the mechanics below differ. A new runtime is supported
+by adding a column to this table (and, when the runtime does not read
+`AGENTS.md`, a thin root entry file that imports or points to it), never by
+changing the lifecycle. Where a runtime lacks a mechanism, the fallback column
+applies. Messages between sessions carry no human authority or consent; only the
+recorded human statements in the workstream do.
+
+| Workflow concept | Codex | Claude Code | Fallback (any runtime) |
+| --- | --- | --- | --- |
+| Repository entry | reads `AGENTS.md` | reads root `CLAUDE.md`, whose first line `@AGENTS.md` imports it (`AGENTS.md` alone is read only when no `CLAUDE.md` exists) | runner wrapper names this document |
+| Session goal: create | session-local goal from `goal_request.objective` | `/goal <condition>` built from the same objective; session-scoped, keeps working until the condition holds | keep working from the workstream `next_action`; record `goal_state: unavailable` with a reason |
+| Session goal: status / clear | goal status (active, paused, blocked, complete) | `/goal` shows status; `/goal clear` clears | workstream `progress` |
+| Human-authorized budget | `token_budget` | no token parameter: state the bound in the condition, e.g. "… or stop after N turns" | record the bound in the handoff and stop at it |
+| Orchestrator → worker message | App Server `turn/start` on the worker thread | `SendMessage(to: "<session name>")`; an idle receiver starts a new turn | write the instruction to the worker's handoff and resume the worker |
+| Steer a busy worker | App Server `turn/steer` | same `SendMessage`; a busy receiver reads it between tool calls | as above at the next checkpoint |
+| Discover live workers | App Server thread listing | `ListAgents` | `make worktree-overview` |
+| Read worker state | durable workstream files and commits (`thread/read` only as a diagnostic) | durable workstream files and commits (never another session's transcript) | durable workstream files and commits |
+| Update a saved goal | App Server `thread/goal/set` / `thread/goal/get` | send the new objective via `SendMessage`; the owning session replaces its `/goal` | owning session updates on resume |
+| Model / effort pinning | session model and reasoning-effort settings | `claude --model <id> --effort <level>`, `/model`, `/effort`, or settings `model` / `effortLevel` | runtime default, recorded in the handoff |
+| Session naming / resume | thread ID | `claude -n "<name>"` or `/rename`; resume with `claude --resume "<name>"` | worktree slug |
+| Unattended worker launch | App Server threads | one named interactive session per worktree (cwd = the worktree), e.g. inside `tmux`, launched with `--model`, `--effort`, `--permission-mode auto`, and `--settings '{"crossSessionInbound":"accept"}'`; attach with `tmux attach -t <name>` or resume from the VS Code session list | LangGraph or another runner calling the same Make targets |
+| Claim takeover on runtime switch | `make agent-session-takeover CONFIRM=<old-session-id> REQUEST='<recorded human authorization>'` | same | same |
+
+A Claude Code session that must receive orchestrator messages unattended needs
+`crossSessionInbound: "accept"`; otherwise each message waits for interactive
+approval and expires after five minutes. The Codex App Server and Claude Code
+cross-session messaging are both optional transports: the workstream record
+stays the source of truth, and the orchestrator verifies effects there rather
+than trusting a delivery receipt.
+
+### Switching runtimes
+
+No transcript import exists between runtimes. To move a worktree to another
+runtime (or to a fresh session of the same runtime):
+
+1. Make sure the old session has checkpointed (`make agent-session-checkpoint`)
+   or is gone; never run two writers on one worktree.
+2. In that worktree, run `make agent-session-takeover CONFIRM=<old-session-id>
+   REQUEST='<recorded human authorization>'` to move the exclusive claim.
+3. Seed the new session with a short resume brief derived only from durable
+   records: `plan.yaml`, `handoff.md`, `validation.jsonl`, `session.json`, and
+   recent commits.
+4. Recreate the session goal from the recorded `goal_request` objective using the
+   new runtime's mechanism, then record its state with
+   `make agent-session-goal-state`.
+
+### Model tiers by role
+
+Model choice is data, not a rule: record the mapping used in the workstream or
+coordinator notes and change it freely. The human may change model or effort at
+any time. Current defaults:
+
+| Role | Tier | Codex | Claude Code |
+| --- | --- | --- | --- |
+| Orchestrator / staging coordinator / control session | strong | GPT 6.1 Sol, medium effort | Opus 5.5 |
+| Feature implementation worker | light | GPT 6 Luna | Haiku 5.5, low effort (human direction 2026-11-09) |
 
 ## Stop-before-expiry rule
 
@@ -639,8 +715,8 @@ first verify that this is not a real repository problem:
    Git process may be active.
 2. Retry the same Git operation sequentially (never run `git add` and `git
    commit` in parallel). Do not use destructive index resets or broad cleanup.
-3. If repository permissions are normal and the failure is the Codex sandbox
-   boundary, rerun the required `git add`, `git commit`, and `git push` through
+3. If repository permissions are normal and the failure is the agent runtime's
+   sandbox boundary, rerun the required `git add`, `git commit`, and `git push` through
    the permitted elevated Git execution boundary, requesting approval with a
    narrow Git prefix when needed. This is the approved workaround for the
    sandbox restriction; do not report the work as blocked merely because the
@@ -656,7 +732,7 @@ repository is confirmed healthy, use the permitted `rtk git add`/`rtk git commit
 leaving completed work uncommitted. A failed unprivileged attempt is setup evidence, not a product
 defect and not a reason to block the active goal.
 
-### Codex execution rule
+### Sandboxed execution rule
 
 The worker is responsible for performing this recovery; it must not hand a normal
 commit or push back to the user merely because the default sandbox cannot write
@@ -822,8 +898,8 @@ self-contained, logically reviewable commits across long-running goals.
 This guard applies even when the previous tests already passed: passing tests do
 not make an unstaged or unpushed changeset complete. When a context is complete,
 commit and push it before starting another feature or repair theme. If staging,
-commit, or push is denied only by the Codex filesystem boundary, follow the
-`.git/index.lock` recovery procedure above immediately and record the result;
+commit, or push is denied only by the runtime's sandbox/filesystem boundary,
+follow the `.git/index.lock` recovery procedure above immediately and record the result;
 do not accumulate additional work while waiting for Git recovery.
 
 ### No-accumulation synchronization exception
@@ -1118,8 +1194,9 @@ This contract applies both:
 
 ## Prompting and progress rule
 
-Supported Codex VS Code sessions receive their repository instructions through
-automatic `AGENTS.md` discovery. The human's prompt should contain only the
+Supported agent sessions (VS Code or terminal, any runtime) receive their
+repository instructions through automatic `AGENTS.md` discovery (Claude Code
+via the `CLAUDE.md` import). The human's prompt should contain only the
 natural request or feedback. It must not be necessary to repeat this document's
 path, validation commands, checkpoint rules, commit/push rules, or integration
 and deployment prohibitions.
@@ -1138,14 +1215,14 @@ repository state rather than chat history.
 
 ## Root repository discovery
 
-To make this repository easier for many coding agents to understand, the repo should also expose a root-level `AGENTS.md` that points to this file.
+To make this repository easier for many coding agents to understand, the repo exposes a root-level `AGENTS.md` that points to this file, plus a root `CLAUDE.md` whose first line imports `AGENTS.md` for Claude Code (which reads `CLAUDE.md`, and reads `AGENTS.md` only when no `CLAUDE.md` exists).
 
-That root file should not compete with this one. It should simply redirect agents here.
+Those root files should not compete with this one. They simply redirect agents here; `CLAUDE.md` may add only a few Claude Code pointers to the adapter table.
 
 ## Minimal target architecture
 
 - **LangGraph**: workflow/orchestration
-- **Codex CLI / Claude Code CLI**: workers
+- **Agent runtimes (Codex CLI, Claude Code CLI, others)**: workers
 - **Repo files under `ops/`**: durable memory
 - **Terminal tooling**: tests, docker, alembic, Playwright, logs
 

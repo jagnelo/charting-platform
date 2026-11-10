@@ -1,20 +1,68 @@
 {
-  "schema": 2,
+  "acceptance_criteria": [],
+  "active_session_id": "071334ca-c0f2-4cf6-850e-6a45949e8a9f",
   "branch": "docs/runtime-neutral-agent-workflow",
-  "parent_branch": "staging",
-  "implementation_sha": "139b350238b5e1c8a170dce5af09a805301d857e",
-  "remote_sha": null,
-  "active_session_id": null,
-  "previous_session_ids": [],
-  "goal_state": "not_started",
+  "dirty_paths": [],
+  "docker": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-docs-runtime-neutral-agent-workflow-65156dc5",
+      "charting-stack-docs-runtime-neutral-agent-workflow-65156dc5"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "docs-runtime-neutral-agent-workflow-65156dc58c"
+  },
+  "docker_ready": null,
   "goal_budget_policy": "unbounded_unless_human_authorized",
-  "planning_state": "draft",
+  "goal_objective": "Advance docs/runtime-neutral-agent-workflow: Make the repository's agent workflow documentation runtime-neutral so Codex, Claude Code, or another agent runtime can run the same lifecycle; add a Claude Code entry point and a runtime adapter mapping without changing any workflow rule, tool behaviour or historical evidence.. Acceptance criteria: RN1: Root CLAUDE.md imports AGENTS.md (first line @AGENTS.md) and adds only short Claude Code pointers; AGENTS.md remains the single canonical entry for every runtime and keeps every existing rule in runtime-neutral wording.; RN2: docs/agent-orchestration.md uses runtime-neutral wording for goals, entry discovery, sessions, sandbox/Git recovery and worker messaging, with every rule preserved, and contains a Runtime adapters section mapping each workflow concept to Codex and Claude Code, a Switching runtimes procedure, and a model-tier-by-role table; new runtimes are added as a column, not a lifecycle change.; RN3: Living guidance elsewhere (development.md, feature-integration-coordination.md) no longer prescribes Codex-only mechanics; quoted human statements and dated historical records stay intact; historical evidence files and other branches' workstreams are untouched.; RN4: scripts/agent-session.py wording is runtime-neutral with no behaviour or JSON key change; focused workflow tests, workstream validation and branch-test manifest checks pass; every remaining tracked Codex mention is justified in the handoff.. Required local profile: unit. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_recorded_at": "2026-11-10T00:03:26.708171+00:00",
+  "goal_request": {
+    "objective": "Advance docs/runtime-neutral-agent-workflow: Make the repository's agent workflow documentation runtime-neutral so Codex, Claude Code, or another agent runtime can run the same lifecycle; add a Claude Code entry point and a runtime adapter mapping without changing any workflow rule, tool behaviour or historical evidence.. Acceptance criteria: RN1: Root CLAUDE.md imports AGENTS.md (first line @AGENTS.md) and adds only short Claude Code pointers; AGENTS.md remains the single canonical entry for every runtime and keeps every existing rule in runtime-neutral wording.; RN2: docs/agent-orchestration.md uses runtime-neutral wording for goals, entry discovery, sessions, sandbox/Git recovery and worker messaging, with every rule preserved, and contains a Runtime adapters section mapping each workflow concept to Codex and Claude Code, a Switching runtimes procedure, and a model-tier-by-role table; new runtimes are added as a column, not a lifecycle change.; RN3: Living guidance elsewhere (development.md, feature-integration-coordination.md) no longer prescribes Codex-only mechanics; quoted human statements and dated historical records stay intact; historical evidence files and other branches' workstreams are untouched.; RN4: scripts/agent-session.py wording is runtime-neutral with no behaviour or JSON key change; focused workflow tests, workstream validation and branch-test manifest checks pass; every remaining tracked Codex mention is justified in the handoff.. Required local profile: unit. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "planning_required",
+  "goal_state": "unavailable",
+  "goal_unavailable_reason": "Claude Code delegated subagent session: no session-local /goal available to subagents; work continues from the recorded objective and workstream next_action (durable records remain authoritative).",
+  "head": "2d511133f18978b25b306653ae511f75b1a0f026",
+  "implementation_sha": "2d511133f18978b25b306653ae511f75b1a0f026",
+  "local_validation_profile": "pending_agent_assessment",
+  "next_action": "continue implementation from the branch workstream",
+  "parent_branch": "staging",
+  "plan_hash": "90758700e00978d997afaa07e0d43e162aaee80bcbd7c76dfdad8428f309419d",
+  "planning_required": true,
+  "planning_state": "ready",
+  "previous_session_ids": [],
   "progress": {
     "completed": [],
-    "total": 0,
+    "current_blocker": "none",
     "current_phase": "plan",
-    "current_blocker": "none"
+    "total": 0
   },
-  "next_action": "run make agent-session-start",
-  "retained_docker_resources": []
+  "remote": "2d511133f18978b25b306653ae511f75b1a0f026",
+  "remote_sha": "2d511133f18978b25b306653ae511f75b1a0f026",
+  "remote_synchronized": true,
+  "retained_docker_resources": [],
+  "schema": 2,
+  "session_id": "071334ca-c0f2-4cf6-850e-6a45949e8a9f",
+  "validation_tier": "full_integration",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/docs-runtime-neutral-agent-workflow/ops/workstreams/docs-runtime-neutral-agent-workflow",
+  "workstream_files": [
+    "/home/m920q/charting-platform/.ai/worktrees/docs-runtime-neutral-agent-workflow/ops/workstreams/docs-runtime-neutral-agent-workflow/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/docs-runtime-neutral-agent-workflow/ops/workstreams/docs-runtime-neutral-agent-workflow/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/docs-runtime-neutral-agent-workflow/ops/workstreams/docs-runtime-neutral-agent-workflow/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/docs-runtime-neutral-agent-workflow/ops/workstreams/docs-runtime-neutral-agent-workflow/session.json"
+  ],
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/docs-runtime-neutral-agent-workflow",
+  "worktree_id": "docs-runtime-neutral-agent-workflow-65156dc58c"
 }

@@ -5,30 +5,51 @@ parent_branch: staging
 parent_sha: 139b350238b5e1c8a170dce5af09a805301d857e
 dependency_authorization: "not applicable: independent staging-based topic"
 human_intent_authorization: "Human request 2026-11-09: 'Any repo documentation MUST be updated to now also encompass Claude Code's semantics and environment too, as beforehand this was all done through Codex alone ... I do not want to care too much about whether Codex or Claude Code or something else is being used'; activated 2026-11-10: 'ok handle this ... do whatever you must, i authorize you'."
-planning_state: draft
+planning_state: ready
 human_closure_authorization: pending
 closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
-local_validation_profile: pending_agent_assessment
-local_validation_reason: pending agent assessment from changed paths and runtime impact
+local_validation_profile: unit
+local_validation_reason: Workflow documentation plus comment/docstring/message-only wording in scripts/agent-session.py; no behaviour, JSON key, product, Compose, migration or deployment change. The classifier minimum for these owned paths is unit; run the focused workflow unit tests, workstream validator, branch-test manifest check, py_compile and diff checks. No Docker, browser or product suites.
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
-goal: "Human request 2026-11-09: 'Any repo documentation MUST be updated to now also encompass Claude Code's semantics and environment too, as beforehand this was all done through Codex alone ... I do not want to care too much about whether Codex or Claude Code or something else is being used'; activated 2026-11-10: 'ok handle this ... do whatever you must, i authorize you'."
-scope: []
-owned_paths: []
+goal: Make the repository's agent workflow documentation runtime-neutral so Codex, Claude Code, or another agent runtime can run the same lifecycle; add a Claude Code entry point and a runtime adapter mapping without changing any workflow rule, tool behaviour or historical evidence.
+scope:
+  - Add a tracked root CLAUDE.md that imports AGENTS.md plus a few Claude Code pointers.
+  - Reword AGENTS.md and docs/agent-orchestration.md to runtime-neutral terms, preserving every rule, and add a Runtime adapters section (concept mapping, switching runtimes, model tiers by role).
+  - Neutralize living Codex-specific guidance in docs/development.md and docs/feature-integration-coordination.md; keep quoted human statements and dated historical records intact.
+  - Runtime-neutral docstrings/messages in scripts/agent-session.py without behaviour or JSON key changes.
+owned_paths:
+  - CLAUDE.md
+  - AGENTS.md
+  - docs/agent-orchestration.md
+  - docs/development.md
+  - docs/feature-integration-coordination.md
+  - scripts/agent-session.py
+  - ops/workstreams/docs-runtime-neutral-agent-workflow/
 dependencies: []
-acceptance_criteria: []
-branch_tests: []
-branch_tests_reason: pending agent assessment
+acceptance_criteria:
+  - id: RN1
+    text: Root CLAUDE.md imports AGENTS.md (first line @AGENTS.md) and adds only short Claude Code pointers; AGENTS.md remains the single canonical entry for every runtime and keeps every existing rule in runtime-neutral wording.
+  - id: RN2
+    text: docs/agent-orchestration.md uses runtime-neutral wording for goals, entry discovery, sessions, sandbox/Git recovery and worker messaging, with every rule preserved, and contains a Runtime adapters section mapping each workflow concept to Codex and Claude Code, a Switching runtimes procedure, and a model-tier-by-role table; new runtimes are added as a column, not a lifecycle change.
+  - id: RN3
+    text: Living guidance elsewhere (development.md, feature-integration-coordination.md) no longer prescribes Codex-only mechanics; quoted human statements and dated historical records stay intact; historical evidence files and other branches' workstreams are untouched.
+  - id: RN4
+    text: scripts/agent-session.py wording is runtime-neutral with no behaviour or JSON key change; focused workflow tests, workstream validation and branch-test manifest checks pass; every remaining tracked Codex mention is justified in the handoff.
+branch_tests:
+  - uv run --project backend python -m pytest tests/workflow/test_agent_session.py tests/workflow/test_ci_change_scope.py --no-cov
+branch_tests_reason: Focused workflow/session contract tests cover the wording-only helper change and the entry-point/orchestration document assertions; no product suite is affected.
 live_test_impact: none
 migration_impact: none
 deployment_impact: none
-status: authorized
+status: ready_for_human_review
 remaining_gaps: []
+bootstrap_exception: "Root-authorized 2026-11-05: skip the plan-only commit/push and old plan-ready remote prerequisite (repository mechanism from fix/development-flow-efficiency, applied here under the 2026-11-10 activation and the human's standing no-metadata-only-push preference). Keep this reviewed ready plan local under the exclusive claim; clean synchronized source remains required at normal integration gates."
 progress:
-  completed: []
-  total: 0
-  current_phase: plan
+  completed: [RN1, RN2, RN3, RN4]
+  total: 4
+  current_phase: ready_for_human_review
   current_blocker: none
-  next_action: complete the branch-owned plan before creating a goal
+  next_action: Human review of the runtime-neutral workflow documentation; closure and integration need an explicit human closure statement.
