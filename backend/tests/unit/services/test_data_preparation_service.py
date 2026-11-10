@@ -1393,10 +1393,12 @@ async def test_reconciled_sic_industry_keeps_its_snapshot_provider_and_timing(
                 SimpleNamespace(
                     provider_name="massive",
                     policy=SimpleNamespace(effective_score=1.0),
+                    effective_score=1.0,
                 ),
                 SimpleNamespace(
                     provider_name="alpaca",
                     policy=SimpleNamespace(effective_score=0.5),
+                    effective_score=0.5,
                 ),
             ]
         ),

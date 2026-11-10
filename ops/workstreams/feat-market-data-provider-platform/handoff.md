@@ -1,3 +1,11 @@
+## 2026-11-10 — Lazy listing loads and fixture repair (Provider, Claude Code)
+
+Root diagnosis A applied at the class level: Instrument.listings and InstrumentListing.exchange are lazy=selectin, so db.get callers see the primary listing and the XNYS calendar. The worker fixture now carries a primary XNYS listing; all four worker cases pass. A regression proves a plain db.get yields XNYS, and it fails without the model change.
+
+The ETF batch catalogue keeps its bounded query count by lazy-loading listings on its own path (3 SELECTs). Diagnosis B: the SIC mock now sets effective_score on the resolved provider objects.
+
+Full backend unit suite: 18 failed, 4305 passed (baseline 1cdc612f7: 23 failed, 4299 passed). No new failures. The 18 remaining failures also fail at 1cdc612f7: 16 ETF native-qualification tests whose fixtures are stale against the current date, 1 native usage prerequisite test, and 1 arq lease-lost test.
+
 ## 2026-11-10 — Deep-history honesty proof (Provider, Claude Code)
 
 Existing tests already prove the two halves; no duplicate was added.

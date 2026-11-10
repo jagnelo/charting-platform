@@ -7,6 +7,9 @@ from zoneinfo import ZoneInfo
 import pytest
 from sqlalchemy.dialects import postgresql
 
+from app.models.exchange import Exchange
+from app.models.instrument import Instrument
+from app.models.listing import InstrumentListing
 from app.models.ohlcv import TIMEFRAME_SECONDS, OHLCVBar, Timeframe
 from app.providers.base import InstrumentProfile
 from app.services import market_data
@@ -20,6 +23,7 @@ from app.services.market_data import (
 from app.services.ohlcv_coverage import (
     CoverageStatus,
     assess_ohlcv_coverage,
+    coverage_calendar_for_instrument,
     missing_range_slices,
 )
 from app.services.provider_runtime import ProviderNoDataError
@@ -1085,3 +1089,26 @@ async def test_latest_price_refresh_redis_timeout_fails_closed_without_provider(
     with pytest.raises(DistributedLockError, match="timed out"):
         await market_data.get_current_price_async(object(), instrument, redis=_Redis())
     assert provider_called is False
+
+
+def test_coverage_calendar_is_xnys_after_plain_db_get_without_preloaded_listings(db, instrument):
+    """A plain db.get must still see the primary listing that drives the XNYS calendar."""
+    exchange = Exchange(mic="XNYS", name="New York Stock Exchange", country_code="US")
+    db.add(exchange)
+    db.flush()
+    db.add(
+        InstrumentListing(
+            instrument_id=instrument.id,
+            exchange_id=exchange.id,
+            ticker=instrument.symbol,
+            currency="USD",
+            is_primary=True,
+            is_active=True,
+        )
+    )
+    db.flush()
+    db.expunge_all()
+
+    loaded = db.get(Instrument, instrument.id)
+
+    assert coverage_calendar_for_instrument(loaded) == "XNYS"
