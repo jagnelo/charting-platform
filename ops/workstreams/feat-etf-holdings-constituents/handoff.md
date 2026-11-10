@@ -1,3 +1,9 @@
+# Release candidate freeze — 2026-11-10
+
+Release candidate `d850a1c91f93f509e2b3a2f90c66887537b75362` frozen for publication; Root publishes and runs exact-source CI. Root is running the combined functional journey profile; no product or test changes until Root releases the freeze. ETF manifest `etfd850a1c9` (10 files) is already in Root's combined fixture.
+
+---
+
 # ETF Notes foreground intent — 2026-11-09
 
 Consumed the Root-released TC common source `a10b07353246ecd1251c25742bb070803fbc02d5` (manifest SHA256 `7de1325559bfa69b56742a7a4a99377fc25b98159c03bc51e67e1987fed0ea4b`): all116 source rows were checked against the source Git tree/blob/SHA256, and all32 declared ETF imports passed old guards and match exact bytes/modes. The canonical full-SHA manifest is stored under `development-dependency-imports/`; the active approved import list now contains the exact released entry and nonempty prior path remainders, while the prior list is preserved under `historical_approved_development_dependency_imports`.
