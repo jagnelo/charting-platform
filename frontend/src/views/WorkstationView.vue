@@ -1109,10 +1109,15 @@ function humanizeWorkspaceError(error: string | null | undefined): string {
 // canonical requests. Vue Query automatically pauses the interval while the
 // document is hidden; the explicit visibility gate also prevents a queued
 // refresh from starting while hidden.
+// Priority for the next market-analysis read. A visible mount requests 'high'
+// through the single query path, so one mount issues one store refresh.
+let marketAnalysisQueryPriority: 'auto' | 'high' = 'auto'
 const marketAnalysisQuery = useQuery({
   queryKey: ['workstation', 'market-analysis'],
   queryFn: async () => {
-    await workspaceStore.refreshMarketAnalysis()
+    const priority = marketAnalysisQueryPriority
+    marketAnalysisQueryPriority = 'auto'
+    await workspaceStore.refreshMarketAnalysis(priority)
     return true
   },
   enabled: computed(() => !isPopout.value && documentVisible.value && Boolean(workspaceStore.workspace) && workspaceStore.isPersistenceLeader),
@@ -1154,10 +1159,9 @@ async function refreshMarketData() {
     return
   }
   if (workspaceStore.isPersistenceLeader) {
-    // Mounting a visible analysis surface is user-visible work. If the shell's
-    // interval refresh already queued these same reads, the store promotes the
-    // existing requests rather than issuing duplicates.
-    void workspaceStore.refreshMarketAnalysis('high')
+    // Mounting a visible analysis surface is user-visible work. Request it at
+    // high priority through the query, which is the only refresh path here.
+    marketAnalysisQueryPriority = 'high'
     await marketAnalysisQuery.refetch()
   } else {
     // Followers still hydrate once when they open. Subsequent periodic refreshes are
