@@ -82,7 +82,12 @@ const adjusted = ref(props.configuration?.adjusted !== false)
 const rotationStatusDetail = computed(() => error.value || preparationMessage.value || (loading.value
   ? rows.value.length ? 'Updating ratios…' : 'Calculating aligned local ratios…'
   : !rows.value.length ? `No ${isFamily.value ? 'family-leg' : 'sector'} rotation rows are available.` : ''))
-const rotationStatusSummary = computed(() => preparationMessageSummary(rotationStatusDetail.value, 'RRG'))
+// A failed preparation over a loaded rotation is a non-blocking notice; only a
+// failed rotation request is an "update failed" state.
+const rotationPreparationFailed = computed(() => /could not be completed|refresh failed/i.test(preparationMessage.value))
+const rotationStatusSummary = computed(() => !error.value && rows.value.length && rotationPreparationFailed.value
+  ? 'RRG local results'
+  : preparationMessageSummary(rotationStatusDetail.value, 'RRG'))
 const plotInstructionsId = `relative-rotation-plot-help-${useId()}`
 const plotHost = ref<HTMLElement | null>(null)
 const hovered = ref<{ symbol: string; point: PlotPoint; left: number; top: number } | null>(null)
@@ -470,7 +475,9 @@ async function load() {
     if (fresh) await queryClient.invalidateQueries({ queryKey, exact: true, refetchType: 'none' })
     return queryClient.fetchQuery<{ rows?: Row[]; roles?: Row[]; benchmark?: string; freshness?: string }>({
       queryKey,
-      queryFn: () => api.get<{ rows?: Row[]; roles?: Row[]; benchmark?: string; freshness?: string }>(path, params, { signal: controller.signal }),
+      // The query is shared by every tool with this key, so its cancellation must
+      // belong to the query, not to whichever instance started it.
+      queryFn: ({ signal }) => api.get<{ rows?: Row[]; roles?: Row[]; benchmark?: string; freshness?: string }>(path, params, { signal }),
       staleTime: fresh ? 0 : 30_000,
     })
   }

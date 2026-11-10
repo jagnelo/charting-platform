@@ -1,3 +1,7 @@
+# 2026-11-10 — Keep the RRG plane when a duplicate's preparation fails
+
+The duplicated RRG tool joined the original's shared rotation read; the original's unmount aborted that fetch, so the survivor showed 'RRG update failed' with no plane. The shared query now owns its cancellation, and a failed preparation over loaded rows is a non-blocking 'RRG local results' notice. Unit reproduction added; no e2e assertion loosened; not pushed.
+
 # 2026-11-10 — Adopt Strategy f52828f6 Study test stabilisation
 
 Strategy released f52828f6, which stabilises the Study bars/histogram tests that were failing the Frontend Unit CI job. Four Study files imported unchanged from its canonical 34-path manifest (sha256 5a6a5242…8ee2be); 7f1dd9c1 archived in plan history. No TC product change; not pushed (Provider adoption follows, then one push).
