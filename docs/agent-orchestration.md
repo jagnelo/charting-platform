@@ -551,7 +551,7 @@ recorded human statements in the workstream do.
 | Update a saved goal | App Server `thread/goal/set` / `thread/goal/get` | send the new objective via `SendMessage`; the owning session replaces its `/goal` | owning session updates on resume |
 | Model / effort pinning | session model and reasoning-effort settings | `claude --model <id> --effort <level>`, `/model`, `/effort`, or settings `model` / `effortLevel` | runtime default, recorded in the handoff |
 | Session naming / resume | thread ID | `claude -n "<name>"` or `/rename`; resume with `claude --resume "<name>"` | worktree slug |
-| Unattended worker launch | App Server threads | one named interactive session per worktree (cwd = the worktree), e.g. inside `tmux`, launched with `--model`, `--effort`, `--permission-mode auto`, and `--settings '{"crossSessionInbound":"accept"}'`; attach with `tmux attach -t <name>` or resume from the VS Code session list | LangGraph or another runner calling the same Make targets |
+| Worker session surface | one visible Codex IDE-extension chat per worktree window | one visible Claude Code IDE-extension chat per worktree, each in its own VS Code window (cwd = the worktree), named after the branch, with model/effort pinned for that worktree | LangGraph or another runner calling the same Make targets |
 | Claim takeover on runtime switch | `make agent-session-takeover CONFIRM=<old-session-id> REQUEST='<recorded human authorization>'` | same | same |
 
 A Claude Code session that must receive orchestrator messages unattended needs
