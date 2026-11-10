@@ -1,5 +1,22 @@
 {
-  "acceptance_criteria": [],
+  "acceptance_criteria": [
+    {
+      "id": "RN1",
+      "text": "Root CLAUDE.md imports AGENTS.md (first line @AGENTS.md) and adds only short Claude Code pointers; AGENTS.md remains the single canonical entry for every runtime and keeps every existing rule in runtime-neutral wording."
+    },
+    {
+      "id": "RN2",
+      "text": "docs/agent-orchestration.md uses runtime-neutral wording for goals, entry discovery, sessions, sandbox/Git recovery and worker messaging, with every rule preserved, and contains a Runtime adapters section mapping each workflow concept to Codex and Claude Code, a Switching runtimes procedure, and a model-tier-by-role table; new runtimes are added as a column, not a lifecycle change."
+    },
+    {
+      "id": "RN3",
+      "text": "Living guidance elsewhere (development.md, feature-integration-coordination.md) no longer prescribes Codex-only mechanics; quoted human statements and dated historical records stay intact; historical evidence files and other branches' workstreams are untouched."
+    },
+    {
+      "id": "RN4",
+      "text": "scripts/agent-session.py wording is runtime-neutral with no behaviour or JSON key change; focused workflow tests, workstream validation and branch-test manifest checks pass; every remaining tracked Codex mention is justified in the handoff."
+    }
+  ],
   "active_session_id": "071334ca-c0f2-4cf6-850e-6a45949e8a9f",
   "branch": "docs/runtime-neutral-agent-workflow",
   "dirty_paths": [],
@@ -34,9 +51,10 @@
   "goal_request_state": "planning_required",
   "goal_state": "unavailable",
   "goal_unavailable_reason": "Claude Code delegated subagent session: no session-local /goal; work followed the recorded objective and workstream next_action; implementation 9071339 is ready_for_human_review.",
-  "head": "2d511133f18978b25b306653ae511f75b1a0f026",
+  "head": "83764877aa131bd7ea7cb035ffc97c7f2bcceb13",
   "implementation_sha": "9071339127b3427e82a6ddccf4efc86e215e5ed2",
-  "local_validation_profile": "pending_agent_assessment",
+  "last_checkpoint": "2026-11-10T00:06:42.368628+00:00",
+  "local_validation_profile": "unit",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
   "plan_hash": "37f8272140c98ee0063bf42bab9bd4582b8a3563b0a758cf5b669ea7c6eb2ebf",
@@ -49,12 +67,13 @@
     "current_phase": "plan",
     "total": 0
   },
-  "remote": "2d511133f18978b25b306653ae511f75b1a0f026",
-  "remote_sha": "9071339127b3427e82a6ddccf4efc86e215e5ed2",
+  "remote": "83764877aa131bd7ea7cb035ffc97c7f2bcceb13",
+  "remote_sha": "83764877aa131bd7ea7cb035ffc97c7f2bcceb13",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
   "session_id": "071334ca-c0f2-4cf6-850e-6a45949e8a9f",
+  "state": "checkpointed",
   "validation_tier": "full_integration",
   "workstream": "/home/m920q/charting-platform/.ai/worktrees/docs-runtime-neutral-agent-workflow/ops/workstreams/docs-runtime-neutral-agent-workflow",
   "workstream_files": [
