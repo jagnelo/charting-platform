@@ -2231,7 +2231,7 @@ test.describe('TC2000 workstation', () => {
     const errorState = page.locator('.chart-tool .tool-state--error')
     await expect(errorState).toHaveAttribute('role', 'alert')
     await expect(errorState).toHaveAttribute('aria-live', 'assertive')
-    await expect(errorState).toContainText(/Request failed|unavailable|observations/i, { timeout: 10_000 })
+    await expect(errorState).toHaveText('No local D1 price history is available for SPY.', { timeout: 10_000 })
     await expect(page.locator('.chart-tool canvas')).toHaveCount(0)
     await browserDiagnostics.expectNoCriticalIssues()
   })

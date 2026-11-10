@@ -414,7 +414,7 @@
   "local_candidate_capture": "exact current branch HEAD after staging16 remediation and one-case proof; Root push and exact full staging104 pending",
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
-  "next_action": "frozen test-only checkpoint; Root replays F9c + Study + 2 visual cases",
+  "next_action": "Root replays the chart provider-error visual (exact D1 copy in tc2000_visual.spec.ts, F8i-a in flows.spec.ts), then the remaining full-profile gates. No TC test change unless Root evidence shows a TC-owned failure.",
   "owned_runtime_cleanup": {
     "after_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-after.json (SHA256 3696bb48051e0e6cf11d45af99ac118d302f454337b6fbd48df8dbeae57d157b)",
     "before_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-before.json (SHA256 8f1eeb19f585da67cfea43f8c35a4aa11baa3aa6d3510a065afd0f95498505bf)",

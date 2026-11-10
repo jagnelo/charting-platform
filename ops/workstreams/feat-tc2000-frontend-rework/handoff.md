@@ -1,3 +1,7 @@
+# 2026-11-10 — Replace leftover chart provider-error regexes with the exact D1 copy
+
+Root's C-stage replay showed the chart error visual still matched a loose regex in tc2000_visual.spec.ts (seeded block) and in flows.spec.ts F8i-a; both now assert `No local D1 price history is available for SPY.` exactly. Test-only; no product change, no browser run, Root owns the replay.
+
 # 2026-11-08 — Correct selected-holding lineage instrument expectation
 
 Root's exact de410 run confirmed geometry, ordinary candidate click, identity, and history requests pass. The remaining lineage expectation incorrectly used IGV's fund ID, although `ETFHoldingDrilldownContext.instrumentId` identifies the selected resolved holding. The test now expects UNXQ's canonical instrument ID (`991006`) while retaining fund, snapshot, row, source, known-at, and composition assertions. No product code changed.

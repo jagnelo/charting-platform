@@ -1113,7 +1113,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
       await expect(page.locator('.tool-window').filter({ hasText: 'Technicals' }).locator('.metrics')).toContainText('100.00', { timeout: 15_000 })
       // Keep the target failure—not a later state transition—as the screenshot
       // oracle's chart composition.
-      await expect(page.locator('.chart-tool .tool-state--error')).toContainText(/Request failed|unavailable|observations/i)
+      await expect(page.locator('.chart-tool .tool-state--error')).toHaveText('No local D1 price history is available for SPY.')
       await expect(page.locator('.chart-tool canvas')).toHaveCount(0)
     }
     // Bind the capture to the terminal shared workstation state as well as the
