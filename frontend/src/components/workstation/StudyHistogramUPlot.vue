@@ -49,7 +49,9 @@ function drawBars(instance: uPlot) {
     const top = instance.valToPos(bin.count, 'y', true)
     context.fillRect(Math.floor(left) + 1, Math.min(top, baseline), Math.max(1, Math.floor(right - left) - 2), Math.max(1, Math.abs(baseline - top)))
   })
-  if (typeof props.current === 'number' && Number.isFinite(props.current) && props.bins.length) {
+  // The current-value marker is drawn only while the pointer is over the plot, so no stray line sits in the chart at rest.
+  const hovered = instance.cursor.left != null && instance.cursor.left >= 0
+  if (hovered && typeof props.current === 'number' && Number.isFinite(props.current) && props.bins.length) {
     const index = props.current <= props.bins[0].start
       ? 0
       : props.current >= props.bins[props.bins.length - 1].end
@@ -121,5 +123,5 @@ onBeforeUnmount(() => { observer?.disconnect(); destroyChart() })
 </script>
 
 <style scoped>
-.study-histogram { display:grid; grid-template-rows:minmax(0,1fr) auto; gap:2px; height:190px; min-height:120px; min-width:0; margin-top:4px; background:#101419; }.study-histogram__host { min-height:0; min-width:0; }.study-histogram__legend { min-width:0; max-width:100%; color:#b8c8d3; }.study-histogram__legend :deep(.u-legend) { display:block; width:100%; max-width:100%; font:9px/1.2 "Segoe UI",Arial,sans-serif; }.study-histogram__legend :deep(.u-inline tr) { display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; width:100%; gap:2px 6px; margin:0; }.study-histogram__legend :deep(.u-legend th),.study-histogram__legend :deep(.u-legend td) { min-width:0; max-width:100%; padding:1px 2px; white-space:normal; overflow-wrap:anywhere; }.study-histogram__legend :deep(.u-legend th) { flex:1 1 auto; text-align:left; }.study-histogram__legend :deep(.u-legend td) { flex:0 1 auto; text-align:right; }.study-histogram__state { display:grid; height:100%; place-items:center; color:#8497a4; font:10px "Segoe UI",Arial,sans-serif; }
+.study-histogram { display:grid; grid-template-rows:minmax(0,1fr) auto; gap:2px; height:190px; min-height:120px; min-width:0; margin-top:4px; background:#101419; }.study-histogram__host { min-height:0; min-width:0; }.study-histogram__legend { min-width:0; max-width:100%; color:#b8c8d3; }.study-histogram:not(:hover) .study-histogram__legend { visibility:hidden; }.study-histogram__legend :deep(.u-legend) { display:block; width:100%; max-width:100%; font:9px/1.2 "Segoe UI",Arial,sans-serif; }.study-histogram__legend :deep(.u-inline tr) { display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; width:100%; gap:2px 6px; margin:0; }.study-histogram__legend :deep(.u-legend th),.study-histogram__legend :deep(.u-legend td) { min-width:0; max-width:100%; padding:1px 2px; white-space:normal; overflow-wrap:anywhere; }.study-histogram__legend :deep(.u-legend th) { flex:1 1 auto; text-align:left; }.study-histogram__legend :deep(.u-legend td) { flex:0 1 auto; text-align:right; }.study-histogram__state { display:grid; height:100%; place-items:center; color:#8497a4; font:10px "Segoe UI",Arial,sans-serif; }
 </style>
