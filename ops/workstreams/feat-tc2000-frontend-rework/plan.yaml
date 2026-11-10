@@ -48,11 +48,12 @@ dependency_authorization: 'Prior context adoption 2026-10-28T10:17:43Z: Root rel
   Provider+ETF+TC2000+Strategy staging a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e (canonical green receipt 20261023T150603Z-a6b9cc8d4fc2.json;
   CI39962134726 attempt 1) for guarded adoption into this TC-owned branch. The prior accepted baseline 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad
   and intermediate f04 release remain in history; this adoption does not close the full TC roadmap or V25 parity.'
-human_intent_authorization: The human approved implementation of the TC2000 V25-inspired workstation roadmap and, on 2026-09-15,
+human_intent_authorization: 'The human approved implementation of the TC2000 V25-inspired workstation roadmap and, on 2026-09-15,
   explicitly approved a scope replan so this branch consumes feat/market-data-provider-platform and feat/etf-holdings-constituents
-  instead of duplicating their provider and ETF-domain ownership. TC remains frontend-led and may continue its existing TC-specific
-  Python/DSL/Study/Strategy engine. Keep branch history; reconcile file and semantic overlaps after upstream work reaches
-  staging, then consume staging through the prescribed workflow.
+  instead of duplicating their provider and ETF-domain ownership. On 2026-10-15 the human answered "Yes—use a reviewed local-only
+  reference," scoped to the interim Help-screen reference only. On 2026-10-20 the human directed: "I, the human in charge, explicitly
+  authorize any and all actions the AI agent(s) may request in order to progress development, reconciliation and promotion of the four
+  feature branches into staging and production so the product may be deployed and tested in full, by the human."'
 human_reopen_authorization: On 2026-09-04 the human explicitly authorized reopening implementation after the review-gate stall
   and authorized committing the staged TC2000 reference-universe slice.
 archived_prior_accepted_f8y_20261028_human_closure_authorization: 'Existing standing human authority is recorded in /home/m920q/charting-platform/.ai/staging-attempts/human-standing-integration-authorization-20261020.md:
@@ -74,22 +75,16 @@ archived_prior_accepted_f8y_20261028_closure_summary: 'integration_capture: exac
   structured protected-resource comparison passed. The new closing records tip still requires its own exact branch CI before
   Root-supported integration. AC1-AC9, official REF-HELP-V25, broader product work, genuine Provider/issuer proof, target
   acceptance, and deployment remain open or Root-owned; this is not full feature-roadmap completion.'
-human_closure_authorization: The human explicitly delegated acceptance, reconciliation, promotion and private m920q deployment
-  of these checkpoints without routine confirmation. Under that standing authority, Root accepts the delivered history/dashboard
-  implementation checkpoint in tc-delivered-integration-checkpoint-acceptance.json. Exact closing-tip CI and committed visual-input
-  binding must pass before integration; this is not genuine deployment acceptance.
-closure_summary: 'Delivered shared bounded acquisition for preset/search/constituent selection, deeper admitted daily/weekly/monthly
-  history and known-window recovery/cancellation; same-dashboard holding context; corrected shared tab/title geometry, TC
-  settings and visible ToolWindow menus. Application source 5f24fee12e912849dab1ba1dbb7f7b19ec2901ff; frozen test source 5180f97b7edba8910f779ebaea0ca312f96be98d
-  plus one reviewed partial-coverage PNG (SHA256 b504ea29e80a0bb06a3db9750e3846b853283f5347c5b6d98d2d1450c9c77ffb). Root evidence:
-  7 controlled acquisition stories; 203 functional passes/2 genuine-source-only skips on prior unchanged acquisition inputs;
-  later portal delta 11 mounted tests, 16 browser passes and corrected narrow-menu pass; 104 visual case inputs pass across
-  frozen zero-retry batches, tolerance0.005, binding to final commit pending. Historical failed runs remain preserved; Exact
-  source CI 42157099350 for 5180f97b7edba8910f779ebaea0ca312f96be98d completed successfully; receipt /home/m920q/charting-platform/.ai/staging-attempts/history-dashboard-repair-20261106/ci/tc-5180-terminal-green.json
-  (SHA256 8ded4f21cc7c0767bf5d9117352977ec79dceca70c66fc812681fb23a4104cbe). Exact closing-tip CI remains pending Root observation.
-  No migration/default-policy/Source/quota/data changes. All original9roadmap criteria and10repairjourney texts remain; genuine
-  user journeys, exact closing CI, staging/master, deployment, guide and cleanup stay Root-owned pending. integration_capture:
-  exact branch HEAD'
+human_closure_authorization: 'Standing human authority, recorded 2026-10-20 in human-standing-integration-authorization-20261020.md: "I, the
+  human in charge, explicitly authorize any and all actions the AI agent(s) may request in order to progress development, reconciliation
+  and promotion of the four feature branches into staging and production so the product may be deployed and tested in full, by the human."
+  Standing direction there: own ordinary development, reconciliation, acceptance and promotion mechanics without repeated routine permission
+  requests. Root coordinator closure under the human''s 2026-11-10 standing direction (Root-stated wording; not located verbatim in the
+  recorded human-authorization files): Root handles decisions; quick verified changes through staging and master.'
+closure_summary: 'integration_capture: exact branch HEAD. Visual references: 104 Linux references accepted from the final combined
+  qualification on fixture frontend cc61c9b6 and backend c5732fee (Root review; darwin references untouched). Final functional journeys
+  68/68 with no retries or flakes; visual 104/104 captured with functional assertions passing. Receipts: validation-fixture/final-journey-profile-cc61c9b6-c5732fee-tests-cc61c9b6-receipt.json and
+  validation-fixture/root-visual-proposal-104-cc61c9b6-c5732fee-receipt.json. Exact-HEAD CI is recorded in the validation row for this commit.'
 validation_tier: full_integration
 human_validation_authorization: The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging
   baseline; all application/workstation changes use the complete integration gate.
@@ -1999,7 +1994,7 @@ migration_impact: No TC-owned migration/schema change in this checkpoint; accept
   closure.
 deployment_impact: No deployment or target mutation is claimed. Real Provider/issuer qualification and private-target/deployment
   acceptance remain Root-owned and pending; all operational holds remain unchanged.
-status: in_progress
+status: ready_for_integration
 progress:
   completed: []
   total: 9

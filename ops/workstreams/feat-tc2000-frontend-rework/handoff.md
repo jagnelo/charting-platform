@@ -1,3 +1,7 @@
+# 2026-11-10 — Accept reviewed Linux visual references and set closure fields
+
+Root's final combined qualification on frontend cc61c9b6 and backend c5732fee passed: functional journeys 68/68 with no retries or flakes, visual 104/104 captured. Root reviewed the captures and accepted all 104 as the new Linux references (darwin untouched). plan.yaml now sets status ready_for_integration with the closure authorization text recorded. Exact-HEAD CI is the remaining gate.
+
 # 2026-11-10 — Adopt Provider c5732fee breadth-history and hot-path performance fixes
 
 Provider released c5732fee: breadth-history evaluator fix, hot-path read trims, shared arq pool and the Dockerfile worker change. 14 backend paths imported unchanged from its 103-hash manifest (sha256 3c422e35…e22fde), including new arq_pool.py and breadth_reference_oracle.py. 82850f7c archived in plan history. No TC product change.
