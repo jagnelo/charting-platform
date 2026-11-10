@@ -1108,7 +1108,8 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
       await expect(constituents).toHaveAttribute('aria-busy', 'false', { timeout: 15_000 })
       await expect(constituents.locator('.watchlist__row')).toHaveCount(6, { timeout: 15_000 })
       await expect(page.locator('.industry-list__row')).toHaveCount(2, { timeout: 15_000 })
-      await expect(page.locator('.ratio-chart')).toHaveAttribute('aria-busy', 'false', { timeout: 15_000 })
+      // Settles after the ratio pair's preparation request; worker pickup can take ~10s.
+      await expect(page.locator('.ratio-chart')).toHaveAttribute('aria-busy', 'false', { timeout: 45_000 })
       await expect(page.locator('.ratio-chart__legend strong').first()).toHaveText('SPY/RSP', { timeout: 15_000 })
       await expect(page.locator('.tool-window').filter({ hasText: 'Technicals' }).locator('.metrics')).toContainText('100.00', { timeout: 15_000 })
       // Keep the target failure—not a later state transition—as the screenshot

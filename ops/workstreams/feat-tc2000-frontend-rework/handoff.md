@@ -1,3 +1,7 @@
+# 2026-11-10 — Widen the ratio-chart busy-settle wait for SPY/RSP preparation
+
+The chart provider-error visual waits for `.ratio-chart` aria-busy=false; the SPY/RSP ensure request settles about 13s after it starts (worker pickup about 10s), so the 15s deadline was too tight. Timeout raised to 45s, assertion unchanged; this is the only such wait. Test-only; no product change; Root owns the replay.
+
 # 2026-11-10 — Replace leftover chart provider-error regexes with the exact D1 copy
 
 Root's C-stage replay showed the chart error visual still matched a loose regex in tc2000_visual.spec.ts (seeded block) and in flows.spec.ts F8i-a; both now assert `No local D1 price history is available for SPY.` exactly. Test-only; no product change, no browser run, Root owns the replay.
