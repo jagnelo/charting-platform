@@ -4,6 +4,14 @@ _retained_history_coverage ran about 8x per instrument in one ensure, reloading 
 
 Test: 12 members x 8 lookups -> 12 uncached runs, results unchanged, no leak. Full backend unit suite: 4326 passed, 0 failed. Latency is unmeasured here; Root's fixture run decides the 0.5s target.
 
+## 2026-11-10 — Ensure never holds a transaction across the worker wake (Provider, Claude Code)
+
+ensure_data now commits the read transaction after building the response, before any Redis work. The worker wake is one shared lazy arq pool (no per-request create_pool, no connect retries). The pool creation and enqueue share a 1-second bound, and the wake runs fire-and-forget, so the 202 never waits for it. The pool closes on app shutdown.
+
+Duplicate-ensure integration test: the product is correct. A deeper chunk is queued only after a non-empty fetch (`if bars and ...`), and this test's fake fetch returns no bars. The test now asserts that neither parent has a background continuation. The leased-child assertions (duplicate returns promptly, no duplicate child, both parent refs on the shared child) are unchanged.
+
+Results: router unit 9 passed; touched integration 100 passed; unit suite (ENV_FILE=/dev/null) 6211 passed, 1 skipped; full integration 645 passed, 2 skipped, 6 failed. Three of the six are the expected ETF bridge tests. The other three are test_radar.py: they seed bars relative to datetime.now and run freshness and coverage on the real clock, so they depend on time of day. They also failed at 254e83ed2, before these changes.
+
 ## 2026-11-10 — Integration test setup for listing-dependent fixtures (Provider, Claude Code)
 
 Test setup only; no product changes. Three partial-schema files now include instrument_listing (the FK closure does not reach it). The queue fixtures carry a primary XNYS listing, since the coverage calendar needs it.

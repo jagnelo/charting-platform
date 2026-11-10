@@ -1861,7 +1861,7 @@ async def test_duplicate_ensure_returns_while_shared_history_child_is_leased(
     started = asyncio.Event()
     release = asyncio.Event()
 
-    async def no_wakeup():
+    def no_wakeup():
         return None
 
     async def fixed_plan(
@@ -1897,7 +1897,7 @@ async def test_duplicate_ensure_returns_while_shared_history_child_is_leased(
             await release.wait()
         return []
 
-    monkeypatch.setattr(data_preparation_router, "_wake_refresh_worker", no_wakeup)
+    monkeypatch.setattr(data_preparation_router, "_schedule_worker_wake", no_wakeup)
     monkeypatch.setattr(data_tasks, "AsyncSessionLocal", preparation_sessions)
     monkeypatch.setattr(data_tasks, "_history_chunk_plan_with_native_admission", fixed_plan)
     monkeypatch.setattr(data_tasks, "fetch_ohlcv", slow_local_fetch)
@@ -1971,12 +1971,8 @@ async def test_duplicate_ensure_returns_while_shared_history_child_is_leased(
             parent = await session.get(MarketRefreshJob, parent_id)
             dependency = parent.metadata_payload["data_preparation"]["dependencies"][0]
             parent_dependencies.append(dependency)
-        continuation_ids = parent_dependencies[0]["background_job_ids"]
-        assert len(continuation_ids) == 1
-        assert parent_dependencies[1]["background_job_ids"] == continuation_ids
-        continuation = await session.get(MarketRefreshJob, continuation_ids[0])
-        assert continuation is not None
-        assert {
-            int(ref["parent_job_id"])
-            for ref in continuation.metadata_payload["data_preparation_child"]["parent_refs"]
-        } == {first_parent_id, second_parent_id}
+        # slow_local_fetch returns no bars. The worker queues a deeper chunk only
+        # after a non-empty fetch, so neither parent gets a background
+        # continuation. The shared child still carries both parent refs above.
+        assert parent_dependencies[0].get("background_job_ids", []) == []
+        assert parent_dependencies[1].get("background_job_ids", []) == []
