@@ -8,6 +8,7 @@ import math
 from collections import defaultdict
 from collections.abc import Mapping
 from datetime import UTC, datetime
+from types import SimpleNamespace
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -1814,6 +1815,21 @@ async def _instrument(db: AsyncSession, symbol: str) -> Instrument:
     return instrument
 
 
+# Fields read by breadth evaluation, preflight and derived-visibility checks.
+_BREADTH_BAR_COLUMNS = (
+    OHLCVBar.instrument_id,
+    OHLCVBar.ts,
+    OHLCVBar.open,
+    OHLCVBar.high,
+    OHLCVBar.low,
+    OHLCVBar.close,
+    OHLCVBar.volume,
+    OHLCVBar.is_adjusted,
+    OHLCVBar.is_derived,
+    OHLCVBar.source_end,
+)
+
+
 async def _bars_by_instrument(
     db: AsyncSession,
     instrument_ids: list[int],
@@ -1821,7 +1837,13 @@ async def _bars_by_instrument(
     adjusted: bool,
     *,
     refresh_coarse_cache: bool = False,
-) -> dict[int, list[OHLCVBar]]:
+    as_columns: bool = False,
+) -> dict[int, list]:
+    """Load selected-series bars per instrument.
+
+    ``as_columns`` returns lightweight rows carrying only the fields breadth
+    evaluation and visibility checks read, instead of one ORM entity per bar.
+    """
     if not instrument_ids:
         return {}
 
@@ -1920,6 +1942,24 @@ async def _bars_by_instrument(
     if not series_filters:
         return {}
 
+    if as_columns:
+        column_rows = (
+            await db.execute(
+                select(*_BREADTH_BAR_COLUMNS)
+                .where(
+                    OHLCVBar.instrument_id.in_(ordered_ids),
+                    OHLCVBar.timeframe == timeframe,
+                    OHLCVBar.is_adjusted.is_(adjusted),
+                    or_(*series_filters),
+                )
+                .order_by(OHLCVBar.instrument_id, OHLCVBar.ts)
+            )
+        ).all()
+        column_result: dict[int, list] = defaultdict(list)
+        for row in column_rows:
+            values = row._mapping
+            column_result[int(values["instrument_id"])].append(SimpleNamespace(**values))
+        return column_result
     bars = (
         await db.execute(
             select(OHLCVBar)
@@ -10731,7 +10771,9 @@ async def evaluate_generic_breadth_history(
         universe_provenance,
         membership_payload,
     ) = await _resolve_generic_breadth_universe(definition, db, current_user.id)
-    bars_by_id = await _bars_by_instrument(db, member_ids, timeframe, definition.adjusted)
+    bars_by_id = await _bars_by_instrument(
+        db, member_ids, timeframe, definition.adjusted, as_columns=True
+    )
     bars_by_id = _truncate_bars_at(bars_by_id, definition.as_of)
     coverage_preflight = await preflight_ohlcv(
         db,
@@ -10777,7 +10819,9 @@ async def evaluate_generic_breadth_history(
                 raise HTTPException(422, detail={"code": "benchmark_required"})
             benchmark = await _instrument(db, definition.benchmark)
             benchmark_bars = _truncate_bars_at(
-                await _bars_by_instrument(db, [benchmark.id], timeframe, definition.adjusted),
+                await _bars_by_instrument(
+                    db, [benchmark.id], timeframe, definition.adjusted, as_columns=True
+                ),
                 definition.as_of,
             ).get(benchmark.id, [])
     elif definition.reference_universe is not None:

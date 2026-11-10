@@ -4,6 +4,10 @@ _retained_history_coverage ran about 8x per instrument in one ensure, reloading 
 
 Test: 12 members x 8 lookups -> 12 uncached runs, results unchanged, no leak. Full backend unit suite: 4326 passed, 0 failed. Latency is unmeasured here; Root's fixture run decides the 0.5s target.
 
+## 2026-11-10 — Breadth history linear-time evaluation (Provider, Claude Code)
+
+evaluate_breadth_history evaluated every timestamp over full bar prefixes and converted closes each time. It now evaluates only the returned tail, uses bisect and a read-only prefix view with precomputed closes, and the generic route loads breadth columns only. Realistic case (50 members, 2000 D1 bars, limit 500): 55.0 s to 0.73 s, output byte-identical at that size. The test-only oracle breadth_reference_oracle.py preserves the HEAD algorithm for a 250-case randomised comparison.
+
 ## 2026-11-10 — Backend hot-path CPU and wait reduction (Provider, Claude Code)
 
 Memoized XNYS calendar helpers, column selects for retained coverage and local OHLCV reads, one shared Redis pool, and data-coverage no longer holds a transaction across Redis. Probe medians (sqlite, 3y D1): ohlcv 29.9 to 20.2 ms; ensure 101 to 57 ms (noisy); data-coverage 5016 ms (Redis retries) to 5 ms. Uvicorn workers now follow WEB_CONCURRENCY (default 1). Keep it at 1 until the alert scheduler has a single leader. Unit suite 6214 passed; touched integration 54 passed.
