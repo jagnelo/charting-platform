@@ -1,3 +1,11 @@
+## 2026-11-10 — Bounded parent refs (perf, Provider, Claude Code)
+
+POST /data/ensure spent its time in per-ref parent-ref writes: each ref deep-copied the whole list, scanned it linearly, and flushed. Children now merge refs once: one dedupe, one batched lookup of live parents, one payload write, one flush (data_preparation._merge_parent_refs). Refs for parents that no longer exist are dropped. Refs being added are always kept. Only the newest 64 refs are kept.
+
+Terminal parents keep their refs on purpose: worker child-driven parent updates read them, and GET only partly recomputes from child jobs. Pruning terminal parents would lose updates.
+
+Tests: 300 refs give one lookup, one flush, 64 kept; missing parents are pruned. Full backend unit suite: 4325 passed, 0 failed.
+
 ## 2026-11-10 — ETF native composition freshness test imported (Provider, Claude Code)
 
 Imported the ETF owner's exact bytes of test_etf_holdings_native_qualification.py from 04af30bb0 (blob verified equal, no edits, +20 lines). The file and test_etf_issuer_catalog.py pass (107). The full backend unit suite passes: 4323 passed, 0 failed.

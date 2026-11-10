@@ -28,6 +28,7 @@ from app.services.data_preparation import (
     _analysis_required_start,
     _holdings_job_has_terminal_negative,
     _identity_job_has_terminal_negative,
+    _merge_parent_refs,
     _profile_is_fresh,
     _resolve_requested_instruments,
     create_data_preparation_request,
@@ -2386,3 +2387,91 @@ async def test_two_unknown_ratio_legs_keep_independent_late_dependencies(
         "LEFT": (left.id, "queued"),
         "RIGHT": (right.id, "queued"),
     }
+
+
+def _refresh_job(db, *, request_key, status="queued", refs=None):
+    job = MarketRefreshJob(
+        request_key=request_key,
+        capability="price_history",
+        priority=10,
+        status=status,
+        attempts=0,
+        next_attempt_at=datetime(2026, 11, 10, tzinfo=UTC),
+        metadata_payload={"data_preparation_child": {"parent_refs": list(refs or [])}},
+    )
+    db.add(job)
+    db.flush()
+    return job
+
+
+@pytest.mark.asyncio
+async def test_merge_parent_refs_is_one_lookup_and_one_flush_for_many_existing_refs(db):
+    """A child with 300 refs gets one batched lookup, one write and one flush."""
+    parent = _refresh_job(db, request_key="parent-live")
+    new_parent = _refresh_job(db, request_key="parent-new")
+    child = _refresh_job(
+        db,
+        request_key="shared-child",
+        refs=[{"parent_job_id": parent.id, "request_id": f"req-{index}"} for index in range(300)],
+    )
+    adapter = AsyncSessionAdapter(db)
+    flushes = 0
+    real_flush = adapter.flush
+
+    async def counting_flush(*args, **kwargs):
+        nonlocal flushes
+        flushes += 1
+        return await real_flush(*args, **kwargs)
+
+    lookups = 0
+    real_execute = adapter.execute
+
+    async def counting_execute(*args, **kwargs):
+        nonlocal lookups
+        lookups += 1
+        return await real_execute(*args, **kwargs)
+
+    adapter.flush = counting_flush
+    adapter.execute = counting_execute
+    try:
+        new_ref = {"parent_job_id": new_parent.id, "request_id": "req-new"}
+        await _merge_parent_refs(adapter, child, [new_ref])
+    finally:
+        del adapter.flush
+        del adapter.execute
+
+    assert lookups == 1
+    assert flushes == 1
+    refs = child.metadata_payload["data_preparation_child"]["parent_refs"]
+    assert len(refs) == 64
+    assert refs[-1] == new_ref
+    assert refs[0] == {"parent_job_id": parent.id, "request_id": "req-237"}
+
+
+@pytest.mark.asyncio
+async def test_merge_parent_refs_drops_only_missing_parents_and_keeps_the_added_ref(db):
+    """Missing parents are pruned; live and terminal parents keep their refs."""
+    live = _refresh_job(db, request_key="parent-live")
+    terminal = _refresh_job(db, request_key="parent-done", status="completed")
+    new_parent = _refresh_job(db, request_key="parent-new")
+    missing_id = new_parent.id + 1000
+    child = _refresh_job(
+        db,
+        request_key="shared-child-prune",
+        refs=[
+            {"parent_job_id": live.id, "request_id": "a"},
+            {"parent_job_id": missing_id, "request_id": "gone"},
+            {"parent_job_id": terminal.id, "request_id": "done"},
+        ],
+    )
+    adapter = AsyncSessionAdapter(db)
+    added = {"parent_job_id": missing_id, "request_id": "still-added"}
+
+    await _merge_parent_refs(adapter, child, [added])
+
+    refs = child.metadata_payload["data_preparation_child"]["parent_refs"]
+    assert refs == [
+        {"parent_job_id": live.id, "request_id": "a"},
+        {"parent_job_id": terminal.id, "request_id": "done"},
+        added,
+    ]
