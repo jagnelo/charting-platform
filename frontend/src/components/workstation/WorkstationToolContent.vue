@@ -386,6 +386,7 @@
         />
         <div v-if="chartStore.isLoading" class="tool-state chart-tool__status" role="status" aria-live="polite" aria-atomic="true">Loading {{ activeSymbol }}…</div>
         <div v-else-if="chartStore.error" class="tool-state tool-state--error chart-tool__status" role="alert" aria-live="assertive" aria-atomic="true">{{ chartErrorForUser }}</div>
+        <div v-else-if="chartHasNoBars" class="tool-state chart-tool__status" role="status" aria-live="polite" aria-atomic="true">No local {{ chartStore.timeframe }} price history is available for {{ activeSymbol }} yet.</div>
         <div v-if="chartStore.isLoadingMore" class="chart-tool__history-boundary" role="status" aria-live="polite">{{ chartStore.historyBoundaryMessage || `Loading older ${chartStore.timeframe} history…` }}</div>
         <div v-else-if="chartStore.historyBoundaryMessage" class="chart-tool__history-boundary" role="status" aria-live="polite">{{ chartStore.historyBoundaryMessage }}</div>
         <div v-if="timeframeHistoryMessage" class="chart-tool__history-boundary" role="status" aria-live="polite">{{ timeframeHistoryMessage }}</div>
@@ -409,7 +410,7 @@
         :aria-label="industryRowLabel(item)"
         @click="emit('selectIndustry', item.industry, industryETFContext)"
       >
-        <strong>{{ item.industry }}</strong><span>{{ item.resolved_count }}/{{ item.constituent_count }}</span>
+        <strong>{{ item.industry }}</strong><span>{{ item.resolved_count }}/{{ item.constituent_count }}</span><span class="industry-list__proxy-count">{{ item.values.proxy_count ?? '—' }}</span>
         <span v-for="column in industryRankingColumns" :key="column.key" class="industry-list__metric" :title="item.warnings[column.key] ?? undefined">{{ displayIndustryValue(item, column.key) }}</span>
         <small
           class="industry-list__classification"
@@ -478,7 +479,7 @@
         Select a sector to inspect its industries and verified ETF proxies.
       </template>
       <template v-else-if="workspaceStore.etfIndustryLoading[selectedETF]">
-        Loading dated classifications for {{ selectedETF }} holdings…
+        Loading industries for {{ selectedETF }} from its dated classifications…
       </template>
       <template v-else-if="workspaceStore.etfIndustryErrors[selectedETF]">
         {{ workspaceStore.etfIndustryErrors[selectedETF] }}
@@ -494,7 +495,8 @@
     </div>
     <div v-else-if="isConstituentTool" class="constituent-tool">
       <p v-if="!selectedETF || !holdings?.snapshot" class="constituent-tool__empty-context" role="status">
-        Choose an ETF or industry in this workspace to view its reported constituents.
+        <template v-if="selectedETF && holdings === undefined">Loading {{ selectedETF }} holdings…</template>
+        <template v-else>Choose an ETF or industry in this workspace to view its reported constituents.</template>
       </p>
       <VirtualWatchlistTool
         :label="constituentLabel"
@@ -1041,10 +1043,10 @@
     <RelativeRotationTool v-else-if="tool.instance_key === 'relative-rotation' || tool.tool_type === 'relative_rotation'" :configuration="tool.configuration" @select="selectRotationSymbol" @configuration="emit('configuration', tool.instance_key, $event)" />
     <MarketMapTool v-else-if="tool.tool_type === 'market_map'" :configuration="tool.configuration" :request-priority="workstationToolVisible ? 'high' : 'low'" @configuration="emit('configuration', tool.instance_key, $event)" @select="(symbol, instrumentId) => selectSymbol(symbol, instrumentId)" @compare="emit('compare', $event)" @ratio="emit('ratio', $event)" @publish-analysis="emit('publishAnalysis', $event)" />
     <div v-else-if="tool.instance_key === 'technical-summary' || tool.tool_type === 'technical_summary'" class="metrics">
-      <span>RSI(14)</span><b>{{ formatNumber(technical?.rsi14) }}</b>
-      <span>20 / 50 / 200 MA</span><b>{{ technicalMAs }}</b>
-      <span>52-week position</span><b>{{ formatPercent(technical?.position_52w) }}</b>
-      <span>Volume ratio (50)</span><b>{{ formatRatio(technical?.volume_ratio_50) }}</b>
+      <span>RSI(14)</span><b>{{ technicalPending ? '…' : formatNumber(technical?.rsi14) }}</b>
+      <span>20 / 50 / 200 MA</span><b>{{ technicalPending ? '…' : technicalMAs }}</b>
+      <span>52-week position</span><b>{{ technicalPending ? '…' : formatPercent(technical?.position_52w) }}</b>
+      <span>Volume ratio (50)</span><b>{{ technicalPending ? '…' : formatRatio(technical?.volume_ratio_50) }}</b>
     </div>
     <CoverageSummaryTool v-else-if="tool.instance_key === 'coverage-summary' || tool.tool_type === 'coverage'" :symbol="activeSymbol" :configuration="tool.configuration" @configuration="emit('configuration', tool.instance_key, $event)" />
     <InstrumentNoteTool v-else-if="tool.tool_type === 'notes'" :instrument-id="toolInstrument?.id ?? chartStore.instrument?.id" :symbol="activeSymbol" :request-priority="workstationToolVisible ? 'high' : 'auto'" />
@@ -2167,6 +2169,8 @@ const chartBarType = computed<ChartBarType>(() => {
     : 'candles'
 })
 const chartErrorForUser = computed(() => chartErrorPresentation(chartStore.error))
+// An empty bar list after a finished load is an honest "no local history", not a blank canvas.
+const chartHasNoBars = computed(() => !!chartStore.symbol && !chartStore.isLoading && !chartStore.error && chartStore.bars.length === 0)
 const chartTransformParams = computed(() => {
   // Template/settings changes are applied optimistically to the local
   // serialisable configuration before the parent workspace snapshot round-trip
@@ -3675,6 +3679,8 @@ async function saveGenericBreadthDefinition() {
   }
 }
 const technical = computed(() => workspaceStore.technicals[activeSymbol.value])
+// The store leaves a symbol's technicals undefined until its request settles (null = settled empty).
+const technicalPending = computed(() => technical.value === undefined)
 const selectedETF = computed(() => workspaceStore.constituentETF ?? '')
 const isConstituentTool = computed(() => workspaceToolRole(props.tool) === 'constituent-universe')
 // A persisted generic watchlist flag must not override a factory semantic role.
@@ -5059,13 +5065,15 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 }
 .metrics b { color: #d2dce3; font-weight: 500; text-align: right; }
 .industry-list { height: 100%; overflow: auto; background: #11161b; font: 11px "Segoe UI", Arial, sans-serif; }
-.industry-list__header { display: flex; gap: 8px; min-width: 920px; padding: 5px 7px; border-bottom: 1px solid #34434e; color: #91a6b2; font-size: 10px; font-weight: 600; white-space: nowrap; }
+.industry-list__header { display: flex; gap: 8px; min-width: 980px; padding: 5px 7px; border-bottom: 1px solid #34434e; color: #91a6b2; font-size: 10px; font-weight: 600; white-space: nowrap; }
 .industry-list__header span:first-child { min-width: 120px; flex: 1 1 auto; }
 .industry-list__header span:not(:first-child) { flex: 0 0 52px; text-align: right; }
 .industry-list__header span:nth-child(2) { flex-basis: 78px; }
 .industry-list__header span:nth-child(3) { flex-basis: 58px; }
 .industry-list__row { display: flex; width: 100%; justify-content: space-between; gap: 8px; padding: 7px; border: 0; border-bottom: 1px solid #20282f; background: transparent; color: #c7d0d8; text-align: left; cursor: pointer; }
-.industry-list__row { min-width: 920px; }
+.industry-list__row { min-width: 980px; }
+.industry-list__row > span:nth-child(2) { flex: 0 0 78px; text-align: right; }
+.industry-list__row > .industry-list__proxy-count { flex: 0 0 58px; text-align: right; }
 .industry-list__metric { flex: 0 0 52px; overflow: hidden; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
 .industry-list__row:hover, .industry-list__row--active { background: #1d4057; }
 .industry-list__classification { flex: 0 0 auto; max-width: 120px; overflow: hidden; color: #a9b7bf; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }

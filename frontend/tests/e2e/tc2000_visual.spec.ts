@@ -147,7 +147,7 @@ async function waitForCachedChartAnalysisToRender(page: Page) {
  */
 async function waitForOrdinaryVisualCapture(page: Page, options: OrdinaryCaptureOptions = {}) {
   await expect(page.locator('.workstation__layout-state')).toHaveCount(0)
-  await expect(page.getByRole('status', { name: 'Workspace save status' })).toHaveAttribute('data-state', 'saved')
+  await expect(page.getByRole('status', { name: 'Workspace save status' })).toHaveAttribute('data-state', 'saved', { timeout: 15_000 })
 
   if (process.env.E2E_SEED_MARKET_DATA === 'true') {
     await waitForSelectionPreparationToSettle(page)

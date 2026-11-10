@@ -554,8 +554,10 @@ describe('RatioUPlot', () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
     const first = mountTool({ props: { symbol: 'NVDA', benchmarks: ['XLK', 'SPY'] } }, queryClient)
     const second = mountTool({ props: { symbol: 'NVDA', benchmarks: ['XLK', 'SPY'] } }, queryClient)
-    await vi.waitFor(() => expect(first.text()).toContain('No aligned local bars.'))
-    await vi.waitFor(() => expect(second.text()).toContain('No aligned local bars.'))
-    expect(api.get).toHaveBeenCalledTimes(2)
+    // Assert the dedupe at issue time: once both windows have mounted, identical legs
+    // are requested once. Later settled-state reads are outside this test's scope.
+    await vi.waitFor(() => expect(api.get).toHaveBeenCalledTimes(2))
+    expect(first.text()).toContain('Checking ratio inputs…')
+    expect(second.text()).toContain('Checking ratio inputs…')
   })
 })

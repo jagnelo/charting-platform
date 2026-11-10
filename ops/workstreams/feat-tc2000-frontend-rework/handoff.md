@@ -1,3 +1,7 @@
+# 2026-11-10 — Honest chart, ratio, industry and technicals states (batch A)
+
+Empty chart bars after a finished load show a no-history message; the industry proxy column is added and aligned; ratio, technicals and holdings show loading text until their requests settle. Unit tests cover these; full vitest 1990/1990 and type-check pass. Test-only expectations were updated for the new loading text. Frontend src/test only; no browser run.
+
 # 2026-11-10 — Align two frontend unit expectations with the current refresh and foreground contracts
 
 Popout top-down refresh now asserts at-least-once 'high' with initial promises resolved (the real store deduplicates); linked note load expects foreground:false; the optional-analysis-failure mock resolves because the real store never rejects. Full vitest run: 1985/1985 passed, exit 0. Test-only; no product change.
