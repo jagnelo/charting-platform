@@ -74,3 +74,12 @@ record follow-up may refresh `session.json` only.
 
 Next action: human review. Do not integrate, promote, or deploy; closure needs an
 explicit human closure statement.
+
+## Records follow-up
+
+Implementation commit `9071339127b3427e82a6ddccf4efc86e215e5ed2` is pushed and
+matches `origin/docs/runtime-neutral-agent-workflow`. After it, plan-ready, goal-state
+`unavailable` and checkpoint refreshed
+`ops/workstreams/docs-runtime-neutral-agent-workflow/session.json`; this records-only
+follow-up commits that file and this note (its own SHA is verified externally).
+Status remains `ready_for_human_review`.
