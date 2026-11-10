@@ -610,10 +610,15 @@ async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUT
     expect(originalViewport, 'the Study compact witness needs a sized browser viewport').not.toBeNull()
     const studyRoot = tool.locator('.study-lab-tool')
     const originalStudyWidth = await studyRoot.evaluate(root => root.clientWidth)
-    expect(originalStudyWidth).toBeGreaterThan(360)
-    await page.setViewportSize({ width: 1000, height: originalViewport!.height })
-    await expect.poll(() => studyRoot.evaluate(root => root.clientWidth), { timeout: 5_000 })
-      .toBeLessThanOrEqual(360)
+    // Catalogue placement may recreate Study in a narrow stack; only narrow the viewport when it is still wide.
+    const narrowedStudyViewport = originalStudyWidth > 360
+    if (narrowedStudyViewport) {
+      await page.setViewportSize({ width: 1000, height: originalViewport!.height })
+      await expect.poll(() => studyRoot.evaluate(root => root.clientWidth), { timeout: 5_000 })
+        .toBeLessThanOrEqual(360)
+    } else {
+      expect(originalStudyWidth).toBeLessThanOrEqual(360)
+    }
 
     await tool.getByLabel('Factory study').selectOption('positive_streak')
     // The offline positive factory witness uses the retained controlled D1
@@ -725,9 +730,11 @@ async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUT
     await expect(validateButton).toBeFocused()
     await page.keyboard.press('Tab')
     await expect(runButton).toBeFocused()
-    await page.setViewportSize(originalViewport!)
-    await expect.poll(() => studyRoot.evaluate(root => root.clientWidth), { timeout: 5_000 })
-      .toBe(originalStudyWidth)
+    if (narrowedStudyViewport) {
+      await page.setViewportSize(originalViewport!)
+      await expect.poll(() => studyRoot.evaluate(root => root.clientWidth), { timeout: 5_000 })
+        .toBe(originalStudyWidth)
+    }
   } else if (kind === 'results') {
     await expect(tool.locator('.research-results-tool__run-select').first()).toBeVisible({ timeout: 30_000 })
     await expect(tool.locator('.research-results-tool__artifacts article').first()).toBeVisible({ timeout: 20_000 })

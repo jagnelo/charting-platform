@@ -1,3 +1,7 @@
+# 2026-11-10 — Adopt Strategy 4873c65b catalogue-placement Study witness
+
+Strategy released 4873c65b, which makes the lifecycle Study-width check conditional: narrowing runs only when Add tool places Study in a wide stack. Imported unchanged from its canonical 33-path manifest (sha256 2527fca3…43d4); 5d19 archived in plan history. Test-only; no product change; Root owns the replay.
+
 # 2026-11-10 — Widen the ratio-chart busy-settle wait for SPY/RSP preparation
 
 The chart provider-error visual waits for `.ratio-chart` aria-busy=false; the SPY/RSP ensure request settles about 13s after it starts (worker pickup about 10s), so the 15s deadline was too tight. Timeout raised to 45s, assertion unchanged; this is the only such wait. Test-only; no product change; Root owns the replay.
