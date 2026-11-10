@@ -1,3 +1,7 @@
+# 2026-11-10 — Batch B: clear stale workstation banners and stop clipping tables
+
+Industry loading now clears per symbol, breadth shows its loading line only before metrics, the industry empty state shows loading while holdings bind, refresh status over rows sits in the corner, and non-virtualized watchlist columns keep their minimum width so numeric columns scroll instead of clipping. Timeframe selects are 40px so D1/W1/MN fit. Product changes are TC-owned workstation files and store code, with two focused unit tests added; no Strategy/ETF/Provider file touched.
+
 # 2026-11-10 — Adopt Strategy 7f1dd9c1 Study presentation repair
 
 Strategy released 7f1dd9c1 (S1-S4): Study bars, histogram and lab presentation plus their unit tests, imported unchanged from its canonical 34-path manifest (sha256 21bb4147…6b96); 4873c65b archived in plan history. No TC product change; Root owns the replay.

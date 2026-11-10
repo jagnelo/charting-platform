@@ -2656,6 +2656,33 @@ describe('workspace store layout tabs', () => {
     expect(store.etfIndustryErrors.XLB).toBeNull()
   })
 
+  it('clears an ETF industry loading flag when a newer load for another ETF supersedes it', async () => {
+    const store = useWorkspaceStore()
+    const composition = {
+      composition_date: '2026-11-02', known_at: null, provenance: 'dated_holdings_snapshot', source_provider: 'controlled-source',
+      completeness_status: 'complete', industries: [], exclusions: [], classification_systems: ['GICS'], classification_coverage: 0,
+    }
+    let releaseXLB!: (value: unknown) => void
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/market-groups/etf/XLB/industries') {
+        return new Promise(resolve => { releaseXLB = resolve })
+      }
+      if (path === '/market-groups/etf/XLK/industries') {
+        return Promise.resolve({ etf_symbol: 'XLK', ...composition })
+      }
+      return Promise.resolve([])
+    })
+
+    const firstLoad = store.loadETFIndustries('XLB')
+    await store.loadETFIndustries('XLK')
+    expect(store.etfIndustryLoading.XLB).toBe(true)
+
+    releaseXLB({ etf_symbol: 'XLB', ...composition })
+    await firstLoad
+
+    expect(store.etfIndustryLoading.XLB).toBe(false)
+  })
+
   it('retains cached dated industry composition when a refresh has no current result', async () => {
     const store = useWorkspaceStore()
     const cached = {

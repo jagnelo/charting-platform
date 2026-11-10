@@ -1172,6 +1172,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const etfConstituentSnapshotErrors = ref<Record<string, string | null>>({})
   const etfIndustries = ref<Record<string, ETFIndustryCompositionState | null>>({})
   const etfIndustryLoading = ref<Record<string, boolean>>({})
+  const etfIndustryLoadTokens = new Map<string, number>()
   const etfIndustryErrors = ref<Record<string, string | null>>({})
   const industryConstituents = ref<Record<string, ETFIndustryConstituentsState | null>>({})
   const industryProxies = ref<Record<string, ETFIndustryProxyState | null>>({})
@@ -3130,7 +3131,12 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (!normalized) return null
     const requestKey = 'top-down:industries'
     const generation = beginAnalysisRequest(requestKey)
+    // The analysis generation is shared by every ETF, so a newer request for a
+    // different ETF can supersede this one. Track the latest load per symbol so
+    // this request's settle still clears its own loading flag.
     if (!documentIsVisible()) return null
+    const loadToken = (etfIndustryLoadTokens.get(normalized) ?? 0) + 1
+    etfIndustryLoadTokens.set(normalized, loadToken)
     etfIndustryLoading.value = { ...etfIndustryLoading.value, [normalized]: true }
     etfIndustryErrors.value = { ...etfIndustryErrors.value, [normalized]: null }
     try {
@@ -3157,7 +3163,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       }
       return null
     } finally {
-      if (isCurrentAnalysisRequest(requestKey, generation)) {
+      if (etfIndustryLoadTokens.get(normalized) === loadToken) {
         etfIndustryLoading.value = { ...etfIndustryLoading.value, [normalized]: false }
       }
     }

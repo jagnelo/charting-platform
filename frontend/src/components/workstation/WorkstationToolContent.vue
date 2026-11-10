@@ -475,11 +475,14 @@
       </small>
     </div>
     <div v-else-if="isIndustryTool" class="tool-state">
-      <template v-if="!selectedETF">
+      <template v-if="!selectedETF && !industryLoadPending">
         Select a sector to inspect its industries and verified ETF proxies.
       </template>
-      <template v-else-if="workspaceStore.etfIndustryLoading[selectedETF]">
+      <template v-else-if="selectedETF && workspaceStore.etfIndustryLoading[selectedETF]">
         Loading industries for {{ selectedETF }} from its dated classifications…
+      </template>
+      <template v-else-if="!selectedETF">
+        Loading industries…
       </template>
       <template v-else-if="workspaceStore.etfIndustryErrors[selectedETF]">
         {{ workspaceStore.etfIndustryErrors[selectedETF] }}
@@ -1014,7 +1017,7 @@
         </button>
         <small v-if="!genericBreadthHistoryOccurrences.length">No member state changes were recorded for this history.</small>
       </section>
-      <p v-if="breadthBusy" class="breadth-tool__status" role="status" aria-live="polite" aria-atomic="true">Loading breadth analysis…</p>
+      <p v-if="breadthBusy && !breadth" class="breadth-tool__status" role="status" aria-live="polite" aria-atomic="true">Loading breadth analysis…</p>
       <p v-else-if="breadthPreparationStatus" class="breadth-tool__status" role="status" aria-live="polite" aria-atomic="true">{{ breadthPreparationStatus }}</p>
       <p v-else-if="breadthError" class="breadth-tool__status breadth-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">{{ breadthError }}</p>
       <p v-else-if="!breadth" class="breadth-tool__status" role="status" aria-live="polite" aria-atomic="true">Breadth analysis is unavailable.</p>
@@ -3682,6 +3685,9 @@ const technical = computed(() => workspaceStore.technicals[activeSymbol.value])
 // The store leaves a symbol's technicals undefined until its request settles (null = settled empty).
 const technicalPending = computed(() => technical.value === undefined)
 const selectedETF = computed(() => workspaceStore.constituentETF ?? '')
+// Holdings hydration can still be binding the ETF while its industry load is
+// already running; show the loading state rather than the "select a sector" prompt.
+const industryLoadPending = computed(() => Object.values(workspaceStore.etfIndustryLoading).some(Boolean))
 const isConstituentTool = computed(() => workspaceToolRole(props.tool) === 'constituent-universe')
 // A persisted generic watchlist flag must not override a factory semantic role.
 // Older or cloned Industry/Constituent windows can carry `personal: true`; keep
