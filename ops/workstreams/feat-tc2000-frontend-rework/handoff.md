@@ -1,3 +1,7 @@
+# 2026-11-10 — Add setLegend to the shared uPlot unit mock
+
+CI Frontend Unit Tests failed on an unhandled `chart.setLegend is not a function` from the released Study histogram. The shared uPlot mock lacked setLegend although the real library has it; the component is unchanged. Test-only mock fix; full vitest now exits 0.
+
 # 2026-11-10 — Adopt Provider 82850f7c data-preparation lock fix and integration test stabilisation
 
 Provider re-released the final adoption as 82850f7c (four-key manifest, sha256 fb8ab54c…4804, 98 files); 12 backend paths imported unchanged, including ETF's bridge runtime test. 254e83ed archived in plan history. No TC product change; pushed with the earlier Strategy and RRG commits.
