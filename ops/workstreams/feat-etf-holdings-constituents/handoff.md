@@ -1,3 +1,9 @@
+# Bridge runtime integration clock — 2026-11-10
+
+Pinned one fixed clock (2026-11-03 12:00 UTC) in `tests/integration/test_etf_holdings_provider_bridge_runtime.py` across composition freshness, capability staleness, bridge deadline and evidence. The pinned datetime answers isinstance checks, and the shared unit adapter-context helper follows the same clock. The SPDR qualification and retained SPDR/iShares continuation tests pass; the full file passes 112/112 with testcontainers.
+
+---
+
 # Basket synthetic history not-found → 404 — 2026-11-10
 
 After DELETE /api/v1/baskets/30, a late GET /ohlcv/D1 could pass the route check and then raise an unmapped `BasketValidationError` in the series read, returning 500. Added `BasketNotFoundError` (subclass) in `app/services/baskets.py`, raised for missing baskets in the synthetic series and snapshot reads. The ohlcv route maps it to 404 with "Basket not found.". The other basket routes already return 404 for a missing basket. Test: `backend/tests/unit/services/test_basket_not_found.py`.
