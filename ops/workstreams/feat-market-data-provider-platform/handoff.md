@@ -1,3 +1,12 @@
+## 2026-11-10 — Deep-history honesty proof (Provider, Claude Code)
+
+Existing tests already prove the two halves; no duplicate was added.
+
+- Deeper coherent source older than Massive's 2-year floor: test_history_planner_pins_deepest_admitted_provider_for_all_chunks and test_history_planner_uses_deeper_real_admission_chain_over_recent_massive_cache (both pass).
+- Internal gap, partial status, covered ranges: test_retained_internal_gap_is_reported_and_only_gap_is_queued. Strengthened to assert covered_ranges are exactly 2026-01-01..02 and 01-08..09, all from the selected series. The alternate series is never reported as covered. Passes.
+- Not fixed: test_data_preparation_worker_deeper_default.py has 3 failing cases, and they fail identically at e949552bc. The fixture instrument has no primary listing, so the coverage calendar is None and default selection is suppressed. Adding an XNYS listing to the fixture moved one case to a retained-alternate fetch assertion. This needs a Root decision or a separate investigation.
+- Also pre-existing at e949552bc: 2 failures in test_reconciled_sic_industry_keeps_its_snapshot_provider_and_timing (SimpleNamespace has no effective_score).
+
 ## 2026-11-10 — Tiingo deep-history gates and 15c8bf3b4 focused check (Provider, Claude Code)
 
 Root decision root-Provider-Tiingo-deep-history-decision-20261110.json applied offline.

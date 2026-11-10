@@ -583,7 +583,13 @@ async def test_retained_internal_gap_is_reported_and_only_gap_is_queued(db, inst
     assert children[0].end_at == datetime(2026, 1, 7)
     response = await get_data_preparation_response(async_db, parent=parent, owner_user_id=81)
     assert response.dependencies[0].status == "partial"
-    assert len(response.dependencies[0].covered_ranges) == 2
+    covered = response.dependencies[0].covered_ranges
+    assert len(covered) == 2
+    assert {item.market_series_id for item in covered} == {selected.id}
+    assert [(item.start_at.date(), item.end_at.date()) for item in covered] == [
+        (datetime(2026, 1, 1, tzinfo=UTC).date(), datetime(2026, 1, 2, tzinfo=UTC).date()),
+        (datetime(2026, 1, 8, tzinfo=UTC).date(), datetime(2026, 1, 9, tzinfo=UTC).date()),
+    ]
     assert response.dependencies[0].covered_start is None
     assert response.dependencies[0].covered_end is None
 
