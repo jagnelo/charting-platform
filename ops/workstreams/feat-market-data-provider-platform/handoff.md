@@ -4,6 +4,16 @@ _retained_history_coverage ran about 8x per instrument in one ensure, reloading 
 
 Test: 12 members x 8 lookups -> 12 uncached runs, results unchanged, no leak. Full backend unit suite: 4326 passed, 0 failed. Latency is unmeasured here; Root's fixture run decides the 0.5s target.
 
+## 2026-11-10 — Integration test setup for listing-dependent fixtures (Provider, Claude Code)
+
+Test setup only; no product changes. Three partial-schema files now include instrument_listing (the FK closure does not reach it). The queue fixtures carry a primary XNYS listing, since the coverage calendar needs it.
+
+Touched integration files: 99 passed, 1 failed. The failure is test_duplicate_ensure_returns_while_shared_history_child_is_leased (KeyError background_job_ids). It fails the same way at 254e83ed2, so it predates the recent commits.
+
+Not fixed: the three ETF-owned bridge tests in test_etf_holdings_provider_bridge_runtime.py. Pinning the freshness clock moved the failures instead of clearing them. The next step needs ETF's decision.
+
+Unit suite (tests/unit plus strategy_lab_v2 tests, with ENV_FILE=/dev/null): 6208 passed, 0 failed. Running from backend/ with the default .env.dev picks up a local Tiingo custom-plan env file and fails 4 quota tests; that is a local environment artifact.
+
 ## 2026-11-10 — Bounded parent refs (perf, Provider, Claude Code)
 
 POST /data/ensure spent its time in per-ref parent-ref writes: each ref deep-copied the whole list, scanned it linearly, and flushed. Children now merge refs once: one dedupe, one batched lookup of live parents, one payload write, one flush (data_preparation._merge_parent_refs). Refs for parents that no longer exist are dropped. Refs being added are always kept. Only the newest 64 refs are kept.

@@ -53,6 +53,33 @@ async def preparation_sessions(preparation_database_urls):
     sync_engine.dispose()
 
 
+async def _add_primary_xnys_listing(session, instrument) -> None:
+    """Give a US test equity its primary NYSE listing so the session calendar applies.
+
+    Coverage calendars come only from a primary listing, so an unlisted
+    instrument is judged leniently and these chunk expectations do not hold.
+    """
+    from app.models.exchange import Exchange
+    from app.models.listing import InstrumentListing
+
+    exchange = await session.scalar(select(Exchange).where(Exchange.mic == "XNYS"))
+    if exchange is None:
+        exchange = Exchange(mic="XNYS", name="New York Stock Exchange", country_code="US")
+        session.add(exchange)
+        await session.flush()
+    session.add(
+        InstrumentListing(
+            instrument_id=instrument.id,
+            exchange_id=exchange.id,
+            ticker=instrument.symbol,
+            currency="USD",
+            is_primary=True,
+            is_active=True,
+        )
+    )
+    await session.flush()
+
+
 def _canonical_instrument(symbol: str, instrument_type_id: int, *, domain_prefix: str):
     from app.models.instrument import Instrument
 
@@ -658,6 +685,7 @@ async def test_worker_chunk_result_projects_while_older_continuation_is_queued(
         source = DataSource(name=f"prep-worker-source-{uuid4().hex[:8]}", is_active=True)
         session.add_all([instrument, source])
         await session.flush()
+        await _add_primary_xnys_listing(session, instrument)
         series = MarketSeries(
             instrument_id=instrument.id,
             data_source_id=source.id,
@@ -790,6 +818,7 @@ async def test_weekly_and_monthly_coverage_tracks_rematerialized_derived_series(
         source = DataSource(name=f"prep-derived-source-{uuid4().hex[:8]}", is_active=True)
         session.add_all([instrument, source])
         await session.flush()
+        await _add_primary_xnys_listing(session, instrument)
         daily = MarketSeries(
             instrument_id=instrument.id,
             data_source_id=source.id,
@@ -1878,6 +1907,7 @@ async def test_duplicate_ensure_returns_while_shared_history_child_is_leased(
         instrument = _canonical_instrument("ENSURELOCK", stock_type_id, domain_prefix="ensure-lock")
         session.add(instrument)
         await session.flush()
+        await _add_primary_xnys_listing(session, instrument)
         request = DataEnsureRequest.model_validate(
             {
                 "target": {"kind": "instrument", "instrument_id": instrument.id},
