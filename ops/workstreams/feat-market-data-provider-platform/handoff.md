@@ -1,3 +1,9 @@
+## 2026-11-10 — Retained coverage memo per preparation request (Provider, Claude Code)
+
+_retained_history_coverage ran about 8x per instrument in one ensure, reloading about 1,800 bars each time. It now memoizes per (instrument, timeframe, adjusted, start, end) inside a ContextVar set by the ensure and maintenance entrypoints. The memo ends with that call; GET responses are not cached. Callers get copies.
+
+Test: 12 members x 8 lookups -> 12 uncached runs, results unchanged, no leak. Full backend unit suite: 4326 passed, 0 failed. Latency is unmeasured here; Root's fixture run decides the 0.5s target.
+
 ## 2026-11-10 — Bounded parent refs (perf, Provider, Claude Code)
 
 POST /data/ensure spent its time in per-ref parent-ref writes: each ref deep-copied the whole list, scanned it linearly, and flushed. Children now merge refs once: one dedupe, one batched lookup of live parents, one payload write, one flush (data_preparation._merge_parent_refs). Refs for parents that no longer exist are dropped. Refs being added are always kept. Only the newest 64 refs are kept.

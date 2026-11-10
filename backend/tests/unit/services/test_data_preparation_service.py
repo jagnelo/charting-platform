@@ -25,12 +25,15 @@ from app.models.provider_observation import (
 from app.models.provider_runtime import ProviderCapability, ProviderPolicy
 from app.schemas.data_preparation import DataEnsureRequest
 from app.services.data_preparation import (
+    _RETAINED_COVERAGE_MEMO,
     _analysis_required_start,
     _holdings_job_has_terminal_negative,
     _identity_job_has_terminal_negative,
     _merge_parent_refs,
     _profile_is_fresh,
+    _request_scoped_coverage_memo,
     _resolve_requested_instruments,
+    _retained_history_coverage,
     create_data_preparation_request,
     create_maintenance_data_preparation_request,
     expand_resolved_identity_dependency,
@@ -2475,3 +2478,69 @@ async def test_merge_parent_refs_drops_only_missing_parents_and_keeps_the_added_
         {"parent_job_id": terminal.id, "request_id": "done"},
         added,
     ]
+
+
+@pytest.mark.asyncio
+async def test_retained_coverage_runs_once_per_key_within_one_planning_pass(monkeypatch):
+    """Repeated lookups in one ensure pass reuse one coverage result per key."""
+    from app.models.ohlcv import Timeframe
+    from app.services import data_preparation
+
+    calls: list[int] = []
+
+    async def fake_uncached(_db, *, instrument_id, **_kwargs):
+        calls.append(instrument_id)
+        return None, [{"instrument_id": instrument_id}]
+
+    monkeypatch.setattr(data_preparation, "_retained_history_coverage_uncached", fake_uncached)
+    start = datetime(2026, 1, 1, tzinfo=UTC)
+    end = datetime(2026, 11, 1, tzinfo=UTC)
+
+    @_request_scoped_coverage_memo
+    async def planning_pass():
+        results = []
+        for member in range(12):
+            for _ in range(8):
+                results.append(
+                    await _retained_history_coverage(
+                        object(),
+                        instrument_id=member,
+                        timeframe=Timeframe.D1,
+                        adjusted=True,
+                        requested_start=start,
+                        requested_end=end,
+                    )
+                )
+        return results
+
+    results = await planning_pass()
+
+    assert sorted(calls) == list(range(12))
+    assert len(results) == 96
+    assert all(
+        ranges == [{"instrument_id": member}]
+        for member, (_, ranges) in zip([i // 8 for i in range(96)], results)
+    )
+    # Callers get copies: mutating one result must not leak into the memo.
+    results[0][1][0]["instrument_id"] = 999
+    assert results[1][1] == [{"instrument_id": 0}]
+    # The memo ends with the planning pass; an unscoped call is not cached.
+    assert _RETAINED_COVERAGE_MEMO.get() is None
+    calls.clear()
+    await _retained_history_coverage(
+        object(),
+        instrument_id=0,
+        timeframe=Timeframe.D1,
+        adjusted=True,
+        requested_start=start,
+        requested_end=end,
+    )
+    await _retained_history_coverage(
+        object(),
+        instrument_id=0,
+        timeframe=Timeframe.D1,
+        adjusted=True,
+        requested_start=start,
+        requested_end=end,
+    )
+    assert calls == [0, 0]

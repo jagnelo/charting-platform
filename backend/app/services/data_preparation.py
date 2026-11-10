@@ -5,9 +5,11 @@ from __future__ import annotations
 import hashlib
 import importlib
 import json
+from contextvars import ContextVar
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from functools import wraps
 from uuid import NAMESPACE_URL, uuid4, uuid5
 
 from fastapi import HTTPException
@@ -259,7 +261,74 @@ async def _persisted_derived_coverage_ranges(
     return sorted(ranges, key=lambda item: (item.start_at, item.market_series_id or 0))
 
 
+# Per-request memo for retained-history coverage. It is set and cleared by the
+# ensure/maintenance entrypoints, so it never outlives one planning pass and
+# is never shared between requests or sessions. Outside those entrypoints
+# (for example GET responses) the memo is absent and nothing is cached.
+_RETAINED_COVERAGE_MEMO: ContextVar[dict | None] = ContextVar(
+    "retained_history_coverage_memo", default=None
+)
+
+
+def _request_scoped_coverage_memo(fn):
+    """Give one ensure/planning call its own retained-coverage memo."""
+
+    @wraps(fn)
+    async def wrapper(*args, **kwargs):
+        token = _RETAINED_COVERAGE_MEMO.set({})
+        try:
+            return await fn(*args, **kwargs)
+        finally:
+            _RETAINED_COVERAGE_MEMO.reset(token)
+
+    return wrapper
+
+
 async def _retained_history_coverage(
+    db: AsyncSession,
+    *,
+    instrument_id: int,
+    timeframe: Timeframe,
+    adjusted: bool,
+    requested_start: datetime | None,
+    requested_end: datetime | None,
+) -> tuple[OhlcvCoverageAssessment | None, list[PreparationCoveredRange]]:
+    """Return retained coverage, reusing one result per key inside a request.
+
+    Callers receive copies, so mutating a result cannot change the memo.
+    """
+
+    memo = _RETAINED_COVERAGE_MEMO.get()
+    if memo is None:
+        return await _retained_history_coverage_uncached(
+            db,
+            instrument_id=instrument_id,
+            timeframe=timeframe,
+            adjusted=adjusted,
+            requested_start=requested_start,
+            requested_end=requested_end,
+        )
+    key = (
+        instrument_id,
+        timeframe.value,
+        bool(adjusted),
+        _as_utc(requested_start).isoformat() if requested_start is not None else None,
+        _as_utc(requested_end).isoformat() if requested_end is not None else None,
+    )
+    if key not in memo:
+        memo[key] = await _retained_history_coverage_uncached(
+            db,
+            instrument_id=instrument_id,
+            timeframe=timeframe,
+            adjusted=adjusted,
+            requested_start=requested_start,
+            requested_end=requested_end,
+        )
+    assessment, ranges = memo[key]
+    return deepcopy(assessment), deepcopy(ranges)
+
+
+async def _retained_history_coverage_uncached(
     db: AsyncSession,
     *,
     instrument_id: int,
@@ -1353,6 +1422,7 @@ async def _enqueue_instrument_dependencies(
     return dependencies
 
 
+@_request_scoped_coverage_memo
 async def create_data_preparation_request(
     db: AsyncSession,
     *,
@@ -1620,6 +1690,7 @@ async def create_data_preparation_request(
     return parent
 
 
+@_request_scoped_coverage_memo
 async def create_maintenance_data_preparation_request(
     db: AsyncSession,
     *,
