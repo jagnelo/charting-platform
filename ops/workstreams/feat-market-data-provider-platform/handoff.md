@@ -1,3 +1,7 @@
+## 2026-11-10 — ETF native composition freshness test imported (Provider, Claude Code)
+
+Imported the ETF owner's exact bytes of test_etf_holdings_native_qualification.py from 04af30bb0 (blob verified equal, no edits, +20 lines). The file and test_etf_issuer_catalog.py pass (107). The full backend unit suite passes: 4323 passed, 0 failed.
+
 ## 2026-11-10 — Stale fakes in two worker tests (Provider, Claude Code)
 
 Two tests failed because the fake sessions lacked the queries that refresh_derived_timeframe_if_needed runs (reached through the refresh_cached_coarse_from_daily closure). Each test now stubs that call with AsyncMock(return_value=False). No product code or assertions changed.
