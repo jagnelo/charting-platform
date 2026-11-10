@@ -1,7 +1,27 @@
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
+import pytest
 from sqlalchemy import select
+
+# One fixed instant for the whole module. Radar freshness, the coverage
+# preflight and the seeded daily bars all read it, so the results do not depend
+# on the time of day or the calendar date the suite runs.
+FIXED_NOW = datetime(2026, 11, 10, 16, 0, tzinfo=UTC)
+
+
+class _FixedDateTime(datetime):
+    @classmethod
+    def now(cls, tz=None):
+        return FIXED_NOW if tz is None else FIXED_NOW.astimezone(tz)
+
+
+@pytest.fixture(autouse=True)
+def _radar_fixed_clock(monkeypatch):
+    from app.services import evaluator_preflight, radar_engine
+
+    monkeypatch.setattr(radar_engine, "datetime", _FixedDateTime)
+    monkeypatch.setattr(evaluator_preflight, "datetime", _FixedDateTime)
 
 
 def _seed_radar_bars(
@@ -16,7 +36,7 @@ def _seed_radar_bars(
 
     tf = timeframe or Timeframe.D1
     step_seconds = TIMEFRAME_SECONDS.get(tf, TIMEFRAME_SECONDS[Timeframe.D1])
-    base = start_at or (datetime.now(UTC) - timedelta(seconds=step_seconds * len(prices)))
+    base = start_at or (FIXED_NOW - timedelta(seconds=step_seconds * len(prices)))
     for index, price in enumerate(prices):
         db.add(
             OHLCVBar(
@@ -381,7 +401,7 @@ class TestRadarAPI:
             db,
             instrument,
             [94, 92, 90],
-            start_at=datetime.now(UTC),
+            start_at=FIXED_NOW,
         )
         second_run = client.post("/api/v1/radar/run", headers=auth_headers)
         assert second_run.status_code == 200
@@ -409,7 +429,7 @@ class TestRadarAPI:
             db,
             instrument,
             [101, 104, 107, 110],
-            start_at=datetime.now(UTC),
+            start_at=FIXED_NOW,
         )
         second_run = client.post("/api/v1/radar/run", headers=auth_headers)
         assert second_run.status_code == 200

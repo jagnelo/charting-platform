@@ -4,6 +4,10 @@ _retained_history_coverage ran about 8x per instrument in one ensure, reloading 
 
 Test: 12 members x 8 lookups -> 12 uncached runs, results unchanged, no leak. Full backend unit suite: 4326 passed, 0 failed. Latency is unmeasured here; Root's fixture run decides the 0.5s target.
 
+## 2026-11-10 — Deterministic radar integration clock (Provider, Claude Code)
+
+test_radar.py read the real clock in three places: seeded bars, radar freshness, and the evaluator coverage preflight. Results depended on time of day. The file now uses one fixed instant (2026-11-10 16:00 UTC), pins the radar engine and preflight clocks in an autouse fixture, and seeds from that instant. Assertions are unchanged. test_radar.py: 13 passed at the fixed instant and at two other instants. Radar unit tests: 39 passed.
+
 ## 2026-11-10 — Ensure never holds a transaction across the worker wake (Provider, Claude Code)
 
 ensure_data now commits the read transaction after building the response, before any Redis work. The worker wake is one shared lazy arq pool (no per-request create_pool, no connect retries). The pool creation and enqueue share a 1-second bound, and the wake runs fire-and-forget, so the 202 never waits for it. The pool closes on app shutdown.
