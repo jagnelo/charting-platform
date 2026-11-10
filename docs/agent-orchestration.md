@@ -544,22 +544,36 @@ recorded human statements in the workstream do.
 | Session goal: create | session-local goal from `goal_request.objective` | `/goal <condition>` built from the same objective; session-scoped, keeps working until the condition holds | keep working from the workstream `next_action`; record `goal_state: unavailable` with a reason |
 | Session goal: status / clear | goal status (active, paused, blocked, complete) | `/goal` shows status; `/goal clear` clears | workstream `progress` |
 | Human-authorized budget | `token_budget` | no token parameter: state the bound in the condition, e.g. "… or stop after N turns" | record the bound in the handoff and stop at it |
-| Orchestrator → worker message | App Server `turn/start` on the worker thread | `SendMessage(to: "<session name>")`; an idle receiver starts a new turn | write the instruction to the worker's handoff and resume the worker |
-| Steer a busy worker | App Server `turn/steer` | same `SendMessage`; a busy receiver reads it between tool calls | as above at the next checkpoint |
-| Discover live workers | App Server thread listing | `ListAgents` | `make worktree-overview` |
+| Orchestrator → worker turn | App Server `turn/start` on the worker thread; the reply is the turn result | `scripts/agent-turn.py run <chat> "<task>"`: a headless turn resumed in the worker's own session (`claude -p --resume <id> --model … --effort …`); it blocks and returns the worker's reply, saved under `turns/` | write the instruction to the worker's handoff and resume the worker |
+| Steer a busy worker | App Server `turn/steer` | `agent-turn.py run <chat> --interrupt "<steer>"` stops the running turn and sends the new one | as above at the next checkpoint |
+| Discover workers | App Server thread listing | the orchestration roster (`agent-turn.py list`) | `make worktree-overview` |
 | Read worker state | durable workstream files and commits (`thread/read` only as a diagnostic) | durable workstream files and commits (never another session's transcript) | durable workstream files and commits |
-| Update a saved goal | App Server `thread/goal/set` / `thread/goal/get` | send the new objective via `SendMessage`; the owning session replaces its `/goal` | owning session updates on resume |
+| Update a saved goal | App Server `thread/goal/set` / `thread/goal/get` | run a turn whose prompt is `/goal <new objective>` in the owning session | owning session updates on resume |
 | Model / effort pinning | session model and reasoning-effort settings | `claude --model <id> --effort <level>`, `/model`, `/effort`, or settings `model` / `effortLevel` | runtime default, recorded in the handoff |
 | Session naming / resume | thread ID | `claude -n "<name>"` or `/rename`; resume with `claude --resume "<name>"` | worktree slug |
-| Worker session surface | one visible Codex IDE-extension chat per worktree window | one visible Claude Code IDE-extension chat per worktree, each in its own VS Code window (cwd = the worktree), named after the branch, with model/effort pinned for that worktree | LangGraph or another runner calling the same Make targets |
+| Worker session surface | one visible Codex IDE-extension chat per worker thread | one named Claude Code session per worker, created in the main checkout's project so it is listed in the VS Code extension's chat-history dropdown (created with `CLAUDE_CODE_ENTRYPOINT=claude-vscode`, because the extension hides sessions recorded as headless SDK runs); the worker `cd`s into its worktree every turn | LangGraph or another runner calling the same Make targets |
 | Claim takeover on runtime switch | `make agent-session-takeover CONFIRM=<old-session-id> REQUEST='<recorded human authorization>'` | same | same |
 
-A Claude Code session that must receive orchestrator messages unattended needs
-`crossSessionInbound: "accept"`; otherwise each message waits for interactive
-approval and expires after five minutes. The Codex App Server and Claude Code
-cross-session messaging are both optional transports: the workstream record
-stays the source of truth, and the orchestrator verifies effects there rather
-than trusting a delivery receipt.
+**Approvals.** No human approves tool calls in unattended work. Worker turns
+run in the runtime's automatic permission mode (Claude Code `auto`), and every
+refused call is returned to the orchestrator: `permission_denials` in the turn
+result, plus a `DENIED:` line in the worker's report. The orchestrator decides
+under the recorded human authorizations. It either reruns that turn with a
+narrow grant (`agent-turn.py run <chat> --allow '<Tool(pattern)>'`) or refuses
+and records why.
+
+**Reports and media.** Workers end each turn with an outcome line
+(`DONE` / `BLOCKED` / `NEEDS-DECISION`), SHAs, paths and checks, plus
+`MEDIA:` absolute paths for screenshots. The orchestrator opens those files
+itself.
+
+**Orchestrator continuity.** The orchestrator runs under its runtime's goal
+(`/goal` in Claude Code). A small supervisor re-sets that goal when a run
+stops early, for example on a usage limit, as a Codex goal resumes. It ends when
+the orchestrator writes its completion marker.
+
+The turn transport is optional: the workstream record stays the source of truth,
+and the orchestrator verifies effects there rather than trusting a reply.
 
 ### Switching runtimes
 
