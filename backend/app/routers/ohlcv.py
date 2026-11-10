@@ -147,6 +147,25 @@ async def materialize_local_provider(
     return result
 
 
+_LOCAL_BAR_COLUMNS = (
+    OHLCVBar.ts,
+    OHLCVBar.open,
+    OHLCVBar.high,
+    OHLCVBar.low,
+    OHLCVBar.close,
+    OHLCVBar.volume,
+    OHLCVBar.vwap,
+    OHLCVBar.is_adjusted,
+    OHLCVBar.is_derived,
+    OHLCVBar.source_timeframe,
+    OHLCVBar.derivation_method,
+    OHLCVBar.derived_at,
+    OHLCVBar.source_bar_count,
+    OHLCVBar.source_start,
+    OHLCVBar.source_end,
+)
+
+
 @router.get("/local/{symbol:path}/{timeframe}", response_model=list[OHLCVBarOut])
 async def get_local_ohlcv(
     symbol: str,
@@ -187,13 +206,18 @@ async def get_local_ohlcv(
             OHLCVBar.data_source_id
             == select(DataSource.id).where(DataSource.name == "e2e_reference").scalar_subquery()
         )
+    # Only the response fields are read, so select them directly instead of
+    # materializing one ORM entity per bar on every page request.
     bars = (
         (
             await db.execute(
-                select(OHLCVBar).where(*predicates).order_by(OHLCVBar.ts.desc()).limit(limit)
+                select(*_LOCAL_BAR_COLUMNS)
+                .where(*predicates)
+                .order_by(OHLCVBar.ts.desc())
+                .limit(limit)
             )
         )
-        .scalars()
+        .mappings()
         .all()
     )
     if (
@@ -208,16 +232,16 @@ async def get_local_ohlcv(
             bars = (
                 (
                     await db.execute(
-                        select(OHLCVBar)
+                        select(*_LOCAL_BAR_COLUMNS)
                         .where(*predicates)
                         .order_by(OHLCVBar.ts.desc())
                         .limit(limit)
                     )
                 )
-                .scalars()
+                .mappings()
                 .all()
             )
-    return list(reversed(bars))
+    return [dict(bar) for bar in reversed(bars)]
 
 
 @router.get("/{symbol:path}/{timeframe}/transformed", response_model=list[OHLCVBarOut])

@@ -41,8 +41,8 @@ from app.routers import (
     watchlists,
     workspaces,
 )
-from app.routers.data_preparation import close_worker_wake_pool
 from app.services.alert_engine import run_alert_check
+from app.services.arq_pool import close_shared_arq_pool
 from app.services.distributed_locks import close_shared_redis_lock_client
 from app.services.e2e_seed import seed_e2e_instruments, seed_e2e_market_data
 from app.services.provider_runtime import seed_provider_runtime
@@ -118,7 +118,7 @@ async def lifespan(app: FastAPI):
     yield
     scheduler.shutdown(wait=False)
     await close_shared_redis_lock_client()
-    await close_worker_wake_pool()
+    await close_shared_arq_pool()
 
 
 app = FastAPI(

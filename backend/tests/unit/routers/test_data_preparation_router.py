@@ -15,23 +15,24 @@ from app.models.market_data_foundation import (
 )
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.routers import data_preparation
+from app.services import arq_pool
 
 
 @pytest.fixture
 def fresh_wake_pool(monkeypatch):
     """Start each test with no shared wake pool, and clear any left behind."""
 
-    monkeypatch.setattr(data_preparation, "_wake_pool", None)
+    monkeypatch.setattr(arq_pool, "_pool", None)
     monkeypatch.setattr(data_preparation, "_wake_tasks", set())
     yield
-    monkeypatch.setattr(data_preparation, "_wake_pool", None)
+    monkeypatch.setattr(arq_pool, "_pool", None)
 
 
 @pytest.mark.asyncio
 async def test_committed_preparation_wakeup_targets_registered_worker(monkeypatch, fresh_wake_pool):
     redis = AsyncMock()
     pool_factory = AsyncMock(return_value=redis)
-    monkeypatch.setattr(data_preparation, "create_pool", pool_factory)
+    monkeypatch.setattr(arq_pool, "create_pool", pool_factory)
 
     await data_preparation._wake_refresh_worker()
 
@@ -45,7 +46,7 @@ async def test_committed_preparation_wakeup_targets_registered_worker(monkeypatc
 @pytest.mark.asyncio
 async def test_wakeup_failure_does_not_replace_durable_database_queue(monkeypatch, fresh_wake_pool):
     pool_factory = AsyncMock(side_effect=RuntimeError("redis unavailable"))
-    monkeypatch.setattr(data_preparation, "create_pool", pool_factory)
+    monkeypatch.setattr(arq_pool, "create_pool", pool_factory)
 
     await data_preparation._wake_refresh_worker()
 
@@ -56,7 +57,7 @@ async def test_wakeup_failure_does_not_replace_durable_database_queue(monkeypatc
 async def test_wake_pool_is_created_once_and_reused(monkeypatch, fresh_wake_pool):
     redis = AsyncMock()
     pool_factory = AsyncMock(return_value=redis)
-    monkeypatch.setattr(data_preparation, "create_pool", pool_factory)
+    monkeypatch.setattr(arq_pool, "create_pool", pool_factory)
 
     await data_preparation._wake_refresh_worker()
     await data_preparation._wake_refresh_worker()
@@ -76,7 +77,7 @@ async def test_wake_enqueue_is_bounded_and_never_raises(monkeypatch, fresh_wake_
 
     redis = AsyncMock()
     redis.enqueue_job = hung_enqueue
-    monkeypatch.setattr(data_preparation, "create_pool", AsyncMock(return_value=redis))
+    monkeypatch.setattr(arq_pool, "create_pool", AsyncMock(return_value=redis))
     monkeypatch.setattr(data_preparation, "_WAKE_TIMEOUT_SECONDS", 0.05)
 
     started = time.monotonic()
@@ -91,14 +92,14 @@ async def test_close_worker_wake_pool_closes_once_and_swallows_close_errors(
 ):
     redis = AsyncMock()
     redis.aclose = AsyncMock(side_effect=RedisTimeoutError("Timed out closing connection after 1"))
-    monkeypatch.setattr(data_preparation, "create_pool", AsyncMock(return_value=redis))
+    monkeypatch.setattr(arq_pool, "create_pool", AsyncMock(return_value=redis))
     await data_preparation._wake_refresh_worker()
 
-    await data_preparation.close_worker_wake_pool()
-    await data_preparation.close_worker_wake_pool()
+    await arq_pool.close_shared_arq_pool()
+    await arq_pool.close_shared_arq_pool()
 
     redis.aclose.assert_awaited_once()
-    assert data_preparation._wake_pool is None
+    assert arq_pool._pool is None
 
 
 class _RecordingDB:
@@ -157,7 +158,7 @@ async def test_slow_or_failing_wake_does_not_delay_or_fail_the_accepted_response
 
     monkeypatch.setattr(data_preparation, "create_data_preparation_request", fake_create)
     monkeypatch.setattr(data_preparation, "get_data_preparation_response", fake_response)
-    monkeypatch.setattr(data_preparation, "create_pool", slow_pool)
+    monkeypatch.setattr(arq_pool, "create_pool", slow_pool)
     monkeypatch.setattr(data_preparation, "_WAKE_TIMEOUT_SECONDS", 0.05)
 
     started = time.monotonic()
