@@ -45,6 +45,9 @@ function drawBars(instance: uPlot) {
   })
   context.restore()
 }
+// The legend shows the latest bar's value whenever the pointer is not over the plot, and the hovered value otherwise.
+function restingIndex() { return Math.max(0, props.values.length - 1) }
+function showRestingLegend(instance: uPlot) { if (instance.cursor.idx == null) instance.setLegend({ idx: restingIndex() }, false) }
 function hasValidData() { return props.labels.length > 0 && props.labels.length === props.values.length && props.values.every(value => Number.isFinite(value)) }
 function draw() {
   valid.value = hasValidData()
@@ -55,6 +58,7 @@ function draw() {
   if (chart) {
     chart.setData(data())
     chart.setSize({ width, height })
+    if (chart.cursor.idx == null) chart.setLegend({ idx: restingIndex() }, false)
     return
   }
   chart = new uPlot({
@@ -79,6 +83,7 @@ function draw() {
       { stroke: '#9aabb6', grid: { stroke: '#26313a', width: 1 }, ticks: { stroke: '#40505a', width: 1 }, font: '10px Segoe UI' },
     ],
     series: [{}, { label: props.name, stroke: 'transparent', width: 0 }],
+    hooks: { setLegend: [showRestingLegend] },
     plugins: [{ hooks: { draw: [drawBars] } }],
   }, data(), host.value)
 }
@@ -88,5 +93,5 @@ onBeforeUnmount(() => { observer?.disconnect(); destroyChart() })
 </script>
 
 <style scoped>
-.study-bars { display:grid; grid-template-rows:minmax(0,1fr) auto; gap:2px; height:190px; min-height:120px; min-width:0; margin-top:4px; background:#101419; }.study-bars__host { min-height:0; min-width:0; }.study-bars__legend { min-width:0; max-width:100%; color:#b8c8d3; }.study-bars:not(:hover) .study-bars__legend { visibility:hidden; }.study-bars__legend :deep(.u-legend) { display:block; width:100%; max-width:100%; font:9px/1.2 "Segoe UI",Arial,sans-serif; }.study-bars__legend :deep(.u-inline tr) { display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; width:100%; gap:2px 6px; margin:0; }.study-bars__legend :deep(.u-legend th),.study-bars__legend :deep(.u-legend td) { min-width:0; max-width:100%; padding:1px 2px; white-space:normal; overflow-wrap:anywhere; }.study-bars__legend :deep(.u-legend th) { flex:1 1 auto; text-align:left; }.study-bars__legend :deep(.u-legend td) { flex:0 1 auto; text-align:right; }.study-bars__state { display:grid; height:100%; place-items:center; color:#8497a4; font:10px "Segoe UI",Arial,sans-serif; }
+.study-bars { display:grid; grid-template-rows:minmax(0,1fr) auto; gap:2px; height:190px; min-height:120px; min-width:0; margin-top:4px; background:#101419; }.study-bars__host { min-height:0; min-width:0; }.study-bars__legend { min-width:0; max-width:100%; color:#b8c8d3; }.study-bars__legend :deep(.u-legend) { display:block; width:100%; max-width:100%; font:9px/1.2 "Segoe UI",Arial,sans-serif; }.study-bars__legend :deep(.u-inline tr) { display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; width:100%; gap:2px 6px; margin:0; }.study-bars__legend :deep(.u-legend th),.study-bars__legend :deep(.u-legend td) { min-width:0; max-width:100%; padding:1px 2px; white-space:normal; overflow-wrap:anywhere; }.study-bars__legend :deep(.u-legend th) { flex:1 1 auto; text-align:left; }.study-bars__legend :deep(.u-legend td) { flex:0 1 auto; text-align:right; }.study-bars__state { display:grid; height:100%; place-items:center; color:#8497a4; font:10px "Segoe UI",Arial,sans-serif; }
 </style>

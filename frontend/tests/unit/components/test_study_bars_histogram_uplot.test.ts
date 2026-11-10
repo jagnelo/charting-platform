@@ -18,6 +18,12 @@ type ChartOptions = {
     y: { range?: (self: unknown, min: number, max: number) => [number, number]; min?: number }
   }
   plugins: Array<{ hooks: { draw: Array<(instance: unknown) => void> } }>
+  hooks?: { setLegend?: Array<(instance: unknown) => void> }
+}
+
+// Minimal stand-in for the uPlot instance that the setLegend hook receives.
+function legendInstance(cursorIdx: number | null) {
+  return { cursor: { idx: cursorIdx }, setLegend: vi.fn() }
 }
 
 function lastChartOptions(): ChartOptions {
@@ -47,6 +53,20 @@ describe('StudyBarsUPlot', () => {
     expect(range(null, 0, 0)).toEqual([0, 1])
   })
 
+  it('shows the latest bar in the legend while nothing is hovered and leaves the hovered value alone', async () => {
+    mount(StudyBarsUPlot, { props: { name: 'monthly_frequency', labels: ['Jan', 'Feb', 'Mar'], values: [2, 3, 5] } })
+    await vi.waitFor(() => expect(vi.mocked(uPlot)).toHaveBeenCalledTimes(1))
+    const hook = lastChartOptions().hooks!.setLegend![0]!
+
+    const resting = legendInstance(null)
+    hook(resting)
+    expect(resting.setLegend).toHaveBeenCalledWith({ idx: 2 }, false)
+
+    const hovering = legendInstance(1)
+    hook(hovering)
+    expect(hovering.setLegend).not.toHaveBeenCalled()
+  })
+
   it('keeps the first and last bars inside the plot with half a category of padding', async () => {
     mount(StudyBarsUPlot, { props: { name: 'monthly_frequency', labels: ['Jan', 'Feb', 'Mar'], values: [2, 3, 5] } })
     await vi.waitFor(() => expect(vi.mocked(uPlot)).toHaveBeenCalledTimes(1))
@@ -72,6 +92,29 @@ describe('StudyHistogramUPlot', () => {
     const hovering = drawInstance(50)
     draw(hovering)
     expect(hovering.ctx.stroke).toHaveBeenCalledTimes(1)
+  })
+
+  it('shows the current observation bin in the legend at rest and the hovered bin while hovering', async () => {
+    const bins3 = [{ start: 1, end: 2, count: 4 }, { start: 2, end: 3, count: 1 }, { start: 3, end: 4, count: 2 }]
+    mount(StudyHistogramUPlot, { props: { name: 'streak_distribution', bins: bins3, current: 2.5 } })
+    await vi.waitFor(() => expect(vi.mocked(uPlot)).toHaveBeenCalledTimes(1))
+    const hook = lastChartOptions().hooks!.setLegend![0]!
+
+    const resting = legendInstance(null)
+    hook(resting)
+    expect(resting.setLegend).toHaveBeenCalledWith({ idx: 1 }, false)
+
+    const hovering = legendInstance(2)
+    hook(hovering)
+    expect(hovering.setLegend).not.toHaveBeenCalled()
+  })
+
+  it('falls back to the last bin in the legend when the current observation is outside the histogram', async () => {
+    mount(StudyHistogramUPlot, { props: { name: 'streak_distribution', bins, current: 99 } })
+    await vi.waitFor(() => expect(vi.mocked(uPlot)).toHaveBeenCalledTimes(1))
+    const resting = legendInstance(null)
+    lastChartOptions().hooks!.setLegend![0]!(resting)
+    expect(resting.setLegend).toHaveBeenCalledWith({ idx: 1 }, false)
   })
 
   it('keeps the histogram y axis anchored at zero', async () => {
