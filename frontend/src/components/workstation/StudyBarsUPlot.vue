@@ -62,7 +62,11 @@ function draw() {
     height,
     legend: { mount: (_chart, element) => legendHost.value?.appendChild(element) },
     cursor: { drag: { x: false, y: false } },
-    scales: { x: { time: false }, y: { auto: true } },
+    // Bars start at zero and stay inside the plot: the y range always includes 0, and the x range keeps half a category on each side.
+    scales: {
+      x: { time: false, range: (_u, min, max) => [Math.min(min, -0.5), Math.max(max, props.labels.length - 0.5)] },
+      y: { auto: true, range: (_u, min, max) => { const low = Math.min(0, min); const high = Math.max(0, max); return [low, high === low ? low + 1 : high] } },
+    },
     axes: [
       {
         stroke: '#70808b',
@@ -84,5 +88,5 @@ onBeforeUnmount(() => { observer?.disconnect(); destroyChart() })
 </script>
 
 <style scoped>
-.study-bars { display:grid; grid-template-rows:minmax(0,1fr) auto; gap:2px; height:190px; min-height:120px; min-width:0; margin-top:4px; background:#101419; }.study-bars__host { min-height:0; min-width:0; }.study-bars__legend { min-width:0; max-width:100%; color:#b8c8d3; }.study-bars__legend :deep(.u-legend) { display:block; width:100%; max-width:100%; font:9px/1.2 "Segoe UI",Arial,sans-serif; }.study-bars__legend :deep(.u-inline tr) { display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; width:100%; gap:2px 6px; margin:0; }.study-bars__legend :deep(.u-legend th),.study-bars__legend :deep(.u-legend td) { min-width:0; max-width:100%; padding:1px 2px; white-space:normal; overflow-wrap:anywhere; }.study-bars__legend :deep(.u-legend th) { flex:1 1 auto; text-align:left; }.study-bars__legend :deep(.u-legend td) { flex:0 1 auto; text-align:right; }.study-bars__state { display:grid; height:100%; place-items:center; color:#8497a4; font:10px "Segoe UI",Arial,sans-serif; }
+.study-bars { display:grid; grid-template-rows:minmax(0,1fr) auto; gap:2px; height:190px; min-height:120px; min-width:0; margin-top:4px; background:#101419; }.study-bars__host { min-height:0; min-width:0; }.study-bars__legend { min-width:0; max-width:100%; color:#b8c8d3; }.study-bars:not(:hover) .study-bars__legend { visibility:hidden; }.study-bars__legend :deep(.u-legend) { display:block; width:100%; max-width:100%; font:9px/1.2 "Segoe UI",Arial,sans-serif; }.study-bars__legend :deep(.u-inline tr) { display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; width:100%; gap:2px 6px; margin:0; }.study-bars__legend :deep(.u-legend th),.study-bars__legend :deep(.u-legend td) { min-width:0; max-width:100%; padding:1px 2px; white-space:normal; overflow-wrap:anywhere; }.study-bars__legend :deep(.u-legend th) { flex:1 1 auto; text-align:left; }.study-bars__legend :deep(.u-legend td) { flex:0 1 auto; text-align:right; }.study-bars__state { display:grid; height:100%; place-items:center; color:#8497a4; font:10px "Segoe UI",Arial,sans-serif; }
 </style>

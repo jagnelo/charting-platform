@@ -54,7 +54,7 @@
         ariaLabel="Study Python source"
         :invalid="sourceValidationInvalid"
         :described-by="sourceValidationDescriptionId"
-        min-height="110px"
+        :min-height="sourceEditorMinHeight"
         @update:model-value="markCustomSource"
       />
     </div>
@@ -68,8 +68,13 @@
     <section v-if="validation" :id="sourceValidationFeedbackId" class="study-lab-tool__validation" :role="validationMatchesSource && !validation.valid ? 'alert' : 'status'" :aria-live="validationMatchesSource && !validation.valid ? 'assertive' : 'polite'" aria-atomic="true" :class="{ 'study-lab-tool__validation--bad': validationMatchesSource && !validation.valid }">
       <template v-if="validationMatchesSource">
         <strong>{{ validation.valid ? 'Validated for isolated execution' : 'Validation errors' }}</strong>
-        <pre v-if="validation.diagnostics.length">{{ validation.diagnostics }}</pre>
-        <span v-else>Dependencies: {{ validation.dependencies.join(', ') || 'none' }} · Lookback: {{ validation.lookback_hint ?? 'none' }} · Outputs: {{ validation.output_contracts.join(', ') || 'none' }}</span>
+        <template v-if="validation.diagnostics.length">
+          <ul class="study-lab-tool__diagnostics" aria-label="Validation diagnostics">
+            <li v-for="(entry, index) in diagnosticEntries(validation.diagnostics)" :key="index"><span>{{ entry.text }}</span><small v-if="entry.location"> ({{ entry.location }})</small></li>
+          </ul>
+          <details class="study-lab-tool__raw"><summary>Details</summary><pre>{{ formatRaw(validation.diagnostics) }}</pre></details>
+        </template>
+        <span v-else> · Dependencies: {{ validation.dependencies.join(', ') || 'none' }} · Lookback: {{ validation.lookback_hint ?? 'none' }} · Outputs: {{ validation.output_contracts.join(', ') || 'none' }}</span>
       </template>
       <span v-else>Study source changed since validation. Validate the current source before running.</span>
     </section>
@@ -116,8 +121,14 @@
       <p v-if="run.reproducibility_hash">Reproducibility {{ run.reproducibility_hash }}</p>
       <p class="study-lab-tool__dataset-summary">Current draft dataset: {{ universeSourceId || universeSymbols || symbol }} · {{ timeframe }} · {{ adjustment === 'split_adjusted' ? 'split adjusted' : 'raw' }} · {{ session }} session · benchmark {{ benchmark || 'none' }} · {{ startDate || 'earliest available' }} → {{ endDate || 'latest available' }}</p>
       <p class="study-lab-tool__saved-dataset" role="status" aria-label="Saved run dataset">Saved run #{{ run.id }} dataset: {{ savedRunDatasetSummary }}</p>
-      <details v-if="run.diagnostics?.length" class="study-lab-tool__run-details"><summary>Diagnostics ({{ run.diagnostics.length }})</summary><pre>{{ formatMessages(run.diagnostics) }}</pre></details>
-      <details v-if="run.warnings?.length" class="study-lab-tool__run-details"><summary>Warnings ({{ run.warnings.length }})</summary><pre>{{ formatMessages(run.warnings) }}</pre></details>
+      <details v-if="run.diagnostics?.length" class="study-lab-tool__run-details"><summary>Diagnostics ({{ run.diagnostics.length }})</summary>
+        <ul class="study-lab-tool__diagnostics"><li v-for="(entry, index) in diagnosticEntries(run.diagnostics)" :key="index"><span>{{ entry.text }}</span><small v-if="entry.location"> ({{ entry.location }})</small></li></ul>
+        <details class="study-lab-tool__raw"><summary>Details</summary><pre>{{ formatRaw(run.diagnostics) }}</pre></details>
+      </details>
+      <details v-if="run.warnings?.length" class="study-lab-tool__run-details"><summary>Warnings ({{ run.warnings.length }})</summary>
+        <ul class="study-lab-tool__diagnostics"><li v-for="(entry, index) in diagnosticEntries(run.warnings)" :key="index"><span>{{ entry.text }}</span><small v-if="entry.location"> ({{ entry.location }})</small></li></ul>
+        <details class="study-lab-tool__raw"><summary>Details</summary><pre>{{ formatRaw(run.warnings) }}</pre></details>
+      </details>
       <details v-if="run.logs" class="study-lab-tool__run-details"><summary>Execution log</summary><pre>{{ run.logs }}</pre></details>
       <details v-if="Object.keys(run.resource_usage ?? {}).length" class="study-lab-tool__run-details"><summary>Resource usage</summary><pre>{{ formatObject(run.resource_usage) }}</pre></details>
       <div v-if="metricArtifacts.length" class="study-lab-tool__metrics" aria-label="Study metrics"><article v-for="artifact in metricArtifacts" :key="artifact.id" role="status" aria-live="polite" aria-atomic="true" :aria-label="`${artifact.name} metric`" :aria-describedby="artifactSummaryId(artifact.id)" :class="{ 'study-lab-tool__metric--true': artifact.artifact_type === 'boolean' && artifact.payload.value === true, 'study-lab-tool__metric--false': artifact.artifact_type === 'boolean' && artifact.payload.value === false }"><span :id="artifactSummaryId(artifact.id)" class="sr-only">{{ describeStudyArtifact(artifact) }}</span><small>{{ artifact.name }}</small><strong>{{ formatMetric(artifact) }}</strong><button type="button" :aria-label="`Export ${artifact.name}`" @click="exportArtifact(artifact)">Export</button><div v-if="structuredThresholdType(artifact) === 'scalar'" class="study-lab-tool__artifact-threshold" role="group" :aria-label="`${artifact.name} threshold condition`"><label>When <select v-model="conditionDraft(artifact).operator" :aria-label="`Structured scalar condition operator: ${artifact.name}`"><option value="gt">&gt;</option><option value="gte">≥</option><option value="lt">&lt;</option><option value="lte">≤</option><option value="eq">=</option><option value="ne">≠</option></select></label><input v-model.number="conditionDraft(artifact).threshold" type="number" step="any" :aria-label="`Structured scalar condition threshold: ${artifact.name}`" /><button type="button" :disabled="promotionBusy || !Number.isFinite(conditionDraft(artifact).threshold)" :aria-label="`Save Boolean column: ${artifact.name}`" @click="promoteStructuredThreshold(artifact, 'column')">Save Boolean column</button><button v-for="target in seriesConditionTargets" :key="`${artifact.id}-scalar-${target}`" type="button" :disabled="promotionBusy || !Number.isFinite(conditionDraft(artifact).threshold)" :aria-label="`${seriesConditionLabel(target)}: ${artifact.name}`" @click="promoteStructuredThreshold(artifact, target)">{{ seriesConditionLabel(target) }}</button></div></article></div>
@@ -238,6 +249,8 @@ const crossSectionalBreadthSource = "field = str(parameters.get('field', 'close'
 const relativeStrengthHistorySource = "closes = market.close()\nbenchmark = market.benchmark_close()\nratio = [value / base if base else None for value, base in zip(closes, benchmark)]\noutput.series('relative_strength_ratio', ratio)\noutput.scalar('latest_relative_strength', ratio[-1] if ratio else None)"
 const currentHistorySource = "closes = market.close()\nreturns = [(closes[index] / closes[index - 1]) - 1 for index in range(1, len(closes)) if closes[index - 1]]\nhistory = returns[:-1]\ncurrent = returns[-1] if returns else None\ncomparison = research.historical_comparison(history, current)\noutput.scalar('historical_sample_size', comparison['sample_size'])\noutput.scalar('current_return', comparison['current'] if comparison['current'] is not None else 0)\noutput.scalar('historical_mean_return', comparison['mean'] if comparison['mean'] is not None else 0)\noutput.scalar('historical_median_return', comparison['median'] if comparison['median'] is not None else 0)\noutput.scalar('historical_percentile_rank', comparison['percentile_rank'] if comparison['percentile_rank'] is not None else 0)\noutput.scalar('historical_z_score', comparison['z_score'] if comparison['z_score'] is not None else 0)\noutput.histogram('historical_return_distribution', history, 12, comparison['current'])\noutput.table('current_vs_history', [comparison])"
 const source = ref(positiveStreakSource)
+// Show the whole default factory source (about 10 lines) without a tall empty editor; users can still resize it.
+const sourceEditorMinHeight = computed(() => `${Math.max(110, source.value.split('\n').length * 14 + 16)}px`)
 const studyLabInstanceId = (() => {
   const scope = globalThis as typeof globalThis & { __tc2000StudyLabInstanceSequence?: number }
   const next = (scope.__tc2000StudyLabInstanceSequence ?? 0) + 1
@@ -1106,7 +1119,21 @@ function exportArtifact(artifact: Artifact) {
   URL.revokeObjectURL(url)
 }
 function formatMetric(artifact: Artifact) { return artifact.artifact_type === 'boolean' ? artifact.payload.value === true ? 'True' : artifact.payload.value === false ? 'False' : '—' : artifact.payload.value ?? '—' }
-function formatMessages(messages: unknown[]) { return messages.map(message => typeof message === 'string' ? message : JSON.stringify(message)).join('\n') }
+function formatRaw(value: unknown) { return JSON.stringify(value, null, 2) }
+function diagnosticEntries(messages: unknown[]): Array<{ text: string; location: string }> {
+  return messages.map(message => {
+    if (!message || typeof message !== 'object') return { text: String(message), location: '' }
+    const record = message as Record<string, unknown>
+    const where = (record.location && typeof record.location === 'object' ? record.location : record) as Record<string, unknown>
+    const text = typeof record.message === 'string' ? record.message : typeof record.msg === 'string' ? record.msg : JSON.stringify(message)
+    const location = [
+      where.line != null ? `line ${String(where.line)}` : '',
+      where.column != null ? `column ${String(where.column)}` : '',
+      typeof where.field === 'string' ? `field ${where.field}` : '',
+    ].filter(Boolean).join(', ')
+    return { text, location }
+  })
+}
 function formatObject(value: Record<string, unknown> | undefined) { return JSON.stringify(value ?? {}, null, 2) }
 function tableRows(artifact: Artifact): Array<Record<string, unknown>> {
   const value = artifact.payload.value
@@ -2070,6 +2097,7 @@ onBeforeUnmount(() => {
 .study-lab-tool__artifact-threshold button { margin-left:0; white-space:normal; overflow-wrap:anywhere; }
 .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
 .study-lab-tool__editor-shell { min-height:0; }
+.study-lab-tool__diagnostics { margin:3px 0 0; padding-left:14px; color:#e0b4b4; font-size:10px; } .study-lab-tool__diagnostics small { color:#8fa3ae; } .study-lab-tool__raw { margin-top:3px; } .study-lab-tool__raw summary { color:#779ab0; font-size:9px; cursor:pointer; }
 .study-lab-tool__sdk-reference { display:grid; gap:2px; color:#8195a3; }
 .study-lab-tool__sdk-reference summary { cursor:pointer; color:#b5c6d0; }
 .study-lab-tool__parameters { display:grid; grid-template-columns:minmax(120px, 1fr) minmax(0, 2fr); gap:5px; align-items:start; color:#8ea3b0; }

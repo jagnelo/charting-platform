@@ -6483,8 +6483,8 @@
     },
     {
       "source": "frontend/src/components/workstation/StudyLabTool.vue",
-      "control_count": 63,
-      "signature_sha256": "adabb5dc322a1efbb05d1ebffef1218abe74f41772d4c38b011d838c2f84aa95",
+      "control_count": 66,
+      "signature_sha256": "2856e3d955e90c2aa684fe11c64261d931f22296d82efb6aa76cfb7906ffe8e2",
       "journeys": [
         "TC08"
       ],

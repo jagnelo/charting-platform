@@ -2298,4 +2298,38 @@ describe('StudyLabTool', () => {
     expect(queryClient.getQueryData(['workstation', 'research-run', 151])).toMatchObject({ id: 151, status: 'queued' })
     results.unmount()
   })
+
+    it('sizes the Python source editor to show the whole default factory source', () => {
+      const wrapper = mountTool({ activeSymbol: 'SPY', configuration: {} })
+      const editor = wrapper.get('[aria-label="Study Python source"]').element as HTMLTextAreaElement
+      // Ten default factory lines at 14px each plus padding, so no line is cut off by default.
+      expect(editor.style.minHeight).toBe('156px')
+    })
+
+    it('lists validation diagnostics with their location and keeps the raw JSON behind Details', async () => {
+      const diagnostic = { message: 'Unknown name dataset2', line: 3, column: 5 }
+      apiPost.mockImplementation((path: string) => {
+        if (path === '/code/validate') return Promise.resolve({ valid: false, diagnostics: [diagnostic], dependencies: [], lookback_hint: null, output_contracts: [] })
+        return Promise.resolve({})
+      })
+      const wrapper = mountTool({ activeSymbol: 'SPY', configuration: {} })
+      await wrapper.get('button[aria-label="Validate study"]').trigger('click')
+      await vi.waitFor(() => expect(wrapper.text()).toContain('Validation errors'))
+
+      const items = wrapper.findAll('.study-lab-tool__diagnostics li')
+      expect(items).toHaveLength(1)
+      expect(items[0]!.text()).toBe('Unknown name dataset2 (line 3, column 5)')
+      expect(wrapper.get('.study-lab-tool__raw pre').text()).toContain('"message": "Unknown name dataset2"')
+    })
+
+    it('separates the validated status from its dependency summary', async () => {
+      apiPost.mockImplementation((path: string) => {
+        if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] })
+        return Promise.resolve({})
+      })
+      const wrapper = mountTool({ activeSymbol: 'SPY', configuration: {} })
+      await wrapper.get('button[aria-label="Validate study"]').trigger('click')
+      await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+      expect(wrapper.text()).toContain('Validated for isolated execution · Dependencies: output')
+    })
 })
