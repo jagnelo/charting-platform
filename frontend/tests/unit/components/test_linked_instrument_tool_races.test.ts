@@ -53,6 +53,7 @@ describe('linked instrument tool stale-response guards', () => {
       priority: 'auto',
       queueKey: 'instrument-note:1',
       signal: expect.any(AbortSignal),
+      foreground: false,
     }))
     wrapper.unmount()
 

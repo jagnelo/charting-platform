@@ -1,3 +1,7 @@
+# 2026-11-10 — Align two frontend unit expectations with the current refresh and foreground contracts
+
+Popout top-down refresh now asserts at-least-once 'high' with initial promises resolved (the real store deduplicates); linked note load expects foreground:false; the optional-analysis-failure mock resolves because the real store never rejects. Full vitest run: 1985/1985 passed, exit 0. Test-only; no product change.
+
 # 2026-11-10 — Adopt Provider 254e83ed final backend (release candidate, BLOCKED)
 
 17 backend paths and the 93-hash Provider manifest adopted from 254e83ed, superseding 4b9f53bca. Backend unit: 4319 passed, 4 failed (Tiingo quota-limit assertions); frontend unit: 1983 passed, 2 failed (linked-instrument late note load; popout top-down refresh). Failures recorded, not fixed; Root decides.
