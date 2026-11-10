@@ -1,3 +1,9 @@
+## 2026-11-10 — Stale fakes in two worker tests (Provider, Claude Code)
+
+Two tests failed because the fake sessions lacked the queries that refresh_derived_timeframe_if_needed runs (reached through the refresh_cached_coarse_from_daily closure). Each test now stubs that call with AsyncMock(return_value=False). No product code or assertions changed.
+
+Both files pass (87 tests). The full unit suite: 16 failed, 4307 passed. The 16 remaining failures are all tests/unit/services/test_etf_holdings_native_qualification.py, which the ETF branch is fixing.
+
 ## 2026-11-10 — Lazy listing loads and fixture repair (Provider, Claude Code)
 
 Root diagnosis A applied at the class level: Instrument.listings and InstrumentListing.exchange are lazy=selectin, so db.get callers see the primary listing and the XNYS calendar. The worker fixture now carries a primary XNYS listing; all four worker cases pass. A regression proves a plain db.get yields XNYS, and it fails without the model change.

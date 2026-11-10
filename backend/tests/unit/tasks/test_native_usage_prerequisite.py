@@ -536,6 +536,10 @@ async def test_durable_usage_job_calls_existing_refresh_and_requires_verified_wi
 
 @pytest.mark.asyncio
 async def test_normal_history_worker_defers_behind_deduplicated_native_usage_job(monkeypatch):
+    # Neutral fake: this test is about the native-usage deferral, not W1/MN reconciliation.
+    monkeypatch.setattr(
+        data_tasks, "refresh_derived_timeframe_if_needed", AsyncMock(return_value=False)
+    )
     monkeypatch.setattr(settings, "PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED", True)
     monkeypatch.setattr(settings, "PROVIDER_ACCOUNT_USAGE_REFRESH_PROVIDERS", ["alpaca"])
     instrument = SimpleNamespace(id=17, symbol="XLB")
