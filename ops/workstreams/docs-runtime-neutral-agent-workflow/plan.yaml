@@ -1,0 +1,34 @@
+schema: 4
+branch: docs/runtime-neutral-agent-workflow
+base_sha: 139b350238b5e1c8a170dce5af09a805301d857e
+parent_branch: staging
+parent_sha: 139b350238b5e1c8a170dce5af09a805301d857e
+dependency_authorization: "not applicable: independent staging-based topic"
+human_intent_authorization: "Human request 2026-11-09: 'Any repo documentation MUST be updated to now also encompass Claude Code's semantics and environment too, as beforehand this was all done through Codex alone ... I do not want to care too much about whether Codex or Claude Code or something else is being used'; activated 2026-11-10: 'ok handle this ... do whatever you must, i authorize you'."
+planning_state: draft
+human_closure_authorization: pending
+closure_summary: pending
+validation_tier: full_integration
+human_validation_authorization: agent_default_full_integration
+local_validation_profile: pending_agent_assessment
+local_validation_reason: pending agent assessment from changed paths and runtime impact
+goal_budget_policy: unbounded_unless_human_authorized
+human_goal_budget_authorization: none
+goal: "Human request 2026-11-09: 'Any repo documentation MUST be updated to now also encompass Claude Code's semantics and environment too, as beforehand this was all done through Codex alone ... I do not want to care too much about whether Codex or Claude Code or something else is being used'; activated 2026-11-10: 'ok handle this ... do whatever you must, i authorize you'."
+scope: []
+owned_paths: []
+dependencies: []
+acceptance_criteria: []
+branch_tests: []
+branch_tests_reason: pending agent assessment
+live_test_impact: none
+migration_impact: none
+deployment_impact: none
+status: authorized
+remaining_gaps: []
+progress:
+  completed: []
+  total: 0
+  current_phase: plan
+  current_blocker: none
+  next_action: complete the branch-owned plan before creating a goal
