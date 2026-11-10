@@ -1,3 +1,9 @@
+# Native composition freshness clock (test-only) — 2026-11-10
+
+16 native qualification tests failed on every branch because the refresh freshness check read the real date against fixtures dated Oct 30–Nov 2, 2026. Added an autouse fixture in `backend/tests/unit/services/test_etf_holdings_native_qualification.py` that pins only `etf_holdings_refresh.datetime` to 2026-11-03. Target files: 107 passed. All ETF/basket unit files: 1360 passed, 1 failed on a record-text assertion that also fails on HEAD and is not date-dependent.
+
+---
+
 # Release candidate freeze — 2026-11-10
 
 Release candidate `d850a1c91f93f509e2b3a2f90c66887537b75362` frozen for publication; Root publishes and runs exact-source CI. Root is running the combined functional journey profile; no product or test changes until Root releases the freeze. ETF manifest `etfd850a1c9` (10 files) is already in Root's combined fixture.

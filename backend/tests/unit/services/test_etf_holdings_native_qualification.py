@@ -75,6 +75,26 @@ def _freeze_native_fixture_clock(monkeypatch):
     monkeypatch.setattr(refresh_module, "datetime", FixtureDateTime)
 
 
+@pytest.fixture(autouse=True)
+def _native_composition_freshness_clock(monkeypatch):
+    """Judge the fixed Oct 30-Nov 2, 2026 source compositions at a fixed date.
+
+    Only the refresh module's freshness check is pinned; lease and expiry
+    arithmetic in these tests keeps using the real clock.
+    """
+    frozen_now = datetime(2026, 11, 3, 12, tzinfo=UTC)
+    real_datetime = refresh_module.datetime
+
+    class FreshnessDateTime(real_datetime):
+        @classmethod
+        def now(cls, tz=None):
+            if tz is None:
+                return frozen_now.replace(tzinfo=None)
+            return frozen_now.astimezone(tz)
+
+    monkeypatch.setattr(refresh_module, "datetime", FreshnessDateTime)
+
+
 def _native_fetch_fixture(*, raw_text=None, raw_json=None, metadata=None, symbol="TST"):
     instrument = Instrument(id=824, symbol=symbol, name="Test Issuer Broad Market ETF")
     profile = ETFProfile(
