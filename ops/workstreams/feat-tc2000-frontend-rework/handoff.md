@@ -1,3 +1,7 @@
+# 2026-11-10 — Follow Study Lab collapsible diagnostics in the visual parity spec
+
+Study's presentation repair moved raw validation JSON behind a Details summary and nested run diagnostics under their own summaries. The visual spec now opens the validation Details before asserting its pre, and targets each run block's direct summary. Spec-only; no product change; reference PNGs are for Root to recapture and review.
+
 # 2026-11-10 — Add setLegend to the shared uPlot unit mock
 
 CI Frontend Unit Tests failed on an unhandled `chart.setLegend is not a function` from the released Study histogram. The shared uPlot mock lacked setLegend although the real library has it; the component is unchanged. Test-only mock fix; full vitest now exits 0.

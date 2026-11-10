@@ -1282,6 +1282,8 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await study.getByRole('textbox', { name: 'Study Python source' }).fill("output.scalar('broken'")
     await study.getByRole('button', { name: 'Validate' }).click()
     await expect(study).toContainText('Validation errors', { timeout: 10_000 })
+    // The raw validation JSON is collapsed behind its own Details summary.
+    await study.locator('.study-lab-tool__validation--bad details.study-lab-tool__raw > summary').click()
     await expect(study.locator('.study-lab-tool__validation--bad pre')).toBeVisible()
     await expect(study.getByRole('button', { name: 'Run study', exact: true })).toBeDisabled()
     await expect(page).toHaveScreenshot('study-lab-validation-error-gap.png', {
@@ -1546,10 +1548,11 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await expect(study.locator('.study-lab-tool__run-status--failed')).toBeVisible({ timeout: 10_000 })
     await expect(study).toContainText('Run #780')
     const diagnostics = study.locator('.study-lab-tool__run-details').filter({ hasText: 'Diagnostics (1)' })
-    await diagnostics.locator('summary').click()
+    // Each run block has its own summary; nested raw Details summaries must not match.
+    await diagnostics.locator(':scope > summary').click()
     await expect(diagnostics).toContainText('Network access is disabled')
     const warnings = study.locator('.study-lab-tool__run-details').filter({ hasText: 'Warnings (1)' })
-    await warnings.locator('summary').click()
+    await warnings.locator(':scope > summary').click()
     await expect(warnings).toContainText('run was terminated')
     await expect(study).toContainText('Rerun snapshot')
     await expect(page.locator('.workstation__refresh')).toHaveText('Refreshing…')
