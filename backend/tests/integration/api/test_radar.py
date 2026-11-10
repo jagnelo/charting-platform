@@ -18,10 +18,11 @@ class _FixedDateTime(datetime):
 
 @pytest.fixture(autouse=True)
 def _radar_fixed_clock(monkeypatch):
-    from app.services import evaluator_preflight, radar_engine
+    from app.services import evaluator_preflight, ohlcv_coverage, radar_engine
 
     monkeypatch.setattr(radar_engine, "datetime", _FixedDateTime)
     monkeypatch.setattr(evaluator_preflight, "datetime", _FixedDateTime)
+    monkeypatch.setattr(ohlcv_coverage, "datetime", _FixedDateTime)
 
 
 def _seed_radar_bars(

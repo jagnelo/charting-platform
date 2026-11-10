@@ -51,9 +51,10 @@ dependency_authorization: 'Prior context adoption 2026-10-28T10:17:43Z: Root rel
 human_intent_authorization: 'The human approved implementation of the TC2000 V25-inspired workstation roadmap and, on 2026-09-15,
   explicitly approved a scope replan so this branch consumes feat/market-data-provider-platform and feat/etf-holdings-constituents
   instead of duplicating their provider and ETF-domain ownership. On 2026-10-15 the human answered "Yes—use a reviewed local-only
-  reference," scoped to the interim Help-screen reference only. On 2026-10-20 the human directed: "I, the human in charge, explicitly
-  authorize any and all actions the AI agent(s) may request in order to progress development, reconciliation and promotion of the four
-  feature branches into staging and production so the product may be deployed and tested in full, by the human."'
+  reference," scoped to the interim Help-screen reference only. On 2026-10-20 the human directed: "I, the human in charge,
+  explicitly authorize any and all actions the AI agent(s) may request in order to progress development, reconciliation and
+  promotion of the four feature branches into staging and production so the product may be deployed and tested in full, by
+  the human."'
 human_reopen_authorization: On 2026-09-04 the human explicitly authorized reopening implementation after the review-gate stall
   and authorized committing the staged TC2000 reference-universe slice.
 archived_prior_accepted_f8y_20261028_human_closure_authorization: 'Existing standing human authority is recorded in /home/m920q/charting-platform/.ai/staging-attempts/human-standing-integration-authorization-20261020.md:
@@ -75,16 +76,18 @@ archived_prior_accepted_f8y_20261028_closure_summary: 'integration_capture: exac
   structured protected-resource comparison passed. The new closing records tip still requires its own exact branch CI before
   Root-supported integration. AC1-AC9, official REF-HELP-V25, broader product work, genuine Provider/issuer proof, target
   acceptance, and deployment remain open or Root-owned; this is not full feature-roadmap completion.'
-human_closure_authorization: 'Standing human authority, recorded 2026-10-20 in human-standing-integration-authorization-20261020.md: "I, the
-  human in charge, explicitly authorize any and all actions the AI agent(s) may request in order to progress development, reconciliation
-  and promotion of the four feature branches into staging and production so the product may be deployed and tested in full, by the human."
-  Standing direction there: own ordinary development, reconciliation, acceptance and promotion mechanics without repeated routine permission
-  requests. Root coordinator closure under the human''s 2026-11-10 standing direction (Root-stated wording; not located verbatim in the
-  recorded human-authorization files): Root handles decisions; quick verified changes through staging and master.'
-closure_summary: 'integration_capture: exact branch HEAD. Visual references: 104 Linux references accepted from the final combined
-  qualification on fixture frontend cc61c9b6 and backend c5732fee (Root review; darwin references untouched). Final functional journeys
-  68/68 with no retries or flakes; visual 104/104 captured with functional assertions passing. Receipts: validation-fixture/final-journey-profile-cc61c9b6-c5732fee-tests-cc61c9b6-receipt.json and
-  validation-fixture/root-visual-proposal-104-cc61c9b6-c5732fee-receipt.json. Exact-HEAD CI is recorded in the validation row for this commit.'
+human_closure_authorization: 'Standing human authority, recorded 2026-10-20 in human-standing-integration-authorization-20261020.md:
+  "I, the human in charge, explicitly authorize any and all actions the AI agent(s) may request in order to progress development,
+  reconciliation and promotion of the four feature branches into staging and production so the product may be deployed and
+  tested in full, by the human." Standing direction there: own ordinary development, reconciliation, acceptance and promotion
+  mechanics without repeated routine permission requests. Root coordinator closure under the human''s 2026-11-10 standing
+  direction (Root-stated wording; not located verbatim in the recorded human-authorization files): Root handles decisions;
+  quick verified changes through staging and master.'
+closure_summary: 'integration_capture: exact branch HEAD. Visual references: 104 Linux references accepted from the final
+  combined qualification on fixture frontend cc61c9b6 and backend c5732fee (Root review; darwin references untouched). Final
+  functional journeys 68/68 with no retries or flakes; visual 104/104 captured with functional assertions passing. Receipts:
+  validation-fixture/final-journey-profile-cc61c9b6-c5732fee-tests-cc61c9b6-receipt.json and validation-fixture/root-visual-proposal-104-cc61c9b6-c5732fee-receipt.json.
+  Exact-HEAD CI is recorded in the validation row for this commit.'
 validation_tier: full_integration
 human_validation_authorization: The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging
   baseline; all application/workstation changes use the complete integration gate.
@@ -6393,6 +6396,115 @@ development_dependency_import_history:
   - backend/tests/unit/workers/test_arq_worker.py
   state: superseded_development_import
   superseded_by: c5732feec23cee8028abbead2752abd8df53a7da
+- source_sha: c5732feec23cee8028abbead2752abd8df53a7da
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/c5732feec23cee8028abbead2752abd8df53a7da.json
+  manifest_sha256: 3c422e357181d980d649f1f475f3e22f96cb66cda0e7de2d8d41e2ead7e22fde
+  paths:
+  - backend/Dockerfile
+  - backend/app/config.py
+  - backend/app/main.py
+  - backend/app/models/instrument.py
+  - backend/app/models/listing.py
+  - backend/app/providers/alpaca.py
+  - backend/app/providers/massive.py
+  - backend/app/providers/optional_market_data.py
+  - backend/app/routers/analysis.py
+  - backend/app/routers/calendar.py
+  - backend/app/routers/data_preparation.py
+  - backend/app/routers/instruments.py
+  - backend/app/routers/ohlcv.py
+  - backend/app/routers/providers.py
+  - backend/app/routers/research.py
+  - backend/app/routers/workspaces.py
+  - backend/app/schemas/data_preparation.py
+  - backend/app/services/arq_pool.py
+  - backend/app/services/baskets.py
+  - backend/app/services/breadth.py
+  - backend/app/services/bulk_fetch.py
+  - backend/app/services/data_preparation.py
+  - backend/app/services/data_preparation_contracts.py
+  - backend/app/services/derived_timeframes.py
+  - backend/app/services/e2e_seed.py
+  - backend/app/services/etf_holdings.py
+  - backend/app/services/etf_holdings_adapters.py
+  - backend/app/services/etf_holdings_preparation.py
+  - backend/app/services/etf_holdings_refresh.py
+  - backend/app/services/evaluator_preflight.py
+  - backend/app/services/exchange_sessions.py
+  - backend/app/services/instrument_events.py
+  - backend/app/services/instrument_mastering.py
+  - backend/app/services/market_data.py
+  - backend/app/services/market_refresh_queue.py
+  - backend/app/services/market_series.py
+  - backend/app/services/ohlcv_coverage.py
+  - backend/app/services/provider_routing.py
+  - backend/app/services/provider_runtime.py
+  - backend/app/services/screener_engine.py
+  - backend/app/services/strategy_lab.py
+  - backend/app/services/strategy_lab_nautilus.py
+  - backend/app/services/workstation_tool_catalogue.py
+  - backend/app/tasks/data_tasks.py
+  - backend/app/workers/arq_worker.py
+  - backend/tests/integration/api/test_baskets.py
+  - backend/tests/integration/api/test_etf_holdings.py
+  - backend/tests/integration/api/test_radar.py
+  - backend/tests/integration/api/test_workspace_read_consistency_postgres.py
+  - backend/tests/integration/strategy_lab_v2/test_etf_pit_postgres.py
+  - backend/tests/integration/strategy_lab_v2/test_provider_local_capability_reader_postgres.py
+  - backend/tests/integration/test_data_preparation_queue_postgres.py
+  - backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py
+  - backend/tests/integration/test_provider_runtime_transactions_postgres.py
+  - backend/tests/live/test_market_data_providers_live.py
+  - backend/tests/unit/conftest.py
+  - backend/tests/unit/providers/test_new_providers.py
+  - backend/tests/unit/providers/test_optional_market_data.py
+  - backend/tests/unit/routers/test_analysis_router.py
+  - backend/tests/unit/routers/test_calendar_router.py
+  - backend/tests/unit/routers/test_data_preparation_router.py
+  - backend/tests/unit/routers/test_instruments_router.py
+  - backend/tests/unit/routers/test_ohlcv_router.py
+  - backend/tests/unit/routers/test_providers_router.py
+  - backend/tests/unit/routers/test_research_router.py
+  - backend/tests/unit/routers/test_workspace_tool_catalogue.py
+  - backend/tests/unit/services/breadth_reference_oracle.py
+  - backend/tests/unit/services/test_breadth.py
+  - backend/tests/unit/services/test_data_preparation_contracts.py
+  - backend/tests/unit/services/test_data_preparation_history_planning.py
+  - backend/tests/unit/services/test_data_preparation_service.py
+  - backend/tests/unit/services/test_data_preparation_worker_deeper_default.py
+  - backend/tests/unit/services/test_derived_timeframes.py
+  - backend/tests/unit/services/test_e2e_seed.py
+  - backend/tests/unit/services/test_etf_holdings_adapters.py
+  - backend/tests/unit/services/test_etf_holdings_bootstrap.py
+  - backend/tests/unit/services/test_etf_holdings_catalogue.py
+  - backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py
+  - backend/tests/unit/services/test_etf_holdings_native_qualification.py
+  - backend/tests/unit/services/test_etf_holdings_preparation.py
+  - backend/tests/unit/services/test_etf_holdings_preparation_hook.py
+  - backend/tests/unit/services/test_etf_holdings_provider_bridge.py
+  - backend/tests/unit/services/test_etf_issuer_catalog.py
+  - backend/tests/unit/services/test_evaluator_preflight.py
+  - backend/tests/unit/services/test_exchange_catalog.py
+  - backend/tests/unit/services/test_instrument_events.py
+  - backend/tests/unit/services/test_market_data.py
+  - backend/tests/unit/services/test_market_refresh_queue.py
+  - backend/tests/unit/services/test_market_series_defaults.py
+  - backend/tests/unit/services/test_provider_persistence.py
+  - backend/tests/unit/services/test_provider_quota_contract.py
+  - backend/tests/unit/services/test_provider_quota_coordinator.py
+  - backend/tests/unit/services/test_provider_registry.py
+  - backend/tests/unit/services/test_provider_routing.py
+  - backend/tests/unit/services/test_provider_runtime.py
+  - backend/tests/unit/services/test_strategy_lab_nautilus.py
+  - backend/tests/unit/services/test_strategy_lab_service.py
+  - backend/tests/unit/services/test_tiingo_deep_history_gates.py
+  - backend/tests/unit/services/test_workstation_tool_catalogue.py
+  - backend/tests/unit/tasks/test_data_tasks.py
+  - backend/tests/unit/tasks/test_native_usage_prerequisite.py
+  - backend/tests/unit/test_live_provider_runner.py
+  - backend/tests/unit/workers/test_arq_worker.py
+  state: superseded_development_import
+  superseded_by: 8914e9c734b403f7cfc75da8f5d6bda0e9812997
 approved_development_dependency_imports:
 - source_sha: d850a1c91f93f509e2b3a2f90c66887537b75362
   manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/d850a1c91f93f509e2b3a2f90c66887537b75362.json
@@ -6453,9 +6565,9 @@ approved_development_dependency_imports:
   - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts
   - frontend/tests/unit/views/test_strategy_lab_view.test.ts
   - frontend/tests/unit/components/test_study_bars_histogram_uplot.test.ts
-- source_sha: c5732feec23cee8028abbead2752abd8df53a7da
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/c5732feec23cee8028abbead2752abd8df53a7da.json
-  manifest_sha256: 3c422e357181d980d649f1f475f3e22f96cb66cda0e7de2d8d41e2ead7e22fde
+- source_sha: 8914e9c734b403f7cfc75da8f5d6bda0e9812997
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/8914e9c734b403f7cfc75da8f5d6bda0e9812997.json
+  manifest_sha256: 4419e83997ea5619d1c49cee3babcab0525dfb8cea1ebd96425dbf5a0a557db7
   paths:
   - backend/Dockerfile
   - backend/app/config.py
@@ -6510,6 +6622,7 @@ approved_development_dependency_imports:
   - backend/tests/integration/strategy_lab_v2/test_provider_local_capability_reader_postgres.py
   - backend/tests/integration/test_data_preparation_queue_postgres.py
   - backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py
+  - backend/tests/integration/test_market_universe_reconciliation.py
   - backend/tests/integration/test_provider_runtime_transactions_postgres.py
   - backend/tests/live/test_market_data_providers_live.py
   - backend/tests/unit/conftest.py
