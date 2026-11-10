@@ -141,6 +141,10 @@ async def test_data_preparation_wakeup_is_registered_and_not_schedule_gated(monk
 
 @pytest.mark.asyncio
 async def test_refresh_queue_does_not_retry_after_lease_is_lost(monkeypatch):
+    # Neutral fake: this test is about lease-loss retry handling, not W1/MN reconciliation.
+    monkeypatch.setattr(
+        data_tasks, "refresh_derived_timeframe_if_needed", AsyncMock(return_value=False)
+    )
     from app.services.market_refresh_queue import RefreshLeaseLostError
 
     session = _RefreshQueueSession()

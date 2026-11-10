@@ -1,3 +1,7 @@
+# 2026-11-10 — Adopt Provider 254e83ed final backend (release candidate, BLOCKED)
+
+17 backend paths and the 93-hash Provider manifest adopted from 254e83ed, superseding 4b9f53bca. Backend unit: 4319 passed, 4 failed (Tiingo quota-limit assertions); frontend unit: 1983 passed, 2 failed (linked-instrument late note load; popout top-down refresh). Failures recorded, not fixed; Root decides.
+
 # 2026-11-10 — Adopt Strategy 4873c65b catalogue-placement Study witness
 
 Strategy released 4873c65b, which makes the lifecycle Study-width check conditional: narrowing runs only when Add tool places Study in a wide stack. Imported unchanged from its canonical 33-path manifest (sha256 2527fca3…43d4); 5d19 archived in plan history. Test-only; no product change; Root owns the replay.

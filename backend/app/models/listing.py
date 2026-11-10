@@ -38,7 +38,7 @@ class InstrumentListing(Base, TimestampMixin):
     provenance: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     instrument: Mapped["Instrument"] = relationship(back_populates="listings")
-    exchange: Mapped["Exchange"] = relationship(back_populates="listings")
+    exchange: Mapped["Exchange"] = relationship(back_populates="listings", lazy="selectin")
 
     def __repr__(self) -> str:
         return f"<InstrumentListing ticker={self.ticker} exchange_id={self.exchange_id}>"

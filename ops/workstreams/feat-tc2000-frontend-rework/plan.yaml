@@ -6025,7 +6025,6 @@ development_dependency_import_history:
   - frontend/tests/unit/views/test_strategy_lab_view.test.ts
   state: superseded_development_import
   superseded_by: 4873c65b1dae6650464b782da6020017a0e20fba
-approved_development_dependency_imports:
 - source_sha: 4b9f53bca2097501e7c2843cb2f92567c8f74ea5
   manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/4b9f53bca2097501e7c2843cb2f92567c8f74ea5.json
   manifest_sha256: 2957b74824051e0bf95ccbdbe8bdc67acfe6a0e6cf0a50ac981ed8788fd09ce4
@@ -6115,6 +6114,9 @@ approved_development_dependency_imports:
   - backend/tests/unit/tasks/test_data_tasks.py
   - backend/tests/unit/tasks/test_native_usage_prerequisite.py
   - backend/tests/unit/workers/test_arq_worker.py
+  state: superseded_development_import
+  superseded_by: 254e83ed2cf8783acabedf02cbaf816ef482a247
+approved_development_dependency_imports:
 - source_sha: d850a1c91f93f509e2b3a2f90c66887537b75362
   manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/d850a1c91f93f509e2b3a2f90c66887537b75362.json
   manifest_sha256: 3b6a0c883dee88a64b0fb8fe05521a381b62dd69af2db70509413ad749b21352
@@ -6173,6 +6175,103 @@ approved_development_dependency_imports:
   - frontend/tests/unit/stores/test_dashboard_store.test.ts
   - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts
   - frontend/tests/unit/views/test_strategy_lab_view.test.ts
+- source_sha: 254e83ed2cf8783acabedf02cbaf816ef482a247
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/254e83ed2cf8783acabedf02cbaf816ef482a247.json
+  manifest_sha256: fa51f24adbe9a940bdf655fdf2ebc9a85c4b6c21fe127c712a3ca87a015ca4aa
+  paths:
+  - backend/app/config.py
+  - backend/app/main.py
+  - backend/app/models/instrument.py
+  - backend/app/models/listing.py
+  - backend/app/providers/alpaca.py
+  - backend/app/providers/massive.py
+  - backend/app/providers/optional_market_data.py
+  - backend/app/routers/analysis.py
+  - backend/app/routers/calendar.py
+  - backend/app/routers/data_preparation.py
+  - backend/app/routers/instruments.py
+  - backend/app/routers/ohlcv.py
+  - backend/app/routers/providers.py
+  - backend/app/routers/research.py
+  - backend/app/routers/workspaces.py
+  - backend/app/schemas/data_preparation.py
+  - backend/app/services/baskets.py
+  - backend/app/services/bulk_fetch.py
+  - backend/app/services/data_preparation.py
+  - backend/app/services/data_preparation_contracts.py
+  - backend/app/services/derived_timeframes.py
+  - backend/app/services/e2e_seed.py
+  - backend/app/services/etf_holdings.py
+  - backend/app/services/etf_holdings_adapters.py
+  - backend/app/services/etf_holdings_preparation.py
+  - backend/app/services/etf_holdings_refresh.py
+  - backend/app/services/evaluator_preflight.py
+  - backend/app/services/exchange_sessions.py
+  - backend/app/services/instrument_events.py
+  - backend/app/services/instrument_mastering.py
+  - backend/app/services/market_data.py
+  - backend/app/services/market_refresh_queue.py
+  - backend/app/services/market_series.py
+  - backend/app/services/ohlcv_coverage.py
+  - backend/app/services/provider_routing.py
+  - backend/app/services/provider_runtime.py
+  - backend/app/services/screener_engine.py
+  - backend/app/services/strategy_lab.py
+  - backend/app/services/strategy_lab_nautilus.py
+  - backend/app/services/workstation_tool_catalogue.py
+  - backend/app/tasks/data_tasks.py
+  - backend/app/workers/arq_worker.py
+  - backend/tests/integration/api/test_baskets.py
+  - backend/tests/integration/api/test_workspace_read_consistency_postgres.py
+  - backend/tests/integration/test_data_preparation_queue_postgres.py
+  - backend/tests/integration/test_provider_runtime_transactions_postgres.py
+  - backend/tests/live/test_market_data_providers_live.py
+  - backend/tests/unit/conftest.py
+  - backend/tests/unit/providers/test_new_providers.py
+  - backend/tests/unit/providers/test_optional_market_data.py
+  - backend/tests/unit/routers/test_analysis_router.py
+  - backend/tests/unit/routers/test_calendar_router.py
+  - backend/tests/unit/routers/test_data_preparation_router.py
+  - backend/tests/unit/routers/test_instruments_router.py
+  - backend/tests/unit/routers/test_ohlcv_router.py
+  - backend/tests/unit/routers/test_providers_router.py
+  - backend/tests/unit/routers/test_research_router.py
+  - backend/tests/unit/routers/test_workspace_tool_catalogue.py
+  - backend/tests/unit/services/test_data_preparation_contracts.py
+  - backend/tests/unit/services/test_data_preparation_history_planning.py
+  - backend/tests/unit/services/test_data_preparation_service.py
+  - backend/tests/unit/services/test_data_preparation_worker_deeper_default.py
+  - backend/tests/unit/services/test_derived_timeframes.py
+  - backend/tests/unit/services/test_e2e_seed.py
+  - backend/tests/unit/services/test_etf_holdings_adapters.py
+  - backend/tests/unit/services/test_etf_holdings_bootstrap.py
+  - backend/tests/unit/services/test_etf_holdings_catalogue.py
+  - backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py
+  - backend/tests/unit/services/test_etf_holdings_native_qualification.py
+  - backend/tests/unit/services/test_etf_holdings_preparation.py
+  - backend/tests/unit/services/test_etf_holdings_preparation_hook.py
+  - backend/tests/unit/services/test_etf_holdings_provider_bridge.py
+  - backend/tests/unit/services/test_etf_issuer_catalog.py
+  - backend/tests/unit/services/test_evaluator_preflight.py
+  - backend/tests/unit/services/test_exchange_catalog.py
+  - backend/tests/unit/services/test_instrument_events.py
+  - backend/tests/unit/services/test_market_data.py
+  - backend/tests/unit/services/test_market_refresh_queue.py
+  - backend/tests/unit/services/test_market_series_defaults.py
+  - backend/tests/unit/services/test_provider_persistence.py
+  - backend/tests/unit/services/test_provider_quota_contract.py
+  - backend/tests/unit/services/test_provider_quota_coordinator.py
+  - backend/tests/unit/services/test_provider_registry.py
+  - backend/tests/unit/services/test_provider_routing.py
+  - backend/tests/unit/services/test_provider_runtime.py
+  - backend/tests/unit/services/test_strategy_lab_nautilus.py
+  - backend/tests/unit/services/test_strategy_lab_service.py
+  - backend/tests/unit/services/test_tiingo_deep_history_gates.py
+  - backend/tests/unit/services/test_workstation_tool_catalogue.py
+  - backend/tests/unit/tasks/test_data_tasks.py
+  - backend/tests/unit/tasks/test_native_usage_prerequisite.py
+  - backend/tests/unit/test_live_provider_runner.py
+  - backend/tests/unit/workers/test_arq_worker.py
 rendered_dock_tab_and_plot_bounds_followup_20261108:
   root_review: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/root-dbb-rendered-critical-review-followup.json
   source: dbb0d739834960fef174f86d9679d1800338e79e

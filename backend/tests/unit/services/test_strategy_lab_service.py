@@ -181,15 +181,16 @@ async def test_universe_coverage_summary_serializes_all_timestamps_as_canonical_
         "start_day",
         "end_month",
         "end_day",
+        "end_microsecond",
         "label_hour",
         "expected_status",
     ),
     [
-        (((1, 8), (1, 9), (1, 10), (1, 11), (1, 12)), 1, 8, 1, 14, 21, "full"),
-        (((1, 8), (1, 9), (1, 10), (1, 11), (1, 12)), 1, 8, 1, 14, 0, "full"),
-        (((1, 8),), 1, 8, 1, 9, 21, "partial"),
-        (((11, 27),), 11, 27, 11, 28, 21, "full"),
-        (((11, 27), (11, 29)), 11, 27, 11, 29, 21, "full"),
+        (((1, 8), (1, 9), (1, 10), (1, 11), (1, 12)), 1, 8, 1, 14, 0, 21, "full"),
+        (((1, 8), (1, 9), (1, 10), (1, 11), (1, 12)), 1, 8, 1, 14, 999999, 0, "full"),
+        (((1, 8),), 1, 8, 1, 9, 0, 21, "partial"),
+        (((11, 27),), 11, 27, 11, 28, 0, 21, "full"),
+        (((11, 27), (11, 29)), 11, 27, 11, 29, 999999, 21, "full"),
     ],
 )
 async def test_strategy_preview_and_evaluator_agree_on_xnys_daily_edges(
@@ -200,6 +201,7 @@ async def test_strategy_preview_and_evaluator_agree_on_xnys_daily_edges(
     start_day,
     end_month,
     end_day,
+    end_microsecond,
     label_hour,
     expected_status,
 ):
@@ -241,7 +243,7 @@ async def test_strategy_preview_and_evaluator_agree_on_xnys_daily_edges(
     db.flush()
     async_db = AsyncSessionAdapter(db)
     date_from = datetime(2024, start_month, start_day, tzinfo=UTC)
-    date_to = datetime(2024, end_month, end_day, 23, 59, 59, tzinfo=UTC)
+    date_to = datetime(2024, end_month, end_day, 23, 59, 59, end_microsecond, tzinfo=UTC)
 
     preview = await preview_strategy_coverage(
         async_db,

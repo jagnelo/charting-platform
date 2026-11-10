@@ -4080,10 +4080,35 @@ def eodhd_persistent_storage_authority_missing(
 def tiingo_persistent_storage_authority_missing(
     now: datetime | None = None, *, source: object | None = None
 ) -> list[str]:
-    """Compatibility name; private persistence has global owner approval."""
+    """Require written Tiingo persistent-storage authority, Alpaca-style.
 
-    del now, source
-    return []
+    The code default is not authorized. Deployment records the owner's
+    2026-10-04 persistent-storage decision through these settings (flag,
+    reference, scope, review time and optional expiry). Starter/Trial terms
+    still need the owner to confirm the plan; this check does not assume it.
+    """
+
+    now = now or datetime.now(UTC)
+    source = source or settings
+    missing: list[str] = []
+    if not provider_reviewed_flag(getattr(source, "TIINGO_PERSISTENT_STORAGE_AUTHORIZED", False)):
+        missing.append("TIINGO_PERSISTENT_STORAGE_AUTHORIZED")
+    if not str(getattr(source, "TIINGO_PERSISTENT_STORAGE_AUTHORITY_REFERENCE", "") or "").strip():
+        missing.append("TIINGO_PERSISTENT_STORAGE_AUTHORITY_REFERENCE")
+    if str(getattr(source, "TIINGO_PERSISTENT_STORAGE_AUTHORITY_SCOPE", "") or "").strip() not in {
+        "written_single_user_automated_internal_display_perpetual_archive",
+        "written_licensed_business_automated_internal_display_perpetual_archive",
+    }:
+        missing.append("TIINGO_PERSISTENT_STORAGE_AUTHORITY_SCOPE")
+    reviewed_at = getattr(source, "TIINGO_PERSISTENT_STORAGE_REVIEWED_AT", None)
+    if not isinstance(reviewed_at, datetime) or reviewed_at.tzinfo is None or reviewed_at > now:
+        missing.append("TIINGO_PERSISTENT_STORAGE_REVIEWED_AT")
+    expires_at = getattr(source, "TIINGO_PERSISTENT_STORAGE_EXPIRES_AT", None)
+    if expires_at is not None and (
+        not isinstance(expires_at, datetime) or expires_at.tzinfo is None or expires_at <= now
+    ):
+        missing.append("TIINGO_PERSISTENT_STORAGE_EXPIRES_AT")
+    return missing
 
 
 def twelve_data_persistent_storage_authority_missing(
@@ -4647,18 +4672,25 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
         if not isinstance(contract, dict):
             return seed
         plan_evidence = str(getattr(settings, "TIINGO_CUSTOM_QUOTA_EVIDENCE", "") or "").strip()
-        if plan == "custom":
-            custom_values = (
-                provider_positive_integer(
-                    getattr(settings, "TIINGO_CUSTOM_UNIQUE_SYMBOLS_PER_MONTH", 0)
-                ),
-                provider_positive_integer(getattr(settings, "TIINGO_CUSTOM_REQUESTS_PER_HOUR", 0)),
-                provider_positive_integer(getattr(settings, "TIINGO_CUSTOM_REQUESTS_PER_DAY", 0)),
-                provider_positive_integer(
-                    getattr(settings, "TIINGO_CUSTOM_BANDWIDTH_BYTES_PER_MONTH", 0)
-                ),
-            )
-            if any(value is None for value in custom_values) or not plan_evidence:
+        custom_values = (
+            provider_positive_integer(
+                getattr(settings, "TIINGO_CUSTOM_UNIQUE_SYMBOLS_PER_MONTH", 0)
+            ),
+            provider_positive_integer(getattr(settings, "TIINGO_CUSTOM_REQUESTS_PER_HOUR", 0)),
+            provider_positive_integer(getattr(settings, "TIINGO_CUSTOM_REQUESTS_PER_DAY", 0)),
+            provider_positive_integer(
+                getattr(settings, "TIINGO_CUSTOM_BANDWIDTH_BYTES_PER_MONTH", 0)
+            ),
+        )
+        # A custom account is reviewed when all four exact native limits and
+        # non-secret evidence are configured, whatever the plan label says.
+        # Partial custom values with plan "custom" stay non-routable below.
+        custom_configured = all(value is not None for value in custom_values) and bool(
+            plan_evidence
+        )
+        if custom_configured or plan == "custom":
+            plan = "custom"
+            if not custom_configured:
                 contract["dimensions"] = []
                 contract["untracked_constraints"] = []
                 contract["unknown_dimensions"] = ["custom_account_quota_values_or_evidence"]

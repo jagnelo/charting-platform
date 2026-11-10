@@ -1438,14 +1438,34 @@ class TestProviderRegistry:
             "COINGECKO_MARKET_DATA_USE_AUTHORITY_SCOPE"
         ]
         monkeypatch.setattr(settings, "TIINGO_PERSISTENT_STORAGE_AUTHORIZED", False)
-        assert tiingo_persistent_storage_authority_missing() == []
+        assert (
+            "TIINGO_PERSISTENT_STORAGE_AUTHORIZED" in tiingo_persistent_storage_authority_missing()
+        )
         monkeypatch.setattr(settings, "TIINGO_PERSISTENT_STORAGE_AUTHORIZED", True)
+        monkeypatch.setattr(
+            settings,
+            "TIINGO_PERSISTENT_STORAGE_AUTHORITY_REFERENCE",
+            "owner-decision-2026-10-04",
+        )
+        monkeypatch.setattr(
+            settings,
+            "TIINGO_PERSISTENT_STORAGE_AUTHORITY_SCOPE",
+            "written_single_user_automated_internal_display_perpetual_archive",
+        )
+        monkeypatch.setattr(
+            settings,
+            "TIINGO_PERSISTENT_STORAGE_REVIEWED_AT",
+            datetime.now(UTC) - timedelta(minutes=1),
+        )
+        assert tiingo_persistent_storage_authority_missing() == []
         monkeypatch.setattr(
             settings,
             "TIINGO_PERSISTENT_STORAGE_EXPIRES_AT",
             datetime.now(UTC) - timedelta(seconds=1),
         )
-        assert tiingo_persistent_storage_authority_missing() == []
+        assert tiingo_persistent_storage_authority_missing() == [
+            "TIINGO_PERSISTENT_STORAGE_EXPIRES_AT"
+        ]
         monkeypatch.setattr(settings, "TIINGO_PERSISTENT_STORAGE_EXPIRES_AT", None)
         monkeypatch.setattr(settings, "FMP_PERSISTENT_STORAGE_AUTHORITY_SCOPE", "plan_only")
         assert fmp_persistent_storage_authority_missing() == []
