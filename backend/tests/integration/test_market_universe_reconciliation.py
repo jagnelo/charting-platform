@@ -210,6 +210,11 @@ async def test_failed_reconciliation_flush_keeps_raw_page_and_finishes_run(db_en
         db_engine.url.set(drivername="postgresql+asyncpg"), pool_pre_ping=True
     )
     session_factory = async_sessionmaker(async_engine, expire_on_commit=False)
+    # This test commits through its own engine, which the per-test savepoint
+    # rollback cannot undo. Track what it committed so the finally block can
+    # remove it; otherwise the active instruments leak into later tests (the
+    # radar run universe counts every active instrument in the database).
+    committed: dict[str, object] = {}
     try:
         async with session_factory() as db:
             asset_class = AssetClass(name="Reconcile Test Equity", description="Test")
@@ -246,6 +251,12 @@ async def test_failed_reconciliation_flush_keeps_raw_page_and_finishes_run(db_en
                 )
             )
             await db.commit()
+            committed.update(
+                asset_class_id=asset_class.id,
+                instrument_type_id=instrument_type.id,
+                source_id=source.id,
+                instrument_ids=[instrument.id, instrument_b.id],
+            )
             resolved = SimpleNamespace(provider_name=source.name, data_source=source)
             provider = SimpleNamespace(supported_discovery_types=lambda: ["EQUITY"])
 
@@ -322,6 +333,33 @@ async def test_failed_reconciliation_flush_keeps_raw_page_and_finishes_run(db_en
             assert len(bindings) == 1
     finally:
         await async_engine.dispose()
+        _purge_committed_reconciliation_rows(db_engine, committed)
+
+
+def _purge_committed_reconciliation_rows(db_engine, committed: dict[str, object]) -> None:
+    """Delete the rows committed by the separate-engine reconciliation test."""
+
+    if not committed:
+        return
+    from sqlalchemy import delete
+
+    from app.models.asset_class import AssetClass, InstrumentType
+    from app.models.instrument import Instrument
+
+    source_id = committed["source_id"]
+    with db_engine.begin() as conn:
+        for model in (
+            UniverseDiscoverySnapshot,
+            MarketUniverseReconciliationRun,
+            InstrumentProviderSymbol,
+        ):
+            conn.execute(delete(model).where(model.data_source_id == source_id))
+        conn.execute(delete(Instrument).where(Instrument.id.in_(committed["instrument_ids"])))
+        conn.execute(delete(DataSource).where(DataSource.id == source_id))
+        conn.execute(
+            delete(InstrumentType).where(InstrumentType.id == committed["instrument_type_id"])
+        )
+        conn.execute(delete(AssetClass).where(AssetClass.id == committed["asset_class_id"]))
 
 
 @pytest.mark.asyncio
