@@ -29,7 +29,9 @@ export default defineConfig({
   failOnFlakyTests: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   timeout: 30_000,
-  reporter: [['html', { outputFolder: 'playwright-report' }], ['line']],
+  reporter: process.env.CI
+    ? [['github'], ['html', { outputFolder: 'playwright-report' }], ['line']]
+    : [['html', { outputFolder: 'playwright-report' }], ['line']],
   use: {
     baseURL: process.env.STACK_URL ?? 'http://localhost',
     trace: 'on-first-retry',
