@@ -55,6 +55,7 @@ from app.schemas.instrument_acquisition import (
     InstrumentDiscoveryResponse,
     QualifiedInstrumentIdentity,
 )
+from app.services.arq_pool import SHARED_POOL_CONNECT_TIMEOUT_SECONDS, get_shared_arq_pool
 from app.services.bulk_fetch import get_fetch_progress
 from app.services.evaluator_preflight import preflight_ohlcv
 from app.services.exchange_catalog import normalize_exchange_mic
@@ -2894,20 +2895,21 @@ async def get_data_coverage(
         for row in rows
     }
 
+    instrument_id = instrument.id
+    # End the read transaction before Redis I/O, so no database transaction is
+    # held open while the progress hint is fetched.
+    await db.commit()
     progress: dict | None = None
     try:
-        from arq.connections import RedisSettings, create_pool
-
-        from app.config import settings
-
-        redis = await create_pool(RedisSettings.from_dsn(settings.REDIS_URL))
-        progress = await get_fetch_progress(instrument.id, redis)
-        await redis.aclose()
+        redis = await get_shared_arq_pool()
+        progress = await asyncio.wait_for(
+            get_fetch_progress(instrument_id, redis), timeout=SHARED_POOL_CONNECT_TIMEOUT_SECONDS
+        )
     except Exception:
         pass
 
     return {
-        "instrument_id": instrument.id,
+        "instrument_id": instrument_id,
         "symbol": symbol.upper(),
         "coverage": coverage,
         "is_fetching": progress is not None and progress.get("status") == "in_progress",

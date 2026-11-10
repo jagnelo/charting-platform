@@ -1,3 +1,7 @@
+# 2026-11-10 — Adopt Provider c5732fee breadth-history and hot-path performance fixes
+
+Provider released c5732fee: breadth-history evaluator fix, hot-path read trims, shared arq pool and the Dockerfile worker change. 14 backend paths imported unchanged from its 103-hash manifest (sha256 3c422e35…e22fde), including new arq_pool.py and breadth_reference_oracle.py. 82850f7c archived in plan history. No TC product change.
+
 # 2026-11-10 — Follow Study Lab collapsible diagnostics in the visual parity spec
 
 Study's presentation repair moved raw validation JSON behind a Details summary and nested run diagnostics under their own summaries. The visual spec now opens the validation Details before asserting its pre, and targets each run block's direct summary. Spec-only; no product change; reference PNGs are for Root to recapture and review.

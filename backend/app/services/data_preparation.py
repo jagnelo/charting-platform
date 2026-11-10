@@ -351,7 +351,20 @@ async def _retained_history_coverage_uncached(
         return None, []
     start = _as_utc(requested_start) if requested_start is not None else None
     end = _as_utc(requested_end) if requested_end is not None else None
-    statement = select(OHLCVBar).where(
+    # Coverage and segmentation read only these columns. Selecting them avoids
+    # materializing and instrumenting one ORM entity per retained bar.
+    statement = select(
+        OHLCVBar.ts,
+        OHLCVBar.is_derived,
+        OHLCVBar.source_timeframe,
+        OHLCVBar.derivation_method,
+        OHLCVBar.source_end,
+        OHLCVBar.data_source_id,
+        OHLCVBar.market_series_id,
+        OHLCVBar.adjustment_basis,
+        OHLCVBar.adjustment_version,
+        OHLCVBar.is_adjusted,
+    ).where(
         OHLCVBar.instrument_id == instrument_id,
         OHLCVBar.timeframe == timeframe,
         _default_series_bar_condition(instrument_id, timeframe, adjusted),
@@ -360,7 +373,7 @@ async def _retained_history_coverage_uncached(
         statement = statement.where(OHLCVBar.ts >= start)
     if end is not None:
         statement = statement.where(OHLCVBar.ts <= end)
-    bars = list((await db.execute(statement.order_by(OHLCVBar.ts))).scalars())
+    bars = list((await db.execute(statement.order_by(OHLCVBar.ts))).all())
     if not bars:
         return None, []
 

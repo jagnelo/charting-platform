@@ -26,4 +26,6 @@ RUN chmod +x /app/docker-entrypoint.sh
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
 
 # Default command = API server; override to "arq app.tasks.worker.WorkerSettings" for worker
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+# Worker count comes from WEB_CONCURRENCY (uvicorn default 1 when unset).
+# Do not raise it until the in-process alert scheduler runs in one process only.
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
 from enum import StrEnum
+from functools import lru_cache
 from statistics import median
 from typing import Literal
 from zoneinfo import ZoneInfo
@@ -440,6 +441,12 @@ def _last_weekday(year: int, month: int, weekday: int) -> date:
 
 def _xnys_holidays(year: int) -> set[date]:
     """Major XNYS full-day closures for a deterministic local daily calendar."""
+    return set(_xnys_holidays_frozen(year))
+
+
+@lru_cache(maxsize=256)
+def _xnys_holidays_frozen(year: int) -> frozenset[date]:
+    """Memoized per year; the holiday rules are pure functions of the year."""
     holidays = {
         _observed_new_year(year),
         _nth_weekday(year, 1, 0, 3),  # Martin Luther King Jr. Day
@@ -454,24 +461,29 @@ def _xnys_holidays(year: int) -> set[date]:
     if year >= 2022:
         holidays.add(_observed_fixed_holiday(year, 6, 19))  # Juneteenth
     holidays.update(_XNYS_AD_HOC_CLOSURES.get(year, set()))
-    return holidays
+    return frozenset(holidays)
 
 
 def _xnys_early_closes(year: int) -> set[date]:
     """Recurring XNYS 13:00 ET regular-session closes."""
 
-    holidays = _xnys_holidays(year)
+    return set(_xnys_early_closes_frozen(year))
+
+
+@lru_cache(maxsize=256)
+def _xnys_early_closes_frozen(year: int) -> frozenset[date]:
+    holidays = _xnys_holidays_frozen(year)
     thanksgiving = _nth_weekday(year, 11, 3, 4)
     candidates = {
         thanksgiving + timedelta(days=1),
         date(year, 12, 24),
         date(year, 7, 3),
     }
-    return {
+    return frozenset(
         candidate
         for candidate in candidates
         if candidate.weekday() < 5 and candidate not in holidays
-    }
+    )
 
 
 def _xnys_session_close_at(session: date) -> datetime:
@@ -479,16 +491,29 @@ def _xnys_session_close_at(session: date) -> datetime:
     return datetime.combine(session, close, tzinfo=_XNYS_TZ).astimezone(UTC)
 
 
+@lru_cache(maxsize=256)
+def _xnys_weekdays_in_year(year: int) -> frozenset[date]:
+    """Every Monday-to-Friday date of one year, memoized."""
+    day = date(year, 1, 1)
+    weekdays: set[date] = set()
+    while day.year == year:
+        if day.weekday() < 5:
+            weekdays.add(day)
+        day += timedelta(days=1)
+    return frozenset(weekdays)
+
+
 def _xnys_session_days(start: date, end: date) -> set[date]:
+    # Holidays from every year in range apply, exactly as before; only the
+    # per-year weekday and holiday sets are now memoized.
     holidays: set[date] = set()
     for year in range(start.year, end.year + 1):
-        holidays.update(_xnys_holidays(year))
+        holidays.update(_xnys_holidays_frozen(year))
     sessions: set[date] = set()
-    cursor = start
-    while cursor <= end:
-        if cursor.weekday() < 5 and cursor not in holidays:
-            sessions.add(cursor)
-        cursor += timedelta(days=1)
+    for year in range(start.year, end.year + 1):
+        for day in _xnys_weekdays_in_year(year):
+            if start <= day <= end and day not in holidays:
+                sessions.add(day)
     return sessions
 
 

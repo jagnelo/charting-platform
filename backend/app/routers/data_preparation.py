@@ -6,15 +6,14 @@ import asyncio
 import logging
 from uuid import uuid4
 
-from arq.connections import RedisSettings, create_pool
 from fastapi import APIRouter, Depends, Header, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
-from app.config import settings
 from app.database import get_db
 from app.models.user import User
 from app.schemas.data_preparation import DataEnsureRequest, DataEnsureResponse
+from app.services.arq_pool import get_shared_arq_pool
 from app.services.data_preparation import (
     create_data_preparation_request,
     get_data_preparation_response,
@@ -26,46 +25,13 @@ router = APIRouter(prefix="/data", tags=["data-preparation"])
 
 
 # The durable database queue is authoritative. The Redis wake is a best-effort
-# hint, so it must never hold a request, a transaction or a lock. One pool is
-# shared for the process lifetime, with short timeouts and no connect retries.
+# hint, so it must never hold a request, a transaction or a lock.
 _WAKE_TIMEOUT_SECONDS = 1.0
-_WAKE_CONNECT_TIMEOUT_SECONDS = 1.0
-_wake_pool = None
-_wake_pool_lock = asyncio.Lock()
 _wake_tasks: set[asyncio.Task] = set()
 
 
-async def _get_wake_pool():
-    """Create the shared worker-wake pool once, on first use."""
-
-    global _wake_pool
-    if _wake_pool is None:
-        async with _wake_pool_lock:
-            if _wake_pool is None:
-                redis_settings = RedisSettings.from_dsn(settings.REDIS_URL)
-                redis_settings.conn_timeout = _WAKE_CONNECT_TIMEOUT_SECONDS
-                redis_settings.conn_retries = 0
-                redis_settings.conn_retry_delay = 0
-                _wake_pool = await create_pool(redis_settings)
-    return _wake_pool
-
-
-async def close_worker_wake_pool() -> None:
-    """Close the shared wake pool during application shutdown, if one exists."""
-
-    global _wake_pool
-    pool = _wake_pool
-    _wake_pool = None
-    if pool is None:
-        return
-    try:
-        await pool.aclose()
-    except Exception as exc:  # shutdown must not fail on an optional hint
-        logger.warning("Could not close data-preparation wake pool: %s", type(exc).__name__)
-
-
 async def _enqueue_worker_wake() -> None:
-    pool = await _get_wake_pool()
+    pool = await get_shared_arq_pool()
     await pool.enqueue_job(
         "task_process_refresh_jobs",
         _job_id=f"data-preparation-wakeup:{uuid4().hex}",

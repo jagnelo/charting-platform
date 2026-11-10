@@ -1112,3 +1112,31 @@ def test_coverage_calendar_is_xnys_after_plain_db_get_without_preloaded_listings
     loaded = db.get(Instrument, instrument.id)
 
     assert coverage_calendar_for_instrument(loaded) == "XNYS"
+
+
+@pytest.mark.parametrize(
+    ("start", "end"),
+    [
+        (date(2025, 12, 20), date(2026, 1, 10)),
+        (date(2020, 6, 15), date(2021, 1, 5)),
+        (date(2024, 1, 1), date(2024, 12, 31)),
+    ],
+)
+def test_memoized_xnys_session_days_match_a_naive_walk_and_return_fresh_sets(start, end):
+    """Calendar memoization must not change sessions, and callers cannot poison it."""
+    from app.services import ohlcv_coverage as coverage
+
+    holidays: set[date] = set()
+    for year in range(start.year, end.year + 1):
+        holidays.update(coverage._xnys_holidays(year))
+    expected: set[date] = set()
+    cursor = start
+    while cursor <= end:
+        if cursor.weekday() < 5 and cursor not in holidays:
+            expected.add(cursor)
+        cursor += timedelta(days=1)
+
+    first = coverage._xnys_session_days(start, end)
+    assert first == expected
+    first.clear()
+    assert coverage._xnys_session_days(start, end) == expected
