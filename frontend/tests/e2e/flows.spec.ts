@@ -560,11 +560,23 @@ test.describe('Chart', () => {
     await expect(tcClassic).toHaveClass(/workstation__tab--active/)
     await expect.poll(() => page.locator('.tool-window:visible .tool-window__title').allTextContents())
       .toEqual(expect.arrayContaining(['Chart', 'WatchList', 'Notes']))
-    const restoredDesktopChart = page.locator('.chart-tool:visible').first()
-    await restoredDesktopChart.getByRole('button', { name: 'Chart templates', exact: true }).click()
-    const desktopTemplateMenu = restoredDesktopChart.locator('.chart-template__menu:visible').last()
-    await expect(desktopTemplateMenu.getByRole('combobox', { name: 'Chart bar type' })).toHaveValue('line')
-    await desktopTemplateMenu.getByRole('button', { name: 'Close chart templates' }).click()
+    const tcClassicChart = page.locator('.chart-tool:visible').first()
+    await tcClassicChart.getByRole('button', { name: 'Chart templates', exact: true }).click()
+    const tcClassicTemplateMenu = tcClassicChart.locator('.chart-template__menu:visible').last()
+    await expect(tcClassicTemplateMenu.getByRole('combobox', { name: 'Chart bar type' })).toHaveValue('candles')
+    await tcClassicTemplateMenu.getByRole('button', { name: 'Close chart templates' }).click()
+
+    // The line template above belongs to US Top Down. Returning to that
+    // workspace proves its own configuration survived the compact projection
+    // without incorrectly expecting TC Classic to inherit it.
+    const usTopDown = page.locator('.workstation__tabs > button').filter({ hasText: 'US Top Down' })
+    await usTopDown.click()
+    await expect(usTopDown).toHaveClass(/workstation__tab--active/)
+    const restoredTopDownChart = page.locator('.chart-tool:visible').first()
+    await restoredTopDownChart.getByRole('button', { name: 'Chart templates', exact: true }).click()
+    const topDownTemplateMenu = restoredTopDownChart.locator('.chart-template__menu:visible').last()
+    await expect(topDownTemplateMenu.getByRole('combobox', { name: 'Chart bar type' })).toHaveValue('line')
+    await topDownTemplateMenu.getByRole('button', { name: 'Close chart templates' }).click()
     await browserDiagnostics.expectNoCriticalIssues()
   })
 

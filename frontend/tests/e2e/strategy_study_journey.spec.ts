@@ -11,19 +11,29 @@ async function activateDockToolTab(page: Page, title: string) {
   await expect(tab).toHaveClass(/lm_active/)
 }
 
-async function expectStudyPlotReadoutBeforeNextArtifact(chart: Locator, nextHeader: Locator) {
+async function expectStudyPlotReadoutContained(chart: Locator, artifact: Locator, nextHeader?: Locator) {
   const readout = chart.locator('.study-series__legend, .study-bars__legend, .study-histogram__legend, .study-range__legend, .study-scatter__legend')
+  await expect(artifact).toBeVisible()
   await expect(chart).toBeVisible()
   await expect(readout).toBeVisible()
   await expect.poll(async () => {
-    const [chartBox, readoutBox, nextHeaderBox] = await Promise.all([
-      chart.boundingBox(), readout.boundingBox(), nextHeader.boundingBox(),
+    const [chartBox, readoutBox, artifactBox, nextHeaderBox] = await Promise.all([
+      chart.boundingBox(), readout.boundingBox(), artifact.boundingBox(), nextHeader?.boundingBox(),
     ])
-    return Boolean(chartBox && readoutBox && nextHeaderBox
+    return Boolean(chartBox && readoutBox && artifactBox
       && readoutBox.x >= chartBox.x - 1
       && readoutBox.x + readoutBox.width <= chartBox.x + chartBox.width + 1
+      && readoutBox.x >= artifactBox.x - 1
+      && readoutBox.x + readoutBox.width <= artifactBox.x + artifactBox.width + 1
+      && chartBox.x >= artifactBox.x - 1
+      && chartBox.x + chartBox.width <= artifactBox.x + artifactBox.width + 1
+      && readoutBox.y >= chartBox.y - 1
       && readoutBox.y + readoutBox.height <= chartBox.y + chartBox.height + 1
-      && chartBox.y + chartBox.height <= nextHeaderBox.y + 1)
+      && readoutBox.y >= artifactBox.y - 1
+      && readoutBox.y + readoutBox.height <= artifactBox.y + artifactBox.height + 1
+      && chartBox.y >= artifactBox.y - 1
+      && chartBox.y + chartBox.height <= artifactBox.y + artifactBox.height + 1
+      && (!nextHeaderBox || chartBox.y + chartBox.height <= nextHeaderBox.y + 1))
   }, { timeout: 5_000 }).toBe(true)
 }
 
@@ -207,16 +217,10 @@ test('Study journey keeps saved identity, refreshes Results, and returns from Py
   await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
 
   const studyArtifacts = study.locator('.study-lab-tool__run > article')
-  const monthlyFrequencyArtifact = studyArtifacts.filter({ hasText: 'monthly_frequency' }).first()
   const streakDistributionArtifact = studyArtifacts.filter({ hasText: 'streak_distribution' }).first()
-  const summaryArtifact = studyArtifacts.filter({ hasText: 'summary' }).first()
-  await expectStudyPlotReadoutBeforeNextArtifact(
-    monthlyFrequencyArtifact.locator('.study-bars'),
-    streakDistributionArtifact.locator('.study-lab-tool__artifact-header'),
-  )
-  await expectStudyPlotReadoutBeforeNextArtifact(
+  await expectStudyPlotReadoutContained(
     streakDistributionArtifact.locator('.study-histogram'),
-    summaryArtifact.locator('.study-lab-tool__artifact-header'),
+    streakDistributionArtifact,
   )
 
   const runLabel = await study.locator('.study-lab-tool__run > div > strong').innerText()
@@ -234,16 +238,10 @@ test('Study journey keeps saved identity, refreshes Results, and returns from Py
   await expect(resultDetail).toBeVisible()
   await expect(resultDetail.locator('.research-results-tool__artifacts > article')).toHaveCount(8, { timeout: 15_000 })
   const resultArtifacts = resultDetail.locator('.research-results-tool__artifacts > article')
-  const resultMonthlyFrequency = resultArtifacts.filter({ hasText: 'monthly_frequency' }).first()
   const resultStreakDistribution = resultArtifacts.filter({ hasText: 'streak_distribution' }).first()
-  const resultSummary = resultArtifacts.filter({ hasText: 'summary' }).first()
-  await expectStudyPlotReadoutBeforeNextArtifact(
-    resultMonthlyFrequency.locator('.study-bars'),
-    resultStreakDistribution.locator('.research-results-tool__artifact-header'),
-  )
-  await expectStudyPlotReadoutBeforeNextArtifact(
+  await expectStudyPlotReadoutContained(
     resultStreakDistribution.locator('.study-histogram'),
-    resultSummary.locator('.research-results-tool__artifact-header'),
+    resultStreakDistribution,
   )
 
   await activateDockToolTab(page, 'Study Lab')

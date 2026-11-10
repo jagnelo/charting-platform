@@ -99,6 +99,18 @@ async function waitForRatioPlotToBePainted(ratio: Locator) {
   })
 }
 
+async function expectContainedBounds(container: Locator, content: Locator, label: string) {
+  const [containerBox, contentBox] = await Promise.all([container.boundingBox(), content.boundingBox()])
+  if (!containerBox || !contentBox) throw new Error(`${label} must have visible layout bounds`)
+  expect(contentBox.width, `${label} width`).toBeGreaterThan(0)
+  expect(contentBox.height, `${label} height`).toBeGreaterThan(0)
+  expect(contentBox.x, `${label} left`).toBeGreaterThanOrEqual(containerBox.x - 1)
+  expect(contentBox.y, `${label} top`).toBeGreaterThanOrEqual(containerBox.y - 1)
+  expect(contentBox.x + contentBox.width, `${label} right`).toBeLessThanOrEqual(containerBox.x + containerBox.width + 1)
+  expect(contentBox.y + contentBox.height, `${label} bottom`).toBeLessThanOrEqual(containerBox.y + containerBox.height + 1)
+  return contentBox
+}
+
 async function waitForCachedChartAnalysisToRender(page: Page) {
   const chart = page.locator('.chart-tool:visible .chart-root:visible').first()
   await expect(chart).toBeVisible()
@@ -1073,7 +1085,9 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     })
     await page.goto('/chart')
     await expect(page.locator('.workstation')).toBeVisible()
-    await expect(page.locator('.chart-tool .tool-state--error')).toContainText(/Request failed|unavailable|observations/i, { timeout: 10_000 })
+    const chartError = page.locator('.chart-tool .tool-state--error')
+    await expect(chartError).toHaveText('No local D1 price history is available for SPY.', { timeout: 10_000 })
+    await expect(chartError).not.toContainText(/\/api\/v1\/|\{\s*"detail"/i)
     await expect(page.locator('.chart-tool canvas')).toHaveCount(0)
     if (process.env.E2E_SEED_MARKET_DATA === 'true') {
       // This gap intentionally keeps the primary chart in its terminal 404
@@ -1436,8 +1450,23 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     for (const artifact of ['event_count', 'monthly_frequency', 'streak_distribution', 'summary', 'occurrences']) {
       await expect(resultsDetail.getByRole('article', { name: new RegExp(`^${artifact} `) })).toBeVisible()
     }
-    await expect(study.locator('.study-bars canvas')).toBeVisible()
-    await expect(study.locator('.study-histogram canvas')).toBeVisible()
+    const studyRun = study.locator('.study-lab-tool__run')
+    const studyBars = study.locator('article[aria-label="monthly_frequency bar result"] .study-bars')
+    const studyNextHeader = study.locator('article[aria-label="streak_distribution histogram result"] .study-lab-tool__artifact-header')
+    await expect(studyBars.locator('canvas')).toBeVisible()
+    await expect(study.locator('article[aria-label="streak_distribution histogram result"] .study-histogram canvas')).toBeVisible()
+    const studyBarsBounds = await expectContainedBounds(studyRun, studyBars, 'Study monthly_frequency readout')
+    const studyNextHeaderBounds = await expectContainedBounds(studyRun, studyNextHeader, 'Study next artifact header')
+    expect(studyNextHeaderBounds.y).toBeGreaterThanOrEqual(studyBarsBounds.y + studyBarsBounds.height - 1)
+
+    const resultsArtifacts = resultsDetail.locator('.research-results-tool__artifacts')
+    const resultsBars = resultsDetail.locator('article[aria-label="monthly_frequency bar result"] .study-bars')
+    const resultsNextHeader = resultsDetail.locator('article[aria-label="streak_distribution histogram result"] .research-results-tool__artifact-header')
+    await expect(resultsBars.locator('canvas')).toBeVisible()
+    await expect(resultsDetail.locator('article[aria-label="streak_distribution histogram result"] .study-histogram canvas')).toBeVisible()
+    const resultsBarsBounds = await expectContainedBounds(resultsArtifacts, resultsBars, 'Results monthly_frequency readout')
+    const resultsNextHeaderBounds = await expectContainedBounds(resultsArtifacts, resultsNextHeader, 'Results next artifact header')
+    expect(resultsNextHeaderBounds.y).toBeGreaterThanOrEqual(resultsBarsBounds.y + resultsBarsBounds.height - 1)
     await expect(page).toHaveScreenshot('study-lab-structured-result-gap.png', {
       animations: 'disabled',
       caret: 'hide',
