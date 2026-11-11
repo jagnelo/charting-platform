@@ -1606,7 +1606,7 @@ excluded_paths:
 shared_path_exceptions:
 - path: .github/workflows/ci.yml
   reason: Root-directed 2026-11-10/11 CI-only changes - e2e job timeout-minutes 45 to 120, and backend unit step emits failed
-    test ids as annotations (logs need admin), and e2e runs-on pinned to ubuntu-24.04 (Playwright --with-deps hung on ubuntu-latest, runs 43035665196/43042250557); because the grown TC journey+visual Playwright suite exceeded 45m (run 42888104152);
+    test ids as annotations (logs need admin), e2e runs-on pinned to ubuntu-24.04 and Playwright install split into bounded deps/browser steps with a browser cache (installs hung, runs 43035665196/43042250557/43048372708); because the grown TC journey+visual Playwright suite exceeded 45m (run 42888104152);
     no job, step, spec or gate change.
 - path: backend/app/main.py
   reason: Register the TC-owned authenticated Favorites router only; do not add provider, ETF, or generic service behavior.
