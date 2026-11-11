@@ -1129,8 +1129,11 @@ test.describe('Chart', () => {
   })
 
   test('F9e-plot-library-narrow — chart plot library clamps to a narrow viewport and recovers on close', async ({ page, browserDiagnostics }) => {
-    await page.setViewportSize({ width: 390, height: 800 })
+    await page.setViewportSize({ width: 1920, height: 1080 })
     await page.goto('/chart/SPY')
+    // Narrow docks show only the active window, so activate the chart before narrowing.
+    await page.locator('.chart-tool__surface').first().click({ position: { x: 24, y: 24 } })
+    await page.setViewportSize({ width: 390, height: 800 })
     const chart = page.locator('.chart-tool').filter({ has: page.getByRole('button', { name: 'Chart plot library' }) }).first()
     const trigger = chart.getByRole('button', { name: 'Chart plot library' })
     await trigger.click()
@@ -4446,6 +4449,9 @@ test.describe('TC2000 workstation', () => {
     const sourceValidationId = await source.getAttribute('aria-describedby')
     expect(sourceValidationId).toBeTruthy()
     await expect(study.locator(`#${sourceValidationId}`)).toContainText('Validation errors')
+    // Readable diagnostics are always visible; raw JSON sits behind its Details summary.
+    await expect(study.locator('.study-lab-tool__validation--bad .study-lab-tool__diagnostics li').first()).toBeVisible()
+    await study.locator('.study-lab-tool__validation--bad details.study-lab-tool__raw > summary').click()
     await expect(study.locator('.study-lab-tool__validation--bad pre')).toBeVisible()
     await expect(study.locator('.study-lab-tool__validation--bad')).toHaveAttribute('role', 'alert')
     await expect(study.locator('.study-lab-tool__validation--bad')).toHaveAttribute('aria-live', 'assertive')
@@ -7194,7 +7200,9 @@ test.describe('TC2000 workstation', () => {
     await expect(menu.getByRole('menuitem')).toHaveText([
       'Chart', 'WatchList', 'My Favorites', 'Notes', 'Alerts', 'EasyScan', 'Market Gauge', 'Study Lab',
       'Study Results', 'Relative Rotation', 'Market Breadth', 'Market Map',
-      'Technical Summary', 'Coverage', 'Instrument Report', 'Python Library',
+      'Technicals', 'Coverage', 'Instrument Report', 'Python Library',
+      // Full factory catalogue: every default workspace tool can be re-added.
+      'Benchmarks', 'S&P 500 Sectors', 'Industries', 'Constituents', 'Relative Strength',
     ])
     await expect(menu.getByRole('menuitem', { disabled: true })).toHaveCount(0)
     await expect(menu).not.toContainText(/coming soon|not available|requires entitlement/i)

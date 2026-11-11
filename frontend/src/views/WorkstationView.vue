@@ -1331,6 +1331,10 @@ function syncChartRouteToSelection(
   if (isPopout.value || !/^\/chart(?:\/|$)/.test(route.path)) return
   const symbol = rawSymbol.trim().toUpperCase()
   if (!symbol) return
+  // A requested SPX that resolved to its labelled tradable proxy keeps the
+  // user's SPX URL; rewriting it would present the proxy as the request.
+  const requestedRouteSymbol = typeof route.params.symbol === 'string' ? route.params.symbol.trim().toUpperCase() : ''
+  if (requestedRouteSymbol === 'SPX' && symbolProxyNotice.value === `SPX official series unavailable; using tradable proxy ${symbol}`) return
   const candidateHoldingContext = candidateContext
     ?? (!isPrivateBasketToken(symbol) && activeHoldingContext.value?.symbol === symbol
       ? activeHoldingContext.value.context

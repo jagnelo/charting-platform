@@ -604,8 +604,8 @@ onBeforeUnmount(() => {
 .rotation-tool__settings-panel small{display:block;margin-top:6px;color:#82929d}
 .rotation-tool__controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;align-items:center}
 .rotation-tool__controls label{display:flex;align-items:center;gap:3px;min-width:0;color:#9aabb6}
-.rotation-tool__controls input,.rotation-tool__controls select{box-sizing:border-box;min-width:0;width:78px;max-width:100%;border:1px solid #3a4954;background:#172027;color:#dce6ed;font:inherit;padding:2px 3px}
-.rotation-tool__controls label:first-child{grid-column:1/-1}.rotation-tool__controls label:first-child select{width:150px}.rotation-tool__controls label:nth-child(7) input{width:100px}.rotation-tool__adjusted input{width:auto}
+.rotation-tool__controls input,.rotation-tool__controls select{box-sizing:border-box;min-width:0;width:auto;flex:0 1 78px;max-width:100%;border:1px solid #3a4954;background:#172027;color:#dce6ed;font:inherit;padding:2px 3px}
+.rotation-tool__controls label:first-child{grid-column:1/-1}.rotation-tool__controls label:first-child select{flex-basis:150px}.rotation-tool__controls label:nth-child(7) input{flex-basis:100px}.rotation-tool__adjusted input{flex:0 0 auto}
 .rotation-tool__rows-disclosure{position:static}
 .rotation-tool__rows-disclosure[open]>.rotation-tool__table{position:absolute;z-index:6;right:0;bottom:6px;width:min(100%,900px);height:min(52vh,280px);max-height:calc(100% - 48px);min-height:64px;overflow:auto;border:1px solid #526674;background:#172027;box-shadow:0 4px 14px #000b}
 .rotation-tool__plot-shell{position:relative;flex:1 1 auto;min-height:64px;background:#101419;overflow:hidden}
