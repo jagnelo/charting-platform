@@ -4714,8 +4714,9 @@ function setBenchmarkFamily(familyKey: string) {
 }
 function setBenchmarkFamilyMapRole(role: string) {
   const normalized = benchmarkFamilyMapRoles.includes(role as BenchmarkFamilyMapRole) ? role as BenchmarkFamilyMapRole : 'cap_weight'
-  const available = benchmarkFamilyMapRoleOptions.value.find(item => item.role === normalized)?.available ?? false
-  if (!available) return
+  // Keep the user's chosen role even while the family overview is still
+  // proving availability; activeBenchmarkMapRole applies it only once the role
+  // is available and otherwise stays on the cap-weight leg.
   benchmarkFamilyMapRole.value = normalized
   emit('configuration', props.tool.instance_key, { ...props.tool.configuration, benchmark_family_map_role: normalized })
 }

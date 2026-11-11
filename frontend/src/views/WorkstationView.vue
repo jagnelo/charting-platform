@@ -352,7 +352,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, useId, watch, type Ref, type VNode } from 'vue'
+import { computed, defineComponent, h, nextTick, onBeforeUnmount, onMounted, ref, useId, watch, type PropType, type Ref, type VNode } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuery } from '@tanstack/vue-query'
 import WorkspaceLayoutHost from '@/components/workstation/WorkspaceLayoutHost.vue'
@@ -360,7 +360,7 @@ import WorkstationToolContent from '@/components/workstation/WorkstationToolCont
 import WorkstationGlyph from '@/components/workstation/WorkstationGlyph.vue'
 import { refreshMountedWorkstationChartPanels, useChartStore } from '@/stores/chart'
 import { useAuthStore } from '@/stores/auth'
-import { useWorkspaceStore, type LinkGroup, type OpenableToolDefinition, type WorkspaceTabRecovery } from '@/stores/workspace'
+import { useWorkspaceStore, type LinkGroup, type OpenableToolDefinition, type WorkspaceTabRecovery, type WorkspaceWindowState } from '@/stores/workspace'
 import type { LayoutConfig } from 'golden-layout'
 import { resolveKnownInstrument } from '@/lib/instruments'
 import { createKnownTemporaryRetryLifecycle, isConfirmedInstrumentSelection, isCurrentETFHoldingsCapability, isEligibleETFHoldingsInstrumentType, readETFHoldingsCapability, resolveExistingInstrument, type InstrumentDiscoveryResponse } from '@/lib/onDemandAcquisition'
@@ -3134,8 +3134,37 @@ async function reconcilePopoutPlacement(windowKey: string, popup: Window, initia
   }
 }
 
-function renderDockTool(dockTool: { instance_key: string; title: string; tool_type: string }, actions: { toggleMaximize: () => Promise<void>; maximized: Readonly<Ref<boolean>>; maximizing: Readonly<Ref<boolean>>; close: () => void }): VNode {
-  const tool = workspaceStore.activeTab?.windows.find(window => window.instance_key === dockTool.instance_key)
+type DockToolDescriptor = { instance_key: string; title: string; tool_type: string }
+type DockToolRenderActions = { toggleMaximize: () => Promise<void>; maximized: Readonly<Ref<boolean>>; maximizing: Readonly<Ref<boolean>>; close: () => void }
+
+// Golden Layout renders each virtual tool once into a detached root. Every
+// acknowledged snapshot replaces the store's window records, so binding the
+// mount-time record would strand later configuration edits on an object the
+// mounted tool never reads. Re-resolve the live record on each reactive render.
+const DockToolBinding = defineComponent({
+  name: 'DockToolBinding',
+  props: {
+    dockTool: { type: Object as PropType<DockToolDescriptor>, required: true },
+    actions: { type: Object as PropType<DockToolRenderActions>, required: true },
+  },
+  setup(bindingProps) {
+    let lastTool: WorkspaceWindowState | undefined
+    return () => {
+      const key = bindingProps.dockTool.instance_key
+      const tool = workspaceStore.activeTab?.windows.find(window => window.instance_key === key)
+        ?? workspaceStore.workspace?.tabs.flatMap(tab => tab.windows).find(window => window.instance_key === key)
+        ?? lastTool
+      if (tool) lastTool = tool
+      return renderDockToolContent(tool, bindingProps.dockTool, bindingProps.actions)
+    }
+  },
+})
+
+function renderDockTool(dockTool: DockToolDescriptor, actions: DockToolRenderActions): VNode {
+  return h(DockToolBinding, { dockTool, actions })
+}
+
+function renderDockToolContent(tool: WorkspaceWindowState | undefined, dockTool: DockToolDescriptor, actions: DockToolRenderActions): VNode {
   if (!tool) return h('div', { class: 'workstation__missing-tool' }, `Missing persisted tool: ${dockTool.instance_key}`)
   return h(WorkstationToolContent, {
     tool,

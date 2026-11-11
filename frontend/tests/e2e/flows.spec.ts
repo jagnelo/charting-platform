@@ -5860,7 +5860,11 @@ test.describe('TC2000 workstation', () => {
     await expect(benchmarkSurface).toContainText('S&P 500 legs')
     const mapRole = benchmarkSurface.getByRole('combobox', { name: 'Benchmark family Map role' })
     await expect(mapRole).toHaveValue('cap_weight')
+    // Roles stay disabled until the family overview proves their mapping and holdings.
+    await expect(mapRole.locator('option[value="equal_weight"]')).toBeEnabled({ timeout: 15_000 })
     await mapRole.selectOption('equal_weight')
+    // The chosen role applies once the family overview proves it available.
+    await expect(mapRole.locator('option[value="equal_weight"]')).toBeEnabled({ timeout: 15_000 })
     await expect(mapRole).toHaveValue('equal_weight')
     await benchmarkSurface.getByRole('button', { name: 'Open Market Map' }).click()
     const mapWindow = page.locator('.tool-window:visible').filter({ has: page.locator('.market-map-tool') }).last()
@@ -6747,6 +6751,8 @@ test.describe('TC2000 workstation', () => {
     await page.getByRole('menuitem', { name: 'Relative Rotation', exact: true }).click()
     const rotation = page.locator('.tool-window:visible').filter({ has: page.locator('.rotation-tool') }).last()
     await expect(rotation).toBeVisible({ timeout: 10_000 })
+    // Compact RRG keeps its controls behind the Settings disclosure.
+    await rotation.locator('details.rotation-tool__settings > summary').click()
     await rotation.getByRole('combobox', { name: 'Rotation universe' }).selectOption('sp400')
     const region = rotation.locator('[role="region"][aria-label="Relative rotation vs MDY"]')
     await expect(region).toBeVisible({ timeout: 15_000 })
