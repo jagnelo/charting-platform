@@ -471,6 +471,38 @@ describe('StudyLabTool', () => {
     expect(apiPost).not.toHaveBeenCalledWith(expect.stringContaining('/cancel'), expect.anything())
   })
 
+  it('validates on a partial target that already has local history and says it is partial', async () => {
+    ensurePreparation.mockImplementation((request: { target: { symbol?: string } }) => request.target.symbol === 'SPY'
+      ? Promise.resolve({ status: 'partial', dependencies: [{ dataset: 'history', covered_ranges: [{ start_at: '2024-01-02', end_at: '2026-01-02' }] }] })
+      : Promise.resolve({ status: 'ready' }))
+    apiPost.mockImplementation((path: string) => path === '/code/validate'
+      ? Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] })
+      : Promise.resolve({}))
+    const wrapper = mountTool({
+      activeSymbol: 'XLB',
+      configuration: { symbols: 'SPY,XLK', benchmark: 'QQQ' },
+    })
+
+    await wrapper.get('button[aria-label="Validate study"]').trigger('click')
+    await vi.waitFor(() => expect(apiPost.mock.calls.some(([path]) => path === '/code/validate')).toBe(true))
+    await vi.waitFor(() => expect(wrapper.get('[aria-label="Study data preparation outcomes"]').text()).toContain('Partial local history for SPY is usable'))
+    expect(wrapper.get('[aria-label="Study data preparation"]').text()).not.toContain('Some selected Study data is not ready')
+  })
+
+  it('keeps blocking a partial target that has no local history', async () => {
+    ensurePreparation.mockImplementation((request: { target: { symbol?: string } }) => request.target.symbol === 'SPY'
+      ? Promise.resolve({ status: 'partial', dependencies: [{ dataset: 'history', covered_ranges: [] }] })
+      : Promise.resolve({ status: 'ready' }))
+    const wrapper = mountTool({
+      activeSymbol: 'XLB',
+      configuration: { symbols: 'SPY,XLK', benchmark: 'QQQ' },
+    })
+
+    await wrapper.get('button[aria-label="Validate study"]').trigger('click')
+    await vi.waitFor(() => expect(wrapper.get('[aria-label="Study data preparation"]').text()).toContain('Some selected Study data is not ready'))
+    expect(apiPost.mock.calls.some(([path]) => path === '/code/validate')).toBe(false)
+  })
+
   it('keeps later preparation outcomes when one target request rejects', async () => {
     ensurePreparation.mockImplementation((request: { target: { symbol?: string } }) => {
       if (request.target.symbol === 'SPY') return Promise.reject(new Error('Preparation request timed out.'))
