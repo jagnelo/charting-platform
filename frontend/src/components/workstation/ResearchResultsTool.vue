@@ -141,7 +141,7 @@
           </div>
           <small v-if="artifactCapabilityNote(artifact, selectedRun)" class="research-results-tool__artifact-capability" role="note">{{ artifactCapabilityNote(artifact, selectedRun) }}</small>
           <strong v-if="artifact.artifact_type === 'scalar' || artifact.artifact_type === 'boolean'" :class="{ 'research-results-tool__boolean--true': artifact.artifact_type === 'boolean' && artifact.payload.value === true, 'research-results-tool__boolean--false': artifact.artifact_type === 'boolean' && artifact.payload.value === false }">{{ formatMetric(artifact) }}</strong>
-          <table v-else-if="artifact.artifact_type === 'table' && tableRows(artifact).length"><caption class="sr-only">{{ artifact.name }} table</caption><thead><tr><th v-for="column in tableColumns(artifact)" :key="column" scope="col">{{ column }}</th></tr></thead><tbody><tr v-for="(row, index) in tableRows(artifact)" :key="index"><td v-for="column in tableColumns(artifact)" :key="column">{{ formatCell(row[column]) }}</td></tr></tbody></table>
+          <template v-else-if="artifact.artifact_type === 'table' && tableRows(artifact).length"><table><caption class="sr-only">{{ artifact.name }} table</caption><thead><tr><th v-for="column in tableColumns(artifact)" :key="column" scope="col">{{ column }}</th></tr></thead><tbody><tr v-for="(row, index) in limitedTableRows(artifact)" :key="index"><td v-for="column in tableColumns(artifact)" :key="column">{{ formatCell(row[column]) }}</td></tr></tbody></table><p v-if="tableRows(artifact).length > RESULT_ROW_LIMIT" class="research-results-tool__row-limit" role="note">Showing the first {{ RESULT_ROW_LIMIT }} of {{ tableRows(artifact).length.toLocaleString() }} rows. Export the artifact for the complete table.</p></template>
           <StudySeriesUPlot v-else-if="artifact.artifact_type === 'series' && seriesData(artifact)" :name="artifact.name" :timestamps="seriesData(artifact)!.timestamps" :values="seriesData(artifact)!.values" />
           <StudyBarsUPlot v-else-if="artifact.artifact_type === 'bar' && barData(artifact)" :name="artifact.name" :labels="barData(artifact)!.labels" :values="barData(artifact)!.values" />
           <StudyHistogramUPlot v-else-if="artifact.artifact_type === 'histogram' && histogramData(artifact)" :name="artifact.name" :bins="histogramData(artifact)!.bins" :current="histogramData(artifact)!.current" />
@@ -681,7 +681,18 @@ function tableRows(artifact: ResearchRunSummary['artifacts'][number]): Array<Rec
   const value = artifact.payload.value
   return Array.isArray(value) && value.every(row => row && typeof row === 'object' && !Array.isArray(row)) ? value as Array<Record<string, unknown>> : []
 }
-function tableColumns(artifact: ResearchRunSummary['artifacts'][number]) { return [...new Set(tableRows(artifact).flatMap(row => Object.keys(row)))] }
+// Large tables render a bounded preview; the artifact export keeps every row.
+const RESULT_ROW_LIMIT = 200
+const tableColumnCache = new WeakMap<object, string[]>()
+function limitedTableRows(artifact: ResearchRunSummary['artifacts'][number]) { return tableRows(artifact).slice(0, RESULT_ROW_LIMIT) }
+function tableColumns(artifact: ResearchRunSummary['artifacts'][number]) {
+  const key = artifact.payload as object
+  const cached = tableColumnCache.get(key)
+  if (cached) return cached
+  const columns = [...new Set(limitedTableRows(artifact).flatMap(row => Object.keys(row)))]
+  tableColumnCache.set(key, columns)
+  return columns
+}
 function formatCell(value: unknown) { return value == null ? '—' : typeof value === 'number' ? value.toLocaleString(undefined, { maximumFractionDigits: 6 }) : String(value) }
 function seriesData(artifact: ResearchRunSummary['artifacts'][number]): { timestamps: string[]; values: Array<number | null> } | null {
   return normalizeStructuredNumericSeries(artifact.payload.value)
@@ -1936,4 +1947,5 @@ onBeforeUnmount(() => {
 .research-results-tool__series-condition { display:flex; align-items:center; flex-wrap:wrap; gap:4px; flex-basis:100%; color:#91a8b4; }.research-results-tool__series-condition label { display:flex; align-items:center; gap:3px; }.research-results-tool__series-condition select,.research-results-tool__series-condition input { min-width:52px; border:1px solid #3a4954; background:#121a20; color:#dce6ed; font:inherit; padding:2px 3px; }.research-results-tool__series-condition button { padding:2px 4px; }
 .research-results-tool__output-comparison { margin-top:7px; border-top:1px solid #34424c; padding-top:5px; }.research-results-tool__comparison-table { width:100%; border-collapse:collapse; margin-top:4px; }.research-results-tool__comparison-table th,.research-results-tool__comparison-table td { padding:3px 4px; border:1px solid #2c3943; text-align:left; vertical-align:top; overflow-wrap:anywhere; }.research-results-tool__comparison-table th small { display:block; color:#8195a3; font-weight:400; }.research-results-tool__comparison-table .research-results-tool__comparison-delta { display:block; margin-top:2px; color:#a9bac5; font-weight:400; }.research-results-tool__comparison-table details { margin-top:3px; }.research-results-tool__comparison-table summary { color:#91a8b4; cursor:pointer; }.research-results-tool__comparison-table pre { max-width:280px; max-height:140px; margin:3px 0; overflow:auto; white-space:pre-wrap; }
 .research-results-tool__run-browser { display:grid; grid-template-rows:minmax(0,1fr) auto; gap:4px; min-height:0; }.research-results-tool__pagination { display:flex; align-items:center; gap:5px; }.research-results-tool__pagination p { display:flex; align-items:center; gap:5px; margin:0; }.research-results-tool__pagination button { padding:1px 4px; }
+.research-results-tool__row-limit { margin: 3px 0 0; color: #91a8b4; font-size: 9px; }
 </style>
