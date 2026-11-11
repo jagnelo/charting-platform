@@ -952,6 +952,14 @@ function invalidateStudyPreparation() {
   preparationOutcomes.value = []
   if (preparationStatus.value) preparationStatus.value = 'Study data selection changed. Validate or run to prepare the current selection.'
 }
+// A partial preparation stays usable when a history dependency already holds
+// local canonical coverage. Partial responses without covered history block.
+function hasUsableLocalPartialCoverage(response: { status: string; dependencies?: Array<{ dataset: string; covered_ranges?: unknown[] | null; covered_start?: string | null; covered_end?: string | null }> }): boolean {
+  if (response.status !== 'partial') return false
+  return (response.dependencies ?? []).some(dependency => dependency.dataset === 'history'
+    && ((dependency.covered_ranges?.length ?? 0) > 0 || (dependency.covered_start != null && dependency.covered_end != null)))
+}
+
 async function prepareStudyDataset(intent: StudyDatasetIntent): Promise<boolean> {
   const generation = ++preparationGeneration
   preparationController?.abort()
@@ -983,8 +991,17 @@ async function prepareStudyDataset(intent: StudyDatasetIntent): Promise<boolean>
           },
         })
         if (!isCurrentIntent()) return false
+        if (response.status === 'ready') {
+          updateOutcome(preparationStatusMessage(response))
+          return true
+        }
+        // Local canonical history can still validate and run; say what is partial.
+        if (hasUsableLocalPartialCoverage(response)) {
+          updateOutcome(`Partial local history for ${label} is usable. The full requested range is not available; results cover only the local range.`)
+          return true
+        }
         updateOutcome(preparationStatusMessage(response))
-        return response.status === 'ready'
+        return false
       } catch (cause) {
         if (!isCurrentIntent() || controller.signal.aborted) return false
         updateOutcome(cause instanceof Error ? cause.message : 'Data preparation could not be completed.')

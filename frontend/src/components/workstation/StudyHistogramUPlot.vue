@@ -84,7 +84,6 @@ function draw() {
   if (chart) {
     chart.setData(data())
     chart.setSize({ width, height })
-    if (chart.cursor.idx == null) chart.setLegend({ idx: currentBinIndex() }, false)
     return
   }
   chart = new uPlot({
