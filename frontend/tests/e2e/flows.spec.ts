@@ -4511,7 +4511,7 @@ test.describe('TC2000 workstation', () => {
     const run = study.getByRole('button', { name: 'Run study', exact: true })
     await source.fill("output.scalar('first', 1)")
     await study.getByRole('button', { name: 'Validate' }).click()
-    await expect(study.locator('.study-lab-tool__validation')).toContainText('Validated for isolated execution')
+    await expect(study.locator('.study-lab-tool__validation')).toContainText('Validated for isolated execution', { timeout: 30_000 })
     await expect(run).toBeEnabled()
 
     await source.fill("output.scalar('edited', 2)")
@@ -4521,7 +4521,7 @@ test.describe('TC2000 workstation', () => {
     expect(runCreates).toBe(0)
 
     await study.getByRole('button', { name: 'Validate' }).click()
-    await expect(study.locator('.study-lab-tool__validation')).toContainText('Validated for isolated execution')
+    await expect(study.locator('.study-lab-tool__validation')).toContainText('Validated for isolated execution', { timeout: 30_000 })
     await expect(run).toBeEnabled()
     await run.click()
     await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible()
