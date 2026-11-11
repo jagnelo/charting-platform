@@ -59,7 +59,7 @@
       <!-- Right-click context menu on price axis -->
       <div class="ctx-menu" v-if="ctxMenu.visible"
            :style="{ top: ctxMenu.y + 'px', right: '8px' }"
-           role="menu" aria-label="Price scale actions" @mouseleave="closePriceContextMenu" @keydown="handleContextMenuKeydown('price', $event)">
+           role="menu" aria-label="Price scale actions" @mouseenter="contextMenuPointerEntered = true" @mouseleave="contextMenuPointerEntered && closePriceContextMenu()" @keydown="handleContextMenuKeydown('price', $event)">
         <button type="button" role="menuitem" tabindex="-1" @click="toggleLogScaleFromMenu">{{ isLogScale ? '✓ ' : '' }}Log Scale</button>
         <button type="button" role="menuitem" tabindex="-1" @click="resetPriceScaleFromMenu">Reset Price Scale</button>
       </div>
@@ -87,7 +87,7 @@
     <!-- Drawing context menu (right-click on any drawing, main or sub-pane) -->
     <div class="ctx-menu" v-if="overlayInteractionsEnabled && drawCtxMenu.visible"
          :style="{ top: drawCtxMenu.y + 'px', left: drawCtxMenu.x + 'px' }"
-         role="menu" aria-label="Drawing actions" @mouseleave="closeDrawingContextMenu" @keydown="handleContextMenuKeydown('drawing', $event)">
+         role="menu" aria-label="Drawing actions" @mouseenter="contextMenuPointerEntered = true" @mouseleave="contextMenuPointerEntered && closeDrawingContextMenu()" @keydown="handleContextMenuKeydown('drawing', $event)">
       <button type="button" role="menuitem" tabindex="-1" @click="deleteSelectedDrawing">🗑 Delete Drawing</button>
       <button type="button" role="menuitem" tabindex="-1" @click="closeDrawingContextMenu(); drawStore.selectDrawing(null)">Deselect</button>
     </div>
@@ -677,7 +677,11 @@ function focusContextMenuItem(kind: 'price' | 'drawing', index: number) {
   if (items.length) items[Math.max(0, Math.min(index, items.length - 1))]?.focus()
 }
 
+// A context menu closes when the pointer leaves it, but only after the pointer
+// has actually entered it; a layout shift under a still pointer must not close it.
+const contextMenuPointerEntered = ref(false)
 function openContextMenu(kind: 'price' | 'drawing') {
+  contextMenuPointerEntered.value = false
   contextMenuSource.value = kind
   // Right-clicking an inactive chart also activates its window, which moves
   // focus after this tick; focus the first item once that settles too.
