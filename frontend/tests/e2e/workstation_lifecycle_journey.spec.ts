@@ -61,19 +61,20 @@ async function openWorkspaceMenu(page: Page) {
 }
 
 async function activatePanel(page: Page, title: string) {
-  const tab = page.locator('.lm_tab').filter({ hasText: new RegExp(`^${escapeRegExp(title)}$`) })
-  if (await tab.first().isVisible().catch(() => false)) {
-    await tab.first().click()
-  } else {
-    // Golden Layout moves excess tabs into its ordinary header dropdown.
-    const header = tab.first().locator('xpath=ancestor::*[contains(concat(" ",normalize-space(@class)," ")," lm_header ")][1]')
-    const dropdown = header.locator('.lm_tabdropdown')
-    await expect(dropdown).toBeVisible()
-    await dropdown.click()
-    const overflowTab = header.locator('.lm_tabdropdown_list .lm_tab').filter({ hasText: new RegExp(`^${escapeRegExp(title)}$`) })
-    await expect(overflowTab).toBeVisible()
-    await overflowTab.click()
-  }
+  const name = new RegExp(`^${escapeRegExp(title)}$`)
+  // Golden Layout moves excess tabs into its header dropdown and re-flows them
+  // as tabs activate, so a tab can move between the row and the list. Retry
+  // until it is clickable in whichever place it currently lives.
+  await expect(async () => {
+    const rowTab = page.locator('.lm_header .lm_tabs > .lm_tab:visible').filter({ hasText: name }).first()
+    if (await rowTab.isVisible()) { await rowTab.click({ timeout: 2_000 }); return }
+    const listed = page.locator('.lm_tabdropdown_list .lm_tab:visible').filter({ hasText: name }).first()
+    if (await listed.isVisible()) { await listed.click({ timeout: 2_000 }); return }
+    const tab = page.locator('.lm_tab').filter({ hasText: name }).first()
+    const header = tab.locator('xpath=ancestor::*[contains(concat(" ",normalize-space(@class)," ")," lm_header ")][1]')
+    await header.locator('.lm_tabdropdown').click({ timeout: 2_000 })
+    throw new Error(`opened the tab list for ${title}; retrying`)
+  }).toPass({ timeout: 20_000 })
   const tool = page.getByRole('group', { name: title, exact: true })
   await expect(tool).toBeVisible()
   return tool
