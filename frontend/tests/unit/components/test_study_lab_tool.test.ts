@@ -2216,6 +2216,33 @@ describe('StudyLabTool', () => {
     expect(wrapper.find('.range-chart').exists()).toBe(true)
   })
 
+  it('previews large event and table results without rendering every row', async () => {
+    const events = Array.from({ length: 250 }, (_, index) => ({ symbol: 'SPY', timestamp: `2026-01-${String((index % 28) + 1).padStart(2, '0')}T${String(index % 24).padStart(2, '0')}:00:00Z`, kind: 'new_high' }))
+    const rows = Array.from({ length: 450 }, (_, index) => ({ event_index: index, horizon: 1, forward_return: index / 1000 }))
+    apiGet.mockImplementation((path: string) => path === '/code/assets'
+      ? Promise.resolve([{ versions: [{ id: 244, source: "output.events('highs', [])", parameter_schema: {}, default_parameters: {} }] }])
+      : Promise.resolve(undefined))
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['market', 'output'], lookback_hint: 1, output_contracts: ['events', 'table'] })
+      if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 244 }] })
+      if (path === '/research/runs') return Promise.resolve({ id: 245, code_version_id: 244, status: 'completed', artifacts: [
+        { id: 1, name: 'highs', artifact_type: 'events', payload: { value: events } },
+        { id: 2, name: 'returns', artifact_type: 'table', payload: { value: rows } },
+      ] })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool({ activeSymbol: 'SPY' })
+    await wrapper.find('[aria-label="Study Python source"]').setValue("output.events('highs', [])")
+    await wrapper.find('button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+    await wrapper.findAll('button')[1].trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #245'))
+    expect(wrapper.findAll('[aria-label="highs occurrences"] [role="listitem"]')).toHaveLength(200)
+    expect(wrapper.findAll('tbody tr')).toHaveLength(200)
+    expect(wrapper.text()).toContain('Showing the first 200 of 250 occurrences')
+    expect(wrapper.text()).toContain('Showing the first 200 of 450 rows')
+  })
+
   it('promotes a completed event study without coercing its event contract', async () => {
     apiGet.mockImplementation((path: string) => path === '/code/assets'
       ? Promise.resolve([{ versions: [{ id: 144, source: "output.events('signals', [])", parameter_schema: {}, default_parameters: {} }] }])
