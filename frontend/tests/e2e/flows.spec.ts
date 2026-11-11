@@ -752,6 +752,14 @@ test.describe('Chart', () => {
     await page.goto('/chart/SPY')
     const host = page.locator('.workspace-layout-host')
     await expect(host).toBeVisible({ timeout: 15_000 })
+    // This serial suite shares a persisted workspace. Start from the factory
+    // layout so earlier flows cannot change the stacked column under test.
+    const reset = page.getByTitle('Reset factory workspace').first()
+    if (await reset.count()) {
+      page.once('dialog', dialog => dialog.accept())
+      await reset.click()
+      await expect(host).toBeVisible({ timeout: 15_000 })
+    }
     const splitters = page.locator('.workspace-layout-host .lm_splitter.lm_vertical')
     await expect.poll(() => splitters.count(), { timeout: 15_000 }).toBeGreaterThan(0)
 
