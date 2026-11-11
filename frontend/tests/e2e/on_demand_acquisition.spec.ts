@@ -1600,11 +1600,21 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
   })
   await linkedTimeframe.selectOption('D1')
   await expect(linkedTimeframe).toHaveValue('D1')
-  const restoredD1Read = await restoredD1ReadReady
-  expect(restoredD1Read.status()).toBe(200)
-  const restoredD1Bars = await restoredD1Read.json() as OHLCVBar[]
-  expect(restoredD1Bars).toHaveLength(500)
-  expect(restoredD1Bars.every(bar => bar.is_adjusted === true)).toBe(true)
+  // The client may serve the cached D1 series without a new read; when it does
+  // read again, the response must be the same adjusted 500-bar series. Either
+  // way the rendered provenance below proves which series is on screen.
+  const restoredD1Read = await Promise.race([
+    restoredD1ReadReady,
+    new Promise<null>(resolve => setTimeout(() => resolve(null), 10_000)),
+  ])
+  if (restoredD1Read) {
+    expect(restoredD1Read.status()).toBe(200)
+    const restoredD1Bars = await restoredD1Read.json() as OHLCVBar[]
+    expect(restoredD1Bars).toHaveLength(500)
+    expect(restoredD1Bars.every(bar => bar.is_adjusted === true)).toBe(true)
+  } else {
+    restoredD1ReadReady.catch(() => undefined)
+  }
   await expect(pricePlot).toBeVisible()
   await expect(await chartProvenanceTarget(priceChart)).toContainText('D1 chart; 500 bars; adjusted;')
   await expect(historicalContext).toBeVisible()

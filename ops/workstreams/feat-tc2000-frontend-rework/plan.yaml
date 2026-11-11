@@ -1606,8 +1606,9 @@ excluded_paths:
 shared_path_exceptions:
 - path: .github/workflows/ci.yml
   reason: Root-directed 2026-11-10/11 CI-only changes - e2e job timeout-minutes 45 to 120, and backend unit step emits failed
-    test ids as annotations (logs need admin), e2e runs-on pinned to ubuntu-24.04 and Playwright install split into bounded deps/browser steps with a browser cache (installs hung, runs 43035665196/43042250557/43048372708); because the grown TC journey+visual Playwright suite exceeded 45m (run 42888104152);
-    no job, step, spec or gate change.
+    test ids as annotations (logs need admin), e2e runs-on pinned to ubuntu-24.04 and Playwright install split into bounded
+    deps/browser steps with a browser cache (installs hung, runs 43035665196/43042250557/43048372708); because the grown TC
+    journey+visual Playwright suite exceeded 45m (run 42888104152); no job, step, spec or gate change.
 - path: backend/app/main.py
   reason: Register the TC-owned authenticated Favorites router only; do not add provider, ETF, or generic service behavior.
 - path: backend/app/models/__init__.py
@@ -6890,6 +6891,46 @@ development_dependency_import_history:
   - frontend/tests/unit/components/test_study_bars_histogram_uplot.test.ts
   state: superseded_development_import
   superseded_by: 2892a74837c825d11c69dd069425adb20f4ffd69
+- source_sha: 2892a74837c825d11c69dd069425adb20f4ffd69
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/2892a74837c825d11c69dd069425adb20f4ffd69.json
+  manifest_sha256: ac553091361ef714bebbc5b10de1b62f26ed681733d45208da71ac4d6e79a9ae
+  paths:
+  - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
+  - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
+  - frontend/src/components/dashboard/DashboardInstrumentSearch.vue
+  - frontend/src/components/dashboard/DashboardLineChartWidget.vue
+  - frontend/src/components/dashboard/DashboardQuoteWidget.vue
+  - frontend/src/components/workstation/CodeLibraryTool.vue
+  - frontend/src/components/workstation/PythonSourceEditor.vue
+  - frontend/src/components/workstation/ResearchResultsTool.vue
+  - frontend/src/components/workstation/StudyBarsUPlot.vue
+  - frontend/src/components/workstation/StudyHistogramUPlot.vue
+  - frontend/src/components/workstation/StudyLabTool.vue
+  - frontend/src/components/workstation/StudyRangeUPlot.vue
+  - frontend/src/components/workstation/StudyScatterUPlot.vue
+  - frontend/src/components/workstation/StudySeriesUPlot.vue
+  - frontend/src/lib/workstation/researchQueryKeys.ts
+  - frontend/src/lib/workstation/researchRunCancellation.ts
+  - frontend/src/stores/dashboard.ts
+  - frontend/src/views/DashboardView.vue
+  - frontend/src/views/StrategyLabView.vue
+  - frontend/tests/e2e/dashboard_usability_journey.spec.ts
+  - frontend/tests/e2e/strategy_study_journey.spec.ts
+  - frontend/tests/e2e/workstation_lifecycle_journey.spec.ts
+  - frontend/tests/unit/components/test_code_library_tool.test.ts
+  - frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts
+  - frontend/tests/unit/components/test_dashboard_instrument_search.test.ts
+  - frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts
+  - frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts
+  - frontend/tests/unit/components/test_python_source_editor.test.ts
+  - frontend/tests/unit/components/test_research_results_tool.test.ts
+  - frontend/tests/unit/components/test_study_lab_tool.test.ts
+  - frontend/tests/unit/stores/test_dashboard_store.test.ts
+  - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts
+  - frontend/tests/unit/views/test_strategy_lab_view.test.ts
+  - frontend/tests/unit/components/test_study_bars_histogram_uplot.test.ts
+  state: superseded_development_import
+  superseded_by: ea3a074d96312f8724a2fb4b955bfdc929cd35ad
 approved_development_dependency_imports:
 - source_sha: d850a1c91f93f509e2b3a2f90c66887537b75362
   manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/d850a1c91f93f509e2b3a2f90c66887537b75362.json
@@ -7021,9 +7062,9 @@ approved_development_dependency_imports:
   - backend/tests/unit/tasks/test_native_usage_prerequisite.py
   - backend/tests/unit/test_live_provider_runner.py
   - backend/tests/unit/workers/test_arq_worker.py
-- source_sha: 2892a74837c825d11c69dd069425adb20f4ffd69
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/2892a74837c825d11c69dd069425adb20f4ffd69.json
-  manifest_sha256: ac553091361ef714bebbc5b10de1b62f26ed681733d45208da71ac4d6e79a9ae
+- source_sha: ea3a074d96312f8724a2fb4b955bfdc929cd35ad
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/ea3a074d96312f8724a2fb4b955bfdc929cd35ad.json
+  manifest_sha256: 9a23d39d5f2a970fab53b1a838f5ec6ec56d1f61767105971098c1eaa94d4e4c
   paths:
   - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
   - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue

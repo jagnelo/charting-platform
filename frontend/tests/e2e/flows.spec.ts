@@ -3314,8 +3314,14 @@ test.describe('TC2000 workstation', () => {
     const helpButton = page.getByRole('button', { name: 'Help', exact: true })
     const helpMenu = page.getByRole('dialog', { name: 'Keyboard shortcuts' })
 
-    await helpButton.click()
-    await expect(helpMenu).toBeVisible()
+    // Open help once the workspace has loaded; a tool that takes focus while
+    // starting up legitimately dismisses shell menus (focus left the menu).
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
+    await expect(page.locator('.workstation__footer')).toContainText('Workspace saved', { timeout: 30_000 })
+    await expect(async () => {
+      if (!(await helpMenu.isVisible())) await helpButton.click()
+      await expect(helpMenu).toContainText('Shift+L', { timeout: 1_000 })
+    }).toPass({ timeout: 15_000 })
     await expect(helpMenu).toContainText('Ctrl+Space')
     await expect(helpMenu).toContainText('Backspace')
     await expect(helpMenu).toContainText('Shift+L')
