@@ -906,6 +906,9 @@ defineExpose({
 :deep(.lm_header .lm_tabs) { box-sizing: border-box !important; height: 20px; }
 :deep(.lm_header .lm_tabs > .lm_tab) { box-sizing: border-box !important; height: 20px; margin-top: 0 !important; padding: 4px 8px 0; color: #b9c4cc; font: 600 11px/1 "Segoe UI", Arial, sans-serif; background: #20262b; white-space: nowrap; }
 :deep(.lm_header .lm_tabs > .lm_tab .lm_title) { white-space: nowrap; }
+:deep(.lm_header .lm_tabdropdown_list) { z-index: 30; min-width: 140px; padding: 2px 0; background: #1d2227; border: 1px solid #3a4954; box-shadow: 0 4px 12px #000b; }
+:deep(.lm_header .lm_tabdropdown_list > .lm_tab) { display: block; float: none; box-sizing: border-box; height: 22px; padding: 5px 10px 0; color: #c8d4dc; font: 600 11px/1 "Segoe UI", Arial, sans-serif; background: transparent; white-space: nowrap; cursor: pointer; }
+:deep(.lm_header .lm_tabdropdown_list > .lm_tab:hover) { background: #2a3640; color: #fff; }
 :deep(.lm_tab.lm_active) { color: #edf5f8; background: #303940; box-shadow: inset 0 2px #67b7ea; }
 :deep(.lm_content) { background: #15191e; }
 :deep(.lm_splitter) { background: #090c0f; opacity: 1; }

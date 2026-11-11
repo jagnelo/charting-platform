@@ -2520,7 +2520,8 @@ function updateScanPlots(plots: ConfiguredScanPlot[]) {
 
 async function loadPythonPlots() {
   const plots = configuredPythonPlots.value.filter(plot => !plot.hidden)
-  for (const runId of pythonPlotRunIds) void api.post(`/research/runs/${runId}/cancel`, {})
+  // Best-effort: a finished or already-removed run answers 404, which is fine.
+  for (const runId of pythonPlotRunIds) void api.post(`/research/runs/${runId}/cancel`, {}).catch(() => undefined)
   pythonPlotRunIds.clear()
   if (props.tool.tool_type !== 'chart' || !plots.length || !activeSymbol.value) { pythonSeries.value = []; return }
   const sequence = ++pythonPlotRequestSequence
@@ -2532,11 +2533,14 @@ async function loadPythonPlots() {
         timeframe,
         ...(plot.universe_source_id ? { universe_source_id: plot.universe_source_id } : plot.symbols?.length ? { symbols: plot.symbols } : { symbol: activeSymbol.value }),
       }
-      const queued = await api.post<{ id: number }>('/research/runs', { code_version_id: plot.code_version_id, run_config: runConfig, dataset_manifest: { source: 'canonical_database', timeframe } })
+      type PlotRun = { id: number; status: string; artifacts?: Array<{ name: string; artifact_type: string; payload: Record<string, unknown> }> }
+      const queued = await api.post<PlotRun>('/research/runs', { code_version_id: plot.code_version_id, run_config: runConfig, dataset_manifest: { source: 'canonical_database', timeframe } })
       runId = queued.id
-      pythonPlotRunIds.add(queued.id)
+      // A run that is already terminal needs neither polling nor cancellation.
+      const alreadyTerminal = ['completed', 'failed', 'canceled'].includes(queued.status)
+      if (!alreadyTerminal) pythonPlotRunIds.add(queued.id)
       for (let attempt = 0; attempt < 30; attempt += 1) {
-        const result = await queryClient.fetchQuery({
+        const result: PlotRun = alreadyTerminal && attempt === 0 ? queued : await queryClient.fetchQuery({
           queryKey: ['workstation', 'research-run', queued.id],
           queryFn: async () => {
             const refreshed = await api.get<{ status: string; artifacts?: Array<{ name: string; artifact_type: string; payload: Record<string, unknown> }> }>(`/research/runs/${queued.id}`)
@@ -2778,7 +2782,8 @@ onBeforeUnmount(() => {
   comboListLoadSequence += 1
   comboMutationSequence += 1
   personalMutationSequence += 1
-  for (const runId of pythonPlotRunIds) void api.post(`/research/runs/${runId}/cancel`, {})
+  // Best-effort: a finished or already-removed run answers 404, which is fine.
+  for (const runId of pythonPlotRunIds) void api.post(`/research/runs/${runId}/cancel`, {}).catch(() => undefined)
   pythonPlotRunIds.clear()
 })
 
