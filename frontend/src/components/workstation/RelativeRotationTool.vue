@@ -600,7 +600,7 @@ onBeforeUnmount(() => {
 .rotation-tool__settings>summary,.rotation-tool__rows-disclosure>summary{padding:3px 5px;border:1px solid #394750;border-radius:2px;background:#172027;color:#c8d4dc;cursor:pointer;white-space:nowrap;list-style:none}
 .rotation-tool__settings>summary::-webkit-details-marker,.rotation-tool__rows-disclosure>summary::-webkit-details-marker{display:none}
 .rotation-tool__settings>summary::before{content:'▸';margin-right:4px}.rotation-tool__settings[open]>summary::before{content:'▾'}
-.rotation-tool__settings-panel{position:absolute;top:38px;left:6px;z-index:5;width:min(340px,calc(100vw - 24px));max-height:calc(100% - 44px);overflow:auto;padding:8px;border:1px solid #526674;background:#172027;box-shadow:0 4px 12px #000b}
+.rotation-tool__settings-panel{position:absolute;top:38px;left:6px;z-index:5;box-sizing:border-box;width:min(340px,calc(100vw - 24px),calc(100% - 12px));max-height:calc(100% - 44px);overflow:auto;padding:8px;border:1px solid #526674;background:#172027;box-shadow:0 4px 12px #000b}
 .rotation-tool__settings-panel small{display:block;margin-top:6px;color:#82929d}
 .rotation-tool__controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;align-items:center}
 .rotation-tool__controls label{display:flex;align-items:center;gap:3px;min-width:0;color:#9aabb6}
