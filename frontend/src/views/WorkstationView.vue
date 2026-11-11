@@ -3256,7 +3256,8 @@ function handleKeydown(event: KeyboardEvent) {
     if (!activeWindowKey) return
     const activeTool = Array.from(document.querySelectorAll<HTMLElement>('.tool-window[data-window-key]'))
       .find(tool => tool.dataset.windowKey === activeWindowKey)
-    const maximizeButton = activeTool?.querySelector<HTMLButtonElement>('[aria-label="Maximize tool"]')
+    // A maximized tool exposes "Restore tool" instead, and Shift+L must toggle back.
+    const maximizeButton = activeTool?.querySelector<HTMLButtonElement>('[aria-label="Maximize tool"], [aria-label="Restore tool"]')
     if (!maximizeButton) return
     event.preventDefault()
     maximizeButton.click()
