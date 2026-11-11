@@ -840,7 +840,9 @@ watch(() => props.configuration, configuration => {
   if (typeof configuration?.study_output_contract === 'string') openedStudyOutputContract.value = configuration.study_output_contract
   if (configuration && typeof configuration.study_default_parameters === 'object' && configuration.study_default_parameters && !Array.isArray(configuration.study_default_parameters)) openedStudyDefaultParameters.value = configuration.study_default_parameters as Record<string, unknown>
   if (typeof configuration?.timeframe === 'string') timeframe.value = normaliseTimeframe(configuration.timeframe)
-  if (configuration && !('benchmark' in configuration)) benchmark.value = ''
+  // An absent benchmark means the default, exactly as on first mount; an
+  // explicitly cleared benchmark is persisted as an empty string.
+  if (configuration && !('benchmark' in configuration)) benchmark.value = 'SPY'
   else if (typeof configuration?.benchmark === 'string') benchmark.value = configuration.benchmark
   if (configuration?.adjustment === 'raw' || configuration?.adjustment === 'split_adjusted') adjustment.value = configuration.adjustment
   if (configuration?.session === 'all' || configuration?.session === 'regular') session.value = configuration.session
@@ -1027,8 +1029,7 @@ watch([symbol, timeframe, benchmark, universeSourceId, universeSymbols, adjustme
   const configuration: Record<string, unknown> = { ...configurationSnapshot.value, timeframe: timeframe.value, adjustment: adjustment.value, session: session.value }
   if (symbol.value.trim()) configuration.symbol = symbol.value.trim().toUpperCase()
   else delete configuration.symbol
-  if (benchmark.value) configuration.benchmark = benchmark.value.toUpperCase()
-  else delete configuration.benchmark
+  configuration.benchmark = benchmark.value ? benchmark.value.toUpperCase() : ''
   if (universeSourceId.value) configuration.universe_source_id = universeSourceId.value
   else delete configuration.universe_source_id
   if (startDate.value) configuration.start_date = startDate.value
