@@ -1605,7 +1605,9 @@ excluded_paths:
 - docs/project-todos.md
 shared_path_exceptions:
 - path: .github/workflows/ci.yml
-  reason: Root-directed 2026-11-10/11 CI-only changes - e2e job timeout-minutes 45 to 120, and backend unit step emits failed test ids as annotations (logs need admin); because the grown TC journey+visual Playwright suite exceeded 45m (run 42888104152); no job, step, spec or gate change.
+  reason: Root-directed 2026-11-10/11 CI-only changes - e2e job timeout-minutes 45 to 120, and backend unit step emits failed
+    test ids as annotations (logs need admin); because the grown TC journey+visual Playwright suite exceeded 45m (run 42888104152);
+    no job, step, spec or gate change.
 - path: backend/app/main.py
   reason: Register the TC-owned authenticated Favorites router only; do not add provider, ETF, or generic service behavior.
 - path: backend/app/models/__init__.py
@@ -6507,66 +6509,6 @@ development_dependency_import_history:
   - backend/tests/unit/workers/test_arq_worker.py
   state: superseded_development_import
   superseded_by: 8914e9c734b403f7cfc75da8f5d6bda0e9812997
-approved_development_dependency_imports:
-- source_sha: d850a1c91f93f509e2b3a2f90c66887537b75362
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/d850a1c91f93f509e2b3a2f90c66887537b75362.json
-  manifest_sha256: 3b6a0c883dee88a64b0fb8fe05521a381b62dd69af2db70509413ad749b21352
-  paths:
-  - frontend/src/components/workstation/InstrumentNoteTool.vue
-  - frontend/src/views/BasketsView.vue
-  - frontend/src/views/ETFHoldingsView.vue
-  - frontend/tests/e2e/baskets_journey.spec.ts
-  - frontend/tests/e2e/etf_holdings_preparation.spec.ts
-  - frontend/tests/e2e/sp500_analysis_journey.spec.ts
-  - frontend/tests/e2e/supporting_features_journey.spec.ts
-  - frontend/tests/unit/components/test_instrument_note_tool.test.ts
-  - frontend/tests/unit/views/test_baskets_view.test.ts
-  - frontend/tests/unit/views/test_etf_holdings_view.test.ts
-- source_sha: aed0d62c7e93ee6bd320c6b7a22791bb8d3d8b87
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/aed0d62c7e93ee6bd320c6b7a22791bb8d3d8b87.json
-  manifest_sha256: 4b93054b8d10072c8c9c431717471f6082810ef87cad75db9eedc75ddbba435d
-  paths:
-  - scripts/run-live-provider-probes.py
-  - backend/tests/live/test_market_data_providers_live.py
-  - backend/tests/unit/test_live_provider_runner.py
-- source_sha: f52828f60fcf63bfad31c7b4012a122900b22e04
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/f52828f60fcf63bfad31c7b4012a122900b22e04.json
-  manifest_sha256: 5a6a5242880636da64cd0b9c5afaa581b6d13242c6b292e58d20f90a1d8ee2be
-  paths:
-  - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
-  - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
-  - frontend/src/components/dashboard/DashboardInstrumentSearch.vue
-  - frontend/src/components/dashboard/DashboardLineChartWidget.vue
-  - frontend/src/components/dashboard/DashboardQuoteWidget.vue
-  - frontend/src/components/workstation/CodeLibraryTool.vue
-  - frontend/src/components/workstation/PythonSourceEditor.vue
-  - frontend/src/components/workstation/ResearchResultsTool.vue
-  - frontend/src/components/workstation/StudyBarsUPlot.vue
-  - frontend/src/components/workstation/StudyHistogramUPlot.vue
-  - frontend/src/components/workstation/StudyLabTool.vue
-  - frontend/src/components/workstation/StudyRangeUPlot.vue
-  - frontend/src/components/workstation/StudyScatterUPlot.vue
-  - frontend/src/components/workstation/StudySeriesUPlot.vue
-  - frontend/src/lib/workstation/researchQueryKeys.ts
-  - frontend/src/lib/workstation/researchRunCancellation.ts
-  - frontend/src/stores/dashboard.ts
-  - frontend/src/views/DashboardView.vue
-  - frontend/src/views/StrategyLabView.vue
-  - frontend/tests/e2e/dashboard_usability_journey.spec.ts
-  - frontend/tests/e2e/strategy_study_journey.spec.ts
-  - frontend/tests/e2e/workstation_lifecycle_journey.spec.ts
-  - frontend/tests/unit/components/test_code_library_tool.test.ts
-  - frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts
-  - frontend/tests/unit/components/test_dashboard_instrument_search.test.ts
-  - frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts
-  - frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts
-  - frontend/tests/unit/components/test_python_source_editor.test.ts
-  - frontend/tests/unit/components/test_research_results_tool.test.ts
-  - frontend/tests/unit/components/test_study_lab_tool.test.ts
-  - frontend/tests/unit/stores/test_dashboard_store.test.ts
-  - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts
-  - frontend/tests/unit/views/test_strategy_lab_view.test.ts
-  - frontend/tests/unit/components/test_study_bars_histogram_uplot.test.ts
 - source_sha: 8914e9c734b403f7cfc75da8f5d6bda0e9812997
   manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/8914e9c734b403f7cfc75da8f5d6bda0e9812997.json
   manifest_sha256: 4419e83997ea5619d1c49cee3babcab0525dfb8cea1ebd96425dbf5a0a557db7
@@ -6672,6 +6614,177 @@ approved_development_dependency_imports:
   - backend/tests/unit/services/test_tiingo_deep_history_gates.py
   - backend/tests/unit/services/test_workstation_tool_catalogue.py
   - backend/tests/unit/tasks/test_data_tasks.py
+  - backend/tests/unit/tasks/test_native_usage_prerequisite.py
+  - backend/tests/unit/test_live_provider_runner.py
+  - backend/tests/unit/workers/test_arq_worker.py
+  state: superseded_development_import
+  superseded_by: 2c51ff886b1bc1054412b60b991e3344fd54c176
+approved_development_dependency_imports:
+- source_sha: d850a1c91f93f509e2b3a2f90c66887537b75362
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/d850a1c91f93f509e2b3a2f90c66887537b75362.json
+  manifest_sha256: 3b6a0c883dee88a64b0fb8fe05521a381b62dd69af2db70509413ad749b21352
+  paths:
+  - frontend/src/components/workstation/InstrumentNoteTool.vue
+  - frontend/src/views/BasketsView.vue
+  - frontend/src/views/ETFHoldingsView.vue
+  - frontend/tests/e2e/baskets_journey.spec.ts
+  - frontend/tests/e2e/etf_holdings_preparation.spec.ts
+  - frontend/tests/e2e/sp500_analysis_journey.spec.ts
+  - frontend/tests/e2e/supporting_features_journey.spec.ts
+  - frontend/tests/unit/components/test_instrument_note_tool.test.ts
+  - frontend/tests/unit/views/test_baskets_view.test.ts
+  - frontend/tests/unit/views/test_etf_holdings_view.test.ts
+- source_sha: aed0d62c7e93ee6bd320c6b7a22791bb8d3d8b87
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/aed0d62c7e93ee6bd320c6b7a22791bb8d3d8b87.json
+  manifest_sha256: 4b93054b8d10072c8c9c431717471f6082810ef87cad75db9eedc75ddbba435d
+  paths:
+  - scripts/run-live-provider-probes.py
+  - backend/tests/live/test_market_data_providers_live.py
+  - backend/tests/unit/test_live_provider_runner.py
+- source_sha: f52828f60fcf63bfad31c7b4012a122900b22e04
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/f52828f60fcf63bfad31c7b4012a122900b22e04.json
+  manifest_sha256: 5a6a5242880636da64cd0b9c5afaa581b6d13242c6b292e58d20f90a1d8ee2be
+  paths:
+  - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
+  - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
+  - frontend/src/components/dashboard/DashboardInstrumentSearch.vue
+  - frontend/src/components/dashboard/DashboardLineChartWidget.vue
+  - frontend/src/components/dashboard/DashboardQuoteWidget.vue
+  - frontend/src/components/workstation/CodeLibraryTool.vue
+  - frontend/src/components/workstation/PythonSourceEditor.vue
+  - frontend/src/components/workstation/ResearchResultsTool.vue
+  - frontend/src/components/workstation/StudyBarsUPlot.vue
+  - frontend/src/components/workstation/StudyHistogramUPlot.vue
+  - frontend/src/components/workstation/StudyLabTool.vue
+  - frontend/src/components/workstation/StudyRangeUPlot.vue
+  - frontend/src/components/workstation/StudyScatterUPlot.vue
+  - frontend/src/components/workstation/StudySeriesUPlot.vue
+  - frontend/src/lib/workstation/researchQueryKeys.ts
+  - frontend/src/lib/workstation/researchRunCancellation.ts
+  - frontend/src/stores/dashboard.ts
+  - frontend/src/views/DashboardView.vue
+  - frontend/src/views/StrategyLabView.vue
+  - frontend/tests/e2e/dashboard_usability_journey.spec.ts
+  - frontend/tests/e2e/strategy_study_journey.spec.ts
+  - frontend/tests/e2e/workstation_lifecycle_journey.spec.ts
+  - frontend/tests/unit/components/test_code_library_tool.test.ts
+  - frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts
+  - frontend/tests/unit/components/test_dashboard_instrument_search.test.ts
+  - frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts
+  - frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts
+  - frontend/tests/unit/components/test_python_source_editor.test.ts
+  - frontend/tests/unit/components/test_research_results_tool.test.ts
+  - frontend/tests/unit/components/test_study_lab_tool.test.ts
+  - frontend/tests/unit/stores/test_dashboard_store.test.ts
+  - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts
+  - frontend/tests/unit/views/test_strategy_lab_view.test.ts
+  - frontend/tests/unit/components/test_study_bars_histogram_uplot.test.ts
+- source_sha: 2c51ff886b1bc1054412b60b991e3344fd54c176
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/2c51ff886b1bc1054412b60b991e3344fd54c176.json
+  manifest_sha256: b6bfc50b3e3429ac98b50fcb328f5f8e49c90bfa7a809a0bfd070d6f6aadbae3
+  paths:
+  - backend/Dockerfile
+  - backend/app/config.py
+  - backend/app/main.py
+  - backend/app/models/instrument.py
+  - backend/app/models/listing.py
+  - backend/app/providers/alpaca.py
+  - backend/app/providers/massive.py
+  - backend/app/providers/optional_market_data.py
+  - backend/app/routers/analysis.py
+  - backend/app/routers/calendar.py
+  - backend/app/routers/data_preparation.py
+  - backend/app/routers/instruments.py
+  - backend/app/routers/ohlcv.py
+  - backend/app/routers/providers.py
+  - backend/app/routers/research.py
+  - backend/app/routers/workspaces.py
+  - backend/app/schemas/data_preparation.py
+  - backend/app/services/arq_pool.py
+  - backend/app/services/baskets.py
+  - backend/app/services/breadth.py
+  - backend/app/services/bulk_fetch.py
+  - backend/app/services/data_preparation.py
+  - backend/app/services/data_preparation_contracts.py
+  - backend/app/services/derived_timeframes.py
+  - backend/app/services/e2e_seed.py
+  - backend/app/services/etf_holdings.py
+  - backend/app/services/etf_holdings_adapters.py
+  - backend/app/services/etf_holdings_preparation.py
+  - backend/app/services/etf_holdings_refresh.py
+  - backend/app/services/evaluator_preflight.py
+  - backend/app/services/exchange_sessions.py
+  - backend/app/services/instrument_events.py
+  - backend/app/services/instrument_mastering.py
+  - backend/app/services/market_data.py
+  - backend/app/services/market_refresh_queue.py
+  - backend/app/services/market_series.py
+  - backend/app/services/ohlcv_coverage.py
+  - backend/app/services/provider_routing.py
+  - backend/app/services/provider_runtime.py
+  - backend/app/services/screener_engine.py
+  - backend/app/services/strategy_lab.py
+  - backend/app/services/strategy_lab_nautilus.py
+  - backend/app/services/workstation_tool_catalogue.py
+  - backend/app/tasks/data_tasks.py
+  - backend/app/workers/arq_worker.py
+  - backend/tests/integration/api/test_baskets.py
+  - backend/tests/integration/api/test_etf_holdings.py
+  - backend/tests/integration/api/test_radar.py
+  - backend/tests/integration/api/test_workspace_read_consistency_postgres.py
+  - backend/tests/integration/strategy_lab_v2/test_etf_pit_postgres.py
+  - backend/tests/integration/strategy_lab_v2/test_provider_local_capability_reader_postgres.py
+  - backend/tests/integration/test_data_preparation_queue_postgres.py
+  - backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py
+  - backend/tests/integration/test_market_universe_reconciliation.py
+  - backend/tests/integration/test_provider_runtime_transactions_postgres.py
+  - backend/tests/live/test_market_data_providers_live.py
+  - backend/tests/unit/conftest.py
+  - backend/tests/unit/providers/test_new_providers.py
+  - backend/tests/unit/providers/test_optional_market_data.py
+  - backend/tests/unit/routers/test_analysis_router.py
+  - backend/tests/unit/routers/test_calendar_router.py
+  - backend/tests/unit/routers/test_data_preparation_router.py
+  - backend/tests/unit/routers/test_instruments_router.py
+  - backend/tests/unit/routers/test_ohlcv_router.py
+  - backend/tests/unit/routers/test_providers_router.py
+  - backend/tests/unit/routers/test_research_router.py
+  - backend/tests/unit/routers/test_workspace_tool_catalogue.py
+  - backend/tests/unit/services/breadth_reference_oracle.py
+  - backend/tests/unit/services/test_breadth.py
+  - backend/tests/unit/services/test_data_preparation_contracts.py
+  - backend/tests/unit/services/test_data_preparation_history_planning.py
+  - backend/tests/unit/services/test_data_preparation_service.py
+  - backend/tests/unit/services/test_data_preparation_worker_deeper_default.py
+  - backend/tests/unit/services/test_derived_timeframes.py
+  - backend/tests/unit/services/test_e2e_seed.py
+  - backend/tests/unit/services/test_etf_holdings_adapters.py
+  - backend/tests/unit/services/test_etf_holdings_bootstrap.py
+  - backend/tests/unit/services/test_etf_holdings_catalogue.py
+  - backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py
+  - backend/tests/unit/services/test_etf_holdings_native_qualification.py
+  - backend/tests/unit/services/test_etf_holdings_preparation.py
+  - backend/tests/unit/services/test_etf_holdings_preparation_hook.py
+  - backend/tests/unit/services/test_etf_holdings_provider_bridge.py
+  - backend/tests/unit/services/test_etf_issuer_catalog.py
+  - backend/tests/unit/services/test_evaluator_preflight.py
+  - backend/tests/unit/services/test_exchange_catalog.py
+  - backend/tests/unit/services/test_instrument_events.py
+  - backend/tests/unit/services/test_market_data.py
+  - backend/tests/unit/services/test_market_refresh_queue.py
+  - backend/tests/unit/services/test_market_series_defaults.py
+  - backend/tests/unit/services/test_provider_persistence.py
+  - backend/tests/unit/services/test_provider_quota_contract.py
+  - backend/tests/unit/services/test_provider_quota_coordinator.py
+  - backend/tests/unit/services/test_provider_registry.py
+  - backend/tests/unit/services/test_provider_routing.py
+  - backend/tests/unit/services/test_provider_runtime.py
+  - backend/tests/unit/services/test_strategy_lab_nautilus.py
+  - backend/tests/unit/services/test_strategy_lab_service.py
+  - backend/tests/unit/services/test_tiingo_deep_history_gates.py
+  - backend/tests/unit/services/test_workstation_tool_catalogue.py
+  - backend/tests/unit/tasks/test_data_tasks.py
+  - backend/tests/unit/tasks/test_local_history_completion.py
   - backend/tests/unit/tasks/test_native_usage_prerequisite.py
   - backend/tests/unit/test_live_provider_runner.py
   - backend/tests/unit/workers/test_arq_worker.py

@@ -7,6 +7,7 @@ from copy import deepcopy
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from types import SimpleNamespace
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
@@ -1976,3 +1977,122 @@ async def test_duplicate_ensure_returns_while_shared_history_child_is_leased(
         # continuation. The shared child still carries both parent refs above.
         assert parent_dependencies[0].get("background_job_ids", []) == []
         assert parent_dependencies[1].get("background_job_ids", []) == []
+
+
+async def _seed_local_weekday_history(session, instrument, source, *, first, last):
+    """Seed canonical daily bars for every weekday in [first, last]."""
+
+    from app.models.market_data_foundation import AdjustmentBasis, MarketSeries
+    from app.models.ohlcv import OHLCVBar, Timeframe
+
+    series = MarketSeries(
+        instrument_id=instrument.id,
+        data_source_id=source.id,
+        feed_scope="local-complete-test",
+        session_code="regular",
+        timeframe=Timeframe.D1.value,
+        adjustment_basis=AdjustmentBasis.SPLIT_ADJUSTED,
+        adjustment_version="local-complete-v1",
+        is_canonical=True,
+        is_active=True,
+    )
+    session.add(series)
+    await session.flush()
+    day = first
+    while day <= last:
+        if day.weekday() < 5:
+            session.add(
+                OHLCVBar(
+                    instrument_id=instrument.id,
+                    data_source_id=source.id,
+                    market_series_id=series.id,
+                    timeframe=Timeframe.D1,
+                    ts=day.replace(hour=14, minute=30),
+                    session="regular",
+                    scope_key="test:local-complete",
+                    open=Decimal("10"),
+                    high=Decimal("11"),
+                    low=Decimal("9"),
+                    close=Decimal("10.5"),
+                    is_adjusted=True,
+                    adjustment_basis="split_adjusted",
+                    adjustment_version="local-complete-v1",
+                )
+            )
+        day += timedelta(days=1)
+    await session.flush()
+    return series
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("default_range", [False, True])
+async def test_no_eligible_provider_completes_from_local_coverage_and_is_not_waiting(
+    preparation_sessions, monkeypatch, default_range
+):
+    """SPY-style case: local D1 bars cover the range, no provider can act.
+
+    The dependency and the top-level ensure status must both become ready after
+    the real worker runs, both for an explicit range and for the default window.
+    """
+
+    from app.models.data_source import DataSource
+    from app.models.market_data_foundation import MarketRefreshJob
+    from app.schemas.data_preparation import DataEnsureRequest
+    from app.services.data_preparation import (
+        create_data_preparation_request,
+        get_data_preparation_response,
+    )
+    from app.tasks import data_tasks
+
+    today = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
+    if default_range:
+        full_start = None
+        full_end = None
+        local_first = today - timedelta(days=2100)
+        local_last = today + timedelta(days=1)
+    else:
+        full_start = datetime(2025, 1, 2, 5, 0, tzinfo=UTC)
+        full_end = datetime(2025, 3, 28, 4, 59, 59, tzinfo=UTC)
+        local_first = datetime(2024, 12, 20, tzinfo=UTC)
+        local_last = datetime(2025, 4, 2, tzinfo=UTC)
+
+    async with preparation_sessions() as session:
+        stock_type_id, _ = await _create_instrument_types(session)
+        instrument = _canonical_instrument(
+            "LOCAL-COMPLETE", stock_type_id, domain_prefix="local-complete"
+        )
+        source = DataSource(name=f"local-complete-src-{uuid4().hex[:8]}", is_active=True)
+        session.add_all([instrument, source])
+        await session.flush()
+        await _add_primary_xnys_listing(session, instrument)
+        await _seed_local_weekday_history(
+            session, instrument, source, first=local_first, last=local_last
+        )
+        payload = {
+            "target": {"kind": "instrument", "instrument_id": instrument.id},
+            "datasets": ["history"],
+            "timeframe": "D1",
+        }
+        if full_start is not None:
+            payload["start_at"] = full_start.isoformat()
+            payload["end_at"] = full_end.isoformat()
+        request = DataEnsureRequest.model_validate(payload)
+        parent = await create_data_preparation_request(session, owner_user_id=813, request=request)
+        parent_id = parent.id
+        await session.commit()
+
+    monkeypatch.setattr(data_tasks, "AsyncSessionLocal", preparation_sessions)
+    monkeypatch.setattr(
+        data_tasks, "refresh_derived_timeframe_if_needed", AsyncMock(return_value=False)
+    )
+    for _ in range(4):
+        result = await data_tasks.process_refresh_jobs({"redis": None}, limit=5)
+        if not result.get("claimed"):
+            break
+
+    async with preparation_sessions() as session:
+        parent = await session.get(MarketRefreshJob, parent_id)
+        response = await get_data_preparation_response(session, parent=parent, owner_user_id=813)
+        history = next(item for item in response.dependencies if item.dataset.value == "history")
+        assert history.status == "ready", history
+        assert response.status == "ready", response.status

@@ -1115,6 +1115,14 @@ async def _enqueue_history_dependency(
         if existing_job is not None
         else {}
     )
+    # A job completed only because no provider was eligible would otherwise
+    # stay "waiting" for every later ensure of the same range. Requeue it so the
+    # worker re-evaluates local canonical coverage first.
+    requeue_no_provider = (
+        existing_job is not None
+        and existing_job.status == "completed"
+        and (existing_job.result_summary or {}).get("reason_code") == "no_eligible_history_provider"
+    )
     job = await enqueue_refresh_job(
         db,
         request_key=request_key,
@@ -1124,6 +1132,7 @@ async def _enqueue_history_dependency(
         start_at=request.start_at,
         end_at=request.end_at,
         priority=priority,
+        requeue_completed=requeue_no_provider,
         metadata_payload={
             "data_preparation_child": {
                 "dataset": PreparationDataset.HISTORY.value,

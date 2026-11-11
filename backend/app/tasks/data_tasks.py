@@ -1303,6 +1303,101 @@ def _older_chunk_priority(
     return 100
 
 
+async def _local_history_completion(
+    db,
+    *,
+    job,
+    instrument,
+    timeframe: Timeframe,
+    preparation: dict,
+) -> dict | None:
+    """Complete a no-eligible-provider history plan from canonical local bars.
+
+    No provider is called here. The window is the explicit range, or the same
+    default chunk the provider path would have requested. ``ready`` requires
+    complete local coverage; ``partial`` reports the covered span and the gaps.
+    Only a window with no local bars at all returns None, which keeps the
+    original provider-eligibility reason.
+    """
+
+    from sqlalchemy import select as _select
+
+    from app.services.market_data import _coverage_calendar
+    from app.services.ohlcv_coverage import assess_ohlcv_coverage
+
+    now = datetime.now(UTC)
+    # Default end is the latest completed bucket, matching the availability
+    # check, so a daily bar stamped at midnight is not reported as a gap.
+    end = (
+        _optional_datetime(preparation.get("range_end"))
+        or _optional_datetime(job.end_at)
+        or _history_chunk_start(now, timeframe, 1)
+    )
+    max_bars = max(1, int(settings.PROVIDER_ON_DEMAND_MAX_REQUESTED_BARS))
+    start = _optional_datetime(preparation.get("range_start")) or _history_chunk_start(
+        end, timeframe, max_bars
+    )
+    adjusted = bool(preparation.get("adjusted", True))
+    bars = await fetch_ohlcv(
+        db,
+        instrument,
+        timeframe,
+        start,
+        end=end,
+        adjusted=adjusted,
+        allow_provider_fetch=False,
+    )
+    if bars:
+        coverage = assess_ohlcv_coverage(
+            bars,
+            timeframe,
+            start,
+            end,
+            calendar=_coverage_calendar(instrument),
+        )
+        covered_start = coverage.covered_start
+        covered_end = coverage.covered_end
+        missing = list(coverage.missing_slices)
+        ready = coverage.status.value == "ready"
+        bar_count = len(bars)
+    else:
+        any_local = (
+            await db.execute(
+                _select(OHLCVBar.id)
+                .where(
+                    OHLCVBar.instrument_id == instrument.id,
+                    OHLCVBar.timeframe == timeframe,
+                    OHLCVBar.is_adjusted.is_(adjusted),
+                )
+                .limit(1)
+            )
+        ).first()
+        if any_local is None:
+            return None
+        covered_start = covered_end = None
+        missing = [(start, end)]
+        ready = False
+        bar_count = 0
+    return {
+        "preparation_status": "ready" if ready else "partial",
+        "reason_code": None if ready else "history_coverage_partial",
+        "instrument_id": instrument.id,
+        "timeframe": timeframe.value,
+        "requested_start": start.isoformat(),
+        "requested_end": end.isoformat(),
+        "bars_observed": bar_count,
+        "covered_start": covered_start.isoformat() if covered_start else None,
+        "covered_end": covered_end.isoformat() if covered_end else None,
+        "missing_slices": [
+            {"start": gap_start.isoformat(), "end": gap_end.isoformat()}
+            for gap_start, gap_end in missing
+        ],
+        "local_only": True,
+        "provider_plan_reason": "no_eligible_history_provider",
+        "retry_at": None,
+    }
+
+
 def _history_chunk_data_status(*, bars: list, range_coverage_status: str | None) -> str:
     """Do not turn a zero-output range into useful partial coverage."""
     if not bars:
@@ -2796,6 +2891,24 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                         continue
                     if plan_reason:
                         await refresh_cached_coarse_from_daily()
+                        local_outcome = None
+                        if plan_reason == "no_eligible_history_provider":
+                            local_outcome = await _local_history_completion(
+                                db,
+                                job=job,
+                                instrument=instrument,
+                                timeframe=timeframe,
+                                preparation=preparation,
+                            )
+                        if local_outcome is not None:
+                            await complete_refresh_job(
+                                db,
+                                job,
+                                result_summary=local_outcome,
+                            )
+                            completed += 1
+                            await db.commit()
+                            continue
                         await complete_refresh_job(
                             db,
                             job,
