@@ -29,6 +29,9 @@ export default defineConfig({
   failOnFlakyTests: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   timeout: 30_000,
+  // CI runners share 2 vCPUs between the full stack and the browser; give
+  // web-first assertions the same polling budget there as a local machine has.
+  expect: { timeout: process.env.CI ? 10_000 : 5_000 },
   reporter: process.env.CI
     ? [['github'], ['html', { outputFolder: 'playwright-report' }], ['line']]
     : [['html', { outputFolder: 'playwright-report' }], ['line']],

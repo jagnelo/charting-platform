@@ -715,6 +715,7 @@ test.describe('Chart', () => {
       expect(targetX).toBeGreaterThan(over!.x + over!.width)
       await page.mouse.click(targetX, box!.y + 80, { button: 'right' })
       await expect(menu).toBeVisible({ timeout: 2_000 })
+      await expect(menu.getByRole('menuitem').first()).toBeFocused({ timeout: 2_000 })
     }).toPass({ timeout: 20_000 })
     await expect(menu.getByRole('menuitem').first()).toBeFocused()
     await page.keyboard.press('ArrowDown')
