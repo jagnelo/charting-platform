@@ -117,9 +117,13 @@ jobs:
           if [ -d app/strategy_lab_v2/tests ]; then
             set -- "$@" app/strategy_lab_v2/tests
           fi
+          set -o pipefail
           ENV_FILE=.env.dev uv run pytest "$@" \
             --cov=app --cov-report=xml --cov-report=term-missing \
-            --no-header -q
+            --no-header -q -rfE 2>&1 | tee /tmp/unit.log || {
+            grep -E '^(FAILED|ERROR) ' /tmp/unit.log | head -50 | sed 's/^/::error title=unit test::/'
+            exit 1
+          }
 
       - name: Run integration tests (with testcontainers)
         run: |
