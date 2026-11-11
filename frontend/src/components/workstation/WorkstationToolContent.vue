@@ -1072,13 +1072,15 @@ import { computed, defineAsyncComponent, defineComponent, h, nextTick, onBeforeU
 // The selection panel scrolls inside a compact tool body. When a picker's
 // results first appear, bring them into view instead of leaving the
 // candidates clipped below the fold.
-type RevealHost = HTMLElement & { __revealObserver?: MutationObserver; __revealedList?: Element | null }
+type RevealHost = HTMLElement & { __revealObserver?: MutationObserver }
 const vRevealSearchResults = {
   mounted(el: RevealHost) {
     const observer = new MutationObserver(() => {
       const list = el.querySelector('[role="listbox"]')
-      if (list && list !== el.__revealedList) list.scrollIntoView({ block: 'nearest' })
-      el.__revealedList = list
+      if (!list) return
+      const panel = el.getBoundingClientRect()
+      const box = list.getBoundingClientRect()
+      if (box.bottom > panel.bottom + 1 || box.top < panel.top - 1) list.scrollIntoView({ block: 'nearest' })
     })
     observer.observe(el, { childList: true, subtree: true })
     el.__revealObserver = observer
