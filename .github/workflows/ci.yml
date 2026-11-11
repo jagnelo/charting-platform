@@ -237,7 +237,7 @@ jobs:
   # ── E2E tests ─────────────────────────────────────────────────────────────────
   e2e:
     name: E2E Tests (Playwright)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 120
     needs: [changed-scope]
     if: github.ref != 'refs/heads/master' && github.ref != 'refs/heads/staging' && needs.changed-scope.outputs.scope == 'broad'
