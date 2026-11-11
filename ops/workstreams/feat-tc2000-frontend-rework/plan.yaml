@@ -6810,6 +6810,46 @@ development_dependency_import_history:
   - frontend/tests/unit/components/test_study_bars_histogram_uplot.test.ts
   state: superseded_development_import
   superseded_by: c8b4db47c42a159005c933aa66f7393e5cdf97d1
+- source_sha: c8b4db47c42a159005c933aa66f7393e5cdf97d1
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/c8b4db47c42a159005c933aa66f7393e5cdf97d1.json
+  manifest_sha256: f121045dd3374aee947958749c7d16bad8f34f6e536bed501763e20e6a06b215
+  paths:
+  - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
+  - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
+  - frontend/src/components/dashboard/DashboardInstrumentSearch.vue
+  - frontend/src/components/dashboard/DashboardLineChartWidget.vue
+  - frontend/src/components/dashboard/DashboardQuoteWidget.vue
+  - frontend/src/components/workstation/CodeLibraryTool.vue
+  - frontend/src/components/workstation/PythonSourceEditor.vue
+  - frontend/src/components/workstation/ResearchResultsTool.vue
+  - frontend/src/components/workstation/StudyBarsUPlot.vue
+  - frontend/src/components/workstation/StudyHistogramUPlot.vue
+  - frontend/src/components/workstation/StudyLabTool.vue
+  - frontend/src/components/workstation/StudyRangeUPlot.vue
+  - frontend/src/components/workstation/StudyScatterUPlot.vue
+  - frontend/src/components/workstation/StudySeriesUPlot.vue
+  - frontend/src/lib/workstation/researchQueryKeys.ts
+  - frontend/src/lib/workstation/researchRunCancellation.ts
+  - frontend/src/stores/dashboard.ts
+  - frontend/src/views/DashboardView.vue
+  - frontend/src/views/StrategyLabView.vue
+  - frontend/tests/e2e/dashboard_usability_journey.spec.ts
+  - frontend/tests/e2e/strategy_study_journey.spec.ts
+  - frontend/tests/e2e/workstation_lifecycle_journey.spec.ts
+  - frontend/tests/unit/components/test_code_library_tool.test.ts
+  - frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts
+  - frontend/tests/unit/components/test_dashboard_instrument_search.test.ts
+  - frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts
+  - frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts
+  - frontend/tests/unit/components/test_python_source_editor.test.ts
+  - frontend/tests/unit/components/test_research_results_tool.test.ts
+  - frontend/tests/unit/components/test_study_lab_tool.test.ts
+  - frontend/tests/unit/stores/test_dashboard_store.test.ts
+  - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts
+  - frontend/tests/unit/views/test_strategy_lab_view.test.ts
+  - frontend/tests/unit/components/test_study_bars_histogram_uplot.test.ts
+  state: superseded_development_import
+  superseded_by: 344957580805c77b44ad037f54d8d2ef6677e246
 approved_development_dependency_imports:
 - source_sha: d850a1c91f93f509e2b3a2f90c66887537b75362
   manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/d850a1c91f93f509e2b3a2f90c66887537b75362.json
@@ -6941,9 +6981,9 @@ approved_development_dependency_imports:
   - backend/tests/unit/tasks/test_native_usage_prerequisite.py
   - backend/tests/unit/test_live_provider_runner.py
   - backend/tests/unit/workers/test_arq_worker.py
-- source_sha: c8b4db47c42a159005c933aa66f7393e5cdf97d1
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/c8b4db47c42a159005c933aa66f7393e5cdf97d1.json
-  manifest_sha256: f121045dd3374aee947958749c7d16bad8f34f6e536bed501763e20e6a06b215
+- source_sha: 344957580805c77b44ad037f54d8d2ef6677e246
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/344957580805c77b44ad037f54d8d2ef6677e246.json
+  manifest_sha256: 0fab2ce09c692b417b129f9ab3dece291f056e42ac164f7e81dceee392d19776
   paths:
   - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
   - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
