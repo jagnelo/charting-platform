@@ -2096,3 +2096,94 @@ async def test_no_eligible_provider_completes_from_local_coverage_and_is_not_wai
         history = next(item for item in response.dependencies if item.dataset.value == "history")
         assert history.status == "ready", history
         assert response.status == "ready", response.status
+
+
+async def test_prerequisite_completion_wakes_deferred_dependent_on_postgres(preparation_sessions):
+    """A dependency-deferred child becomes due when its prerequisite completes.
+
+    The wake reads the JSON wait list and the exact dependency error on real
+    PostgreSQL, and it must leave a quota-deferred sibling on its own deadline.
+    """
+
+    from app.models.market_data_foundation import MarketRefreshJob
+    from app.services.market_refresh_queue import (
+        DEPENDENCY_PENDING_ERROR,
+        claim_refresh_jobs,
+        complete_refresh_job,
+        enqueue_refresh_job,
+        retry_refresh_job,
+    )
+
+    now = datetime(2026, 11, 10, 12, tzinfo=UTC)
+    quota_retry_at = now + timedelta(hours=1)
+    async with preparation_sessions() as session:
+        prerequisite = await enqueue_refresh_job(
+            session,
+            request_key=f"wake-pg-prereq:{uuid4().hex}",
+            capability="instrument_metadata",
+            priority=100,
+            now=now,
+        )
+        dependent = await enqueue_refresh_job(
+            session,
+            request_key=f"wake-pg-dependent:{uuid4().hex}",
+            capability="price_history",
+            timeframe="D1",
+            priority=10,
+            metadata_payload={"data_preparation_child": {"wait_for_job_ids": [prerequisite.id]}},
+            now=now,
+        )
+        quota_sibling = await enqueue_refresh_job(
+            session,
+            request_key=f"wake-pg-quota:{uuid4().hex}",
+            capability="price_history",
+            timeframe="D1",
+            priority=20,
+            metadata_payload={"data_preparation_child": {"wait_for_job_ids": [prerequisite.id]}},
+            now=now,
+        )
+        await session.commit()
+
+    async with preparation_sessions() as session:
+        leased = {job.id: job for job in await claim_refresh_jobs(session, limit=2, now=now)}
+        assert dependent.id in leased and quota_sibling.id in leased
+        await retry_refresh_job(
+            session,
+            leased[dependent.id],
+            DEPENDENCY_PENDING_ERROR,
+            retry_at=now + timedelta(seconds=20),
+            lease_token=leased[dependent.id].lease_token,
+            now=now,
+        )
+        await retry_refresh_job(
+            session,
+            leased[quota_sibling.id],
+            "provider quota reset",
+            retry_at=quota_retry_at,
+            lease_token=leased[quota_sibling.id].lease_token,
+            now=now,
+        )
+        await session.commit()
+
+    prerequisite_now = now + timedelta(seconds=3)
+    async with preparation_sessions() as session:
+        (prereq_job,) = await claim_refresh_jobs(session, limit=1, now=prerequisite_now)
+        assert prereq_job.id == prerequisite.id
+        await complete_refresh_job(session, prereq_job, now=prerequisite_now)
+        await session.commit()
+
+    async with preparation_sessions() as session:
+        rows = {
+            job.id: job
+            for job in (
+                await session.execute(
+                    select(MarketRefreshJob).where(
+                        MarketRefreshJob.id.in_([dependent.id, quota_sibling.id])
+                    )
+                )
+            ).scalars()
+        }
+        assert rows[dependent.id].next_attempt_at.replace(tzinfo=UTC) == prerequisite_now
+        assert rows[quota_sibling.id].next_attempt_at.replace(tzinfo=UTC) == quota_retry_at
+        claimed = await claim_refresh_jobs(session, limit=1, now=prerequisite_now)
+        assert [job.id for job in claimed] == [dependent.id]

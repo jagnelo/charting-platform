@@ -39,6 +39,7 @@ from app.services.derived_timeframes import (
 from app.services.market_data import fetch_ohlcv
 from app.services.market_data_monitoring import build_shadow_report
 from app.services.market_refresh_queue import (
+    DEPENDENCY_PENDING_ERROR,
     RefreshLeaseLostError,
     _acquire_enqueue_lock,
     claim_refresh_jobs,
@@ -3357,7 +3358,7 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
 
 class RefreshDependencyPending(RuntimeError):
     def __init__(self, *, retry_at: datetime) -> None:
-        super().__init__("data preparation dependency is not complete")
+        super().__init__(DEPENDENCY_PENDING_ERROR)
         self.retry_at = retry_at
 
 
