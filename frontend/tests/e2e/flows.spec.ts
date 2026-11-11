@@ -3375,6 +3375,9 @@ test.describe('TC2000 workstation', () => {
   test('F8k-shift-n — Shift+N opens a note for the active WatchList symbol', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart/SPY')
     await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
+    // Shortcuts act on the loaded workspace; startup focus moves can otherwise
+    // take the key away from the list.
+    await expect(page.locator('.workstation__footer')).toContainText('Workspace saved', { timeout: 30_000 })
     const listbox = page.getByRole('listbox', { name: /symbols$/ }).first()
     await expect(listbox).toBeVisible({ timeout: 10_000 })
     const row = listbox.getByRole('option').first()
