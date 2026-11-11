@@ -473,8 +473,17 @@ test.describe('Chart', () => {
     // Repeat the populated-chip ordinary-action check at the narrow profile;
     // the compact layout may reflow controls but must preserve both actions.
     await page.setViewportSize({ width: 390, height: 800 })
-    await chart.getByRole('textbox', { name: 'Comparison symbol', exact: true }).fill('RSP')
-    await chart.getByRole('button', { name: 'Add comparison' }).click()
+    // The compact dock reflows after the resize; add once the comparison
+    // control is back in place, and retry the add if the reflow swallowed it.
+    const comparisonInput = chart.getByRole('textbox', { name: 'Comparison symbol', exact: true })
+    await expect(async () => {
+      if (await comparisonChip.count() === 0) {
+        await expect(comparisonInput).toBeVisible({ timeout: 2_000 })
+        await comparisonInput.fill('RSP')
+        await chart.getByRole('button', { name: 'Add comparison' }).click({ timeout: 2_000 })
+      }
+      await expect(comparisonChip).toHaveCount(1, { timeout: 3_000 })
+    }).toPass({ timeout: 20_000 })
     await expect(comparisonChip).toContainText(/[+-]\d+\.\d{2}%/, { timeout: 30_000 })
     await chart.getByRole('button', { name: 'Chart plot library', exact: true }).click()
     const narrowPlotsMenu = chart.locator('.chart-plots__menu:visible')
@@ -5330,13 +5339,17 @@ test.describe('TC2000 workstation', () => {
     await page.setViewportSize({ width: 390, height: 800 })
     const chart = page.locator('.chart-tool:visible').first()
     await expect(chart).toBeVisible({ timeout: 15_000 })
-    const geometry = await chart.evaluate(chart => {
+    const measure = () => chart.evaluate(chart => {
       const overlap = (left: DOMRect, right: DOMRect) => left.left < right.right && left.right > right.left && left.top < right.bottom && left.bottom > right.top
       const controls = ['.chart-tool__compare', '.chart-tool__plots', '.chart-tool__templates']
         .map(selector => chart.querySelector<HTMLElement>(selector)?.getBoundingClientRect())
         .filter((box): box is DOMRect => Boolean(box && box.width > 0 && box.height > 0))
       return { controls: controls.map(box => ({ left: box.left, right: box.right, top: box.top, bottom: box.bottom })), overlap: controls.some((left, index) => controls.slice(index + 1).some(right => overlap(left, right))) }
     })
+    // The compact layout settles after the resize; measure once all three
+    // controls have laid out.
+    await expect.poll(async () => (await measure()).controls.length, { timeout: 15_000 }).toBe(3)
+    const geometry = await measure()
     expect(geometry.controls.length).toBe(3)
     expect(geometry.overlap).toBe(false)
     await browserDiagnostics.expectNoCriticalIssues()
