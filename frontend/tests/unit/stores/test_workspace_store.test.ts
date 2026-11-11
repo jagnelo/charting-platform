@@ -656,7 +656,7 @@ describe('workspace store layout tabs', () => {
     expect(apiGet).toHaveBeenCalledWith('/analysis/benchmark-families/sp500/overview', {
       timeframe: 'W1',
       adjusted: false,
-    })
+    }, expect.objectContaining({ priority: 'auto' }))
     expect(result?.official_index_symbol).toBe('SPX')
     expect(store.benchmarkFamilyOverviews['sp500:W1:raw:latest']?.mappings[0]?.symbol).toBe('RSP')
     expect(store.benchmarkFamilyOverviewErrors['sp500:W1:raw:latest']).toBeNull()
@@ -798,7 +798,7 @@ describe('workspace store layout tabs', () => {
     expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp400/snapshot', { benchmark: 'MDY', timeframe: 'W1' }, {
       priority: 'auto', queueKey: 'top-down:group-snapshot:sp400',
     })
-    expect(apiGet).toHaveBeenCalledWith('/analysis/benchmark-families/sp400/overview', { timeframe: 'W1' })
+    expect(apiGet).toHaveBeenCalledWith('/analysis/benchmark-families/sp400/overview', { timeframe: 'W1' }, expect.objectContaining({ priority: 'auto' }))
     expect(store.marketGroups.sp400?.stable_key).toBe('sp400')
     expect(store.groupSnapshots.sp400).toEqual(expect.objectContaining({ group_key: 'sp400' }))
   })

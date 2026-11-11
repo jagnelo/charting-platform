@@ -4705,6 +4705,7 @@ function setBreadthGroup(groupKey: string) {
 }
 function setBenchmarkFamily(familyKey: string) {
   const normalized = benchmarkFamilyOptions.value.some(family => family.logicalKey === familyKey) ? familyKey : ''
+  benchmarkFamilyUserSelection = Boolean(normalized)
   benchmarkFamilyKey.value = normalized
   benchmarkFamilyMapRole.value = 'cap_weight'
   emit('configuration', props.tool.instance_key, {
@@ -4851,8 +4852,13 @@ async function loadBreadthUniverse(groupKey: string, timeframe = breadthTimefram
   })
 }
 let benchmarkFamilyLoadSequence = 0
+// An explicit family choice is foreground work even before the dock reports
+// this tool visible; its role choices wait on the overview.
+let benchmarkFamilyUserSelection = false
 watch([benchmarkFamilyKey, benchmarkFamilyCapProxy, activeTimeframe], async ([familyKey, _capProxy, timeframe]) => {
   if (disposed || !isBenchmarkUniverse.value) return
+  const overviewPriority = benchmarkFamilyUserSelection || workstationToolVisible.value ? 'high' : 'low'
+  benchmarkFamilyUserSelection = false
   const sequence = ++benchmarkFamilyLoadSequence
   benchmarkFamilyPreparationGeneration += 1
   benchmarkFamilyPreparationAbort?.abort()
@@ -4879,7 +4885,7 @@ watch([benchmarkFamilyKey, benchmarkFamilyCapProxy, activeTimeframe], async ([fa
       await Promise.all([
         workspaceStore.loadMarketGroup(familyKey, { priority: workstationToolVisible.value ? 'high' : 'low' }),
         workspaceStore.loadGroupSnapshot(familyKey, benchmarkFamilyCapProxy.value, { ...(timeframe !== 'D1' ? { timeframe } : {}) }),
-        workspaceStore.loadBenchmarkFamilyOverview(familyKey, { ...(timeframe !== 'D1' ? { timeframe } : {}) }),
+        workspaceStore.loadBenchmarkFamilyOverview(familyKey, { ...(timeframe !== 'D1' ? { timeframe } : {}), priority: overviewPriority }),
       ])
     }
     const targets: DataEnsureRequest['target'][] = benchmarkFamilyHistoryTargets(familyKey, benchmarkFamilyCapProxy.value)
@@ -4918,12 +4924,23 @@ watch([benchmarkFamilyKey, benchmarkFamilyCapProxy, activeTimeframe], async ([fa
       }),
       workspaceStore.loadBenchmarkFamilyOverview(familyKey, {
         ...(timeframe !== 'D1' ? { timeframe } : {}),
+        priority: overviewPriority,
       }),
     ])
   } finally {
     if (!disposed && sequence === benchmarkFamilyLoadSequence) benchmarkFamilyLoading.value = false
   }
 }, { immediate: true })
+// A persisted family can mount while the dock still reports this tool hidden,
+// queueing its overview behind startup fanout. Once visible, the role choices
+// are user-facing; fetch the missing overview as foreground work.
+watch(workstationToolVisible, visible => {
+  if (disposed || !visible || !isBenchmarkUniverse.value || !benchmarkFamilyKey.value || benchmarkFamilyOverview.value) return
+  void workspaceStore.loadBenchmarkFamilyOverview(benchmarkFamilyKey.value, {
+    ...(activeTimeframe.value !== 'D1' ? { timeframe: activeTimeframe.value } : {}),
+    priority: 'high',
+  })
+})
 watch(isBenchmarkUniverse, async isBenchmark => {
   if (disposed || !isBenchmark) return
   const sequence = ++benchmarkFamilyReadinessSequence

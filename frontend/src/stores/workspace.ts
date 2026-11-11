@@ -2691,7 +2691,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
   async function loadBenchmarkFamilyOverview(
     familyKey: string,
-    options: { timeframe?: string; adjusted?: boolean; as_of?: string } = {},
+    options: { timeframe?: string; adjusted?: boolean; as_of?: string; priority?: ApiRequestPriority } = {},
   ) {
     const normalizedFamily = familyKey.trim()
     if (!normalizedFamily) return null
@@ -2708,6 +2708,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
           ...(typeof options.adjusted === 'boolean' ? { adjusted: options.adjusted } : {}),
           ...(options.as_of ? { as_of: options.as_of } : {}),
         },
+        // A visible family surface gates its role choices on this overview.
+        { priority: options.priority ?? 'auto', queueKey: requestKey, ...(options.priority === 'high' ? { foreground: true } : {}) },
       )
       if (!isCurrentAnalysisRequest(requestKey, generation)) return null
       benchmarkFamilyOverviews.value = { ...benchmarkFamilyOverviews.value, [cacheKey]: result }
