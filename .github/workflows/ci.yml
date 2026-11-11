@@ -264,8 +264,12 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
 
       - name: Install Playwright system dependencies
-        timeout-minutes: 12
-        run: bash scripts/ci-retry.sh -- bash -c 'cd frontend && timeout 300 npx playwright install-deps chromium'
+        # GitHub's Ubuntu images already ship Chrome's shared libraries; apt
+        # mirrors have hung here, so bound this step and let the browser run
+        # itself prove whether anything is missing.
+        timeout-minutes: 4
+        continue-on-error: true
+        run: cd frontend && timeout 150 npx playwright install-deps chromium
 
       - name: Install Playwright browsers
         timeout-minutes: 12
