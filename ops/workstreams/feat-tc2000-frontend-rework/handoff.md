@@ -1,3 +1,13 @@
+# 2026-11-11 — Study Lab local-partial readiness and Provider ensure evidence
+
+Frontend: a Study target whose ensure response is `partial` with local history coverage now validates and runs, with a per-target partial note; `failed` and uncovered partial responses still block (`hasUsableLocalPartialCoverage` in `dataPreparation.ts`, consumed by `StudyLabTool.vue`; unit tests added).
+
+Provider evidence (CI-identical stack, 7d28c699f, user e2euser). Request: `POST /api/v1/data/ensure`
+`{"target":{"kind":"instrument","symbol":"SPY"},"datasets":["identity","profile","history"],"timeframe":"D1","adjusted":true}`
+Response: HTTP 202, top-level `status: "waiting"`, completed 0 of 3. Dependencies: identity `waiting` (`candidate_not_found_or_not_admitted`), profile `waiting` (`candidate_not_found_or_not_admitted`), history `waiting` (`no_eligible_history_provider`) with covered 2019-01-02T21:00:00Z to 2025-12-29T21:00:00Z and one covered range.
+
+Gap: the history dependency already holds local canonical coverage, yet the top-level status is `waiting`, not `partial`. The frontend rule requires `partial`, so this response still blocks Study. Provider should report `partial` (or `ready`) for a range that local canonical data already covers. Frontend will not widen the rule to `waiting`.
+
 # 2026-11-10 — Accept reviewed Linux visual references and set closure fields
 
 Root's final combined qualification on frontend cc61c9b6 and backend c5732fee passed: functional journeys 68/68 with no retries or flakes, visual 104/104 captured. Root reviewed the captures and accepted all 104 as the new Linux references (darwin untouched). plan.yaml now sets status ready_for_integration with the closure authorization text recorded. Exact-HEAD CI is the remaining gate.
