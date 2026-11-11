@@ -3191,7 +3191,8 @@ test.describe('TC2000 workstation', () => {
     // Reaching the oldest entry is a no-op rather than wrapping to the future.
     await workstation.press('Backspace')
     await expect(activeSymbol).toHaveValue('SPY')
-    await expect(page).toHaveURL(/\/chart$/)
+    // Go routes to the symbol-bearing workstation URL, so the oldest entry leaves it at /chart/SPY.
+    await expect(page).toHaveURL(/\/chart\/SPY$/)
 
     // Native editor focus retains Backspace and must not navigate the history.
     await activeSymbol.fill('QQQ')
@@ -3380,6 +3381,8 @@ test.describe('TC2000 workstation', () => {
     await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
     const chart = page.locator('.tool-window:visible').filter({ has: page.locator('.chart-tool') }).last()
     await expect(chart).toBeVisible({ timeout: 10_000 })
+    // The drawing toolbar belongs to the active chart window; the factory opens with Benchmarks active.
+    await chart.locator('.chart-tool__surface').first().click({ position: { x: 24, y: 24 } })
     const linesButton = chart.locator('.drawing-toolbar button[aria-label="Lines"]')
     await expect(linesButton).toBeVisible()
     await expect(linesButton).not.toHaveClass(/\bactive\b/)
@@ -5292,8 +5295,11 @@ test.describe('TC2000 workstation', () => {
   })
 
   test('F8r-chart-toolbar — chart utility controls do not overlap at constrained width', async ({ page, browserDiagnostics }) => {
-    await page.setViewportSize({ width: 390, height: 800 })
+    await page.setViewportSize({ width: 1920, height: 1080 })
     await page.goto('/chart/SPY')
+    // Narrow docks show only the active window, so activate the chart before narrowing.
+    await page.locator('.chart-tool__surface').first().click({ position: { x: 24, y: 24 } })
+    await page.setViewportSize({ width: 390, height: 800 })
     const chart = page.locator('.chart-tool:visible').first()
     await expect(chart).toBeVisible({ timeout: 15_000 })
     const geometry = await chart.evaluate(chart => {
@@ -7448,13 +7454,17 @@ test.describe('Drawing tools', () => {
     await expect(timeframeLayout).toBeVisible({ timeout: 15_000 })
     await timeframeLayout.click()
     await expect(page.locator('.workstation__layout-state')).toHaveCount(0)
-    const toolbars = page.locator('.drawing-toolbar')
-    await expect(toolbars.first()).toBeVisible({ timeout: 15_000 })
-    expect(await toolbars.count()).toBeGreaterThan(1)
+    const charts = page.locator('.tool-window').filter({ has: page.locator('.chart-tool') })
+    await expect(charts.first()).toBeVisible({ timeout: 15_000 })
+    expect(await charts.count()).toBeGreaterThan(1)
 
+    // Only the active chart mounts its drawing toolbar, so activate each chart in turn.
     const menuIds: string[] = []
-    for (let index = 0; index < await toolbars.count(); index += 1) {
-      const toolbar = toolbars.nth(index)
+    for (let index = 0; index < await charts.count(); index += 1) {
+      const chart = charts.nth(index)
+      await chart.locator('.chart-tool__surface').first().click({ position: { x: 24, y: 24 } })
+      const toolbar = chart.locator('.drawing-toolbar')
+      await expect(toolbar).toBeVisible({ timeout: 15_000 })
       const trigger = toolbar.getByRole('button', { name: 'Lines' })
       await trigger.press('ArrowDown')
       const menu = toolbar.getByRole('menu', { name: 'Lines drawing tools' })
@@ -7518,6 +7528,8 @@ test.describe('Drawing tools', () => {
     await page.goto('/chart/SPY')
     const chart = page.locator('.chart-tool').filter({ has: page.getByTitle('Chart settings') }).first()
     await expect(chart).toBeVisible({ timeout: 15_000 })
+    // The drawing toolbar belongs to the active chart window; the factory opens with Benchmarks active.
+    await chart.locator('.chart-tool__surface').first().click({ position: { x: 24, y: 24 } })
     const plot = chart.locator('.uplot').first()
     await expect(plot).toBeVisible({ timeout: 15_000 })
     const box = await plot.boundingBox()
