@@ -7366,6 +7366,8 @@ test.describe('Drawing tools', () => {
 
   test('F13 — drawing toolbar shows expected tools', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart')
+    // The drawing toolbar belongs to the active chart window; the factory opens with Benchmarks active.
+    await page.locator('.chart-tool__surface').first().click({ position: { x: 24, y: 24 } })
 
     const toolbar = page.locator('.drawing-toolbar, [class*="toolbar"]')
     await expect(toolbar.first()).toBeVisible({ timeout: 15_000 })
@@ -7398,6 +7400,8 @@ test.describe('Drawing tools', () => {
 
   test('F14 — selecting a drawing tool activates it', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart')
+    // The drawing toolbar belongs to the active chart window; the factory opens with Benchmarks active.
+    await page.locator('.chart-tool__surface').first().click({ position: { x: 24, y: 24 } })
 
     const toolbar = page.locator('.drawing-toolbar').first()
     await expect(toolbar).toBeVisible({ timeout: 15_000 })
@@ -7413,6 +7417,8 @@ test.describe('Drawing tools', () => {
 
   test('F14-keyboard — drawing flyouts expose menu semantics and restore trigger focus', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart/SPY')
+    // The drawing toolbar belongs to the active chart window; the factory opens with Benchmarks active.
+    await page.locator('.chart-tool__surface').first().click({ position: { x: 24, y: 24 } })
     const toolbar = page.locator('.drawing-toolbar').first()
     await expect(toolbar).toBeVisible({ timeout: 15_000 })
     const linesButton = toolbar.getByRole('button', { name: 'Lines' })
