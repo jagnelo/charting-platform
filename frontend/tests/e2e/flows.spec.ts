@@ -237,6 +237,8 @@ test.describe('Chart', () => {
 
   test('F9 — drawing toolbar is visible and tools are clickable', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart/SPY')
+    // The drawing toolbar belongs to the active chart window; the factory opens with Benchmarks active.
+    await page.locator('.chart-tool__surface').first().click({ position: { x: 24, y: 24 } })
     const toolbar = page.locator('.drawing-toolbar')
     await expect(toolbar).toBeVisible()
     const lines = toolbar.getByRole('button', { name: 'Lines' })
@@ -605,8 +607,11 @@ test.describe('Chart', () => {
   })
 
   test('F9c-narrow — chart menus remain viewport-contained in a constrained desktop dock', async ({ page, browserDiagnostics }) => {
-    await page.setViewportSize({ width: 390, height: 800 })
+    await page.setViewportSize({ width: 1920, height: 1080 })
     await page.goto('/chart/SPY')
+    // Narrow docks show only the active window, so activate the chart before narrowing.
+    await page.locator('.chart-tool__surface').first().click({ position: { x: 24, y: 24 } })
+    await page.setViewportSize({ width: 390, height: 800 })
     const chart = page.locator('.chart-tool').filter({ has: page.getByRole('button', { name: 'Chart templates' }) }).first()
     await expect(chart).toBeVisible({ timeout: 15_000 })
 
@@ -632,8 +637,11 @@ test.describe('Chart', () => {
   })
 
   test('F9c-bottom-edge — chart menus flip above the trigger when the lower viewport is unavailable', async ({ page, browserDiagnostics }) => {
-    await page.setViewportSize({ width: 390, height: 320 })
+    await page.setViewportSize({ width: 1920, height: 1080 })
     await page.goto('/chart/SPY')
+    // Narrow docks show only the active window, so activate the chart before narrowing.
+    await page.locator('.chart-tool__surface').first().click({ position: { x: 24, y: 24 } })
+    await page.setViewportSize({ width: 390, height: 320 })
     const chart = page.locator('.chart-tool').filter({ has: page.getByRole('button', { name: 'Chart templates' }) }).first()
     await expect(chart).toBeVisible({ timeout: 15_000 })
     const viewportHeight = 320
