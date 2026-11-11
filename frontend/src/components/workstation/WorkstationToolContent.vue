@@ -276,6 +276,7 @@
     />
     <div
       v-if="selectedConstituentRowKey && isConstituentTool"
+      v-reveal-search-results
       class="constituent-tool__selection"
       data-testid="reported-holding-selection"
     >
@@ -554,6 +555,7 @@
       >{{ constituentExclusionSummary }}</small>
       <div
         v-if="selectedConstituentRowKey && isConstituentTool"
+        v-reveal-search-results
         class="constituent-tool__selection"
         data-testid="reported-holding-selection"
       >
@@ -1066,6 +1068,25 @@
 
 <script setup lang="ts">
 import { computed, defineAsyncComponent, defineComponent, h, nextTick, onBeforeUnmount, onMounted, provide, ref, watch, type Component, type Ref } from 'vue'
+
+// The selection panel scrolls inside a compact tool body. When a picker's
+// results first appear, bring them into view instead of leaving the
+// candidates clipped below the fold.
+type RevealHost = HTMLElement & { __revealObserver?: MutationObserver; __revealedList?: Element | null }
+const vRevealSearchResults = {
+  mounted(el: RevealHost) {
+    const observer = new MutationObserver(() => {
+      const list = el.querySelector('[role="listbox"]')
+      if (list && list !== el.__revealedList) list.scrollIntoView({ block: 'nearest' })
+      el.__revealedList = list
+    })
+    observer.observe(el, { childList: true, subtree: true })
+    el.__revealObserver = observer
+  },
+  unmounted(el: RevealHost) {
+    el.__revealObserver?.disconnect()
+  },
+}
 import { RouterLink } from 'vue-router'
 import { useQueryClient } from '@tanstack/vue-query'
 import { api, setQueuedApiRequestPriority } from '@/lib/api'
