@@ -34234,3 +34234,12 @@ Root authorized exact development consumption of `0875336efeafd2339ed609e7bb1ec7
 ## 2026-11-08 — replace Strategy Nautilus engine pin with bd50269c
 
 Root authorized the exact two-path successor `bd50269c862e577a48063b084ce2ba8d13aaef76`. The 087 engine pin is archived by its retained manifest and journal; the current dependency pin now names this source. Verified both old guards against 087, both new source blobs/SHA-256/modes, and imported only `backend/app/services/strategy_lab_nautilus.py` and `backend/tests/unit/services/test_strategy_lab_nautilus.py`. Full contract: `ops/workstreams/feat-market-data-provider-platform/development-dependency-imports/strategybd50269c862e577a48063b084ce2ba8d13aaef76.json`. Producer reports 17 focused Nautilus tests and canonical Ruff/type/discovery checks passing; not rerun here. No broader tests, browser, DB, Docker, native/provider HTTP, CI, quota or runtime action. Development context only; Root owns combined build and qualification.
+
+
+## 2026-11-11 — next-cycle item: visible-wake latency (not in this release)
+
+Observed in the CI-identical E2E stack: a `instrument_metadata` job for an already-known instrument waited 41 seconds in the queue before running 14 seconds. Read-only analysis (no code change) shows the worker runs at most 4 ARQ jobs at once (`max_jobs=4`, 600-second job timeout) across all task types. The visible wake (`task_process_refresh_jobs`) and the 15-minute cron (`scheduled_refresh_queue_process`, which runs the planner before claiming) share those slots. Once a batch is running, a running background job is not preempted, so a visible job waits for it to finish. Queue priority itself is correct (visible = 10).
+
+Leave as is for this release. Next-cycle options: (1) a dedicated visible-wake slot or ARQ queue, or (2) a preemption point between background jobs when a priority-10 job is queued. Confirm first with worker logs showing ARQ enqueue and start times for the wake and cron jobs, plus the metadata job's claim time.
+
+Related change this cycle: dependency-deferred jobs are woken when their prerequisite completes (commit 9a343a86f), replacing the fixed 20-second recheck as the only path.
