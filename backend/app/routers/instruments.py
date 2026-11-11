@@ -1720,6 +1720,39 @@ async def get_instrument_history_availability(
         if "history_depth_unknown" in bound_failures
         else "history_depth_invalid"
     )
+    if reason_code == "no_eligible_history_provider":
+        # No provider can supply history, but canonical local bars may already
+        # cover the default window. Report that without calling any provider.
+        # Same aligned default chunk the worker would have requested, so local
+        # bars that cover the worker's window also cover this check.
+        from app.tasks.data_tasks import _history_chunk_start
+
+        window_end = _history_chunk_start(now, timeframe, 1)
+        window_start = _history_chunk_start(window_end, timeframe, max_bars)
+        local_bars = await fetch_ohlcv(
+            db,
+            instrument,
+            timeframe,
+            window_start,
+            end=window_end,
+            adjusted=adjusted,
+            allow_provider_fetch=False,
+        )
+        if local_bars:
+            local_coverage = assess_ohlcv_coverage(
+                local_bars,
+                timeframe,
+                window_start,
+                window_end,
+                calendar=_coverage_calendar(instrument),
+            )
+            if local_coverage.status.value == "ready" and local_coverage.covered_start:
+                return HistoryAvailabilityResponse(
+                    **base,
+                    status="eligible",
+                    earliest_start=local_coverage.covered_start,
+                    reason_code="local_canonical_coverage",
+                )
     return HistoryAvailabilityResponse(**base, status="held", reason_code=reason_code)
 
 
