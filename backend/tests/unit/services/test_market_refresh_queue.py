@@ -1,8 +1,10 @@
 from datetime import UTC, date, datetime, timedelta
+from uuid import uuid4
 
 import pytest
 
 from app.services.market_refresh_queue import (
+    DEPENDENCY_PENDING_ERROR,
     RefreshLeaseLostError,
     _acquire_enqueue_lock,
     claim_refresh_jobs,
@@ -297,3 +299,125 @@ async def test_non_postgres_enqueue_admission_is_a_noop():
             raise AssertionError("SQLite must not receive PostgreSQL advisory SQL")
 
     await _acquire_enqueue_lock(_Db(), "d1:42")
+
+
+async def _dependency_pair(async_db, *, dependent_priority=10, prerequisite_priority=100):
+    """Return (prerequisite, dependent) where dependent waits on prerequisite."""
+
+    prerequisite = await enqueue_refresh_job(
+        async_db,
+        request_key=f"wake-prereq:{uuid4().hex}",
+        capability="instrument_metadata",
+        priority=prerequisite_priority,
+        now=_WAKE_NOW,
+    )
+    dependent = await enqueue_refresh_job(
+        async_db,
+        request_key=f"wake-dependent:{uuid4().hex}",
+        capability="price_history",
+        timeframe="D1",
+        priority=dependent_priority,
+        metadata_payload={
+            "data_preparation_child": {"wait_for_job_ids": [prerequisite.id]},
+        },
+        now=_WAKE_NOW,
+    )
+    return prerequisite, dependent
+
+
+_WAKE_NOW = datetime(2026, 11, 10, 12, tzinfo=UTC)
+
+
+@pytest.mark.asyncio
+async def test_prerequisite_completion_wakes_dependent_before_fixed_recheck(db):
+    async_db = AsyncSessionAdapter(db)
+    prerequisite, dependent = await _dependency_pair(async_db)
+    # The dependent is leased first (higher priority) and then deferred on its
+    # prerequisite with the fixed 20 second recheck.
+    leased_dependent = (await claim_refresh_jobs(async_db, limit=1, now=_WAKE_NOW))[0]
+    assert leased_dependent.id == dependent.id
+    await retry_refresh_job(
+        async_db,
+        leased_dependent,
+        DEPENDENCY_PENDING_ERROR,
+        retry_at=_WAKE_NOW + timedelta(seconds=20),
+        lease_token=leased_dependent.lease_token,
+        now=_WAKE_NOW,
+    )
+    assert dependent.status == "deferred"
+
+    prerequisite_now = _WAKE_NOW + timedelta(seconds=3)
+    leased_prerequisite = (await claim_refresh_jobs(async_db, limit=1, now=prerequisite_now))[0]
+    assert leased_prerequisite.id == prerequisite.id
+    await complete_refresh_job(async_db, leased_prerequisite, now=prerequisite_now)
+
+    assert dependent.next_attempt_at == prerequisite_now
+    claimed = await claim_refresh_jobs(async_db, limit=1, now=prerequisite_now)
+    assert [job.id for job in claimed] == [dependent.id]
+
+
+@pytest.mark.asyncio
+async def test_completion_does_not_wake_quota_deferred_or_unrelated_dependents(db):
+    async_db = AsyncSessionAdapter(db)
+    prerequisite, dependent = await _dependency_pair(async_db)
+    quota_retry_at = _WAKE_NOW + timedelta(hours=1)
+    unrelated = await enqueue_refresh_job(
+        async_db,
+        request_key=f"wake-unrelated:{uuid4().hex}",
+        capability="price_history",
+        timeframe="D1",
+        priority=10,
+        metadata_payload={"data_preparation_child": {"wait_for_job_ids": [999_999]}},
+        now=_WAKE_NOW,
+    )
+    leased_dependent = (await claim_refresh_jobs(async_db, limit=1, now=_WAKE_NOW))[0]
+    # A provider quota reset is a deferral too, but not a dependency wait.
+    await retry_refresh_job(
+        async_db,
+        leased_dependent,
+        "provider quota reset",
+        retry_at=quota_retry_at,
+        lease_token=leased_dependent.lease_token,
+        now=_WAKE_NOW,
+    )
+    leased_unrelated = (await claim_refresh_jobs(async_db, limit=1, now=_WAKE_NOW))[0]
+    assert leased_unrelated.id == unrelated.id
+    await retry_refresh_job(
+        async_db,
+        leased_unrelated,
+        DEPENDENCY_PENDING_ERROR,
+        retry_at=_WAKE_NOW + timedelta(seconds=20),
+        lease_token=leased_unrelated.lease_token,
+        now=_WAKE_NOW,
+    )
+
+    prerequisite_now = _WAKE_NOW + timedelta(seconds=3)
+    leased_prerequisite = (await claim_refresh_jobs(async_db, limit=1, now=prerequisite_now))[0]
+    assert leased_prerequisite.id == prerequisite.id
+    await complete_refresh_job(async_db, leased_prerequisite, now=prerequisite_now)
+
+    assert dependent.next_attempt_at == quota_retry_at
+    assert unrelated.next_attempt_at == _WAKE_NOW + timedelta(seconds=20)
+
+
+@pytest.mark.asyncio
+async def test_visible_metadata_prerequisite_is_leased_ahead_of_background_work(db):
+    async_db = AsyncSessionAdapter(db)
+    await enqueue_refresh_job(
+        async_db,
+        request_key=f"background-scan:{uuid4().hex}",
+        capability="price_history",
+        timeframe="D1",
+        priority=100,
+        now=_WAKE_NOW - timedelta(minutes=5),
+    )
+    visible_metadata = await enqueue_refresh_job(
+        async_db,
+        request_key=f"visible-metadata:{uuid4().hex}",
+        capability="instrument_metadata",
+        priority=10,
+        now=_WAKE_NOW,
+    )
+
+    claimed = await claim_refresh_jobs(async_db, limit=1, now=_WAKE_NOW)
+    assert [job.id for job in claimed] == [visible_metadata.id]
