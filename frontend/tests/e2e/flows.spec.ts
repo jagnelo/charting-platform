@@ -697,22 +697,25 @@ test.describe('Chart', () => {
     const chart = page.locator('.chart-tool').filter({ has: page.getByTitle('Chart settings') }).first()
     await expect(chart).toBeVisible({ timeout: 15_000 })
     const canvas = chart.locator('.uplot-wrapper').first()
-    const box = await canvas.boundingBox()
-    expect(box).not.toBeNull()
     const overLayer = chart.locator('.u-over').first()
     await expect(overLayer).toBeVisible({ timeout: 15_000 })
-    const over = await overLayer.boundingBox()
-    expect(over).not.toBeNull()
+    const menu = page.getByRole('menu', { name: 'Price scale actions' })
     // The product handler defines the price-scale gutter relative to uPlot's
     // rendered interaction layer, not the outer wrapper. Use that same edge so
     // this remains deterministic after templates or narrow layouts change the
     // internal plot width, while staying inside the wrapper (the menu closes
-    // when the pointer leaves it).
-    const targetX = Math.min(box!.x + box!.width - 1, over!.x + over!.width + 4)
-    expect(targetX).toBeGreaterThan(over!.x + over!.width)
-    await page.mouse.click(targetX, box!.y + 80, { button: 'right' })
-    const menu = page.getByRole('menu', { name: 'Price scale actions' })
-    await expect(menu).toBeVisible()
+    // when the pointer leaves it). Re-measure on each attempt: the plot can
+    // still resize while its first data and header settle.
+    await expect(async () => {
+      const box = await canvas.boundingBox()
+      const over = await overLayer.boundingBox()
+      expect(box).not.toBeNull()
+      expect(over).not.toBeNull()
+      const targetX = Math.min(box!.x + box!.width - 1, over!.x + over!.width + 4)
+      expect(targetX).toBeGreaterThan(over!.x + over!.width)
+      await page.mouse.click(targetX, box!.y + 80, { button: 'right' })
+      await expect(menu).toBeVisible({ timeout: 2_000 })
+    }).toPass({ timeout: 20_000 })
     await expect(menu.getByRole('menuitem').first()).toBeFocused()
     await page.keyboard.press('ArrowDown')
     await expect(menu.getByRole('menuitem').nth(1)).toBeFocused()

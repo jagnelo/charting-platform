@@ -679,7 +679,14 @@ function focusContextMenuItem(kind: 'price' | 'drawing', index: number) {
 
 function openContextMenu(kind: 'price' | 'drawing') {
   contextMenuSource.value = kind
-  void nextTick(() => focusContextMenuItem(kind, 0))
+  // Right-clicking an inactive chart also activates its window, which moves
+  // focus after this tick; focus the first item once that settles too.
+  void nextTick(() => {
+    focusContextMenuItem(kind, 0)
+    requestAnimationFrame(() => {
+      if (contextMenuSource.value === kind && !rootRef.value?.querySelector('.ctx-menu [role="menuitem"]:focus')) focusContextMenuItem(kind, 0)
+    })
+  })
 }
 
 function closePriceContextMenu() {
