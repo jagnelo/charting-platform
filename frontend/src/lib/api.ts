@@ -69,11 +69,29 @@ function apiAbortReason(signal: AbortSignal): unknown {
   return signal.reason ?? new DOMException('The operation was aborted.', 'AbortError')
 }
 
+// A hidden document suspends market-analysis polling. Queued analysis reads
+// wait for visibility instead of starting while the workstation is hidden.
+function suspendedWhileHidden(queued: Pick<QueuedApiFetch, 'input' | 'init'>): boolean {
+  if (typeof document === 'undefined' || document.visibilityState !== 'hidden') return false
+  if ((queued.init.method ?? 'GET').toUpperCase() !== 'GET') return false
+  const input = typeof queued.input === 'string'
+    ? queued.input
+    : queued.input instanceof URL ? queued.input.href : queued.input.url
+  const pathname = new URL(input, window.location.href).pathname
+  return pathname.startsWith(`${BASE}/analysis/`) || pathname.startsWith(`${BASE}/market-groups/`)
+}
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'hidden') drainApiFetchQueue()
+  })
+}
+
 function nextAdmissibleFetchIndex(): number {
   // Foreground is a scheduling intent separate from the durable/logical
   // priority. A visible user action therefore precedes high-priority startup
   // fanout that was queued earlier, while still using the same bounded slots.
   const foregroundIndex = queuedApiFetches.findIndex(item => item.foreground && item.priority === 'high'
+    && !suspendedWhileHidden(item)
     && (!usesNonInteractiveCapacity(item) || activeNonInteractiveApiFetches < API_NON_INTERACTIVE_LIMIT))
   if (foregroundIndex !== -1) return foregroundIndex
 
@@ -82,6 +100,7 @@ function nextAdmissibleFetchIndex(): number {
     if (priority === 'auto' && activeNonInteractiveApiFetches >= API_NON_INTERACTIVE_LIMIT) continue
     if (priority === 'low' && (activeNonInteractiveApiFetches >= API_NON_INTERACTIVE_LIMIT || activeLowApiFetches >= API_LOW_PRIORITY_LIMIT)) continue
     const index = queuedApiFetches.findIndex(item => item.priority === priority
+      && !suspendedWhileHidden(item)
       && (!usesNonInteractiveCapacity(item) || activeNonInteractiveApiFetches < API_NON_INTERACTIVE_LIMIT))
     if (index !== -1) return index
   }

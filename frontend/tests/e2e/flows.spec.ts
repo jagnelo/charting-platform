@@ -3624,7 +3624,11 @@ test.describe('TC2000 workstation', () => {
 
   test('F8e-empty-industry — the default Industries pane distinguishes selection from missing proxy data', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart')
-    await expect(page.locator('.tool-state').filter({ hasText: 'Select a sector to inspect its industries and verified ETF proxies.' })).toBeVisible({ timeout: 15_000 })
+    // The factory Industries pane follows the default SPY constituent universe,
+    // so it shows dated SPY industries rather than an empty selection prompt.
+    const industries = page.getByRole('group', { name: 'Industries', exact: true })
+    await expect(industries.getByRole('button', { name: /Select industry\.$/ }).first()).toBeVisible({ timeout: 15_000 })
+    await expect(industries.locator('.industry-list__provenance')).toContainText('SPY holdings')
     await expect(page.locator('.tool-state').filter({ hasText: 'No mapped ETF proxy for SPY' })).toHaveCount(0)
     await browserDiagnostics.expectNoCriticalIssues()
   })
@@ -5406,9 +5410,17 @@ test.describe('TC2000 workstation', () => {
     await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
     const sectorList = page.locator('.watchlist[aria-label="Relative to SPY"]')
     await expect(sectorList).toBeVisible({ timeout: 10_000 })
-    await expect(sectorList).toHaveAttribute('aria-busy', 'true', { timeout: 15_000 })
-    await expect(sectorList.locator('[role="status"]')).toContainText('Refreshing sector analysis')
+    // Other factory tools may finish the first shared read before this list
+    // mounts. Drive one explicit shared refresh so its lifecycle is observable.
     await expect(sectorList).toHaveAttribute('aria-busy', 'false', { timeout: 20_000 })
+    await expect(sectorList.locator('.watchlist__row').first()).toBeVisible({ timeout: 15_000 })
+    await page.getByTitle('Refresh top-down analysis').click()
+    // A refresh over existing rows shows the shared compact status and keeps the
+    // rows; aria-busy is reserved for an initial load without rows.
+    await expect(sectorList.locator('[role="status"]')).toContainText('Refreshing sector analysis', { timeout: 15_000 })
+    await expect(sectorList.locator('.watchlist__row').first()).toBeVisible()
+    await expect(sectorList).toHaveAttribute('aria-busy', 'false')
+    await expect(sectorList.locator('[role="status"]')).toHaveCount(0, { timeout: 20_000 })
     await expect(sectorList.locator('.watchlist__row').first()).toBeVisible({ timeout: 15_000 })
     await browserDiagnostics.expectNoCriticalIssues()
   })
