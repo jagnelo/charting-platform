@@ -10,6 +10,7 @@ from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -2229,6 +2230,14 @@ async def build_market_map(
         computed_at=datetime.now(UTC),
         last_accessed_at=datetime.now(UTC),
     )
-    db.add(cache_row)
-    await db.flush()
+    # The frontend can fire two identical requests a few ms apart; both miss the
+    # lookup and race to insert the same (user_id, cache_key).  The row is
+    # immutable and identical, so the loser just serves its computed result.
+    # The savepoint keeps the outer transaction usable after the violation.
+    try:
+        async with db.begin_nested():
+            db.add(cache_row)
+            await db.flush()
+    except IntegrityError:
+        pass
     return result

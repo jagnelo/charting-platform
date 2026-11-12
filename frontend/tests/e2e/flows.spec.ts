@@ -5918,10 +5918,13 @@ test.describe('TC2000 workstation', () => {
     const mapRole = benchmarkSurface.getByRole('combobox', { name: 'Benchmark family Map role' })
     await expect(mapRole).toHaveValue('cap_weight')
     // Roles stay disabled until the family overview proves their mapping and holdings.
-    await expect(mapRole.locator('option[value="equal_weight"]')).toBeEnabled({ timeout: 15_000 })
+    // toBeEnabled() retargets an <option> inside a <label> to its (always
+    // enabled) <select>, so it never waited. Wait on the option itself.
+    const equalWeightOption = mapRole.locator('option[value="equal_weight"]')
+    await expect(equalWeightOption).toHaveJSProperty('disabled', false, { timeout: 15_000 })
     await mapRole.selectOption('equal_weight')
     // The chosen role applies once the family overview proves it available.
-    await expect(mapRole.locator('option[value="equal_weight"]')).toBeEnabled({ timeout: 15_000 })
+    await expect(equalWeightOption).toHaveJSProperty('disabled', false, { timeout: 15_000 })
     await expect(mapRole).toHaveValue('equal_weight')
     // Earlier flows in this serial suite can leave Market Map windows open;
     // assert on the window this click opens.
