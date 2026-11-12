@@ -37,7 +37,7 @@
       "text": "Dashboard layout-save failures restore the saved arrangement, explain the failure, and allow a retry that reconciles the visible layout with the server."
     }
   ],
-  "active_session_id": "40da6ae1-d1cc-4ad5-8513-b344ed5d1d6d",
+  "active_session_id": "5d526ea4-1c94-41ef-982b-4bbb8e925183",
   "branch": "feat/strategy-lab-v2",
   "claim": {
     "branch": "feat/strategy-lab-v2",
@@ -117,7 +117,7 @@
   "last_checkpoint": "Authored the legacy Strategy definition/version/SPY D1 local-backtest/results/export/return journey; added V2 owner-resource/detail and denied-pin recovery reads; strengthened Breadth, dock-fit, and catalogue screenshot evidence; consumed exact TC f57 foreground-read context. Focused units/type/discovery passed; Root browser remains pending.",
   "last_human_progress_update": "2026-11-08T16:11:41+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Release candidate 5d19e512b is frozen for publication (Root PASS at TC 08a3c0c6b, frontend e68a0f407, backend e949552bc); Root publishes and runs exact-source CI. No product or test changes until Root releases the freeze. Previously: Root runs the exact pending Strategy/workstation browser bodies (including the 5d19e512b Study journey rerun) on this coherent checkpoint. Strategy runs no browser, fixture or native operation; the offline SU7-SU9 Dashboard and Study/Results/Library focused unit checks pass (29 + 185). Await Root's result, then record PASS/FAIL per the handoff.",
+  "next_action": "resume from the durable handoff and inspect displaced session state",
   "parent_branch": "staging",
   "plan_hash": "939eb960080814953cf60696dc1f7b8533f6705123fedd0dc6d6561bbc8569d5",
   "planning_required": false,
@@ -140,7 +140,8 @@
     "08c08eb6-dc6c-4327-b960-fa027e9e3c8a",
     "35f63909-6dea-4459-9682-dc8eecc9c720",
     "7319d459-2838-40e4-bee4-fded78f58e16",
-    "02d5ffaa-53b5-4dec-b39c-0f36612b5436"
+    "02d5ffaa-53b5-4dec-b39c-0f36612b5436",
+    "40da6ae1-d1cc-4ad5-8513-b344ed5d1d6d"
   ],
   "progress": {
     "completed": [
@@ -264,6 +265,12 @@
       "displaced_session_id": "02d5ffaa-53b5-4dec-b39c-0f36612b5436",
       "new_session_id": "40da6ae1-d1cc-4ad5-8513-b344ed5d1d6d",
       "reason": "Human-authorized 2026-11-09/10 runtime migration: the user moved this workflow from Codex to Claude Code ('do whatever you must, i authorize you'). The Codex session for this branch stopped at its usage limit on 2026-11-09 02:37Z and is retired. A new Claude Code worker session (Haiku 5.5, low effort) with the same chat name continues the same goal from the durable workstream; preserve all source, evidence, roadmap and boundaries."
+    },
+    {
+      "at": "2026-11-12T13:14:32.213553+00:00",
+      "displaced_session_id": "40da6ae1-d1cc-4ad5-8513-b344ed5d1d6d",
+      "new_session_id": "5d526ea4-1c94-41ef-982b-4bbb8e925183",
+      "reason": "Human request 2026-11-12 (Claude Code Desktop): import the ongoing VS Code AI-driven work into this single Desktop orchestration chat and 'only start working here and leave VS Code behind'; outgoing Root reported HANDOVER-READY 2026-11-12T13:10Z with all worktrees clean and pushed."
     }
   ],
   "updated_at": "2026-11-08T17:55:51Z",
