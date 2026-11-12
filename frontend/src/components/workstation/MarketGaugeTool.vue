@@ -219,6 +219,19 @@ watch([selectedId, surfaceVisible, documentVisible], ([id, visible, docVisible],
   preparationRefreshQueue = new PreparationProgressRefreshQueue()
   if (visible && docVisible && latestGaugeRefreshPending.value) void requestLatestGaugeRefresh(id)
 })
+// A gauge read can land while a replacement run is queued (the backend then
+// reports 0/0 evaluated) and the history poll may never observe that queued
+// state. Reconcile once per completed result when the snapshot disagrees.
+let reconciledGaugeKey = ''
+watch([latestScanResult, () => gaugeQuery.data.value] as const, ([latest, data]) => {
+  if (!latest?.id || !data || latestScanStatus.value !== 'completed') return
+  const evaluated = (latest.result_data?._coverage as { evaluated_count?: number } | undefined)?.evaluated_count
+  if (typeof evaluated !== 'number' || data.evaluated_count === evaluated) return
+  const key = `${selectedId.value}:${latest.id}`
+  if (reconciledGaugeKey === key) return
+  reconciledGaugeKey = key
+  void requestLatestGaugeRefresh()
+})
 watch([selectedId, latestScanStatus], ([id, status], [previousId, previousStatus]) => {
   if (id && id === previousId && ['queued', 'pending', 'running', 'leased'].includes(previousStatus)
     && !['queued', 'pending', 'running', 'leased'].includes(status)) {
