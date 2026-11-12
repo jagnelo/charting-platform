@@ -49,6 +49,11 @@
     <div v-else-if="!dashboardStore.activeTab" class="dashboard-state">No dashboard tab available.</div>
 
     <div v-else class="dashboard-body">
+      <div v-if="layoutSaveError" class="dashboard-feedback" role="alert">
+        <span>{{ layoutSaveError }}</span>
+        <button type="button" @click="retryLayoutSave">Retry layout save</button>
+        <button type="button" @click="dismissLayoutSaveError">Dismiss</button>
+      </div>
       <aside v-if="dashboardStore.editMode" class="widget-catalog">
         <div class="catalog-title">Add Widget</div>
         <button
@@ -97,7 +102,7 @@
                 {{ widget.title || widgetTitle(widget.widget_type) }}
               </div>
               <div class="widget-tools" v-if="dashboardStore.editMode">
-                <button @click.stop="configWidget = widget">Configure</button>
+                <button @click.stop="openConfigWidget(widget)">Configure</button>
                 <button @click.stop="duplicateWidget(widget)">Copy</button>
                 <button class="danger" @click.stop="dashboardStore.deleteWidget(widget.id)">Delete</button>
               </div>
@@ -186,17 +191,24 @@
     </div>
 
     <Teleport to="body">
-      <div v-if="configWidget" class="config-backdrop" @click.self="configWidget = null">
+      <div v-if="configWidget" class="config-backdrop" @click.self="handleConfigBackdrop">
         <div class="config-modal">
           <div class="config-header">
             <div>
               <strong>Configure {{ configWidget.title || widgetTitle(configWidget.widget_type) }}</strong>
               <span>{{ widgetTitle(configWidget.widget_type) }}</span>
             </div>
-            <button @click="configWidget = null">x</button>
+            <button :disabled="configSavePending" @click="closeConfigWidget">x</button>
           </div>
 
-          <div class="config-body">
+          <div class="config-body" :aria-busy="configSavePending">
+            <div v-if="configSaveError" class="dashboard-feedback" role="alert">
+              <span>{{ configSaveError }}</span>
+              <button type="button" :disabled="configSavePending" @click="retryConfigSave">
+                {{ configSavePending ? 'Saving…' : 'Retry save' }}
+              </button>
+              <button type="button" :disabled="configSavePending" @click="cancelConfigSave">Cancel</button>
+            </div>
             <label class="config-field">
               <span>Title</span>
               <input
@@ -254,9 +266,9 @@
               </div>
               <DashboardInstrumentSearch
                 v-else
+                :key="`instrument-${configWidget.id}-${instrumentSearchRevision}`"
                 :model-value="configWidget.config.symbol || configWidget.config.expression || ''"
-                @select="patchConfig(configWidget, { symbol: $event })"
-                @update:model-value="patchConfigLocal(configWidget, { symbol: $event })"
+                @select="commitInstrumentSymbol(configWidget, $event)"
               />
             </label>
 
@@ -269,9 +281,9 @@
                   class="comparison-config-row"
                 >
                   <DashboardInstrumentSearch
+                    :key="`comparison-${index}-${instrumentSearchRevision}`"
                     :model-value="target.symbol"
-                    @select="patchComparisonTarget(configWidget, index, { symbol: $event, label: $event })"
-                    @update:model-value="patchComparisonTargetLocal(configWidget, index, { symbol: $event, label: $event })"
+                    @select="commitComparisonSymbol(configWidget, index, $event)"
                   />
                   <input
                     type="color"
@@ -711,6 +723,12 @@ const screeners = ref<ScreenerOut[]>([])
 const renamingTabId = ref<number | null>(null)
 const tabRenameDraft = ref('')
 const configWidget = ref<DashboardWidget | null>(null)
+const configSaveError = ref('')
+const configSavePending = ref(false)
+const pendingConfigSave = ref<{ widget: DashboardWidget; config: Record<string, any> } | null>(null)
+const instrumentSearchRevision = ref(0)
+const layoutSaveError = ref('')
+const pendingLayoutSave = ref<{ widget: DashboardWidget; layout: DashboardWidgetLayout } | null>(null)
 const radarSetupMenuOpen = ref(false)
 const quickLinkWidgetId = ref<number | null>(null)
 const quickLinkMenuPos = ref({ x: 0, y: 0 })
@@ -786,6 +804,28 @@ let activeDrag:
       startLayout: DashboardWidgetLayout
     }
   | null = null
+let configSaveGeneration = 0
+
+function openConfigWidget(widget: DashboardWidget) {
+  configSaveGeneration++
+  configSaveError.value = ''
+  configSavePending.value = false
+  pendingConfigSave.value = null
+  configWidget.value = widget
+}
+
+function closeConfigWidget() {
+  if (configSavePending.value) return
+  configSaveGeneration++
+  configSaveError.value = ''
+  configSavePending.value = false
+  pendingConfigSave.value = null
+  configWidget.value = null
+}
+
+function handleConfigBackdrop() {
+  if (!configSavePending.value) closeConfigWidget()
+}
 
 async function reload() {
   try {
@@ -1196,22 +1236,76 @@ async function patchConfig(widget: DashboardWidget, patch: Record<string, any>) 
     delete nextConfig.linkGroup
   }
 
-  const nextGroup = isLinkableWidget(widget) ? normalizedLinkGroup(nextConfig.linkGroup) : ''
-  if (nextGroup) {
-    const symbol = patch.symbol
-      ? String(patch.symbol).trim().toUpperCase()
-      : resolvedLinkSymbol(nextGroup) || configTargetSymbol(widget, nextConfig)
-    if (symbol && (!linksStore.getGroupSymbol(linkScope.value, nextGroup) || patch.symbol)) {
-      linksStore.setGroupSymbol(linkScope.value, nextGroup, symbol)
-    }
-  }
-  await dashboardStore.updateWidget(widget.id, {
-    config: nextConfig,
-  })
+  await persistConfig(widget, nextConfig)
 }
 
-function patchConfigLocal(widget: DashboardWidget, patch: Record<string, any>) {
-  widget.config = { ...widget.config, ...patch }
+async function commitInstrumentSymbol(widget: DashboardWidget, symbol: string) {
+  try {
+    await patchConfig(widget, { symbol })
+  } finally {
+    instrumentSearchRevision.value += 1
+  }
+}
+
+async function commitComparisonSymbol(widget: DashboardWidget, index: number, symbol: string) {
+  try {
+    await patchComparisonTarget(widget, index, { symbol, label: symbol })
+  } finally {
+    instrumentSearchRevision.value += 1
+  }
+}
+
+async function persistConfig(widget: DashboardWidget, nextConfig: Record<string, any>) {
+  if (configSavePending.value) return
+  const generation = ++configSaveGeneration
+  const scope = linkScope.value
+  configSaveError.value = ''
+  configSavePending.value = true
+  pendingConfigSave.value = { widget, config: nextConfig }
+  try {
+    await dashboardStore.updateWidget(widget.id, { config: nextConfig })
+    const nextGroup = isLinkableWidget(widget) ? normalizedLinkGroup(nextConfig.linkGroup) : ''
+    if (nextGroup) {
+      const symbol = configTargetSymbol(widget, nextConfig) || resolvedLinkSymbol(nextGroup)
+      if (symbol) linksStore.setGroupSymbol(scope, nextGroup, symbol)
+    }
+    if (generation === configSaveGeneration) pendingConfigSave.value = null
+  } catch {
+    if (generation === configSaveGeneration) configSaveError.value = 'Could not save this widget setting. The previous saved value was restored.'
+  } finally {
+    if (generation === configSaveGeneration) configSavePending.value = false
+  }
+}
+
+async function retryConfigSave() {
+  const pending = pendingConfigSave.value
+  if (!pending || configSavePending.value) return
+  await persistConfig(pending.widget, pending.config)
+}
+
+function cancelConfigSave() {
+  if (configSavePending.value) return
+  configSaveGeneration++
+  configSaveError.value = ''
+  pendingConfigSave.value = null
+  instrumentSearchRevision.value += 1
+}
+
+function dismissLayoutSaveError() {
+  layoutSaveError.value = ''
+  pendingLayoutSave.value = null
+}
+
+async function retryLayoutSave() {
+  const pending = pendingLayoutSave.value
+  if (!pending) return
+  layoutSaveError.value = ''
+  try {
+    await dashboardStore.saveWidgetLayout(pending.widget.id, pending.layout)
+    pendingLayoutSave.value = null
+  } catch {
+    layoutSaveError.value = 'Layout could not be saved. The previous saved arrangement was restored.'
+  }
 }
 
 function checkboxValue(event: Event) {
@@ -1240,15 +1334,14 @@ function defaultColor(index: number) {
   return ['#64b5f6', '#81c784', '#ffb74d', '#ba68c8', '#f06292', '#4dd0e1'][index % 6]
 }
 
-function patchComparisonTargetLocal(widget: DashboardWidget, index: number, patch: Record<string, any>) {
+function patchedComparisonConfig(widget: DashboardWidget, index: number, patch: Record<string, any>) {
   const targets = comparisonTargets(widget)
   targets[index] = { ...targets[index], ...patch }
-  widget.config = { ...widget.config, targets }
+  return { ...widget.config, targets }
 }
 
 async function patchComparisonTarget(widget: DashboardWidget, index: number, patch: Record<string, any>) {
-  patchComparisonTargetLocal(widget, index, patch)
-  await dashboardStore.updateWidget(widget.id, { config: widget.config })
+  await persistConfig(widget, patchedComparisonConfig(widget, index, patch))
 }
 
 async function addComparisonTarget(widget: DashboardWidget) {
@@ -1273,6 +1366,8 @@ function startResize(event: PointerEvent, widget: DashboardWidget) {
 }
 
 function beginDrag(event: PointerEvent, widget: DashboardWidget, mode: 'move' | 'resize') {
+  layoutSaveError.value = ''
+  pendingLayoutSave.value = null
   activeDrag = {
     mode,
     widget,
@@ -1306,13 +1401,18 @@ function onPointerMove(event: PointerEvent) {
 
 async function onPointerUp() {
   if (!activeDrag) return
-  const { widget } = activeDrag
+  const { widget, startLayout } = activeDrag
+  const layout = normalizedLayout(widget.layout)
   activeDrag = null
   window.removeEventListener('pointermove', onPointerMove)
   try {
-    await dashboardStore.saveWidgetLayout(widget.id, normalizedLayout(widget.layout))
-  } catch (e) {
-    console.error('Failed to save dashboard widget layout', e)
+    await dashboardStore.saveWidgetLayout(widget.id, layout)
+    layoutSaveError.value = ''
+    pendingLayoutSave.value = null
+  } catch {
+    widget.layout = startLayout
+    pendingLayoutSave.value = { widget, layout }
+    layoutSaveError.value = 'Layout could not be saved. The previous saved arrangement was restored.'
   }
 }
 
@@ -1335,6 +1435,26 @@ function onDashboardClick() {
   color: #ccc;
   min-width: 0;
 }
+.dashboard-feedback {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid #7a3838;
+  border-radius: 4px;
+  background: #241414;
+  color: #ffc9c9;
+  font-size: 12px;
+}
+.dashboard-feedback button {
+  background: #171717;
+  border: 1px solid #663737;
+  color: inherit;
+  border-radius: 3px;
+  padding: 4px 7px;
+}
+.config-body[aria-busy='true'] { pointer-events: none; opacity: 0.82; }
 .dashboard-header {
   display: flex;
   align-items: center;

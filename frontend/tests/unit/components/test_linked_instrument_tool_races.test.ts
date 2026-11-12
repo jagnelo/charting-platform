@@ -49,7 +49,12 @@ describe('linked instrument tool stale-response guards', () => {
     const note = deferred<{ content: string; updated_at: string } | null>()
     apiGet.mockReturnValue(note.promise)
     const wrapper = mountNote({ props: { instrumentId: 1, symbol: 'SPY' } })
-    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/notes/instruments/1'))
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/notes/instruments/1', undefined, {
+      priority: 'auto',
+      queueKey: 'instrument-note:1',
+      signal: expect.any(AbortSignal),
+      foreground: false,
+    }))
     wrapper.unmount()
 
     note.resolve({ content: 'late note', updated_at: '2026-08-03T00:00:00Z' })
@@ -275,7 +280,9 @@ describe('linked instrument tool stale-response guards', () => {
     })
     const wrapper = mountAlerts({ props: { instrumentId: null, symbol: 'SPY' } })
     await vi.waitFor(() => expect(wrapper.text()).toContain('Breadth'))
-    expect(apiGet).toHaveBeenCalledWith('/alerts/screener')
+    expect(apiGet).toHaveBeenCalledWith('/alerts/screener', undefined, expect.objectContaining({
+      priority: 'auto', queueKey: 'workstation-alerts:screener', signal: expect.any(AbortSignal),
+    }))
   })
 
   it('deduplicates the shared alert bundle across linked tool windows', async () => {

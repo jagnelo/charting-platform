@@ -35,12 +35,12 @@
       </header>
       <main class="tc-app-main">
         <div class="tc-app-route-frame">
-          <router-view />
+          <router-view :key="routeViewKey" />
         </div>
         <StatusBar />
       </main>
     </template>
-    <router-view v-else />
+    <router-view v-else :key="routeViewKey" />
     <Notification />
   </div>
 </template>
@@ -51,17 +51,28 @@ import { useRoute } from 'vue-router'
 import { isSharedNavigationItemActive, sharedShellNavigation, usesSharedAppShell } from '@/router'
 import { useAuthStore } from '@/stores/auth'
 import { useAlertsStore } from '@/stores/alerts'
+import { authSessionEpochView } from '@/lib/authSession'
 import Notification from '@/components/common/Notification.vue'
 import StatusBar from '@/components/common/StatusBar.vue'
 
 const route = useRoute()
 const authStore = useAuthStore()
-const alertsStore = useAlertsStore()
+const sessionEpoch = authSessionEpochView()
+const alertsStore = computed(() => {
+  sessionEpoch.value
+  return useAlertsStore()
+})
+// Every login attempt advances the session epoch before its request is sent.
+// Keying the login route on that epoch would remount LoginView mid-submit and
+// drop a rejected attempt's error, so the public login route keeps one instance.
+const routeViewKey = computed(() => (route.path === '/login' ? 'login' : sessionEpoch.value))
 
 watch(() => authStore.isAuthenticated, (authenticated) => {
-  if (authenticated) alertsStore.connectWebSocket()
-  else alertsStore.disconnectWebSocket()
+  if (authenticated) alertsStore.value.connectWebSocket()
+  else alertsStore.value.disconnectWebSocket()
 }, { immediate: true })
+
+watch(sessionEpoch, () => authStore.syncTokensFromSessionBoundary())
 
 const usesSharedShell = computed(() => usesSharedAppShell(route.path))
 const navigationItems = sharedShellNavigation
@@ -317,10 +328,12 @@ body:has(#app .tc-legacy-app) :is([class*="-menu"],[class*="-results"],.row-drop
 #app .tc-legacy-app .tc-app-route-frame ::selection { background: #68b6e955; color: #f4f8fb; }
 #app .tc-legacy-app .tc-app-route-frame * { scrollbar-color: var(--tc-border-strong) var(--tc-window-bg); }
 
-@media (max-width: 900px) {
+@media (max-width: 1500px) {
   .tc-app-header { flex-wrap: wrap; gap: 6px 12px; padding: 8px 10px 0; }
   .tc-app-navigation { order: 3; flex-basis: 100%; }
   .tc-app-account { margin-left: auto; }
+}
+@media (max-width: 900px) {
   .tc-app-nav-link { min-height: 32px; padding: 0 8px; }
 }
 @media (max-width: 520px) {

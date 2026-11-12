@@ -1,8 +1,188 @@
+import { assertAuthSessionCurrent, AuthSessionChangedError, beginAuthSessionBoundary, captureAuthSession } from '@/lib/authSession'
+
 /**
  * Authenticated API client with automatic token refresh on 401.
  */
 const BASE = '/api/v1'
-export type ApiRequestOptions = { signal?: AbortSignal }
+export type ApiRequestPriority = RequestPriority
+export type ApiRequestOptions = { signal?: AbortSignal; priority?: ApiRequestPriority; queueKey?: string; foreground?: boolean }
+
+// Chromium only admits a small number of same-origin HTTP/1.1 requests at a
+// time. Admit work here so preparation creation and other non-interactive work
+// cannot occupy every slot ahead of a visible user action. Preparation keeps
+// its high queue/durable-job priority, but uses bounded background capacity.
+const API_TRANSPORT_LIMIT = 6
+const API_NON_INTERACTIVE_LIMIT = 5
+const API_LOW_PRIORITY_LIMIT = 4
+type ApiFetchPriority = NonNullable<ApiRequestOptions['priority']>
+interface AdmittedApiResponse { response: Response; release: () => void }
+
+interface QueuedApiFetch {
+  input: RequestInfo | URL
+  init: RequestInit
+  priority: ApiFetchPriority
+  foreground: boolean
+  queueKey?: string
+  resolve: (response: AdmittedApiResponse) => void
+  reject: (error: unknown) => void
+  abortListener?: () => void
+}
+
+const queuedApiFetches: QueuedApiFetch[] = []
+let activeApiFetches = 0
+let activeNonInteractiveApiFetches = 0
+let activeLowApiFetches = 0
+
+function usesNonInteractiveCapacity(queued: Pick<QueuedApiFetch, 'input' | 'init' | 'priority' | 'foreground'>): boolean {
+  if (queued.foreground) return false
+  if (queued.priority !== 'high') return true
+  const method = (queued.init.method ?? 'GET').toUpperCase()
+  const input = typeof queued.input === 'string'
+    ? queued.input
+    : queued.input instanceof URL ? queued.input.href : queued.input.url
+  const url = new URL(input, window.location.href)
+  const pathname = url.pathname
+  if (method === 'POST') return pathname === `${BASE}/data/ensure`
+
+  // High remains a logical ordering priority. Known workspace fanout classes
+  // use bounded capacity unless the caller marks explicit foreground intent.
+  // Small cached-row reads keep their existing interactive treatment below.
+  if (method !== 'GET') return false
+  if (pathname.startsWith(`${BASE}/ohlcv/local/`)) {
+    // Watchlist quote refreshes request a short 31-bar window; keep those
+    // visible cached-row reads interactive while bounding full chart history.
+    const limit = Number(url.searchParams.get('limit'))
+    if (Number.isFinite(limit) && limit < 100) return false
+  }
+  if (/^\/api\/v1\/instruments\/[^/]+$/.test(pathname) && !url.searchParams.has('canonical_only')) return true
+  if (/^\/api\/v1\/instrument-indicators\/[^/]+$/.test(pathname)) return true
+  return pathname.startsWith(`${BASE}/analysis/`)
+    || pathname.startsWith(`${BASE}/ohlcv/`)
+    || pathname.startsWith(`${BASE}/market-groups/`)
+    // A visible family can still fan out sizable profile/history reads on
+    // mount; keep them in bounded capacity unless callers mark user intent.
+    || pathname.startsWith(`${BASE}/etf-holdings/`)
+    || /^\/api\/v1\/baskets\/\d+\/ohlcv\//.test(pathname)
+}
+
+function apiAbortReason(signal: AbortSignal): unknown {
+  return signal.reason ?? new DOMException('The operation was aborted.', 'AbortError')
+}
+
+// A hidden document suspends market-analysis polling. Queued analysis reads
+// wait for visibility instead of starting while the workstation is hidden.
+function suspendedWhileHidden(queued: Pick<QueuedApiFetch, 'input' | 'init'>): boolean {
+  if (typeof document === 'undefined' || document.visibilityState !== 'hidden') return false
+  if ((queued.init.method ?? 'GET').toUpperCase() !== 'GET') return false
+  const input = typeof queued.input === 'string'
+    ? queued.input
+    : queued.input instanceof URL ? queued.input.href : queued.input.url
+  const pathname = new URL(input, window.location.href).pathname
+  return pathname.startsWith(`${BASE}/analysis/`) || pathname.startsWith(`${BASE}/market-groups/`)
+}
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'hidden') drainApiFetchQueue()
+  })
+}
+
+function nextAdmissibleFetchIndex(): number {
+  // Foreground is a scheduling intent separate from the durable/logical
+  // priority. A visible user action therefore precedes high-priority startup
+  // fanout that was queued earlier, while still using the same bounded slots.
+  const foregroundIndex = queuedApiFetches.findIndex(item => item.foreground && item.priority === 'high'
+    && !suspendedWhileHidden(item)
+    && (!usesNonInteractiveCapacity(item) || activeNonInteractiveApiFetches < API_NON_INTERACTIVE_LIMIT))
+  if (foregroundIndex !== -1) return foregroundIndex
+
+  const priorityOrder: ApiFetchPriority[] = ['high', 'auto', 'low']
+  for (const priority of priorityOrder) {
+    if (priority === 'auto' && activeNonInteractiveApiFetches >= API_NON_INTERACTIVE_LIMIT) continue
+    if (priority === 'low' && (activeNonInteractiveApiFetches >= API_NON_INTERACTIVE_LIMIT || activeLowApiFetches >= API_LOW_PRIORITY_LIMIT)) continue
+    const index = queuedApiFetches.findIndex(item => item.priority === priority
+      && !suspendedWhileHidden(item)
+      && (!usesNonInteractiveCapacity(item) || activeNonInteractiveApiFetches < API_NON_INTERACTIVE_LIMIT))
+    if (index !== -1) return index
+  }
+  return -1
+}
+
+function drainApiFetchQueue(): void {
+  while (activeApiFetches < API_TRANSPORT_LIMIT) {
+    const index = nextAdmissibleFetchIndex()
+    if (index === -1) return
+    const [queued] = queuedApiFetches.splice(index, 1)
+    const signal = queued.init.signal
+    if (signal?.aborted) {
+      if (queued.abortListener) signal.removeEventListener('abort', queued.abortListener)
+      queued.reject(apiAbortReason(signal))
+      continue
+    }
+    if (queued.abortListener) signal?.removeEventListener('abort', queued.abortListener)
+    const usesNonInteractive = usesNonInteractiveCapacity(queued)
+    activeApiFetches += 1
+    if (usesNonInteractive) activeNonInteractiveApiFetches += 1
+    if (queued.priority === 'low') activeLowApiFetches += 1
+    let released = false
+    const release = () => {
+      if (released) return
+      released = true
+      activeApiFetches -= 1
+      if (usesNonInteractive) activeNonInteractiveApiFetches -= 1
+      if (queued.priority === 'low') activeLowApiFetches -= 1
+      drainApiFetchQueue()
+    }
+    void Promise.resolve().then(() => fetch(queued.input, queued.init)).then(
+      response => queued.resolve({ response, release }),
+      error => {
+        release()
+        queued.reject(error)
+      },
+    )
+  }
+}
+
+function admittedApiFetch(
+  input: RequestInfo | URL,
+  init: RequestInit,
+  priority: ApiFetchPriority = 'auto',
+  queueKey?: string,
+  foreground = false,
+): Promise<AdmittedApiResponse> {
+  const signal = init.signal
+  if (signal?.aborted) return Promise.reject(apiAbortReason(signal))
+  return new Promise((resolve, reject) => {
+    const queued: QueuedApiFetch = { input, init, priority, foreground: foreground && priority === 'high', queueKey, resolve, reject }
+    if (signal) {
+      queued.abortListener = () => {
+        const index = queuedApiFetches.indexOf(queued)
+        if (index < 0) return
+        queuedApiFetches.splice(index, 1)
+        signal.removeEventListener('abort', queued.abortListener!)
+        reject(apiAbortReason(signal))
+        drainApiFetchQueue()
+      }
+      signal.addEventListener('abort', queued.abortListener, { once: true })
+    }
+    queuedApiFetches.push(queued)
+    drainApiFetchQueue()
+  })
+}
+
+/** Promote an already queued exact request when its docked surface becomes visible. */
+export function setQueuedApiRequestPriority(queueKey: string, priority: ApiRequestPriority, foreground = false): boolean {
+  const queued = queuedApiFetches.find(item => item.queueKey === queueKey)
+  const priorityRank: Record<ApiRequestPriority, number> = { low: 0, auto: 1, high: 2 }
+  if (!queued) return false
+  const nextPriority = priorityRank[priority] > priorityRank[queued.priority] ? priority : queued.priority
+  const promoteForeground = foreground && nextPriority === 'high' && !queued.foreground
+  if (nextPriority === queued.priority && !promoteForeground) return false
+  queued.priority = nextPriority
+  queued.init.priority = nextPriority
+  queued.foreground ||= promoteForeground
+  drainApiFetchQueue()
+  return true
+}
 
 export class ApiError extends Error {
   readonly status: number
@@ -44,25 +224,41 @@ function getToken(): string | null {
 }
 
 export async function refreshAccessToken(): Promise<string | null> {
+  const session = captureAuthSession()
   const refreshToken = localStorage.getItem('refresh_token')
   if (!refreshToken) {
     clearTokens()
+    beginAuthSessionBoundary()
     return null
   }
 
-  const res = await fetch(`${BASE}/auth/refresh?refresh_token=${encodeURIComponent(refreshToken)}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-  })
+  const controller = new AbortController()
+  const abortForSession = () => controller.abort()
+  session.signal.addEventListener('abort', abortForSession, { once: true })
+  let admitted: AdmittedApiResponse | undefined
+  try {
+    admitted = await admittedApiFetch(`${BASE}/auth/refresh?refresh_token=${encodeURIComponent(refreshToken)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
+    }, 'high')
+    assertAuthSessionCurrent(session)
+    const res = admitted.response
+    if (!res.ok) {
+      await res.text()
+      clearTokens()
+      beginAuthSessionBoundary()
+      return null
+    }
 
-  if (!res.ok) {
-    clearTokens()
-    return null
+    const tokens: TokenPair = await res.json()
+    assertAuthSessionCurrent(session)
+    setTokens(tokens)
+    return tokens.access_token
+  } finally {
+    admitted?.release()
+    session.signal.removeEventListener('abort', abortForSession)
   }
-
-  const tokens: TokenPair = await res.json()
-  setTokens(tokens)
-  return tokens.access_token
 }
 
 async function request<T>(
@@ -73,6 +269,7 @@ async function request<T>(
   retry = true,
   options?: ApiRequestOptions,
 ): Promise<T> {
+  const session = captureAuthSession()
   let url = `${BASE}${path}`
   if (params && Object.keys(params).length) {
     const qs = new URLSearchParams(
@@ -91,26 +288,61 @@ async function request<T>(
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (token) headers['Authorization'] = `Bearer ${token}`
 
-  const opts: RequestInit = { method, headers, signal: options?.signal }
+  const controller = new AbortController()
+  const abortForSession = () => controller.abort()
+  const abortForCaller = () => controller.abort(options?.signal?.reason)
+  session.signal.addEventListener('abort', abortForSession, { once: true })
+  options?.signal?.addEventListener('abort', abortForCaller, { once: true })
+  if (session.signal.aborted) abortForSession()
+  if (options?.signal?.aborted) abortForCaller()
+  const opts: RequestInit = { method, headers, signal: controller.signal }
+  // User-initiated writes must reach transport while high-priority
+  // preparation creation occupies the bounded non-interactive lane.
+  // Background writes can still explicitly choose auto/low.
+  const requestPriority = options?.priority ?? (method.toUpperCase() === 'GET' ? 'auto' : 'high')
+  if (options?.priority || method.toUpperCase() !== 'GET') opts.priority = requestPriority
   if (body !== undefined) opts.body = JSON.stringify(body)
 
-  const res = await fetch(url, opts)
+  let admitted: AdmittedApiResponse | undefined
+  try {
+    admitted = await admittedApiFetch(url, opts, requestPriority, options?.queueKey, options?.foreground)
+    const res = admitted.response
+    assertAuthSessionCurrent(session)
 
-  if (res.status === 401 && retry && !path.startsWith('/auth/')) {
-    const newToken = await refreshAccessToken()
-    if (newToken) {
-      return request<T>(method, path, body, params, false, options)
+    if (res.status === 401 && retry && !path.startsWith('/auth/')) {
+      await res.text()
+      admitted.release()
+      admitted = undefined
+      const newToken = await refreshAccessToken()
+      assertAuthSessionCurrent(session)
+      if (newToken) {
+        return request<T>(method, path, body, params, false, options)
+      }
+      throw new Error('Authentication required')
     }
-    throw new Error('Authentication required')
-  }
 
-  if (!res.ok) {
-    const text = await res.text()
-    throw new ApiError(method, path, res.status, text)
-  }
+    if (!res.ok) {
+      const text = await res.text()
+      assertAuthSessionCurrent(session)
+      throw new ApiError(method, path, res.status, text)
+    }
 
-  if (res.status === 204) return undefined as T
-  return res.json() as Promise<T>
+    if (res.status === 204) return undefined as T
+    const payload = await res.json() as T
+    assertAuthSessionCurrent(session)
+    return payload
+  } catch (error) {
+    // Fetch rejects with a browser-native AbortError when logout or another
+    // account boundary aborts its session signal. Normalize that expected
+    // cancellation at the API boundary so consumers can handle it as the
+    // typed auth-session transition rather than logging an opaque fetch error.
+    if (session.signal.aborted) throw new AuthSessionChangedError()
+    throw error
+  } finally {
+    admitted?.release()
+    session.signal.removeEventListener('abort', abortForSession)
+    options?.signal?.removeEventListener('abort', abortForCaller)
+  }
 }
 
 export const api = {

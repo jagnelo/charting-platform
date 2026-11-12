@@ -80,8 +80,19 @@
       </div>
 
       <span v-if="store.instrument?.name" class="psym-name">{{ store.instrument.name }}</span>
-      <span v-if="historyProgress" class="panel-history-status" role="status" aria-live="polite">{{ historyProgress }}</span>
-      <span v-if="historyError" class="panel-history-status panel-history-status--error" role="alert">{{ historyError }}</span>
+      <CompactStatusNotice
+        v-if="historyProgress"
+        class="panel-history-status"
+        :summary="preparationMessageSummary(historyProgress, 'History')"
+        :detail="historyProgress"
+      />
+      <CompactStatusNotice
+        v-if="historyError"
+        class="panel-history-status panel-history-status--error"
+        kind="alert"
+        summary="History update failed"
+        :detail="historyError"
+      />
 
       <TimeframeSelector v-if="store.symbol" v-model="localTf" class="panel-tf" />
     </div>
@@ -105,11 +116,13 @@ import { usePanelStore }   from '@/stores/chart'
 import { useLayoutStore }  from '@/stores/layout'
 import { usePanelLinksStore, PANEL_LINK_GROUPS } from '@/stores/panelLinks'
 import { useDrawingsStore } from '@/stores/drawings'
+import CompactStatusNotice from '@/components/common/CompactStatusNotice.vue'
 import { useAlertsStore } from '@/stores/alerts'
 import TimeframeSelector from '@/components/chart/TimeframeSelector.vue'
 import SearchBar from '@/components/common/SearchBar.vue'
 import UPlotChart        from '@/components/chart/UPlotChart.vue'
-import { acquireSelectedHistory, defaultHistoryRange, type InstrumentAcquireResponse, type SelectedHistoryStage } from '@/lib/onDemandAcquisition'
+import { type InstrumentAcquireResponse } from '@/lib/onDemandAcquisition'
+import { dataPreparationCoordinator, instrumentHistoryPreparationRequest, isPreparationTimeframe, PreparationProgressRefreshQueue, preparationMessageSummary, preparationStatusMessage, type DataEnsureResponse } from '@/lib/dataPreparation'
 import type { Timeframe } from '@/types'
 
 const props = defineProps<{ panelId: string }>()
@@ -140,7 +153,9 @@ const linkMenuId = `panel-link-menu-${props.panelId}`
 const symbolSearchResultsId = `chart-panel-search-results-${props.panelId}`
 let lifecycleGeneration = 0
 let selectionGeneration = 0
+let panelMounted = false
 let selectedHistoryAbortController: AbortController | null = null
+let activeHistoryScopeKey: string | null = null
 const historyProgress = ref('')
 const historyError = ref('')
 
@@ -180,13 +195,16 @@ function handleClickOutside(e: MouseEvent) {
 
 onMounted(() => {
   lifecycleGeneration += 1
+  panelMounted = true
   document.addEventListener('mousedown', handleClickOutside)
 })
 onUnmounted(() => {
+  panelMounted = false
   lifecycleGeneration += 1
   selectionGeneration += 1
   selectedHistoryAbortController?.abort()
   selectedHistoryAbortController = null
+  activeHistoryScopeKey = null
   document.removeEventListener('mousedown', handleClickOutside)
 })
 
@@ -204,15 +222,16 @@ async function onSymbolSelect(
   const generation = lifecycleGeneration
   const selection = ++selectionGeneration
   selectedHistoryAbortController?.abort()
-  const historyController = new AbortController()
-  selectedHistoryAbortController = historyController
+  selectedHistoryAbortController = null
+  activeHistoryScopeKey = null
   const selectedTimeframe = localTf.value
   historyProgress.value = ''
   historyError.value = ''
   layoutStore.updatePanel(props.panelId, { symbol, timeframe: selectedTimeframe })
+  if (acquireHistory) {
+    startPanelHistoryPreparation(symbol, selectedTimeframe, generation, selection, confirmedIdentity)
+  }
   // A deliberate symbol selection may request missing history for this panel.
-  // Layout restoration and timeframe changes remain local-only.
-  if (acquireHistory) void acquirePanelHistory(symbol, selectedTimeframe, generation, selection, confirmedIdentity, historyController.signal)
   const targetIds = panelLinks.linkedPanelIds(props.panelId, layoutStore.panels.map(p => p.id))
   for (const id of targetIds) {
     if (!isCurrent(generation, selection)) return
@@ -231,6 +250,29 @@ async function onSymbolSelect(
   }
 }
 
+function startPanelHistoryPreparation(
+  symbol: string,
+  timeframe: Timeframe,
+  generation: number,
+  selection: number,
+  confirmedIdentity?: InstrumentAcquireResponse,
+) {
+  const normalized = symbol.trim().toUpperCase()
+  if (!normalized || normalized.startsWith('=') || !isPreparationTimeframe(timeframe)) return
+  const scopeKey = JSON.stringify([normalized, timeframe])
+  if (selectedHistoryAbortController && !selectedHistoryAbortController.signal.aborted && activeHistoryScopeKey === scopeKey) return
+  selectedHistoryAbortController?.abort()
+  const controller = new AbortController()
+  selectedHistoryAbortController = controller
+  activeHistoryScopeKey = scopeKey
+  void acquirePanelHistory(normalized, timeframe, generation, selection, confirmedIdentity, controller.signal).finally(() => {
+    if (selectedHistoryAbortController === controller) {
+      selectedHistoryAbortController = null
+      activeHistoryScopeKey = null
+    }
+  })
+}
+
 async function acquirePanelHistory(
   symbol: string,
   timeframe: Timeframe,
@@ -247,74 +289,64 @@ async function acquirePanelHistory(
       && panel?.symbol.trim().toUpperCase() === normalized
       && panel.timeframe === timeframe
   }
-  const range = defaultHistoryRange(timeframe)
-  const stageMessage = (stage: SelectedHistoryStage, retryAt?: string) => {
-    if (!isSelectedScope()) return
-    historyProgress.value = stage === 'waiting'
-      ? `Waiting to retry ${timeframe} history for ${normalized} after ${new Date(retryAt!).toLocaleTimeString()}…`
-      : stage === 'coverage'
-        ? `Checking local ${timeframe} history for ${normalized}…`
-        : stage === 'identity'
-          ? `Confirming ${normalized}…`
-          : `Loading missing ${timeframe} history for ${normalized}…`
+  if (!isPreparationTimeframe(timeframe)) {
+    if (isSelectedScope()) historyError.value = `Automatic history preparation is unavailable for ${timeframe}.`
+    return
   }
+  const confirmedId = confirmedIdentity?.status === 'resolved'
+    && confirmedIdentity.instrument?.symbol.trim().toUpperCase() === normalized
+    && Number.isSafeInteger(confirmedIdentity.instrument.instrument_id)
+    && confirmedIdentity.instrument.instrument_id > 0
+    ? confirmedIdentity.instrument.instrument_id
+    : null
+  const cachedId = store.instrument?.symbol.trim().toUpperCase() === normalized
+    && Number.isSafeInteger(store.instrument.id)
+    && store.instrument.id > 0
+    ? store.instrument.id
+    : null
+  const target = confirmedId != null || cachedId != null
+    ? { kind: 'instrument' as const, instrument_id: confirmedId ?? cachedId! }
+    : { kind: 'instrument' as const, symbol: normalized }
+  const refreshQueue = new PreparationProgressRefreshQueue()
+  const hasUsableHistory = (response: DataEnsureResponse) => response.dependencies.some(dependency =>
+    dependency.dataset === 'history'
+    && (dependency.covered_ranges.length > 0 || (dependency.covered_start !== null && dependency.covered_end !== null)),
+  )
+  const refreshCurrentPanel = async () => {
+    if (!isSelectedScope()
+      || store.symbol.trim().toUpperCase() !== normalized
+      || store.timeframe !== timeframe) return
+    await store.refreshLocalBars()
+  }
+  const refreshForProgress = (response: DataEnsureResponse) => refreshQueue.request(response, refreshCurrentPanel)
   try {
-    const outcome = await acquireSelectedHistory(
-      normalized,
-      timeframe,
-      true,
-      { timeframe, adjusted: true, start: range.start, end: range.end },
-      stageMessage,
-      isSelectedScope,
-      confirmedIdentity ? Promise.resolve(confirmedIdentity) : undefined,
-      { signal },
+    const result = await dataPreparationCoordinator.ensure(
+      instrumentHistoryPreparationRequest(target, timeframe, true),
+      {
+        signal,
+        onProgress: ({ response, completed, total }) => {
+          if (!isSelectedScope()) return
+          historyProgress.value = response.status === 'ready'
+            ? `Refreshing available ${timeframe} history for ${normalized}…`
+            : response.status === 'partial' && response.has_pending_work === false
+              ? preparationStatusMessage(response)
+              : `Preparing admitted ${timeframe} history for ${normalized} (${completed}/${total})…`
+          if (hasUsableHistory(response)) {
+            void refreshForProgress(response).catch(() => {
+              if (isSelectedScope()) historyError.value = `Available ${timeframe} history for ${normalized} could not be refreshed; saved bars remain visible.`
+            })
+          }
+        },
+      },
     )
-    if (!isSelectedScope() || outcome.kind === 'superseded') return
-    if (outcome.kind === 'already-covered') {
-      historyProgress.value = `Local ${timeframe} history is available for ${normalized}.`
-      return
-    }
-    if (outcome.kind === 'identity-unavailable') {
-      historyProgress.value = outcome.status === 'held'
-        ? `History for ${normalized} is currently unavailable; saved chart data remains visible.`
-        : `The canonical identity for ${normalized} could not be confirmed; no history was requested.`
-      return
-    }
-    if (outcome.kind === 'admission-held') {
-      historyProgress.value = `History for ${normalized} is temporarily held; saved chart data remains visible.`
-      return
-    }
-    if (outcome.kind === 'admission-unavailable') {
-      historyProgress.value = `The allowed history window for ${normalized} could not be confirmed; saved chart data remains visible.`
-      return
-    }
-    if (outcome.kind === 'coverage-unavailable') {
-      historyProgress.value = `Saved history coverage for ${normalized} could not be confirmed; saved chart data remains visible.`
-      return
-    }
-    if (outcome.kind === 'at-earliest-bound') {
-      historyProgress.value = `The available ${timeframe} history for ${normalized} begins ${new Date(outcome.earliestStart).toLocaleDateString()}.`
-      return
-    }
-    const result = outcome.result
-    historyProgress.value = result.status === 'complete'
-      ? `Loaded ${result.coverage.bar_count} local ${timeframe} bars for ${normalized}.`
-      : result.status === 'partial'
-        ? `Some ${timeframe} history for ${normalized} loaded; the rest remains unavailable.`
-        : result.status === 'held'
-          ? `History for ${normalized} is currently unavailable; saved chart data remains visible.`
-          : result.status === 'no_data'
-            ? `No ${timeframe} history is available for ${normalized}; saved chart data remains visible.`
-            : `History for ${normalized} could not be loaded; saved chart data remains visible.`
-    if ((result.status === 'complete' || result.status === 'partial')
-      && isSelectedScope()
-      && store.symbol.trim().toUpperCase() === normalized
-      && store.timeframe === timeframe) {
-      await store.refreshLocalBars()
-    }
-  } catch {
-    if (isSelectedScope()) {
-      historyError.value = `History for ${normalized} could not be checked or loaded; saved chart data remains visible.`
+    if (!isSelectedScope() || signal?.aborted) return
+    historyProgress.value = result.status === 'ready'
+      ? `The admitted ${timeframe} history for ${normalized} is available locally.`
+      : preparationStatusMessage(result)
+    if (hasUsableHistory(result)) await refreshForProgress(result)
+  } catch (cause) {
+    if (isSelectedScope() && !signal?.aborted) {
+      historyError.value = `History for ${normalized} could not be prepared; saved chart data remains visible.`
     }
   }
 }
@@ -322,10 +354,15 @@ async function acquirePanelHistory(
 watch(localTf, async (tf) => {
   selectedHistoryAbortController?.abort()
   selectedHistoryAbortController = null
+  activeHistoryScopeKey = null
   const generation = lifecycleGeneration
   const selection = ++selectionGeneration
   layoutStore.updatePanel(props.panelId, { timeframe: tf })
   if (!store.symbol) return
+  const symbol = store.symbol.trim().toUpperCase()
+  if (symbol && !symbol.startsWith('=') && !store.instrument?.is_synthetic) {
+    startPanelHistoryPreparation(symbol, tf, generation, selection)
+  }
   await store.loadBars(store.symbol, tf)
   if (!isCurrent(generation, selection)) return
   if (store.instrument) {
@@ -333,6 +370,17 @@ watch(localTf, async (tf) => {
     if (!isCurrent(generation, selection)) return
     await alertsStore.loadAlerts(store.instrument.id)
   }
+})
+
+// A linked panel may be selected by a sibling chart. Each mounted pane prepares
+// its own timeframe as soon as the shared selection reaches its local store.
+watch([() => store.symbol, () => store.timeframe], ([symbol, timeframe]) => {
+  if (!panelMounted) return
+  const normalized = symbol.trim().toUpperCase()
+  const panel = panelConfig.value
+  if (!normalized || normalized.startsWith('=') || store.instrument?.is_synthetic
+    || panel?.symbol.trim().toUpperCase() !== normalized || panel.timeframe !== timeframe) return
+  startPanelHistoryPreparation(normalized, timeframe, lifecycleGeneration, selectionGeneration)
 })
 
 // Cross-panel cursor sync: when another panel moves the cursor, jump here too
@@ -351,6 +399,10 @@ onMounted(async () => {
   const selection = ++selectionGeneration
   const cfg = panelConfig.value
   if (cfg?.symbol) {
+    const symbol = cfg.symbol.trim().toUpperCase()
+    if (symbol && !symbol.startsWith('=') && !store.instrument?.is_synthetic) {
+      startPanelHistoryPreparation(symbol, cfg.timeframe, generation, selection)
+    }
     await store.loadBars(cfg.symbol, cfg.timeframe)
     if (!isCurrent(generation, selection)) return
     if (store.instrument) {

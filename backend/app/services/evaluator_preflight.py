@@ -24,6 +24,7 @@ from app.services.ohlcv_coverage import (
     CalendarName,
     CoverageStatus,
     assess_ohlcv_coverage,
+    observed_daily_session_bounds,
 )
 
 EvaluatorPreflightStatus = Literal[
@@ -190,8 +191,8 @@ async def preflight_ohlcv(
     items: list[EvaluatorCoverageItem] = []
     for instrument_id in ordered_ids:
         bars = bars_by_instrument.get(instrument_id, [])
-        observed_start = _as_utc(bars[0].ts) if bars else None
-        observed_end = _as_utc(bars[-1].ts) if bars else None
+        observed_start = min((_as_utc(bar.ts) for bar in bars), default=None)
+        observed_end = max((_as_utc(bar.ts) for bar in bars), default=None)
         required_start = _as_utc(date_from) if date_from else observed_start
         required_end = _as_utc(date_to) if date_to else observed_end
 
@@ -203,19 +204,28 @@ async def preflight_ohlcv(
             covered_end = observed_end
             bar_count = len(bars)
         else:
-            assessment = assess_ohlcv_coverage(
-                bars,
+            resolved_calendar = (
+                calendar_by_instrument.get(instrument_id)
+                if calendar_by_instrument is not None
+                else calendar
+            )
+            assessment_start, assessment_end = observed_daily_session_bounds(
                 timeframe,
                 required_start,
                 required_end,
+                observed_start,
+                observed_end,
+                calendar=resolved_calendar,
+            )
+            assessment = assess_ohlcv_coverage(
+                bars,
+                timeframe,
+                assessment_start,
+                assessment_end,
                 mode=mode,
                 freshness_seconds=freshness_seconds,
                 now=observed_at,
-                calendar=(
-                    calendar_by_instrument.get(instrument_id)
-                    if calendar_by_instrument is not None
-                    else calendar
-                ),
+                calendar=resolved_calendar,
             )
             status = assessment.status
             missing_slices = assessment.missing_slices

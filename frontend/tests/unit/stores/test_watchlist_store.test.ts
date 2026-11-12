@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
+const setQueuedApiRequestPriority = vi.hoisted(() => vi.fn())
 vi.mock('@/lib/api', () => ({
   api: {
     get: vi.fn(),
@@ -8,9 +9,11 @@ vi.mock('@/lib/api', () => ({
     patch: vi.fn(),
     delete: vi.fn(),
   },
+  setQueuedApiRequestPriority,
 }))
 
-import { api } from '@/lib/api'
+import { api, setQueuedApiRequestPriority as promoteQueuedRequest } from '@/lib/api'
+import { AuthSessionChangedError } from '@/lib/authSession'
 import { useWatchlistStore } from '@/stores/watchlist'
 
 function makeWatchlist() {
@@ -55,6 +58,37 @@ describe('useWatchlistStore', () => {
 
     await expect(store.deleteWatchlist(2)).resolves.toBe(true)
     expect(store.watchlists.some(w => w.id === 2)).toBe(false)
+  })
+
+  it('promotes an already queued foreground list read without duplicating it', async () => {
+    const store = useWatchlistStore()
+    let resolveList!: (value: ReturnType<typeof makeWatchlist>[]) => void
+    ;(api.get as ReturnType<typeof vi.fn>).mockReturnValueOnce(new Promise(resolve => { resolveList = resolve }))
+
+    const backgroundRead = store.loadWatchlists('low')
+    const foregroundRead = store.loadWatchlists('high')
+
+    expect(api.get).toHaveBeenCalledTimes(1)
+    expect(api.get).toHaveBeenCalledWith('/watchlists', undefined, { priority: 'low', queueKey: 'watchlists:list' })
+    expect(promoteQueuedRequest).toHaveBeenCalledWith('watchlists:list', 'high')
+    resolveList([makeWatchlist()])
+    await Promise.all([backgroundRead, foregroundRead])
+    expect(store.watchlists).toHaveLength(1)
+  })
+
+  it('promotes the canonical universe list when a hidden Market Map becomes visible', async () => {
+    const store = useWatchlistStore()
+    let resolveSources!: (value: any[]) => void
+    ;(api.get as ReturnType<typeof vi.fn>).mockReturnValueOnce(new Promise(resolve => { resolveSources = resolve }))
+
+    const backgroundRead = store.loadWatchlistSources('low')
+    const foregroundRead = store.loadWatchlistSources('high')
+
+    expect(api.get).toHaveBeenCalledTimes(1)
+    expect(api.get).toHaveBeenCalledWith('/watchlists/sources', undefined, { priority: 'low', queueKey: 'watchlists:sources' })
+    expect(promoteQueuedRequest).toHaveBeenCalledWith('watchlists:sources', 'high')
+    resolveSources([])
+    await Promise.all([backgroundRead, foregroundRead])
   })
 
   it('loads unified source descriptors and resolves a dated managed universe', async () => {
@@ -300,7 +334,9 @@ describe('useWatchlistStore', () => {
       await store.loadWatchlists()
       channels[0]?.onmessage?.({ data: { type: 'watchlists-changed' } } as MessageEvent<{ type: string }>)
       await vi.waitFor(() => expect(store.watchlists[0]?.name).toBe('Reloaded'))
-      expect(api.get).toHaveBeenLastCalledWith('/watchlists')
+      expect(api.get).toHaveBeenLastCalledWith('/watchlists', undefined, {
+        priority: 'auto', queueKey: 'watchlists:list',
+      })
     } finally {
       if (originalChannel === undefined) delete (globalThis as typeof globalThis & { BroadcastChannel?: unknown }).BroadcastChannel
       else Object.defineProperty(globalThis, 'BroadcastChannel', { configurable: true, value: originalChannel })
@@ -343,6 +379,30 @@ describe('useWatchlistStore', () => {
 
     expect(store.watchlists).toHaveLength(1)
     expect(store.watchlists[0]?.items[0]?.symbol).toBe('NVDA')
+  })
+
+  it('keeps an auth-boundary abort quiet but still reports unrelated aborts', async () => {
+    const store = useWatchlistStore()
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    try {
+      ;(api.get as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new AuthSessionChangedError())
+      await store.loadWatchlists()
+
+      expect(consoleError).not.toHaveBeenCalled()
+      expect(store.loadError).toBe('')
+      expect(store.loading).toBe(false)
+
+      const unrelatedAbort = new Error('User cancelled the request.')
+      unrelatedAbort.name = 'AbortError'
+      ;(api.get as ReturnType<typeof vi.fn>).mockRejectedValueOnce(unrelatedAbort)
+      await store.loadWatchlists()
+
+      expect(consoleError).toHaveBeenCalledTimes(1)
+      expect(consoleError).toHaveBeenCalledWith('Failed to load watchlists', unrelatedAbort)
+      expect(store.loadError).toContain('User cancelled the request.')
+    } finally {
+      consoleError.mockRestore()
+    }
   })
 
   it('falls back to storage events when BroadcastChannel is unavailable', async () => {
@@ -411,6 +471,101 @@ describe('useWatchlistStore', () => {
     await store.fetchPrices(['spy'], false, true)
     expect(api.get).toHaveBeenCalledWith('/ohlcv/local/SPY/D1', { limit: 31 })
     expect(store.priceMap.SPY.close).toBe(11)
+  })
+
+  it('forwards the active Workstation quote priority to the shared API admission layer', async () => {
+    ;(api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce([
+      { open: 10, high: 11, low: 9, close: 10, volume: 100 },
+      { open: 10, high: 12, low: 9, close: 11, volume: 120 },
+    ])
+    const store = useWatchlistStore()
+    await store.fetchPrices(['spy'], false, true, 'high')
+
+    expect(api.get).toHaveBeenCalledWith('/ohlcv/local/SPY/D1', { limit: 31 }, {
+      priority: 'high', queueKey: 'watchlist-price:local:SPY',
+    })
+    expect(store.priceMap.SPY.close).toBe(11)
+  })
+
+  it('promotes a shared queued local quote when a visible watchlist joins the read', async () => {
+    const store = useWatchlistStore()
+    let resolveBars!: (bars: Array<{ open: number; high: number; low: number; close: number; volume: number }>) => void
+    ;(api.get as ReturnType<typeof vi.fn>).mockReturnValueOnce(new Promise<Array<{ open: number; high: number; low: number; close: number; volume: number }>>(resolve => {
+      resolveBars = resolve
+    }))
+
+    const lowPriority = store.fetchPrices(['SPY'], false, true, 'low')
+    const visiblePriority = store.fetchPrices(['SPY'], false, true, 'high')
+
+    expect(api.get).toHaveBeenCalledTimes(1)
+    expect(promoteQueuedRequest).toHaveBeenCalledWith('watchlist-price:local:SPY', 'high')
+    resolveBars([
+      { open: 99, high: 101, low: 98, close: 100, volume: 1000 },
+      { open: 100, high: 103, low: 99, close: 102, volume: 1200 },
+    ])
+    await Promise.all([lowPriority, visiblePriority])
+    expect(store.priceMap.SPY.close).toBe(102)
+  })
+
+  it('does not demote a visible shared quote when a hidden watchlist joins', async () => {
+    const store = useWatchlistStore()
+    let resolveBars!: (bars: Array<{ open: number; high: number; low: number; close: number; volume: number }>) => void
+    ;(api.get as ReturnType<typeof vi.fn>).mockReturnValueOnce(new Promise<Array<{ open: number; high: number; low: number; close: number; volume: number }>>(resolve => {
+      resolveBars = resolve
+    }))
+
+    const visible = store.fetchPrices(['SPY'], false, true, 'high')
+    const hidden = store.fetchPrices(['SPY'], false, true, 'low')
+
+    expect(api.get).toHaveBeenCalledTimes(1)
+    expect(api.get).toHaveBeenCalledWith('/ohlcv/local/SPY/D1', { limit: 31 }, {
+      priority: 'high', queueKey: 'watchlist-price:local:SPY',
+    })
+    expect(promoteQueuedRequest).not.toHaveBeenCalled()
+    resolveBars([
+      { open: 99, high: 101, low: 98, close: 100, volume: 1000 },
+      { open: 100, high: 103, low: 99, close: 102, volume: 1200 },
+    ])
+    await Promise.all([visible, hidden])
+  })
+
+  it('shares one local quote read across overlapping watchlist hydration triggers', async () => {
+    const store = useWatchlistStore()
+    let resolveBars!: (bars: Array<{ open: number; high: number; low: number; close: number; volume: number }>) => void
+    ;(api.get as ReturnType<typeof vi.fn>).mockReturnValueOnce(new Promise<Array<{ open: number; high: number; low: number; close: number; volume: number }>>(resolve => {
+      resolveBars = resolve
+    }))
+
+    const firstLoad = store.fetchPrices(['SPY'], false, true)
+    const secondLoad = store.fetchPrices(['SPY'], false, true)
+    expect(api.get).toHaveBeenCalledTimes(1)
+    expect(api.get).toHaveBeenCalledWith('/ohlcv/local/SPY/D1', { limit: 31 })
+
+    resolveBars([
+      { open: 99, high: 101, low: 98, close: 100, volume: 1000 },
+      { open: 100, high: 103, low: 99, close: 102, volume: 1200 },
+    ])
+    await Promise.all([firstLoad, secondLoad])
+    expect(store.priceMap.SPY).toMatchObject({ close: 102, prevClose: 100, pct: 0.02 })
+  })
+
+  it('does not publish an old-session quote response after the auth context resets', async () => {
+    const store = useWatchlistStore()
+    store.priceMap.SPY = { close: 98, prevClose: 97, pct: 1 / 97, updatedAt: 1 }
+    let resolveBars!: (bars: Array<{ open: number; high: number; low: number; close: number; volume: number }>) => void
+    ;(api.get as ReturnType<typeof vi.fn>).mockReturnValueOnce(new Promise<Array<{ open: number; high: number; low: number; close: number; volume: number }>>(resolve => {
+      resolveBars = resolve
+    }))
+
+    const pending = store.fetchPrices(['SPY'], false, true)
+    store.resetForAuthSessionBoundary()
+    expect(store.priceMap.SPY).toBeUndefined()
+    resolveBars([
+      { open: 99, high: 101, low: 98, close: 100, volume: 1000 },
+      { open: 100, high: 103, low: 99, close: 102, volume: 1200 },
+    ])
+    await pending
+    expect(store.priceMap.SPY).toBeUndefined()
   })
 
   it('propagates local-only mode when adding a workstation watchlist symbol', async () => {

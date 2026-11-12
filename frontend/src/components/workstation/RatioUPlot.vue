@@ -1,5 +1,5 @@
 <template>
-  <div ref="root" class="ratio-chart" :aria-busy="loading" :data-linked-timestamp="props.linkedTimestamp || undefined" @mousemove="releaseLinkedCursor">
+  <div ref="root" class="ratio-chart" :aria-busy="loading" :data-linked-timestamp="props.linkedTimestamp || undefined" :data-ratio-context="ratioContext" :data-ratio-point-count="finiteAlignedPointCount" @mousemove="releaseLinkedCursor">
     <div class="ratio-chart__legend">
       <strong>{{ ratioLabels }}</strong>
       <template v-if="editableBenchmarks">
@@ -7,10 +7,15 @@
         <button type="button" class="ratio-chart__add" aria-label="Add ratio comparison" @click="addBenchmark"><WorkstationGlyph kind="plus" /></button>
         <button v-for="benchmark in localBenchmarks" :key="benchmark" type="button" class="ratio-chart__chip" :aria-label="`Remove ratio comparison ${benchmark}`" :disabled="localBenchmarks.length <= 1" @click="removeBenchmark(benchmark)">{{ benchmark }} <WorkstationGlyph kind="close" /></button>
       </template>
-      <label>As of <input v-model="asOfDraft" type="date" aria-label="Ratio as of" /></label><span>{{ status }}</span>
+      <label>As of <input v-model="asOfDraft" type="date" aria-label="Ratio as of" /></label>
+      <CompactStatusNotice
+        class="ratio-chart__status"
+        :summary="legendStatusSummary"
+        :detail="legendStatus"
+      />
     </div>
     <div v-if="error" class="ratio-chart__state ratio-chart__state--error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</div>
-    <div v-else-if="!hasPoints" class="ratio-chart__state" role="status" aria-live="polite" aria-atomic="true">No aligned local bars.</div>
+    <div v-else-if="!hasPoints" class="ratio-chart__state" role="status" aria-live="polite" aria-atomic="true">{{ loading ? 'Checking ratio inputs…' : 'No aligned local bars.' }}</div>
     <div v-else ref="host" class="ratio-chart__host" />
     <small v-if="warning" class="ratio-chart__warning">{{ warning }}</small>
   </div>
@@ -21,7 +26,9 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
 import uPlot from 'uplot'
 import 'uplot/dist/uPlot.min.css'
-import { api } from '@/lib/api'
+import { api, type ApiRequestPriority } from '@/lib/api'
+import CompactStatusNotice from '@/components/common/CompactStatusNotice.vue'
+import { dataPreparationCoordinator, isPreparationTimeframe, preparationStatusMessage, PreparationProgressRefreshQueue, shouldRefreshAnalysisProgress, type DataEnsureResponse } from '@/lib/dataPreparation'
 import WorkstationGlyph from './WorkstationGlyph.vue'
 
 const props = withDefaults(defineProps<{
@@ -31,6 +38,7 @@ const props = withDefaults(defineProps<{
   asOf?: string | null
   linkedTimestamp?: string | null
   editableBenchmarks?: boolean
+  requestPriority?: ApiRequestPriority
 }>(), {
   timeframe: 'D1',
   asOf: null,
@@ -45,6 +53,27 @@ const series = ref<Array<{ benchmark: string; points: Array<{ timestamp: string;
 const error = ref<string | null>(null)
 const warning = ref<string | null>(null)
 const status = ref('Local adjusted')
+const warningsByBenchmark = ref<Record<string, string>>({})
+const preparationByBenchmark = ref<Record<string, string>>({})
+const analysisFailureByBenchmark = ref<Record<string, string>>({})
+const preparationMessage = computed(() => [
+  ...Object.entries(preparationByBenchmark.value).filter(([, message]) => message).map(([benchmark, message]) => `${benchmark}: ${message}`),
+  ...Object.entries(analysisFailureByBenchmark.value).map(([benchmark, message]) => `${benchmark}: ${message}`),
+].join(' · '))
+const legendStatus = computed(() => {
+  const localStatus = loading.value && !hasPoints.value ? 'Checking ratio inputs…' : status.value
+  if (!preparationMessage.value) return localStatus
+  // A preparation hold describes work that could not extend the local range;
+  // it must not hide the successful local calculation or its adjustment basis.
+  return hasPoints.value ? `${localStatus} · ${preparationMessage.value}` : preparationMessage.value
+})
+const legendStatusSummary = computed(() => {
+  const issueCount = Object.values(preparationByBenchmark.value).filter(Boolean).length
+    + Object.keys(analysisFailureByBenchmark.value).length
+  if (!issueCount) return loading.value && !hasPoints.value ? 'Checking ratio inputs…' : status.value
+  if (!hasPoints.value) return `${issueCount} ratio ${issueCount === 1 ? 'input' : 'inputs'} updating`
+  return `Local adjusted · ${issueCount} comparison ${issueCount === 1 ? 'needs attention' : 'updates'}`
+})
 const loading = ref(false)
 const asOfDraft = ref(props.asOf ? props.asOf.slice(0, 10) : '')
 let chart: uPlot | null = null
@@ -56,6 +85,10 @@ let applyingLinkedCursor = false
 let linkedCursorProgrammatic = Boolean(props.linkedTimestamp)
 let lastPublishedCursor: string | null = null
 let loadGeneration = 0
+let activeLoadController: AbortController | null = null
+let renderedRatioContext = ''
+let chartHostElement: HTMLElement | null = null
+let loadStartedBenchmarkKey = ''
 const documentVisible = ref(typeof document === 'undefined' || document.visibilityState !== 'hidden')
 const benchmarkDraft = ref('')
 function normalizeBenchmarks(values: unknown, symbol = props.symbol) {
@@ -80,7 +113,20 @@ const alignedTimestamps = computed(() => {
     .filter(timestamp => otherTimestamps.every(timestamps => timestamps.has(timestamp)))
     .sort()
 })
+const finiteAlignedPointCount = computed(() => {
+  const valuesByBenchmark = series.value.map(item => new Map(item.points.map(point => [point.timestamp, point.value])))
+  return alignedTimestamps.value.filter(timestamp => {
+    const values = valuesByBenchmark.map(values => values.get(timestamp))
+    return values.every(value => typeof value === 'number' && Number.isFinite(value))
+  }).length
+})
 const hasPoints = computed(() => alignedTimestamps.value.length > 0)
+const ratioContext = computed(() => JSON.stringify({
+  symbol: props.symbol.trim().toUpperCase(),
+  benchmarks: localBenchmarks.value.map(benchmark => benchmark.toUpperCase()),
+  timeframe: props.timeframe.toUpperCase(),
+  asOf: asOfDraft.value || null,
+}))
 const colors = ['#6bc0ef', '#e7b35b', '#aa86e8', '#5fc8a2']
 
 function persistBenchmarks(next: string[]) {
@@ -89,11 +135,19 @@ function persistBenchmarks(next: string[]) {
   localBenchmarks.value = normalized
   pendingBenchmarksKey = normalized.join(',')
   emit('configuration', { ratio_benchmarks: normalized })
+  void load()
 }
 
 function addBenchmark() {
   const value = benchmarkDraft.value.trim().toUpperCase()
   if (!value) return
+  // The active ratio set can already contain a symbol from linked/default
+  // configuration. Treat Add as idempotent in that case: a duplicate must not
+  // emit another workspace edit or restart every existing comparison read.
+  if (localBenchmarks.value.includes(value)) {
+    benchmarkDraft.value = ''
+    return
+  }
   persistBenchmarks([...localBenchmarks.value, value])
   benchmarkDraft.value = ''
 }
@@ -107,46 +161,195 @@ async function load() {
   if (!documentVisible.value) return
   const benchmarks = localBenchmarks.value
   if (!props.symbol || !benchmarks.length) return
+  loadStartedBenchmarkKey = benchmarks.join(',')
+  activeLoadController?.abort()
   const generation = ++loadGeneration
+  const controller = new AbortController()
+  activeLoadController = controller
   loading.value = true
   error.value = null
+  preparationByBenchmark.value = {}
   try {
-    const payloads = await Promise.all(benchmarks.map(async benchmark => ({
-      benchmark,
-      payload: await queryClient.fetchQuery<{
-        points: Array<{ timestamp: string; value: number }>
-        coverage: number
-        warnings: Array<{ message: string }>
-      }>({
-        queryKey: ['workstation', 'relative-strength', props.symbol.toUpperCase(), benchmark, props.timeframe, asOfTimestamp() ?? null, true],
-        queryFn: () => api.get('/analysis/relative-strength', {
-          symbol: props.symbol,
-          benchmark,
-          timeframe: props.timeframe,
+    if (!isPreparationTimeframe(props.timeframe)) throw new Error('This timeframe is not supported for ratio preparation.')
+    const timeframe = props.timeframe
+    const numerator = props.symbol.trim().toUpperCase()
+    const cutoff = asOfTimestamp() ?? null
+    const contextKey = JSON.stringify([numerator, timeframe, cutoff])
+    if (renderedRatioContext !== contextKey) {
+      series.value = []
+      warning.value = null
+      warningsByBenchmark.value = {}
+      analysisFailureByBenchmark.value = {}
+      renderedRatioContext = contextKey
+    } else {
+      const selectedBenchmarks = new Set(benchmarks.map(benchmark => benchmark.toUpperCase()))
+      series.value = series.value.filter(item => selectedBenchmarks.has(item.benchmark.toUpperCase()))
+      warningsByBenchmark.value = Object.fromEntries(Object.entries(warningsByBenchmark.value)
+        .filter(([benchmark]) => selectedBenchmarks.has(benchmark)))
+      analysisFailureByBenchmark.value = Object.fromEntries(Object.entries(analysisFailureByBenchmark.value)
+        .filter(([benchmark]) => selectedBenchmarks.has(benchmark)))
+    }
+    const isCurrent = () => generation === loadGeneration && !controller.signal.aborted
+    const queryKey = (benchmark: string) => ['workstation', 'relative-strength', numerator, benchmark.toUpperCase(), timeframe, cutoff, true]
+    const readRatios = async (selectedBenchmarks = benchmarks, fresh = false) => Promise.all(selectedBenchmarks.map(async benchmark => {
+      const key = queryKey(benchmark)
+      try {
+        if (fresh) await queryClient.invalidateQueries({ queryKey: key, exact: true, refetchType: 'none' })
+        const payload = await queryClient.fetchQuery<{
+          points: Array<{ timestamp: string; value: number }>
+          coverage: number
+          warnings: Array<{ message: string }>
+        }>({
+          queryKey: key,
+          queryFn: () => api.get('/analysis/relative-strength', {
+            symbol: numerator, benchmark, timeframe, adjusted: true,
+            ...(cutoff ? { as_of: cutoff } : {}),
+          }, { signal: controller.signal, priority: props.requestPriority ?? 'auto' }),
+          staleTime: fresh ? 0 : 30_000,
+        })
+        return { benchmark, payload, failed: false as const }
+      } catch {
+        return { benchmark, payload: null, failed: true as const }
+      }
+    }))
+    const applyRatios = async (payloads: Awaited<ReturnType<typeof readRatios>>) => {
+      if (!isCurrent()) return
+      const nextSeries = new Map(series.value.map(item => [item.benchmark.toUpperCase(), item]))
+      for (const item of payloads) {
+        const benchmarkKey = item.benchmark.toUpperCase()
+        if (item.failed || !item.payload) {
+          analysisFailureByBenchmark.value = {
+            ...analysisFailureByBenchmark.value,
+            [benchmarkKey]: 'This comparison is unavailable; other ratio curves remain available.',
+          }
+          continue
+        }
+        nextSeries.set(benchmarkKey, { benchmark: item.benchmark, points: item.payload.points, coverage: item.payload.coverage })
+        const pairWarnings = item.payload.warnings.map(itemWarning => itemWarning.message)
+        if (pairWarnings.length) warningsByBenchmark.value = { ...warningsByBenchmark.value, [benchmarkKey]: pairWarnings.join(' ') }
+        else {
+          const { [benchmarkKey]: _previousWarning, ...remainingWarnings } = warningsByBenchmark.value
+          warningsByBenchmark.value = remainingWarnings
+        }
+        const { [benchmarkKey]: _previousFailure, ...remainingFailures } = analysisFailureByBenchmark.value
+        analysisFailureByBenchmark.value = remainingFailures
+      }
+      series.value = [...nextSeries.values()]
+      warning.value = Object.entries(warningsByBenchmark.value).map(([benchmark, message]) => `${benchmark}: ${message}`).join(' ') || null
+      status.value = `${series.value.map(item => `${item.benchmark} ${(item.coverage * 100).toFixed(0)}%`).join(' · ') || 'No current ratio coverage'} overlap · local adjusted${cutoff ? ` · as of ${cutoff.slice(0, 10)}` : ''}`
+      if (payloads.some(item => !item.failed && item.payload)) error.value = null
+      await nextTick()
+      if (isCurrent()) draw()
+    }
+    const initialReads = new Map<string, Promise<void>>()
+    const refreshQueues = new Map(benchmarks.map(benchmark => [benchmark.toUpperCase(), new PreparationProgressRefreshQueue()]))
+    for (const benchmark of benchmarks) {
+      const key = benchmark.toUpperCase()
+      const initialRead = readRatios([benchmark]).then(applyRatios).catch(cause => {
+        if (!isCurrent() || cause?.name === 'AbortError') return
+        if (!series.value.length) error.value = 'Ratio data could not be loaded.'
+      })
+      initialReads.set(key, initialRead)
+    }
+    const refreshPair = (benchmark: string, response: DataEnsureResponse) => {
+      const key = benchmark.toUpperCase()
+      const queue = refreshQueues.get(key)!
+      return queue.request(response, async () => {
+        await initialReads.get(key)
+        if (!isCurrent() || !queue.isLatest(response)) return
+        const payloads = await readRatios([benchmark], true)
+        if (!isCurrent() || !queue.isLatest(response)) return
+        await applyRatios(payloads)
+      })
+    }
+    const preparation = Promise.all(benchmarks.map(async benchmark => {
+      const denominator = benchmark.trim().toUpperCase()
+      try {
+        const result = await dataPreparationCoordinator.ensure({
+          target: { kind: 'instrument', symbol: numerator },
+          datasets: ['identity', 'history'],
+          timeframe,
           adjusted: true,
-          ...(asOfTimestamp() ? { as_of: asOfTimestamp() } : {}),
-        }),
-        staleTime: 30_000,
-      }),
-    })))
-    if (generation !== loadGeneration) return
-    series.value = payloads.map(item => ({ benchmark: item.benchmark, points: item.payload.points, coverage: item.payload.coverage }))
-    warning.value = payloads.flatMap(item => item.payload.warnings.map(warning => `${item.benchmark}: ${warning.message}`)).join(' ')
-    status.value = `${payloads.map(item => `${item.benchmark} ${(item.payload.coverage * 100).toFixed(0)}%`).join(' · ')} overlap · local adjusted${asOfDraft.value ? ` · as of ${asOfDraft.value}` : ''}`
-    await nextTick()
-    draw()
+          end_at: cutoff,
+          analysis: { kind: 'ratio', legs: [{ symbol: numerator }, { symbol: denominator }] },
+        }, {
+          signal: controller.signal,
+          priority: props.requestPriority ?? 'auto',
+          onProgress: progress => {
+            if (!isCurrent()) return
+            preparationByBenchmark.value = {
+              ...preparationByBenchmark.value,
+              [denominator]: ['queued', 'running', 'partial'].includes(progress.response.status)
+                ? `Preparing ${numerator}/${denominator} inputs (${progress.completed}/${progress.total})…`
+                : preparationStatusMessage(progress.response),
+            }
+            if (shouldRefreshAnalysisProgress(progress.response)) {
+              void refreshPair(denominator, progress.response).catch(() => {
+                if (!isCurrent()) return
+                analysisFailureByBenchmark.value = {
+                  ...analysisFailureByBenchmark.value,
+                  [denominator]: 'This comparison could not be refreshed; other ratio curves remain available.',
+                }
+              })
+            }
+          },
+        })
+        if (isCurrent()) {
+          preparationByBenchmark.value = {
+            ...preparationByBenchmark.value,
+            [denominator]: result.status === 'ready' ? '' : preparationStatusMessage(result),
+          }
+        }
+        return result
+      } catch (cause: any) {
+        if (isCurrent() && cause?.name !== 'AbortError') {
+          preparationByBenchmark.value = {
+            ...preparationByBenchmark.value,
+            [denominator]: 'Preparation could not be completed; available local results remain visible.',
+          }
+        }
+        return null
+      }
+    })).then(async results => {
+      if (!isCurrent()) return
+      for (let index = 0; index < results.length; index += 1) {
+        const result = results[index]
+        const denominator = benchmarks[index].toUpperCase()
+        if (!result || result.status === 'ready') continue
+        preparationByBenchmark.value = {
+          ...preparationByBenchmark.value,
+          [denominator]: preparationStatusMessage(result),
+        }
+      }
+      // A terminal response may carry useful partial inputs. Refresh only its
+      // exact ratio pair; repeated terminal progress is deduplicated by version.
+      await Promise.all(results.map((result, index) => result
+        ? refreshPair(benchmarks[index], result).catch(() => undefined)
+        : Promise.resolve()))
+    }).catch(cause => {
+      if (isCurrent() && cause?.name !== 'AbortError') {
+        preparationByBenchmark.value = Object.fromEntries(benchmarks.map(benchmark => [benchmark.toUpperCase(), 'Preparation could not be completed; available local results remain visible.']))
+      }
+    })
+
+    await Promise.all([...initialReads.values(), preparation])
   } catch (cause: any) {
-    if (generation !== loadGeneration) return
-    series.value = []
-    error.value = cause?.message ?? 'Unable to calculate ratio'
+    if (generation !== loadGeneration || cause?.name === 'AbortError') return
+    if (!series.value.length) error.value = 'Ratio data could not be prepared or calculated.'
   } finally {
-    if (generation === loadGeneration) loading.value = false
+    if (generation === loadGeneration) {
+      loading.value = false
+      if (activeLoadController === controller) activeLoadController = null
+    }
   }
 }
 
 function handleVisibilityChange() {
   documentVisible.value = document.visibilityState !== 'hidden'
-  if (!documentVisible.value) loadGeneration += 1
+  if (!documentVisible.value) {
+    loadGeneration += 1
+    activeLoadController?.abort()
+  }
   else void load()
 }
 
@@ -176,6 +379,7 @@ watch(() => props.benchmarks.join(','), key => {
   if (pendingBenchmarksKey !== null) {
     if (key !== pendingBenchmarksKey) return
     pendingBenchmarksKey = null
+    if (key === loadStartedBenchmarkKey) return
   }
   localBenchmarks.value = normalizeBenchmarks(props.benchmarks)
   void load()
@@ -196,12 +400,23 @@ function seriesData(): uPlot.AlignedData {
 
 function draw() {
   if (!host.value || !hasPoints.value) return
-  const width = Math.max(180, host.value.clientWidth)
-  const height = Math.max(90, host.value.clientHeight)
+  const width = host.value.clientWidth
+  const height = host.value.clientHeight
+  const compactPlot = height < 160
+  // Golden Layout can briefly report a zero-sized inactive pane. Wait for the
+  // host's ResizeObserver instead of creating an oversized chart that clips
+  // its axes when the pane is revealed.
+  if (width <= 0 || height <= 0) return
+  if (chart && chartHostElement !== host.value) {
+    chart.destroy()
+    chart = null
+    chartHostElement = null
+  }
   const data = seriesData()
   if (chart && chart.series.length !== series.value.length + 1) {
     chart.destroy()
     chart = null
+    chartHostElement = null
   }
   if (chart) {
     chart.setData(data)
@@ -214,11 +429,21 @@ function draw() {
     // default HTML legend would render below the canvas and collide with the
     // warning/footer row in compact docked windows.
     legend: { show: false },
+    // Keep the date/value labels accurate while reclaiming default padding and
+    // gaps for the ratio data plane in compact docks.
+    padding: compactPlot ? [2, 4, 2, 4] : [4, 8, 4, 8],
     cursor: { drag: { x: true, y: false } },
     scales: { x: { time: true }, y: { auto: true } },
     axes: [
-      { stroke: '#70808b', grid: { stroke: '#26313a', width: 1 }, ticks: { stroke: '#40505a', width: 1 }, font: '10px Segoe UI' },
-      { stroke: '#9aabb6', grid: { stroke: '#26313a', width: 1 }, ticks: { stroke: '#40505a', width: 1 }, font: '10px Segoe UI' },
+      { stroke: '#70808b', size: compactPlot ? 14 : 18, gap: compactPlot ? 1 : 2, grid: { stroke: '#26313a', width: 1 }, ticks: { stroke: '#40505a', width: 1, size: compactPlot ? 2 : 3 }, font: compactPlot ? '9px Segoe UI' : '10px Segoe UI' },
+      {
+        stroke: '#9aabb6',
+        size: (_u, values) => Math.ceil(Math.max(0, ...(values ?? []).map(value => _u.ctx.measureText(value).width)) + (compactPlot ? 6 : 8)),
+        gap: compactPlot ? 1 : 2,
+        grid: { stroke: '#26313a', width: 1 },
+        ticks: { stroke: '#40505a', width: 1, size: compactPlot ? 2 : 3 },
+        font: compactPlot ? '9px Segoe UI' : '10px Segoe UI',
+      },
     ],
     series: [{}, ...series.value.map((item, index) => ({ label: `${props.symbol}/${item.benchmark}`, stroke: colors[index % colors.length], width: 1.5 }))],
     hooks: {
@@ -234,6 +459,7 @@ function draw() {
       }],
     },
   }, data, host.value)
+  chartHostElement = host.value
   applyLinkedTimestamp(props.linkedTimestamp)
 }
 
@@ -270,15 +496,20 @@ onMounted(() => {
 })
 onBeforeUnmount(() => {
   document.removeEventListener('visibilitychange', handleVisibilityChange)
+  loadGeneration += 1
+  activeLoadController?.abort()
   resizeObserver?.disconnect()
   chart?.destroy()
   chart = null
+  chartHostElement = null
 })
 </script>
 
 <style scoped>
-.ratio-chart { position: relative; display: grid; height: 100%; min-height: 0; grid-template-rows: 21px minmax(0, 1fr) auto; background: #101419; }
-.ratio-chart__legend { display: flex; gap: 8px; align-items: center; padding: 0 7px; color: #6bc0ef; border-bottom: 1px solid #26313a; font: 10px "Segoe UI", Arial, sans-serif; }
+.ratio-chart { position: relative; display: grid; height: 100%; min-height: 0; grid-template-rows: auto minmax(0, 1fr) auto; background: #101419; }
+.ratio-chart__legend { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; min-width: 0; padding: 2px 7px; color: #6bc0ef; border-bottom: 1px solid #26313a; font: 10px "Segoe UI", Arial, sans-serif; }
+.ratio-chart__legend > strong { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ratio-chart__status { flex: 0 1 clamp(120px, 22vw, 190px); margin-left: auto; }
 .ratio-chart__legend label { display: inline-flex; gap: 3px; align-items: center; color: #9aabb6; }
 .ratio-chart__legend input { width: 96px; border: 1px solid #42515c; background: #11161b; color: #dce9f2; font: inherit; }
 .ratio-chart__compare input { width: 58px; }
@@ -287,8 +518,11 @@ onBeforeUnmount(() => {
 .ratio-chart__chip { padding: 1px 4px; color: #d8b36b; }
 .ratio-chart__chip:disabled { cursor: default; opacity: .65; }
 .ratio-chart__legend span { color: #8296a4; }
-.ratio-chart__host { min-height: 0; }
+.ratio-chart__host { width: 100%; min-width: 0; min-height: 0; }
 .ratio-chart__state { display: grid; place-items: center; color: #8fa0aa; font: 11px "Segoe UI", Arial, sans-serif; }
 .ratio-chart__state--error { color: #ec8f8f; }
 .ratio-chart__warning { padding: 3px 7px; color: #d0ae6d; font: 9px "Segoe UI", Arial, sans-serif; }
+@media (max-height: 680px) {
+  .ratio-chart__legend { padding-block: 0; }
+}
 </style>

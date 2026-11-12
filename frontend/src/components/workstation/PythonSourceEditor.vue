@@ -216,10 +216,10 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', dismissOnOutsi
 .python-source-editor__toolbar { display:flex; align-items:center; justify-content:space-between; color:#8195a3; font-size:9px; }
 .python-source-editor__toolbar button { border:1px solid #3a4954; background:#172027; color:#dce6ed; padding:2px 5px; font:inherit; cursor:pointer; }
 .python-source-editor textarea { width:100%; resize:vertical; box-sizing:border-box; border:1px solid #3a4954; background:#172027; color:#dce6ed; padding:4px 5px; font:10px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace; }
-.python-source-editor__suggestions { position:static; z-index:8; display:grid; max-height:120px; overflow:auto; border:1px solid #486274; background:#10171d; box-shadow:0 4px 12px #0008; }
-.python-source-editor__suggestions button { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; align-items:baseline; width:100%; border:0; border-bottom:1px solid #283640; background:transparent; color:#dce6ed; padding:4px 6px; text-align:left; font:inherit; cursor:pointer; }
+.python-source-editor__suggestions { position:absolute; z-index:8; inset-inline:0; top:auto; bottom:calc(100% + 3px); box-sizing:border-box; min-width:0; max-height:min(120px, 30vh); overflow:auto; border:1px solid #486274; background:#10171d; box-shadow:0 4px 12px #0008; }
+.python-source-editor__suggestions button { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,auto); gap:8px; align-items:baseline; width:100%; min-width:0; border:0; border-bottom:1px solid #283640; background:transparent; color:#dce6ed; padding:4px 6px; text-align:left; font:inherit; cursor:pointer; }
 .python-source-editor__suggestions button:hover,.python-source-editor__suggestions button:focus,.python-source-editor__suggestion--selected { background:#1d3543; }
 .python-source-editor__suggestions code { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#9ed0ed; }
-.python-source-editor__suggestions small { color:#8195a3; white-space:nowrap; }
+.python-source-editor__suggestions small { max-width:40%; overflow:hidden; text-overflow:ellipsis; color:#8195a3; white-space:nowrap; }
 .python-source-editor__sr-status { position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
 </style>

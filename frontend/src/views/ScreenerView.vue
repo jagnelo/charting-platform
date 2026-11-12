@@ -101,6 +101,7 @@
               <td class="td-action">
                 <button
                   class="btn-add-wl"
+                  :aria-label="`Add ${item.symbol} to a watchlist`"
                   title="Add to watchlist"
                   @click="showWlMenu(item.id, $event)"
                 >★</button>
@@ -248,14 +249,17 @@
             <div class="alert-bell-wrap" ref="alertBellRef">
               <button
                 :class="['btn-alert-bell', { 'btn-alert-bell--active': screenerAlert != null }]"
+                :aria-label="screenerAlert ? 'Edit screener alert' : 'Create screener alert'"
+                :aria-expanded="alertPopupOpen"
+                :aria-controls="`screener-alert-popup-${selectedScreener.id}`"
                 :title="screenerAlert ? 'Screener alert active — click to edit' : 'Create screener alert'"
                 @click="alertPopupOpen = !alertPopupOpen"
               >🔔{{ screenerAlert ? ' ●' : '' }}</button>
               <!-- Alert popup -->
-              <div v-if="alertPopupOpen" class="alert-popup">
+              <div v-if="alertPopupOpen" :id="`screener-alert-popup-${selectedScreener.id}`" class="alert-popup" role="group" aria-label="Screener alert settings">
                 <div class="ap-header">
                   <span>Screener Alert</span>
-                  <button class="ap-close" @click="alertPopupOpen = false">✕</button>
+                  <button class="ap-close" aria-label="Close screener alert settings" @click="alertPopupOpen = false">✕</button>
                 </div>
                 <div class="ap-body">
                   <div class="ap-row">
@@ -290,7 +294,7 @@
                      @keydown.enter="saveResultsAsWatchlist(false)" @keydown.esc="showSaveWlForm = false" />
               <button class="btn-save-wl-confirm" :disabled="!saveWlName.trim()" @click="saveResultsAsWatchlist(false)">Save</button>
               <button class="btn-save-wl-confirm" :disabled="!saveWlName.trim()" title="Create a managed watchlist that auto-updates on each run" @click="saveResultsAsWatchlist(true)">+ Managed</button>
-              <button class="btn-cancel" @click="showSaveWlForm = false">✕</button>
+              <button class="btn-cancel" aria-label="Cancel save as watchlist" @click="showSaveWlForm = false">✕</button>
             </template>
             <button v-else-if="!running && latestResult?.matched_ids.length" class="btn-save-wl"
                     title="Save results as a new watchlist" @click="showSaveWlForm = true">
@@ -369,6 +373,7 @@
                 <td class="td-action">
                   <button
                     class="btn-add-wl"
+                    :aria-label="`Add ${instrMap[id]?.symbol || id} to a watchlist`"
                     title="Add to watchlist"
                     @click="showWlMenu(id, $event)"
                   >★</button>

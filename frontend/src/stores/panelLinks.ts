@@ -54,6 +54,11 @@ export const usePanelLinksStore = defineStore('panelLinks', () => {
     })
   }
 
+  function resetForAuthSessionBoundary() {
+    panelGroups.value = {}
+    localStorage.removeItem(STORAGE_KEY)
+  }
+
   watch(panelGroups, (value) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(value))
   }, { deep: true })
@@ -65,5 +70,6 @@ export const usePanelLinksStore = defineStore('panelLinks', () => {
     setPanelGroup,
     colorFor,
     linkedPanelIds,
+    resetForAuthSessionBoundary,
   }
 })

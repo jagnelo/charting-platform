@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import type { AlertFiringEvent, PriceAlert, IndicatorAlert, AlertCondition } from '@/types'
-import { api } from '@/lib/api'
+import { api, setQueuedApiRequestPriority, type ApiRequestPriority } from '@/lib/api'
+import { AuthSessionChangedError } from '@/lib/authSession'
 
 export interface IndicatorAlertCreate {
   instrument_id: number
@@ -24,16 +25,41 @@ export const useAlertsStore = defineStore('alerts', () => {
   const selectedAlertId = ref<number | null>(null)
   const editRequestAlertId = ref<number | null>(null)
   let ws: WebSocket | null = null
+  let socketGeneration = 0
+  let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+  let pingTimer: ReturnType<typeof setInterval> | null = null
   let _loadedInstrumentId: number | undefined = undefined
+  let pendingAlertLoad: { key: string; promise: Promise<void> } | null = null
 
-  async function loadAlerts(instrumentId?: number) {
+  async function loadAlerts(instrumentId?: number, priority?: ApiRequestPriority) {
+    const key = instrumentId == null ? 'all' : String(instrumentId)
+    const priceQueueKey = `alerts:price:${key}`
+    const indicatorQueueKey = `alerts:indicator:${key}`
+    if (pendingAlertLoad?.key === key) {
+      if (priority === 'high') {
+        setQueuedApiRequestPriority(priceQueueKey, 'high')
+        setQueuedApiRequestPriority(indicatorQueueKey, 'high')
+      }
+      return pendingAlertLoad.promise
+    }
     // Skip fetch if we already have alerts loaded for this instrument
     if (instrumentId !== undefined && instrumentId === _loadedInstrumentId) return
-    _loadedInstrumentId = instrumentId
     const params: Record<string, any> = {}
     if (instrumentId) params.instrument_id = instrumentId
-    alerts.value = await api.get('/alerts/price', params)
-    indicatorAlerts.value = await api.get('/alerts/indicator', params)
+    _loadedInstrumentId = instrumentId
+    let promise!: Promise<void>
+    promise = (async () => {
+      const options = { priority: priority ?? 'auto', queueKey: priceQueueKey }
+      const indicatorOptions = { priority: priority ?? 'auto', queueKey: indicatorQueueKey }
+      try {
+        alerts.value = await api.get('/alerts/price', params, options)
+        indicatorAlerts.value = await api.get('/alerts/indicator', params, indicatorOptions)
+      } finally {
+        if (pendingAlertLoad?.promise === promise) pendingAlertLoad = null
+      }
+    })()
+    pendingAlertLoad = { key, promise }
+    return promise
   }
 
   async function createAlert(
@@ -103,11 +129,13 @@ export const useAlertsStore = defineStore('alerts', () => {
 
   // ── Firing history ──────────────────────────────────────────────────────────
 
-  async function loadHistory(opts: { instrumentId?: number; unviewedOnly?: boolean } = {}) {
+  async function loadHistory(opts: { instrumentId?: number; unviewedOnly?: boolean; priority?: ApiRequestPriority } = {}) {
     const params: Record<string, any> = { limit: 200 }
     if (opts.instrumentId) params.instrument_id = opts.instrumentId
     if (opts.unviewedOnly) params.unviewed_only = true
-    firingHistory.value = await api.get('/alerts/history', params)
+    firingHistory.value = await (opts.priority
+      ? api.get('/alerts/history', params, { priority: opts.priority })
+      : api.get('/alerts/history', params))
   }
 
   async function loadInstrumentHistory(instrumentId: number): Promise<AlertFiringEvent[]> {
@@ -151,26 +179,38 @@ export const useAlertsStore = defineStore('alerts', () => {
   // ── WebSocket ───────────────────────────────────────────────────────────────
 
   function connectWebSocket() {
+    if (!localStorage.getItem('access_token')) return
     if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return
+    if (reconnectTimer) clearTimeout(reconnectTimer)
+    reconnectTimer = null
+    const generation = ++socketGeneration
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
     const accessToken = localStorage.getItem('access_token')
     const tokenQuery = accessToken ? `?token=${encodeURIComponent(accessToken)}` : ''
     const wsUrl = `${protocol}://${window.location.host}/api/v1/alerts/ws${tokenQuery}`
-    ws = new WebSocket(wsUrl)
+    const socket = new WebSocket(wsUrl)
+    ws = socket
 
-    ws.onopen = () => {
+    socket.onopen = () => {
+      if (generation !== socketGeneration || ws !== socket) return
       wsConnected.value = true
       // Ping every 30s to keep connection alive
-      setInterval(() => ws?.send(JSON.stringify({ type: 'ping' })), 30000)
+      if (pingTimer) clearInterval(pingTimer)
+      pingTimer = setInterval(() => {
+        if (generation === socketGeneration && ws === socket && socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({ type: 'ping' }))
+        }
+      }, 30000)
       // Fetch unviewed count on reconnect
       loadHistory().catch((e: unknown) => {
         const msg = e instanceof Error ? e.message : String(e ?? '')
-        if (/Authentication required/i.test(msg)) return
+        if (e instanceof AuthSessionChangedError || /Authentication required/i.test(msg)) return
         console.error(e)
       })
     }
 
-    ws.onmessage = (event) => {
+    socket.onmessage = (event) => {
+      if (generation !== socketGeneration || ws !== socket) return
       const msg = JSON.parse(event.data)
       if (msg.type === 'screener_alert_triggered') {
         showAlertToast({
@@ -226,14 +266,23 @@ export const useAlertsStore = defineStore('alerts', () => {
       }
     }
 
-    ws.onclose = () => {
+    socket.onclose = () => {
+      if (generation !== socketGeneration || ws !== socket) return
       wsConnected.value = false
-      // Reconnect after 5 seconds
-      setTimeout(connectWebSocket, 5000)
+      ws = null
+      if (pingTimer) clearInterval(pingTimer)
+      pingTimer = null
+      // Reconnect only while this authenticated session is still active.
+      if (localStorage.getItem('access_token')) {
+        reconnectTimer = setTimeout(() => {
+          reconnectTimer = null
+          if (generation === socketGeneration) connectWebSocket()
+        }, 5000)
+      }
     }
 
-    ws.onerror = () => {
-      ws?.close()
+    socket.onerror = () => {
+      if (generation === socketGeneration && ws === socket) socket.close()
     }
   }
 
@@ -243,8 +292,25 @@ export const useAlertsStore = defineStore('alerts', () => {
   }
 
   function disconnectWebSocket() {
-    ws?.close()
+    socketGeneration += 1
+    if (reconnectTimer) clearTimeout(reconnectTimer)
+    reconnectTimer = null
+    if (pingTimer) clearInterval(pingTimer)
+    pingTimer = null
+    const socket = ws
     ws = null
+    wsConnected.value = false
+    socket?.close()
+  }
+
+  function resetForAuthSessionBoundary() {
+    disconnectWebSocket()
+    alerts.value = []
+    indicatorAlerts.value = []
+    firingHistory.value = []
+    selectedAlertId.value = null
+    editRequestAlertId.value = null
+    _loadedInstrumentId = undefined
   }
 
   function getAlertProjection(id: number): boolean {
@@ -271,6 +337,6 @@ export const useAlertsStore = defineStore('alerts', () => {
     markViewed, markAllViewed, deleteFiringEvent,
     selectAlert, requestEditAlert,
     getAlertProjection, toggleAlertProjection,
-    connectWebSocket, disconnectWebSocket,
+    connectWebSocket, disconnectWebSocket, resetForAuthSessionBoundary,
   }
 })

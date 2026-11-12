@@ -2,8 +2,8 @@ import { createPinia, setActivePinia } from 'pinia'
 import { computed } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { apiGet, apiPost, apiPut, apiPatch, apiDelete } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn(), apiPut: vi.fn(), apiPatch: vi.fn(), apiDelete: vi.fn() }))
-vi.mock('@/lib/api', () => ({ api: { get: apiGet, post: apiPost, put: apiPut, patch: apiPatch, delete: apiDelete } }))
+const { apiGet, apiPost, apiPut, apiPatch, apiDelete, promoteQueued } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn(), apiPut: vi.fn(), apiPatch: vi.fn(), apiDelete: vi.fn(), promoteQueued: vi.fn() }))
+vi.mock('@/lib/api', () => ({ api: { get: apiGet, post: apiPost, put: apiPut, patch: apiPatch, delete: apiDelete }, setQueuedApiRequestPriority: promoteQueued }))
 
 function deferred<T>() {
   let resolve!: (value: T) => void
@@ -11,7 +11,23 @@ function deferred<T>() {
   return { promise, resolve }
 }
 
-import { OPENABLE_WORKSTATION_TOOLS, useWorkspaceStore, type OpenableToolDefinition } from '@/stores/workspace'
+import { useWorkspaceStore, workspaceToolRole, type OpenableToolDefinition } from '@/stores/workspace'
+
+const canonicalCatalogueFixture: OpenableToolDefinition[] = [
+  { key: 'chart', tool_type: 'chart', title: 'Chart', instance_prefix: 'chart', configuration: { symbol: 'SPY', timeframe: 'D1' } },
+  { key: 'watchlist', tool_type: 'watchlist', title: 'WatchList', instance_prefix: 'watchlist', configuration: { personal: true, watchlist_id: null } },
+  { key: 'benchmark-list', tool_type: 'watchlist', title: 'Benchmarks', instance_prefix: 'benchmark-list', configuration: { market_group: 'us-benchmarks' } },
+  { key: 'sector-list', tool_type: 'watchlist', title: 'S&P 500 Sectors', instance_prefix: 'sector-list', configuration: { market_group: 'sp500-sectors' } },
+  { key: 'industry-list', tool_type: 'watchlist', title: 'Industries', instance_prefix: 'industry-list', configuration: { market_group: 'selected-sector-industries' } },
+  { key: 'constituent-list', tool_type: 'watchlist', title: 'Constituents', instance_prefix: 'constituent-list', configuration: { market_group: 'selected-industry-constituents' } },
+  { key: 'ratio-chart', tool_type: 'chart', title: 'Relative Strength', instance_prefix: 'ratio-chart', configuration: { expression: '=SPY/RSP', timeframe: 'D1', auto_ratio: true } },
+  { key: 'relative-rotation', tool_type: 'relative_rotation', title: 'Relative Rotation', instance_prefix: 'relative-rotation', configuration: { group_key: 'sp500-sectors', benchmark: 'SPY', timeframe: 'D1', sampling: 1, lookback: 20, tail_length: 10, adjusted: true } },
+  { key: 'breadth', tool_type: 'breadth', title: 'Market Breadth', instance_prefix: 'breadth', configuration: { group_key: 'sp500-sectors' } },
+  { key: 'technical-summary', tool_type: 'technical_summary', title: 'Technicals', instance_prefix: 'technical-summary', configuration: { scope: 'selected' } },
+  { key: 'coverage', tool_type: 'coverage', title: 'Coverage', instance_prefix: 'coverage', configuration: { scope: 'selected' } },
+  { key: 'report', tool_type: 'report', title: 'Instrument Report', instance_prefix: 'report', configuration: {} },
+  { key: 'research-results', tool_type: 'research_results', title: 'Study Results', instance_prefix: 'research-results', configuration: {} },
+]
 
 describe('workspace store layout tabs', () => {
   beforeEach(() => {
@@ -23,7 +39,63 @@ describe('workspace store layout tabs', () => {
     apiDelete.mockReset()
   })
 
-  afterEach(() => vi.unstubAllGlobals())
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    localStorage.removeItem('charting-platform:workstation-tool-catalogue:v1')
+  })
+
+  it('loads and validates the authenticated server catalogue as the Add-tool source', async () => {
+    apiGet.mockResolvedValueOnce({ version: 1, tools: canonicalCatalogueFixture })
+    const store = useWorkspaceStore()
+
+    const loaded = await store.loadToolCatalogue()
+
+    expect(apiGet).toHaveBeenCalledWith('/workspaces/tool-catalogue')
+    expect(loaded).toEqual(canonicalCatalogueFixture)
+    expect(store.toolDefinition('constituent-list')?.configuration.market_group).toBe('selected-industry-constituents')
+    expect(store.toolDefinition('ratio-chart')?.configuration.auto_ratio).toBe(true)
+  })
+
+  it('keeps the last verified catalogue when a later server response is malformed or unavailable', async () => {
+    apiGet.mockResolvedValueOnce({ version: 1, tools: canonicalCatalogueFixture })
+    const store = useWorkspaceStore()
+    await store.loadToolCatalogue()
+
+    apiGet.mockResolvedValueOnce({ version: 1, tools: [{ ...canonicalCatalogueFixture[0], key: '' }] })
+    await store.loadToolCatalogue({ force: true })
+
+    expect(store.toolCatalogue).toEqual(canonicalCatalogueFixture)
+    expect(store.toolCatalogueError).toContain('temporarily unavailable')
+  })
+
+  it('hydrates the last validated catalogue cache before a failed server refresh', async () => {
+    localStorage.setItem('charting-platform:workstation-tool-catalogue:v1', JSON.stringify({ version: 1, tools: canonicalCatalogueFixture }))
+    apiGet.mockRejectedValueOnce(new Error('offline'))
+    const store = useWorkspaceStore()
+
+    expect(store.toolDefinition('ratio-chart')?.configuration.auto_ratio).toBe(true)
+    await store.loadToolCatalogue()
+
+    expect(store.toolCatalogue).toEqual(canonicalCatalogueFixture)
+    expect(store.toolCatalogueError).toContain('temporarily unavailable')
+  })
+
+  it('promotes an in-flight foreground market-group prerequisite without duplicate GETs', async () => {
+    const pending = deferred<any>()
+    apiGet.mockReturnValueOnce(pending.promise)
+    const store = useWorkspaceStore()
+
+    const backgroundRead = store.loadMarketGroup('us-benchmarks', { priority: 'low' })
+    const foregroundRead = store.loadMarketGroup('us-benchmarks', { priority: 'high' })
+
+    expect(apiGet).toHaveBeenCalledTimes(1)
+    expect(apiGet).toHaveBeenCalledWith('/market-groups/us-benchmarks', undefined, {
+      priority: 'low', queueKey: 'top-down:market-group:us-benchmarks',
+    })
+    expect(promoteQueued).toHaveBeenCalledWith('top-down:market-group:us-benchmarks', 'high')
+    pending.resolve({ stable_key: 'us-benchmarks', members: [], provenance: {} })
+    await Promise.all([backgroundRead, foregroundRead])
+  })
 
   it('deduplicates shared top-down refreshes and records the refresh time', async () => {
     apiGet.mockResolvedValue({})
@@ -34,14 +106,68 @@ describe('workspace store layout tabs', () => {
     await Promise.all([first, second])
 
     expect(apiGet).toHaveBeenCalledTimes(6)
-    expect(apiGet).toHaveBeenCalledWith('/market-groups/us-benchmarks')
-    expect(apiGet).toHaveBeenCalledWith('/market-groups/sp500-sectors')
-    expect(apiGet).toHaveBeenCalledWith('/analysis/groups/us-benchmarks/snapshot', { benchmark: 'SPY' })
-    expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/snapshot', { benchmark: 'SPY' })
-    expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/breadth')
-    expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/breadth/history', { limit: 500 })
+    expect(apiGet).toHaveBeenCalledWith('/market-groups/us-benchmarks', undefined, {
+      priority: 'auto', queueKey: 'top-down:market-group:us-benchmarks',
+    })
+    expect(apiGet).toHaveBeenCalledWith('/market-groups/sp500-sectors', undefined, {
+      priority: 'auto', queueKey: 'top-down:market-group:sp500-sectors',
+    })
+    expect(apiGet).toHaveBeenCalledWith('/analysis/groups/us-benchmarks/snapshot', { benchmark: 'SPY' }, {
+      priority: 'auto', queueKey: 'top-down:group-snapshot:us-benchmarks',
+    })
+    expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/snapshot', { benchmark: 'SPY' }, {
+      priority: 'auto', queueKey: 'top-down:group-snapshot:sp500-sectors',
+    })
+    expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/breadth', undefined, {
+      priority: 'auto', queueKey: 'top-down:breadth:sp500-sectors',
+    })
+    expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/breadth/history', { limit: 500 }, {
+      priority: 'auto', queueKey: 'top-down:breadth-history:sp500-sectors',
+    })
     expect(store.marketAnalysisRefreshing).toBe(false)
     expect(store.marketAnalysisRefreshedAt).toEqual(expect.any(String))
+  })
+
+  it('promotes an already queued shared refresh when a visible workstation joins it', async () => {
+    const pending = deferred<unknown>()
+    apiGet.mockReturnValue(pending.promise)
+    const store = useWorkspaceStore()
+
+    const background = store.refreshMarketAnalysis()
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledTimes(6))
+    const foreground = store.refreshMarketAnalysis('high')
+
+    expect(apiGet).toHaveBeenCalledTimes(6)
+    expect(promoteQueued).toHaveBeenCalledWith('top-down:market-group:us-benchmarks', 'high')
+    expect(promoteQueued).toHaveBeenCalledWith('top-down:market-group:sp500-sectors', 'high')
+    expect(promoteQueued).toHaveBeenCalledWith('top-down:group-snapshot:us-benchmarks', 'high')
+    expect(promoteQueued).toHaveBeenCalledWith('top-down:group-snapshot:sp500-sectors', 'high')
+    expect(promoteQueued).toHaveBeenCalledWith('top-down:breadth:sp500-sectors', 'high')
+    expect(promoteQueued).toHaveBeenCalledWith('top-down:breadth-history:sp500-sectors', 'high')
+    pending.resolve({})
+    await Promise.all([background, foreground])
+  })
+
+  it('joins active-panel reads to the shell refresh without cancelling its generation', async () => {
+    const sharedResponse = deferred<unknown>()
+    apiGet.mockReturnValue(sharedResponse.promise)
+    const store = useWorkspaceStore()
+
+    const shellRefresh = store.refreshMarketAnalysis()
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledTimes(6))
+    const panelReads = Promise.all([
+      store.loadGroupSnapshot('sp500-sectors', 'SPY'),
+      store.loadBreadth('sp500-sectors'),
+      store.loadBreadthHistory('sp500-sectors'),
+    ])
+
+    expect(apiGet).toHaveBeenCalledTimes(6)
+    sharedResponse.resolve({ group_key: 'sp500-sectors', rows: [], points: [], coverage: 1 })
+    await Promise.all([shellRefresh, panelReads])
+
+    expect(store.groupSnapshots['sp500-sectors']).toEqual(expect.objectContaining({ group_key: 'sp500-sectors' }))
+    expect(store.breadth['sp500-sectors']).toEqual(expect.objectContaining({ group_key: 'sp500-sectors' }))
+    expect(store.breadthHistory['sp500-sectors']).toEqual(expect.objectContaining({ group_key: 'sp500-sectors' }))
   })
 
   it('does not start queued market-analysis loaders while the document is hidden', async () => {
@@ -77,6 +203,165 @@ describe('workspace store layout tabs', () => {
       sourceWindowId: expect.any(String),
     }))
     store.disconnect()
+  })
+
+  it('flushes a scheduled workspace snapshot immediately and avoids a second debounce write', async () => {
+    const store = useWorkspaceStore()
+    store.workspace = {
+      id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [{
+        id: 20, stable_key: 'us-top-down', name: 'US Top Down', position: 0,
+        active_window_key: 'relative-rotation',
+        layout_config: { root: { type: 'stack', maximised: true, content: [] } },
+        windows: [{ id: 30, instance_key: 'relative-rotation', tool_type: 'relative_rotation', title: 'Relative Rotation', link_group: 'blue', configuration: {}, style: {}, state_schema_version: 1, position: 0 }],
+      }],
+    }
+    apiPut.mockResolvedValue({ ...store.workspace, revision: 5 })
+    vi.useFakeTimers()
+    store.scheduleSnapshot()
+
+    const saved = await store.saveSnapshot()
+    await vi.runAllTimersAsync()
+
+    expect(saved).toBe(true)
+    expect(apiPut).toHaveBeenCalledTimes(1)
+    expect(apiPut.mock.calls[0][1].tabs[0].layout_config.root.maximised).toBe(true)
+    expect(apiPut.mock.calls[0][2]).toEqual({ priority: 'high' })
+    vi.useRealTimers()
+  })
+
+  it('persists and restores the selected workspace layout tab with a safe legacy fallback', async () => {
+    const workspace = {
+      id: 10, user_id: 3, name: 'Research', is_default: true, position: 0, revision: 4, schema_version: 1,
+      settings: { active_tab_key: 'study-lab' },
+      tabs: [
+        { id: 20, stable_key: 'us-top-down', name: 'US Top Down', position: 0, active_window_key: null, layout_config: {}, windows: [] },
+        { id: 21, stable_key: 'study-lab', name: 'Study Lab', position: 1, active_window_key: 'study-results', layout_config: {}, windows: [
+          { id: 30, instance_key: 'study-results', tool_type: 'research_results', title: 'Study Results', link_group: 'grey', configuration: {}, style: {}, state_schema_version: 1, position: 0 },
+        ] },
+      ],
+    }
+    apiGet.mockResolvedValueOnce(workspace)
+    const store = useWorkspaceStore()
+
+    await store.loadDefault()
+    expect(store.activeTabKey).toBe('study-lab')
+
+    store.activeTabKey = 'us-top-down'
+    apiPut.mockImplementationOnce(async (_path, payload) => ({
+      ...workspace,
+      revision: 5,
+      settings: payload.settings,
+      tabs: payload.tabs,
+    }))
+    await expect(store.saveSnapshot()).resolves.toBe(true)
+    expect(apiPut.mock.calls[0][1].settings.active_tab_key).toBe('us-top-down')
+
+    apiGet.mockResolvedValueOnce({ ...workspace, settings: { active_tab_key: 'deleted-tab' } })
+    await store.loadDefault()
+    expect(store.activeTabKey).toBe('us-top-down')
+
+    apiGet.mockResolvedValueOnce({ ...workspace, settings: {} })
+    await store.loadDefault()
+    expect(store.activeTabKey).toBe('us-top-down')
+  })
+
+  it('keeps an acknowledged local tool addition when default hydration returns an older snapshot', async () => {
+    const initial = {
+      id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 9, schema_version: 1, settings: {},
+      tabs: [{
+        id: 20, stable_key: 'us-top-down', name: 'US Top Down', position: 0, active_window_key: 'chart-one',
+        layout_config: { root: { type: 'stack', content: [{ type: 'component', componentType: 'workstation-tool', title: 'Chart', componentState: { instance_key: 'chart-one', tool_type: 'chart', title: 'Chart' } }] } },
+        windows: [{ id: 30, instance_key: 'chart-one', tool_type: 'chart', title: 'Chart', link_group: 'blue', configuration: { symbol: 'SPY' }, style: {}, state_schema_version: 1, position: 0 }],
+      }],
+    }
+    const lateRead = deferred<any>()
+    apiGet.mockResolvedValueOnce(initial).mockReturnValueOnce(lateRead.promise)
+    const store = useWorkspaceStore()
+    await store.loadDefault()
+
+    const pendingHydration = store.loadDefault()
+    const library = store.openTool({
+      key: 'code-library', tool_type: 'code_library', title: 'Python Library', instance_prefix: 'code-library', configuration: {},
+    })
+    expect(library).not.toBeNull()
+    apiPut.mockImplementationOnce(async (_path, payload) => ({ ...payload, revision: 10 }))
+    await expect(store.saveSnapshot()).resolves.toBe(true)
+
+    lateRead.resolve(initial)
+    await pendingHydration
+
+    expect(store.workspace?.revision).toBe(10)
+    expect(store.workspace?.tabs[0].active_window_key).toBe(library?.instance_key)
+    expect(store.workspace?.tabs[0].windows.map(window => window.tool_type)).toContain('code_library')
+    expect(store.snapshotSaveStatus).toBe('saved')
+  })
+
+  it('merges a local tool addition when default hydration finishes before its snapshot acknowledgement', async () => {
+    const initial = {
+      id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 9, schema_version: 1, settings: {},
+      tabs: [{
+        id: 20, stable_key: 'us-top-down', name: 'US Top Down', position: 0, active_window_key: 'chart-one',
+        layout_config: { root: { type: 'stack', content: [{ type: 'component', componentType: 'workstation-tool', title: 'Chart', componentState: { instance_key: 'chart-one', tool_type: 'chart', title: 'Chart' } }] } },
+        windows: [{ id: 30, instance_key: 'chart-one', tool_type: 'chart', title: 'Chart', link_group: 'blue', configuration: { symbol: 'SPY' }, style: {}, state_schema_version: 1, position: 0 }],
+      }],
+    }
+    const lateRead = deferred<any>()
+    const firstSave = deferred<any>()
+    apiGet.mockResolvedValueOnce(initial).mockReturnValueOnce(lateRead.promise)
+    const store = useWorkspaceStore()
+    await store.loadDefault()
+    vi.useFakeTimers()
+
+    const pendingHydration = store.loadDefault()
+    const library = store.openTool({
+      key: 'code-library', tool_type: 'code_library', title: 'Python Library', instance_prefix: 'code-library', configuration: {},
+    })
+    expect(library).not.toBeNull()
+    apiPut.mockReturnValueOnce(firstSave.promise).mockImplementationOnce(async (_path, payload) => ({ ...initial, ...payload, revision: 11 }))
+    const firstSaveResult = store.saveSnapshot()
+    await vi.waitFor(() => expect(apiPut).toHaveBeenCalledTimes(1))
+
+    // Reproduce the observed order: old default hydration resolves after the
+    // Library has been added and its PUT sent, but before that PUT is acked.
+    lateRead.resolve(initial)
+    await pendingHydration
+    expect(store.workspace?.tabs[0].windows.map(window => window.tool_type)).toContain('code_library')
+    expect(store.workspace?.tabs[0].active_window_key).toBe(library?.instance_key)
+
+    firstSave.resolve({ ...initial, ...apiPut.mock.calls[0][1], revision: 10 })
+    await firstSaveResult
+    await vi.runOnlyPendingTimersAsync()
+
+    expect(apiPut).toHaveBeenCalledTimes(2)
+    expect(apiPut.mock.calls[1][1].tabs[0].windows.map((window: { tool_type: string }) => window.tool_type)).toContain('code_library')
+    expect(apiPut.mock.calls[1][1].tabs[0].active_window_key).toBe(library?.instance_key)
+    expect(store.snapshotSaveStatus).toBe('saved')
+    vi.useRealTimers()
+  })
+
+  it('reports snapshot save progress, failure, and a confirmed retry', async () => {
+    const store = useWorkspaceStore()
+    store.workspace = {
+      id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [{
+        id: 20, stable_key: 'us-top-down', name: 'US Top Down', position: 0,
+        active_window_key: 'relative-rotation', layout_config: { root: { type: 'stack', maximised: true, content: [] } },
+        windows: [{ id: 30, instance_key: 'relative-rotation', tool_type: 'relative_rotation', title: 'Relative Rotation', link_group: 'blue', configuration: {}, style: {}, state_schema_version: 1, position: 0 }],
+      }],
+    }
+    store.scheduleSnapshot()
+    expect(store.snapshotSaveStatus).toBe('saving')
+
+    apiPut.mockRejectedValueOnce(new Error('API PUT /workspaces/10/snapshot → 503: unavailable'))
+    expect(await store.saveSnapshot()).toBe(false)
+    expect(store.snapshotSaveStatus).toBe('error')
+    expect(store.snapshotSaveError).toContain('503')
+
+    apiPut.mockResolvedValueOnce({ ...store.workspace, revision: 5 })
+    expect(await store.saveSnapshot()).toBe(true)
+    expect(store.snapshotSaveStatus).toBe('saved')
+    expect(store.snapshotSaveError).toBeNull()
   })
 
   it('refreshes a follower from a leader refresh event without starting its own announcement', async () => {
@@ -121,9 +406,15 @@ describe('workspace store layout tabs', () => {
     await store.loadBreadth('sp500-sectors', { timeframe: 'W1', adjusted: false })
     await store.loadBreadthHistory('sp500-sectors', { timeframe: 'W1', adjusted: false })
 
-    expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/snapshot', { benchmark: 'SPY', timeframe: 'W1', adjusted: false })
-    expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/breadth', { timeframe: 'W1', adjusted: false })
-    expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/breadth/history', { limit: 500, timeframe: 'W1', adjusted: false })
+    expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/snapshot', { benchmark: 'SPY', timeframe: 'W1', adjusted: false }, {
+      priority: 'auto', queueKey: 'top-down:group-snapshot:sp500-sectors',
+    })
+    expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/breadth', { timeframe: 'W1', adjusted: false }, {
+      priority: 'auto', queueKey: 'top-down:breadth:sp500-sectors',
+    })
+    expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/breadth/history', { limit: 500, timeframe: 'W1', adjusted: false }, {
+      priority: 'auto', queueKey: 'top-down:breadth-history:sp500-sectors',
+    })
   })
 
   it('loads role-aware benchmark-family ratios with a stable cache key and lineage', async () => {
@@ -365,7 +656,7 @@ describe('workspace store layout tabs', () => {
     expect(apiGet).toHaveBeenCalledWith('/analysis/benchmark-families/sp500/overview', {
       timeframe: 'W1',
       adjusted: false,
-    })
+    }, expect.objectContaining({ priority: 'auto' }))
     expect(result?.official_index_symbol).toBe('SPX')
     expect(store.benchmarkFamilyOverviews['sp500:W1:raw:latest']?.mappings[0]?.symbol).toBe('RSP')
     expect(store.benchmarkFamilyOverviewErrors['sp500:W1:raw:latest']).toBeNull()
@@ -481,7 +772,9 @@ describe('workspace store layout tabs', () => {
 
     await store.loadMarketGroup('us-benchmarks')
 
-    expect(apiGet).toHaveBeenCalledWith('/market-groups/us-benchmarks/children')
+    expect(apiGet).toHaveBeenCalledWith('/market-groups/us-benchmarks/children', undefined, {
+      priority: 'auto', queueKey: 'top-down:market-group:us-benchmarks:children',
+    })
     expect(store.marketGroups['us-benchmarks']?.provenance.benchmark_families).toEqual([
       { logical_key: 'sp500', name: 'S&P 500' },
     ])
@@ -499,9 +792,13 @@ describe('workspace store layout tabs', () => {
     await store.loadGroupSnapshot('sp400', 'MDY', { timeframe: 'W1' })
     await store.loadBenchmarkFamilyOverview('sp400', { timeframe: 'W1' })
 
-    expect(apiGet).toHaveBeenCalledWith('/market-groups/sp400')
-    expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp400/snapshot', { benchmark: 'MDY', timeframe: 'W1' })
-    expect(apiGet).toHaveBeenCalledWith('/analysis/benchmark-families/sp400/overview', { timeframe: 'W1' })
+    expect(apiGet).toHaveBeenCalledWith('/market-groups/sp400', undefined, {
+      priority: 'auto', queueKey: 'top-down:market-group:sp400',
+    })
+    expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp400/snapshot', { benchmark: 'MDY', timeframe: 'W1' }, {
+      priority: 'auto', queueKey: 'top-down:group-snapshot:sp400',
+    })
+    expect(apiGet).toHaveBeenCalledWith('/analysis/benchmark-families/sp400/overview', { timeframe: 'W1' }, expect.objectContaining({ priority: 'auto' }))
     expect(store.marketGroups.sp400?.stable_key).toBe('sp400')
     expect(store.groupSnapshots.sp400).toEqual(expect.objectContaining({ group_key: 'sp400' }))
   })
@@ -818,7 +1115,78 @@ describe('workspace store layout tabs', () => {
     expect(store.activeTabKey).toBe(clone.stable_key)
 
     await new Promise(resolve => setTimeout(resolve, 400))
-    expect(apiPut).toHaveBeenCalledWith('/workspaces/10/snapshot', expect.objectContaining({ base_revision: 4, tabs: expect.any(Array) }))
+    expect(apiPut).toHaveBeenCalledWith('/workspaces/10/snapshot', expect.objectContaining({ base_revision: 4, tabs: expect.any(Array) }), { priority: 'high' })
+  })
+
+  it('preserves a benchmark universe role and selected family when cloning a legacy workspace tool', async () => {
+    const store = useWorkspaceStore()
+    store.workspace = {
+      id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [{
+        id: 20, stable_key: 'us-top-down', name: 'US Top Down', position: 0, active_window_key: 'benchmark-list',
+        layout_config: { root: { type: 'component', componentState: { instance_key: 'benchmark-list' } } },
+        windows: [{ id: 30, instance_key: 'benchmark-list', tool_type: 'watchlist', title: 'Benchmarks', link_group: 'blue', configuration: { benchmark_family_key: 'sp500', benchmark_family_map_role: 'equal_weight' }, style: {}, state_schema_version: 1, position: 0 }],
+      }],
+    }
+
+    store.cloneActiveTab()
+
+    const clone = store.workspace.tabs[1].windows[0]
+    expect(clone.instance_key).not.toBe('benchmark-list')
+    expect(clone.configuration).toEqual(expect.objectContaining({
+      workspace_role: 'benchmark-universe',
+      benchmark_family_key: 'sp500',
+      benchmark_family_map_role: 'equal_weight',
+    }))
+    expect(workspaceToolRole(clone)).toBe('benchmark-universe')
+    expect(workspaceToolRole(store.workspace.tabs[0].windows[0])).toBe('benchmark-universe')
+    expect(canonicalCatalogueFixture).toContainEqual(expect.objectContaining({
+      key: 'benchmark-list', title: 'Benchmarks', tool_type: 'watchlist', configuration: { market_group: 'us-benchmarks' },
+    }))
+    await new Promise(resolve => setTimeout(resolve, 400))
+    expect(apiPut).toHaveBeenCalledWith('/workspaces/10/snapshot', expect.objectContaining({
+      tabs: expect.arrayContaining([expect.objectContaining({ windows: expect.arrayContaining([expect.objectContaining({ configuration: expect.objectContaining({ workspace_role: 'benchmark-universe', benchmark_family_key: 'sp500' }) })]) })]),
+    }), { priority: 'high' })
+  })
+
+  it('catalogues and preserves the semantic roles for factory list and ratio tools', async () => {
+    const expected = [
+      ['sector-list', 'sector-universe'],
+      ['industry-list', 'industry-universe'],
+      ['constituent-list', 'constituent-universe'],
+      ['ratio-chart', 'relative-strength'],
+    ] as const
+    const store = useWorkspaceStore()
+    store.toolCatalogue = canonicalCatalogueFixture
+    const definitions = expected.map(([key]) => store.toolDefinition(key))
+    expect(definitions.every(Boolean)).toBe(true)
+    for (const [index, [, role]] of expected.entries()) {
+      expect(workspaceToolRole({
+        instance_key: definitions[index]!.instance_prefix,
+        tool_type: definitions[index]!.tool_type,
+        configuration: definitions[index]!.configuration ?? {},
+      })).toBe(role)
+    }
+
+    store.workspace = {
+      id: 10, user_id: 3, name: 'Role copy', is_default: true, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [{
+        id: 20, stable_key: 'roles', name: 'Roles', position: 0, active_window_key: 'sector-universe', layout_config: {},
+        windows: expected.map(([key]) => {
+          const definition = store.toolDefinition(key)!
+          return {
+            id: -1, instance_key: definition.instance_prefix, tool_type: definition.tool_type, title: definition.title,
+            link_group: 'blue' as const, configuration: { ...(definition.configuration ?? {}) }, style: {}, state_schema_version: 1, position: 0,
+          }
+        }),
+      }],
+    }
+    store.cloneActiveTab()
+    const copiedRoles = store.workspace.tabs[1].windows.map(window => workspaceToolRole(window))
+    expect(copiedRoles).toEqual(expected.map(([, role]) => role))
+    // Let this test's debounced clone snapshot settle so it cannot bleed into
+    // the next case's API mock call counts.
+    await new Promise(resolve => setTimeout(resolve, 400))
   })
 
   it('does not let an older snapshot response replace a newer local tool edit', async () => {
@@ -969,7 +1337,7 @@ describe('workspace store layout tabs', () => {
 
     store.scheduleSnapshot()
     await vi.waitFor(() => expect(apiPut).toHaveBeenCalledTimes(1), { timeout: 1_000 })
-    const opened = store.openTool({ tool_type: 'watchlist', title: 'WatchList', instance_prefix: 'watchlist', configuration: { personal: true } })
+    const opened = store.openTool({ key: 'watchlist', tool_type: 'watchlist', title: 'WatchList', instance_prefix: 'watchlist', configuration: { personal: true } })
     rejectOld(new Error('API PUT /workspaces/10/snapshot → 409: conflict'))
 
     await vi.waitFor(() => expect(apiPut).toHaveBeenCalledTimes(2), { timeout: 1_500 })
@@ -988,7 +1356,7 @@ describe('workspace store layout tabs', () => {
     apiGet.mockResolvedValueOnce(baseline)
     const store = useWorkspaceStore()
     await store.loadDefault()
-    const opened = store.openTool({ tool_type: 'notes', title: 'Notes', instance_prefix: 'notes', configuration: {} })
+    const opened = store.openTool({ key: 'notes', tool_type: 'notes', title: 'Notes', instance_prefix: 'notes', configuration: {} })
     expect(opened).toBeTruthy()
 
     let rejectOld!: (cause: Error) => void
@@ -1065,7 +1433,75 @@ describe('workspace store layout tabs', () => {
     expect(store.activeTabKey).toBe('imported')
     expect(store.workspace.tabs[0].name).toBe('Imported')
     await new Promise(resolve => setTimeout(resolve, 400))
-    expect(apiPut).toHaveBeenCalledWith('/workspaces/10/snapshot', expect.objectContaining({ tabs: expect.any(Array) }))
+    expect(apiPut).toHaveBeenCalledWith('/workspaces/10/snapshot', expect.objectContaining({ tabs: expect.any(Array) }), { priority: 'high' })
+  })
+
+  it('offers a same-workspace layout restore without reusing deleted server row IDs', async () => {
+    const store = useWorkspaceStore()
+    store.workspace = {
+      id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [
+        { id: 20, stable_key: 'one', name: 'One', position: 0, active_window_key: 'chart-one', layout_config: {}, windows: [{ id: 30, instance_key: 'chart-one', tool_type: 'chart', title: 'Chart', link_group: 'blue', configuration: { timeframe: 'D1' }, style: {}, state_schema_version: 1, position: 0 }] },
+        { id: 21, stable_key: 'two', name: 'Two', position: 1, active_window_key: 'chart-two', layout_config: {}, windows: [{ id: 31, instance_key: 'chart-two', tool_type: 'chart', title: 'Chart', link_group: 'red', configuration: { timeframe: 'W1' }, style: {}, state_schema_version: 1, position: 0 }] },
+      ],
+    }
+    apiPut.mockResolvedValue(store.workspace)
+
+    const recovery = store.captureTabRecovery('two')!
+    expect(store.deleteTab('two')).toBe(true)
+    expect(store.workspace.tabs.map(tab => tab.stable_key)).toEqual(['one'])
+
+    store.workspace = { ...store.workspace, id: 11 }
+    expect(store.restoreDeletedTab(recovery)).toBe(false)
+    expect(store.workspace.tabs.map(tab => tab.stable_key)).toEqual(['one'])
+    store.workspace = { ...store.workspace, id: recovery.workspace_id }
+
+    expect(store.restoreDeletedTab(recovery)).toBe(true)
+    expect(store.workspace.tabs.map(tab => tab.stable_key)).toEqual(['one', 'two'])
+    expect(store.activeTabKey).toBe('two')
+    expect(store.workspace.tabs[1].id).toBeLessThan(0)
+    expect(store.workspace.tabs[1].windows[0].id).toBeLessThan(0)
+    expect(store.workspace.tabs[1].windows[0].configuration).toEqual({ timeframe: 'W1' })
+    await new Promise(resolve => setTimeout(resolve, 400))
+    expect(apiPut).toHaveBeenCalledWith('/workspaces/10/snapshot', expect.objectContaining({
+      tabs: expect.arrayContaining([expect.objectContaining({ stable_key: 'two', windows: [expect.objectContaining({ instance_key: 'chart-two', configuration: { timeframe: 'W1' } })] })]),
+    }), { priority: 'high' })
+  })
+
+  it('flushes an explicit Undo after an older snapshot settles, preserving the restored name and position', async () => {
+    const earlierWrite = deferred<any>()
+    const store = useWorkspaceStore()
+    const original = {
+      id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [
+        { id: 20, stable_key: 'one', name: 'One', position: 0, active_window_key: 'chart-one', layout_config: {}, windows: [{ id: 30, instance_key: 'chart-one', tool_type: 'chart', title: 'Chart', link_group: 'blue', configuration: {}, style: {}, state_schema_version: 1, position: 0 }] },
+        { id: 21, stable_key: 'review', name: 'Review layout', position: 1, active_window_key: 'chart-review', layout_config: {}, windows: [{ id: 31, instance_key: 'chart-review', tool_type: 'chart', title: 'Chart', link_group: 'red', configuration: {}, style: {}, state_schema_version: 1, position: 0 }] },
+      ],
+    }
+    store.workspace = structuredClone(original)
+    const recovery = store.captureTabRecovery('review')!
+    apiPut.mockImplementationOnce(() => earlierWrite.promise)
+      .mockImplementation(async (_path, payload) => ({ ...payload, revision: 6 }))
+
+    store.scheduleSnapshot()
+    await vi.waitFor(() => expect(apiPut).toHaveBeenCalledTimes(1), { timeout: 1_000 })
+    expect(store.deleteTab('review')).toBe(true)
+    expect(store.restoreDeletedTab(recovery)).toBe(true)
+    const undoSave = store.saveSnapshot()
+
+    // Undo's explicit flush must wait for the earlier revision, then send the
+    // current restored layout instead of treating the old clone/delete state
+    // as the durable checkpoint.
+    expect(apiPut).toHaveBeenCalledTimes(1)
+    earlierWrite.resolve({ ...original, revision: 5 })
+    await undoSave
+
+    expect(apiPut).toHaveBeenCalledTimes(2)
+    expect(apiPut.mock.calls[1][1]).toEqual(expect.objectContaining({
+      base_revision: 5,
+      tabs: expect.arrayContaining([expect.objectContaining({ stable_key: 'review', name: 'Review layout', position: 1 })]),
+    }))
+    expect(store.workspace?.tabs.map(tab => tab.stable_key)).toEqual(['one', 'review'])
   })
 
   it('rejects malformed or duplicate imported layouts', () => {
@@ -1117,7 +1553,7 @@ describe('workspace store layout tabs', () => {
     await new Promise(resolve => setTimeout(resolve, 400))
     expect(apiPut).toHaveBeenCalledWith('/workspaces/10/snapshot', expect.objectContaining({
       tabs: [expect.objectContaining({ windows: [expect.objectContaining({ instance_key: 'chart', link_group: 'yellow' })] })],
-    }))
+    }), { priority: 'high' })
   })
 
   it('captures the current symbol when moving a shared tool into grey isolation', () => {
@@ -1212,6 +1648,56 @@ describe('workspace store layout tabs', () => {
     expect(store.activeTab?.windows[0].configuration).not.toHaveProperty('instrument_id')
   })
 
+  it('preserves an independent Study Lab draft through shared-symbol hydration and broadcasts', async () => {
+    const store = useWorkspaceStore()
+    vi.spyOn(store, 'scheduleSnapshot').mockImplementation(() => {})
+    const savedWorkspace = {
+      id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 8, schema_version: 1,
+      settings: { linked_symbols: { blue: { symbol: 'SPY' } } },
+      tabs: [{
+        id: 20, stable_key: 'us-top-down', name: 'US Top Down', position: 0, active_window_key: 'chart', layout_config: {},
+        windows: [
+          { id: 30, instance_key: 'chart', tool_type: 'chart', title: 'Chart', link_group: 'blue', configuration: { symbol: 'SPY' }, style: {}, state_schema_version: 1, position: 0 },
+          { id: 31, instance_key: 'study-lab', tool_type: 'study_lab', title: 'Study Lab', link_group: 'blue', configuration: { symbol: 'XLB', study_run_id: 8, study_source: 'saved-run-source', timeframe: 'W1' }, style: {}, state_schema_version: 1, position: 1 },
+          { id: 32, instance_key: 'notes', tool_type: 'notes', title: 'Notes', link_group: 'blue', configuration: { symbol: 'SPY' }, style: {}, state_schema_version: 1, position: 2 },
+          { id: 33, instance_key: 'watchlist', tool_type: 'watchlist', title: 'WatchList', link_group: 'blue', configuration: { symbol: 'SPY' }, style: {}, state_schema_version: 1, position: 3 },
+          { id: 34, instance_key: 'grey-chart', tool_type: 'chart', title: 'Grey chart', link_group: 'grey', configuration: { symbol: 'IWM', instrument_id: 77 }, style: {}, state_schema_version: 1, position: 4 },
+        ],
+      }],
+    }
+    apiGet.mockResolvedValueOnce(savedWorkspace)
+
+    await store.loadDefault()
+    expect(apiGet).toHaveBeenCalledWith('/workspaces/default')
+    expect(store.linkedSymbol).toBe('SPY')
+    expect(store.workspace?.tabs[0].windows.find(window => window.tool_type === 'study_lab')?.configuration).toMatchObject({
+      symbol: 'XLB', study_run_id: 8,
+    })
+    // Workstation startup republishes the hydrated shared symbol before the
+    // panels settle. That broadcast must not replace the saved Study draft.
+    store.publishSymbol({ symbol: 'SPY', group: 'blue', sourceWindowKey: 'workstation' })
+    expect(store.workspace?.tabs[0].windows.find(window => window.tool_type === 'study_lab')?.configuration).toEqual({
+      symbol: 'XLB', study_run_id: 8, study_source: 'saved-run-source', timeframe: 'W1',
+    })
+
+    // A normal linked chart selection still updates every other linked tool's
+    // serializable fallback while the independent Study dataset remains XLB.
+    expect(store.selectToolSymbol('chart', 'XLK', 42)).toBe(true)
+    const windows = store.workspace?.tabs[0].windows ?? []
+    expect(windows.find(window => window.instance_key === 'chart')?.configuration).toMatchObject({ symbol: 'XLK', instrument_id: 42 })
+    expect(windows.find(window => window.tool_type === 'study_lab')?.configuration).toEqual({
+      symbol: 'XLB', study_run_id: 8, study_source: 'saved-run-source', timeframe: 'W1',
+    })
+    expect(windows.find(window => window.instance_key === 'notes')?.configuration.symbol).toBe('XLK')
+    expect(windows.find(window => window.instance_key === 'watchlist')?.configuration).toMatchObject({ symbol: 'XLK', instrument_id: 42 })
+    expect(windows.find(window => window.instance_key === 'grey-chart')).toMatchObject({
+      link_group: 'grey',
+      configuration: { symbol: 'IWM', instrument_id: 77 },
+    })
+    expect(store.symbolForLinkGroup('grey', String(windows.find(window => window.instance_key === 'grey-chart')?.configuration.symbol))).toBe('IWM')
+    expect(store.linkedSymbol).toBe('XLK')
+  })
+
   it('resets a factory workspace only through the backend factory-reset endpoint', async () => {
     const store = useWorkspaceStore()
     store.workspace = {
@@ -1244,9 +1730,167 @@ describe('workspace store layout tabs', () => {
     await expect(store.renameWorkspace(' Morning Scan ')).resolves.toMatchObject({ name: 'Morning Scan' })
     expect(apiPatch).toHaveBeenCalledWith('/workspaces/12', { name: 'Morning Scan' })
     store.workspace = { ...store.workspace!, is_default: false }
-    apiGet.mockResolvedValue([{ ...base }])
+    apiGet.mockImplementation((path: string) => path === '/workspaces' ? [{ ...base }] : { ...base })
     await expect(store.deleteCurrentWorkspace()).resolves.toBe(true)
     expect(apiDelete).toHaveBeenCalledWith('/workspaces/11')
+  })
+
+  it('opens the known fallback after an acknowledged delete without waiting for the workspace-list refresh', async () => {
+    const fallback = {
+      id: 505, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4,
+      schema_version: 1, settings: {}, tabs: [],
+    }
+    const deleted = { ...fallback, id: 506, name: 'US Top Down Copy', is_default: false, position: 1 }
+    const listRefresh = deferred<any[]>()
+    const fallbackRead = deferred<any>()
+    const store = useWorkspaceStore()
+    store.workspace = deleted
+    store.workspaces = [
+      { id: fallback.id, name: fallback.name, is_default: true, position: 0, revision: fallback.revision },
+      { id: deleted.id, name: deleted.name, is_default: false, position: 1, revision: deleted.revision },
+    ]
+    apiDelete.mockResolvedValueOnce(undefined)
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/workspaces') return listRefresh.promise
+      if (path === `/workspaces/${fallback.id}`) return fallbackRead.promise
+      throw new Error(`Unexpected workspace read: ${path}`)
+    })
+
+    const deletion = store.deleteCurrentWorkspace()
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/workspaces/505', undefined, { priority: 'high' }))
+    expect(store.workspace).toBeNull()
+    expect(store.workspaces.map(item => item.id)).toEqual([fallback.id])
+
+    fallbackRead.resolve(fallback)
+    await expect(deletion).resolves.toBe(true)
+    expect(store.workspace).toMatchObject({ id: fallback.id, name: fallback.name })
+    expect(store.loading).toBe(false)
+    expect(store.workspaces.map(item => item.id)).toEqual([fallback.id])
+
+    listRefresh.resolve([fallback, deleted])
+    await vi.waitFor(() => expect(store.workspaces.map(item => item.id)).toEqual([fallback.id]))
+  })
+
+  it('does not let a delayed delete fallback replace a newer explicit workspace selection', async () => {
+    const fallback = {
+      id: 505, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4,
+      schema_version: 1, settings: {}, tabs: [],
+    }
+    const newer = { ...fallback, id: 507, name: 'Research', is_default: false, position: 1 }
+    const deleted = { ...fallback, id: 506, name: 'US Top Down Copy', is_default: false, position: 2 }
+    const fallbackRead = deferred<any>()
+    const listRefresh = deferred<any[]>()
+    const store = useWorkspaceStore()
+    store.workspace = deleted
+    store.workspaces = [
+      { id: fallback.id, name: fallback.name, is_default: true, position: 0, revision: fallback.revision },
+      { id: newer.id, name: newer.name, is_default: false, position: 1, revision: newer.revision },
+      { id: deleted.id, name: deleted.name, is_default: false, position: 2, revision: deleted.revision },
+    ]
+    apiDelete.mockResolvedValueOnce(undefined)
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/workspaces') return listRefresh.promise
+      if (path === `/workspaces/${fallback.id}`) return fallbackRead.promise
+      if (path === `/workspaces/${newer.id}`) return Promise.resolve(newer)
+      throw new Error(`Unexpected workspace read: ${path}`)
+    })
+
+    const deletion = store.deleteCurrentWorkspace()
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/workspaces/505', undefined, { priority: 'high' }))
+    const newerSelection = store.switchWorkspace(newer.id)
+    await vi.waitFor(() => expect(store.workspace?.id).toBe(newer.id))
+    fallbackRead.resolve(fallback)
+
+    await expect(deletion).resolves.toBe(true)
+    expect(store.workspace).toMatchObject({ id: newer.id, name: newer.name })
+    listRefresh.resolve([fallback, newer, deleted])
+    await newerSelection
+    expect(store.workspace).toMatchObject({ id: newer.id, name: newer.name })
+    expect(store.workspaces.map(item => item.id)).not.toContain(deleted.id)
+  })
+
+  it('settles loading when the current workspace supersedes a pending different selection', async () => {
+    const current = {
+      id: 505, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4,
+      schema_version: 1, settings: {}, tabs: [],
+    }
+    const other = { ...current, id: 507, name: 'Research', is_default: false, position: 1 }
+    const delayedRead = deferred<any>()
+    const store = useWorkspaceStore()
+    store.workspace = current
+    apiGet.mockImplementation((path: string) => {
+      if (path === `/workspaces/${other.id}`) return delayedRead.promise
+      throw new Error(`Unexpected workspace read: ${path}`)
+    })
+
+    const pendingSelection = store.switchWorkspace(other.id)
+    await vi.waitFor(() => expect(store.loading).toBe(true))
+
+    await expect(store.switchWorkspace(current.id)).resolves.toMatchObject({ id: current.id })
+    expect(store.loading).toBe(false)
+    delayedRead.resolve(other)
+    await expect(pendingSelection).resolves.toBeNull()
+    expect(store.workspace).toMatchObject({ id: current.id, name: current.name })
+    expect(store.loading).toBe(false)
+  })
+
+  it('reconciles cloned layout component identities and persists the repaired dock tree', async () => {
+    const source = {
+      id: 77, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 8,
+      schema_version: 1, settings: { factory_id: 'us-top-down' },
+      tabs: [{
+        id: 90, stable_key: 'us-top-down', name: 'US Top Down', position: 0,
+        active_window_key: 'benchmark-list',
+        layout_config: { root: { type: 'stack', content: [
+          { type: 'component', componentName: 'workstation-tool', title: 'Benchmarks', componentState: { instance_key: 'benchmark-list' } },
+          { type: 'component', componentName: 'workstation-tool', title: 'Chart', componentState: { instance_key: 'chart-main' } },
+        ] } },
+        windows: [
+          { id: 1, instance_key: 'benchmark-list', tool_type: 'watchlist', title: 'Benchmarks', link_group: 'blue', configuration: { market_group: 'us-benchmarks' }, style: {}, state_schema_version: 1, position: 0 },
+          { id: 2, instance_key: 'chart-main', tool_type: 'chart', title: 'Chart', link_group: 'blue', configuration: { symbol: 'SPY' }, style: {}, state_schema_version: 1, position: 1 },
+        ],
+      }],
+    }
+    const cloned = {
+      ...source,
+      id: 78,
+      name: 'US Top Down Copy',
+      is_default: false,
+      revision: 1,
+      tabs: [{
+        ...source.tabs[0],
+        id: 91,
+        windows: [
+          { ...source.tabs[0].windows[0], id: 3, instance_key: 'benchmark-list-copy-1' },
+          { ...source.tabs[0].windows[1], id: 4, instance_key: 'chart-copy-1' },
+        ],
+      }],
+    }
+    const saved = { ...cloned, revision: 2 }
+    apiPost.mockResolvedValueOnce(cloned)
+    apiGet.mockResolvedValueOnce([])
+    apiPut.mockResolvedValueOnce(saved)
+    const store = useWorkspaceStore()
+    store.workspace = source
+
+    const result = await store.cloneWorkspace()
+
+    expect(result?.tabs[0]).toMatchObject({
+      active_window_key: 'benchmark-list-copy-1',
+      layout_config: { root: { content: [
+        { componentState: { instance_key: 'benchmark-list-copy-1' } },
+        { componentState: { instance_key: 'chart-copy-1' } },
+      ] } },
+    })
+    await vi.waitFor(() => expect(apiPut).toHaveBeenCalledWith('/workspaces/78/snapshot', expect.objectContaining({
+      tabs: [expect.objectContaining({
+        active_window_key: 'benchmark-list-copy-1',
+        layout_config: expect.objectContaining({ root: expect.objectContaining({ content: expect.arrayContaining([
+          expect.objectContaining({ componentState: { instance_key: 'benchmark-list-copy-1' } }),
+          expect.objectContaining({ componentState: { instance_key: 'chart-copy-1' } }),
+        ]) }) }),
+      })],
+    }), { priority: 'high' }))
   })
 
   it('settles a stale layout snapshot before renaming the active workspace', async () => {
@@ -1264,7 +1908,7 @@ describe('workspace store layout tabs', () => {
 
     // A layout observer has already started an older snapshot write.
     const pendingSave = store.saveSnapshot()
-    await vi.waitFor(() => expect(apiPut).toHaveBeenCalledWith('/workspaces/10/snapshot', expect.any(Object)))
+    await vi.waitFor(() => expect(apiPut).toHaveBeenCalledWith('/workspaces/10/snapshot', expect.any(Object), { priority: 'high' }))
     const rename = store.renameWorkspace(' Morning Review ')
     await Promise.resolve()
     expect(apiPatch).not.toHaveBeenCalled()
@@ -1406,7 +2050,7 @@ describe('workspace store layout tabs', () => {
       id: 10, user_id: 3, name: 'Personal', is_default: false, position: 0, revision: 4, schema_version: 1, settings: {},
       tabs: [{ id: 20, stable_key: 'personal', name: 'Personal', position: 0, active_window_key: null, layout_config: { root: { type: 'row', content: [] } }, windows: [] }],
     }
-    const definition: OpenableToolDefinition = { tool_type: 'study_lab', title: 'Study Lab', instance_prefix: 'study-lab', configuration: { symbol: 'SPY' } }
+    const definition: OpenableToolDefinition = { key: 'study-lab', tool_type: 'study_lab', title: 'Study Lab', instance_prefix: 'study-lab', configuration: { symbol: 'SPY' } }
 
     const opened = store.openTool(definition)
 
@@ -1424,7 +2068,7 @@ describe('workspace store layout tabs', () => {
     }
 
     const opened = store.openTool(
-      { tool_type: 'market_map', title: 'Market Map', instance_prefix: 'market-map', configuration: { color_metric: 'return' } },
+      { key: 'market-map', tool_type: 'market_map', title: 'Market Map', instance_prefix: 'market-map', configuration: { color_metric: 'return' } },
       { source_id: 'watchlist:42' },
     )
 
@@ -1449,7 +2093,7 @@ describe('workspace store layout tabs', () => {
         ],
       }],
     }
-    const opened = store.openTool({ tool_type: 'watchlist', title: 'WatchList', instance_prefix: 'watchlist', configuration: { personal: true } })
+    const opened = store.openTool({ key: 'watchlist', tool_type: 'watchlist', title: 'WatchList', instance_prefix: 'watchlist', configuration: { personal: true } })
     const root = store.activeTab?.layout_config.root as { content: Array<Record<string, any>> }
     expect(root.content).toHaveLength(2)
     const stack = root.content[1].content[0] as { type: string; content: Array<Record<string, any>> }
@@ -1488,7 +2132,7 @@ describe('workspace store layout tabs', () => {
   })
 
   it('exposes implemented analysis surfaces through the workstation tool registry', () => {
-    expect(OPENABLE_WORKSTATION_TOOLS.map(tool => tool.tool_type)).toEqual(expect.arrayContaining([
+    expect(canonicalCatalogueFixture.map(tool => tool.tool_type)).toEqual(expect.arrayContaining([
       'relative_rotation', 'breadth', 'technical_summary', 'coverage', 'report', 'research_results',
     ]))
   })
@@ -1718,7 +2362,7 @@ describe('workspace store layout tabs', () => {
     const store = useWorkspaceStore()
     await store.loadDefault()
     expect(store.closeTool('map-old')).toBe(true)
-    const reopened = store.openTool({ tool_type: 'market_map', title: 'Market Map', instance_prefix: 'market-map', configuration: { source_id: 'benchmark-family:sp600:cap_weight' } })
+    const reopened = store.openTool({ key: 'market-map', tool_type: 'market_map', title: 'Market Map', instance_prefix: 'market-map', configuration: { source_id: 'benchmark-family:sp600:cap_weight' } })
     expect(reopened).toBeTruthy()
     const remote = JSON.parse(JSON.stringify(baseline))
     remote.revision = 5
@@ -1984,6 +2628,76 @@ describe('workspace store layout tabs', () => {
     await store.loadETFIndustries('XLK')
     await vi.waitFor(() => expect(store.industrySnapshots.XLK?.rows[0].industry).toBe('Semiconductors'))
     expect(apiGet).toHaveBeenCalledWith('/analysis/etf/XLK/industries/snapshot', { market_benchmark: 'SPY' })
+  })
+
+  it('loads dated industry composition and analysis while retaining an honest empty-classification result', async () => {
+    const store = useWorkspaceStore()
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/market-groups/etf/XLB/industries') {
+        return Promise.resolve({
+          etf_symbol: 'XLB', composition_date: '2026-11-02', known_at: '2026-11-03T08:15:00Z',
+          provenance: 'dated_holdings_snapshot', source_provider: 'controlled-source', completeness_status: 'complete',
+          industries: [], exclusions: ['unclassified_constituent'], classification_systems: ['GICS'], classification_coverage: 0,
+        })
+      }
+      if (path === '/analysis/etf/XLB/industries/snapshot') {
+        return Promise.resolve({ etf_symbol: 'XLB', composition_date: '2026-11-02', rows: [], coverage: 0, exclusions: [] })
+      }
+      return Promise.resolve([])
+    })
+
+    const result = await store.loadETFIndustries('XLB')
+
+    expect(apiGet).toHaveBeenCalledWith('/market-groups/etf/XLB/industries')
+    expect(apiGet).toHaveBeenCalledWith('/analysis/etf/XLB/industries/snapshot', { market_benchmark: 'SPY' })
+    expect(result?.industries).toEqual([])
+    expect(result?.exclusions).toEqual(['unclassified_constituent'])
+    expect(store.etfIndustryLoading.XLB).toBe(false)
+    expect(store.etfIndustryErrors.XLB).toBeNull()
+  })
+
+  it('clears an ETF industry loading flag when a newer load for another ETF supersedes it', async () => {
+    const store = useWorkspaceStore()
+    const composition = {
+      composition_date: '2026-11-02', known_at: null, provenance: 'dated_holdings_snapshot', source_provider: 'controlled-source',
+      completeness_status: 'complete', industries: [], exclusions: [], classification_systems: ['GICS'], classification_coverage: 0,
+    }
+    let releaseXLB!: (value: unknown) => void
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/market-groups/etf/XLB/industries') {
+        return new Promise(resolve => { releaseXLB = resolve })
+      }
+      if (path === '/market-groups/etf/XLK/industries') {
+        return Promise.resolve({ etf_symbol: 'XLK', ...composition })
+      }
+      return Promise.resolve([])
+    })
+
+    const firstLoad = store.loadETFIndustries('XLB')
+    await store.loadETFIndustries('XLK')
+    expect(store.etfIndustryLoading.XLB).toBe(true)
+
+    releaseXLB({ etf_symbol: 'XLB', ...composition })
+    await firstLoad
+
+    expect(store.etfIndustryLoading.XLB).toBe(false)
+  })
+
+  it('retains cached dated industry composition when a refresh has no current result', async () => {
+    const store = useWorkspaceStore()
+    const cached = {
+      etf_symbol: 'XLB', composition_date: '2026-11-02', known_at: '2026-11-03T08:15:00Z',
+      provenance: 'dated_holdings_snapshot', source_provider: 'controlled-source', completeness_status: 'complete',
+      industries: [{ industry: 'Chemicals', constituent_count: 2, resolved_count: 2 }], exclusions: [],
+    }
+    store.etfIndustries = { XLB: cached as never }
+    const missing = Object.assign(new Error('not found'), { status: 404 })
+    apiGet.mockRejectedValueOnce(missing)
+
+    await store.loadETFIndustries('XLB')
+
+    expect(store.etfIndustries.XLB).toEqual(cached)
+    expect(store.etfIndustryErrors.XLB).toContain('No dated holdings classification')
   })
 
   it('keeps an industry selection while ETF hydration completes after the click', async () => {

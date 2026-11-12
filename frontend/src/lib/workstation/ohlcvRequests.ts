@@ -11,6 +11,7 @@ type CacheEntry<T> = { value: T; expiresAt: number }
 const inFlight = new Map<string, Promise<unknown>>()
 const completed = new Map<string, CacheEntry<unknown>>()
 const DEFAULT_TTL_MS = 5_000
+let cacheEpoch = 0
 
 export function dedupeOhlcvRequest<T>(
   key: string,
@@ -30,18 +31,28 @@ export function dedupeOhlcvRequest<T>(
   }
   if (cached) completed.delete(key)
 
+  const requestEpoch = cacheEpoch
   const promise = request()
     .then(value => {
-      completed.set(key, { value, expiresAt: Date.now() + Math.max(0, ttlMs) })
+      if (requestEpoch === cacheEpoch) completed.set(key, { value, expiresAt: Date.now() + Math.max(0, ttlMs) })
       return value
     })
-    .finally(() => { inFlight.delete(key) })
+    .finally(() => {
+      if (inFlight.get(key) === promise) inFlight.delete(key)
+    })
   inFlight.set(key, promise)
   return promise
 }
 
 /** Test/support hook: clear only the process-local coordinator state. */
 export function clearOhlcvRequestCache() {
+  cacheEpoch += 1
   inFlight.clear()
   completed.clear()
 }
+import { onAuthSessionBoundary } from '@/lib/authSession'
+
+
+// Basket and other user-scoped local series must never survive an account
+// boundary in this process-local response cache.
+onAuthSessionBoundary(clearOhlcvRequestCache)

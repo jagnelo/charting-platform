@@ -33,7 +33,6 @@
             role="menuitem"
             tabindex="-1"
             :aria-current="isApplicationNavigationItemActive(item) ? 'page' : undefined"
-            @click="closeShellMenus()"
           >
             <span aria-hidden="true">{{ item.icon }}</span>
             <span>{{ item.label }}</span>
@@ -50,20 +49,41 @@
               <button v-for="(item, index) in workspaceStore.workspaces" :id="`saved-workspace-${item.id}`" :key="item.id" type="button" role="option" tabindex="-1" :aria-selected="item.id === workspaceStore.workspace?.id" @click="switchWorkspaceFromMenu(item.id)">{{ item.name }}<small v-if="item.is_default">Default</small></button>
             </div>
             <div class="workstation__workspace-actions">
-              <button type="button" role="menuitem" tabindex="-1" @click="createWorkspace(); closeShellMenuToTrigger('workspace')">New</button>
-              <button type="button" role="menuitem" tabindex="-1" @click="workspaceStore.cloneActiveTab(); closeShellMenuToTrigger('workspace')">Clone</button>
-              <button type="button" role="menuitem" tabindex="-1" @click="cloneWorkspace(); closeShellMenuToTrigger('workspace')">Clone workspace</button>
-              <button type="button" role="menuitem" tabindex="-1" @click="renameWorkspace(); closeShellMenuToTrigger('workspace')">Rename</button>
-              <button type="button" role="menuitem" tabindex="-1" :disabled="workspaceStore.workspace?.is_default" @click="deleteWorkspace(); closeShellMenuToTrigger('workspace')">Delete</button>
-              <button type="button" role="menuitem" tabindex="-1" @click="exportWorkspace">Export</button>
-              <button type="button" role="menuitem" tabindex="-1" @click="workspaceFileInput?.click()">Import</button>
+              <button type="button" role="menuitem" tabindex="-1" @click="createWorkspace(); closeShellMenuToTrigger('workspace')">New workspace</button>
+              <button type="button" role="menuitem" tabindex="-1" @click="workspaceStore.cloneActiveTab(); closeShellMenuToTrigger('workspace')">Duplicate active layout</button>
+              <button type="button" role="menuitem" tabindex="-1" @click="cloneWorkspace(); closeShellMenuToTrigger('workspace')">Duplicate workspace</button>
+              <button type="button" role="menuitem" tabindex="-1" @click="renameWorkspace(); closeShellMenuToTrigger('workspace')">Rename workspace</button>
+              <button type="button" role="menuitem" tabindex="-1" title="Factory workspaces cannot be deleted" :disabled="workspaceStore.workspace?.is_default" @click="deleteWorkspace(); closeShellMenuToTrigger('workspace')">Delete workspace</button>
+              <button type="button" role="menuitem" tabindex="-1" @click="exportWorkspace">Export workspace</button>
+              <button type="button" role="menuitem" tabindex="-1" @click="workspaceFileInput?.click()">Import workspace</button>
               <input ref="workspaceFileInput" class="workstation__workspace-file" type="file" accept="application/json,.json" @change="importWorkspace" />
             </div>
+            <div
+              v-if="deletedLayoutRecovery && workspaceStore.workspace?.id === deletedLayoutRecovery.workspace_id"
+              class="workstation__layout-recovery"
+              role="status"
+              aria-live="polite"
+            >
+              <span v-if="deletedLayoutRecoveryStatus === 'saving'">Restoring layout “{{ deletedLayoutRecovery.tab.name }}” and saving…</span>
+              <span v-else-if="deletedLayoutRecoveryStatus === 'error'">Layout “{{ deletedLayoutRecovery.tab.name }}” is restored here but was not saved. Retry to keep it after reload.</span>
+              <span v-else>Deleted layout “{{ deletedLayoutRecovery.tab.name }}”.</span>
+              <button type="button" role="menuitem" tabindex="-1" :disabled="deletedLayoutRecoveryStatus === 'saving'" @click="undoDeletedLayout">
+                {{ deletedLayoutRecoveryStatus === 'saving' ? 'Saving…' : deletedLayoutRecoveryStatus === 'error' ? 'Retry save' : 'Undo' }}
+              </button>
+            </div>
+            <small id="workspace-delete-help" class="workstation__workspace-delete-help">
+              {{ workspaceStore.workspace?.is_default ? 'This factory workspace is protected; remove extra layouts from the list below.' : 'Deleting a workspace removes its saved layouts. Export it first if you need a backup.' }}
+            </small>
             <div class="workstation__layout-list">
               <div v-for="tab in workspaceStore.workspace?.tabs ?? []" :key="tab.stable_key" class="workstation__layout-item" draggable="true" @dragstart="dragTabKey = tab.stable_key" @dragover.prevent @drop.prevent="dropTab(tab.stable_key)" @dragend="dragTabKey = null">
                 <button type="button" role="menuitem" tabindex="-1" class="workstation__layout-select" :class="{ active: tab.stable_key === workspaceStore.activeTabKey }" @click="selectWorkspaceTab(tab.stable_key); closeShellMenuToTrigger('workspace')">{{ tab.name }}</button>
-                <input :aria-label="`Rename ${tab.name}`" :value="tab.name" @change="renameTab(tab.stable_key, ($event.target as HTMLInputElement).value)" />
-                <button type="button" class="workstation__layout-delete" :disabled="(workspaceStore.workspace?.tabs.length ?? 0) <= 1" :aria-label="`Delete ${tab.name}`" @click="deleteTab(tab.stable_key)"><WorkstationGlyph kind="delete" /></button>
+                <input
+                  aria-label="Rename layout"
+                  :value="layoutRenameDrafts[tab.stable_key] ?? tab.name"
+                  @input="updateLayoutRenameDraft(tab.stable_key, $event)"
+                  @change="commitLayoutRenameDraft(tab.stable_key, $event)"
+                />
+                <button type="button" class="workstation__layout-delete" :disabled="(workspaceStore.workspace?.tabs.length ?? 0) <= 1" :aria-label="`Delete layout ${tab.name}`" :title="`Delete layout ${tab.name}`" @click="deleteTab(tab.stable_key, tab.name)"><WorkstationGlyph kind="delete" /><span>Delete</span></button>
               </div>
             </div>
             <button v-if="workspaceStore.workspace?.settings.factory_id === 'us-top-down'" type="button" role="menuitem" tabindex="-1" class="workstation__layout-reset" @click="resetFactoryWorkspace(); closeShellMenuToTrigger('workspace')">Reset factory layout</button>
@@ -188,10 +208,32 @@
         <span :class="{ 'workstation__leader': workspaceStore.isPersistenceLeader }">●</span>
         {{ workspaceStore.isPersistenceLeader ? 'Leader' : 'Shared' }}
         <span class="workstation__data-state" role="status" aria-live="polite" aria-atomic="true" :aria-label="`Market data freshness: ${dataState.label}`" :class="`workstation__data-state--${dataState.kind}`">{{ dataState.label }}</span>
-        <span v-if="selectionHistoryMessage" class="workstation__selection-acquisition" role="status" aria-live="polite">{{ selectionHistoryMessage }}</span>
-        <span v-if="selectionHistoryError" class="workstation__selection-acquisition workstation__selection-acquisition--error" role="alert">{{ selectionHistoryError }}</span>
-        <span v-if="selectionHoldingsMessage" class="workstation__selection-acquisition" role="status" aria-live="polite">{{ selectionHoldingsMessage }}</span>
-        <span v-if="selectionHoldingsError" class="workstation__selection-acquisition workstation__selection-acquisition--error" role="alert">{{ selectionHoldingsError }}</span>
+        <CompactStatusNotice
+          v-if="selectionHistoryMessage"
+          class="workstation__selection-acquisition"
+          :summary="preparationMessageSummary(selectionHistoryMessage, 'History')"
+          :detail="selectionHistoryMessage"
+        />
+        <CompactStatusNotice
+          v-if="selectionHistoryError"
+          class="workstation__selection-acquisition workstation__selection-acquisition--error"
+          kind="alert"
+          summary="History update failed"
+          :detail="selectionHistoryError"
+        />
+        <CompactStatusNotice
+          v-if="selectionHoldingsMessage"
+          class="workstation__selection-acquisition"
+          :summary="preparationMessageSummary(selectionHoldingsMessage, 'Holdings')"
+          :detail="selectionHoldingsMessage"
+        />
+        <CompactStatusNotice
+          v-if="selectionHoldingsError"
+          class="workstation__selection-acquisition workstation__selection-acquisition--error"
+          kind="alert"
+          summary="Holdings update failed"
+          :detail="selectionHoldingsError"
+        />
         <span
           v-if="selectedHoldingLineage"
           class="workstation__selection-acquisition"
@@ -226,11 +268,14 @@
         @click="selectWorkspaceTab(tab.stable_key)"
         @keydown="handleWorkspaceTabKeydown(tab.stable_key, $event)"
       >{{ tab.name }}</button>
-      <button type="button" class="workstation__tab-add" title="Clone active layout" aria-label="Clone active layout" @click="workspaceStore.cloneActiveTab()">+</button>
+      <button type="button" class="workstation__tab-add" title="Duplicate layout" aria-label="Duplicate layout" @click="workspaceStore.cloneActiveTab()">+</button>
       <div class="workstation__tool-library">
           <button ref="toolLibraryTrigger" type="button" class="workstation__tab-add" title="Open a workstation tool" aria-haspopup="menu" :aria-expanded="toolLibraryOpen" :aria-controls="toolLibraryMenuId" @click="toggleToolLibrary()" @keydown="handleShellTriggerKeydown('tool-library', $event)">Add tool</button>
         <div v-if="toolLibraryOpen" :id="toolLibraryMenuId" ref="toolLibraryMenuRoot" class="workstation__tool-library-menu" role="menu" aria-label="Workstation tools" :style="toolLibraryMenuStyle" @keydown="handleShellMenuKeydown('tool-library', $event)">
-          <button v-for="tool in openableTools" :key="tool.instance_prefix" type="button" role="menuitem" tabindex="-1" @click="openTool(tool)">{{ tool.title }}</button>
+          <p v-if="workspaceStore.toolCatalogueLoading" role="status">{{ openableTools.length ? 'Refreshing available tools…' : 'Loading available tools…' }}</p>
+          <p v-else-if="workspaceStore.toolCatalogueError" role="status">{{ openableTools.length ? 'Using the last verified tool list. ' : '' }}{{ workspaceStore.toolCatalogueError }}</p>
+          <p v-else-if="!openableTools.length" role="status">No workstation tools are currently available.</p>
+          <button v-for="tool in openableTools" :key="tool.key" type="button" role="menuitem" tabindex="-1" @click="openTool(tool)">{{ tool.title }}</button>
         </div>
       </div>
       <button v-if="workspaceStore.workspace?.settings.factory_id === 'us-top-down'" type="button" class="workstation__tab-reset" title="Reset factory workspace" aria-label="Reset factory workspace" @click="resetFactoryWorkspace"><WorkstationGlyph kind="reset" /></button>
@@ -244,6 +289,7 @@
       :tab-key="workspaceStore.activeTabKey"
       :active-window-key="workspaceStore.activeTab?.active_window_key"
       :reload-key="workspaceReloadKey"
+      :persist-layout="persistMaximizedLayout"
       :render-tool="renderDockTool"
       @changed="persistGoldenLayout"
       @active-window-changed="(windowKey, sourceTabKey) => { if (!sourceTabKey || sourceTabKey === workspaceStore.activeTabKey) workspaceStore.setActiveWindow(windowKey) }"
@@ -297,12 +343,16 @@
       <span>{{ chartStore.timeframe }}</span>
       <span role="status" aria-live="polite" aria-atomic="true" :title="footerError ?? symbolProxyNotice ?? undefined">{{ footerMessage }}</span>
       <span class="workstation__data-state" role="status" aria-live="polite" aria-atomic="true" :aria-label="`Market data freshness: ${dataState.label}`" :class="`workstation__data-state--${dataState.kind}`">{{ dataState.label }}</span>
+      <span class="workstation__snapshot-save-state" role="status" aria-live="polite" aria-atomic="true" aria-label="Workspace save status" :title="workspaceStore.snapshotSaveError ?? undefined" :data-state="workspaceSaveStatus">
+        {{ workspaceSaveStatusText }}
+      </span>
+      <button v-if="workspaceSaveStatus === 'error'" type="button" class="workstation__snapshot-save-retry" @click="retryWorkspaceSave">Retry save</button>
     </footer>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, useId, watch, type VNode } from 'vue'
+import { computed, defineComponent, h, nextTick, onBeforeUnmount, onMounted, ref, useId, watch, type PropType, type Ref, type VNode } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuery } from '@tanstack/vue-query'
 import WorkspaceLayoutHost from '@/components/workstation/WorkspaceLayoutHost.vue'
@@ -310,10 +360,10 @@ import WorkstationToolContent from '@/components/workstation/WorkstationToolCont
 import WorkstationGlyph from '@/components/workstation/WorkstationGlyph.vue'
 import { refreshMountedWorkstationChartPanels, useChartStore } from '@/stores/chart'
 import { useAuthStore } from '@/stores/auth'
-import { OPENABLE_WORKSTATION_TOOLS, useWorkspaceStore, type LinkGroup, type OpenableToolDefinition } from '@/stores/workspace'
+import { useWorkspaceStore, type LinkGroup, type OpenableToolDefinition, type WorkspaceTabRecovery, type WorkspaceWindowState } from '@/stores/workspace'
 import type { LayoutConfig } from 'golden-layout'
 import { resolveKnownInstrument } from '@/lib/instruments'
-import { acquireETFHoldings, acquireSelectedHistory, createKnownTemporaryRetryLifecycle, defaultHistoryRange, isCurrentETFHoldingsCapability, isEligibleETFHoldingsInstrumentType, readETFHoldingsCapability, resolveExistingInstrument, resolveExistingInstrumentWithRetry, type InstrumentDiscoveryResponse, type SelectedHistoryStage } from '@/lib/onDemandAcquisition'
+import { createKnownTemporaryRetryLifecycle, isConfirmedInstrumentSelection, isCurrentETFHoldingsCapability, isEligibleETFHoldingsInstrumentType, readETFHoldingsCapability, resolveExistingInstrument, type InstrumentDiscoveryResponse } from '@/lib/onDemandAcquisition'
 import { scheduleTickerDiscovery, shouldDiscoverTicker, tickerDiscoveryMessage } from '@/lib/workstationSymbolSearch'
 import { autoRatioExpression } from '@/lib/workstation/ratioExpression'
 import { api } from '@/lib/api'
@@ -326,9 +376,18 @@ import { workstationFreshness } from '@/lib/workstation/freshness'
 import { isInteractiveTarget } from '@/lib/workstation/keyboard'
 import { capturePopoutGeometry, popoutWindowFeatures, readPopoutGeometry, recoverPopoutGeometry, type PopoutScreen } from '@/lib/workstation/popoutGeometry'
 import { resolveMarketMapAnalysisSource } from '@/lib/workstation/marketMapPublication'
-import { isConfirmedETFHoldingIdentity, type ETFHoldingDrilldownContext } from '@/lib/etfHoldingDrilldown'
+import { isActiveVirtualToolRoot } from '@/lib/workstation/toolActivation'
+import {
+  isConfirmedETFHoldingIdentity,
+  isSameETFHoldingDrilldownContext,
+  holdingDrilldownRouteQuery,
+  parseETFHoldingDrilldownRouteQuery,
+  type ETFHoldingDrilldownContext,
+} from '@/lib/etfHoldingDrilldown'
 import { isSharedNavigationItemActive, sharedShellNavigation } from '@/router'
+import CompactStatusNotice from '@/components/common/CompactStatusNotice.vue'
 import type { Timeframe } from '@/types'
+import { dataPreparationCoordinator, historyPreparationStatusMessage, instrumentHistoryPreparationRequest, PreparationProgressRefreshQueue, preparationMessageSummary, preparationStatusMessage, type DataEnsureRequest, type DataEnsureResponse, type PreparationDataset, type PreparationStatus } from '@/lib/dataPreparation'
 
 const BLOCKED_POPOUT_ERROR = 'Browser blocked the pop-out. The tool remains docked.'
 const CHART_TIMEFRAME_ORDER: readonly Timeframe[] = ['M1', 'M5', 'M15', 'M30', 'H1', 'H2', 'H4', 'H12', 'D1', 'W1', 'MN']
@@ -344,6 +403,28 @@ const DIRECT_CHART_PERIOD_SHORTCUTS: Readonly<Record<string, Timeframe>> = {
   '5': 'W1',
 }
 const STANDARD_CHART_STYLES = ['hlc', 'ohlc', 'candles', 'line'] as const
+
+/** Prefer the selected instrument's requested dataset outcome over an aggregate
+ * partial status that may be caused by an unrelated dependency. */
+function selectedDatasetPreparationResponse(
+  response: DataEnsureResponse,
+  dataset: PreparationDataset,
+  instrumentId: number,
+  symbol: string,
+): DataEnsureResponse {
+  const normalizedSymbol = symbol.trim().toUpperCase()
+  const dependencies = response.dependencies.filter(dependency => dependency.dataset === dataset
+    && dependency.instrument_id === instrumentId
+    && (dependency.symbol === null || dependency.symbol.trim().toUpperCase() === normalizedSymbol))
+  if (!dependencies.length) return response
+
+  const statusOrder: PreparationStatus[] = ['failed', 'unavailable', 'waiting', 'partial', 'running', 'queued', 'ready']
+  const status = statusOrder.find(candidate => dependencies.some(dependency => dependency.status === candidate)) ?? response.status
+  const completed = dependencies.filter(dependency => dependency.status === 'ready').length
+  const hasPendingWork = dependencies.some(dependency => ['queued', 'running', 'partial', 'waiting'].includes(dependency.status))
+  return { ...response, status, completed, total: dependencies.length, has_pending_work: hasPendingWork, dependencies }
+}
+
 const route = useRoute()
 const router = useRouter()
 const chartStore = useChartStore()
@@ -388,6 +469,12 @@ const recentSymbolsMenuStyle = ref<Record<string, string>>({})
 const routeSymbol = typeof route.params.symbol === 'string' && route.params.symbol.trim()
   ? decodeURIComponent(route.params.symbol).trim().toUpperCase()
   : 'SPY'
+const initialHoldingRouteContext = (() => {
+  const requestedSymbol = route.params.symbol ?? route.query.symbol
+  if (typeof requestedSymbol !== 'string' || route.query.holding_history_intent !== 'selected') return null
+  return parseETFHoldingDrilldownRouteQuery(route.query as Record<string, unknown>, requestedSymbol)
+})()
+const holdingRouteHydrationPending = ref(initialHoldingRouteContext !== null)
 const symbolDraft = ref(routeSymbol)
 const toolLibraryOpen = ref(false)
 const workspaceMenuOpen = ref(false)
@@ -404,6 +491,8 @@ const workspaceFileInput = ref<HTMLInputElement | null>(null)
 const workspaceReloadKey = ref(0)
 const workspaceReplacementPending = ref(false)
 const workspaceTabSwitchPending = ref(false)
+const deletedLayoutRecovery = ref<WorkspaceTabRecovery | null>(null)
+const deletedLayoutRecoveryStatus = ref<'ready' | 'saving' | 'error'>('ready')
 const workspaceDockPending = computed(() => workspaceReplacementPending.value || workspaceTabSwitchPending.value)
 // Shell controls render before the async workspace snapshot has necessarily
 // hydrated. Keep tool-opening commands queued behind that first load instead
@@ -412,6 +501,15 @@ const workspaceDockPending = computed(() => workspaceReplacementPending.value ||
 const workspaceReady = ref(false)
 const pendingTimeframeSelections = new Map<LinkGroup, string>()
 let workspaceLoadPromise: Promise<void> | null = null
+let initialWorkspaceHydrationPending = false
+let pendingInitialWorkspaceSymbolIntent: {
+  generation: number
+  symbol: string
+  instrumentId: number | null
+  timestamp?: string
+  holdingContext: ETFHoldingDrilldownContext | null
+  selectedHolding: boolean
+} | null = null
 let resolveWorkspaceReady: (() => void) | null = null
 const workspaceReadyPromise = new Promise<void>(resolve => {
   resolveWorkspaceReady = resolve
@@ -421,7 +519,8 @@ const tabDragOverKey = ref<string | null>(null)
 const tabDragCommitted = ref(false)
 const searchResults = ref<Array<{ symbol: string; name: string; exchange: string; type: string; instrument_id?: number | null }>>([])
 const searchIndex = ref(-1)
-const searchOptionExplicitlyNavigated = ref(false)
+const searchOptionExplicitlyNavigatedFor = ref('')
+const userSymbolDraftActive = ref(false)
 const searchLoading = ref(false)
 const searchSettled = ref(false)
 const searchError = ref('')
@@ -436,19 +535,35 @@ const selectionHistoryMessage = ref('')
 const selectionHistoryError = ref('')
 const selectionHoldingsMessage = ref('')
 const selectionHoldingsError = ref('')
-const activeHoldingContext = ref<{ symbol: string; context: ETFHoldingDrilldownContext } | null>(null)
+const activeHoldingContext = ref<{ symbol: string; context: ETFHoldingDrilldownContext; restoredFromRoute?: boolean } | null>(null)
 const selectedHoldingDetails = computed(() => {
   const selection = activeHoldingContext.value
-  const fund = workspaceStore.constituentETF
+  const fund = selection?.restoredFromRoute ? selection.context.etfSymbol : workspaceStore.constituentETF
   if (!selection || !fund || selection.symbol !== workspaceStore.linkedSymbol.trim().toUpperCase()) return ''
   const context = selection.context
-  return `${selection.symbol} from ${fund} holdings · snapshot ${context.snapshotId} · row ${context.holdingRowId} · composition ${context.compositionDate} · known ${context.knownAt || 'not reported'} · ${context.sourceProvider} / ${context.provenance}`
+  const origin = selection.restoredFromRoute ? 'dated holdings' : 'holdings'
+  return [
+    `${selection.symbol} from ${fund} ${origin}`,
+    `instrument ${context.instrumentId}`,
+    `snapshot ${context.snapshotId}`,
+    `row ${context.holdingRowId}`,
+    context.sourceRowId ? `source row ${context.sourceRowId}` : '',
+    `reported ${context.reportedSymbol}`,
+    context.reportedName ? `reported name ${context.reportedName}` : '',
+    context.holdingType ? `type ${context.holdingType}` : '',
+    `composition ${context.compositionDate}`,
+    `known ${context.knownAt || 'not reported'}`,
+    `${context.sourceProvider} / ${context.provenance}`,
+    'This dated context does not establish current ETF analysis eligibility',
+  ].filter(Boolean).join(' · ')
 })
 const selectedHoldingCaption = computed(() => {
   const selection = activeHoldingContext.value
-  const fund = workspaceStore.constituentETF
+  const fund = selection?.restoredFromRoute ? selection.context.etfSymbol : workspaceStore.constituentETF
   if (!selection || !fund || selection.symbol !== workspaceStore.linkedSymbol.trim().toUpperCase()) return ''
-  return `${selection.symbol} from ${fund} holdings · ${selection.context.compositionDate}`
+  return selection.restoredFromRoute
+    ? `${selection.symbol} from ${fund} dated holdings · ${selection.context.compositionDate}`
+    : `${selection.symbol} from ${fund} holdings · ${selection.context.compositionDate}`
 })
 const selectedHoldingLineage = selectedHoldingDetails
 let searchTimer: ReturnType<typeof setTimeout> | null = null
@@ -458,10 +573,11 @@ let candidateResolutionAbortController: AbortController | null = null
 let candidateResolutionSequence = 0
 let searchRequest = 0
 let pendingSymbolSearch: { requestId: number; query: string; promise: Promise<void>; resolve: () => void } | null = null
-let symbolSubmissionInFlight = false
+let symbolSubmissionInFlight: { query: string; requestId: number } | null = null
 let lastSymbolSelectionError: string | null = null
 let lastDiscoveryQuery = ''
 const symbolSearchEnabled = ref(false)
+const layoutRenameDrafts = ref<Record<string, string>>({})
 const searchPanelVisible = computed(() => symbolSearchEnabled.value && Boolean(symbolDraft.value.trim()))
 const searchStateText = computed(() => {
   if (!searchPanelVisible.value) return ''
@@ -482,6 +598,8 @@ const ctrlWheelHeld = ref(false)
 // intent wins so a late initial SPY request cannot restore an older selection.
 let symbolSelectionGeneration = 0
 let selectedAcquisitionAbortController: AbortController | null = null
+let linkedTimeframePreparationGeneration = 0
+let linkedTimeframePreparationAbortController: AbortController | null = null
 let drilldownSelectionGeneration = 0
 let componentMounted = false
 let resolveComponentMountSettled: (() => void) | null = null
@@ -494,16 +612,22 @@ const preserveDrilldownSymbol = ref<string | null>(null)
 // the canonical, explicitly-labelled SPY tradable proxy instead of leaving the
 // workstation on a dead symbol.
 const symbolProxyNotice = ref<string | null>(null)
-const openableTools = OPENABLE_WORKSTATION_TOOLS
+const openableTools = computed(() => workspaceStore.toolCatalogue ?? [])
 const applicationNavigation = sharedShellNavigation
 const isApplicationNavigationItemActive = (item: typeof applicationNavigation[number]) =>
   isSharedNavigationItemActive(route.path, item.match)
+// Keep RouterLink mounted until its own navigation handler has committed the
+// destination. Closing the v-if menu during pointerdown/click can detach the
+// link before Vue Router processes the ordinary activation.
+watch(() => route.fullPath, () => closeShellMenus())
 const documentVisible = ref(typeof document === 'undefined' || document.visibilityState === 'visible')
 let removeVisibilityListener: (() => void) | null = null
 const popoutGeometryPollers = new Map<string, ReturnType<typeof window.setInterval>>()
 
 function closeSymbolSearch() {
   symbolSearchEnabled.value = false
+  searchOptionExplicitlyNavigatedFor.value = ''
+  userSymbolDraftActive.value = false
   discoveryRetryAbortController?.abort()
   discoveryRetryAbortController = null
   candidateResolutionAbortController?.abort()
@@ -545,6 +669,7 @@ function handleSymbolInput() {
   symbolSelectionGeneration += 1
   drilldownSelectionGeneration += 1
   symbolSearchEnabled.value = true
+  userSymbolDraftActive.value = true
   const inputValue = symbolInput.value?.value ?? symbolDraft.value
   if (symbolDraft.value !== inputValue) symbolDraft.value = inputValue
   // Schedule from the actual DOM event as well as the ref watcher. This also
@@ -862,7 +987,7 @@ function handleShellMenuKeydown(menu: ShellMenuRoot, event: KeyboardEvent) {
 
 function preserveActiveUserSymbolDraft(symbol: string) {
   return symbolSearchEnabled.value
-    && symbolInput.value === document.activeElement
+    && userSymbolDraftActive.value
     && symbolDraft.value.trim().toUpperCase() !== symbol.toUpperCase()
 }
 
@@ -946,6 +1071,12 @@ const footerError = computed(() => {
   return (selectedETF ? workspaceStore.etfConstituentSnapshotErrors[selectedETF] : null) ?? workspaceStore.error
 })
 const footerMessage = computed(() => symbolProxyNotice.value ?? humanizeWorkspaceError(footerError.value))
+const workspaceSaveStatus = computed(() => workspaceStore.snapshotSaveStatus ?? 'saved')
+const workspaceSaveStatusText = computed(() => {
+  if (workspaceSaveStatus.value === 'saving') return 'Saving layout…'
+  if (workspaceSaveStatus.value === 'error') return 'Workspace save failed'
+  return 'Workspace saved'
+})
 const isPopout = computed(() => route.path.startsWith('/popout/'))
 const popoutLabel = computed(() => {
   const title = popoutTool.value?.title?.trim() || 'workstation tool'
@@ -986,6 +1117,10 @@ const marketAnalysisQuery = useQuery({
   },
   enabled: computed(() => !isPopout.value && documentVisible.value && Boolean(workspaceStore.workspace) && workspaceStore.isPersistenceLeader),
   staleTime: 60_000,
+  // The visibility handler below is the single refresh owner. Vue Query also
+  // observes document visibility as window focus; disabling its parallel
+  // focus refetch prevents two shell refreshes for the same foreground return.
+  refetchOnWindowFocus: false,
   refetchInterval: 5 * 60 * 1000,
   refetchIntervalInBackground: false,
 })
@@ -1014,16 +1149,20 @@ async function refreshMarketData() {
     // its first paint changes the canonical readiness/status state behind the
     // visual workstation oracle without helping the chart itself.
     if (popoutTool.value?.tool_type === 'watchlist' && !hasSharedMarketAnalysis()) {
-      await workspaceStore.refreshMarketAnalysis()
+      await workspaceStore.refreshMarketAnalysis('high')
     }
     return
   }
   if (workspaceStore.isPersistenceLeader) {
+    // Mounting a visible analysis surface is user-visible work. If the shell's
+    // interval refresh already queued these same reads, the store promotes the
+    // existing requests rather than issuing duplicates.
+    void workspaceStore.refreshMarketAnalysis('high')
     await marketAnalysisQuery.refetch()
   } else {
     // Followers still hydrate once when they open. Subsequent periodic refreshes are
     // leader-owned and arrive through the cross-window refresh event.
-    await workspaceStore.refreshMarketAnalysis()
+    await workspaceStore.refreshMarketAnalysis('high')
   }
 }
 const popoutTool = computed(() => {
@@ -1049,6 +1188,7 @@ function selectWorkspaceTab(stableKey: string) {
   // responses cannot reinstall the previous layout over the newly selected tab.
   workspaceStore.activeTabKey = stableKey
   workspaceStore.scheduleSnapshot()
+  void workspaceStore.saveSnapshot()
   void nextTick(() => {
     workspaceTabSwitchPending.value = false
   })
@@ -1056,11 +1196,12 @@ function selectWorkspaceTab(stableKey: string) {
 
 async function replaceDockAfterWorkspaceChange() {
   if (isPopout.value) return
+  const alreadyReplacingWorkspace = workspaceReplacementPending.value
   workspaceReplacementPending.value = true
   await nextTick()
   workspaceReloadKey.value += 1
   await nextTick()
-  workspaceReplacementPending.value = false
+  workspaceReplacementPending.value = alreadyReplacingWorkspace
   await nextTick()
 }
 
@@ -1132,6 +1273,39 @@ function sp500TradableProxy(): string {
   return 'SPY'
 }
 
+function isPrivateBasketToken(value: string): boolean {
+  const match = value.trim().match(/^BASKET:(\d+)$/i)
+  return Boolean(match && Number(match[1]) > 0)
+}
+
+function consumeHoldingSelectionHandoff(context: ETFHoldingDrilldownContext | null): {
+  selected: boolean
+  confirmedIdentity?: InstrumentAcquireResponse
+} {
+  const state = window.history.state as Record<string, unknown> | null
+  if (!state || (!Object.prototype.hasOwnProperty.call(state, 'tcHoldingSelectionHandoff')
+    && !Object.prototype.hasOwnProperty.call(state, 'tcHoldingIdentityHandoff'))) return { selected: false }
+  const nextState = { ...state }
+  const rawSelection = nextState.tcHoldingSelectionHandoff
+  const rawIdentity = nextState.tcHoldingIdentityHandoff
+  delete nextState.tcHoldingSelectionHandoff
+  delete nextState.tcHoldingIdentityHandoff
+  window.history.replaceState(nextState, '', window.location.href)
+  if (!context || typeof rawSelection !== 'string') return { selected: false }
+  try {
+    const selectedContext = JSON.parse(rawSelection) as ETFHoldingDrilldownContext
+    if (!isSameETFHoldingDrilldownContext(selectedContext, context)) return { selected: false }
+    if (typeof rawIdentity !== 'string') return { selected: true }
+    const candidate = JSON.parse(rawIdentity) as InstrumentAcquireResponse
+    return {
+      selected: true,
+      confirmedIdentity: isConfirmedETFHoldingIdentity(candidate, context) ? candidate : undefined,
+    }
+  } catch {
+    return { selected: false }
+  }
+}
+
 function selectHoldingInDashboard(
   symbol: string,
   context: ETFHoldingDrilldownContext,
@@ -1147,6 +1321,78 @@ function selectHoldingInDashboard(
     confirmedIdentity?.instrument?.instrument_type ?? '', true, confirmedIdentity, context)
 }
 
+let pendingChartRouteSync: string | null = null
+function syncChartRouteToSelection(
+  rawSymbol: string,
+  instrumentId?: number | null,
+  candidateContext?: ETFHoldingDrilldownContext | null,
+  markHoldingSelection = false,
+) {
+  if (isPopout.value || !/^\/chart(?:\/|$)/.test(route.path)) return
+  const symbol = rawSymbol.trim().toUpperCase()
+  if (!symbol) return
+  // A requested SPX that resolved to its labelled tradable proxy keeps the
+  // user's SPX URL; rewriting it would present the proxy as the request.
+  const requestedRouteSymbol = typeof route.params.symbol === 'string' ? route.params.symbol.trim().toUpperCase() : ''
+  if (requestedRouteSymbol === 'SPX' && symbolProxyNotice.value === `SPX official series unavailable; using tradable proxy ${symbol}`) return
+  const candidateHoldingContext = candidateContext
+    ?? (!isPrivateBasketToken(symbol) && activeHoldingContext.value?.symbol === symbol
+      ? activeHoldingContext.value.context
+      : null)
+  const context = candidateHoldingContext
+    && candidateHoldingContext.canonicalSymbol.trim().toUpperCase() === symbol
+    && (instrumentId == null || candidateHoldingContext.instrumentId === instrumentId)
+    ? candidateHoldingContext
+    : null
+  const nextQuery: Record<string, unknown> = { ...route.query }
+  for (const key of Object.keys(nextQuery)) {
+    if (key.startsWith('holding_')) delete nextQuery[key]
+  }
+  if (typeof nextQuery.symbol === 'string' && nextQuery.symbol.trim().toUpperCase() !== symbol) {
+    delete nextQuery.symbol
+  }
+  if (context) {
+    Object.assign(nextQuery, holdingDrilldownRouteQuery(context))
+    if (markHoldingSelection || route.query.holding_history_intent === 'selected') {
+      nextQuery.holding_history_intent = 'selected'
+    }
+  }
+  const path = `/chart/${encodeURIComponent(symbol)}`
+  if (route.path === path && JSON.stringify(nextQuery) === JSON.stringify(route.query)) return
+  const requestKey = JSON.stringify({ path, query: nextQuery })
+  if (pendingChartRouteSync === requestKey) return
+  pendingChartRouteSync = requestKey
+  void router.replace({ path, query: nextQuery as typeof route.query }).then(failure => {
+      if (failure && pendingChartRouteSync === requestKey) {
+      pendingChartRouteSync = null
+      setSymbolSelectionError(`Selected ${symbol}, but the chart URL could not be updated; a reload may restore a different symbol.`)
+    }
+  }).catch(() => {
+    if (pendingChartRouteSync === requestKey) {
+      pendingChartRouteSync = null
+      setSymbolSelectionError(`Selected ${symbol}, but the chart URL could not be updated; a reload may restore a different symbol.`)
+    }
+  }).finally(() => {
+    if (pendingChartRouteSync === requestKey) pendingChartRouteSync = null
+  })
+}
+
+function restoredWorkspaceBlueSymbol(): string {
+  const workspace = workspaceStore.workspace
+  const linkedSymbols = workspace?.settings?.linked_symbols
+  if (linkedSymbols && typeof linkedSymbols === 'object' && !Array.isArray(linkedSymbols)) {
+    const blue = (linkedSymbols as Record<string, unknown>).blue
+    if (blue && typeof blue === 'object' && !Array.isArray(blue)) {
+      const symbol = (blue as Record<string, unknown>).symbol
+      if (typeof symbol === 'string' && symbol.trim()) return symbol.trim().toUpperCase()
+    }
+  }
+  const configured = workspace?.tabs.flatMap(tab => tab.windows)
+    .find(tool => tool.link_group !== 'grey' && typeof tool.configuration.symbol === 'string')
+    ?.configuration.symbol
+  return typeof configured === 'string' && configured.trim() ? configured.trim().toUpperCase() : 'SPY'
+}
+
 async function selectSymbol(
   raw: string,
   timestamp?: string,
@@ -1158,14 +1404,20 @@ async function selectSymbol(
   acquisitionIntent = false,
   confirmedIdentity?: InstrumentAcquireResponse,
   holdingContext?: ETFHoldingDrilldownContext,
+  restoredHoldingContext?: ETFHoldingDrilldownContext,
 ) {
   const requested = raw.trim()
   if (!requested) return
+  const privateBasketSelection = isPrivateBasketToken(requested)
   clearSupersededSymbolSelectionError()
+  linkedTimeframePreparationGeneration += 1
+  linkedTimeframePreparationAbortController?.abort()
+  linkedTimeframePreparationAbortController = null
   selectedAcquisitionAbortController?.abort()
   const acquisitionController = new AbortController()
   selectedAcquisitionAbortController = acquisitionController
   const generation = ++symbolSelectionGeneration
+  let resolvedInstrumentType = confirmedIdentity?.instrument?.instrument_type?.trim() || instrumentType
   if (!preserveETFContext) {
     const requestedSymbol = requested.toUpperCase()
     const sectorSymbols = new Set(
@@ -1197,7 +1449,33 @@ async function selectSymbol(
     ...(workspaceStore.marketGroups['sp500-sectors']?.members ?? [])
       .map(member => member.instrument.symbol.trim().toUpperCase()),
   ])
-  if (knownWorkstationSymbols.has(requested.toUpperCase())) {
+  if (privateBasketSelection) {
+    // Basket IDs are authenticated, user-owned chart contexts, not instruments.
+    // The chart store validates the private basket endpoint and prepares its
+    // exact member IDs through the shared coordinator.
+    symbol = requested.toUpperCase()
+  } else if (holdingContext
+    && holdingContext.canonicalSymbol.trim().toUpperCase() === requested.toUpperCase()
+    && Number.isSafeInteger(instrumentId) && instrumentId === holdingContext.instrumentId) {
+    // A verified holding handoff already carries the canonical instrument ID.
+    // Do not resolve the reported ticker again and risk attaching the lineage to
+    // a different listing.
+    symbol = holdingContext.canonicalSymbol.trim().toUpperCase()
+    resolvedInstrumentId = holdingContext.instrumentId
+  } else if (confirmedIdentity) {
+    if (!isConfirmedInstrumentSelection(confirmedIdentity, requested, instrumentId)) {
+      setSymbolSelectionError('Ticker confirmation did not match the selected listing. No chart was opened.')
+      return
+    }
+    const confirmedInstrument = confirmedIdentity.instrument!
+    // Candidate confirmation already returned the exact canonical identity.
+    // Re-resolving it adds a second metadata dependency after successful
+    // confirmation and can leave the user's selection/URL stuck behind a
+    // queued request. Trust only the matching resolved symbol and positive ID.
+    symbol = confirmedInstrument.symbol.trim().toUpperCase()
+    resolvedInstrumentId = confirmedInstrument.instrument_id
+    resolvedInstrumentType = confirmedInstrument.instrument_type?.trim() || resolvedInstrumentType
+  } else if (knownWorkstationSymbols.has(requested.toUpperCase())) {
     // These symbols are already canonical members of a loaded workstation
     // universe. Publish them synchronously so an in-flight initial request
     // cannot leave the Industries pane bound to the previous ETF.
@@ -1206,9 +1484,18 @@ async function selectSymbol(
     symbol = requested.toUpperCase()
   } else {
     try {
-      const resolved = await resolveKnownInstrument(requested, 'Workstation symbol', { canonicalOnly: true })
+      const resolved = await resolveKnownInstrument(requested, 'Workstation symbol', {
+        canonicalOnly: true,
+        priority: 'high',
+        foreground: true,
+        signal: acquisitionController.signal,
+      })
       symbol = resolved.symbol
       resolvedInstrumentId = resolved.id
+      // The local picker may have an older or coarse security classification.
+      // Use the canonical metadata returned by this already-needed lookup to
+      // update dataset-specific panels without re-acquiring the identity.
+      resolvedInstrumentType = resolved.instrumentType || resolvedInstrumentType
     } catch (cause: any) {
       if (generation !== symbolSelectionGeneration) return
       if (allowNavigationFallback && navigationFallbacks.has(requested.toUpperCase())) {
@@ -1221,7 +1508,12 @@ async function selectSymbol(
         // ticker alias. Keep the limitation visible in the shell status bar.
         const proxy = sp500TradableProxy()
         try {
-          const resolved = await resolveKnownInstrument(proxy, 'S&P 500 tradable proxy', { canonicalOnly: true })
+          const resolved = await resolveKnownInstrument(proxy, 'S&P 500 tradable proxy', {
+            canonicalOnly: true,
+            priority: 'high',
+            foreground: true,
+            signal: acquisitionController.signal,
+          })
           symbol = resolved.symbol
           resolvedInstrumentId = resolved.id
           if (generation !== symbolSelectionGeneration) return
@@ -1238,9 +1530,6 @@ async function selectSymbol(
     }
   }
   if (generation !== symbolSelectionGeneration) return
-  activeHoldingContext.value = holdingContext
-    ? { symbol: symbol.trim().toUpperCase(), context: holdingContext }
-    : null
   selectionHistoryMessage.value = ''
   selectionHistoryError.value = ''
   selectionHoldingsMessage.value = ''
@@ -1253,6 +1542,14 @@ async function selectSymbol(
     ].find(member => member.instrument.symbol.trim().toUpperCase() === symbol)
     canonicalInstrumentId = knownMember?.instrument.id ?? null
   }
+  const displayContext = holdingContext ?? restoredHoldingContext
+  const contextMatchesResolvedIdentity = displayContext
+    && displayContext.canonicalSymbol.trim().toUpperCase() === symbol.trim().toUpperCase()
+    && Number.isSafeInteger(canonicalInstrumentId)
+    && canonicalInstrumentId === displayContext.instrumentId
+  activeHoldingContext.value = contextMatchesResolvedIdentity
+    ? { symbol: symbol.trim().toUpperCase(), context: displayContext, restoredFromRoute: !holdingContext }
+    : null
   // A direct selection begins a new holdings context immediately. A constituent
   // row is the explicit exception: its parent ETF remains the source for the
   // linked constituent/ratio panels while the selected equity chart changes.
@@ -1260,7 +1557,7 @@ async function selectSymbol(
     (workspaceStore.marketGroups['sp500-sectors']?.members ?? [])
       .map(member => member.instrument.symbol.trim().toUpperCase()),
   )
-  const selectedType = confirmedIdentity?.instrument?.instrument_type ?? instrumentType
+  const selectedType = resolvedInstrumentType
   const isETF = sectorSymbols.has(symbol) || isEligibleETFHoldingsInstrumentType(selectedType)
   if (!preserveETFContext) {
     if (isETF) workspaceStore.setConstituentETF(symbol)
@@ -1269,11 +1566,21 @@ async function selectSymbol(
     preserveDrilldownSymbol.value = symbol
   }
   symbolDraft.value = symbol
-  recentStore.add(symbol, undefined, recordHistory)
+  if (!privateBasketSelection) recentStore.add(symbol, undefined, recordHistory)
   // Capture the drill-down ETF before loading the newly selected symbol. A stock
   // selection from a constituent list may itself have no holdings endpoint, but
   // its relevant ratio denominator is still the list's active ETF.
   const comparisonETF = workspaceStore.constituentETF
+  if (initialWorkspaceHydrationPending) {
+    pendingInitialWorkspaceSymbolIntent = {
+      generation,
+      symbol,
+      instrumentId: canonicalInstrumentId,
+      timestamp,
+      holdingContext: contextMatchesResolvedIdentity ? displayContext : null,
+      selectedHolding: Boolean(holdingContext),
+    }
+  }
   const explicitTimestampToken = workspaceStore.publishSymbol({
     symbol,
     ...(typeof canonicalInstrumentId === 'number' ? { instrumentId: canonicalInstrumentId } : {}),
@@ -1281,13 +1588,22 @@ async function selectSymbol(
     group: 'blue',
     sourceWindowKey: 'workstation',
   })
+  syncChartRouteToSelection(
+    symbol,
+    canonicalInstrumentId,
+    contextMatchesResolvedIdentity ? displayContext : null,
+    Boolean(holdingContext),
+  )
   // Update linked ratio state at publish time. Data hydration can take much
   // longer than the user's next click and must not delay the visible target.
-  updateAutoRatioExpression(symbol, comparisonETF)
+  if (!privateBasketSelection) updateAutoRatioExpression(symbol, comparisonETF)
   try {
-    const localDataReady = loadSymbolData(symbol, comparisonETF, false, preserveETFContext)
+    let localHoldingsReady: Promise<unknown> = Promise.resolve(null)
+    const localDataReady = loadSymbolData(symbol, comparisonETF, false, preserveETFContext, promise => {
+      localHoldingsReady = promise
+    })
     const selectedAcquisition = acquisitionIntent
-      ? acquireSelectedTickerData(symbol, generation, localDataReady, confirmedIdentity, acquisitionController.signal)
+      ? acquireSelectedTickerData(symbol, generation, localHoldingsReady, confirmedIdentity, acquisitionController.signal, canonicalInstrumentId, resolvedInstrumentType)
       : Promise.resolve()
     await Promise.all([localDataReady, selectedAcquisition])
     if (generation !== symbolSelectionGeneration) return
@@ -1311,98 +1627,118 @@ async function selectSymbol(
 async function acquireSelectedTickerData(
   symbol: string,
   generation: number,
-  localDataReady: Promise<void>,
+  localHoldingsReady: Promise<unknown>,
   confirmedIdentity?: InstrumentAcquireResponse,
   signal?: AbortSignal,
+  knownInstrumentId?: number | null,
+  resolvedInstrumentType = '',
 ) {
   const timeframe = chartStore.timeframe
-  const range = defaultHistoryRange(timeframe)
-  const request = { timeframe, adjusted: true, start: range.start, end: range.end }
-  // Deliberate selection owns one identity/type reconciliation even when the
-  // chart is already cached. The backend returns locally for an already
-  // qualified identity; provisional or stale identity is governed there.
-  // History and issuer work share this result, so neither can race or resolve
-  // the selected symbol twice.
+  const normalizedSymbol = symbol.trim().toUpperCase()
   const isCurrent = () => generation === symbolSelectionGeneration && !signal?.aborted
     && chartStore.timeframe === timeframe
-  const retryLifecycle = createKnownTemporaryRetryLifecycle(isCurrent, retryAt => {
-    if (isCurrent()) selectionHistoryMessage.value = `Waiting to retry ${symbol} history after ${new Date(retryAt).toLocaleTimeString()}…`
-  }, signal)
-  const identityPromise = confirmedIdentity
-    ? Promise.resolve(confirmedIdentity)
-    : resolveExistingInstrumentWithRetry(symbol, retryLifecycle, isCurrent)
-  const updateStage = (stage: SelectedHistoryStage) => {
-    if (!isCurrent()) return
-    selectionHistoryMessage.value = stage === 'coverage'
-      ? `Checking local ${timeframe} history for ${symbol}…`
-      : stage === 'identity'
-        ? `Confirming ${symbol}…`
-        : stage === 'waiting'
-          ? selectionHistoryMessage.value
-          : `Loading missing ${timeframe} history for ${symbol}…`
+  const target = Number.isSafeInteger(confirmedIdentity?.instrument?.instrument_id)
+    && Number(confirmedIdentity?.instrument?.instrument_id) > 0
+    ? { kind: 'instrument' as const, instrument_id: Number(confirmedIdentity!.instrument!.instrument_id) }
+    : Number.isSafeInteger(knownInstrumentId) && Number(knownInstrumentId) > 0
+      ? { kind: 'instrument' as const, instrument_id: Number(knownInstrumentId) }
+      : { kind: 'instrument' as const, symbol: normalizedSymbol }
+  const targetInstrumentId = 'instrument_id' in target && Number.isSafeInteger(target.instrument_id)
+    ? Number(target.instrument_id)
+    : null
+  let resolveIdentity!: (value: InstrumentAcquireResponse | null) => void
+  let identityResolved = false
+  const identityPromise = new Promise<InstrumentAcquireResponse | null>(resolve => { resolveIdentity = resolve })
+  const finishIdentity = (value: InstrumentAcquireResponse | null) => {
+    if (identityResolved) return
+    identityResolved = true
+    resolveIdentity(value)
   }
+  const makeResolvedIdentity = (instrumentId: number, instrumentType = ''): InstrumentAcquireResponse => ({
+    request_id: confirmedIdentity?.request_id ?? `preparation-${generation}`,
+    status: 'resolved',
+    instrument: {
+      instrument_id: instrumentId,
+      symbol: normalizedSymbol,
+      identity_status: 'resolved',
+      ...(instrumentType ? { instrument_type: instrumentType } : {}),
+    },
+    source_outcomes: [],
+  })
+  if (confirmedIdentity?.status === 'resolved' && confirmedIdentity.instrument?.symbol.trim().toUpperCase() === normalizedSymbol) {
+    finishIdentity(confirmedIdentity)
+  } else if (targetInstrumentId !== null) {
+      finishIdentity(makeResolvedIdentity(targetInstrumentId, confirmedIdentity?.instrument?.instrument_type ?? resolvedInstrumentType))
+  }
+
+  const refreshQueue = new PreparationProgressRefreshQueue()
+  const refreshVisibleSelection = async () => {
+    if (!isCurrent()) return
+    await Promise.allSettled([
+      chartStore.refreshLocalBars(),
+      refreshMountedWorkstationChartPanels(symbol, timeframe, isCurrent),
+      workspaceStore.loadTechnical(symbol, 'high'),
+    ])
+  }
+  const publishIdentityFromProgress = (result: DataEnsureResponse) => {
+    if (identityResolved) return
+    const identityDependency = result.dependencies.find(dependency => dependency.dataset === 'identity'
+      && dependency.status === 'ready'
+      && Number.isSafeInteger(dependency.instrument_id)
+      && Number(dependency.instrument_id) > 0
+      && (!dependency.symbol || dependency.symbol.trim().toUpperCase() === normalizedSymbol))
+    if (identityDependency?.instrument_id) {
+      finishIdentity(makeResolvedIdentity(identityDependency.instrument_id, confirmedIdentity?.instrument?.instrument_type ?? ''))
+      return
+    }
+    const matching = result.dependencies.find(dependency => dependency.instrument_id
+      && dependency.symbol?.trim().toUpperCase() === normalizedSymbol
+      && ['profile', 'history', 'holdings', 'fundamentals'].includes(dependency.dataset))
+    if (matching?.instrument_id) finishIdentity(makeResolvedIdentity(matching.instrument_id, confirmedIdentity?.instrument?.instrument_type ?? ''))
+    else if (result.has_pending_work === false && result.dependencies.some(dependency => dependency.dataset === 'identity'
+      && ['unavailable', 'failed'].includes(dependency.status))) finishIdentity(null)
+  }
+  const preparation = dataPreparationCoordinator.ensure(
+    instrumentHistoryPreparationRequest(target, timeframe, true),
+    {
+      signal,
+      priority: 'high',
+      onProgress: ({ response, completed, total }) => {
+        if (!isCurrent()) return
+        publishIdentityFromProgress(response)
+        const historyDependencies = response.dependencies.filter(dependency => dependency.dataset === 'history')
+        const hasHistoryOutput = historyDependencies.some(dependency => dependency.covered_ranges.length > 0
+          || (dependency.covered_start !== null && dependency.covered_end !== null))
+        selectionHistoryMessage.value = response.status === 'ready'
+          ? `Refreshing the available ${timeframe} history for ${symbol}…`
+          : historyPreparationStatusMessage(response, symbol, timeframe, completed, total)
+        if (hasHistoryOutput) {
+          void refreshQueue.request(response, refreshVisibleSelection).catch(() => {
+            if (isCurrent()) selectionHistoryError.value = `Available ${timeframe} history for ${symbol} could not be refreshed; saved bars remain visible.`
+          })
+        }
+      },
+    },
+  )
   const historyTask = (async () => {
     try {
-      const outcome = await acquireSelectedHistory(
-        symbol,
-        timeframe,
-        true,
-        request,
-        updateStage,
-        isCurrent,
-        identityPromise,
-        { retryLifecycle, signal },
-      )
-      if (generation !== symbolSelectionGeneration || outcome.kind === 'superseded') return
-      if (outcome.kind === 'already-covered') {
-        selectionHistoryMessage.value = `Local ${timeframe} history is available for ${symbol}.`
-      } else if (outcome.kind === 'identity-unavailable') {
-        selectionHistoryMessage.value = outcome.status === 'held'
-          ? `History for ${symbol} is temporarily held${outcome.retryAt ? `; try again after ${new Date(outcome.retryAt).toLocaleTimeString()}` : ''}. The selected chart remains available.`
-          : `The ticker identity for ${symbol} could not be confirmed; no history was requested.`
-      } else if (outcome.kind === 'admission-held') {
-        selectionHistoryMessage.value = `History for ${symbol} is temporarily held; the selected chart remains available.`
-      } else if (outcome.kind === 'admission-unavailable') {
-        selectionHistoryMessage.value = `The allowed history window for ${symbol} could not be confirmed; saved bars remain available.`
-      } else if (outcome.kind === 'coverage-unavailable') {
-        selectionHistoryMessage.value = `Saved history coverage for ${symbol} could not be confirmed; the selected chart remains available.`
-      } else if (outcome.kind === 'at-earliest-bound') {
-        selectionHistoryMessage.value = `The available ${timeframe} history for ${symbol} begins ${new Date(outcome.earliestStart).toLocaleDateString()}.`
+      const result = await preparation
+      if (!isCurrent()) return
+      publishIdentityFromProgress(result)
+      if (!identityResolved) finishIdentity(null)
+      if (result.status === 'ready') {
+        selectionHistoryError.value = ''
+        selectionHistoryMessage.value = `The admitted ${timeframe} history for ${symbol} is available locally.`
       } else {
-        const result = outcome.result
-        const heldSource = result.source_outcomes.find(source => source.status === 'held')
-        const retryAt = result.retry_at ?? heldSource?.retry_at
-        selectionHistoryMessage.value = result.status === 'complete'
-          ? `Loaded ${result.coverage.bar_count} local ${timeframe} bars for ${symbol}.`
-          : result.status === 'partial'
-            ? `Some ${timeframe} history for ${symbol} loaded; the rest remains unavailable.`
-            : result.status === 'held'
-              ? `History for ${symbol} is temporarily held${retryAt ? `; try again after ${new Date(retryAt).toLocaleTimeString()}` : ''}. The current chart remains available.`
-              : result.status === 'no_data'
-                ? `No ${timeframe} history is available for ${symbol}; the selected chart is unchanged.`
-                : `History for ${symbol} could not be loaded; the selected chart is unchanged.`
-        if ((result.status === 'complete' || result.status === 'partial')
-          && chartStore.symbol === symbol
-          && generation === symbolSelectionGeneration) {
-          // The initial selection read may have completed before these bars
-          // were persisted. Refresh chart bars and local derived data together
-          // so the visible technical/details panel catches up without another
-          // user action. The workspace store also fences overlapping symbol
-          // technical reads; recheck this selection before starting either read.
-          await Promise.all([
-            chartStore.refreshLocalBars(),
-            refreshMountedWorkstationChartPanels(
-              symbol,
-              timeframe,
-              () => generation === symbolSelectionGeneration,
-            ),
-            workspaceStore.loadTechnical(symbol),
-          ])
-        }
+        selectionHistoryMessage.value = historyPreparationStatusMessage(result, symbol, timeframe, result.completed, result.total)
       }
-    } catch {
-      if (generation === symbolSelectionGeneration) {
-        selectionHistoryError.value = `History for ${symbol} could not be checked or loaded; saved chart data remains available.`
+      const hasHistoryOutput = result.dependencies.some(dependency => dependency.dataset === 'history'
+        && (dependency.covered_ranges.length > 0 || (dependency.covered_start !== null && dependency.covered_end !== null)))
+      if (hasHistoryOutput) await refreshQueue.request(result, refreshVisibleSelection)
+    } catch (error: any) {
+      if (!identityResolved) finishIdentity(null)
+      if (isCurrent() && error?.name !== 'AbortError') {
+        selectionHistoryError.value = `History for ${symbol} could not be prepared; the current chart remains available.`
       }
     }
   })()
@@ -1410,121 +1746,104 @@ async function acquireSelectedTickerData(
   const holdingsTask = (async () => {
     try {
       const identity = await identityPromise
-      if (generation !== symbolSelectionGeneration) return
-      const resolvedInstrumentId = identity.instrument?.instrument_id
-      if (identity.status !== 'resolved' || !identity.instrument
-        || identity.instrument.symbol.trim().toUpperCase() !== symbol.toUpperCase()
-        || !Number.isSafeInteger(resolvedInstrumentId) || Number(resolvedInstrumentId) <= 0) {
-        selectionHoldingsMessage.value = identity.status === 'held'
-          ? `Holdings for ${symbol} are unavailable until its identity can be confirmed.`
-          : `The ticker identity for ${symbol} could not be confirmed; no holdings request was made.`
+      if (!isCurrent()) return
+      if (!identity || identity.status !== 'resolved' || !identity.instrument
+        || identity.instrument.symbol.trim().toUpperCase() !== normalizedSymbol
+        || !Number.isSafeInteger(identity.instrument.instrument_id) || identity.instrument.instrument_id <= 0) {
+        selectionHoldingsMessage.value = `The ticker identity for ${symbol} could not be confirmed; no holdings request was made.`
         return
       }
 
+      const instrumentId = identity.instrument.instrument_id
       let resolvedType = identity.instrument.instrument_type?.trim() ?? ''
       if (!resolvedType) {
-        // Older compatible responses omit classification. Read only the exact
-        // resolved local ID; never infer type from a stale autocomplete hint.
-        const localOptions = await queryClient.fetchQuery<Array<{
-          symbol: string
-          type: string
-          instrument_id?: number | null
-        }>>({
-          queryKey: ['workstation', 'instrument-search', symbol.toUpperCase(), Number(resolvedInstrumentId)],
-          queryFn: () => api.get('/instruments/search', { q: symbol, canonical_only: true }),
+        const localOptions = await queryClient.fetchQuery<Array<{ symbol: string; type: string; instrument_id?: number | null }>>({
+          queryKey: ['workstation', 'instrument-search', normalizedSymbol, instrumentId],
+          queryFn: () => api.get('/instruments/search', { q: normalizedSymbol, canonical_only: true }, { priority: 'high', signal }),
           staleTime: 0,
         })
-        if (generation !== symbolSelectionGeneration) return
-        resolvedType = localOptions.find(option => option.symbol.trim().toUpperCase() === symbol.toUpperCase()
-          && option.instrument_id === Number(resolvedInstrumentId))?.type ?? ''
+        if (!isCurrent()) return
+        resolvedType = localOptions.find(option => option.symbol.trim().toUpperCase() === normalizedSymbol
+          && option.instrument_id === instrumentId)?.type ?? ''
       }
       if (!isEligibleETFHoldingsInstrumentType(resolvedType)) {
-        if (workspaceStore.constituentETF === symbol.toUpperCase()) workspaceStore.setConstituentETF(null)
+        if (workspaceStore.constituentETF === normalizedSymbol) workspaceStore.setConstituentETF(null)
         return
       }
-      if (generation !== symbolSelectionGeneration) return
-      // Recent-symbol and free-form Go selections can know the canonical ID
-      // before their local instrument type is available. The direct selection
-      // already cleared the old parent context; bind this ETF only after the
-      // local canonical lookup confirms its type.
-      if (workspaceStore.constituentETF !== symbol.toUpperCase()) {
-        workspaceStore.setConstituentETF(symbol)
-      }
-      await localDataReady
-      if (generation !== symbolSelectionGeneration) return
-      const stored = workspaceStore.etfHoldings[symbol.toUpperCase()]
-      const capability = await readETFHoldingsCapability(symbol)
-      if (generation !== symbolSelectionGeneration) return
+      if (!isCurrent()) return
+      if (workspaceStore.constituentETF !== normalizedSymbol) workspaceStore.setConstituentETF(symbol)
+      let stored = workspaceStore.etfHoldings[normalizedSymbol]
+      const capability = await readETFHoldingsCapability(symbol, { priority: 'high', signal })
+      if (!isCurrent()) return
       if (isCurrentETFHoldingsCapability(capability)) {
-        const currentPage = await workspaceStore.loadETFHoldings(symbol)
-        if (generation !== symbolSelectionGeneration) return
-        const latestLocalSnapshot = currentPage?.snapshot
-          ?? workspaceStore.etfHoldings[symbol.toUpperCase()]?.snapshot
-        selectionHoldingsMessage.value = currentPage?.snapshot
+        // Only the selected fund's saved holdings read is required to describe
+        // this current snapshot. Chart bars, technicals, and industry analysis
+        // hydrate independently and must not hold that status behind them.
+        await localHoldingsReady
+        if (!isCurrent()) return
+        stored = workspaceStore.etfHoldings[normalizedSymbol]
+        const latest = stored?.snapshot
+        selectionHoldingsMessage.value = latest
           ? `Current holdings for ${symbol} are available locally.`
-          : latestLocalSnapshot
-            ? `The holdings feed for ${symbol} is current; showing saved holdings while the latest local snapshot is unavailable.`
             : `Holdings for ${symbol} are current, but no saved snapshot was returned.`
         return
       }
 
-      const hasLastKnown = Boolean(stored?.snapshot)
+      const hasLastKnown = Boolean(stored?.snapshot ?? workspaceStore.etfHoldings[normalizedSymbol]?.snapshot)
       selectionHoldingsMessage.value = hasLastKnown
-        ? `Showing last-known holdings for ${symbol}; checking for a current update…`
-        : `Checking holdings for ${symbol}…`
-      const holdings = await acquireETFHoldings(symbol, true, Number(resolvedInstrumentId))
-      if (generation !== symbolSelectionGeneration) return
-      if (holdings.symbol.trim().toUpperCase() !== symbol.toUpperCase()
-        || holdings.instrument_id !== Number(resolvedInstrumentId)
-        || (holdings.profile && (holdings.profile.symbol.trim().toUpperCase() !== symbol.toUpperCase()
-          || holdings.profile.instrument_id !== Number(resolvedInstrumentId)))) {
-        selectionHoldingsError.value = `Holdings for ${symbol} did not match the selected ticker; saved data was kept.`
-        return
-      }
-      if (holdings.outcome === 'unavailable') {
-        const detail = holdings.message?.trim()
-        selectionHoldingsMessage.value = hasLastKnown
-          ? `Last-known holdings for ${symbol} remain visible.${detail ? ` ${detail}` : ' A current update is unavailable.'}`
+        ? `Showing last-known holdings for ${symbol}; preparing a current local update…`
+        : `Preparing holdings for ${symbol}…`
+      const holdingsRefreshQueue = new PreparationProgressRefreshQueue()
+      const refreshHoldings = () => Promise.allSettled([
+        workspaceStore.loadETFHoldings(symbol, 'high'),
+        workspaceStore.loadETFIndustries(symbol, 'high'),
+      ]).then(() => undefined)
+      const holdingsResult = await dataPreparationCoordinator.ensure({
+        target: { kind: 'instrument', instrument_id: instrumentId },
+        datasets: ['holdings'],
+        timeframe,
+        adjusted: true,
+      }, {
+        signal,
+        priority: 'high',
+        onProgress: progress => {
+          if (!isCurrent()) return
+          const datasetProgress = selectedDatasetPreparationResponse(progress.response, 'holdings', instrumentId, symbol)
+          const dependency = datasetProgress.dependencies.find(item => item.dataset === 'holdings'
+            && item.instrument_id === instrumentId)
+          if (dependency && (dependency.status === 'ready' || dependency.covered_ranges.length > 0)) {
+            void holdingsRefreshQueue.request(progress.response, refreshHoldings)
+          }
+          if (datasetProgress.status === 'waiting' || datasetProgress.status === 'unavailable'
+            || datasetProgress.status === 'failed') {
+            selectionHoldingsMessage.value = `Holdings for ${symbol}: ${preparationStatusMessage(datasetProgress)}`
+          } else if (datasetProgress.has_pending_work !== false) {
+            selectionHoldingsMessage.value = `Preparing holdings for ${symbol} (${datasetProgress.completed}/${datasetProgress.total})…`
+          }
+        },
+      })
+      if (!isCurrent()) return
+      await holdingsRefreshQueue.request(holdingsResult, refreshHoldings)
+      if (!isCurrent()) return
+      const page = workspaceStore.etfHoldings[normalizedSymbol]
+      const finalSnapshot = page?.snapshot
+      const selectedHoldingsResult = selectedDatasetPreparationResponse(holdingsResult, 'holdings', instrumentId, symbol)
+      if (selectedHoldingsResult.status === 'ready' && finalSnapshot) {
+        selectionHoldingsMessage.value = `Current holdings for ${symbol} are available locally.`
+      } else if (selectedHoldingsResult.status === 'partial' || selectedHoldingsResult.status === 'waiting'
+        || selectedHoldingsResult.status === 'unavailable' || selectedHoldingsResult.status === 'failed') {
+        const detail = `Holdings for ${symbol}: ${preparationStatusMessage(selectedHoldingsResult)}`
+        selectionHoldingsMessage.value = finalSnapshot
+          ? `Last-known holdings for ${symbol} remain visible. ${detail}`
           : detail
-            ? `Holdings for ${symbol} are not available: ${detail}`
-            : `Holdings for ${symbol} are not available for this ticker.`
-        return
-      }
-      if (holdings.outcome === 'held') {
-        const detail = holdings.message?.trim()
-        selectionHoldingsMessage.value = hasLastKnown
-          ? `Last-known holdings for ${symbol} remain visible.${detail ? ` ${detail}` : ' A current update is unavailable.'}`
-          : detail
-            ? `Current holdings for ${symbol} are unavailable: ${detail}`
-            : `Current holdings for ${symbol} are unavailable; no saved snapshot is available.`
-        return
-      }
-      if (holdings.outcome === 'failed') {
-        if (hasLastKnown) {
-          selectionHoldingsError.value = `Holdings for ${symbol} could not be updated; last-known holdings remain visible.${holdings.message?.trim() ? ` ${holdings.message.trim()}` : ''}`
-        } else {
-          selectionHoldingsError.value = `Holdings for ${symbol} could not be loaded; no saved snapshot is available.`
-        }
-        return
-      }
-      if (holdings.profile) {
-        await Promise.all([workspaceStore.loadETFHoldings(symbol), workspaceStore.loadETFIndustries(symbol)])
-        if (generation !== symbolSelectionGeneration) return
-        selectionHoldingsMessage.value = holdings.outcome === 'acquired'
-          ? `Holdings for ${symbol} are available from the selected ticker.`
-          : holdings.outcome === 'no_data'
-            ? hasLastKnown
-              ? `No newer holdings snapshot is available for ${symbol}; last-known holdings remain visible.`
-              : `No holdings snapshot is available for ${symbol}.`
-            : `Saved holdings for ${symbol} are available locally.`
+      } else if (finalSnapshot) {
+        selectionHoldingsMessage.value = `Saved holdings for ${symbol} are available locally.`
       } else {
-        selectionHoldingsMessage.value = hasLastKnown
-          ? `No newer holdings snapshot is available for ${symbol}; last-known holdings remain visible.`
-          : `No holdings snapshot is available for ${symbol}.`
+        selectionHoldingsMessage.value = `No holdings snapshot is available for ${symbol}.`
       }
-    } catch {
-      if (generation === symbolSelectionGeneration) {
-        const hasLastKnown = Boolean(workspaceStore.etfHoldings[symbol.toUpperCase()]?.snapshot)
+    } catch (error: any) {
+      if (isCurrent() && error?.name !== 'AbortError') {
+        const hasLastKnown = Boolean(workspaceStore.etfHoldings[normalizedSymbol]?.snapshot)
         selectionHoldingsError.value = hasLastKnown
           ? `Holdings for ${symbol} could not be checked; last-known holdings remain visible.`
           : `Holdings for ${symbol} could not be checked; no saved snapshot is available.`
@@ -1535,15 +1854,27 @@ async function acquireSelectedTickerData(
   await Promise.all([historyTask, holdingsTask])
 }
 
-async function loadSymbolData(symbol: string, comparisonETF = workspaceStore.constituentETF, updateRatio = true, preserveETFContext = false) {
+async function loadSymbolData(
+  symbol: string,
+  comparisonETF = workspaceStore.constituentETF,
+  updateRatio = true,
+  preserveETFContext = false,
+  onHoldingsRead?: (promise: Promise<unknown>) => void,
+) {
   if (!preserveActiveUserSymbolDraft(symbol)) symbolDraft.value = symbol
   if (!documentVisible.value) return
+  const privateBasketSelection = isPrivateBasketToken(symbol)
+  const holdingsRead = preserveETFContext || privateBasketSelection
+    ? Promise.resolve(null)
+    : workspaceStore.loadETFHoldings(symbol, 'high')
+  onHoldingsRead?.(holdingsRead)
   await Promise.all([
     chartStore.loadBars(symbol, chartStore.timeframe, chartStore.barType, true),
-    ...(preserveETFContext ? [] : [workspaceStore.loadETFHoldings(symbol), workspaceStore.loadETFIndustries(symbol)]),
-    workspaceStore.loadTechnical(symbol),
+    holdingsRead,
+    ...(preserveETFContext || privateBasketSelection ? [] : [workspaceStore.loadETFIndustries(symbol, 'high')]),
+    ...(!privateBasketSelection ? [workspaceStore.loadTechnical(symbol, 'high')] : []),
   ])
-  if (updateRatio) updateAutoRatioExpression(symbol, comparisonETF)
+  if (updateRatio && !privateBasketSelection) updateAutoRatioExpression(symbol, comparisonETF)
 }
 
 function scheduleSymbolSearch(value: string) {
@@ -1553,7 +1884,7 @@ function scheduleSymbolSearch(value: string) {
   candidateResolutionAbortController?.abort()
   candidateResolutionAbortController = null
   candidateResolutionSequence += 1
-  searchOptionExplicitlyNavigated.value = false
+  searchOptionExplicitlyNavigatedFor.value = ''
   finishPendingSymbolSearch()
   if (searchTimer) clearTimeout(searchTimer)
   if (discoveryTimer) clearTimeout(discoveryTimer)
@@ -1593,7 +1924,11 @@ function scheduleSymbolSearch(value: string) {
     try {
       const results = await queryClient.fetchQuery<Array<{ symbol: string; name: string; exchange: string; type: string }>>({
         queryKey: ['workstation', 'instrument-search', query.toUpperCase()],
-      queryFn: () => api.get<Array<{ symbol: string; name: string; exchange: string; type: string; instrument_id?: number | null }>>('/instruments/search', { q: query, canonical_only: true }),
+      queryFn: () => api.get<Array<{ symbol: string; name: string; exchange: string; type: string; instrument_id?: number | null }>>(
+        '/instruments/search',
+        { q: query, canonical_only: true },
+        { priority: 'high' },
+      ),
         staleTime: 30_000,
       })
       if (!componentMounted || requestId !== searchRequest || symbolDraft.value.trim() !== query) return
@@ -1681,7 +2016,7 @@ async function discoverSymbolDraft(rawQuery = symbolDraft.value, requestGenerati
     while (isCurrent()) {
       sourceDiscoveryLoading.value = true
       sourceDiscoveryMessage.value = ''
-      const result = await discoverInstruments(query, [], 10)
+      const result = await discoverInstruments(query, [], 10, { priority: 'high', signal: controller.signal })
       if (!isCurrent()) return
       const retryAt = result.retry_at
         ?? result.source_outcomes.find(outcome => outcome.status === 'held' && outcome.retry_at)?.retry_at
@@ -1739,7 +2074,7 @@ async function resolveSourceCandidate(candidate: InstrumentDiscoveryCandidate) {
     while (isCurrent()) {
       sourceResolving.value = true
       sourceDiscoveryMessage.value = ''
-      result = await resolveDiscoveredInstrument(candidate)
+      result = await resolveDiscoveredInstrument(candidate, { priority: 'high', signal: controller.signal })
       if (!isCurrent()) return
       const retryAt = result.retry_at
         ?? result.source_outcomes.find(outcome => outcome.status === 'held' && outcome.retry_at)?.retry_at
@@ -1791,11 +2126,17 @@ async function goToSymbolDraft() {
 
 async function submitSymbolDraft() {
   const symbol = symbolDraft.value.trim()
-  if (!symbol || symbolSubmissionInFlight) return
-  symbolSubmissionInFlight = true
+  if (!symbol) return
   const requestId = searchRequest
+  const submission = { query: symbol.toUpperCase(), requestId }
+  if (symbolSubmissionInFlight?.query === submission.query
+    && symbolSubmissionInFlight.requestId === submission.requestId) return
+  // A newer query is a newer selection intent. It must be allowed to finish
+  // even while an older Go action is still waiting for its own search result.
+  symbolSubmissionInFlight = submission
+  const explicitlyNavigatedCurrentQuery = searchOptionExplicitlyNavigatedFor.value === symbol.toUpperCase()
   try {
-    const immediateLocal = searchOptionExplicitlyNavigated.value
+    const immediateLocal = explicitlyNavigatedCurrentQuery
       ? searchResults.value[searchIndex.value]
       : searchResults.value.find(result => result.symbol.trim().toUpperCase() === symbol.toUpperCase())
     if (immediateLocal) {
@@ -1809,15 +2150,20 @@ async function submitSymbolDraft() {
     }
     if (requestId !== searchRequest || symbolDraft.value.trim() !== symbol) return
 
-    const navigatedLocal = searchOptionExplicitlyNavigated.value ? searchResults.value[searchIndex.value] : undefined
-    const local = navigatedLocal
+    const navigatedLocal = explicitlyNavigatedCurrentQuery ? searchResults.value[searchIndex.value] : undefined
+    // A canonical exact result may arrive while Go is waiting for the current
+    // debounced lookup. Use that newly confirmed row before considering any
+    // provisional prefix candidate; only an explicit arrow choice overrides it.
+    const local = navigatedLocal ?? searchResults.value.find(result =>
+      result.symbol.trim().toUpperCase() === symbol.toUpperCase(),
+    )
     if (local) {
       recentSymbolsOpen.value = false
       selectSearchResult(local.symbol, local.instrument_id, local.type)
       return
     }
 
-    if (!searchOptionExplicitlyNavigated.value) {
+    if (!explicitlyNavigatedCurrentQuery) {
       const exactCandidates = sourceCandidates.value.filter(candidate =>
         candidate.symbol.trim().toUpperCase() === symbol.toUpperCase(),
       )
@@ -1836,7 +2182,7 @@ async function submitSymbolDraft() {
     closeSymbolSearch()
     void selectSymbol(symbol, undefined, false, undefined, true, false, '', true)
   } finally {
-    symbolSubmissionInFlight = false
+    if (symbolSubmissionInFlight === submission) symbolSubmissionInFlight = null
   }
 }
 
@@ -1850,11 +2196,11 @@ function selectRecentSymbol(symbol: string) {
 function handleSymbolInputKeydown(event: KeyboardEvent) {
   if (event.key === 'ArrowDown' && searchResults.value.length) {
     event.preventDefault()
-    searchOptionExplicitlyNavigated.value = true
+    searchOptionExplicitlyNavigatedFor.value = symbolDraft.value.trim().toUpperCase()
     searchIndex.value = (searchIndex.value + 1) % searchResults.value.length
   } else if (event.key === 'ArrowUp' && searchResults.value.length) {
     event.preventDefault()
-    searchOptionExplicitlyNavigated.value = true
+    searchOptionExplicitlyNavigatedFor.value = symbolDraft.value.trim().toUpperCase()
     searchIndex.value = (searchIndex.value - 1 + searchResults.value.length) % searchResults.value.length
   } else if (event.key === 'Enter') {
     event.preventDefault()
@@ -1892,6 +2238,104 @@ function setLinkedTimeframe(timeframe: string, group: LinkGroup = 'blue') {
   workspaceStore.publishTimeframe(timeframe, group, 'workstation')
 }
 
+function cancelLinkedTimeframePreparation() {
+  linkedTimeframePreparationGeneration += 1
+  linkedTimeframePreparationAbortController?.abort()
+  linkedTimeframePreparationAbortController = null
+}
+
+async function prepareLinkedTimeframeHistory(symbol: string, timeframe: Timeframe) {
+  cancelLinkedTimeframePreparation()
+  const generation = linkedTimeframePreparationGeneration
+  const controller = new AbortController()
+  linkedTimeframePreparationAbortController = controller
+  const isCurrent = () => componentMounted
+    && generation === linkedTimeframePreparationGeneration
+    && !controller.signal.aborted
+    && activeSymbol.value.trim().toUpperCase() === symbol
+    && workspaceStore.linkedTimeframe === timeframe
+    && chartStore.symbol.trim().toUpperCase() === symbol
+    && chartStore.timeframe === timeframe
+
+  selectionHistoryError.value = ''
+  selectionHistoryMessage.value = `Checking saved ${timeframe} history for ${symbol}…`
+
+  try {
+    const linkedInstrument = workspaceStore.linkedSymbols?.blue
+    const currentChartInstrument = chartStore.instrument
+    const holding = activeHoldingContext.value
+    const candidates = [
+      holding?.symbol === symbol ? holding.context.instrumentId : null,
+      linkedInstrument?.symbol.trim().toUpperCase() === symbol ? linkedInstrument.instrumentId : null,
+      currentChartInstrument?.symbol.trim().toUpperCase() === symbol ? currentChartInstrument.id : null,
+    ]
+    let instrumentId = candidates.find(candidate => Number.isSafeInteger(candidate) && Number(candidate) > 0) ?? null
+
+    if (instrumentId === null) {
+      const resolved = await resolveKnownInstrument(symbol, 'Workstation timeframe history', {
+        canonicalOnly: true,
+        priority: 'high',
+        foreground: true,
+        signal: controller.signal,
+      })
+      if (!isCurrent()) return
+      if (resolved.symbol.trim().toUpperCase() !== symbol || typeof resolved.id !== 'number'
+        || !Number.isSafeInteger(resolved.id) || resolved.id <= 0) {
+        selectionHistoryError.value = `The canonical identity for ${symbol} could not be confirmed; ${timeframe} history was not requested.`
+        return
+      }
+      instrumentId = resolved.id
+    }
+
+    const request: DataEnsureRequest = {
+      target: { kind: 'instrument', instrument_id: instrumentId },
+      datasets: ['history'],
+      timeframe,
+      adjusted: true,
+    }
+    const refreshQueue = new PreparationProgressRefreshQueue()
+    const refreshCurrentChart = async () => {
+      if (!isCurrent()) return
+      await Promise.allSettled([
+        chartStore.refreshLocalBars(),
+        refreshMountedWorkstationChartPanels(symbol, timeframe, isCurrent),
+      ])
+    }
+    const historyResult = (response: DataEnsureResponse) => selectedDatasetPreparationResponse(response, 'history', instrumentId!, symbol)
+    const hasHistoryOutput = (response: DataEnsureResponse) => response.dependencies.some(dependency =>
+      dependency.dataset === 'history'
+      && dependency.instrument_id === instrumentId
+      && (dependency.symbol === null || dependency.symbol.trim().toUpperCase() === symbol)
+      && (dependency.status === 'ready' || dependency.covered_ranges.length > 0
+        || (dependency.covered_start !== null && dependency.covered_end !== null)),
+    )
+    const result = await dataPreparationCoordinator.ensure(request, {
+      signal: controller.signal,
+      priority: 'high',
+      onProgress: ({ response, completed, total }) => {
+        if (!isCurrent()) return
+        const scoped = historyResult(response)
+        selectionHistoryMessage.value = historyPreparationStatusMessage(scoped, symbol, timeframe, completed, total)
+        if (hasHistoryOutput(scoped)) {
+          void refreshQueue.request(response, refreshCurrentChart).catch(() => {
+            if (isCurrent()) selectionHistoryError.value = `Available ${timeframe} history for ${symbol} could not be refreshed; saved bars remain visible.`
+          })
+        }
+      },
+    })
+    if (!isCurrent()) return
+    const scoped = historyResult(result)
+    selectionHistoryMessage.value = historyPreparationStatusMessage(scoped, symbol, timeframe, result.completed, result.total)
+    if (hasHistoryOutput(scoped)) await refreshQueue.request(result, refreshCurrentChart)
+  } catch (error: any) {
+    if (isCurrent() && error?.name !== 'AbortError') {
+      selectionHistoryError.value = `History for ${symbol} could not be prepared; the current ${timeframe} chart remains available.`
+    }
+  } finally {
+    if (linkedTimeframePreparationAbortController === controller) linkedTimeframePreparationAbortController = null
+  }
+}
+
 async function signOut() {
   await authStore.logout()
 }
@@ -1901,7 +2345,7 @@ async function selectIndustryProxy(symbol: string, instrumentId?: number | null)
   // Proxy rows normally carry their canonical identity, but keep direct or
   // keyboard-triggered proxy navigation identity-safe as well. This avoids
   // publishing a ticker-only link when a valid local instrument exists.
-  const resolved = await resolveKnownInstrument(symbol, 'Industry ETF proxy', { canonicalOnly: true })
+  const resolved = await resolveKnownInstrument(symbol, 'Industry ETF proxy', { canonicalOnly: true, priority: 'high' })
   const normalized = resolved.symbol
   if (generation !== drilldownSelectionGeneration) return
   const resolvedInstrumentId = typeof instrumentId === 'number' ? instrumentId : resolved.id
@@ -1999,6 +2443,22 @@ async function openTool(tool: OpenableToolDefinition, configurationOverride: Rec
       if (!componentMounted) return
       continue
     }
+    // Virtual component roots are rendered outside Golden Layout's stack DOM.
+    // The host contract already applies active_window_key through its layout
+    // watcher, so waiting for or clicking a nonexistent `.lm_tab` only adds a
+    // multi-second delay to ordinary Add-tool and Market Map actions.
+    if (isActiveVirtualToolRoot(toolRoot, opened.instance_key, workspaceStore.activeTab?.active_window_key)) {
+      // Opening a tool mutates both the active tab's window list and its
+      // active-window selection. Flush that exact active-layout snapshot once
+      // the user-visible tool is active so a fast sign-out/reload cannot leave
+      // the panel in memory but restore an older workspace context.
+      const persisted = await workspaceStore.saveSnapshot()
+      if (!componentMounted) return
+      if (!persisted && workspaceStore.snapshotSaveStatus === 'error') {
+        workspaceStore.error = workspaceStore.snapshotSaveError ?? 'The tool opened, but its workspace selection could not be saved.'
+      }
+      return opened
+    }
     const stack = toolRoot?.closest<HTMLElement>('.lm_stack')
     const stackItems = stack ? [...stack.querySelectorAll<HTMLElement>('.lm_items > div')] : []
     const itemIndex = toolRoot
@@ -2037,10 +2497,16 @@ async function openTool(tool: OpenableToolDefinition, configurationOverride: Rec
   return opened
 }
 
+async function catalogueTool(key: string) {
+  const current = workspaceStore.toolDefinition(key)
+  if (current) return current
+  return (await workspaceStore.loadToolCatalogue()).find(tool => tool.key === key) ?? null
+}
+
 async function openMarketMap(sourceId: string) {
   const normalized = sourceId.trim()
   if (!normalized) return
-  const definition = OPENABLE_WORKSTATION_TOOLS.find(tool => tool.tool_type === 'market_map')
+  const definition = await catalogueTool('market-map')
   if (!definition) return
   await openTool(definition, { source_id: normalized })
 }
@@ -2058,7 +2524,7 @@ async function openStudyLab() {
     workspaceStore.setActiveWindow(studyWindow.instance_key)
     return
   }
-  const studyDefinition = OPENABLE_WORKSTATION_TOOLS.find(tool => tool.tool_type === 'study_lab')
+  const studyDefinition = await catalogueTool('study-lab')
   if (studyDefinition) await openTool(studyDefinition)
 }
 
@@ -2066,9 +2532,50 @@ function renameTab(stableKey: string, name: string) {
   workspaceStore.renameTab(stableKey, name)
 }
 
-function deleteTab(stableKey: string) {
-  if (!window.confirm('Delete this personal layout?')) return
-  workspaceStore.deleteTab(stableKey)
+function updateLayoutRenameDraft(stableKey: string, event: Event) {
+  const value = (event.target as HTMLInputElement).value
+  layoutRenameDrafts.value = { ...layoutRenameDrafts.value, [stableKey]: value }
+  // Commit the local name while the field is edited so an older in-flight
+  // snapshot cannot replace it before the browser emits change on blur.
+  renameTab(stableKey, value)
+}
+
+function commitLayoutRenameDraft(stableKey: string, event: Event) {
+  const value = (event.target as HTMLInputElement).value
+  renameTab(stableKey, value)
+  const next = { ...layoutRenameDrafts.value }
+  delete next[stableKey]
+  layoutRenameDrafts.value = next
+}
+
+function deleteTab(stableKey: string, name: string) {
+  if (!window.confirm(`Delete layout “${name}”?`)) return
+  const recovery = workspaceStore.captureTabRecovery(stableKey)
+  if (!recovery || !workspaceStore.deleteTab(stableKey)) return
+  deletedLayoutRecoveryStatus.value = 'ready'
+  deletedLayoutRecovery.value = recovery
+}
+
+async function undoDeletedLayout() {
+  const recovery = deletedLayoutRecovery.value
+  if (!recovery || deletedLayoutRecoveryStatus.value === 'saving') return
+  if (deletedLayoutRecoveryStatus.value !== 'error' && !workspaceStore.restoreDeletedTab(recovery)) return
+  deletedLayoutRecoveryStatus.value = 'saving'
+  // Keep the recovery affordance visible until the latest restored layout is
+  // acknowledged by the server. A failed write remains retryable instead of
+  // hiding the only indication that the restored layout is local-only.
+  const saved = await workspaceStore.saveSnapshot()
+  if (!saved) {
+    deletedLayoutRecoveryStatus.value = 'error'
+    return
+  }
+  await replaceDockAfterWorkspaceChange()
+  deletedLayoutRecovery.value = null
+  deletedLayoutRecoveryStatus.value = 'ready'
+}
+
+function retryWorkspaceSave() {
+  void workspaceStore.saveSnapshot()
 }
 
 function dropTab(targetStableKey: string, event?: DragEvent) {
@@ -2170,6 +2677,7 @@ async function importWorkspace(event: Event) {
   const file = input.files?.[0]
   input.value = ''
   if (!file) return
+  const alreadyReplacingWorkspace = workspaceReplacementPending.value
   workspaceReplacementPending.value = true
   await nextTick()
   try {
@@ -2182,13 +2690,13 @@ async function importWorkspace(event: Event) {
   } catch {
     workspaceStore.error = 'The workspace file is not valid JSON.'
   } finally {
-    workspaceReplacementPending.value = false
+    workspaceReplacementPending.value = alreadyReplacingWorkspace
     await nextTick()
   }
 }
 
-function openAlertsTool() {
-  const alerts = OPENABLE_WORKSTATION_TOOLS.find(tool => tool.tool_type === 'alerts')
+async function openAlertsTool() {
+  const alerts = await catalogueTool('alerts')
   if (alerts) openTool(alerts)
 }
 
@@ -2215,8 +2723,50 @@ async function remountDockAfterSnapshot(
   // completed layout from the server-confirmed workspace.
   for (const key of Object.keys(mountedConfiguration)) delete mountedConfiguration[key]
   Object.assign(mountedConfiguration, publishedConfiguration)
-  workspaceReloadKey.value += 1
+  // A virtual root can emit one final layout callback as it is destroyed.
+  // Keep the host out of the DOM until that callback is fenced, then mount it
+  // from the server-confirmed workspace snapshot and configuration.
+  const wasReplacing = workspaceReplacementPending.value
+  workspaceReplacementPending.value = true
+  try {
+    await nextTick()
+    workspaceReloadKey.value += 1
+    await nextTick()
+  } finally {
+    workspaceReplacementPending.value = wasReplacing
+    await nextTick()
+  }
+}
+
+async function saveToolConfigurationAndRemount(
+  windowKey: string,
+  mountedConfiguration: Record<string, unknown>,
+  publishedConfiguration: Record<string, unknown>,
+) {
+  // Fence virtual-root layout callbacks for the entire publish/save/remount
+  // transaction. A callback from the old root must not replace an accepted
+  // selected-member source with the factory's previous group configuration.
+  const wasReplacing = workspaceReplacementPending.value
+  workspaceReplacementPending.value = true
   await nextTick()
+  try {
+    updateToolConfiguration(windowKey, publishedConfiguration)
+    await saveWorkspaceSnapshotIfSupported()
+    // Saving can replace the canonical workspace object with the API response.
+    // Keep the just-accepted semantic source on that current object before the
+    // dock remounts, even if a delayed stateChanged event raced the response.
+    const savedWindow = workspaceStore.workspace?.tabs
+      .flatMap(tab => tab.windows)
+      .find(window => window.instance_key === windowKey)
+    if (savedWindow) {
+      for (const key of Object.keys(savedWindow.configuration)) delete savedWindow.configuration[key]
+      Object.assign(savedWindow.configuration, publishedConfiguration)
+    }
+    await remountDockAfterSnapshot(mountedConfiguration, publishedConfiguration)
+  } finally {
+    workspaceReplacementPending.value = wasReplacing
+    await nextTick()
+  }
 }
 
 type StudyDefinitionOpen = {
@@ -2229,7 +2779,7 @@ type StudyDefinitionOpen = {
 }
 
 async function openStudyDefinition(definition: StudyDefinitionOpen) {
-  const studyDefinition = OPENABLE_WORKSTATION_TOOLS.find(tool => tool.tool_type === 'study_lab')
+  const studyDefinition = await catalogueTool('study-lab')
   if (!studyDefinition || !Number.isInteger(definition.versionId) || !definition.source.trim()) return
   const defaults = definition.defaultParameters ?? {}
   const configuration: Record<string, unknown> = {
@@ -2240,7 +2790,7 @@ async function openStudyDefinition(definition: StudyDefinitionOpen) {
     parameter_schema: JSON.stringify(definition.parameterSchema ?? {}),
     study_default_parameters: defaults,
   }
-  const stringDefaults = ['universe_source_id', 'symbols', 'timeframe', 'benchmark', 'adjustment', 'session', 'start_date', 'end_date', 'as_of']
+  const stringDefaults = ['symbol', 'universe_source_id', 'symbols', 'timeframe', 'benchmark', 'adjustment', 'session', 'start_date', 'end_date', 'as_of']
   for (const key of stringDefaults) {
     if (typeof defaults[key] === 'string' && defaults[key].trim()) configuration[key] = defaults[key]
   }
@@ -2292,22 +2842,10 @@ async function publishMapAnalysis(publication: MapAnalysisPublication) {
         custom_universe_watchlist_id: analysisSourceId,
         ...selectedConfiguration,
       }
-      updateToolConfiguration(existing.window.instance_key, publishedConfiguration)
-      await saveWorkspaceSnapshotIfSupported()
-      // saveSnapshot replaces the canonical workspace object with the server
-      // response. Golden Layout may still hold the pre-save tool object, so
-      // mirror the accepted configuration into that mounted object as well.
-      for (const key of Object.keys(mountedConfiguration)) delete mountedConfiguration[key]
-      Object.assign(mountedConfiguration, publishedConfiguration)
-      // A snapshot replacement can leave Golden Layout's virtual root bound
-      // to the pre-save object. Reinstall this completed layout from the
-      // server-confirmed workspace so the visible breadth controls and the
-      // persisted configuration cannot diverge.
-      workspaceReloadKey.value += 1
-      await nextTick()
+      await saveToolConfigurationAndRemount(existing.window.instance_key, mountedConfiguration, publishedConfiguration)
       return
     }
-    const definition = OPENABLE_WORKSTATION_TOOLS.find(tool => tool.tool_type === 'breadth')
+    const definition = await catalogueTool('breadth')
     if (!definition) return
     const opened = await openTool(definition, {
       custom_universe_kind: 'watchlist',
@@ -2337,7 +2875,7 @@ async function publishMapAnalysis(publication: MapAnalysisPublication) {
     })
     return
   }
-  const definition = OPENABLE_WORKSTATION_TOOLS.find(tool => tool.tool_type === 'study_lab')
+  const definition = await catalogueTool('study-lab')
   if (!definition) return
   const opened = await openTool(definition, {
     source_id: publication.sourceId,
@@ -2496,12 +3034,13 @@ async function handleRowAction(action: 'chart' | 'compare' | 'ratio' | 'note' | 
   }
   await selectSymbol(row.symbol, undefined, false, row.instrumentId, true, false, '', true)
   if (action === 'chart') {
-    const chart = OPENABLE_WORKSTATION_TOOLS.find(tool => tool.tool_type === 'chart')
+    const chart = await catalogueTool('chart')
     if (chart) openTool(chart)
     return
   }
   const toolType = action === 'note' ? 'notes' : action === 'alert' ? 'alerts' : action
-  const tool = OPENABLE_WORKSTATION_TOOLS.find(candidate => candidate.tool_type === toolType)
+  const tools = workspaceStore.toolCatalogue.length ? workspaceStore.toolCatalogue : await workspaceStore.loadToolCatalogue()
+  const tool = tools.find(candidate => candidate.tool_type === toolType) ?? null
   if (tool) openTool(tool)
 }
 
@@ -2595,11 +3134,42 @@ async function reconcilePopoutPlacement(windowKey: string, popup: Window, initia
   }
 }
 
-function renderDockTool(dockTool: { instance_key: string; title: string; tool_type: string }, actions: { toggleMaximize: () => void; close: () => void }): VNode {
-  const tool = workspaceStore.activeTab?.windows.find(window => window.instance_key === dockTool.instance_key)
+type DockToolDescriptor = { instance_key: string; title: string; tool_type: string }
+type DockToolRenderActions = { toggleMaximize: () => Promise<void>; maximized: Readonly<Ref<boolean>>; maximizing: Readonly<Ref<boolean>>; close: () => void }
+
+// Golden Layout renders each virtual tool once into a detached root. Every
+// acknowledged snapshot replaces the store's window records, so binding the
+// mount-time record would strand later configuration edits on an object the
+// mounted tool never reads. Re-resolve the live record on each reactive render.
+const DockToolBinding = defineComponent({
+  name: 'DockToolBinding',
+  props: {
+    dockTool: { type: Object as PropType<DockToolDescriptor>, required: true },
+    actions: { type: Object as PropType<DockToolRenderActions>, required: true },
+  },
+  setup(bindingProps) {
+    let lastTool: WorkspaceWindowState | undefined
+    return () => {
+      const key = bindingProps.dockTool.instance_key
+      const tool = workspaceStore.activeTab?.windows.find(window => window.instance_key === key)
+        ?? workspaceStore.workspace?.tabs.flatMap(tab => tab.windows).find(window => window.instance_key === key)
+        ?? lastTool
+      if (tool) lastTool = tool
+      return renderDockToolContent(tool, bindingProps.dockTool, bindingProps.actions)
+    }
+  },
+})
+
+function renderDockTool(dockTool: DockToolDescriptor, actions: DockToolRenderActions): VNode {
+  return h(DockToolBinding, { dockTool, actions })
+}
+
+function renderDockToolContent(tool: WorkspaceWindowState | undefined, dockTool: DockToolDescriptor, actions: DockToolRenderActions): VNode {
   if (!tool) return h('div', { class: 'workstation__missing-tool' }, `Missing persisted tool: ${dockTool.instance_key}`)
   return h(WorkstationToolContent, {
     tool,
+    maximizedState: actions.maximized,
+    maximizingState: actions.maximizing,
     activeWindowKey: workspaceStore.activeTab?.active_window_key,
     factoryLayout: workspaceStore.activeTabKey,
     onActivate: () => workspaceStore.setActiveWindow(dockTool.instance_key),
@@ -2650,8 +3220,15 @@ function persistGoldenLayout(layout: Record<string, unknown>, visibleToolKeys: s
   // Vue is switching the active tab. Never write that old tree into the newly
   // selected tab; the host will emit a fresh snapshot after its replacement
   // install completes.
-  if (sourceTabKey && sourceTabKey !== workspaceStore.activeTabKey) return
+  if (workspaceReplacementPending.value || (sourceTabKey && sourceTabKey !== workspaceStore.activeTabKey)) return
   workspaceStore.applyActiveLayout(layout, visibleToolKeys)
+}
+
+function persistMaximizedLayout() {
+  // Maximize/restore is an explicit workspace action. Flush the layout emitted
+  // by Golden Layout before its toolbar reports the new state, so an immediate
+  // reload cannot interrupt the snapshot debounce or its conflict merge.
+  return workspaceStore.saveSnapshot()
 }
 
 async function resetFactoryWorkspace() {
@@ -2700,10 +3277,8 @@ function handleKeydown(event: KeyboardEvent) {
   }
   if (workspaceStore.isEditorTarget(event.target) || isInteractiveTarget(event.target)) return
   if (event.key.toLowerCase() === 'n' && event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey) {
-    const notes = OPENABLE_WORKSTATION_TOOLS.find(tool => tool.tool_type === 'notes')
-    if (!notes) return
     event.preventDefault()
-    void openTool(notes)
+    void catalogueTool('notes').then(notes => { if (notes) return openTool(notes) })
     return
   }
   if (event.key.toLowerCase() === 'l' && event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey) {
@@ -2714,7 +3289,8 @@ function handleKeydown(event: KeyboardEvent) {
     if (!activeWindowKey) return
     const activeTool = Array.from(document.querySelectorAll<HTMLElement>('.tool-window[data-window-key]'))
       .find(tool => tool.dataset.windowKey === activeWindowKey)
-    const maximizeButton = activeTool?.querySelector<HTMLButtonElement>('[aria-label="Maximize tool"]')
+    // A maximized tool exposes "Restore tool" instead, and Shift+L must toggle back.
+    const maximizeButton = activeTool?.querySelector<HTMLButtonElement>('[aria-label="Maximize tool"], [aria-label="Restore tool"]')
     if (!maximizeButton) return
     event.preventDefault()
     maximizeButton.click()
@@ -2942,13 +3518,37 @@ function cycleChartTimeframe(windowKey: string, direction: 1 | -1) {
 
 watch(activeSymbol, symbol => {
   if (!symbol) return
+  const pendingSelection = pendingInitialWorkspaceSymbolIntent
+  if (initialWorkspaceHydrationPending && pendingSelection
+    && pendingSelection.generation === symbolSelectionGeneration
+    && symbol !== pendingSelection.symbol) {
+    if (symbol === restoredWorkspaceBlueSymbol()) {
+      // The initial workspace response can arrive after the user has already
+      // selected a verified instrument. Do not let that stale persisted blue
+      // symbol replace the newer chart, route, or search-field context.
+      return
+    }
+    // A different linked selection arrived after the persisted restore; treat
+    // that newer publication as current rather than replaying the shell choice.
+    pendingInitialWorkspaceSymbolIntent = null
+  }
+  cancelLinkedTimeframePreparation()
+  const privateBasketSelection = isPrivateBasketToken(symbol)
+  const activeRouteContext = activeHoldingContext.value?.symbol === symbol
+    ? activeHoldingContext.value.context
+    : null
+  const preservingInitialHoldingRoute = holdingRouteHydrationPending.value
+    && initialHoldingRouteContext?.canonicalSymbol === routeSymbol
+  if (!preservingInitialHoldingRoute) {
+    syncChartRouteToSelection(symbol, activeRouteContext?.instrumentId, activeRouteContext)
+  }
   const isHistoryNavigation = historyNavigationTarget === symbol
-  recentStore.add(symbol, undefined, !isHistoryNavigation)
+  if (!privateBasketSelection) recentStore.add(symbol, undefined, !isHistoryNavigation)
   if (isHistoryNavigation) historyNavigationTarget = null
   // Linked row selections can arrive through the workspace bus before the shell's
   // async symbol handler resumes. Keep the auto-ratio tool tied to the newest
   // published symbol at this boundary as well as in the explicit selection path.
-  updateAutoRatioExpression(symbol)
+  if (!privateBasketSelection) updateAutoRatioExpression(symbol)
   // Selections made by linked watchlists, pop-outs, or another browser window
   // publish through the workspace bus rather than through the shell input.
   // Keep the active-symbol entry authoritative for those paths too, while
@@ -2968,8 +3568,8 @@ watch(activeSymbol, symbol => {
   if (!documentVisible.value) return
   void Promise.all([
     chartStore.loadBars(symbol, chartStore.timeframe, chartStore.barType, true),
-    ...(preserveDrilldown ? [] : [workspaceStore.loadETFHoldings(symbol), workspaceStore.loadETFIndustries(symbol)]),
-    workspaceStore.loadTechnical(symbol),
+    ...(preserveDrilldown || privateBasketSelection ? [] : [workspaceStore.loadETFHoldings(symbol, 'high'), workspaceStore.loadETFIndustries(symbol, 'high')]),
+    ...(!privateBasketSelection ? [workspaceStore.loadTechnical(symbol)] : []),
   ])
 })
 watch(symbolDraft, value => {
@@ -2980,10 +3580,14 @@ watch(symbolDraft, value => {
   scheduleSymbolSearch(value)
 })
 watch(() => workspaceStore.linkedTimeframe, timeframe => {
-  if (timeframe === chartStore.timeframe) return
+  cancelLinkedTimeframePreparation()
   selectedAcquisitionAbortController?.abort()
   selectedAcquisitionAbortController = null
-  void chartStore.loadBars(activeSymbol.value, timeframe as typeof chartStore.timeframe, chartStore.barType, true)
+  const symbol = activeSymbol.value.trim().toUpperCase()
+  void chartStore.loadBars(symbol, timeframe as typeof chartStore.timeframe, chartStore.barType, true)
+  if (symbol && !isPrivateBasketToken(symbol)) {
+    void prepareLinkedTimeframeHistory(symbol, timeframe as Timeframe)
+  }
 })
 watch(() => chartStore.timeframe, () => {
   selectedAcquisitionAbortController?.abort()
@@ -2996,6 +3600,7 @@ watch(() => workspaceStore.workspace?.id, (workspaceId, previousWorkspaceId) => 
 })
 
 onMounted(async () => {
+  void workspaceStore.loadToolCatalogue()
   componentMounted = true
   if (isPopout.value) {
     // Establish keyboard and assistive-technology focus before workspace
@@ -3032,6 +3637,7 @@ onMounted(async () => {
     window.removeEventListener('keyup', handleModifierKeyup)
   }
   workspaceStore.connect()
+  initialWorkspaceHydrationPending = true
   workspaceLoadPromise = workspaceStore.loadDefault()
   try {
     await workspaceLoadPromise
@@ -3043,6 +3649,10 @@ onMounted(async () => {
       resolveReady?.()
     }
   }
+  // Let reactive watchers consume the workspace response while the intent
+  // guard is still active, then restore the latest committed selection once.
+  await nextTick()
+  initialWorkspaceHydrationPending = false
   if (!componentMounted) return
   // The initial snapshot restores persisted linked timeframes. Replay any
   // newer shell choices made while it loaded so hydration cannot discard
@@ -3051,6 +3661,31 @@ onMounted(async () => {
     workspaceStore.publishTimeframe(timeframe, group, 'workstation')
   }
   pendingTimeframeSelections.clear()
+  if (symbolSelectionGeneration !== mountSelectionGeneration) {
+    // A newer explicit selection already synchronized the route while the
+    // workspace loaded, so initial-route protection is no longer needed.
+    holdingRouteHydrationPending.value = false
+  }
+  const pendingSelection = pendingInitialWorkspaceSymbolIntent
+  if (pendingSelection && pendingSelection.generation === symbolSelectionGeneration) {
+    pendingInitialWorkspaceSymbolIntent = null
+    symbolDraft.value = pendingSelection.symbol
+    if (activeSymbol.value !== pendingSelection.symbol) {
+      workspaceStore.publishSymbol({
+        symbol: pendingSelection.symbol,
+        ...(typeof pendingSelection.instrumentId === 'number' ? { instrumentId: pendingSelection.instrumentId } : {}),
+        ...(pendingSelection.timestamp ? { timestamp: pendingSelection.timestamp } : {}),
+        group: 'blue',
+        sourceWindowKey: 'workstation',
+      })
+    }
+    syncChartRouteToSelection(
+      pendingSelection.symbol,
+      pendingSelection.instrumentId,
+      pendingSelection.holdingContext,
+      pendingSelection.selectedHolding,
+    )
+  }
   // A user can interact with the shell while the first snapshot is loading.
   // loadDefault hydrates the persisted blue link, so replay the newer explicit
   // shell selection once hydration completes instead of silently reverting it.
@@ -3084,7 +3719,11 @@ onMounted(async () => {
       }
     }
   }
-  await refreshMarketData()
+  // Start shared panel refresh concurrently. It must not gate the selected
+  // chart's local-first hydration on first use or a route restore.
+  let initialMarketRefresh: Promise<void> | null = null
+  if (isPopout.value) await refreshMarketData()
+  else initialMarketRefresh = refreshMarketData()
   if (!componentMounted) return
   if (isPopout.value && popoutTool.value) {
     const tool = popoutTool.value
@@ -3109,25 +3748,77 @@ onMounted(async () => {
       // A plain /chart restore preserves a parent fund only when one is
       // actually bound. On a fresh workstation there is no parent context yet;
       // let the normal local holdings/industry reads hydrate the active ETF.
-      // These are cache reads only because route hydration does not set an
-      // acquisition intent.
+      // The shared chart store renders its local cache first; visible canonical
+      // chart hydration below also starts the shared preparation lifecycle.
       const preserveParentETFContext = explicitRouteSymbol == null && workspaceStore.constituentETF != null
-      await selectSymbol(requested, undefined, true, undefined, true, preserveParentETFContext)
+      const routeHoldingContext = explicitRouteSymbol == null || isPrivateBasketToken(requested)
+        ? null
+        : parseETFHoldingDrilldownRouteQuery(route.query as Record<string, unknown>, requested)
+      const holdingHandoff = consumeHoldingSelectionHandoff(routeHoldingContext)
+      const selectedHoldingRoute = route.query.holding_history_intent === 'selected'
+        && routeHoldingContext !== null && holdingHandoff.selected
+      // The route consumer is now taking over. From this point on, ordinary
+      // linked selections must synchronize their own URL and clear unrelated
+      // holding provenance through the normal identity-checked selection path.
+      holdingRouteHydrationPending.value = false
+      if (selectedHoldingRoute && routeHoldingContext) {
+        // The one-use same-tab handoff is written only after the holdings view
+        // validates the exact current row/identity. A bare replayed query keeps
+        // no acquisition intent and cannot turn dated provenance into current
+        // membership.
+        if (routeHoldingContext.etfSymbol) workspaceStore.setConstituentETF(routeHoldingContext.etfSymbol)
+        await selectSymbol(
+          requested,
+          undefined,
+          true,
+          routeHoldingContext.instrumentId,
+          true,
+          true,
+          holdingHandoff.confirmedIdentity?.instrument?.instrument_type ?? routeHoldingContext.holdingType,
+          true,
+          holdingHandoff.confirmedIdentity,
+          routeHoldingContext,
+        )
+      } else {
+        // A visible canonical chart is a first-use intent: hydrate local bars
+        // immediately, then let the shared coordinator prepare admitted history
+        // in the background. Private baskets use their own authenticated member
+        // preparation path and are not ticker identities.
+        await selectSymbol(
+          requested,
+          undefined,
+          true,
+          undefined,
+          true,
+          preserveParentETFContext,
+          '',
+          !isPrivateBasketToken(requested),
+          undefined,
+          undefined,
+          routeHoldingContext ?? undefined,
+        )
+      }
       if (!componentMounted) return
     }
   }
   await nextTick()
   if (!componentMounted) return
-  if (!isPopout.value) await refreshMarketData()
+  // Finish the startup refresh that already began above. Starting another
+  // refetch here duplicated all shared group/snapshot reads after the chart
+  // had hydrated, and repeated mounts could keep the list surfaces busy.
+  if (initialMarketRefresh) await initialMarketRefresh
   if (!componentMounted) return
 })
 
 onBeforeUnmount(() => {
   componentMounted = false
+  initialWorkspaceHydrationPending = false
+  pendingInitialWorkspaceSymbolIntent = null
   const resolveMount = resolveComponentMountSettled
   resolveComponentMountSettled = null
   resolveMount?.()
   symbolSelectionGeneration += 1
+  cancelLinkedTimeframePreparation()
   selectedAcquisitionAbortController?.abort()
   selectedAcquisitionAbortController = null
   drilldownSelectionGeneration += 1
@@ -3179,9 +3870,15 @@ onBeforeUnmount(() => {
 .workstation__help-popover > small { display: block; padding: 4px 3px 2px; border-top: 1px solid #29343b; color: #81909a; line-height: 1.35; }
 .workstation__workspace-popover header { display: flex; justify-content: space-between; align-items: baseline; padding: 3px 4px 5px; border-bottom: 1px solid #29343b; font-size: 11px; }.workstation__workspace-popover header small { color: #81909a; font-size: 9px; }
 .workstation__workspace-list { display: grid; gap: 2px; max-height: 112px; overflow: auto; padding: 4px 0; border-bottom: 1px solid #29343b; }.workstation__workspace-list button { display: flex; justify-content: space-between; gap: 8px; border: 1px solid transparent; background: transparent; color: #aebbc4; padding: 3px 4px; text-align: left; font: 10px "Segoe UI",Arial,sans-serif; cursor: pointer; }.workstation__workspace-list button:hover,.workstation__workspace-list button[aria-selected="true"] { border-color: #3e505c; background: #202b32; color: #f1f7fa; }.workstation__workspace-list small { color: #81909a; font-size: 9px; }
-.workstation__workspace-actions { display: flex; gap: 3px; padding: 5px 2px; border-bottom: 1px solid #29343b; }.workstation__workspace-actions button,.workstation__layout-reset { border: 1px solid #42505a; background: #202b32; color: #cbd6dc; padding: 3px 6px; font: 10px "Segoe UI",Arial,sans-serif; cursor: pointer; }.workstation__workspace-actions button:hover,.workstation__layout-reset:hover { background: #31424d; color: #fff; }.workstation__workspace-file { display: none; }
-.workstation__layout-list { display: grid; gap: 2px; max-height: 250px; overflow: auto; padding: 4px 0; }.workstation__layout-item { display: grid; grid-template-columns: minmax(72px, 1fr) 112px 20px; gap: 3px; align-items: center; padding: 2px; border: 1px solid transparent; }.workstation__layout-item:hover { border-color: #3e505c; }.workstation__layout-select { overflow: hidden; border: 0; background: transparent; color: #aebbc4; text-align: left; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; font: 10px "Segoe UI",Arial,sans-serif; }.workstation__layout-select.active { color: #eaf2f6; font-weight: 700; }.workstation__layout-item input { min-width: 0; border: 1px solid #3b4850; background: #11161a; color: #bfcbd3; padding: 2px 3px; font: 10px "Segoe UI",Arial,sans-serif; }.workstation__layout-delete { border: 0; background: transparent; color: #d78989; cursor: pointer; }.workstation__layout-delete:disabled { color: #5e686e; cursor: not-allowed; }.workstation__layout-reset { width: 100%; margin-top: 2px; }
+.workstation__workspace-actions { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 4px; padding: 5px 2px; border-bottom: 1px solid #29343b; }.workstation__workspace-actions button,.workstation__layout-reset { min-width: 0; min-height: 28px; border: 1px solid #42505a; background: #202b32; color: #cbd6dc; padding: 4px 5px; font: 10px/1.2 "Segoe UI",Arial,sans-serif; cursor: pointer; white-space: normal; }.workstation__workspace-actions button:hover,.workstation__layout-reset:hover { background: #31424d; color: #fff; }.workstation__workspace-actions button:disabled { color: #68767e; border-color: #354149; background: #182026; cursor: not-allowed; }.workstation__workspace-file { display: none; }
+.workstation__layout-recovery { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 5px; border: 1px solid var(--tc-accent); border-radius: var(--tc-radius); color: var(--tc-text); font-size: 10px; }
+.workstation__layout-recovery button { flex: none; border: 1px solid var(--tc-border-strong); border-radius: var(--tc-radius); background: var(--tc-control-bg); color: var(--tc-text); padding: 3px 8px; cursor: pointer; }
+.workstation__workspace-delete-help { display: block; padding: 4px 4px 2px; border-bottom: 1px solid #29343b; color: #91a0a9; font-size: 9px; line-height: 1.35; }
+.workstation__layout-list { display: grid; gap: 2px; max-height: 250px; overflow: auto; padding: 4px 0; }.workstation__layout-item { display: grid; grid-template-columns: minmax(72px, 1fr) 98px 58px; gap: 3px; align-items: center; padding: 2px; border: 1px solid transparent; }.workstation__layout-item:hover { border-color: #3e505c; }.workstation__layout-select { overflow: hidden; border: 0; background: transparent; color: #aebbc4; text-align: left; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; font: 10px "Segoe UI",Arial,sans-serif; }.workstation__layout-select.active { color: #eaf2f6; font-weight: 700; }.workstation__layout-item input { min-width: 0; border: 1px solid #3b4850; background: #11161a; color: #bfcbd3; padding: 2px 3px; font: 10px "Segoe UI",Arial,sans-serif; }.workstation__layout-delete { display: flex; align-items: center; justify-content: center; gap: 2px; min-height: 22px; padding: 2px 3px; border: 1px solid #4d4242; border-radius: var(--tc-radius); background: #2a2020; color: #e4a4a4; font: 9px/1.1 "Segoe UI",Arial,sans-serif; cursor: pointer; white-space: nowrap; }.workstation__layout-delete:hover:not(:disabled) { border-color: #d78989; background: #3b2626; color: #fff; }.workstation__layout-delete:disabled { color: #68767e; border-color: #354149; background: #182026; cursor: not-allowed; }.workstation__layout-reset { width: 100%; margin-top: 2px; }
 .workstation__menu nav button, .workstation__tab-add, .workstation__tab-reset { border: 0; background: transparent; color: #d4d9dd; padding: 0 8px; font: 11px "Segoe UI", Arial, sans-serif; cursor: pointer; }
+.workstation__menu nav .workstation__workspace-actions button { border: 1px solid #42505a; border-radius: var(--tc-radius); background: #202b32; color: #cbd6dc; padding: 4px 5px; font: 10px/1.2 "Segoe UI",Arial,sans-serif; white-space: normal; }
+.workstation__menu nav .workstation__workspace-actions button:hover:not(:disabled) { background: #31424d; color: #fff; }
+.workstation__menu nav .workstation__workspace-actions button:disabled { color: #68767e; border-color: #354149; background: #182026; cursor: not-allowed; }
 .workstation__menu nav button:hover, .workstation__tab-add:hover, .workstation__tab-reset:hover { background: #3a444d; color: #fff; }
 .workstation__search { position: relative; display: flex; height: 21px; margin-left: 10px; }
 .workstation__search input { width: 88px; padding: 0 5px; border: 1px solid #4d5a63; background: #11161a; color: #f1f5f7; font: 11px "Segoe UI", Arial, sans-serif; text-transform: uppercase; }
@@ -3206,19 +3903,51 @@ onBeforeUnmount(() => {
 .workstation__symbol-search-message { min-width: 270px; padding: 7px 8px; border-top: 1px solid #29343b; color: #93a5af; font: 10px "Segoe UI", Arial, sans-serif; }
 .workstation__symbol-search-message--error { color: #e4a0a0; }
 .workstation__symbol-search-state { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
-.workstation__status { margin-left: auto; display: flex; align-items: center; gap: 8px; color: #81909a; font-size: 10px; }
+.workstation__status { margin-left: auto; display: flex; align-items: center; gap: 6px; min-width: 0; max-width: 62%; overflow: visible; color: #81909a; font-size: 10px; }
+.workstation__selection-acquisition { flex: 0 1 clamp(92px, 11vw, 150px); }
+.workstation__selection-acquisition--error { color: var(--tc-danger, #ed9696); }
 .workstation__refresh,.workstation__sign-out { border: 1px solid #47545d; background: #20282e; color: #bdc9d1; padding: 2px 6px; font: inherit; cursor: pointer; }
 .workstation__refresh:disabled { cursor: wait; opacity: .65; }
 .workstation__refresh:hover:not(:disabled),
 .workstation__sign-out:hover { border-color: #6d8290; color: #fff; background: #33414a; }
 .workstation__leader { color: #63bd85; }
 .workstation__data-state--fetching { color:#80bce8; }.workstation__data-state--unavailable { color:#ed9696; }.workstation__data-state--current { color:#91d5a7; }.workstation__data-state--delayed,.workstation__data-state--stale { color:#e8c06b; }.workstation__data-state--partial,.workstation__data-state--coverage-limited { color:#e8b879; }
+@media (max-width: 1100px) {
+  .workstation { min-width: 0; grid-template-rows: auto var(--tc-tab-height) minmax(0, 1fr) var(--tc-status-height); }
+  .workstation:has(.workstation__popout) { min-width: 320px; grid-template-rows: minmax(0, 1fr); }
+  .workstation__menu {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 2fr);
+    grid-template-areas: "application navigation navigation" "search timeframe status";
+    align-content: center;
+    align-items: center;
+    gap: 4px 8px;
+    min-width: 0;
+    padding: 5px;
+  }
+  .workstation__application-navigation { grid-area: application; }
+  .workstation__menu > nav { grid-area: navigation; min-width: 0; overflow-x: auto; overflow-y: hidden; }
+  .workstation__menu nav button { flex: 0 0 auto; }
+  .workstation__search { grid-area: search; width: max-content; max-width: 100%; }
+  .workstation__timeframe { grid-area: timeframe; }
+  .workstation__status { grid-area: status; width: 100%; max-width: none; min-width: 0; flex-wrap: wrap; }
+  .workstation__menu nav button { padding-inline: 5px; font-size: 10px; }
+  .workstation__search { margin-left: 0; }
+  .workstation__search input { width: 72px; }
+  .workstation__timeframe { flex: 0 0 auto; }
+  .workstation__status { flex: 0 1 auto; max-width: 46%; gap: 4px; }
+  .workstation__selection-acquisition { flex-basis: 78px; min-width: 0; }
+  .workstation__selection-acquisition[data-testid="active-holding-lineage"] { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .workstation__data-state { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .workstation__refresh, .workstation__sign-out { flex: 0 0 auto; padding-inline: 4px; white-space: nowrap; }
+}
 .workstation__tabs { display: flex; align-items: stretch; background: var(--tc-panel-bg); border-bottom: 1px solid var(--tc-border); }
+.workstation__tabs { min-width: 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
 .workstation__tool-library { position: relative; display: flex; }
 .workstation__tool-library-menu { position: fixed; z-index: 60; display: grid; min-width: 118px; padding: 2px; border: 1px solid #42505a; background: #1b2228; box-shadow: 0 3px 10px #000a; overflow: auto; }
 .workstation__tool-library-menu button { border: 0; background: transparent; color: #cbd6dc; padding: 5px 8px; font: 11px "Segoe UI", Arial, sans-serif; text-align: left; cursor: pointer; }
 .workstation__tool-library-menu button:hover { background: #31424d; color: #fff; }
-.workstation__tabs > button:not(.workstation__tab-add) { min-width: 112px; padding: 0 11px; border: 0; border-right: 1px solid #303940; background: #1b2126; color: #9facb5; font: 11px "Segoe UI", Arial, sans-serif; cursor: grab; }
+.workstation__tabs > button:not(.workstation__tab-add) { flex: 0 0 auto; min-width: 112px; padding: 0 11px; border: 0; border-right: 1px solid #303940; background: #1b2126; color: #9facb5; font: 11px "Segoe UI", Arial, sans-serif; cursor: grab; }
 .workstation__tabs > button:not(.workstation__tab-add):active { cursor: grabbing; }
 .workstation__tabs > button.workstation__tab--active { background: #28333b; color: #eaf2f6; box-shadow: inset 0 2px #68b6e9; }
 .workstation__tabs > button.workstation__tab--drag-over { box-shadow: inset 2px 0 #f0c66d, inset -2px 0 #f0c66d; }
@@ -3236,5 +3965,10 @@ onBeforeUnmount(() => {
 .workstation__metrics b { color: #d2dce3; font-weight: 500; text-align: right; }
 .workstation__footer { display: flex; gap: 16px; align-items: center; padding: 0 7px; border-top: 1px solid var(--tc-border); color: var(--tc-text-muted); background: var(--tc-panel-bg); font-size: 10px; }
 .workstation__footer span:first-child { color: #d4e7f4; font-weight: 700; }
+.workstation__snapshot-save-state { white-space: nowrap; }
+.workstation__snapshot-save-state[data-state="saving"] { color: var(--tc-accent); }
+.workstation__snapshot-save-state[data-state="error"] { color: var(--tc-negative); }
+.workstation__snapshot-save-retry { border: 1px solid var(--tc-border); border-radius: 3px; padding: 1px 5px; background: var(--tc-control-bg); color: var(--tc-text); font: inherit; cursor: pointer; }
+.workstation__snapshot-save-retry:focus-visible { outline: 2px solid var(--tc-accent); outline-offset: 2px; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 </style>

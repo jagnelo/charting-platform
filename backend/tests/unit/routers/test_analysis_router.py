@@ -9,15 +9,19 @@ from app.config import settings
 from app.models.data_source import DataSource
 from app.models.etf_holdings import ETFHoldingsSnapshot
 from app.models.instrument_event import InstrumentEventFetchState
+from app.models.market_data_foundation import AdjustmentBasis, MarketSeries, MarketSeriesDefault
 from app.models.ohlcv import OHLCVBar, Timeframe
+from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
 from app.models.provider_runtime import ProviderCapability, ProviderEntitlement
 from app.models.workstation import MarketGroup, MarketGroupMember
 from app.routers.analysis import (
     _aggregate_series_cells,
     _as_utc,
+    _bars_by_instrument,
     _breadth_events_by_instrument,
     _calendar_year_cells,
     _entitlement_state,
+    _family_coverage_provider_metadata,
     _family_member_bar_history,
     _gauge_exclusion_warnings,
     _group_members_at,
@@ -30,6 +34,7 @@ from app.routers.analysis import (
     _python_breadth_occurrences,
     _python_breadth_point,
     _role_readiness,
+    _rotation_metrics,
     _rotation_state,
     _sample_aligned_points,
     _stale_instrument_ids,
@@ -37,12 +42,14 @@ from app.routers.analysis import (
     _truncate_bars_at,
     _volume_ratio_50,
     _wire_datetime,
+    benchmark_family_readiness,
 )
 from app.routers.market_groups import (
     _historical_profile_payloads,
     _holdings_snapshot_at,
     holdings_snapshot_source_filter,
 )
+from app.services.top_down_taxonomy import benchmark_family_registry
 
 
 def _bar(instrument_id: int, year: int, month: int, close: str) -> OHLCVBar:
@@ -87,6 +94,101 @@ def test_entitlement_readiness_requires_a_successful_persisted_live_probe():
     assert _entitlement_state(source, entitlement) == "verified"
     entitlement.live_probe_status = "failure"
     assert _entitlement_state(source, entitlement) == "probe_failed"
+
+
+@pytest.mark.asyncio
+async def test_family_readiness_reuses_provider_metadata_within_one_request(db):
+    source = DataSource(name="marketstack", is_active=True, config={})
+    db.add(source)
+    db.flush()
+    entitlement = ProviderEntitlement(
+        data_source_id=source.id,
+        capability=ProviderCapability.PRICE_HISTORY,
+        configured_plan="free-eod",
+        is_free=True,
+        authentication_required=True,
+        live_probe_status="passed",
+    )
+    db.add(entitlement)
+    db.flush()
+
+    class CountingAsyncSession:
+        def __init__(self, sync_session):
+            self.sync_session = sync_session
+            self.info = sync_session.info
+            self.select_count = 0
+
+        async def execute(self, statement):
+            self.select_count += 1
+            return self.sync_session.execute(statement)
+
+    request_session = CountingAsyncSession(db)
+    first = await _family_coverage_provider_metadata(request_session)
+    second = await _family_coverage_provider_metadata(request_session)
+
+    assert request_session.select_count == 2
+    assert first is second
+    assert first[0][source.id].name == "marketstack"
+    assert first[1]["marketstack"].id == source.id
+    assert first[2][(source.id, ProviderCapability.PRICE_HISTORY)].id == entitlement.id
+
+
+@pytest.mark.asyncio
+async def test_family_readiness_loads_shared_provider_metadata_once_for_all_families(
+    db, monkeypatch
+):
+    families = benchmark_family_registry()
+    for metadata in families:
+        db.add(
+            MarketGroup(
+                stable_key=metadata["logical_key"],
+                group_type="benchmark_family",
+                name=metadata["name"],
+                provenance={
+                    "official_index": {
+                        "symbol": metadata["official_index_symbol"],
+                        "name": metadata["official_index_name"],
+                    },
+                    "proxy_mappings": {
+                        role: metadata.get(role)
+                        for role in ("cap_weight", "equal_weight", "value", "growth")
+                    },
+                },
+            )
+        )
+    db.flush()
+
+    async def _no_provider_evidence(_db):
+        return []
+
+    monkeypatch.setattr("app.routers.analysis.latest_availability", _no_provider_evidence)
+
+    class CountingAsyncSession:
+        def __init__(self, sync_session):
+            self.sync_session = sync_session
+            self.info = sync_session.info
+            self.table_reads = {"data_source": 0, "provider_entitlement": 0}
+
+        async def execute(self, statement):
+            sql = str(statement).lower()
+            for table in self.table_reads:
+                if f"from {table}" in sql:
+                    self.table_reads[table] += 1
+            return self.sync_session.execute(statement)
+
+        def __getattr__(self, name):
+            return getattr(self.sync_session, name)
+
+    request_session = CountingAsyncSession(db)
+    response = await benchmark_family_readiness(
+        as_of=None,
+        limit=16,
+        _=None,
+        db=request_session,
+    )
+
+    assert response.family_count == len(families)
+    assert request_session.table_reads == {"data_source": 1, "provider_entitlement": 1}
 
 
 def test_role_readiness_cannot_be_ready_without_point_in_time_evidence():
@@ -563,6 +665,408 @@ async def test_historical_profile_snapshot_cutoff_requires_fetch_proof():
     assert "instrument_profile_snapshot.fetched_at IS NOT NULL" in sql
     assert "instrument_profile_snapshot.fetched_at <=" in sql
     assert list(compiled.params.values()).count(datetime(2024, 3, 10, tzinfo=UTC)) == 2
+
+
+@pytest.mark.asyncio
+async def test_rrg_analysis_reads_only_selected_coarse_series_after_repeated_derivation(
+    db, instrument
+):
+    """Retained incompatible coarse rows must not duplicate newly derived periods."""
+    from app.services.derived_timeframes import materialize_derived_timeframes
+    from tests.unit.conftest import AsyncSessionAdapter
+
+    stale_series_by_timeframe = {}
+    for timeframe, timestamp in (
+        (Timeframe.W1, datetime(2025, 12, 15, 21, tzinfo=UTC)),
+        (Timeframe.MN, datetime(2025, 12, 1, 21, tzinfo=UTC)),
+    ):
+        stale = MarketSeries(
+            instrument_id=instrument.id,
+            data_source_id=None,
+            feed_scope="retained-old-seed",
+            session_code="regular",
+            timeframe=timeframe.value,
+            adjustment_basis=AdjustmentBasis.RAW,
+            adjustment_version="legacy-seed",
+            is_canonical=True,
+            is_active=True,
+        )
+        db.add(stale)
+        db.flush()
+        stale_series_by_timeframe[timeframe] = stale
+        db.add(
+            OHLCVBar(
+                instrument_id=instrument.id,
+                market_series_id=stale.id,
+                timeframe=timeframe,
+                ts=timestamp,
+                open=Decimal("90"),
+                high=Decimal("110"),
+                low=Decimal("89"),
+                close=Decimal("100"),
+                volume=Decimal("100"),
+                is_adjusted=True,
+                adjustment_basis=AdjustmentBasis.RAW,
+                adjustment_version="legacy-seed",
+                is_derived=True,
+                source_timeframe=Timeframe.D1.value,
+                derivation_method="legacy-seed-aggregate",
+                scope_key=f"series:{stale.id}:regular",
+            )
+        )
+
+    cursor = datetime(2025, 11, 3, 21, tzinfo=UTC)
+    index = 0
+    while cursor <= datetime(2026, 2, 27, 21, tzinfo=UTC):
+        if cursor.weekday() < 5:
+            close = Decimal(100 + index)
+            db.add(
+                OHLCVBar(
+                    instrument_id=instrument.id,
+                    timeframe=Timeframe.D1,
+                    ts=cursor,
+                    open=close,
+                    high=close + 1,
+                    low=close - 1,
+                    close=close,
+                    volume=Decimal("100"),
+                    is_adjusted=True,
+                    adjustment_basis=AdjustmentBasis.SPLIT_ADJUSTED,
+                    adjustment_version="e2e-split-adjusted-v1",
+                )
+            )
+            index += 1
+        cursor += timedelta(days=1)
+    db.flush()
+
+    session = AsyncSessionAdapter(db)
+    await materialize_derived_timeframes(session, instrument.id, adjusted=True)
+    await materialize_derived_timeframes(session, instrument.id, adjusted=True)
+
+    selected_series_by_timeframe = {}
+    for timeframe in (Timeframe.W1, Timeframe.MN):
+        selected = await _bars_by_instrument(session, [instrument.id], timeframe, True)
+        rows = selected[instrument.id]
+        timestamps = [
+            row.ts.replace(tzinfo=UTC) if row.ts.tzinfo is None else row.ts for row in rows
+        ]
+        assert timestamps == sorted(set(timestamps))
+        assert rows
+        assert all(row.is_derived and row.source_timeframe == Timeframe.D1.value for row in rows)
+        assert all(row.market_series_id != stale_series_by_timeframe[timeframe].id for row in rows)
+        selected_series_by_timeframe[timeframe] = {row.market_series_id for row in rows}
+        _, tail, _, _ = _rotation_metrics(
+            [(_as_utc(row.ts), float(row.close)) for row in rows],
+            sampling=1,
+            lookback=2,
+            tail_length=10,
+        )
+        tail_timestamps = [point.timestamp for point in tail]
+        assert tail_timestamps == sorted(set(tail_timestamps))
+        retained = (
+            db.query(OHLCVBar)
+            .filter(OHLCVBar.market_series_id == stale_series_by_timeframe[timeframe].id)
+            .one()
+        )
+        assert retained.adjustment_basis == AdjustmentBasis.RAW
+        assert retained.close == Decimal("100")
+    assert all(len(series_ids) == 1 for series_ids in selected_series_by_timeframe.values())
+
+
+@pytest.mark.asyncio
+async def test_rrg_route_repairs_pending_derived_state_from_retained_daily_cache(
+    db, instrument, monkeypatch
+):
+    """The normal RRG caller repairs stale W1/MN readiness without provider I/O."""
+    from app.routers.analysis import group_relative_rotation
+    from app.services.derived_timeframes import materialize_derived_timeframes
+    from tests.unit.conftest import AsyncSessionAdapter
+
+    monkeypatch.setattr(settings, "E2E_SEED_MARKET_DATA", False)
+    benchmark = type(instrument)(
+        instrument_type_id=instrument.instrument_type_id,
+        symbol="RRGBENCH",
+        name="RRG benchmark",
+        currency="USD",
+        is_active=True,
+        identity_status="resolved",
+        domain_key="test:rrg-benchmark",
+    )
+    db.add(benchmark)
+    group = MarketGroup(stable_key="rrg-repair", group_type="test", name="RRG repair")
+    group.members = [
+        MarketGroupMember(
+            instrument_id=instrument.id,
+            position=0,
+            effective_at=datetime(2024, 1, 1, tzinfo=UTC),
+            known_at=datetime(2024, 1, 1, tzinfo=UTC),
+        )
+    ]
+    db.add(group)
+    db.flush()
+
+    session = AsyncSessionAdapter(db)
+    daily_start = datetime(2025, 1, 2, 21, tzinfo=UTC)
+    for target, base in ((instrument, 100), (benchmark, 200)):
+        series = MarketSeries(
+            instrument_id=target.id,
+            data_source_id=None,
+            feed_scope=f"rrg-repair-{target.symbol.lower()}",
+            session_code="regular",
+            timeframe=Timeframe.D1.value,
+            adjustment_basis=AdjustmentBasis.SPLIT_ADJUSTED,
+            adjustment_version="rrg-cache-v1",
+            is_canonical=True,
+            is_active=True,
+        )
+        db.add(series)
+        db.flush()
+        db.add(
+            MarketSeriesDefault(
+                instrument_id=target.id,
+                timeframe=Timeframe.D1.value,
+                is_adjusted=True,
+                market_series_id=series.id,
+                selection_reason="rrg-retained-cache",
+            )
+        )
+        cursor = daily_start
+        offset = 0
+        while cursor <= datetime(2025, 9, 30, 21, tzinfo=UTC):
+            if cursor.weekday() < 5:
+                close = Decimal(base + offset + (offset % 9) ** 2)
+                db.add(
+                    OHLCVBar(
+                        instrument_id=target.id,
+                        data_source_id=None,
+                        market_series_id=series.id,
+                        timeframe=Timeframe.D1,
+                        ts=cursor,
+                        open=close,
+                        high=close + 1,
+                        low=close - 1,
+                        close=close,
+                        volume=Decimal("100"),
+                        is_adjusted=True,
+                        adjustment_basis=AdjustmentBasis.SPLIT_ADJUSTED,
+                        adjustment_version="rrg-cache-v1",
+                        scope_key=f"series:{series.id}:regular",
+                    )
+                )
+                offset += 1
+            cursor += timedelta(days=1)
+        db.add(
+            InstrumentDatasetState(
+                instrument_id=target.id,
+                data_source_id=None,
+                dataset_type="ohlcv",
+                dataset_key="D1:adj",
+                status=DatasetStatus.FRESH,
+                observed_at=datetime.now(UTC),
+                fetched_at=datetime.now(UTC),
+                stale_after=datetime.now(UTC) + timedelta(days=1),
+                coverage_start=daily_start,
+                coverage_end=datetime(2025, 9, 30, 21, tzinfo=UTC),
+                extra_data={
+                    "adjustment_provenance": {
+                        "factor_status": "rebuildable_split_factors",
+                        "factor_version": "rrg-cache-v1",
+                    }
+                },
+            )
+        )
+    db.flush()
+
+    for target in (instrument, benchmark):
+        await materialize_derived_timeframes(session, target.id, adjusted=True)
+        for timeframe in (Timeframe.W1, Timeframe.MN):
+            state = (
+                db.query(InstrumentDatasetState)
+                .filter(
+                    InstrumentDatasetState.instrument_id == target.id,
+                    InstrumentDatasetState.data_source_id.is_(None),
+                    InstrumentDatasetState.dataset_key == f"{timeframe.value}:adj",
+                )
+                .one()
+            )
+            state.status = DatasetStatus.PENDING
+            state.coverage_start = None
+            state.coverage_end = None
+            state.extra_data = {"derived_bar_count": 0}
+    db.commit()
+
+    materialize_calls = []
+    original_materialize = materialize_derived_timeframes
+
+    async def count_materialize(*args, **kwargs):
+        materialize_calls.append((args[1], kwargs.get("end")))
+        return await original_materialize(*args, **kwargs)
+
+    monkeypatch.setattr(
+        "app.services.derived_timeframes.materialize_derived_timeframes", count_materialize
+    )
+
+    async def forbid_provider_io(*_args, **_kwargs):
+        raise AssertionError("cached RRG readiness must not issue provider requests")
+
+    monkeypatch.setattr("app.services.market_data.execute_provider_call", forbid_provider_io)
+
+    async def run_rrg():
+        return await group_relative_rotation(
+            group_key=group.stable_key,
+            benchmark=benchmark.symbol,
+            timeframe=Timeframe.MN,
+            adjusted=True,
+            as_of=None,
+            sampling=1,
+            lookback=2,
+            tail_length=2,
+            history_length=0,
+            _=None,
+            db=session,
+        )
+
+    first = await run_rrg()
+    assert first.rows and first.rows[0].trend is not None
+    assert len(first.rows[0].tail) == 2
+    assert not any(warning.code == "stale_data" for warning in first.rows[0].warnings)
+    assert len(materialize_calls) == 2
+    for target in (instrument, benchmark):
+        for timeframe in (Timeframe.W1, Timeframe.MN):
+            state = (
+                db.query(InstrumentDatasetState)
+                .filter(
+                    InstrumentDatasetState.instrument_id == target.id,
+                    InstrumentDatasetState.data_source_id.is_(None),
+                    InstrumentDatasetState.dataset_key == f"{timeframe.value}:adj",
+                )
+                .one()
+            )
+            assert state.status == DatasetStatus.FRESH
+            assert state.coverage_start is not None
+            assert state.coverage_end is not None
+            assert state.extra_data["derived_bar_count"] > 0
+
+    second = await run_rrg()
+    assert second.rows and second.rows[0].trend is not None
+    assert len(materialize_calls) == 2
+
+
+@pytest.mark.asyncio
+async def test_group_bar_read_resolves_selected_series_before_fetching_bars(db, instrument):
+    """Series choice is bounded by instrument scopes, not repeated for every bar."""
+    from sqlalchemy import event
+
+    from tests.unit.conftest import AsyncSessionAdapter
+
+    def make_series(timeframe: Timeframe, feed_scope: str, *, canonical: bool) -> MarketSeries:
+        value = MarketSeries(
+            instrument_id=instrument.id,
+            data_source_id=None,
+            feed_scope=feed_scope,
+            session_code="regular",
+            timeframe=timeframe.value,
+            adjustment_basis=AdjustmentBasis.SPLIT_ADJUSTED,
+            adjustment_version="fixture-split-v1",
+            is_canonical=canonical,
+            is_active=True,
+        )
+        db.add(value)
+        db.flush()
+        return value
+
+    def add_bars(timeframe: Timeframe, close: str, series: MarketSeries | None) -> None:
+        for offset in range(3):
+            timestamp = datetime(2025, 1, 2 + offset, 21, tzinfo=UTC)
+            price = Decimal(close) + offset
+            db.add(
+                OHLCVBar(
+                    instrument_id=instrument.id,
+                    market_series_id=series.id if series is not None else None,
+                    timeframe=timeframe,
+                    ts=timestamp,
+                    open=price,
+                    high=price,
+                    low=price,
+                    close=price,
+                    is_adjusted=True,
+                    adjustment_basis=AdjustmentBasis.SPLIT_ADJUSTED,
+                    adjustment_version="fixture-split-v1",
+                    scope_key=(
+                        f"series:{series.id}:regular" if series is not None else "legacy:regular"
+                    ),
+                )
+            )
+
+    selected_d1 = make_series(Timeframe.D1, "selected-d1", canonical=False)
+    canonical_d1 = make_series(Timeframe.D1, "other-canonical-d1", canonical=True)
+    db.add(
+        MarketSeriesDefault(
+            instrument_id=instrument.id,
+            timeframe=Timeframe.D1.value,
+            is_adjusted=True,
+            market_series_id=selected_d1.id,
+            selection_reason="fixture-selected",
+        )
+    )
+    add_bars(Timeframe.D1, "100", selected_d1)
+    add_bars(Timeframe.D1, "200", canonical_d1)
+
+    canonical_w1 = make_series(Timeframe.W1, "canonical-w1", canonical=True)
+    add_bars(Timeframe.W1, "300", canonical_w1)
+
+    add_bars(Timeframe.MN, "400", None)
+
+    empty_default_h1 = make_series(Timeframe.H1, "empty-default-h1", canonical=False)
+    canonical_h1 = make_series(Timeframe.H1, "canonical-h1", canonical=True)
+    db.add(
+        MarketSeriesDefault(
+            instrument_id=instrument.id,
+            timeframe=Timeframe.H1.value,
+            is_adjusted=True,
+            market_series_id=empty_default_h1.id,
+            selection_reason="fixture-empty-default",
+        )
+    )
+    add_bars(Timeframe.H1, "500", canonical_h1)
+
+    incompatible_h2 = make_series(Timeframe.H2, "raw-h2", canonical=True)
+    incompatible_h2.adjustment_basis = AdjustmentBasis.RAW
+    add_bars(Timeframe.H2, "600", incompatible_h2)
+    db.flush()
+
+    statements: list[str] = []
+
+    def record_statement(_conn, _cursor, statement, _parameters, _context, _many):
+        statements.append(statement.lower())
+
+    bind = db.get_bind()
+    event.listen(bind, "before_cursor_execute", record_statement)
+    try:
+        session = AsyncSessionAdapter(db)
+        expectations = (
+            (Timeframe.D1, selected_d1.id, Decimal("100"), 2),
+            (Timeframe.W1, canonical_w1.id, Decimal("300"), 3),
+            (Timeframe.MN, None, Decimal("400"), 3),
+            (Timeframe.H1, canonical_h1.id, Decimal("500"), 3),
+            (Timeframe.H2, None, None, 3),
+        )
+        for timeframe, expected_series_id, expected_close, expected_queries in expectations:
+            statements.clear()
+            bars_by_id = await _bars_by_instrument(session, [instrument.id], timeframe, True)
+            rows = bars_by_id.get(instrument.id, [])
+            if expected_close is None:
+                assert rows == []
+            else:
+                assert len(rows) == 3
+                assert {row.market_series_id for row in rows} == {expected_series_id}
+                assert rows[0].close == expected_close
+            assert len(statements) == expected_queries
+            bar_query = statements[-1]
+            assert "exists (select" not in bar_query
+            assert "market_series_default" not in bar_query
+    finally:
+        event.remove(bind, "before_cursor_execute", record_statement)
 
 
 def test_relative_rotation_sampling_retains_latest_aligned_observation():

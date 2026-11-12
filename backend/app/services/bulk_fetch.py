@@ -57,7 +57,6 @@ from app.services.distributed_locks import (
 )
 from app.services.market_data import (
     _attach_provider_series,
-    _default_series_bar_condition,
     _record_bar_observations,
     _touch_ohlcv_dataset_state,
 )
@@ -411,12 +410,20 @@ async def _do_fetch_and_store(
         execution,
         bars=bars,
     )
-    existing_ts = await _existing_timestamps(db, instrument.id, timeframe, adjusted)
+    existing_ts = await _existing_timestamps(
+        db,
+        instrument.id,
+        timeframe,
+        adjusted,
+        market_series_ids={
+            bar.market_series_id for bar in bars if bar.market_series_id is not None
+        },
+    )
 
     new_bars: list[OHLCVBar] = []
     for bar in bars:
         ts_utc = _to_utc(bar.ts)
-        if ts_utc in existing_ts:
+        if (ts_utc, bar.market_series_id) in existing_ts:
             continue
         bar.instrument_id = instrument.id
         bar.data_source_id = execution.data_source.id
@@ -467,16 +474,23 @@ def _bars_through_end(bars: list[Any], end: datetime) -> list[Any]:
 
 
 async def _existing_timestamps(
-    db: AsyncSession, instrument_id: int, timeframe: Timeframe, adjusted: bool
-) -> set[datetime]:
-    stmt = select(OHLCVBar.ts).where(
+    db: AsyncSession,
+    instrument_id: int,
+    timeframe: Timeframe,
+    adjusted: bool,
+    *,
+    market_series_ids: set[int],
+) -> set[tuple[datetime, int | None]]:
+    if not market_series_ids:
+        return set()
+    stmt = select(OHLCVBar.ts, OHLCVBar.market_series_id).where(
         OHLCVBar.instrument_id == instrument_id,
         OHLCVBar.timeframe == timeframe,
         OHLCVBar.is_adjusted == adjusted,
-        _default_series_bar_condition(instrument_id, timeframe, adjusted),
+        OHLCVBar.market_series_id.in_(market_series_ids),
     )
-    rows = (await db.execute(stmt)).scalars().all()
-    return {_to_utc(ts) for ts in rows}
+    rows = (await db.execute(stmt)).all()
+    return {(_to_utc(ts), int(series_id)) for ts, series_id in rows if series_id is not None}
 
 
 def _to_utc(ts: Any) -> datetime:

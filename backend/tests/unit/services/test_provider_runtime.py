@@ -11,7 +11,7 @@ from unittest.mock import MagicMock, patch
 
 import httpx
 import pytest
-from sqlalchemy import select
+from sqlalchemy import event, select
 
 from app.config import provider_rate_limit_seed, settings
 from app.models.asset_class import AssetClass, InstrumentType
@@ -59,6 +59,7 @@ from app.services.provider_runtime import (
     _get_semaphore,
     _native_etf_initial_qualification_matches,
     bind_explicit_etf_holdings_acquisition,
+    bind_explicit_provider_acquisition,
     bind_native_etf_initial_qualification,
     execute_provider_call,
     list_provider_status,
@@ -144,6 +145,34 @@ def _bind_native_etf_scope(provider_name: str, source, policy, entitlement, **ov
     }
     values.update(overrides)
     return bind_native_etf_initial_qualification(**values)
+
+
+@pytest.mark.asyncio
+async def test_execution_can_use_preseeded_chain_without_request_time_reseed(monkeypatch):
+    captured = {}
+
+    async def _resolve(_db, _capability, **kwargs):
+        captured.update(kwargs)
+        return []
+
+    monkeypatch.setattr(provider_runtime, "resolve_provider_chain", _resolve)
+    with provider_runtime.bind_explicit_provider_acquisition(
+        request_id="request-search-igv",
+        operations=frozenset({(ProviderCapability.INSTRUMENT_SEARCH, "search_instruments")}),
+        symbol="IGV",
+    ):
+        with pytest.raises(RuntimeError, match="No enabled providers available"):
+            await provider_runtime.execute_provider_call(
+                object(),
+                ProviderCapability.INSTRUMENT_SEARCH,
+                "search_instruments",
+                provider_symbol="IGV",
+                provider_name="massive",
+                seed_runtime=False,
+                invoke=lambda *_args: pytest.fail("empty preseeded chain must not transport"),
+            )
+
+    assert captured["read_only"] is True
 
 
 @pytest.mark.parametrize(("provider_name", "source_id"), [("spdr", 31), ("invesco", 32)])
@@ -1877,6 +1906,207 @@ async def test_execute_provider_call_reports_quota_denial_before_transport(db, m
 
 
 @pytest.mark.asyncio
+async def test_local_application_burst_hold_has_known_retry_and_settles_hop_not_sent(
+    db, monkeypatch
+):
+    async_db = AsyncSessionAdapter(db)
+    source = DataSource(
+        name="local-burst-provider",
+        is_active=True,
+        config={"usage_tracking": {"operation_costs": {"get_current_price": 1}}},
+    )
+    db.add(source)
+    db.flush()
+    policy = ProviderPolicy(
+        data_source_id=source.id,
+        capability=ProviderCapability.LATEST_PRICE,
+        is_enabled=True,
+        max_concurrency=1,
+        tokens_per_minute=60,
+        burst_capacity=1,
+        quota_scope="application",
+        quota_source="unit-test application safety envelope",
+        quota_contract={
+            "reset": "rolling",
+            "operation_costs": {"get_current_price": 1},
+            "dimensions": [
+                {
+                    "name": "application_requests_per_minute",
+                    "limit": 60,
+                    "window_seconds": 60,
+                    "unit": "requests",
+                    "scope": "application",
+                    "baseline_mode": "local_zero",
+                    "application_usage_only": True,
+                    "source": "unit-test application safety envelope",
+                }
+            ],
+        },
+    )
+    health = ProviderHealthState(
+        data_source_id=source.id,
+        capability=ProviderCapability.LATEST_PRICE,
+        ewma_latency_ms=Decimal("0"),
+        ewma_success_rate=Decimal("1"),
+        ewma_completeness=Decimal("1"),
+        ewma_freshness=Decimal("1"),
+        ewma_consistency=Decimal("1"),
+        observed_score=Decimal("0"),
+    )
+    db.add_all([policy, health])
+    db.flush()
+    resolved = ResolvedProvider(
+        provider_name=source.name,
+        provider=object(),
+        data_source=source,
+        policy=policy,
+        health=health,
+    )
+
+    async def fake_chain(*_args, **_kwargs):
+        return [resolved]
+
+    monkeypatch.setattr("app.services.provider_runtime.resolve_provider_chain", fake_chain)
+    bucket = _get_bucket(policy, source.name)
+    before = datetime.now(UTC)
+
+    def first_physical_hop(_provider, _symbol):
+        response = httpx.Response(
+            302,
+            headers={"location": "/workbook.csv"},
+            content=b"",
+            request=httpx.Request("GET", "https://publisher.example/xhb"),
+        )
+        observe_response(response)
+        return response
+
+    first = await execute_provider_call(
+        async_db,
+        ProviderCapability.LATEST_PRICE,
+        "get_current_price",
+        provider_name=source.name,
+        invoke=first_physical_hop,
+    )
+    assert first.request_log_id is not None
+    assert bucket.tokens < 1
+
+    with pytest.raises(
+        ProviderQuotaAdmissionError, match="local application burst window"
+    ) as raised:
+        await execute_provider_call(
+            async_db,
+            ProviderCapability.LATEST_PRICE,
+            "get_current_price",
+            provider_name=source.name,
+            invoke=lambda *_args: pytest.fail("a denied physical hop must not reach transport"),
+        )
+
+    assert before + timedelta(seconds=1) <= raised.value.retry_at <= before + timedelta(seconds=3)
+    logs = db.execute(select(ProviderRequestLog)).scalars().all()
+    assert [row.id for row in logs] == [first.request_log_id]
+    assert logs[0].http_requests == 1
+    policy_windows = db.execute(select(ProviderQuotaWindow)).scalars().all()
+    assert sum(row.reserved_units for row in policy_windows) == 0
+    assert sum(row.consumed_units for row in policy_windows) == 1
+    ledger = provider_quota_coordinator_summary(provider_name=source.name)
+    assert ledger["available"] is True
+    assert sum(row["pending_reservations"] for row in ledger["windows"]) == 0
+    assert sum(row["uncertain_reservations"] for row in ledger["windows"]) == 0
+    assert sum(row["effective_used_units"] for row in ledger["windows"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_unknown_native_coordinator_hold_does_not_gain_local_retry_time(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    source = DataSource(
+        name="unknown-native-provider",
+        is_active=True,
+        config={"usage_tracking": {"operation_costs": {"get_current_price": 1}}},
+    )
+    db.add(source)
+    db.flush()
+    policy = ProviderPolicy(
+        data_source_id=source.id,
+        capability=ProviderCapability.LATEST_PRICE,
+        is_enabled=True,
+        max_concurrency=1,
+        tokens_per_minute=60,
+        burst_capacity=3,
+        quota_scope="provider-account",
+        quota_source="unit-test unknown native contract",
+        quota_contract={
+            "reset": "rolling",
+            "operation_costs": {"get_current_price": 1},
+            "dimensions": [
+                {
+                    "name": "native_requests_per_minute",
+                    "limit": 60,
+                    "window_seconds": 60,
+                    "unit": "requests",
+                    "scope": "provider-account",
+                    "source": "unit-test unknown native contract",
+                }
+            ],
+        },
+    )
+    health = ProviderHealthState(
+        data_source_id=source.id,
+        capability=ProviderCapability.LATEST_PRICE,
+        ewma_latency_ms=Decimal("0"),
+        ewma_success_rate=Decimal("1"),
+        ewma_completeness=Decimal("1"),
+        ewma_freshness=Decimal("1"),
+        ewma_consistency=Decimal("1"),
+        observed_score=Decimal("0"),
+    )
+    db.add_all([policy, health])
+    db.flush()
+    resolved = ResolvedProvider(
+        provider_name=source.name,
+        provider=object(),
+        data_source=source,
+        policy=policy,
+        health=health,
+    )
+
+    async def fake_chain(*_args, **_kwargs):
+        return [resolved]
+
+    async def reserve_contract(*_args, **_kwargs):
+        return [object()]
+
+    async def unknown_baseline(**_kwargs):
+        return None
+
+    monkeypatch.setattr("app.services.provider_runtime.resolve_provider_chain", fake_chain)
+    monkeypatch.setattr(
+        "app.services.provider_routing.reserve_provider_contract",
+        reserve_contract,
+    )
+    monkeypatch.setattr(
+        "app.services.provider_quota_coordinator.reserve_provider_quota_async",
+        unknown_baseline,
+    )
+    monkeypatch.setattr(
+        "app.services.provider_routing.settle_provider_contract",
+        lambda *_args, **_kwargs: None,
+    )
+
+    with pytest.raises(ProviderQuotaAdmissionError) as raised:
+        await execute_provider_call(
+            async_db,
+            ProviderCapability.LATEST_PRICE,
+            "get_current_price",
+            provider_name=source.name,
+            invoke=lambda *_args: pytest.fail("unknown native quota must remain held"),
+        )
+
+    assert raised.value.retry_at is None
+    assert "local application burst window" not in str(raised.value)
+    assert db.execute(select(ProviderRequestLog)).scalars().all() == []
+
+
+@pytest.mark.asyncio
 async def test_execute_provider_call_retains_first_orf_file_if_second_download_fails(
     db, monkeypatch
 ):
@@ -2319,6 +2549,62 @@ async def test_seed_provider_runtime_creates_policies_for_supported_non_seeded_p
 
     assert policy is not None
     assert policy.base_priority >= 10
+
+
+@pytest.mark.asyncio
+async def test_alpaca_account_usage_requires_exact_scope_in_request_driven_mode(db, monkeypatch):
+    """The normal native usage route can resolve Alpaca without opening transport."""
+
+    monkeypatch.setattr(settings, "PROVIDER_ROUTING_ENABLED", True)
+    monkeypatch.setattr(settings, "PROVIDER_REQUEST_DRIVEN_ONLY", True)
+    monkeypatch.setattr(settings, "PROVIDER_FREE_ONLY_CHECKPOINT", True)
+    monkeypatch.setattr(settings, "ALLOW_PAID_PROVIDER_ROUTING", False)
+    monkeypatch.setattr(settings, "ALPACA_API_KEY", "offline-alpaca-key")
+    monkeypatch.setattr(settings, "ALPACA_SECRET_KEY", "offline-alpaca-secret")
+    async_db = AsyncSessionAdapter(db)
+    await seed_provider_runtime(async_db)
+    source = db.execute(select(DataSource).where(DataSource.name == "alpaca")).scalar_one()
+    policy = db.execute(
+        select(ProviderPolicy).where(
+            ProviderPolicy.data_source_id == source.id,
+            ProviderPolicy.capability == ProviderCapability.ACCOUNT_USAGE,
+        )
+    ).scalar_one()
+    entitlement = db.execute(
+        select(ProviderEntitlement).where(
+            ProviderEntitlement.data_source_id == source.id,
+            ProviderEntitlement.capability == ProviderCapability.ACCOUNT_USAGE,
+        )
+    ).scalar_one()
+    policy.is_enabled = True
+    entitlement.configured_plan = "free-iex"
+    entitlement.is_free = True
+    entitlement.authentication_required = True
+    entitlement.live_probe_status = "passed"
+    entitlement.enabled_environments = [settings.APP_ENV.strip().lower()]
+    db.commit()
+
+    assert (
+        await resolve_provider_chain(
+            async_db,
+            ProviderCapability.ACCOUNT_USAGE,
+            operation="fetch_account_usage",
+        )
+        == []
+    )
+    with bind_explicit_provider_acquisition(
+        request_id="offline-alpaca-account-usage-test",
+        operations=frozenset({(ProviderCapability.ACCOUNT_USAGE, "fetch_account_usage")}),
+        provider_names=frozenset({"alpaca"}),
+    ):
+        chain = await resolve_provider_chain(
+            async_db,
+            ProviderCapability.ACCOUNT_USAGE,
+            operation="fetch_account_usage",
+        )
+
+    assert [item.provider_name for item in chain] == ["alpaca"]
+    assert policy_allows_account_usage_bootstrap(chain[0].policy, "fetch_account_usage")
 
 
 @pytest.mark.asyncio
@@ -2786,6 +3072,7 @@ def test_checkpoint_operation_holds_preserve_eodhd_zero_credit_usage_exception(m
     assert PROVIDER_SERVICE_OPERATION_ALIASES == {
         "bulk_fetch": "fetch_ohlcv",
         "fetch_rfr_ohlcv": "fetch_ohlcv",
+        "get_earliest_timestamp": "fetch_ohlcv",
         "reconcile_universe_page": "discover_universe_page",
     }
     assert provider_checkpoint_operation_hold_reason("eodhd", "fetch_ohlcv:D1")
@@ -4083,6 +4370,135 @@ async def test_provider_chain_excludes_environment_ineligible_entitlements(db, m
 
 
 @pytest.mark.asyncio
+async def test_concurrent_provider_selection_uses_live_scores_without_score_row_writes(
+    db, monkeypatch
+):
+    """Concurrent selection must not lock shared score rows before transport."""
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr(settings, "PROVIDER_ROUTING_ENABLED", True)
+    monkeypatch.setattr(settings, "PROVIDER_REQUEST_DRIVEN_ONLY", False)
+    monkeypatch.setattr(settings, "PROVIDER_FREE_ONLY_CHECKPOINT", True)
+    monkeypatch.setattr(settings, "ALLOW_PAID_PROVIDER_ROUTING", False)
+    monkeypatch.setattr(
+        "app.services.provider_runtime.provider_configuration_required", lambda _name: False
+    )
+    monkeypatch.setattr(
+        "app.services.provider_runtime.provider_is_configured",
+        lambda _name, operation=None: True,
+    )
+    monkeypatch.setattr(
+        "app.services.provider_runtime.provider_missing_routing_controls",
+        lambda _name, _operation: [],
+    )
+    monkeypatch.setattr(
+        "app.services.provider_runtime.provider_entitlement_admission",
+        lambda entitlement, **_kwargs: {"allowed": bool(entitlement.is_free)},
+    )
+    monkeypatch.setattr(
+        "app.services.provider_runtime.provider_checkpoint_operation_hold_reason",
+        lambda _name, _operation, **_kwargs: None,
+    )
+    await seed_provider_runtime(async_db)
+    db.commit()
+
+    selected_names = {"massive", "alpha_vantage"}
+    policies = db.execute(
+        select(ProviderPolicy).where(
+            ProviderPolicy.capability == ProviderCapability.INSTRUMENT_SEARCH
+        )
+    ).scalars()
+    for policy in policies:
+        policy.is_enabled = False
+    for provider_name in selected_names:
+        source = db.execute(select(DataSource).where(DataSource.name == provider_name)).scalar_one()
+        policy = db.execute(
+            select(ProviderPolicy).where(
+                ProviderPolicy.data_source_id == source.id,
+                ProviderPolicy.capability == ProviderCapability.INSTRUMENT_SEARCH,
+            )
+        ).scalar_one()
+        entitlement = db.execute(
+            select(ProviderEntitlement).where(
+                ProviderEntitlement.data_source_id == source.id,
+                ProviderEntitlement.capability == ProviderCapability.INSTRUMENT_SEARCH,
+            )
+        ).scalar_one()
+        health = db.execute(
+            select(ProviderHealthState).where(
+                ProviderHealthState.data_source_id == source.id,
+                ProviderHealthState.capability == ProviderCapability.INSTRUMENT_SEARCH,
+            )
+        ).scalar_one()
+        policy.is_enabled = True
+        policy.is_pinned = False
+        policy.base_priority = 10
+        policy.auto_weight_enabled = True
+        policy.learned_weight = Decimal("0")
+        policy.effective_score = Decimal("100") if provider_name == "massive" else Decimal("0")
+        entitlement.configured_plan = "unit-reviewed-free"
+        entitlement.is_free = True
+        entitlement.authentication_required = False
+        entitlement.live_probe_status = "passed"
+        entitlement.enabled_environments = [settings.APP_ENV.strip().lower()]
+        health.ewma_latency_ms = Decimal("0")
+        health.ewma_success_rate = Decimal("0") if provider_name == "massive" else Decimal("1")
+        health.ewma_completeness = Decimal("0") if provider_name == "massive" else Decimal("1")
+        health.ewma_freshness = Decimal("0") if provider_name == "massive" else Decimal("1")
+        health.ewma_consistency = Decimal("0") if provider_name == "massive" else Decimal("1")
+        health.observed_score = Decimal("100") if provider_name == "massive" else Decimal("0")
+    db.commit()
+
+    score_updates = []
+    connection = db.connection()
+
+    def record_score_update(_conn, _cursor, statement, _parameters, _context, _executemany):
+        normalized = statement.lstrip().lower()
+        if normalized.startswith(("update provider_policy", "update provider_health_state")) and (
+            "effective_score" in normalized or "observed_score" in normalized
+        ):
+            score_updates.append(statement)
+
+    event.listen(connection, "before_cursor_execute", record_score_update)
+    try:
+        chains = await asyncio.gather(
+            resolve_provider_chain(async_db, ProviderCapability.INSTRUMENT_SEARCH),
+            resolve_provider_chain(async_db, ProviderCapability.INSTRUMENT_SEARCH),
+        )
+    finally:
+        event.remove(connection, "before_cursor_execute", record_score_update)
+
+    assert score_updates == []
+
+    assert all({item.provider_name for item in chain} == selected_names for chain in chains), [
+        [item.provider_name for item in chain] for chain in chains
+    ]
+    for chain in chains:
+        assert chain[0].provider_name == "alpha_vantage"
+        assert chain[0].effective_score > chain[1].effective_score
+    for provider_name in selected_names:
+        source = db.execute(select(DataSource).where(DataSource.name == provider_name)).scalar_one()
+        policy = db.execute(
+            select(ProviderPolicy).where(
+                ProviderPolicy.data_source_id == source.id,
+                ProviderPolicy.capability == ProviderCapability.INSTRUMENT_SEARCH,
+            )
+        ).scalar_one()
+        health = db.execute(
+            select(ProviderHealthState).where(
+                ProviderHealthState.data_source_id == source.id,
+                ProviderHealthState.capability == ProviderCapability.INSTRUMENT_SEARCH,
+            )
+        ).scalar_one()
+        assert policy.effective_score == (
+            Decimal("100") if provider_name == "massive" else Decimal("0")
+        )
+        assert health.observed_score == (
+            Decimal("100") if provider_name == "massive" else Decimal("0")
+        )
+        assert not db.is_modified(policy) and not db.is_modified(health)
+
+
+@pytest.mark.asyncio
 async def test_provider_chain_excludes_expired_entitlements(db):
     async_db = AsyncSessionAdapter(db)
     await seed_provider_runtime(async_db)
@@ -4382,6 +4798,12 @@ def test_token_bucket_charges_weighted_units():
     assert not bucket.try_acquire(2)
 
 
+def test_token_bucket_has_no_retry_when_operation_cost_exceeds_burst():
+    bucket = TokenBucket(rate_per_minute=60, burst_capacity=1)
+
+    assert bucket.retry_after_seconds(2) is None
+
+
 @pytest.mark.parametrize("units", [0, -1, True, 1.5, "1", None])
 def test_token_bucket_rejects_invalid_acquisition_units(units):
     bucket = TokenBucket(rate_per_minute=60, burst_capacity=4)
@@ -4428,3 +4850,71 @@ def test_semaphore_rebuilds_when_policy_concurrency_changes():
 
     assert second is not first
     assert second._value == 5
+
+
+@pytest.mark.asyncio
+async def test_marketstack_status_uses_operation_scoped_configuration_and_holds(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr(settings, "MARKETSTACK_API_KEY", "configured-key")
+    monkeypatch.setattr(settings, "MARKETSTACK_DISCOVERY_EXCHANGE", "")
+    monkeypatch.setattr(settings, "MARKETSTACK_REVIEWED_MONTHLY_LIMIT", 100)
+    monkeypatch.setattr(settings, "MARKETSTACK_REVIEWED_MONTHLY_RESET", "")
+    monkeypatch.setattr(settings, "MARKETSTACK_QUOTA_EVIDENCE", "")
+    monkeypatch.setattr(settings, "MARKETSTACK_PROVIDER_ARCHIVE_TERMS_AUTHORIZED", True)
+    monkeypatch.setattr(
+        settings,
+        "MARKETSTACK_PROVIDER_ARCHIVE_TERMS_EVIDENCE",
+        "unit-test-reviewed-private-use",
+    )
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_CHECKPOINT_OPERATION_HOLDS",
+        {"marketstack": {"discover_universe_page": "discovery remains held"}},
+    )
+
+    await seed_provider_runtime(async_db)
+    source = db.execute(select(DataSource).where(DataSource.name == "marketstack")).scalar_one()
+    for capability in (
+        ProviderCapability.PRICE_HISTORY,
+        ProviderCapability.LATEST_PRICE,
+        ProviderCapability.UNIVERSE_DISCOVERY,
+    ):
+        policy = db.execute(
+            select(ProviderPolicy).where(
+                ProviderPolicy.data_source_id == source.id,
+                ProviderPolicy.capability == capability,
+            )
+        ).scalar_one()
+        policy.is_enabled = True
+        entitlement = db.execute(
+            select(ProviderEntitlement).where(
+                ProviderEntitlement.data_source_id == source.id,
+                ProviderEntitlement.capability == capability,
+            )
+        ).scalar_one()
+        entitlement.live_probe_status = "passed"
+
+    statuses = {
+        row["capability"]: row
+        for row in await list_provider_status(async_db)
+        if row["provider"] == "marketstack"
+        and row["capability"]
+        in {
+            ProviderCapability.PRICE_HISTORY.value,
+            ProviderCapability.LATEST_PRICE.value,
+            ProviderCapability.UNIVERSE_DISCOVERY.value,
+        }
+    }
+    for capability in (ProviderCapability.PRICE_HISTORY, ProviderCapability.LATEST_PRICE):
+        row = statuses[capability.value]
+        assert row["credentials_configured"] is True
+        assert "MARKETSTACK_DISCOVERY_EXCHANGE" not in row["required_environment_variables"]
+        assert "MARKETSTACK_DISCOVERY_EXCHANGE" not in row["missing_environment_variables"]
+        assert row["routing_eligible"] is True
+
+    discovery = statuses[ProviderCapability.UNIVERSE_DISCOVERY.value]
+    assert discovery["credentials_configured"] is False
+    assert "MARKETSTACK_DISCOVERY_EXCHANGE" in discovery["required_environment_variables"]
+    assert "MARKETSTACK_DISCOVERY_EXCHANGE" in discovery["missing_environment_variables"]
+    assert discovery["routing_eligible"] is False
+    assert discovery["checkpoint_hold_reason"] == "discovery remains held"

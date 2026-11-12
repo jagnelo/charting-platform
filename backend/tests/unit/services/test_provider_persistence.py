@@ -356,6 +356,75 @@ async def test_search_fetch_persists_and_then_reuses_cache(db, monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_uncached_search_reuses_startup_runtime_without_reseeding_per_provider(
+    db, monkeypatch
+):
+    async_db = AsyncSessionAdapter(db)
+    edgar = _resolved_provider(
+        db, provider_name="edgar", capability=ProviderCapability.INSTRUMENT_SEARCH
+    )
+    massive = _resolved_provider(
+        db, provider_name="massive", capability=ProviderCapability.INSTRUMENT_SEARCH
+    )
+    resolve_calls: list[dict] = []
+    execute_calls: list[tuple[str, bool]] = []
+
+    async def _uncached(*_args, **_kwargs):
+        return None
+
+    async def _resolve(_db, _capability, **kwargs):
+        resolve_calls.append(kwargs)
+        return [edgar, massive]
+
+    async def _execute(_db, _capability, _operation, *, provider_name, seed_runtime, **_kwargs):
+        execute_calls.append((provider_name, seed_runtime))
+        provider = edgar if provider_name == "edgar" else massive
+        symbol = "IGV" if provider_name == "massive" else "IGV-W"
+        return ProviderExecutionResult(
+            provider_name=provider_name,
+            data_source=provider.data_source,
+            policy=provider.policy,
+            health=provider.health,
+            result=[
+                ProviderSearchResult(
+                    symbol=symbol,
+                    name="iShares Expanded Tech-Software Sector ETF",
+                    exchange="ARCX" if provider_name == "massive" else "",
+                    instrument_type="ETF",
+                )
+            ],
+        )
+
+    monkeypatch.setattr(market_data, "_fresh_search_from_cache", _uncached)
+    monkeypatch.setattr(market_data, "resolve_provider_chain", _resolve)
+    monkeypatch.setattr(market_data, "execute_provider_call", _execute)
+
+    async def _store_snapshot(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(market_data, "store_search_snapshot", _store_snapshot)
+
+    outcomes: list[dict] = []
+    rows = await market_data.search_provider_instruments_async(
+        async_db, "IGV", source_outcomes=outcomes
+    )
+
+    assert resolve_calls == [
+        {
+            "operation": "search_instruments",
+            "provider_symbol": "IGV",
+            "read_only": True,
+        }
+    ]
+    assert execute_calls == [("edgar", False), ("massive", False)]
+    assert [(row["symbol"], row["provider"], row["exchange"]) for row in rows] == [
+        ("IGV", "massive", "ARCX"),
+        ("IGV-W", "edgar", ""),
+    ]
+    assert [item["provider"] for item in outcomes] == ["edgar", "massive"]
+
+
+@pytest.mark.asyncio
 async def test_search_native_quota_window_is_held_with_known_retry(db, monkeypatch):
     async_db = AsyncSessionAdapter(db)
     resolved = _resolved_provider(
@@ -527,6 +596,55 @@ async def test_single_provider_cached_search_outcome_counts_persisted_candidates
             "result_count": 2,
         }
     ]
+
+
+@pytest.mark.asyncio
+async def test_cached_exact_search_keeps_provider_qualified_candidates_but_merges_fuzzy_rows(
+    db, monkeypatch
+):
+    async_db = AsyncSessionAdapter(db)
+    edgar = _resolved_provider(
+        db, provider_name="edgar", capability=ProviderCapability.INSTRUMENT_SEARCH
+    )
+    massive = _resolved_provider(
+        db, provider_name="massive", capability=ProviderCapability.INSTRUMENT_SEARCH
+    )
+    for resolved, exchange in ((edgar, "XNYS"), (massive, "ARCX")):
+        await provider_observations.store_search_snapshot(
+            async_db,
+            data_source_id=resolved.data_source.id,
+            query="SPY",
+            results=[
+                ProviderSearchResult(
+                    symbol="SPY",
+                    name="SPDR S&P 500 ETF Trust",
+                    exchange=exchange,
+                    instrument_type="ETF",
+                ),
+                ProviderSearchResult(
+                    symbol="SPY-A",
+                    name="Fuzzy duplicate",
+                    exchange=exchange,
+                    instrument_type="ETF",
+                ),
+            ],
+        )
+
+    async def _two_provider_chain(*_args, **_kwargs):
+        return [edgar, massive]
+
+    async def _unexpected_fetch(*_args, **_kwargs):
+        pytest.fail("fresh exact-symbol snapshots must remain cache-only")
+
+    monkeypatch.setattr(market_data, "resolve_provider_chain", _two_provider_chain)
+    monkeypatch.setattr(market_data, "execute_provider_call", _unexpected_fetch)
+
+    rows = await market_data.search_provider_instruments_async(async_db, "SPY")
+
+    assert [
+        (row["symbol"], row["provider"], row["exchange"]) for row in rows if row["symbol"] == "SPY"
+    ] == [("SPY", "edgar", "XNYS"), ("SPY", "massive", "ARCX")]
+    assert sum(row["symbol"] == "SPY-A" for row in rows) == 1
 
 
 @pytest.mark.asyncio

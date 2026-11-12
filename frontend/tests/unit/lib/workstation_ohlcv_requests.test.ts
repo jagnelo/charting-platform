@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { clearOhlcvRequestCache, dedupeOhlcvRequest } from '@/lib/workstation/ohlcvRequests'
+import { beginAuthSessionBoundary } from '@/lib/authSession'
 
 afterEach(() => clearOhlcvRequestCache())
 
@@ -59,5 +60,18 @@ describe('OHLCV request coordinator', () => {
     ])
     await expect(dedupeOhlcvRequest('SPY:D1:refresh', request)).resolves.toEqual(['new'])
     expect(request).toHaveBeenCalledTimes(2)
+  })
+
+  it('drops settled and in-flight private chart responses at an auth boundary', async () => {
+    let resolveOld!: (value: string[]) => void
+    const oldRequest = dedupeOhlcvRequest('BASKET:7:D1', () => new Promise<string[]>(resolve => { resolveOld = resolve }))
+
+    beginAuthSessionBoundary()
+    const freshRequest = dedupeOhlcvRequest('BASKET:7:D1', async () => ['account-b'])
+    await expect(freshRequest).resolves.toEqual(['account-b'])
+    resolveOld(['account-a'])
+    await expect(oldRequest).resolves.toEqual(['account-a'])
+
+    await expect(dedupeOhlcvRequest('BASKET:7:D1', async () => ['unexpected-network'])).resolves.toEqual(['account-b'])
   })
 })

@@ -28,8 +28,13 @@ export default defineConfig({
   // Retain retries for diagnostics, but a retry-passing case is not acceptance.
   failOnFlakyTests: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  timeout: 30_000,
-  reporter: [['html', { outputFolder: 'playwright-report' }], ['line']],
+  timeout: process.env.CI ? 60_000 : 30_000,
+  // CI runners share 2 vCPUs between the full stack and the browser; give
+  // web-first assertions the same polling budget there as a local machine has.
+  expect: { timeout: process.env.CI ? 15_000 : 5_000 },
+  reporter: process.env.CI
+    ? [['github'], ['html', { outputFolder: 'playwright-report' }], ['line']]
+    : [['html', { outputFolder: 'playwright-report' }], ['line']],
   use: {
     baseURL: process.env.STACK_URL ?? 'http://localhost',
     trace: 'on-first-retry',

@@ -10,15 +10,17 @@ import { api } from '@/lib/api'
 import { useChartStore } from '@/stores/chart'
 
 class ResizeObserverMock {
-  static callback: ResizeObserverCallback | null = null
-  constructor(callback: ResizeObserverCallback) { ResizeObserverMock.callback = callback }
-  observe() {}
+  static instances: ResizeObserverMock[] = []
+  observed: Element[] = []
+  constructor(private readonly callback: ResizeObserverCallback) { ResizeObserverMock.instances.push(this) }
+  observe(element: Element) { this.observed.push(element) }
   disconnect() {}
-  static trigger() { ResizeObserverMock.callback?.([], {} as ResizeObserver) }
+  static trigger() { for (const observer of ResizeObserverMock.instances) observer.callback([], observer as unknown as ResizeObserver) }
 }
 
 describe('UPlotChart readout context', () => {
   beforeEach(() => {
+    ResizeObserverMock.instances.splice(0)
     setActivePinia(createPinia())
     vi.mocked(uPlot).mockClear()
     vi.spyOn(api, 'get').mockResolvedValue([] as never)
@@ -43,6 +45,13 @@ describe('UPlotChart readout context', () => {
       global: { plugins: [pinia, [VueQueryPlugin, { queryClient }]] },
     })
     try {
+      const plotHost = wrapper.get('.uplot-wrapper').element as HTMLElement
+      let plotWidth = 320
+      let plotHeight = 180
+      Object.defineProperties(plotHost, {
+        clientWidth: { configurable: true, get: () => plotWidth },
+        clientHeight: { configurable: true, get: () => plotHeight },
+      })
       await vi.waitFor(() => expect(vi.mocked(uPlot)).toHaveBeenCalledOnce())
       const instance = vi.mocked(uPlot).mock.results[0]?.value as uPlot
       const options = vi.mocked(uPlot).mock.calls[0]?.[0] as {
@@ -66,6 +75,9 @@ describe('UPlotChart readout context', () => {
       plot.setData.mockImplementation((data: number[][]) => {
         Object.assign(instance, { data })
       })
+      expect(vi.mocked(uPlot).mock.calls[0]?.[0].width).toBe(320)
+      expect(vi.mocked(uPlot).mock.calls[0]?.[0].height).toBe(180)
+      expect(ResizeObserverMock.instances.some(observer => observer.observed.includes(plotHost))).toBe(true)
       const over = document.createElement('div')
       vi.spyOn(over, 'getBoundingClientRect').mockReturnValue({
         left: 0, top: 0, right: 320, bottom: 180, width: 320, height: 180,
@@ -88,6 +100,11 @@ describe('UPlotChart readout context', () => {
       options.hooks?.setScale?.[0]?.(instance, 'x')
       ResizeObserverMock.trigger()
       expect(plot.setSize).toHaveBeenCalled()
+      plot.setSize.mockClear()
+      plotWidth = 240
+      plotHeight = 112
+      ResizeObserverMock.trigger()
+      expect(plot.setSize).toHaveBeenLastCalledWith({ width: 240, height: 112 })
       instance.cursor.idx = 0
       options.hooks?.setCursor?.[0]?.(instance)
       await nextTick()
@@ -214,4 +231,5 @@ describe('UPlotChart readout context', () => {
       vi.unstubAllGlobals()
     }
   })
+
 })

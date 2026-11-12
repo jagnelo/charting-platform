@@ -1,9 +1,19 @@
-import { api } from '@/lib/api'
+import { api, setQueuedApiRequestPriority, type ApiRequestOptions } from '@/lib/api'
 import type { Instrument } from '@/types'
 
 const EXPR_RE = /^\s*=/
 const EXPR_OPERATOR_RE = /[+\-*/]/
 const EXPR_TRAILING_RE = /[+\-*/(]\s*$/
+
+function transportOptions(options: Pick<ApiRequestOptions, 'priority' | 'signal' | 'foreground'>): Pick<ApiRequestOptions, 'priority' | 'signal' | 'foreground'> | undefined {
+  return options.priority || options.signal || options.foreground
+    ? { priority: options.priority, signal: options.signal, foreground: options.foreground }
+    : undefined
+}
+
+export function instrumentLookupQueueKey(symbol: string, canonicalOnly = false): string {
+  return `instrument-lookup:${symbol.trim().toUpperCase()}:${canonicalOnly ? 'canonical' : 'standard'}`
+}
 
 export type InstrumentInputKind = 'empty' | 'symbol' | 'expression' | 'pending_expression'
 
@@ -15,6 +25,7 @@ export interface InstrumentInputState {
 export interface ResolvedInstrument {
   symbol: string
   id: number | null
+  instrumentType?: string
 }
 
 export interface CanonicalSymbolBatchResolution {
@@ -87,19 +98,21 @@ export function getInstrumentInputHint(raw: string): string {
 export async function resolveKnownInstrument(
   raw: string,
   feature = 'Instrument',
-  options: { canonicalOnly?: boolean } = {},
+  options: { canonicalOnly?: boolean } & Pick<ApiRequestOptions, 'priority' | 'signal' | 'foreground'> = {},
 ): Promise<ResolvedInstrument> {
   const input = classifyInstrumentInput(raw)
   if (input.kind === 'empty') return { symbol: '', id: null }
   if (input.kind === 'pending_expression') throw new Error('Finish the expression to continue.')
+  const requestOptions = transportOptions(options)
 
   try {
     let symbol: string
     if (input.kind === 'expression') {
-      const result = await api.post<{ symbol: string }>(
-        '/instruments/resolve-expression' + (options.canonicalOnly ? '?canonical_only=true' : ''),
-        { expression: input.value },
-      )
+      const path = '/instruments/resolve-expression' + (options.canonicalOnly ? '?canonical_only=true' : '')
+      const payload = { expression: input.value }
+      const result = await (requestOptions
+        ? api.post<{ symbol: string }>(path, payload, requestOptions)
+        : api.post<{ symbol: string }>(path, payload))
       // Expression resolution intentionally preserves the established single
       // POST contract. Synthetic IDs are surfaced by the instrument report
       // when constituent chips are selected; ordinary symbol search uses the
@@ -110,11 +123,22 @@ export async function resolveKnownInstrument(
       symbol = input.value
     }
 
-    const instrument = await api.get<Instrument>(
-      `/instruments/${encodeURIComponent(symbol)}`,
-      options.canonicalOnly ? { canonical_only: true } : undefined,
-    )
-    return { symbol: instrument.symbol, id: typeof instrument.id === 'number' ? instrument.id : null }
+    const path = `/instruments/${encodeURIComponent(symbol)}`
+    const params = options.canonicalOnly ? { canonical_only: true } : undefined
+    const queueKey = instrumentLookupQueueKey(symbol, options.canonicalOnly)
+    if (options.foreground && options.priority === 'high') setQueuedApiRequestPriority(queueKey, 'high', true)
+    const transport = transportOptions(options)
+    const queuedOptions = transport ? { ...transport, queueKey } : undefined
+    const instrument = await (queuedOptions
+      ? api.get<Instrument>(path, params, queuedOptions)
+      : api.get<Instrument>(path, params))
+    return {
+      symbol: instrument.symbol,
+      id: typeof instrument.id === 'number' ? instrument.id : null,
+      ...(typeof instrument.instrument_type === 'string' && instrument.instrument_type.trim()
+        ? { instrumentType: instrument.instrument_type.trim() }
+        : {}),
+    }
   } catch (error) {
     throw buildLookupError(raw, error, feature)
   }
@@ -124,6 +148,7 @@ export async function resolveKnownInstrument(
 export async function resolveCanonicalSymbols(
   rawSymbols: string[],
   feature = 'Instrument',
+  options: Pick<ApiRequestOptions, 'priority' | 'signal'> = {},
 ): Promise<ResolvedInstrument[]> {
   const symbols = [...new Set(rawSymbols.map(value => value.trim().toUpperCase()).filter(Boolean))]
   if (!symbols.length) return []
@@ -132,7 +157,10 @@ export async function resolveCanonicalSymbols(
     throw new Error(`${feature} selections must be plain ticker symbols.`)
   }
   try {
-    const result = await api.post<CanonicalSymbolBatchResolution>('/instruments/resolve-canonical', { symbols })
+    const requestOptions = transportOptions(options)
+    const result = await (requestOptions
+      ? api.post<CanonicalSymbolBatchResolution>('/instruments/resolve-canonical', { symbols }, requestOptions)
+      : api.post<CanonicalSymbolBatchResolution>('/instruments/resolve-canonical', { symbols }))
     if (result.missing.length) throw new Error(`Could not resolve ${result.missing.join(', ')}`)
     const bySymbol = new Map(result.resolved.map(item => [item.symbol.toUpperCase(), item.instrument_id]))
     return symbols.map(symbol => ({ symbol, id: bySymbol.get(symbol) ?? null }))
@@ -145,24 +173,31 @@ export async function resolveCanonicalSymbols(
 export async function ensureKnownInstrumentSymbol(
   raw: string,
   feature = 'Instrument',
-  options: { canonicalOnly?: boolean } = {},
+  options: { canonicalOnly?: boolean } & Pick<ApiRequestOptions, 'priority' | 'signal' | 'foreground'> = {},
 ): Promise<string> {
   const input = classifyInstrumentInput(raw)
   if (input.kind === 'empty') return ''
   if (input.kind === 'pending_expression') throw new Error('Finish the expression to continue.')
+  const requestOptions = transportOptions(options)
 
   try {
     if (input.kind === 'expression') {
-      const instrument = await api.post<{ symbol: string }>(
-        '/instruments/resolve-expression' + (options.canonicalOnly ? '?canonical_only=true' : ''),
-        { expression: input.value },
-      )
+      const path = '/instruments/resolve-expression' + (options.canonicalOnly ? '?canonical_only=true' : '')
+      const payload = { expression: input.value }
+      const instrument = await (requestOptions
+        ? api.post<{ symbol: string }>(path, payload, requestOptions)
+        : api.post<{ symbol: string }>(path, payload))
       return instrument.symbol
     }
-    const instrument = await api.get<Instrument>(
-      `/instruments/${encodeURIComponent(input.value)}`,
-      options.canonicalOnly ? { canonical_only: true } : undefined,
-    )
+    const path = `/instruments/${encodeURIComponent(input.value)}`
+    const params = options.canonicalOnly ? { canonical_only: true } : undefined
+    const queueKey = instrumentLookupQueueKey(input.value, options.canonicalOnly)
+    if (options.foreground && options.priority === 'high') setQueuedApiRequestPriority(queueKey, 'high', true)
+    const transport = transportOptions(options)
+    const queuedOptions = transport ? { ...transport, queueKey } : undefined
+    const instrument = await (queuedOptions
+      ? api.get<Instrument>(path, params, queuedOptions)
+      : api.get<Instrument>(path, params))
     return instrument.symbol
   } catch (error) {
     throw buildLookupError(raw, error, feature)

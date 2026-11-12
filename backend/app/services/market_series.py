@@ -6,15 +6,17 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.instrument import Instrument
 from app.models.market_data_foundation import (
     AdjustmentBasis,
     MarketSeries,
     MarketSeriesDefault,
 )
+from app.models.ohlcv import OHLCVBar, Timeframe
 
 
 @dataclass(frozen=True, slots=True)
@@ -27,6 +29,56 @@ class SeriesScope:
     session_code: str = "regular"
     adjustment_basis: AdjustmentBasis = AdjustmentBasis.RAW
     adjustment_version: str = "v1"
+
+
+def adjustment_scope_predicate(adjusted: bool):
+    """Match the user-facing split-adjusted/raw basis without conflating TR.
+
+    The pre-basis Massive adapter wrote the exact immutable version label
+    ``massive-split-adjusted`` under the generic provider-adjusted enum. Retain
+    that proven legacy series as split-compatible while keeping Alpaca ``all``
+    and other total-return series distinct.
+    """
+    if not adjusted:
+        return MarketSeries.adjustment_basis == AdjustmentBasis.RAW
+    return or_(
+        MarketSeries.adjustment_basis == AdjustmentBasis.SPLIT_ADJUSTED,
+        and_(
+            MarketSeries.adjustment_basis == AdjustmentBasis.PROVIDER_ADJUSTED,
+            MarketSeries.adjustment_version == "massive-split-adjusted",
+        ),
+    )
+
+
+def series_adjustment_is_compatible(series: MarketSeries, adjusted: bool) -> bool:
+    if not adjusted:
+        return series.adjustment_basis == AdjustmentBasis.RAW
+    return series.adjustment_basis == AdjustmentBasis.SPLIT_ADJUSTED or (
+        series.adjustment_basis == AdjustmentBasis.PROVIDER_ADJUSTED
+        and series.adjustment_version == "massive-split-adjusted"
+    )
+
+
+def normalize_adjustment_basis(
+    basis: AdjustmentBasis | str | None,
+    version: str | None,
+    adjusted: bool,
+) -> AdjustmentBasis:
+    if basis is not None and not isinstance(basis, AdjustmentBasis):
+        basis = AdjustmentBasis(str(getattr(basis, "value", basis)))
+    if not adjusted:
+        return AdjustmentBasis.RAW
+    if basis == AdjustmentBasis.PROVIDER_ADJUSTED and version == "massive-split-adjusted":
+        return AdjustmentBasis.SPLIT_ADJUSTED
+    return basis or AdjustmentBasis.SPLIT_ADJUSTED
+
+
+def effective_series_adjustment_basis(
+    series: MarketSeries | None, adjusted: bool
+) -> AdjustmentBasis:
+    if series is None:
+        return AdjustmentBasis.SPLIT_ADJUSTED if adjusted else AdjustmentBasis.RAW
+    return normalize_adjustment_basis(series.adjustment_basis, series.adjustment_version, adjusted)
 
 
 async def get_or_create_series(
@@ -148,6 +200,279 @@ async def _ensure_default_series(
             "market_series_id": series.id,
             **(provenance or {}),
         }
+
+
+async def _load_instrument_with_listings(db: AsyncSession, instrument_id: int) -> Instrument | None:
+    """Load the instrument with listings and exchanges for calendar resolution.
+
+    The coverage calendar is inferred only from a primary listing's MIC; an
+    unloaded relationship is treated as unknown, so it must be preloaded here.
+    """
+    from sqlalchemy.orm import selectinload
+
+    from app.models.listing import InstrumentListing
+
+    return (
+        await db.execute(
+            select(Instrument)
+            .where(Instrument.id == instrument_id)
+            .options(selectinload(Instrument.listings).selectinload(InstrumentListing.exchange))
+        )
+    ).scalar_one_or_none()
+
+
+async def select_default_series_for_complete_range(
+    db: AsyncSession,
+    *,
+    instrument_id: int,
+    timeframe: str,
+    adjusted: bool,
+    market_series_id: int,
+    start: datetime,
+    end: datetime,
+    prefer_selected_series: bool = False,
+) -> bool:
+    """Select a canonical provider series after its requested range is complete.
+
+    Until the caller has proven full coverage, the current default remains
+    selected so recent reads are useful while a deeper alternate is filling.
+    Provider bars remain isolated in their own series throughout.
+    """
+    series = await db.get(MarketSeries, market_series_id)
+    if (
+        series is None
+        or series.instrument_id != instrument_id
+        or series.timeframe != timeframe
+        or not series.is_active
+        or not series.is_canonical
+        or not series_adjustment_is_compatible(series, adjusted)
+    ):
+        return False
+
+    instrument = await _load_instrument_with_listings(db, instrument_id)
+    if instrument is None:
+        return False
+    coverage_bars = list(
+        (
+            await db.execute(
+                select(OHLCVBar)
+                .where(
+                    OHLCVBar.instrument_id == instrument_id,
+                    OHLCVBar.market_series_id == market_series_id,
+                    OHLCVBar.timeframe == Timeframe(timeframe),
+                    OHLCVBar.is_adjusted.is_(adjusted),
+                    OHLCVBar.ts >= start,
+                    OHLCVBar.ts <= end,
+                )
+                .order_by(OHLCVBar.ts)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    from app.services.market_data import _coverage_calendar
+    from app.services.ohlcv_coverage import assess_ohlcv_coverage
+
+    coverage = assess_ohlcv_coverage(
+        coverage_bars,
+        Timeframe(timeframe),
+        start,
+        end,
+        calendar=_coverage_calendar(instrument),
+    )
+    if coverage.status.value != "ready":
+        return False
+
+    statement = select(MarketSeriesDefault).where(
+        MarketSeriesDefault.instrument_id == instrument_id,
+        MarketSeriesDefault.timeframe == timeframe,
+        MarketSeriesDefault.is_adjusted == adjusted,
+    )
+    default = (await db.execute(statement)).scalar_one_or_none()
+    current_series = (
+        await db.get(MarketSeries, default.market_series_id)
+        if default is not None and default.market_series_id is not None
+        else None
+    )
+    if (
+        not prefer_selected_series
+        and default is not None
+        and default.market_series_id != market_series_id
+        and current_series is not None
+        and current_series.is_active
+        and series_adjustment_is_compatible(current_series, adjusted)
+    ):
+        if current_series.session_code != series.session_code:
+            return False
+        current_bounds = (
+            await db.execute(
+                select(func.min(OHLCVBar.ts), func.max(OHLCVBar.ts)).where(
+                    OHLCVBar.instrument_id == instrument_id,
+                    OHLCVBar.market_series_id == default.market_series_id,
+                    OHLCVBar.timeframe == Timeframe(timeframe),
+                    OHLCVBar.is_adjusted.is_(adjusted),
+                )
+            )
+        ).one()
+        current_start, current_end = current_bounds
+        if current_start is not None and current_start.tzinfo is None:
+            current_start = current_start.replace(tzinfo=UTC)
+        if current_end is not None and current_end.tzinfo is None:
+            current_end = current_end.replace(tzinfo=UTC)
+        normalized_start = start if start.tzinfo is not None else start.replace(tzinfo=UTC)
+        normalized_end = end if end.tzinfo is not None else end.replace(tzinfo=UTC)
+        if (
+            current_start is not None
+            and current_end is not None
+            and (normalized_start >= current_start or normalized_end < current_end)
+        ):
+            # A narrower range must not displace a more useful existing default.
+            return False
+    if default is None:
+        default = MarketSeriesDefault(
+            instrument_id=instrument_id,
+            timeframe=timeframe,
+            is_adjusted=adjusted,
+            market_series_id=market_series_id,
+        )
+        db.add(default)
+    default.market_series_id = market_series_id
+    default.selection_reason = "complete_admitted_range"
+    default.selected_at = datetime.now(UTC)
+    default.provenance = {
+        "selection": "complete_admitted_range",
+        "market_series_id": market_series_id,
+        "start": start.isoformat(),
+        "end": end.isoformat(),
+    }
+    await db.flush()
+    return True
+
+
+async def select_default_series_for_latest_contiguous_suffix(
+    db: AsyncSession,
+    *,
+    instrument_id: int,
+    timeframe: str,
+    adjusted: bool,
+    market_series_id: int,
+    requested_start: datetime,
+    end: datetime,
+    is_derived: bool = False,
+    prefer_selected_series: bool = False,
+) -> bool:
+    """Select one coherent alternate when its latest contiguous suffix is useful.
+
+    A genuine older gap may intersect a bounded first backfill chunk even when
+    the same series has a deeper, complete suffix through the current range.
+    This selects that one series for ordinary reads while leaving the older
+    gap visible to the acquisition job; it never combines provider series.
+    """
+    series = await db.get(MarketSeries, market_series_id)
+    if (
+        series is None
+        or series.instrument_id != instrument_id
+        or series.timeframe != timeframe
+        or not series.is_active
+        or not series.is_canonical
+        or not series_adjustment_is_compatible(series, adjusted)
+    ):
+        return False
+
+    instrument = await _load_instrument_with_listings(db, instrument_id)
+    if instrument is None:
+        return False
+    default = (
+        await db.execute(
+            select(MarketSeriesDefault).where(
+                MarketSeriesDefault.instrument_id == instrument_id,
+                MarketSeriesDefault.timeframe == timeframe,
+                MarketSeriesDefault.is_adjusted.is_(adjusted),
+            )
+        )
+    ).scalar_one_or_none()
+    current_series = (
+        await db.get(MarketSeries, default.market_series_id)
+        if default is not None and default.market_series_id is not None
+        else None
+    )
+    if (
+        current_series is not None
+        and current_series.is_active
+        and current_series.session_code != series.session_code
+    ):
+        return False
+    bars = list(
+        (
+            await db.execute(
+                select(OHLCVBar)
+                .where(
+                    OHLCVBar.instrument_id == instrument_id,
+                    OHLCVBar.market_series_id == market_series_id,
+                    OHLCVBar.timeframe == Timeframe(timeframe),
+                    OHLCVBar.is_adjusted.is_(adjusted),
+                    OHLCVBar.is_derived.is_(is_derived),
+                    OHLCVBar.ts >= requested_start,
+                    OHLCVBar.ts <= end,
+                )
+                .order_by(OHLCVBar.ts)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    if not bars:
+        return False
+
+    from app.services.market_data import _coverage_calendar
+    from app.services.ohlcv_coverage import assess_ohlcv_coverage
+
+    timeframe_value = Timeframe(timeframe)
+    calendar = _coverage_calendar(instrument)
+    coverage = assess_ohlcv_coverage(
+        bars,
+        timeframe_value,
+        requested_start,
+        end,
+        calendar=calendar,
+    )
+
+    def as_utc(value: datetime) -> datetime:
+        return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
+
+    normalized_bars = [(as_utc(bar.ts), bar) for bar in bars]
+    if coverage.status.value == "ready":
+        suffix_start = normalized_bars[0][0]
+    else:
+        if not coverage.missing_slices:
+            return False
+        last_gap_end = coverage.missing_slices[-1][1]
+        suffix_start = next(
+            (stamp for stamp, _bar in normalized_bars if stamp > last_gap_end), None
+        )
+        if suffix_start is None:
+            return False
+
+    suffix_coverage = assess_ohlcv_coverage(
+        [bar for stamp, bar in normalized_bars if stamp >= suffix_start],
+        timeframe_value,
+        suffix_start,
+        end,
+        calendar=calendar,
+    )
+    if suffix_coverage.status.value != "ready":
+        return False
+
+    return await select_default_series_for_complete_range(
+        db,
+        instrument_id=instrument_id,
+        timeframe=timeframe,
+        adjusted=adjusted,
+        market_series_id=market_series_id,
+        start=suffix_start,
+        end=end,
+        prefer_selected_series=prefer_selected_series,
+    )
 
 
 def series_key(scope: SeriesScope) -> str:

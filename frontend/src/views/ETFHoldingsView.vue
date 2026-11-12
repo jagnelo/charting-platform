@@ -76,34 +76,14 @@
           </div>
         </div>
 
-        <dl v-if="page" class="snapshot-lineage" data-testid="etf-snapshot-lineage">
-          <div>
-            <dt>Provenance</dt>
-            <dd>{{ formatProvenance(page.snapshot.provenance) }}</dd>
-          </div>
-          <div>
-            <dt>Observed / known at</dt>
-            <dd>
-              <time
-                v-if="page.snapshot.known_at"
-                data-testid="etf-snapshot-known-at"
-                :datetime="page.snapshot.known_at"
-              >{{ formatDateTime(page.snapshot.known_at) }}</time>
-              <span v-else>Unknown</span>
-            </dd>
-          </div>
-          <div>
-            <dt>Source-reported publication</dt>
-            <dd>
-              <time
-                v-if="page.snapshot.published_at"
-                data-testid="etf-snapshot-published-at"
-                :datetime="page.snapshot.published_at"
-              >{{ formatDateTime(page.snapshot.published_at) }}</time>
-              <span v-else>Not established</span>
-            </dd>
-          </div>
-        </dl>
+        <p v-if="page" class="snapshot-source-summary" data-testid="etf-snapshot-lineage">
+          ETF {{ page.snapshot.etf_symbol || page.snapshot.etf_name }} ·
+          Source <strong data-testid="etf-snapshot-source-provider">{{ page.snapshot.source_provider || 'Not established' }}</strong>
+          · {{ formatProvenance(page.snapshot.provenance) }}
+          <template v-if="page.snapshot.known_at">
+            · Observed <time data-testid="etf-snapshot-known-at" :datetime="page.snapshot.known_at">{{ formatDateTime(page.snapshot.known_at) }}</time>
+          </template>
+        </p>
 
         <div v-if="loadError" class="notice notice--error">{{ loadError }}</div>
 
@@ -111,10 +91,13 @@
           <p>
             {{ pendingFund.symbol }} · Stored snapshots remain historical evidence; current-analysis eligibility is shown separately.
           </p>
-          <button type="button" data-testid="etf-check-stored" :disabled="holdingsActionBusy" @click="runHoldingsAction(false)">
+          <p v-if="preparationMessage" role="status" aria-live="polite" data-testid="etf-preparation-status">
+            {{ preparationMessage }}
+          </p>
+          <button type="button" data-testid="etf-check-stored" :disabled="holdingsActionBusy || preparationBusy" @click="runHoldingsAction(false)">
             {{ identityResolutionBusy ? 'Checking fund…' : holdingsActionBusy && !holdingsActionRefresh ? 'Checking saved holdings…' : 'Check saved holdings' }}
           </button>
-          <button type="button" data-testid="etf-request-issuer" :disabled="holdingsActionBusy" @click="runHoldingsAction(true)">
+          <button type="button" data-testid="etf-request-issuer" :disabled="holdingsActionBusy || preparationBusy" @click="runHoldingsAction(true)">
             {{ identityResolutionBusy ? 'Checking fund…' : holdingsActionBusy && holdingsActionRefresh ? 'Checking for updated holdings…' : selectedProfile?.latest_snapshot_id == null ? 'Load latest holdings' : 'Refresh holdings' }}
           </button>
           <p v-if="identityResolutionError" role="alert">{{ identityResolutionError }}</p>
@@ -151,17 +134,19 @@
           role="status"
         >
           <strong>Current holdings are not verified.</strong>
-          {{ selectedCapability.reason }}
+          {{ selectedCapabilityReason }}
           <span v-if="selectedCapability.composition_date">
             Last composition: {{ selectedCapability.composition_date }}.
           </span>
           <span v-if="selectedCapability.failure_class" class="capability-failure-class">
             Last check classification: {{ capabilityFailureLabel(selectedCapability.failure_class) }}.
           </span>
-          <span v-if="selectedCapability.symbol_audit?.next_action" class="capability-next-action">
-            Next source-review action: {{ selectedCapability.symbol_audit.next_action }}
+          <span v-if="page" data-testid="etf-selected-snapshot-currentness">
+            The displayed saved snapshot remains available for historical review and is not verified as current.
           </span>
-          Historical snapshots remain available, but this data must not be treated as current.
+          <span v-else>
+            Historical snapshots remain available, but this data must not be treated as current.
+          </span>
         </div>
 
         <div v-if="selectedProfile" class="toolbar">
@@ -687,6 +672,53 @@
           </div>
         </section>
 
+        <details
+          v-if="page || selectedCapability?.symbol_audit?.next_action"
+          class="snapshot-source-details"
+          data-testid="etf-snapshot-details"
+        >
+          <summary>Source details</summary>
+          <dl class="snapshot-lineage">
+            <template v-if="page">
+              <div>
+                <dt>Provenance</dt>
+                <dd>{{ formatProvenance(page.snapshot.provenance) }}</dd>
+              </div>
+              <div>
+                <dt>Source provider</dt>
+                <dd>{{ page.snapshot.source_provider || 'Not established' }}</dd>
+              </div>
+              <div>
+                <dt>Source identifier</dt>
+                <dd data-testid="etf-snapshot-source-identifier">{{ page.snapshot.source_identifier || 'Not established' }}</dd>
+              </div>
+              <div>
+                <dt>Source document</dt>
+                <dd data-testid="etf-snapshot-source-url">{{ page.snapshot.source_url || 'Not established' }}</dd>
+              </div>
+              <div>
+                <dt>Observed / known at</dt>
+                <dd>{{ page.snapshot.known_at ? formatDateTime(page.snapshot.known_at) : 'Unknown' }}</dd>
+              </div>
+              <div>
+                <dt>Source-reported publication</dt>
+                <dd>
+                  <time
+                    v-if="page.snapshot.published_at"
+                    data-testid="etf-snapshot-published-at"
+                    :datetime="page.snapshot.published_at"
+                  >{{ formatDateTime(page.snapshot.published_at) }}</time>
+                  <span v-else>Not established</span>
+                </dd>
+              </div>
+            </template>
+            <div v-if="selectedCapability?.symbol_audit?.next_action" data-testid="etf-source-review-action">
+              <dt>Source review action</dt>
+              <dd>{{ selectedCapability.symbol_audit.next_action }}</dd>
+            </div>
+          </dl>
+        </details>
+
         <div v-if="!selectedProfile && !pendingFund && !loadError" class="empty-state">
           Select an ETF to inspect its saved holdings or check for an update.
         </div>
@@ -699,7 +731,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import SearchBar from '@/components/common/SearchBar.vue'
 import ETFHoldingResolutionAction from '@/components/etf/ETFHoldingResolutionAction.vue'
@@ -730,6 +762,7 @@ import type {
   ETFProfile,
 } from '@/types'
 import type { InstrumentAcquireResponse } from '@/lib/onDemandAcquisition'
+import { dataPreparationCoordinator, preparationStatusMessage } from '@/lib/dataPreparation'
 import {
   createETFHoldingDrilldownContext,
   holdingDrilldownRouteQuery,
@@ -760,6 +793,9 @@ const holdingsActionBusy = ref(false)
 const holdingsActionRefresh = ref(false)
 const holdingsActionMessage = ref('')
 const holdingsActionError = ref('')
+const preparationMessage = ref('')
+const preparationBusy = ref(false)
+let preparationController: AbortController | null = null
 let fundSelectionGeneration = 0
 const page = ref<ETFHoldingsPage | null>(null)
 const diff = ref<ETFHoldingsDiff | null>(null)
@@ -787,6 +823,13 @@ const loadingOverlap = ref(false)
 const loadError = ref('')
 
 const selectedCapability = computed(() => selectedProfile.value?.holdings_capability ?? null)
+const selectedCapabilityReason = computed(() => {
+  const reason = selectedCapability.value?.reason ?? ''
+  if (page.value && /^No holdings snapshot has (?:ever )?been stored for this ETF\.?$/i.test(reason.trim())) {
+    return 'The current-analysis check did not find an eligible snapshot. The selected saved snapshot is available for review.'
+  }
+  return reason
+})
 const currentHoldingsAvailable = computed(() =>
   selectedCapability.value?.usable_for_current_analysis === true
   && selectedCapability.value.availability === 'current'
@@ -795,7 +838,8 @@ const currentHoldingsAvailable = computed(() =>
 const selectedSnapshotKind = computed(() => {
   const snapshot = page.value?.snapshot
   const latestSnapshotId = selectedProfile.value?.latest_snapshot_id
-  if (!snapshot || latestSnapshotId == null) return 'Snapshot status unknown'
+  if (!snapshot) return 'No saved snapshot selected'
+  if (latestSnapshotId == null) return 'Saved snapshot · current status unverified'
   return String(snapshot.id) === String(latestSnapshotId)
     ? 'Latest stored snapshot'
     : 'Historical snapshot'
@@ -865,6 +909,7 @@ const pageEnd = computed(() => {
 })
 
 let profileLoadSeq = 0
+let profileLoadController: AbortController | null = null
 let snapshotOptionsLoadSeq = 0
 let holdingsLoadSeq = 0
 let diffLoadSeq = 0
@@ -887,18 +932,46 @@ const canCompareOverlapFamily = computed(() =>
 )
 
 async function loadProfiles(search = profileSearch.value.trim(), autoSelectFirst = !selectedProfile.value) {
+  profileLoadController?.abort()
+  const controller = new AbortController()
+  profileLoadController = controller
   const seq = ++profileLoadSeq
+  const selectionGeneration = fundSelectionGeneration
   loadingProfiles.value = true
   loadError.value = ''
   try {
     const loaded = await api.get<ETFProfile[]>('/etf-holdings', {
       q: search || undefined,
+    }, {
+      // This visible catalogue gates the ETF page itself. Keep it in the
+      // interactive lane while background chart preparation fills the rest.
+      priority: 'high',
+      signal: controller.signal,
     })
     const normalized = Array.isArray(loaded) ? loaded : []
     if (seq !== profileLoadSeq) return
-    profiles.value = normalized
-    if (autoSelectFirst && !selectedProfile.value && normalized.length) {
-      await selectProfile(normalized[0])
+    const currentSelection = selectedProfile.value
+    profiles.value = selectionGeneration !== fundSelectionGeneration
+      && currentSelection
+      && !normalized.some(profile => profile.id === currentSelection.id)
+      ? [...normalized, currentSelection]
+      : normalized
+    // Catalogue readiness is independent from the default profile's snapshot
+    // and holdings requests. Keep the list usable while that selection settles.
+    if (seq === profileLoadSeq) loadingProfiles.value = false
+    if (autoSelectFirst
+      && selectionGeneration === fundSelectionGeneration
+      && !selectedProfile.value
+      && !pendingFund.value
+      && normalized.length) {
+      const defaultProfile = normalized[0]
+      void selectProfile(defaultProfile).catch(error => {
+        if (selectedProfile.value?.id !== defaultProfile.id
+          || pendingFund.value?.symbol !== defaultProfile.symbol) return
+        loadError.value = error instanceof Error
+          ? error.message
+          : `Could not load saved details for ${defaultProfile.symbol}.`
+      })
     }
     return normalized
   } catch (error) {
@@ -907,6 +980,7 @@ async function loadProfiles(search = profileSearch.value.trim(), autoSelectFirst
     profiles.value = []
     return []
   } finally {
+    if (profileLoadController === controller) profileLoadController = null
     if (seq === profileLoadSeq) loadingProfiles.value = false
   }
 }
@@ -936,20 +1010,26 @@ function resetWorkspaceSelection() {
 async function selectProfileFromSearch(symbol: string, result?: ETFSearchResult) {
   const normalized = symbol.trim().toUpperCase()
   if (!normalized) return
+  cancelSelectedPreparation()
   profileSearch.value = normalized
   loadError.value = ''
   holdingsActionMessage.value = ''
   holdingsActionError.value = ''
+  preparationMessage.value = ''
   identityResolutionError.value = ''
   holdingsActionBusy.value = false
   holdingsActionRefresh.value = false
   identityResolutionBusy.value = false
-  const matchedProfile = profiles.value.find(profile => profile.symbol.toUpperCase() === normalized)
   const resolvedId = result?.explicitlyResolved
     && Number.isSafeInteger(result.instrument_id)
     && Number(result.instrument_id) > 0
     ? Number(result.instrument_id)
     : null
+  const matchesSelectedIdentity = (profile: ETFProfile) =>
+    profile.symbol.trim().toUpperCase() === normalized
+    && (resolvedId == null || profile.instrument_id === resolvedId)
+  const localMatches = profiles.value.filter(matchesSelectedIdentity)
+  const matchedProfile = localMatches.length === 1 ? localMatches[0] : undefined
   const pending = {
     symbol: normalized,
     name: result?.name || matchedProfile?.name || normalized,
@@ -961,13 +1041,43 @@ async function selectProfileFromSearch(symbol: string, result?: ETFSearchResult)
     await selectProfile(matchedProfile, resolvedId, true)
     return
   }
-  fundSelectionGeneration += 1
+  const generation = ++fundSelectionGeneration
   pendingFund.value = pending
   resetWorkspaceSelection()
   overlapIssuer.value = ''
   overlapFundFamily.value = ''
-  holdingsActionMessage.value = 'Checking for saved or updated holdings…'
-  void runHoldingsAction(true)
+  preparationMessage.value = `Preparing ${normalized} holdings. Any saved snapshot remains separate from current eligibility.`
+
+  // Resolve a stored profile directly from the exact selected symbol instead
+  // of waiting for the unrelated startup catalogue. This lookup is read-only;
+  // a local profile's instrument ID is not native identity authority. Only an
+  // explicitly resolved SearchBar result may bind preparation to that ID.
+  let storedProfile = localMatches.length === 1 ? localMatches[0] : undefined
+  if (!storedProfile) {
+    let matchingProfiles: ETFProfile[] = []
+    try {
+      const loaded = await api.get<ETFProfile[]>('/etf-holdings', { q: normalized })
+      if (Array.isArray(loaded)) matchingProfiles = loaded
+    } catch {
+      // If the profile lookup is unavailable, retain the selected symbol and
+      // let the normal preparation request report its own truthful outcome.
+    }
+    if (generation !== fundSelectionGeneration || pendingFund.value?.symbol !== normalized) return
+    const exactMatches = matchingProfiles.filter(matchesSelectedIdentity)
+    if (exactMatches.length > 1) {
+      preparationMessage.value = `More than one saved ETF profile matches ${normalized}. Resolve an exact listing before selecting its holdings.`
+      return
+    }
+    storedProfile = exactMatches[0]
+    if (storedProfile && !profiles.value.some(profile => profile.id === storedProfile!.id)) {
+      profiles.value = [...profiles.value, storedProfile]
+    }
+  }
+  if (storedProfile) {
+    await selectProfile(storedProfile, resolvedId, true)
+    return
+  }
+  void prepareSelectedHoldings(normalized, resolvedId)
 }
 
 async function selectProfile(
@@ -975,6 +1085,7 @@ async function selectProfile(
   verifiedInstrumentId: number | null = null,
   deliberateSelection = false,
 ) {
+  cancelSelectedPreparation()
   if (deliberateSelection || pendingFund.value?.symbol !== profile.symbol) fundSelectionGeneration += 1
   const generation = fundSelectionGeneration
   snapshotOptionsLoadSeq += 1
@@ -985,6 +1096,7 @@ async function selectProfile(
   loadError.value = ''
   holdingsActionMessage.value = ''
   holdingsActionError.value = ''
+  preparationMessage.value = ''
   identityResolutionError.value = ''
   holdingsActionBusy.value = false
   holdingsActionRefresh.value = false
@@ -1029,8 +1141,80 @@ async function selectProfile(
       if (profileIndex >= 0) profiles.value.splice(profileIndex, 1, updatedProfile)
     }
     if (profile.latest_snapshot_id == null || !isCurrentETFHoldingsCapability(capability)) {
-      holdingsActionMessage.value = 'Checking for updated holdings… Saved snapshots remain available while this check runs.'
-      await runHoldingsAction(true)
+      preparationMessage.value = `Preparing ${profile.symbol} holdings. Saved snapshots remain available while this check runs.`
+      await prepareSelectedHoldings(profile.symbol, verifiedInstrumentId)
+    }
+  }
+}
+
+function cancelSelectedPreparation() {
+  preparationController?.abort()
+  preparationController = null
+  preparationBusy.value = false
+}
+
+async function prepareSelectedHoldings(symbol: string, instrumentId: number | null) {
+  const normalized = symbol.trim().toUpperCase()
+  const generation = fundSelectionGeneration
+  if (!normalized) return
+  cancelSelectedPreparation()
+  const controller = new AbortController()
+  preparationController = controller
+  preparationBusy.value = true
+  preparationMessage.value = `Preparing ${normalized} holdings. Any saved snapshot remains available while this request runs.`
+  try {
+    const target = Number.isSafeInteger(instrumentId) && Number(instrumentId) > 0
+      ? { kind: 'instrument' as const, instrument_id: Number(instrumentId) }
+      : { kind: 'instrument' as const, symbol: normalized }
+    const response = await dataPreparationCoordinator.ensure({
+      target,
+      datasets: ['holdings'],
+    }, {
+      signal: controller.signal,
+      onProgress: progress => {
+        if (generation !== fundSelectionGeneration || pendingFund.value?.symbol !== normalized) return
+        preparationMessage.value = preparationStatusMessage(progress.response)
+      },
+    })
+    if (generation !== fundSelectionGeneration || pendingFund.value?.symbol !== normalized) return
+    preparationMessage.value = preparationStatusMessage(response)
+    if (response.status !== 'ready') return
+
+    const loaded = await api.get<ETFProfile[]>('/etf-holdings', { q: normalized })
+    if (generation !== fundSelectionGeneration || pendingFund.value?.symbol !== normalized) return
+    const matchingProfiles = (Array.isArray(loaded) ? loaded : []).filter(candidate =>
+      candidate.symbol.trim().toUpperCase() === normalized
+      && (instrumentId == null || candidate.instrument_id === instrumentId),
+    )
+    if (matchingProfiles.length > 1) {
+      preparationMessage.value = `Multiple saved ETF profiles match ${normalized}. Resolve an exact listing before opening its holdings.`
+      return
+    }
+    const updatedProfile = matchingProfiles[0]
+    if (!updatedProfile) {
+      preparationMessage.value = `${normalized} preparation completed without a matching holdings profile. Any previous snapshot remains unchanged.`
+      return
+    }
+    const index = profiles.value.findIndex(candidate => candidate.id === updatedProfile.id)
+    if (index >= 0) profiles.value.splice(index, 1, updatedProfile)
+    else profiles.value = [updatedProfile, ...profiles.value]
+    // A profile row found after symbol-bound preparation is still a read-only
+    // database result. Preserve only the verified identity that authorized the
+    // ensure request; later explicit refresh actions must resolve identity if
+    // this selection began without a verified instrument ID.
+    await selectProfile(updatedProfile, instrumentId, false)
+    if (generation === fundSelectionGeneration && pendingFund.value?.symbol === normalized) {
+      preparationMessage.value = preparationStatusMessage(response)
+    }
+  } catch {
+    if (controller.signal.aborted) return
+    if (generation === fundSelectionGeneration && pendingFund.value?.symbol === normalized) {
+      preparationMessage.value = 'Holdings preparation could not be completed. Any saved snapshot remains available.'
+    }
+  } finally {
+    if (preparationController === controller) preparationController = null
+    if (generation === fundSelectionGeneration && pendingFund.value?.symbol === normalized) {
+      preparationBusy.value = false
     }
   }
 }
@@ -1093,6 +1277,11 @@ async function runHoldingsAction(refresh: boolean) {
             : result.outcome === 'failed'
               ? `The holdings request for ${fund.symbol} failed. Previously stored snapshots remain available.`
               : `The holdings request for ${fund.symbol} returned no profile. Previously stored snapshots remain available.`
+      return
+    }
+    if (result.profile.instrument_id !== resolvedFund.verifiedInstrumentId
+      || result.profile.symbol.trim().toUpperCase() !== fund.symbol.trim().toUpperCase()) {
+      holdingsActionError.value = `The holdings profile did not match ${fund.symbol}; previously stored snapshots remain available.`
       return
     }
     const returnedProfile = result.capability
@@ -1546,13 +1735,22 @@ function openHoldingChart(
   confirmedIdentity?: InstrumentAcquireResponse,
 ) {
   void router.push({
-    path: `/legacy/chart/${encodeURIComponent(symbol)}`,
+    path: `/chart/${encodeURIComponent(symbol)}`,
     query: { ...holdingDrilldownRouteQuery(context), holding_history_intent: 'selected' },
     state: holdingDrilldownRouteState(context, confirmedIdentity),
   })
 }
 
 onMounted(loadProfiles)
+onBeforeUnmount(() => {
+  profileLoadSeq += 1
+  profileLoadController?.abort()
+  profileLoadController = null
+  // Detach this view from any in-flight shared preparation and invalidate all
+  // of its pending consumer callbacks. The durable server-side job continues.
+  fundSelectionGeneration += 1
+  cancelSelectedPreparation()
+})
 </script>
 
 <style scoped>
@@ -1711,6 +1909,27 @@ onMounted(loadProfiles)
   background: #0e1720;
   color: #9ccdf7;
   font-size: 11px;
+}
+.snapshot-source-summary {
+  margin: 0;
+  padding: 6px 9px;
+  border: 1px solid var(--tc-border-strong);
+  border-radius: var(--tc-radius);
+  background: var(--tc-control-bg);
+  color: var(--tc-text-muted);
+  font-size: 11px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.snapshot-source-summary strong {
+  color: var(--tc-text);
+}
+.snapshot-source-details {
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--tc-border-strong);
+  border-radius: var(--tc-radius);
+  background: var(--tc-control-bg);
 }
 .snapshot-lineage div {
   display: flex;
@@ -2425,10 +2644,6 @@ button.holding-row:hover,
   color: #ffb2b2;
   background: #1b0f0f;
 }
-.notice--capability .capability-next-action {
-  display: block;
-  color: #b9c6d8;
-}
 .notice--capability .capability-failure-class {
   display: block;
   color: #f0c66a;
@@ -2486,18 +2701,61 @@ button.holding-row:hover { background: color-mix(in srgb, var(--tc-accent) 6%, v
 .evolution-row__label span, .evolution-row__meta { color: var(--tc-text-muted); }
 .empty-state, .state-line, .notice { color: var(--tc-text-muted); }
 .search-field input, .toolbar input, .toolbar select { border-color: var(--tc-border-strong); border-radius: var(--tc-radius); background: var(--tc-input-bg); color: var(--tc-text); font-family: var(--tc-font-family); }
+.holdings-acquisition-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.holdings-acquisition-actions > p { flex: 1 1 100%; margin: 0; }
+.holdings-acquisition-actions > button {
+  flex: 1 1 13rem;
+  max-width: 100%;
+  border: 1px solid var(--tc-border-strong);
+  border-radius: var(--tc-radius);
+  background: var(--tc-control-bg);
+  color: var(--tc-accent-soft);
+  cursor: pointer;
+  font: inherit;
+  padding: 7px 10px;
+}
+.holdings-acquisition-actions > button:not(:disabled):hover {
+  border-color: var(--tc-accent);
+  background: color-mix(in srgb, var(--tc-accent) 10%, var(--tc-control-bg));
+}
+.holdings-acquisition-actions > button:focus-visible { outline: 2px solid var(--tc-accent); outline-offset: 2px; }
+.holdings-acquisition-actions > button:disabled { color: var(--tc-text-subtle); opacity: .58; cursor: default; }
 .holdings-view :is(button, input, select, textarea, a):focus-visible { outline: 2px solid var(--tc-accent); outline-offset: 2px; }
 @media (max-width: 1100px) {
   .holdings-view {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
   }
   .holdings-sidebar {
     min-width: 0;
-    max-height: 280px;
-    border-right: 0;
-    border-bottom: 1px solid #171717;
+    max-height: 100%;
+    overflow: auto;
+    border-right: 1px solid #171717;
+    border-bottom: 0;
+    padding: 8px;
+    gap: 8px;
   }
-  .toolbar,
+  .holdings-main {
+    min-width: 0;
+    padding: 8px;
+  }
+  .workspace-panel {
+    gap: 8px;
+    padding: 10px;
+  }
+  .panel-title-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+  .toolbar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
   .holdings-browser {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -2522,10 +2780,12 @@ button.holding-row:hover { background: color-mix(in srgb, var(--tc-accent) 6%, v
     display: none;
   }
   .holding-row {
-    grid-template-columns: 95px minmax(160px, 1fr) 90px;
+    min-width: 760px;
+    grid-template-columns: 100px minmax(180px, 1fr) 90px 110px 100px 100px;
   }
-  .holding-row span:nth-child(n + 4) {
-    display: none;
+  .holdings-table {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
   }
 }
 @media (max-width: 600px) {
@@ -2537,6 +2797,15 @@ button.holding-row:hover { background: color-mix(in srgb, var(--tc-accent) 6%, v
   .holdings-table,
   .holding-detail {
     min-width: 0;
+  }
+  .holdings-view {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .holdings-sidebar {
+    max-height: 180px;
+    overflow: auto;
+    border-right: 0;
+    border-bottom: 1px solid #171717;
   }
   .holdings-main {
     padding: 10px;
@@ -2585,6 +2854,10 @@ button.holding-row:hover { background: color-mix(in srgb, var(--tc-accent) 6%, v
     max-width: 100%;
     overflow-x: auto;
     overscroll-behavior-x: contain;
+  }
+  .holding-row {
+    min-width: 760px;
+    grid-template-columns: 100px minmax(180px, 1fr) 90px 110px 100px 100px;
   }
 }
 </style>

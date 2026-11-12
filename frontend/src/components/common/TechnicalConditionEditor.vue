@@ -582,55 +582,54 @@ function updateIndicatorDateParam(
 <style scoped>
 .tech-cond-card {
   display: grid;
-  gap: 12px;
+  gap: 6px;
   padding: 2px 0;
   position: relative;
 }
 
 .tech-cond-top {
   display: block;
-  padding-right: 40px;
+  padding-right: 34px;
 }
 
 .tech-cond-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  gap: 6px;
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 3px;
   min-width: 0;
 }
 
 .field-checkbox {
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-height: 34px;
-  color: #c9d1d9;
+  gap: 6px;
+  min-height: 28px;
+  color: var(--tc-text);
   font-size: 12px;
 }
 
 .field-label {
-  color: #666;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  color: var(--tc-text-muted);
+  font-size: 11px;
+  font-weight: 600;
 }
 
 .form-input,
 .form-select {
   width: 100%;
   min-width: 0;
-  min-height: 34px;
-  background: #141414;
-  border: 1px solid #2a2a2a;
-  color: #ccc;
-  border-radius: 3px;
-  padding: 7px 9px;
+  min-height: 28px;
+  background: var(--tc-input-bg);
+  border: 1px solid var(--tc-border);
+  color: var(--tc-text);
+  border-radius: var(--tc-radius);
+  padding: 4px 7px;
   font-size: 12px;
   font-family: inherit;
   box-sizing: border-box;
@@ -643,8 +642,8 @@ function updateIndicatorDateParam(
   -moz-appearance: none;
   padding-right: 28px;
   background-image:
-    linear-gradient(45deg, transparent 50%, #777 50%),
-    linear-gradient(135deg, #777 50%, transparent 50%);
+    linear-gradient(45deg, transparent 50%, var(--tc-text-muted) 50%),
+    linear-gradient(135deg, var(--tc-text-muted) 50%, transparent 50%);
   background-position:
     calc(100% - 14px) calc(50% - 1px),
     calc(100% - 9px) calc(50% - 1px);
@@ -654,45 +653,45 @@ function updateIndicatorDateParam(
 
 .form-input:hover,
 .form-select:hover {
-  border-color: #3a3a3a;
+  border-color: var(--tc-border-strong);
 }
 
-.form-input:focus,
-.form-select:focus {
-  outline: none;
-  border-color: #4e7da0;
-  box-shadow: 0 0 0 1px rgba(78, 125, 160, 0.24);
+.form-input:focus-visible,
+.form-select:focus-visible,
+.icon-btn:focus-visible {
+  outline: 2px solid var(--tc-accent);
+  outline-offset: 1px;
+  border-color: var(--tc-accent);
 }
 
 .tech-cond-readout {
-  padding: 9px 10px;
-  border: 1px solid #1f252d;
-  border-radius: 3px;
-  background: #0d1116;
+  padding: 6px 8px;
+  border: 1px solid var(--tc-border);
+  border-radius: var(--tc-radius);
+  background: var(--tc-panel-bg);
 }
 
 .tech-cond-readout__label {
   display: block;
-  color: #666;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin-bottom: 4px;
+  color: var(--tc-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 3px;
 }
 
 .tech-cond-readout p,
 .cond-note {
   margin: 0;
-  color: #c9d1d9;
+  color: var(--tc-text);
   font-size: 11px;
   line-height: 1.4;
 }
 
 .icon-btn {
-  border: 1px solid #333;
-  background: transparent;
-  color: #888;
-  border-radius: 3px;
+  border: 1px solid var(--tc-border);
+  background: var(--tc-control-bg);
+  color: var(--tc-text-muted);
+  border-radius: var(--tc-radius);
   min-width: 28px;
   min-height: 28px;
   padding: 0;
@@ -706,20 +705,20 @@ function updateIndicatorDateParam(
 }
 
 .icon-btn:hover {
-  border-color: #585858;
-  color: #d3d3d3;
-  background: #151515;
+  border-color: var(--tc-border-strong);
+  color: var(--tc-text);
+  background: var(--tc-window-bg);
 }
 
 .icon-btn--danger {
-  border-color: #5a2d30;
-  color: #efb1b1;
+  border-color: color-mix(in srgb, var(--tc-negative) 55%, var(--tc-border));
+  color: var(--tc-negative);
 }
 
 .icon-btn--danger:hover {
-  border-color: #7b3e42;
-  color: #ffd3d3;
-  background: #1d1112;
+  border-color: var(--tc-negative);
+  color: var(--tc-text);
+  background: color-mix(in srgb, var(--tc-negative) 12%, var(--tc-window-bg));
 }
 
 .icon-btn--remove {

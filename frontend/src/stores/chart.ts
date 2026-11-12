@@ -1,10 +1,12 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import type { OHLCVBar, Timeframe, Instrument, IndicatorConfig, ChartBarType } from '@/types'
-import { api } from '@/lib/api'
+import { api, type ApiRequestPriority } from '@/lib/api'
 import { acquireSelectedHistory, defaultHistoryRange, olderHistoryRange } from '@/lib/onDemandAcquisition'
 import { dedupeOhlcvRequest } from '@/lib/workstation/ohlcvRequests'
 import { hasActiveAnalysisDrag } from '@/lib/workstation/plotDrag'
+import { dataPreparationCoordinator, PreparationProgressRefreshQueue, preparationStatusMessage } from '@/lib/dataPreparation'
+import type { Basket } from '@/types'
 
 const PAGE_SIZE = 500  // must match backend PAGE_SIZE
 const SERVER_TRANSFORMED_TYPES = new Set<ChartBarType>([
@@ -95,8 +97,19 @@ function createChartStore(storeId: string) {
     let _saveTimer:     ReturnType<typeof setTimeout>  | null = null
     let _coveragePoller: ReturnType<typeof setInterval> | null = null
     let _loadGeneration = 0
-    let inFlightLoad: { key: string; promise: Promise<void> } | null = null
+    let localBarsPublicationGeneration = 0
+    type LocalBarsResult = { mapped: OHLCVBar[] | null; error: unknown | null }
+    type InFlightChartLoad = {
+      key: string
+      promise: Promise<void>
+      generation: number
+      localBarsPromise?: Promise<LocalBarsResult>
+    }
+    let inFlightLoad: InFlightChartLoad | null = null
     let olderHistoryAbortController: AbortController | null = null
+    let basketPreparationController: AbortController | null = null
+    let basketPreparationKey: string | null = null
+    let basketPreparationGeneration = 0
     let renderedLoadScopeKey: string | null = null
     let noProgressHistoryCursor: string | null = null
     // A chart can finish its initial indicator request after the user has
@@ -112,6 +125,27 @@ function createChartStore(storeId: string) {
         clearTimeout(_saveTimer)
         _saveTimer = null
       }
+    }
+
+    function resetForAuthSessionBoundary() {
+      _loadGeneration += 1
+      _stopCoveragePoller()
+      cancelPendingIndicatorSave()
+      olderHistoryAbortController?.abort()
+      olderHistoryAbortController = null
+      basketPreparationController?.abort()
+      basketPreparationController = null
+      basketPreparationKey = null
+      basketPreparationGeneration = 0
+      inFlightLoad = null
+      bars.value = []
+      instrument.value = null
+      indicators.value = []
+      symbol.value = ''
+      hasReachedStart.value = false
+      historyBoundaryMessage.value = ''
+      historyRetryAt.value = null
+      isFetchingHistory.value = false
     }
 
     const activeIndicators = computed(() =>
@@ -131,9 +165,12 @@ function createChartStore(storeId: string) {
       return [barIndex, opens, highs, lows, closes, volumes]
     })
 
-    async function fetchInstrument(sym: string): Promise<Instrument | null> {
+    async function fetchInstrument(sym: string, priority?: ApiRequestPriority): Promise<Instrument | null> {
       try {
-        return await api.get<Instrument>(`/instruments/${encodeURIComponent(sym)}`)
+        const path = `/instruments/${encodeURIComponent(sym)}`
+        return await (priority
+          ? api.get<Instrument>(path, undefined, { priority })
+          : api.get<Instrument>(path))
       } catch {
         return null
       }
@@ -145,9 +182,12 @@ function createChartStore(storeId: string) {
       return loaded
     }
 
-    async function fetchIndicatorsForInstrument(instrumentId: number): Promise<IndicatorConfig[]> {
+    async function fetchIndicatorsForInstrument(instrumentId: number, priority?: ApiRequestPriority): Promise<IndicatorConfig[]> {
       try {
-        const res = await api.get<{ indicators: IndicatorConfig[] }>(`/instrument-indicators/${instrumentId}`)
+        const path = `/instrument-indicators/${instrumentId}`
+        const res = await (priority
+          ? api.get<{ indicators: IndicatorConfig[] }>(path, undefined, { priority })
+          : api.get<{ indicators: IndicatorConfig[] }>(path))
         return res.indicators
       } catch { return [] }
     }
@@ -190,32 +230,49 @@ function createChartStore(storeId: string) {
 
       const encoded = encodeURIComponent(sym)
       const basketId = basketIdFromSymbol(sym)
+      // The active workstation chart is a foreground cache read. Keep it in
+      // the reserved API lane so unrelated analysis panels cannot occupy all
+      // five ordinary HTTP/1.1 slots ahead of visible local candles.
+      const requestOptions = opts.localOnly ? { priority: 'high' as const } : undefined
       const requestKey = JSON.stringify({ sym: sym.toUpperCase(), tf, type, transformParams: opts.transformParams ?? {}, adjusted: true, before: opts.before ?? null, limit: opts.limit ?? PAGE_SIZE, localOnly: Boolean(opts.localOnly), basketId })
       const request = async () => {
-        if (opts.localOnly && !SERVER_TRANSFORMED_TYPES.has(type)) {
-          const raw = await api.get<any[]>(`/ohlcv/local/${encoded}/${tf}`, {
+        if (basketId == null && opts.localOnly && !SERVER_TRANSFORMED_TYPES.has(type)) {
+          const params = {
             ...(opts.before ? { before: opts.before } : {}),
             limit: opts.limit ?? PAGE_SIZE,
-          })
+          }
+          const raw = requestOptions
+            ? await api.get<any[]>(`/ohlcv/local/${encoded}/${tf}`, params, requestOptions)
+            : await api.get<any[]>(`/ohlcv/local/${encoded}/${tf}`, params)
           return _mapBars(raw)
         }
         if (basketId != null) {
-          const raw = await api.get<any[]>(`/baskets/${basketId}/ohlcv/${tf}`, {
+          const basketPath = `/baskets/${basketId}/ohlcv/${tf}`
+          const basketParams = {
             ...params,
             limit: opts.limit ?? PAGE_SIZE,
-          })
+          }
+          const raw = requestOptions
+            ? await api.get<any[]>(basketPath, basketParams, requestOptions)
+            : await api.get<any[]>(basketPath, basketParams)
           return _mapBars(raw)
         }
-        const raw = SERVER_TRANSFORMED_TYPES.has(type)
-          ? await api.get<any[]>(`/ohlcv/${encoded}/${tf}/transformed`, {
+        const path = SERVER_TRANSFORMED_TYPES.has(type)
+          ? `/ohlcv/${encoded}/${tf}/transformed`
+          : `/ohlcv/${encoded}/${tf}`
+        const query = SERVER_TRANSFORMED_TYPES.has(type)
+          ? {
             ...params,
             ...(opts.localOnly ? { local_only: true } : {}),
             bar_type: type,
-          })
-          : await api.get<any[]>(`/ohlcv/${encoded}/${tf}`, {
+          }
+          : {
             ...params,
             ...(opts.localOnly ? { local_only: true } : {}),
-          })
+          }
+        const raw = requestOptions
+          ? await api.get<any[]>(path, query, requestOptions)
+          : await api.get<any[]>(path, query)
         return _mapBars(raw)
       }
       return dedupeOhlcvRequest(requestKey, request, undefined, {
@@ -223,16 +280,158 @@ function createChartStore(storeId: string) {
       })
     }
 
-    async function performLoadBars(sym: string, tf: Timeframe, nextBarType: ChartBarType, localOnly: boolean, normalizedTransformParams: ChartTransformParams, forceFresh = false) {
+    function startBasketMemberPreparation(basketId: number, sym: string, tf: Timeframe, generation: number) {
+      const key = `${basketId}:${tf}`
+      if (basketPreparationKey === key && basketPreparationController) {
+        basketPreparationGeneration = generation
+        return
+      }
+      basketPreparationController?.abort()
+      const controller = new AbortController()
+      basketPreparationController = controller
+      basketPreparationKey = key
+      basketPreparationGeneration = generation
+      const isCurrent = () => basketPreparationGeneration === _loadGeneration
+        && symbol.value === sym && timeframe.value === tf
+        && basketPreparationKey === key && !controller.signal.aborted
+      historyBoundaryMessage.value = 'Checking the saved basket members for missing chart data…'
+
+      void (async () => {
+        try {
+          const basket = await api.get<Basket>(`/baskets/${basketId}`, undefined, { priority: 'high', signal: controller.signal })
+          if (!isCurrent()) return
+          if (basket.id !== basketId || !Array.isArray(basket.members) || !basket.members.length
+            || basket.members.some(member => !Number.isSafeInteger(member.instrument_id) || member.instrument_id <= 0)) {
+            historyBoundaryMessage.value = 'The saved basket member list could not be verified; the current chart remains available.'
+            return
+          }
+          const members = [...basket.members].sort((left, right) => left.position - right.position)
+          const states = new Map<number, { symbol: string; response?: import('@/lib/dataPreparation').DataEnsureResponse; error?: unknown }>()
+          const queues = new Map(members.map(member => [member.instrument_id, new PreparationProgressRefreshQueue()]))
+          const refreshBasket = async () => {
+            if (!isCurrent()) return
+            try {
+              const mapped = await fetchBarsPage(sym, tf, { type: barType.value, localOnly: true, transformParams: transformParams.value, fresh: true })
+              if (!isCurrent()) return
+              bars.value = mapped
+              renderedLoadScopeKey = chartLoadScopeKey(sym, tf, barType.value, localOnlyMode.value, transformParams.value)
+            } catch {
+              if (isCurrent()) historyBoundaryMessage.value = 'Basket member data progressed, but the current basket chart could not be refreshed.'
+            }
+          }
+          const hasUsableHistory = (response: import('@/lib/dataPreparation').DataEnsureResponse) => response.dependencies.some(dependency =>
+            dependency.dataset === 'history' && (dependency.covered_ranges.length > 0
+              || (dependency.covered_start !== null && dependency.covered_end !== null)))
+          const updateSummary = () => {
+            if (!isCurrent()) return
+            const pending = [...states.values()].filter(state => {
+              if (state.error) return false
+              const response = state.response
+              if (!response) return true
+              if (response.has_pending_work === false) return false
+              return response.has_pending_work === true
+                || ['queued', 'running', 'waiting'].includes(response.status)
+                || response.status === 'partial'
+            }).length
+            const missing = [...states.values()].flatMap(state => {
+              if (state.error) return [`${state.symbol}: preparation could not be checked.`]
+              if (!state.response || ['ready'].includes(state.response.status)) return []
+              const history = state.response.dependencies.find(dependency => dependency.dataset === 'history')
+              if (history?.status === 'ready') return []
+              return [`${state.symbol}: ${preparationStatusMessage(state.response)}`]
+            })
+            historyBoundaryMessage.value = pending
+              ? `Preparing saved basket members (${members.length - pending}/${members.length})…`
+              : missing.length
+                ? `The complete basket chart is waiting for member data. ${missing.join(' ')}`
+                : `All saved basket members have current local chart data.`
+          }
+          members.forEach(member => {
+            const memberSymbol = String(member.symbol ?? member.label ?? member.instrument_id).trim().toUpperCase()
+            const queue = queues.get(member.instrument_id)!
+            states.set(member.instrument_id, { symbol: memberSymbol })
+          })
+          updateSummary()
+          // Submit all independent durable member requests before awaiting any
+          // result. Aborting this observer on route change does not cancel work
+          // already accepted by the Provider queue.
+          const tasks = members.map(async member => {
+            const memberSymbol = String(member.symbol ?? member.label ?? member.instrument_id).trim().toUpperCase()
+            const queue = queues.get(member.instrument_id)!
+            try {
+              const result = await dataPreparationCoordinator.ensure({
+                target: { kind: 'instrument', instrument_id: member.instrument_id },
+                datasets: ['identity', 'profile', 'history'],
+                timeframe: tf,
+                adjusted: true,
+              }, {
+                signal: controller.signal,
+                priority: 'high',
+                onProgress: progress => {
+                  if (!isCurrent()) return
+                  const state = states.get(member.instrument_id)!
+                  state.response = progress.response
+                  updateSummary()
+                  if (hasUsableHistory(progress.response)) {
+                    void queue.request(progress.response, refreshBasket).catch(() => undefined)
+                  }
+                },
+              })
+              if (!isCurrent()) return
+              states.set(member.instrument_id, { symbol: memberSymbol, response: result })
+              if (hasUsableHistory(result)) await queue.request(result, refreshBasket)
+            } catch (error) {
+              if (isCurrent() && (error as { name?: string })?.name !== 'AbortError') {
+                states.set(member.instrument_id, { symbol: memberSymbol, error })
+              }
+            } finally {
+              updateSummary()
+            }
+          })
+          await Promise.allSettled(tasks)
+          if (isCurrent()) updateSummary()
+        } catch {
+          if (isCurrent()) historyBoundaryMessage.value = 'Basket members could not be checked; the existing basket chart remains available.'
+        } finally {
+          if (basketPreparationController === controller) {
+            basketPreparationController = null
+            basketPreparationKey = null
+          }
+        }
+      })()
+    }
+
+    async function performLoadBars(
+      sym: string,
+      tf: Timeframe,
+      nextBarType: ChartBarType,
+      localOnly: boolean,
+      normalizedTransformParams: ChartTransformParams,
+      forceFresh = false,
+      activeLoad?: InFlightChartLoad,
+    ) {
       if (!sym || !tf) return
       olderHistoryAbortController?.abort()
       olderHistoryAbortController = null
       isLoadingMore.value = false
       cancelPendingIndicatorSave()
       const generation = ++_loadGeneration
+      const localBarsGeneration = ++localBarsPublicationGeneration
+      if (activeLoad) activeLoad.generation = generation
+      const basketId = basketIdFromSymbol(sym)
+      const requestedBasketPreparationKey = basketId !== null && localOnly ? `${basketId}:${tf}` : null
+      if (basketPreparationKey && basketPreparationKey !== requestedBasketPreparationKey) {
+        basketPreparationController?.abort()
+        basketPreparationController = null
+        basketPreparationKey = null
+        basketPreparationGeneration = 0
+      } else if (basketPreparationController && requestedBasketPreparationKey === basketPreparationKey) {
+        basketPreparationGeneration = generation
+      }
       const transformKey = JSON.stringify(normalizedTransformParams)
       const requestScopeKey = chartLoadScopeKey(sym, tf, nextBarType, localOnly, normalizedTransformParams)
       const isCurrent = () => generation === _loadGeneration && symbol.value === sym && timeframe.value === tf && barType.value === nextBarType && localOnlyMode.value === Boolean(localOnly) && JSON.stringify(transformParams.value) === transformKey
+      const isCurrentLocalRead = () => isCurrent() && localBarsGeneration === localBarsPublicationGeneration
       const sameSelection = symbol.value === sym && timeframe.value === tf && barType.value === nextBarType && JSON.stringify(transformParams.value) === transformKey
       // A deliberate chart reload is the explicit way to retry a completed
       // older-history request that made no local progress.
@@ -272,9 +471,12 @@ function createChartStore(storeId: string) {
       _stopCoveragePoller()
       isFetchingHistory.value = false
 
-      const basketId = basketIdFromSymbol(sym)
       localOnlyMode.value = Boolean(localOnly)
       if (basketId != null) {
+        // The authenticated basket membership request is independent from the
+        // synthetic chart read. Start it immediately so slow/empty cached
+        // basket bars cannot delay submitting the real member preparations.
+        if (localOnly) startBasketMemberPreparation(basketId, sym, tf, generation)
         try {
           const mapped = await fetchBarsPage(sym, tf, {
             type: nextBarType,
@@ -310,8 +512,37 @@ function createChartStore(storeId: string) {
             error => ({ mapped: null, error }),
           )
         : null
+      if (activeLoad && localBarsPromise) activeLoad.localBarsPromise = localBarsPromise
 
-      const loadedInstrument = await fetchInstrument(sym)
+      const publishLocalBars = (mapped: OHLCVBar[]) => {
+        if (!isCurrentLocalRead()) return false
+        bars.value = mapped
+        renderedLoadScopeKey = requestScopeKey
+        hasReachedStart.value = mapped.length === 0
+        // The local-history endpoint is already scoped to a canonical cached
+        // series. Do not hide those bars behind the separate instrument/profile
+        // read; that metadata request can remain pending while the chart is
+        // useful. The normal identity path below still validates the selection
+        // before indicators or further acquisition are attached.
+        isLoading.value = false
+        return true
+      }
+      if (localBarsPromise) {
+        void localBarsPromise.then(result => {
+          if (!result.error && (result.mapped?.length || !refreshesRenderedSelection)) {
+            // Publish newly available local OHLCV as soon as its own read
+            // completes. A cold-cache progress refresh is forceFresh, but its
+            // bars are still independent of a slower canonical metadata read;
+            // waiting for fetchInstrument below can leave a useful chart blank
+            // while the durable history worker has already filled the cache.
+            // Preserve an existing rendered chart when a refresh still returns
+            // no rows.
+            publishLocalBars(result.mapped ?? [])
+          }
+        })
+      }
+
+      const loadedInstrument = await fetchInstrument(sym, localOnly ? 'high' : undefined)
       if (!isCurrent()) return
       if (loadedInstrument || !refreshesRenderedSelection) instrument.value = loadedInstrument
 
@@ -324,12 +555,24 @@ function createChartStore(storeId: string) {
       }
 
       if (!loadedInstrument) {
+        const localResult = localBarsPromise ? await localBarsPromise : null
+        if (!isCurrent()) return
+        if (localOnly && bars.value.length > 0 && renderedLoadScopeKey === requestScopeKey) {
+          historyBoundaryMessage.value = 'Instrument details are unavailable; cached local chart bars remain visible.'
+          isLoading.value = false
+          return
+        }
+        if (localResult && !localResult.error && localResult.mapped?.length) {
+          publishLocalBars(localResult.mapped)
+          historyBoundaryMessage.value = 'Instrument details are unavailable; cached local chart bars remain visible.'
+          return
+        }
         error.value = `Instrument "${sym.toUpperCase()}" was not found.`
         isLoading.value = false
         return
       }
 
-      const indicatorsPromise = fetchIndicatorsForInstrument(loadedInstrument.id)
+      const indicatorsPromise = fetchIndicatorsForInstrument(loadedInstrument.id, localOnly ? 'high' : undefined)
       try {
         const prefetchedBars = localBarsPromise ? await localBarsPromise : null
         if (prefetchedBars?.error) throw prefetchedBars.error
@@ -347,13 +590,14 @@ function createChartStore(storeId: string) {
           && !indicatorStacksEqual(indicators.value, loadedIndicatorsBeforeRefresh)) {
           indicators.value = loadedIndicatorsBeforeRefresh
         }
-        bars.value = mapped
-        renderedLoadScopeKey = requestScopeKey
-        if (mapped.length) hasReachedStart.value = false
-        // A short initial page can mean either "brand-new listing" or "cache is
-        // currently incomplete". Let the older-page path make that decision so
-        // partial caches can self-repair when the user scrolls left.
-        if (!mapped.length) hasReachedStart.value = true
+        if (isCurrentLocalRead()) {
+          bars.value = mapped
+          renderedLoadScopeKey = requestScopeKey
+          // A short initial page can mean either "brand-new listing" or "cache is
+          // currently incomplete". Let the older-page path make that decision so
+          // partial caches can self-repair when the user scrolls left.
+          hasReachedStart.value = !mapped.length
+        }
         if (!refreshesRenderedSelection) {
           // Chart data and its OHLCV pointer are usable independently of saved
           // plot hydration. Do not keep a ready local chart blank while the
@@ -390,12 +634,13 @@ function createChartStore(storeId: string) {
 
     function startLoadBars(sym: string, tf: Timeframe, nextBarType: ChartBarType, localOnly: boolean, normalizedTransformParams: ChartTransformParams, forceFresh = false): Promise<void> {
       const requestKey = chartLoadScopeKey(sym, tf, nextBarType, localOnly, normalizedTransformParams)
-      let promise: Promise<void>
-      promise = performLoadBars(sym, tf, nextBarType, localOnly, normalizedTransformParams, forceFresh)
+      const entry: InFlightChartLoad = { key: requestKey, promise: Promise.resolve(), generation: _loadGeneration + 1 }
+      inFlightLoad = entry
+      const promise = performLoadBars(sym, tf, nextBarType, localOnly, normalizedTransformParams, forceFresh, entry)
         .finally(() => {
-          if (inFlightLoad?.promise === promise) inFlightLoad = null
+          if (inFlightLoad === entry) inFlightLoad = null
         })
-      inFlightLoad = { key: requestKey, promise }
+      entry.promise = promise
       return promise
     }
 
@@ -420,21 +665,59 @@ function createChartStore(storeId: string) {
       const normalizedTransformParams = Object.fromEntries(Object.entries(transformParams.value).filter(([, value]) => typeof value === 'number' && Number.isFinite(value))) as ChartTransformParams
       if (!sym || !tf) return
       const requestKey = chartLoadScopeKey(sym, tf, nextBarType, true, normalizedTransformParams)
-
-      // A successful history action can finish while the initial chart load is
-      // still awaiting instrument indicators. Coalescing the refresh into that
-      // pending load would leave its earlier, empty local response on screen.
-      // Wait for that exact selection to settle, then bypass the short-lived
-      // OHLCV response cache for a fresh local read.
-      while (inFlightLoad?.key === requestKey) {
-        const pending = inFlightLoad.promise
-        await pending.catch(() => undefined)
-        if (symbol.value !== sym || timeframe.value !== tf || barType.value !== nextBarType
-          || JSON.stringify(transformParams.value) !== JSON.stringify(normalizedTransformParams)) return
+      if (!localOnlyMode.value) {
+        await startLoadBars(sym, tf, nextBarType, true, normalizedTransformParams, true)
+        return
       }
-      if (symbol.value !== sym || timeframe.value !== tf || barType.value !== nextBarType
-        || JSON.stringify(transformParams.value) !== JSON.stringify(normalizedTransformParams)) return
-      await startLoadBars(sym, tf, nextBarType, true, normalizedTransformParams, true)
+      // An explicit refresh remains the user's retry gesture for the current
+      // older-history cursor, just as it was when refresh restarted the whole
+      // chart hydration.
+      noProgressHistoryCursor = null
+
+      const generation = _loadGeneration
+      const localScopeKey = chartLoadScopeKey(sym, tf, nextBarType, true, normalizedTransformParams)
+      const preserveCurrentBars = renderedLoadScopeKey === localScopeKey && bars.value.length > 0
+      const isCurrentSelection = () => generation === _loadGeneration
+        && symbol.value === sym && timeframe.value === tf && barType.value === nextBarType
+        && localOnlyMode.value
+        && JSON.stringify(transformParams.value) === JSON.stringify(normalizedTransformParams)
+      const initialLocalRead = inFlightLoad?.key === requestKey
+        && inFlightLoad.generation === generation
+        ? inFlightLoad.localBarsPromise
+        : undefined
+      // Wait only for the exact initial OHLCV read, not for its unrelated
+      // indicator and instrument-statistics tail. An ensure progress update
+      // can arrive after that first read returned empty; start the fresh local
+      // read as soon as it is safe to avoid duplicating the pending request.
+      if (initialLocalRead) await initialLocalRead.catch(() => undefined)
+      if (!isCurrentSelection()) return
+
+      const publicationGeneration = ++localBarsPublicationGeneration
+      const mapped = await fetchBarsPage(sym, tf, {
+        type: nextBarType,
+        localOnly: true,
+        transformParams: normalizedTransformParams,
+        fresh: true,
+      })
+      if (!isCurrentSelection() || publicationGeneration !== localBarsPublicationGeneration) return
+      if (!mapped.length && preserveCurrentBars) {
+        // A progress-triggered cache read can briefly race the database writer.
+        // Keep the already-rendered bars for this exact chart scope, but let a
+        // later successful read replace them. A different timeframe or
+        // transform has a different key and starts with no stale bars to keep.
+        isLoading.value = false
+        return
+      }
+      const refreshedBars = preserveCurrentBars
+        ? [...new Map([...bars.value, ...mapped].map(bar => [bar.ts, bar])).values()]
+          .sort((left, right) => Date.parse(left.ts) - Date.parse(right.ts))
+        : mapped
+      bars.value = refreshedBars
+      renderedLoadScopeKey = localScopeKey
+      // A refresh of the latest page must not forget that the user already
+      // loaded the older range (or reached its confirmed beginning).
+      if (!preserveCurrentBars) hasReachedStart.value = !mapped.length
+      isLoading.value = false
     }
 
     async function loadMoreBars() {
@@ -676,6 +959,7 @@ function createChartStore(storeId: string) {
       setIndicators, addIndicator, removeIndicator, updateIndicator, reorderIndicators,
       selectIndicator, requestEditIndicator,
       saveIndicatorsForInstrument,
+      resetForAuthSessionBoundary,
     }
   })
 }

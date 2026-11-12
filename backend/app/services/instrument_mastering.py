@@ -218,11 +218,26 @@ async def store_profile_snapshot(
 
 
 def _value_from_snapshot(payload: dict[str, Any], field_name: str) -> Any:
+    extra = payload.get("extra") or {}
+    extra = extra if isinstance(extra, dict) else {}
+    has_massive_sic_fallback = (
+        str(payload.get("provider") or "").strip().lower() == "massive"
+        and not str(extra.get("industry") or "").strip()
+        and str(extra.get("sic_code") or "").strip()
+        and str(extra.get("sic_description") or "").strip()
+    )
+    if (
+        field_name == "classification_system"
+        and has_massive_sic_fallback
+        and not str(payload.get("industry") or "").strip()
+    ):
+        return "SEC_SIC"
     if field_name in payload:
         return payload.get(field_name)
-    extra = payload.get("extra") or {}
     if field_name in extra:
         return extra.get(field_name)
+    if has_massive_sic_fallback and field_name == "industry":
+        return extra.get("sic_description")
     return None
 
 
@@ -244,7 +259,7 @@ async def reconcile_instrument_profile(
         return None
 
     provider_scores = {
-        resolved.provider_name: float(resolved.policy.effective_score)
+        resolved.provider_name: float(resolved.effective_score)
         for resolved in await resolve_provider_chain(db, ProviderCapability.INSTRUMENT_METADATA)
     }
 
@@ -260,6 +275,64 @@ async def reconcile_instrument_profile(
             return default
         candidates.sort(key=lambda item: (item[0], item[1]), reverse=True)
         return candidates[0][2]
+
+    industry_snapshot = max(
+        (
+            snapshot
+            for snapshot in snapshots
+            if _value_from_snapshot(snapshot.payload, "industry") not in (None, "")
+        ),
+        key=lambda snapshot: (
+            provider_scores.get(snapshot.payload.get("provider", ""), 0.0),
+            _utc_ordering_value(snapshot.observed_at),
+        ),
+        default=None,
+    )
+    industry_evidence_payload = (
+        (industry_snapshot.payload.get("extra") or {}).get("industry_evidence")
+        if industry_snapshot is not None
+        else None
+    )
+    industry_evidence_payload = (
+        industry_evidence_payload if isinstance(industry_evidence_payload, dict) else {}
+    )
+    industry_snapshot_provider = (
+        str(industry_snapshot.payload.get("provider") or "unknown")
+        if industry_snapshot is not None
+        else "unknown"
+    )
+    industry_snapshot_extra = (
+        (industry_snapshot.payload.get("extra") or {}) if industry_snapshot is not None else {}
+    )
+    industry_snapshot_extra = (
+        industry_snapshot_extra if isinstance(industry_snapshot_extra, dict) else {}
+    )
+    sic_description = str(industry_snapshot_extra.get("sic_description") or "").strip()
+    sic_code = str(industry_snapshot_extra.get("sic_code") or "").strip()
+    industry_value = str(industry_snapshot_extra.get("industry") or "").strip()
+    has_massive_sic_evidence = (
+        industry_snapshot_provider.strip().lower() == "massive"
+        and bool(sic_code and sic_description)
+        and (not industry_value or industry_value == sic_description)
+    )
+    industry_evidence_matches_snapshot = (
+        industry_snapshot_provider.strip().lower() == "massive"
+        and str(industry_evidence_payload.get("provider") or "massive").strip().lower() == "massive"
+        and industry_evidence_payload.get("source_field") == "sic_description"
+        and has_massive_sic_evidence
+    )
+    industry_source_field = (
+        "sic_description"
+        if industry_evidence_matches_snapshot or (has_massive_sic_evidence and not industry_value)
+        else "industry"
+    )
+    industry_classification_system = (
+        "SEC_SIC"
+        if has_massive_sic_evidence
+        else _value_from_snapshot(industry_snapshot.payload, "classification_system")
+        if industry_snapshot is not None
+        else None
+    )
 
     classification_snapshot = max(
         (
@@ -347,6 +420,22 @@ async def reconcile_instrument_profile(
                 "classification_system",
             ]
         }
+        | (
+            {
+                "industry_evidence": {
+                    "provider": industry_snapshot.payload.get("provider") or "unknown",
+                    "source_field": industry_source_field,
+                    "classification_system": industry_classification_system,
+                    "observed_at": industry_snapshot.observed_at.isoformat(),
+                    "fetched_at": industry_snapshot.fetched_at.isoformat()
+                    if industry_snapshot.fetched_at
+                    else None,
+                    "sic_code": (industry_snapshot.payload.get("extra") or {}).get("sic_code"),
+                }
+            }
+            if industry_snapshot is not None
+            else {}
+        )
         | (
             {
                 "classification_evidence": {
@@ -712,9 +801,9 @@ async def ensure_internal_identifier(
                 continue
             duplicate.is_active = False
             duplicate.is_primary = False
-            if duplicate.identifier_value == internal_value:
-                continue
-            duplicate.identifier_value = f"{duplicate.identifier_value}__superseded__{duplicate.id}"
+            # Keep the historical identifier value intact. Rewriting it with
+            # a suffix on every repair is not idempotent and can exceed the
+            # identifier_value column's fixed length after repeated refreshes.
 
     if instrument.primary_identifier_value is None:
         instrument.primary_identifier_type = InstrumentIdentifierType.INTERNAL.value
@@ -1041,15 +1130,29 @@ async def apply_profile_to_instrument(
             ("employees", profile.extra.get("employees")),
         ]:
             if value is not None:
+                industry_evidence = (
+                    profile.extra.get("industry_evidence") if field_name == "industry" else None
+                )
+                evidence = industry_evidence if isinstance(industry_evidence, dict) else {}
                 _mark_field_provenance(
                     detail,
                     field_name,
-                    source=profile.provider,
-                    fetched_at=fetched_at,
+                    source=str(evidence.get("provider") or profile.provider),
+                    fetched_at=(
+                        _retained_profile_datetime(evidence.get("fetched_at")) or fetched_at
+                    ),
+                    observed_at=_retained_profile_datetime(evidence.get("observed_at")),
                     provider_symbol=profile.symbol,
                     classification_system=(
-                        profile.extra.get("classification_system")
+                        evidence.get("classification_system")
+                        or profile.extra.get("classification_system")
                         if field_name in {"sector", "industry"}
+                        else None
+                    ),
+                    note=(
+                        f"source_field={evidence.get('source_field')};sic_code={evidence.get('sic_code')}"
+                        if field_name == "industry"
+                        and evidence.get("source_field") == "sic_description"
                         else None
                     ),
                 )

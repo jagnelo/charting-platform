@@ -6,7 +6,7 @@
           <option value="">Select a universe</option>
           <option v-if="sourceId.startsWith('explicit:')" :value="sourceId">Explicit symbols · Locked</option>
           <optgroup v-for="group in sourceGroups" :key="group.key" :label="group.label">
-            <option v-for="source in group.sources" :key="source.source_id" :value="source.source_id" :disabled="!isSourceSelectable(source)">
+            <option v-for="source in group.sources" :key="source.source_id" :value="source.source_id" :disabled="!canRunSource(source)">
               {{ source.pinned ? '★ ' : '' }}{{ source.name }}{{ source.locked ? ' · Locked' : '' }}{{ sourceAvailabilitySuffix(source) }}
             </option>
           </optgroup>
@@ -152,7 +152,7 @@
       <span v-if="pythonSelectionNotice" class="market-map-tool__status" role="status" aria-live="polite" aria-atomic="true">{{ pythonSelectionNotice }}</span>
       <span v-if="(colorMetric === 'python' || breadthUsesPython) && pythonRunLoading" class="market-map-tool__status" role="status" aria-live="polite" aria-atomic="true">Evaluating isolated Python…</span>
       <span v-if="(colorMetric === 'python' || areaMetric === 'python' || breadthUsesPython) && pythonRunError" class="market-map-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">{{ pythonRunError }}</span>
-      <button type="button" class="market-map-tool__run" aria-label="Refresh Market Map" :disabled="loading || (!sourceId && !explicitSymbols.trim()) || (!explicitSymbols.trim() && !!activeSource && !isSourceSelectable(activeSource))" @click="run">{{ loading ? 'Loading…' : 'Refresh' }}</button>
+      <button type="button" class="market-map-tool__run" aria-label="Refresh Market Map" :disabled="loading || (!sourceId && !explicitSymbols.trim()) || (!explicitSymbols.trim() && !!activeSource && !canRunSource(activeSource))" @click="run">{{ loading ? 'Loading…' : 'Refresh' }}</button>
       <label>Snapshot
         <select v-model="snapshotSelectionId" aria-label="Market Map snapshot" :disabled="snapshotLoading">
           <option value="">Live / cached result</option>
@@ -164,8 +164,10 @@
       <button type="button" aria-label="Export Market Map CSV" :disabled="!map" @click="exportCsv">Export CSV</button>
       <button v-if="snapshotSelectionId" type="button" aria-label="Delete selected Market Map snapshot" :disabled="snapshotLoading" @click="deleteSnapshot">Delete snapshot</button>
     </div>
-    <p v-if="sourcesError" class="market-map-tool__status market-map-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">{{ sourcesError }}</p>
+    <p v-if="sourcesError" class="market-map-tool__status market-map-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">Universe list unavailable: {{ sourcesError }}</p>
+    <p v-else-if="initialUniverseMessage" class="market-map-tool__status" role="status" aria-live="polite" aria-atomic="true">{{ initialUniverseMessage }}</p>
     <p v-if="error" class="market-map-tool__status market-map-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</p>
+    <p v-if="preparationStatus" class="market-map-tool__status" role="status" aria-live="polite" aria-atomic="true">{{ preparationStatus }}</p>
     <p v-if="snapshotError" class="market-map-tool__status market-map-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">{{ snapshotError }}</p>
     <p v-if="publicationMessage && !explicitSymbols.trim() && !selectedIds.length" class="market-map-tool__status" role="status" aria-live="polite" aria-atomic="true">{{ publicationMessage }}</p>
     <p v-if="map?.warnings.length" class="market-map-tool__status" role="status" aria-live="polite" aria-atomic="true">{{ map.warnings.map(item => item.message).join(' · ') }}</p>
@@ -240,7 +242,7 @@
     <div v-if="map" class="market-map-tool__legend" aria-label="Market Map colour and coverage legend"><span class="market-map-tool__legend--negative">−</span><span>{{ colorLabel }}</span><span class="market-map-tool__legend--positive">+</span><span class="market-map-tool__legend__coverage">Combined {{ coveragePercent(map.coverage, 0) }}% · Colour {{ coveragePercent(map.color_coverage, map.coverage) }}% · Area {{ coveragePercent(map.area_coverage, map.coverage) }}%</span></div>
     <div v-if="map" class="market-map-tool__viewport-controls" aria-label="Market Map viewport controls">
       <button type="button" aria-label="Zoom out Market Map" :disabled="viewportZoom <= 1" @click="zoomBy(-0.25)">−</button>
-      <span aria-live="polite">{{ Math.round(viewportZoom * 100) }}%</span>
+        <span class="market-map-tool__viewport-zoom" aria-live="polite">{{ Math.round(viewportZoom * 100) }}%</span>
       <button type="button" aria-label="Zoom in Market Map" :disabled="viewportZoom >= 4" @click="zoomBy(0.25)">+</button>
       <button type="button" aria-label="Reset Market Map viewport" :disabled="viewportZoom === 1 && !panX && !panY" @click="resetViewport">Reset</button>
       <small v-if="viewportZoom > 1">Drag empty map space or use the wheel to pan and zoom.</small>
@@ -305,8 +307,8 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
-import { api } from '@/lib/api'
-import { formatSourceFailureClass as formatFailureClass, sourceAvailability, sourceAvailabilitySuffix, sourceIsNotCurrent } from '@/lib/workstation/sourceCapability'
+import { api, type ApiRequestPriority } from '@/lib/api'
+import { formatSourceFailureClass as formatFailureClass, initialMarketMapSource, sourceAvailability, sourceAvailabilitySuffix, sourceIsNotCurrent } from '@/lib/workstation/sourceCapability'
 import { useWatchlistStore } from '@/stores/watchlist'
 import { useUserSettingsStore } from '@/stores/userSettings'
 import { invalidateCodeAssets } from '@/lib/workstation/libraryQueries'
@@ -314,13 +316,17 @@ import { resolveCanonicalSymbols } from '@/lib/instruments'
 import BreadthConditionTreeEditor, { type BreadthConditionNode } from './BreadthConditionTreeEditor.vue'
 import { marketMapPythonUniverse } from '@/lib/workstation/marketMapPublication'
 import { describeMarketMap } from '@/lib/workstation/marketMapAccessibility'
-import { buildMarketMapHitTestIndex, cancelWatchlistHistoryRefreshRun, deleteMarketMapSnapshot, fetchBenchmarkFamilyCoverage, fetchMarketMap, fetchMarketMapSnapshot, fetchMarketMapSnapshots, fetchWatchlistHistoryRefreshRun, fetchWatchlistSourceHistoryStatus, findMarketMapCell, layoutMarketMapCells, layoutMarketMapGroupsFromLayout, refreshWatchlistSourceHistory, saveMarketMapSnapshot, type BenchmarkFamilyCoverage, type BenchmarkFamilyCoverageRole, type MarketMapLayoutCell, type MarketMapLayoutGroup, type WatchlistHistoryRefreshRun, type WatchlistSourceHistoryStatus } from '@/lib/workstation/marketMap'
+import { dataPreparationCoordinator, PreparationProgressRefreshQueue, preparationStatusMessage, shouldRefreshAnalysisProgress, type DataEnsureRequest, type DataEnsureResponse, type PreparationTarget } from '@/lib/dataPreparation'
+import { buildMarketMapHitTestIndex, cancelWatchlistHistoryRefreshRun, deleteMarketMapSnapshot, fetchBenchmarkFamilyCoverageShared, fetchMarketMap, fetchMarketMapSnapshot, fetchMarketMapSnapshots, fetchWatchlistHistoryRefreshRun, fetchWatchlistSourceHistoryStatusShared, findMarketMapCell, layoutMarketMapCells, layoutMarketMapGroupsFromLayout, refreshWatchlistSourceHistory, saveMarketMapSnapshot, type BenchmarkFamilyCoverage, type BenchmarkFamilyCoverageRole, type MarketMapLayoutCell, type MarketMapLayoutGroup, type WatchlistHistoryRefreshRun, type WatchlistSourceHistoryStatus } from '@/lib/workstation/marketMap'
 import type { MarketMap, MarketMapAreaMetric, MarketMapCell, MarketMapColorMetric, MarketMapGroupBy, MarketMapNumericAreaField, MarketMapSnapshotSummary, Timeframe, WatchlistSource, WatchlistSourceKind } from '@/types'
 
 type MarketMapSort = 'area_desc' | 'color_desc' | 'symbol_asc'
 type MarketMapSource = WatchlistSource & { pinned: boolean }
 
-const props = withDefaults(defineProps<{ configuration?: Record<string, unknown> }>(), { configuration: () => ({}) })
+const props = withDefaults(defineProps<{ configuration?: Record<string, unknown>; requestPriority?: ApiRequestPriority }>(), {
+  configuration: () => ({}),
+  requestPriority: 'auto',
+})
 const emit = defineEmits<{
   configuration: [value: Record<string, unknown>]
   select: [symbol: string, instrumentId: number]
@@ -384,6 +390,7 @@ const startDate = ref(String(props.configuration.start_date ?? ''))
 const endDate = ref(String(props.configuration.end_date ?? ''))
 const loading = ref(false)
 const error = ref('')
+const initialUniverseMessage = ref('')
 const map = ref<MarketMap | null>(null)
 const selectedNode = ref<string | null>(null)
 const selectedMembers = ref<MarketMapCell[]>([])
@@ -422,6 +429,7 @@ const snapshotName = ref('')
 const activeSnapshotName = ref('')
 const snapshotLoading = ref(false)
 const snapshotError = ref('')
+const preparationStatus = ref('')
 const historyStatus = ref<WatchlistSourceHistoryStatus | null>(null)
 const historyLoading = ref(false)
 const historyError = ref('')
@@ -438,6 +446,9 @@ let historyPollTimer: ReturnType<typeof setTimeout> | null = null
 // Market Map tools.  Fence each request so a slower response from the prior
 // universe cannot clear or replace the currently selected map.
 let runGeneration = 0
+let preparationGeneration = 0
+let preparationAbortController: AbortController | null = null
+let preparationRefreshQueue = new PreparationProgressRefreshQueue()
 // History readiness has the same source/timeframe race as the map itself. A
 // slow status response from a previous source must never replace the current
 // source's coverage or resurrect its refresh run.
@@ -465,6 +476,7 @@ let definitionGeneration = 0
 let benchmarkCoverageGeneration = 0
 let pythonAssetsGeneration = 0
 let snapshotGeneration = 0
+let marketMapReadGeneration = 0
 let componentMounted = false
 const definitionName = ref(String(props.configuration.definition_name ?? ''))
 const definitionSaving = ref(false)
@@ -503,6 +515,22 @@ const benchmarkFamilyKey = computed(() => {
 
 function isSourceSelectable(source: WatchlistSource): boolean {
   return sourceAvailability(source) !== 'unavailable'
+}
+
+function canRefreshCanonicalSource(source: WatchlistSource | null | undefined): boolean {
+  if (!source || historyAsOf.value) return false
+  const refreshableState = ['stale', 'degraded'].includes(String(source.provenance?.availability ?? ''))
+  return refreshableState
+    && /^(market-group:[^:]+|benchmark-family:[^:]+:[^:]+)$/.test(source.source_id)
+    && ['market_group', 'index_membership'].includes(source.source_kind)
+}
+
+function canRunSource(source: WatchlistSource | null | undefined): boolean {
+  return Boolean(source && (isSourceSelectable(source) || canRefreshCanonicalSource(source)))
+}
+
+function chooseInitialUniverse(): string | null {
+  return initialMarketMapSource(sources.value)?.source_id ?? null
 }
 
 function sourceKindLabel(kind: WatchlistSourceKind): string {
@@ -673,7 +701,7 @@ async function loadHistoryStatus(schedulePoll = false) {
   historyLoading.value = true
   historyError.value = ''
   try {
-    const result = await fetchWatchlistSourceHistoryStatus(requestSourceId, [timeframe.value], 5000, historyAsOf.value)
+    const result = await fetchWatchlistSourceHistoryStatusShared(queryClient, requestSourceId, [timeframe.value], 5000, historyAsOf.value)
     if (!componentMounted || generation !== historyGeneration || sourceId.value !== requestSourceId) return
     historyStatus.value = result && !Array.isArray(result) ? result : null
     await loadHistoryRun(false, generation)
@@ -702,7 +730,7 @@ async function loadBenchmarkCoverage() {
   benchmarkCoverageLoading.value = true
   benchmarkCoverageError.value = ''
   try {
-    const result = await fetchBenchmarkFamilyCoverage(familyKey, historyAsOf.value)
+    const result = await fetchBenchmarkFamilyCoverageShared(queryClient, familyKey, historyAsOf.value)
     if (!componentMounted || generation !== benchmarkCoverageGeneration || sourceId.value !== requestSourceId) return
     benchmarkCoverage.value = result && typeof result === 'object' && Array.isArray(result.roles) ? result : null
   } catch (cause) {
@@ -971,7 +999,7 @@ async function bootstrapEtfSource() {
     // This is an explicit, user-triggered bootstrap. It does not turn ordinary
     // source reads into provider fan-out; the canonical source catalog remains
     // the only map input after this action completes.
-    await watchlistStore.loadWatchlistSources()
+    await watchlistStore.loadWatchlistSources('high')
     if (!componentMounted || generation !== sourceActionGeneration) return
     const source = watchlistStore.watchlistSources.find(item => item.source_id === `etf-holdings:${symbol}`)
     if (!source) throw new Error(`${symbol} was registered but is not available as a canonical ETF source.`)
@@ -1570,7 +1598,7 @@ async function saveLockedSource(memberIds: number[], name: string) {
       parent_membership_version: map.value?.membership_version ?? map.value?.source.membership_version ?? activeSource.value?.membership_version ?? null,
     })
     if (!componentMounted || generation !== sourcePublicationGeneration || sourceId.value !== requestSourceId) return
-    await watchlistStore.loadWatchlistSources()
+    await watchlistStore.loadWatchlistSources('high')
     if (!componentMounted || generation !== sourcePublicationGeneration || sourceId.value !== requestSourceId) return
     skipNextSourceRun.value = true
     sourcePublicationTargetId = saved.source_id
@@ -1833,25 +1861,172 @@ function exportCsv() {
   URL.revokeObjectURL(url)
 }
 
+function marketMapSelectionKey() {
+  return JSON.stringify([
+    sourceId.value, explicitSymbols.value, groupBy.value, sortBy.value, period.value, startDate.value, endDate.value,
+    timeframe.value, historyAsOf.value, areaMetric.value, areaField.value, colorMetric.value, referenceSymbol.value, referenceSourceId.value,
+    pythonCodeVersionId.value, pythonRunId.value, breadthConditionTree.value,
+  ])
+}
+
+async function marketMapPreparationTargets(requestSourceId: string, generation: number): Promise<PreparationTarget[]> {
+  const marketGroup = /^market-group:([^:]+)$/.exec(requestSourceId)
+  if (marketGroup) {
+    const selectedDefinition = sources.value.find(source => source.source_id === requestSourceId)
+    return [{ kind: 'market_group', group_key: selectedDefinition?.stable_key ?? marketGroup[1]! }]
+  }
+  const family = /^benchmark-family:([^:]+):/.exec(requestSourceId)
+  if (family) return [{ kind: 'family', family_key: family[1]! }]
+  if (requestSourceId.startsWith('explicit:')) {
+    const ids = [...new Set(requestSourceId.slice('explicit:'.length).split(',').map(Number).filter(id => Number.isInteger(id) && id > 0))]
+    return ids.map(instrument_id => ({ kind: 'instrument', instrument_id }))
+  }
+  const resolved = await watchlistStore.resolveWatchlistSource(requestSourceId, null)
+  if (!componentMounted || generation !== runGeneration || sourceId.value !== requestSourceId || !resolved) return []
+  return [...new Set(resolved.members.map(member => member.instrument_id).filter(id => Number.isInteger(id) && id > 0))]
+    .map(instrument_id => ({ kind: 'instrument', instrument_id }))
+}
+
+function preparationTargetKey(target: PreparationTarget): string {
+  if (target.kind === 'instrument') return `instrument:${target.instrument_id ?? target.symbol}`
+  if (target.kind === 'market_group') return `${target.kind}:${target.group_key}`
+  if (target.kind === 'family') return `${target.kind}:${target.family_key}`
+  return `${target.kind}:${target.screener_id}`
+}
+
+function prepareMarketMapData(
+  requestSourceId: string,
+  request: Parameters<typeof fetchMarketMap>[0],
+  generation: number,
+  selectionKey: string,
+) {
+  if (historyAsOf.value) {
+    preparationStatus.value = 'Historical Market Map context is preserved; current source preparation is not applied to dated membership.'
+    return
+  }
+  preparationGeneration += 1
+  const preparationId = preparationGeneration
+  preparationAbortController?.abort()
+  const controller = new AbortController()
+  preparationAbortController = controller
+  preparationRefreshQueue = new PreparationProgressRefreshQueue()
+  preparationStatus.value = historyAsOf.value
+    ? 'Preparing dated Market Map bars; current profile data is not applied to historical membership.'
+    : 'Preparing Market Map history and classifications…'
+  const isCurrent = () => componentMounted
+    && generation === runGeneration
+    && preparationId === preparationGeneration
+    && !controller.signal.aborted
+    && sourceId.value === requestSourceId
+    && marketMapSelectionKey() === selectionKey
+  const refreshLocalMap = async () => {
+    if (!isCurrent()) return
+    const readGeneration = ++marketMapReadGeneration
+    try {
+      const refreshed = await fetchMarketMap(request)
+      if (!isCurrent() || readGeneration !== marketMapReadGeneration) return
+      map.value = refreshed
+      error.value = ''
+    } catch (cause) {
+      // Keep the last valid map visible. If its first local read failed, surface
+      // the new attempt's actual failure rather than leaving a blank state.
+      if (isCurrent() && readGeneration === marketMapReadGeneration) {
+        error.value = cause instanceof Error ? cause.message : 'Unable to refresh Market Map from prepared local data.'
+      }
+    }
+  }
+  void (async () => {
+    try {
+      const targets = await marketMapPreparationTargets(requestSourceId, generation)
+      if (!isCurrent()) return
+      if (activeSource.value && !isSourceSelectable(activeSource.value) && canRefreshCanonicalSource(activeSource.value)) {
+        void watchlistStore.loadWatchlistSources('high')
+      }
+      const datasets: NonNullable<DataEnsureRequest['datasets']> = ['history']
+      const requiredProfileFields: NonNullable<DataEnsureRequest['required_profile_fields']> = []
+      if (!historyAsOf.value && groupBy.value !== 'none') datasets.push('profile')
+      if (!historyAsOf.value && groupBy.value.includes('industry')) requiredProfileFields.push('industry')
+      if (!historyAsOf.value && (areaMetric.value === 'market_cap' || areaMetric.value === 'field')) datasets.push('fundamentals')
+      const baseRequest: Omit<DataEnsureRequest, 'target'> = {
+        datasets,
+        timeframe: timeframe.value,
+        adjusted: true,
+        ...(requiredProfileFields.length ? { required_profile_fields: requiredProfileFields } : {}),
+        ...(period.value === 'CUSTOM' && startDate.value ? { start_at: `${startDate.value}T00:00:00Z` } : {}),
+        ...(period.value === 'CUSTOM' && endDate.value ? { end_at: `${endDate.value}T23:59:59Z` } : {}),
+      }
+      if (!targets.length) {
+        preparationStatus.value = 'No current canonical members are available for Market Map preparation; showing saved results.'
+        return
+      }
+      const pendingEnsures = new Map<string, Promise<DataEnsureResponse>>()
+      const startTargets = (newTargets: PreparationTarget[]) => {
+        for (const target of newTargets) {
+          const key = preparationTargetKey(target)
+          if (pendingEnsures.has(key)) continue
+          pendingEnsures.set(key, dataPreparationCoordinator.ensure({ ...baseRequest, target }, {
+            signal: controller.signal,
+            onProgress: ({ response }) => {
+              if (!isCurrent()) return
+              preparationStatus.value = preparationStatusMessage(response)
+              if (shouldRefreshMarketMapProgress(response)) {
+                void preparationRefreshQueue.request(response, refreshLocalMap).catch(() => undefined)
+              }
+            },
+          }))
+        }
+      }
+      startTargets(targets)
+      if (request.reference_source_id) {
+        startTargets(await marketMapPreparationTargets(request.reference_source_id, generation))
+      } else if (request.reference_symbol) {
+        const [resolvedReference] = await resolveCanonicalSymbols([request.reference_symbol], 'Market Map comparison reference', { priority: 'high' })
+        if (!isCurrent()) return
+        if (resolvedReference?.id != null) startTargets([{ kind: 'instrument', instrument_id: resolvedReference.id }])
+        else preparationStatus.value = 'The Market Map comparison reference could not be resolved; preparing the selected universe only.'
+      }
+      const outcomes = await Promise.all([...pendingEnsures.values()])
+      if (!isCurrent()) return
+      const pending = outcomes.find(response => response.status !== 'ready')
+      preparationStatus.value = pending ? preparationStatusMessage(pending) : ''
+      await Promise.all(outcomes.filter(shouldRefreshMarketMapProgress).map(response => preparationRefreshQueue.request(response, refreshLocalMap)))
+    } catch (cause) {
+      if (!isCurrent() || (cause instanceof DOMException && cause.name === 'AbortError')) return
+      preparationStatus.value = 'Market Map preparation is unavailable; showing any saved results.'
+    }
+  })()
+}
+
+function shouldRefreshMarketMapProgress(response: DataEnsureResponse) {
+  // A brand-new request that is already ready did not change the local inputs
+  // after the cache-first analysis read. Later ready versions do represent
+  // completed durable work and must refresh the exact same local query.
+  return !(response.status === 'ready' && response.version <= 1) && shouldRefreshAnalysisProgress(response)
+}
+
 async function run() {
   if (!componentMounted || (!sourceId.value && !explicitSymbols.value.trim())) return
   if (!explicitSymbols.value.trim() && sourceId.value) {
     const selectedSource = sources.value.find(source => source.source_id === sourceId.value)
-    if (selectedSource && !isSourceSelectable(selectedSource)) {
+    if (selectedSource && !canRunSource(selectedSource)) {
       error.value = `${selectedSource.name} is not current and cannot be used for Market Map analysis.`
       return
     }
   }
   const generation = ++runGeneration
+  preparationGeneration += 1
+  preparationAbortController?.abort()
+  preparationAbortController = null
   loading.value = true
   error.value = ''
   map.value = null
+  let requestReadGeneration = 0
   try {
     let requestSourceId = sourceId.value
     if (explicitSymbols.value.trim()) {
       const symbols = [...new Set(explicitSymbols.value.split(/[\s,]+/).map(item => item.trim().toUpperCase()).filter(Boolean))]
       if (symbols.length > 500) throw new Error('Explicit Market Map selections are limited to 500 symbols; save a larger universe as a watchlist.')
-      const resolved = await resolveCanonicalSymbols(symbols, 'Explicit symbol')
+      const resolved = await resolveCanonicalSymbols(symbols, 'Explicit symbol', { priority: 'high' })
       const ids = resolved.map(item => item.id)
       if (ids.some(id => id == null)) throw new Error('Every explicit symbol must resolve to a canonical instrument.')
       requestSourceId = `explicit:${ids.join(',')}`
@@ -1864,9 +2039,14 @@ async function run() {
     if (colorMetric.value === 'breadth' && breadthUsesPython.value) await resolvePythonBreadthRun(generation)
     else if (colorMetric.value === 'python' || areaMetric.value === 'python') await resolvePythonRun(generation)
     if (!componentMounted || generation !== runGeneration) return
-    const nextMap = await fetchMarketMap({ source_id: requestSourceId, group_by: groupBy.value, period: period.value, start: period.value === 'CUSTOM' && startDate.value ? startDate.value : null, end: period.value === 'CUSTOM' && endDate.value ? `${endDate.value}T23:59:59Z` : null, area_metric: areaMetric.value, area_field: areaMetric.value === 'field' ? areaField.value : null, color_metric: colorMetric.value, condition: colorMetric.value === 'breadth' ? breadthCondition.value : null, python_run_id: colorMetric.value === 'python' || areaMetric.value === 'python' || (colorMetric.value === 'breadth' && breadthUsesPython.value) ? pythonRunId.value : null, reference_symbol: (colorMetric.value === 'relative_return' || referenceNeeded.value) && !referenceSourceId.value ? referenceSymbol.value.toUpperCase() : null, reference_source_id: (colorMetric.value === 'relative_return' || referenceNeeded.value) && referenceSourceId.value ? referenceSourceId.value : null, timeframe: timeframe.value, adjusted: true })
-    if (!componentMounted || generation !== runGeneration) return
+    const request: Parameters<typeof fetchMarketMap>[0] = { source_id: requestSourceId, group_by: groupBy.value, period: period.value, start: period.value === 'CUSTOM' && startDate.value ? startDate.value : null, end: period.value === 'CUSTOM' && endDate.value ? `${endDate.value}T23:59:59Z` : null, area_metric: areaMetric.value, area_field: areaMetric.value === 'field' ? areaField.value : null, color_metric: colorMetric.value, condition: colorMetric.value === 'breadth' ? breadthCondition.value : null, python_run_id: colorMetric.value === 'python' || areaMetric.value === 'python' || (colorMetric.value === 'breadth' && breadthUsesPython.value) ? pythonRunId.value : null, reference_symbol: (colorMetric.value === 'relative_return' || referenceNeeded.value) && !referenceSourceId.value ? referenceSymbol.value.toUpperCase() : null, reference_source_id: (colorMetric.value === 'relative_return' || referenceNeeded.value) && referenceSourceId.value ? referenceSourceId.value : null, timeframe: timeframe.value, adjusted: true }
+    const requestSelectionKey = marketMapSelectionKey()
+    prepareMarketMapData(requestSourceId, request, generation, requestSelectionKey)
+    requestReadGeneration = ++marketMapReadGeneration
+    const nextMap = await fetchMarketMap(request)
+    if (!componentMounted || generation !== runGeneration || requestReadGeneration !== marketMapReadGeneration) return
     map.value = nextMap
+    error.value = ''
     snapshotSelectionId.value = ''
     activeSnapshotName.value = ''
     selectedNode.value = null
@@ -1874,6 +2054,7 @@ async function run() {
     resetViewport()
   } catch (cause) {
     if (!componentMounted || generation !== runGeneration) return
+    if (requestReadGeneration && requestReadGeneration !== marketMapReadGeneration) return
     error.value = cause instanceof Error ? cause.message : 'Unable to load Market Map'
   } finally {
     if (generation === runGeneration) loading.value = false
@@ -1953,32 +2134,54 @@ watch(snapshotSelectionId, () => { void loadSnapshot() })
 onMounted(async () => {
   componentMounted = true
   window.addEventListener('resize', scheduleCanvasDraw)
-  await userSettingsStore.loadSettings()
+  const requestPriority = props.requestPriority
+  const settingsLoad = userSettingsStore.loadSettings(requestPriority)
   if (!componentMounted) return
-  if (!sources.value.length) await watchlistStore.loadWatchlistSources()
-  if (!componentMounted) return
-  if (!watchlistStore.watchlists.length) await watchlistStore.loadWatchlists()
-  if (!componentMounted) return
-  await loadPythonAssets()
-  if (!componentMounted) return
-  try {
-    snapshots.value = await fetchMarketMapSnapshots()
-  } catch (cause) {
-    if (!componentMounted) return
-    snapshotError.value = cause instanceof Error ? cause.message : 'Unable to load Market Map snapshots'
+  const needsDefaultUniverse = !sourceId.value && !explicitSymbols.value.trim()
+  // A blank new tool needs a fresh list before choosing a default. A list
+  // loaded for another panel may still put a pending zero-member ETF first.
+  const sourcesLoad = needsDefaultUniverse || !sources.value.length
+    ? watchlistStore.loadWatchlistSources(requestPriority)
+    : Promise.resolve()
+
+  // Personal publication targets and saved-snapshot metadata are useful
+  // controls, but neither is needed to paint the selected universe. Let them
+  // hydrate independently instead of holding the first local Market Map read.
+  if (!watchlistStore.watchlists.length) {
+    void Promise.resolve().then(() => watchlistStore.loadWatchlists(requestPriority)).catch(() => undefined)
   }
+  void fetchMarketMapSnapshots().then(result => {
+    if (componentMounted) snapshots.value = result
+  }).catch(cause => {
+    if (componentMounted) snapshotError.value = cause instanceof Error ? cause.message : 'Unable to load Market Map snapshots'
+  })
+  const pythonAssetsLoad = loadPythonAssets()
+
+  await Promise.all([settingsLoad, sourcesLoad])
   if (!componentMounted) return
-  if (!sourceId.value && !explicitSymbols.value.trim()) {
-    const preferred = sources.value.find((item: WatchlistSource) => isSourceSelectable(item) && (item.source_kind === 'index_membership' || item.source_kind === 'etf_holdings'))
-      ?? sources.value.find((item: WatchlistSource) => isSourceSelectable(item))
+  if (!sourceId.value && !explicitSymbols.value.trim() && !sourcesError.value) {
+    const preferred = chooseInitialUniverse()
     if (preferred) {
       // The mount path explicitly runs its chosen initial source below; prevent
       // the source watcher from racing it with the same first request.
       skipInitialSourceWatcher = true
-      sourceId.value = preferred.source_id
+      // Equal area is available for every populated source kind, including
+      // ETF proxy members that do not carry company market capitalization.
+      // Existing saved/user-selected universes retain their configured metric.
+      if (!props.configuration.source_id && (props.configuration.area_metric == null || props.configuration.area_metric === 'market_cap')) areaMetric.value = 'equal'
+      sourceId.value = preferred
+    } else {
+      initialUniverseMessage.value = 'No populated current universe is available yet. Choose a compatible universe or enter explicit symbols.'
     }
   }
   if (!componentMounted) return
+  const needsPythonAssets = colorMetric.value === 'python' || areaMetric.value === 'python' || breadthUsesPython.value
+  if (needsPythonAssets) {
+    // Saved Python-backed analyses need their selected asset before run() can
+    // resolve the canonical server request. Ordinary/default maps do not.
+    await pythonAssetsLoad
+    if (!componentMounted) return
+  }
   // Initialization can finish after a user refresh or source-watcher run.
   // That run already owns the map (and any subsequent selection); replaying
   // it here would clear the map and erase interaction after it was painted.
@@ -1987,8 +2190,16 @@ onMounted(async () => {
   if (sourceId.value) await loadHistoryStatus()
   if (sourceId.value) await loadBenchmarkCoverage()
 })
+watch(() => props.requestPriority, priority => {
+  if (priority !== 'high') return
+  if (!watchlistStore.watchlistSources.length) void watchlistStore.loadWatchlistSources('high')
+  if (!watchlistStore.watchlists.length) void watchlistStore.loadWatchlists('high')
+})
 onUnmounted(() => {
   componentMounted = false
+  preparationGeneration += 1
+  preparationAbortController?.abort()
+  preparationAbortController = null
   sourceActionGeneration += 1
   sourceCloneGeneration += 1
   sourcePublicationGeneration += 1
@@ -2085,6 +2296,6 @@ onUnmounted(() => {
 .market-map-tool__tile--unknown { background: #3c4652 !important; }
 .market-map-tool__tile--selected { outline: 2px solid #f7d87b; outline-offset: -2px; z-index: 2; }
 .market-map-tool__tile:focus-visible { box-shadow: inset 0 0 0 2px #fff; z-index: 4; }
-.market-map-tool__hover { position: absolute; right: 12px; bottom: 12px; z-index: 5; display: flex; flex-direction: column; gap: 2px; max-width: 300px; padding: 8px 10px; border: 1px solid #60758d; background: #18222e; box-shadow: 0 4px 18px #0008; }
+.market-map-tool__hover { position: absolute; right: 12px; bottom: 12px; z-index: 5; pointer-events: none; display: flex; flex-direction: column; gap: 2px; max-width: 300px; padding: 8px 10px; border: 1px solid #60758d; background: #18222e; box-shadow: 0 4px 18px #0008; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 </style>

@@ -1,0 +1,743 @@
+{
+  "schema": 1,
+  "scope": "Strategy-owned Study, Results, Python Library, exposed Strategy route, and Root-reserved Dashboard action inventory for the human-approved platform-usability release.",
+  "owner_boundary": {
+    "strategy": [
+      "StudyLabTool.vue",
+      "ResearchResultsTool.vue",
+      "CodeLibraryTool.vue",
+      "StrategyLabView.vue",
+      "StrategyLabV2View.vue",
+      "their unit/API tests",
+      "strategy_study_journey.spec.ts"
+    ],
+    "strategy_dashboard_reserved": [
+      "frontend/src/views/DashboardView.vue",
+      "frontend/src/stores/dashboard.ts",
+      "frontend/src/components/dashboard/DashboardQuoteWidget.vue",
+      "frontend/src/components/dashboard/DashboardLineChartWidget.vue",
+      "frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue",
+      "frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue",
+      "frontend/src/components/dashboard/DashboardInstrumentSearch.vue",
+      "their focused unit tests",
+      "frontend/tests/e2e/dashboard_usability_journey.spec.ts"
+    ],
+    "tc_shared": [
+      "WorkstationView.vue shell and tool navigation",
+      "WorkstationToolContent.vue routing",
+      "shared presentation, helpers, and flows.spec.ts"
+    ],
+    "shared_navigation_rule": "Strategy consumes the shared Library-to-Study openStudy handoff; changes to the shared shell or coordinator are routed through Root/TC.",
+    "strategy_reserved_e2e": [
+      "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts"
+    ]
+  },
+  "browser_gate": {
+    "status": "pending",
+    "spec": "frontend/tests/e2e/strategy_study_journey.spec.ts",
+    "dashboard_spec": "frontend/tests/e2e/dashboard_usability_journey.spec.ts",
+    "qualification": "Root's earlier R26 terminal result remains historical1pass/2fail on frontend77190340/backenddcd3c823. Root R46 then ran the Strategy/Workstation predecessor source frontend84b88fa8/backend182173f3: 1pass/3fail/zero retries. The immutable Study draft and saved run survived reload and the complete layout duplicate/rename/reorder/delete/cancel/Undo-only acknowledgement/reload journey passed. The Research Results GET detail contained8 artifacts but the selected UI rendered0; Strategy now merges summary projections with full cached detail and has a focused regression. RRG displayed points in the captured frame, but the previous boolean audit did not expose current centers/pixels; the candidate now reports per-frame center/RGBA evidence while retaining the same strong assertion. Root R49 ran the Dashboard predecessor on frontend84b/backend182:1pass/3fail/100.73s; failed-save Cancel+Retry passed, while a request-limit expectation and two controlled layout failures were test-authoring errors, and an ambiguous candidate was dismissed by the document mousedown handler because the menu is teleported. Strategy corrected the request limit and one-failure-per-phase setup, and made outside-click/focus containment portal-aware with mouse, keyboard, and stale-resolution unit regressions. These current corrections are unexecuted. Root owns their next combined browser run and all release gates; no predecessor result is current-source acceptance. The current candidate adds the authored legacy SPY/D1 local backtest lifecycle, V2 controlled owner-row/detail and denied-reference recovery, positive real Study-pin handoff, and per-tool catalogue screenshots; these new browser bodies are pending Root execution.",
+    "workstation_spec": "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts"
+  },
+  "journeys": [
+    {
+      "surface": "StudyLabTool",
+      "route": "Workstation Study Lab tool; /study-lab redirects to the saved workspace tab.",
+      "actions": [
+        "edit factory/custom source",
+        "edit dataset controls and typed parameters"
+      ],
+      "visible_outcome": "The current editable draft and its validation state are clearly separated from any loaded saved-run dataset/source identity; field edits invalidate stale validation.",
+      "unit_evidence": [
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: loads editable factory studies and switches back to custom Python on edit",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: requires the current source to match the latest validation before running",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: does not let a late validation response bless source edited while it was pending",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: keeps a saved run tied to its recorded dataset while the current draft changes",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: preserves saved-run identity when a draft update is applied as a complete parent replacement and remounted"
+      ],
+      "api_evidence": [
+        "POST /code/validate is validation-only: backend/tests/integration/api/test_code.py :: test_code_validation_never_executes_source",
+        "POST /research/runs preserves typed run parameters: backend/tests/integration/api/test_code.py :: test_research_run_merges_defaults_and_rejects_schema_invalid_parameters"
+      ],
+      "browser_evidence": "R35 exposed a test waiter that accepted any POST /data/ensure and could capture unrelated holdings preparation. The candidate waiter now requires instrument SPY, history, D1, adjusted, and the exact selected UTC date bounds before observing success; the existing request assertions and saved-run/draft/reload/Library-return assertions remain intact. R35 used the prior broad waiter, so its captured holdings response does not establish the Study preparation result; the corrected body remains pending. The authored Study flow checks the fresh-user empty Results state before a real Study validate/run, then verifies automatic persisted-row/artifact arrival, an XLB draft snapshot while the saved SPY run stays immutable, reload, and return from Library. R38 exposed complete replacement events that alternately dropped saved-run fields and draft fields (wire revisions5/6/7). Study now composes outgoing complete snapshots from the last completed parent configuration, and the focused parent delete/assign plus remount regression passes; exact-source browser verification remains pending Root. Root R26 passed the ordinary high-low Study prepare/validate/run/results journey on frontend77190340/backenddcd3c823; its other two cases failed (RRG Restore after maximize/reload and fresh Results initially stuck Loading). The R26 trace records a pending research-runs GET but does not establish the cause. The current local candidate gates that initial query on a positive pane-visibility observation; its focused component regression passes, but exact-source browser verification is pending.",
+      "approved_journey": [
+        "J10 Study: edit/validate/run/results/cancel/return supported workflow"
+      ]
+    },
+    {
+      "surface": "StudyLabTool",
+      "route": "Validate action in the Workstation Study Lab tool.",
+      "actions": [
+        "prepare requested datasets",
+        "validate",
+        "show delayed/unavailable/rejected preparation"
+      ],
+      "visible_outcome": "Every independent symbol and benchmark request is submitted before any terminal wait; per-target progress/results remain visible; validation and Run remain gated unless the captured context is current and all required targets are ready.",
+      "unit_evidence": [
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: prepares the selected primary and benchmark history with bounded date intent before validating",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: submits every independent member and benchmark before waiting for a held target",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: submits later targets before closing while the first preparation is still held",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: keeps later preparation outcomes when one target request rejects",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: aborts all obsolete preparation subscriptions when the benchmark context changes",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: aborts stale preparation when the selected symbol changes during validation",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: keeps a saved result visible and does not create a run when selected data preparation is unavailable",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: does not certify a draft for execution when preparation is unavailable during validation"
+      ],
+      "api_evidence": [
+        "TC shared runtime4cfee47689ebeffa05ccae5f1b7cc690f6a871b8 is consumed under its exact development contract. dataPreparationCoordinator.ensure posts /data/ensure and polls owner-scoped /data/requests/{request_id}, validates identity/coverage/lineage/time fields, and honors pending-work state. The four declared delta paths over ce2262ab were imported and all66 active entries verified; Root reports90 focused owner tests/type checks and five browser cases, but family-latency/uncached-timing and combined acceptance remain pending.",
+        "Current Provider runtime b0eae5974801e320b3da858d7e1a33829b206430 is active in provider-runtime-consumption.json; the two declared queue-claim/continuation-reference paths over5cdc were imported and all47 active entries verified. Root reports real-PostgreSQL second-owner ensure and continuation-parent-reference regressions plus the20-case ETF fixture module passed; exact-source CI and combined qualification remain pending.",
+        "Actual PostgreSQL queue/worker execution and Study browser proof against the assembled application remain pending Root's single combined qualification"
+      ],
+      "browser_evidence": "Authored in frontend/tests/e2e/strategy_study_journey.spec.ts against a controlled preparation API: holds SPY while XLK and QQQ benchmark requests become ready, proves all three ensure requests were submitted before the hold resolves, and verifies unavailable SPY blocks validation and Run. This is authored-only UI interaction evidence; real backend/browser qualification remains pending Root's combined gate. A separate authored controlled-API journey changes the selected symbol while the previous SPY poll is held, verifies that the old request is aborted and its late result cannot replace the new XLB/QQQ outcomes, and confirms unavailable data never reaches source validation or run dispatch. This remains discovery-only until Root runs the combined browser gate. Both controlled preparation API fixtures now include symbol identity, covered_ranges, and has_pending_work matching the released Provider074 response contract; the shared validator remains unchanged. The controlled ensure interceptor now matches only the exact Study instrument/history/D1/adjusted/open-ended requests for its declared symbols and continues unrelated workstation data requests. Context-change abort remains asserted. R16 browser execution is pending.",
+      "approved_journey": [
+        "J10 Study: edit/validate/run/results/cancel/return supported workflow"
+      ]
+    },
+    {
+      "surface": "StudyLabTool",
+      "route": "Run action in the Workstation Study Lab tool.",
+      "actions": [
+        "ordinary isolated run",
+        "create/reuse immutable CodeVersion",
+        "typed parameter and universe submission"
+      ],
+      "visible_outcome": "A successful run has a durable run ID, terminal status, metrics/artifacts and a saved dataset summary derived from that run; opening an existing Library version reuses its immutable ID.",
+      "unit_evidence": [
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: validates, starts an immutable isolated study run, and renders artifacts",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: renders schema-defined parameter controls and sends typed values to the immutable run",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: requires an explicit universe before running aggregate factory studies",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: reuses an opened immutable Study definition version without creating a duplicate asset",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: keeps a late-created run durable and publishes it to the open Results surface after Study Lab closes"
+      ],
+      "api_evidence": [
+        "POST /code/assets and POST /research/runs are covered by backend/tests/integration/api/test_code.py :: test_research_run_is_queued_for_isolated_runner and test_research_run_job_preserves_json_parameters_for_isolated_runner",
+        "Run materialization/control validation: backend/tests/integration/api/test_code.py :: test_research_run_honors_study_dataset_controls_and_records_them and test_research_run_rejects_unsupported_study_dataset_controls"
+      ],
+      "browser_evidence": "The authored F8p high_low_breakouts flow asserts the SPY D1 split-adjusted ensure request, waits for the same request_id to become ready before validation, checks typed lookback10 run config, completion and both metrics, and retains the90-second status bound. R13 failed before these assertions because the common TC Study Lab tab did not activate; no successful browser execution is claimed. Both ordinary SPY journeys now select the retained 2024-01-02 through 2025-12-29 range using the Study date controls, assert ensure and immutable run-config/manifest bounds, and require useful finite high-breakout output; browser bodies remain pending Root.",
+      "approved_journey": [
+        "J10 Study: edit/validate/run/results/cancel/return supported workflow"
+      ]
+    },
+    {
+      "surface": "StudyLabTool and ResearchResultsTool",
+      "route": "Persisted run hydration, adjacent Results list, and workspace reload.",
+      "actions": [
+        "show new run without manual refresh",
+        "select/restore saved run",
+        "reload",
+        "retry failed saved-run hydration"
+      ],
+      "visible_outcome": "The Results list and detail expose consistent terminal status/artifact count; the Study view restores immutable saved identity while current draft changes remain separate; retry is explicit on restore failure.",
+      "unit_evidence": [
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: invalidates the persisted-run list when a new Study run is submitted",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: shows a newly completed Study run and its artifact count in the adjacent Results list without manual refresh",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: hydrates a persisted run after a virtual-tool remount",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: switches the displayed result identity when the persisted run selection changes",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: shows a retryable error when a persisted result cannot be restored",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: automatically refreshes the persisted-run list when a Study run is created elsewhere",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: ends a stalled initial list read with a visible retry instead of loading forever",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: clears a list-load error when another Study publishes successful cached runs"
+      ],
+      "api_evidence": [
+        "GET /research/runs list owner/order contract: backend/tests/integration/api/test_code.py :: test_research_runs_list_is_user_scoped_and_newest_first",
+        "GET /research/runs/{id} and list artifact-count projections: backend/tests/unit/routers/test_research_router.py :: test_research_run_detail_projects_artifact_count_from_persisted_artifacts, test_research_run_detail_hides_runs_owned_by_another_user, and test_research_run_list_projects_persisted_artifact_count_for_current_owner",
+        "Structured result persistence: backend/tests/integration/api/test_code.py :: test_research_result_is_collected_as_structured_artifact"
+      ],
+      "browser_evidence": "Pending exact-source browser run. The Study journey asserts automatic Results arrival, eight artifacts in the run list, and eight persisted artifact panes after selecting the completed run detail before and after workspace reload; saved SPY identity remains unchanged after XLB draft edit and reload. R26 observed an initial list GET still pending at capture without establishing its cause. The current candidate aborts that list request after15s and exposes an explicit retry; this recovery is component-tested but not yet browser-executed. A separate controlled one-shot exact-GET 503 case is authored: saved-run detail exposes Retry and returns the persisted artifact; not browser-executed.",
+      "approved_journey": [
+        "J10 Study: edit/validate/run/results/cancel/return supported workflow",
+        "J12 recovery: reload and delayed result restoration"
+      ]
+    },
+    {
+      "surface": "ResearchResultsTool",
+      "route": "Workstation Study Results list/detail and artifact panes.",
+      "actions": [
+        "sort/list by newest stable run order",
+        "load older cursor page",
+        "select/compare runs",
+        "filter and page event/breadth occurrences"
+      ],
+      "visible_outcome": "Newest-first stable pagination keeps selection/comparison; event filters announce matching/visible counts and empty results without changing saved artifacts.",
+      "unit_evidence": [
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: loads older runs with a stable cursor while preserving selection and comparison",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: exposes comparison visibility as pressed state",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: loads full outputs only when comparison opens and reports changed and missing artifacts",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: filters generic event artifacts and publishes the selected event identity",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: makes the complete breadth occurrence list available without overstating the visible count",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: pages large event artifacts and reports visible versus matching occurrences"
+      ],
+      "api_evidence": [
+        "Stable newest-first server pagination: backend/tests/integration/api/test_code.py :: test_research_runs_list_is_user_scoped_and_newest_first",
+        "Cursor ordering: backend/tests/integration/api/test_strategy_lab.py :: test_research_run_listing_uses_stable_created_at_id_cursor"
+      ],
+      "browser_evidence": "The current controlled API browser story authors successful detail hydration, newest-first and older-page ordering, comparison, event filtering, scalar export and promotion. Detail-retry failure behavior remains covered by the existing ResearchResultsTool component test. R13 could not reach the mocked run row because the shared ToolContent remained in Loading tool…; this story has not passed in a browser.",
+      "approved_journey": [
+        "J10 Study: results/cancel/return supported workflow",
+        "J12 recovery: pagination, filters, delayed failures and retry"
+      ]
+    },
+    {
+      "surface": "ResearchResultsTool",
+      "route": "Selected persisted run actions and run recovery.",
+      "actions": [
+        "cancel queued run",
+        "rerun saved snapshot",
+        "rerun latest canonical data"
+      ],
+      "visible_outcome": "Mutation affects the selected persisted run, updates linked caches and status, and provides explicit recovery guidance. A failed cancel/rerun is announced and leaves the action retryable; current draft is not used as a silent snapshot fallback.",
+      "unit_evidence": [
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: cancels a queued persisted research run",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: reports a cancellation failure and leaves the selected run retryable",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: reports a rerun failure without disabling a subsequent retry",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: propagates rerun and cancel mutations through the shared results cache",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: preserves a newer run selection when a slower rerun response resolves",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: identifies the source run when a delayed cancellation fails after selection changes",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: identifies the source run when a delayed rerun fails after selection changes",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: labels terminal and in-flight states with recovery guidance",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: reruns a completed study against its snapshot or latest canonical data",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: keeps an accepted rerun in shared Results cache after the tool unmounts",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: keeps an accepted cancellation in shared Results cache after the tool unmounts",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: publishes a late durable Study rerun to Results after the Study Lab tool unmounts"
+      ],
+      "api_evidence": [
+        "POST /research/runs/{id}/cancel and POST /research/runs/{id}/rerun?snapshot={true|false}; API list/run invariants are exercised by backend/tests/integration/api/test_code.py :: test_research_rerun_snapshot_retains_manifest and test_research_runs_list_is_user_scoped_and_newest_first"
+      ],
+      "browser_evidence": "Three separate controlled one-shot exact-response 503 browser cases are authored: detail GET Retry restores the saved artifact; queued cancel remains available and explicit retry reaches canceled; failed snapshot rerun creates no run until explicit retry queues exactly one successor. Each fault is matched by exact URL/method/response-ID and strict global diagnostics remain enabled. These browser bodies are pending Root; no failures are relabeled green.",
+      "approved_journey": [
+        "J10 Study: results/cancel/return supported workflow",
+        "J12 recovery: pagination, filters, delayed failures and retry"
+      ]
+    },
+    {
+      "surface": "StudyLabTool and ResearchResultsTool",
+      "route": "Completed artifact export and promotion adapters.",
+      "actions": [
+        "export result",
+        "promote selected artifact to supported chart/watchlist/alert/scan/signal/Study targets"
+      ],
+      "visible_outcome": "Only valid outputs and required explicit thresholds/aggregate adapters are offered; created objects retain the source run, artifact and CodeVersion lineage; missing canonical members remain a visible denial.",
+      "unit_evidence": [
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: offers threshold fan-out for a finite named scalar in a structured Study run",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: keeps structured threshold drafts independent per artifact",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: refuses to promote a study when no canonical dataset members are declared",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: promotes a direct Study Lab series through one explicit threshold condition",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: promotes a direct Study Lab scalar through an explicit threshold condition",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: promotes direct single-output range centers as chart plots and latest columns",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: exposes lineage-preserving column and chart promotions for structured scalar and series artifacts",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: keeps a late promotion result attached to its source run after selection changes",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: requires a named artifact when a direct events run contains multiple outputs",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: promotes a structured scalar through an explicit thresholded Boolean condition"
+      ],
+      "api_evidence": [
+        "Backend promotion integration examples: backend/tests/integration/api/test_strategy_lab.py :: test_research_event_artifact_promotes_with_lineage, test_multi_event_run_requires_and_preserves_named_signal_artifact, and test_study_lab_signal_promotion_creates_strategy_definition_reference",
+        "Study result source version remains immutable: backend/tests/integration/api/test_code.py :: test_code_assets_are_immutable_versions"
+      ],
+      "browser_evidence": "Authored in frontend/tests/e2e/strategy_study_journey.spec.ts against controlled API responses: exports the selected run's scalar artifact and promotes its breadth artifact, checking the visible success message. This proves UI wiring only; real API lineage and browser execution remain pending Root's combined gate.",
+      "approved_journey": [
+        "J10 Study: edit/validate/run/results/cancel/return supported workflow",
+        "J12 recovery: reload and delayed result restoration"
+      ]
+    },
+    {
+      "surface": "CodeLibraryTool",
+      "route": "Workstation Python Library.",
+      "actions": [
+        "filter/search",
+        "refresh",
+        "empty/error feedback",
+        "create typed asset",
+        "import/export",
+        "clone/archive",
+        "preserve newer create-form edits when the submitted asset succeeds late"
+      ],
+      "visible_outcome": "Owned assets and empty/loading/error states are announced; create/import/clone/archive/export preserve typed asset and version data without silently mutating an immutable CodeVersion. A late create response adds the submitted asset without discarding a newer form draft and announces the saved asset.",
+      "unit_evidence": [
+        "frontend/tests/unit/components/test_code_library_tool.test.ts :: announces loading and filtered-empty library states politely",
+        "frontend/tests/unit/components/test_code_library_tool.test.ts :: loads, filters, clones, and archives user-owned assets",
+        "frontend/tests/unit/components/test_code_library_tool.test.ts :: creates a typed new study asset from the library form",
+        "frontend/tests/unit/components/test_code_library_tool.test.ts :: announces library request failures as assertive alerts",
+        "frontend/tests/unit/components/test_code_library_tool.test.ts :: keeps create-form control IDs unique across detached Code Library roots",
+        "frontend/tests/unit/components/test_code_library_tool.test.ts :: preserves a newer create draft when the submitted asset is created late"
+      ],
+      "api_evidence": [
+        "GET /code/assets, POST /code/assets, POST /code/assets/import, POST /code/assets/{id}/archive; backend/tests/integration/api/test_code.py :: test_code_assets_support_archive_clone_and_round_trip_import and test_code_asset_kind_and_declared_output_contract_must_match"
+      ],
+      "browser_evidence": "The controlled Library browser story authors visible create/validate, export, import, clone, archive and filter outcomes. R13 returned the seeded API row and all five lazy JS/CSS assets successfully, but the shared ToolContent stayed at Loading tool… and the row was not rendered. TC owns the mount defect; current body is unqualified.",
+      "approved_journey": [
+        "J10 Study: immutable saved version and return into Study workflow",
+        "J12 recovery: delayed validation/refresh failure"
+      ]
+    },
+    {
+      "surface": "CodeLibraryTool",
+      "route": "Python Library asset version editor.",
+      "actions": [
+        "select latest/historical base version",
+        "edit source",
+        "validate",
+        "save as new immutable version",
+        "recover delayed/context-changed validation",
+        "preserve a newer draft/base when the immutable save response is delayed"
+      ],
+      "visible_outcome": "Validation is tied to the exact source/output/base-version snapshot, preserving ordinary editor text including its trailing newline; stale results cannot enable save. A delayed save still records the immutable version but cannot replace a newer draft or selected base, and announces which version was saved.",
+      "unit_evidence": [
+        "frontend/tests/unit/components/test_code_library_tool.test.ts :: opens the latest immutable study version in Study Lab",
+        "frontend/tests/unit/components/test_code_library_tool.test.ts :: opens the selected historical immutable study version in Study Lab",
+        "frontend/tests/unit/components/test_code_library_tool.test.ts :: revalidates a new asset draft when its source changes during validation",
+        "frontend/tests/unit/components/test_code_library_tool.test.ts :: does not reuse a late validation after an existing asset draft changes",
+        "frontend/tests/unit/components/test_code_library_tool.test.ts :: keeps a newer draft and selected base when an immutable version save resolves late",
+        "frontend/tests/unit/components/test_code_library_tool.test.ts :: keeps a validated Library draft retryable after immutable version persistence fails",
+        "frontend/tests/unit/components/test_code_library_tool.test.ts :: announces successful source validation as a polite status",
+        "frontend/tests/unit/components/test_code_library_tool.test.ts :: blocks a syntactically valid source whose output contract disagrees with the asset kind",
+        "frontend/tests/unit/components/test_code_library_tool.test.ts :: accepts unchanged existing-version source with its normal trailing newline",
+        "frontend/tests/unit/components/test_python_source_editor.test.ts :: dismisses the overlay before an outside action without consuming that action click"
+      ],
+      "api_evidence": [
+        "POST /code/validate; POST /code/assets/{id}/versions; backend/tests/integration/api/test_code.py :: test_code_assets_are_immutable_versions and test_code_asset_rejects_defaults_that_violate_its_parameter_schema"
+      ],
+      "browser_evidence": "Root R56 passed one isolated existing-asset diagnostic: a trusted Validate click submitted the exact edited source to /api/v1/code/validate, returned200/valid=true, and displayed Validated. This is not the full cold Study-to-Library journey. Root R58b traced that full-flow click miss to the SDK suggestions being dismissed on document pointerdown and reflowing the target before mouseup. Strategy now places the bounded suggestion popup above the editor component, preserving ordinary Validate/Save hit targets and accessible pointer/keyboard choices. Focused unit test and type-check pass; the complete edited-source validation, immutable save, return and run browser journey remains pending Root.",
+      "approved_journey": [
+        "J10 Study: immutable saved version and return into Study workflow",
+        "J12 recovery: delayed validation/refresh failure"
+      ]
+    },
+    {
+      "surface": "CodeLibraryTool -> StudyLabTool",
+      "route": "Python Library Open in Study Lab / Open selected version in Study Lab.",
+      "actions": [
+        "return/open latest or selected historical immutable version",
+        "validate/run without duplicate asset creation"
+      ],
+      "visible_outcome": "The Study draft displays the selected saved name/source/schema/defaults; opening does not dispatch a run; a later Run uses that exact existing version ID and does not create a duplicate CodeAsset.",
+      "unit_evidence": [
+        "frontend/tests/unit/components/test_code_library_tool.test.ts :: opens the latest immutable study version in Study Lab",
+        "frontend/tests/unit/components/test_code_library_tool.test.ts :: opens the selected historical immutable study version in Study Lab",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: reuses an opened immutable Study definition version without creating a duplicate asset"
+      ],
+      "api_evidence": [
+        "WorkstationView openStudyDefinition forwards versionId/source/output contract/schema/defaults to a new Study Lab tool; subsequent POST /research/runs uses code_version_id and does not POST /code/assets again"
+      ],
+      "browser_evidence": "The authored Library-to-Study flow saves a new immutable version, selects historical v1, opens it through the public Study handoff, and verifies the workspace snapshot carries the exact v1 ID/source without dispatching a run; it then opens latest and runs against the new version ID. Component coverage supports the identity contract. R13 did not reach this story because the common dock activation/mount issue failed earlier; no current-source browser body has verified this expanded path. Actual execution remains pending Root's combined profile.",
+      "approved_journey": [
+        "J01 first-use/return: persistent workspace and automatic preparation",
+        "J10 Study: return via immutable version, validate and run"
+      ]
+    },
+    {
+      "surface": "StrategyLabView",
+      "route": "/legacy/strategy-lab (also linked from /strategy-lab).",
+      "actions": [
+        "create a definition and select SPY through the public symbol picker",
+        "edit and save the definition profile",
+        "add a supported rule and publish a new immutable version",
+        "reload and select the saved definition/version",
+        "run one SPY D1 local historical backtest for 2024-01-01 through 2025-12-29",
+        "read the persisted completed result and its coverage/performance data",
+        "export the run summary",
+        "cancel then confirm definition deletion",
+        "return to the workstation"
+      ],
+      "visible_outcome": "The definition profile and published version survive reload. The ordinary Run backtest action submits test_mode=backtest, SPY D1 and the selected retained date bounds to the existing local historical engine; the persisted owner run is completed with a rules_backtest summary, SPY coverage, equity curve and finite performance fields. The run summary downloads under its run-specific filename. Delete cancellation preserves the definition, confirmation removes it, and Back returns to Workstation. This does not exercise Paper forward, broker, capital or native execution.",
+      "unit_evidence": [
+        "frontend/tests/unit/views/test_strategy_lab_view.test.ts :: exposes the selected strategy and names the new-strategy action",
+        "frontend/tests/unit/views/test_strategy_lab_view.test.ts :: creates a strategy from the visual builder without JSON payload editing",
+        "frontend/tests/unit/views/test_strategy_lab_view.test.ts :: filters and sorts the execution log by individual columns",
+        "frontend/tests/unit/views/test_strategy_lab_view.test.ts :: publishes revisions and runs backtests from the current visual state",
+        "frontend/tests/unit/views/test_strategy_lab_view.test.ts :: preserves promoted Python signal lineage during profile edits and runs its immutable version",
+        "frontend/tests/unit/views/test_strategy_lab_view.test.ts :: supports walk-forward mode, watchlist universes, and implicit parameter batches from original inputs",
+        "frontend/tests/unit/views/test_strategy_lab_view.test.ts :: deletes strategies from the current selection",
+        "frontend/tests/e2e/strategy_study_journey.spec.ts :: legacy Strategy definition, immutable version, local SPY backtest, persisted results, export, delete and return journey (browser pending)"
+      ],
+      "api_evidence": [
+        "Definition/version/run lifecycle: backend/tests/integration/api/test_strategy_lab.py :: test_create_list_version_and_run_strategy, test_update_version_persists_strategy_draft_defaults, test_delete_definition_removes_strategy, and test_walk_forward_run_supports_watchlist_universe",
+        "Results cursor: backend/tests/integration/api/test_strategy_lab.py :: test_research_run_listing_uses_stable_created_at_id_cursor",
+        "POST /strategy-lab/definitions, POST /definitions/{id}/versions, POST /versions/{version_id}/runs and GET /runs/{run_id}; this journey asserts strategy_version_id and canonical result fields. The selected Backtest mode is the local historical engine, not Paper forward."
+      ],
+      "browser_evidence": "New Strategy-owned browser body is authored but not executed. It uses ordinary public controls for create/profile save, version publication/reload, SPY D1 local backtest, persisted API readback, summary export, delete cancel/confirm, and return. The request and persisted read assert the canonical strategy_version_id field, exact UTC date bounds, completed rules_backtest summary, SPY coverage, equity curve and performance values. Root owns browser execution; no result is claimed yet.",
+      "approved_journey": [
+        "J11 supporting: every reachable secondary page, with Strategy execution limits explicit"
+      ]
+    },
+    {
+      "surface": "StrategyLabView",
+      "route": "/legacy/strategy-lab execution mode controls.",
+      "actions": [
+        "Backtest",
+        "Walk forward",
+        "Paper forward"
+      ],
+      "visible_outcome": "This Strategy usability checkpoint qualifies only currently approved supported modes. Paper-forward/forward persistence is not activated or qualified by this task and must remain under its existing roadmap/Root review; its visible presence is not evidence of readiness.",
+      "unit_evidence": [
+        "frontend/tests/unit/views/test_strategy_lab_view.test.ts :: supports walk-forward mode, watchlist universes, and implicit parameter batches from original inputs",
+        "backend/tests/integration/api/test_strategy_lab.py :: test_paper_forward_runs_can_be_refreshed_and_append_monitor_snapshots (historical/API test only; not an activation grant)"
+      ],
+      "api_evidence": [
+        "No paper-forward acceptance is claimed in this usability matrix; retain existing forward/native/broker/capital holds."
+      ],
+      "browser_evidence": "The new legacy Strategy browser body covers the ordinary Backtest mode only, using one bounded local SPY D1 historical run. Walk-forward remains unexercised by this body; Paper forward is not activated or qualified and remains under its existing Root/roadmap boundary.",
+      "approved_journey": [
+        "J11 supporting: every reachable secondary page, with Strategy execution limits explicit"
+      ]
+    },
+    {
+      "surface": "StrategyLabV2View",
+      "route": "/legacy/strategy-lab-v2 (also linked from /strategy-lab-v2).",
+      "actions": [
+        "read Strategies, Trials and Artifacts collections",
+        "select a listed owner resource and inspect its persisted detail",
+        "submit an invalid/foreign immutable pin reference and inspect the denial",
+        "correct the reference and retry the owner-scoped pin read",
+        "return to Workstation"
+      ],
+      "visible_outcome": "The selected resource detail is visible. A deterministic read fixture supplies one explicitly controlled owner-resource row/detail, empty Trials/Artifacts and a denied 404 reference; the user corrects the artifact ID and resolves the read-only immutable pin. No write or API resource execution is issued. A separate full Study journey reads the positive owner pin from the actual persisted run/artifact.",
+      "unit_evidence": [
+        "frontend/tests/unit/views/test_strategy_lab_v2_view.test.ts :: lists owner-scoped v2 strategies and re-reads immutable Study lineage on selection",
+        "frontend/tests/unit/views/test_strategy_lab_v2_view.test.ts :: keeps server cursor pagination explicit and appends only the next owner-scoped page",
+        "frontend/tests/unit/views/test_strategy_lab_v2_view.test.ts :: previews an immutable Study pin by existing IDs using GET only",
+        "frontend/tests/unit/views/test_strategy_lab_v2_view.test.ts :: hydrates a normal-user Study result link and resolves only the pinned GET",
+        "frontend/tests/unit/views/test_strategy_lab_v2_view.test.ts :: rejects incomplete or malformed immutable digests from a Study pin response",
+        "frontend/tests/unit/views/test_strategy_lab_v2_view.test.ts :: rejects a Study pin response whose returned identity does not match the request",
+        "frontend/tests/unit/views/test_strategy_lab_v2_view.test.ts :: does not request a Study pin for non-positive or non-integer identifiers",
+        "frontend/tests/unit/views/test_strategy_lab_v2_view.test.ts :: shows a failed collection read and allows an explicit retry",
+        "frontend/tests/e2e/strategy_study_journey.spec.ts :: controlled V2 collection/detail selection, denied-reference recovery, valid read-only pin and return (browser pending)"
+      ],
+      "api_evidence": [
+        "GET /strategy-lab/v2/study-artifact-references/{run_id}/{artifact_id}; backend/tests/integration/strategy_lab_v2/test_study_artifact_resolution_postgres.py :: test_strategy_api_authenticates_exact_study_reference_before_persistence, test_study_resolver_rejects_persisted_run_version_and_output_drift, and test_reconstructed_worker_hydrator_rechecks_study_after_persisted_drift"
+      ],
+      "browser_evidence": "A controlled read-only route story is authored but not executed: it selects the fixture-backed resource row/detail, reads empty collections, verifies an invalid/foreign reference denial, retries with the correct existing IDs, asserts zero writes, and returns to Workstation. The ordinary Study journey separately checks an actual API-positive immutable pin. Root owns both browser proofs; neither is claimed passed here.",
+      "approved_journey": [
+        "J10 Study: read-only persisted result handoff",
+        "J11 supporting: every reachable secondary page",
+        "J12 recovery: invalid route identity and failed read retry"
+      ]
+    },
+    {
+      "surface": "DashboardView and DashboardLineChartWidget / DashboardQuoteWidget",
+      "route": "/dashboard, using the ordinary signed-in default dashboard.",
+      "actions": [
+        "add and configure a simple SPY chart and quote card",
+        "add a two-target SPY/XLB comparison through the visible comparison editor",
+        "reload the dashboard and restore the saved widgets and comparison"
+      ],
+      "visible_outcome": "Normal seeded backend SPY/XLB OHLCV is shown as colored plotted series, the two-series comparison exposes both labels and values on hover, and the quote price matches the latest returned SPY close to display precision. Widget type, title and comparison targets persist and render after reload. Unused QQQ/DIA comparison defaults are explicitly held by controlled unavailable responses to avoid unrelated preparation work.",
+      "unit_evidence": [
+        "frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts :: submits every selected dataset independently and renders a ready peer while another waits",
+        "frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts :: prepares quote history before reading it and shows a terminal unavailable outcome",
+        "frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts :: existing configuration-save component coverage"
+      ],
+      "api_evidence": [
+        "backend/tests/integration/api/test_dashboards.py :: TestDashboardsFlow.test_widget_crud_and_layout_patch",
+        "backend/tests/unit/routers/test_dashboards_router.py :: TestDashboardsRouter.test_widget_crud_and_layout_patch",
+        "Seeded /ohlcv/{symbol}/D1 responses are checked for actual bars; the browser witness remains pending and does not claim a new acquisition.",
+        "The E2E controls unused default QQQ/DIA preparation with explicit unavailable fixture responses; it does not allow those defaults to trigger unrelated preparation."
+      ],
+      "browser_evidence": "Root R49 ran the predecessor 4-case Dashboard source once:1pass/3fail/100.73s; save rollback/retry passed, with two browser test setup defects and one real portal-dismissal defect. Current limit/retry setup and portal containment corrections are local and unexecuted; Root owns the next combined run.",
+      "approved_journey": [
+        "J01 first-use/return: persistent workspace and useful seeded content",
+        "J11 supporting: normal-user Dashboard widget configuration and restore"
+      ]
+    },
+    {
+      "surface": "DashboardView transactional widget configuration",
+      "route": "/dashboard widget Configure dialog for simple and comparison charts.",
+      "actions": [
+        "change a saved symbol or comparison member",
+        "recover a controlled rejected save with visible Cancel or Retry save"
+      ],
+      "visible_outcome": "A controlled 503 leaves the server's previous SPY configuration unchanged, explains that rollback, and offers the existing Cancel and Retry save actions; retry persists the selected XLB value.",
+      "unit_evidence": [
+        "frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts :: keeps the old saved symbol after a rejected edit and lets the user retry",
+        "frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts :: rolls a rejected comparison target back and shows the same recoverable save error"
+      ],
+      "api_evidence": [
+        "PATCH /api/v1/dashboards/widgets/{id}; persisted default dashboard readback verifies the old and retried values.",
+        "The E2E 503 responses are controlled transition fixtures, not backend reliability evidence."
+      ],
+      "browser_evidence": "Root R49 ran the predecessor 4-case Dashboard source once:1pass/3fail/100.73s; save rollback/retry passed, with two browser test setup defects and one real portal-dismissal defect. Current limit/retry setup and portal containment corrections are local and unexecuted; Root owns the next combined run.",
+      "approved_journey": [
+        "J11 supporting: recoverable edits without losing a saved Dashboard configuration",
+        "J12 recovery: explicit cancel and retry"
+      ]
+    },
+    {
+      "surface": "DashboardView widget layout persistence",
+      "route": "/dashboard edit mode drag and resize controls.",
+      "actions": [
+        "drag a saved Notes widget",
+        "resize the widget",
+        "recover each controlled layout-save failure with Retry layout save"
+      ],
+      "visible_outcome": "Each controlled rejected layout PATCH restores the last saved coordinates or dimensions, announces the rollback, and a successful retry updates persisted layout and the visible widget.",
+      "unit_evidence": [
+        "frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts :: explains a rolled-back layout save and retries the same layout",
+        "frontend/tests/unit/stores/test_dashboard_store.test.ts :: layout persistence and rollback cases"
+      ],
+      "api_evidence": [
+        "PATCH /api/v1/dashboards/tabs/{id}/widgets/layout; backend/tests/unit/routers/test_dashboards_router.py :: TestDashboardsRouter.test_widget_crud_and_layout_patch",
+        "The E2E 503 responses are controlled transition fixtures; no backend failure is claimed."
+      ],
+      "browser_evidence": "Root R49 ran the predecessor 4-case Dashboard source once:1pass/3fail/100.73s; save rollback/retry passed, with two browser test setup defects and one real portal-dismissal defect. Current limit/retry setup and portal containment corrections are local and unexecuted; Root owns the next combined run.",
+      "approved_journey": [
+        "J11 supporting: visible widget-layout persistence",
+        "J12 recovery: restore saved layout and retry"
+      ]
+    },
+    {
+      "surface": "DashboardInstrumentSearch",
+      "route": "/dashboard Configure symbol/comparison member search.",
+      "actions": [
+        "auto-resolve a uniquely identified exact cached ticker even while external discovery is held",
+        "resolve an uncached unique exact query",
+        "choose explicitly from an ambiguous prefix result",
+        "change query while an earlier discovery response is delayed"
+      ],
+      "visible_outcome": "A uniquely resolved cached XLB selection commits without waiting for held external discovery; a superseded late local identity response cannot overwrite the newer query. A controlled uncached QZX exact result resolves only its full identity binding; ambiguous AMB-A/AMB-B candidates are not acquired until AMB-B is explicitly chosen; after OLD is superseded by NEW, only a current NEW candidate reaches acquisition and saved config.",
+      "unit_evidence": [
+        "frontend/tests/unit/components/test_dashboard_instrument_search.test.ts :: keeps prefix discovery results as candidates until the user explicitly selects one",
+        "frontend/tests/unit/components/test_dashboard_instrument_search.test.ts :: resolves one unique exact ticker without exposing provider choices",
+        "frontend/tests/unit/components/test_dashboard_instrument_search.test.ts :: does not guess when an exact ticker has multiple listing candidates",
+        "frontend/tests/unit/components/test_dashboard_instrument_search.test.ts :: ignores a superseded discovery response after the query changes",
+        "frontend/tests/unit/components/test_dashboard_instrument_search.test.ts :: selects an exact cached listing while external discovery remains held",
+        "frontend/tests/unit/components/test_dashboard_instrument_search.test.ts :: ignores a late exact cached resolution after a newer search intent"
+      ],
+      "api_evidence": [
+        "POST /api/v1/instruments/discover and /api/v1/instruments/acquire plus shared /api/v1/data/ensure contract.",
+        "The E2E discovery, identity resolution, unused-default QQQ/DIA preparation and unavailable-history responses are controlled route fixtures. This is not genuine source discovery, provider acquisition, or a history-fetch claim."
+      ],
+      "browser_evidence": "Root R57 is terminal 5 pass / 4 fail in 396.66s on the predecessor source. Its exact cached-XLB selection failure remains the owned issue addressed here; the new local resolver and held-discovery behavior have not run in a browser.",
+      "approved_journey": [
+        "J01 first-use/return: identity-aware instrument selection",
+        "J11 supporting: listing-safe Dashboard configuration",
+        "J12 recovery: stale search response fencing"
+      ]
+    },
+    {
+      "surface": "Dashboard Advanced Chart and Instrument Details",
+      "route": "/dashboard via public widget catalogue and Configure actions.",
+      "actions": [
+        "create an Advanced Chart with its seeded SPY D1 candle configuration",
+        "show cached SPY candles and real local bars while its D1 history preparation request is held",
+        "create Instrument Details and select seeded XLB through the ordinary search control",
+        "show real XLB profile metadata and local D1 bars while XLB preparation is held independently",
+        "release each preparation separately, verify the submitted target/dataset request, then reload and verify both saved widgets"
+      ],
+      "visible_outcome": "The Advanced Chart paints actual seeded SPY candle pixels with a finite returned-bar witness during held SPY preparation; Instrument Details shows the actual XLB name and at least two returned descriptive fields with actual XLB bars during its separate held preparation. Each real ensure request is then released and checked, and both widget identities/configurations and useful content survive reload.",
+      "unit_evidence": [
+        "frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts :: cached chart data remains visible while preparation is pending and stale contexts are fenced",
+        "frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts :: cached profile/history remains useful while preparation is pending and contexts are fenced",
+        "frontend/tests/unit/components/test_dashboard_instrument_search.test.ts :: selects an exact cached listing while external discovery remains held"
+      ],
+      "api_evidence": [
+        "GET /api/v1/ohlcv/local/SPY/D1?limit=500 and GET /api/v1/instruments/XLB plus the local XLB D1 history response are ordinary backend reads.",
+        "The E2E holds only matching POST /api/v1/data/ensure requests, then continues those real requests and asserts their instrument target, D1 timeframe, profile/history datasets and success response. It does not fabricate profile, OHLCV, or preparation results."
+      ],
+      "browser_evidence": "Authored and discovered as a fifth Dashboard journey; browser body is pending Root's next combined candidate. The frozen R57 run does not include this added journey or the exact-cache search repair.",
+      "approved_journey": [
+        "J01 first-use/return: useful cached market context",
+        "J11 supporting: independent history-backed widget preparation and persisted dashboard configuration"
+      ]
+    }
+  ],
+  "known_coverage_gaps": [
+    "Root R57 is terminal 5 pass / 4 fail in 396.66s on its frozen predecessor: two Strategy-owned failures were the cached exact-XLB selection path and the whole Study-to-Library cold-flow source witness; TC owns the asynchronous EasyScan lifecycle repair. The current cached-search and five-case Dashboard source changes are focused-checked/discovered only; Root must execute them on a new combined candidate.",
+    "The Library-to-Study return, legacy Strategy local-backtest lifecycle, and V2 read-only resource/pin recovery journeys are now authored but not executed. Root owns exact-source browser execution. The controlled V2 resource/denial fixture is not real owner-negative API proof; the positive Study pin uses the actual persisted run/artifact path.",
+    "The visible Paper forward mode is not activated or qualified by this usability scope; retain existing forward/native/broker/capital holds and report the boundary rather than treating UI presence as support."
+  ],
+  "safety": "No native-engine trial, broker/capital action, provider-live request, forward activation, or target/deployment claim is included.",
+  "approved_plan": " /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/APPROVED-PLAN.md",
+  "tc_common_runtime": {
+    "owner": "TC",
+    "current_source": "d954436898a254ba9bb461ebc86a55f248172d5d",
+    "contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-d9544368-common-runtime-development-consumption-contract.json",
+    "contract_sha256": "40d280acde2d67ee082998c63f5ee8c3941219080de67dfb9a6a3a190f6e2ddc",
+    "active_manifest_entries": 86,
+    "qualification": "Exact development context consumption only: Strategy imported its single declared WorkstationView.vue path after the Root old-byte guard matched; all86 source rows match SHA256/Git blob/status_from139/executable mode. Browser, exact-source CI, combined, and release acceptance remain pending Root.",
+    "delta_paths_over_previous": 1,
+    "previous_source": "e902e83597661de1e5a636a2d94902b0fe01b747",
+    "historical_delta_paths_over_d5": 10,
+    "superseded_runtime": {
+      "source": "ce2262ab2d47fc1ccda96f0c2aa7c8839e4e03f9",
+      "contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-ce2262ab-common-runtime-development-consumption-contract.json",
+      "contract_sha256": "b2a41e1bb3734b2a48d8bf828e55dacb1aac8b9d8d44bd7bd6484467b0e6be2c",
+      "delta_paths_over_previous": 19,
+      "previous_source": "5a783e745b211cfe8b3dd20cb77d275149f15de2"
+    },
+    "previous_runtime": {
+      "source": "45ea51bfa78b6ae167462b518358164a5a3e29f4",
+      "contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-45ea51bf-common-runtime-development-consumption-contract.json",
+      "contract_sha256": "1126b87449853c3e9b52aff4a19d0efd786ad833d16d52b2b76f28914f8dde6c",
+      "active_manifest_entries": 77,
+      "delta_paths_over_previous": 10,
+      "previous_source": "77190340a4a2335e8f7f9a30ee32ded599a714ef"
+    }
+  },
+  "workstation_lifecycle": {
+    "owner": "Strategy browser-spec author; TC owns shared workstation product and global matrix",
+    "spec": "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts",
+    "source_pin": "TC e902e83597661de1e5a636a2d94902b0fe01b747; Provider22c31cd3e7f35e361e286ef40576d379aaf44449; ETF SearchBar remains exact a0c5250 dependency",
+    "status": "authored_with_R57_terminal_evidence_and_current_corrections_pending_Root_browser_run",
+    "journeys": [
+      {
+        "id": "WL1",
+        "actions": [
+          "duplicate factory layout",
+          "switch copied panels",
+          "reload",
+          "return to original"
+        ],
+        "visible_outcome": "The copy is derived from the authenticated canonical US Top Down layout returned by assertCanonicalCoverage. For every copied window, the spec resolves its TOOL_OUTCOMES mapping and runs the corresponding useful-content assertion; missing mappings fail. The copy retains distinct tab/window identities and every default panel's mapped behavior, while original content remains useful after reload.",
+        "evidence": [
+          "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts :: duplicates a factory layout with remapped panels, checks every canonical US Top Down window's mapped useful outcome, preserves the original, and reloads both",
+          "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts :: assertCanonicalCoverage and TOOL_OUTCOMES",
+          "frontend/src/views/WorkstationView.vue :: button aria-label=\"Duplicate layout\"",
+          "frontend/src/stores/workspace.ts :: cloneActiveTab"
+        ]
+      },
+      {
+        "id": "WL2",
+        "actions": [
+          "derive the canonical 21-entry authenticated tool catalogue and all 8 default factory layouts",
+          "fail if any catalogue entry or factory window lacks a useful-outcome mapping",
+          "close and recreate all 21 catalogue entries through public Add tool controls",
+          "run a one-instrument EasyScan, wait for that exact run to complete with useful coverage, and select its retained result in Market Gauge",
+          "inspect Study Lab run and persisted Study Results artifact, create/validate/save a Python Library asset",
+          "seed My Favorites through the Chart window star action before reading its rows",
+          "verify chart and ratio series-color pixels, Market Map tile selection, and Relative Rotation marker-arc centers plus keyboard tooltip"
+        ],
+        "visible_outcome": "The spec derives tool titles and the eight factory layouts from the authenticated canonical endpoints; missing catalogue/factory mappings fail. The factory Breadth window is mapped to the canonical breadth outcome, and the recreation flow closes alias panels by canonical catalogue key plus tool_type (for example breadth/breadth-summary and chart/primary-chart) before opening the public catalogue entry. All21 catalogue entries have visible outcomes including My Favorites populated by the public Chart star action, actual EasyScan coverage and finite Gauge reading, ordinary Study output in Results, saved validated Python Library asset, Market Map selection, chart/ratio series-color paint, and Relative Rotation markers captured from the current document's latest canvas frame: only arcs at least 3.4 DPR are eligible, centers must be finite, and each center pixel must be opaque and match a canonical state color. The failure report retains canvas bounds, frame counter, centers and RGBA values. Keyboard plot interaction remains asserted. My Favorites Last and Chg % are compared to the latest two real canonical local SPY D1 bars; benchmark/sector configured-return checks remain. The EasyScan assertion waits for its exact run ID to appear as completed with nonzero evaluated coverage, then requires the visible counts and match total to agree with that terminal API result. The broad catalogue story retains its240-second test timeout. Root R57 terminal evidence includes full RRG graph/math/tails/selection/resize/maximize/copy/tab restore pass; TC's separate EasyScan async-polling defect remains assigned and this stricter recreated-tool journey is pending Root execution. Each successful one-of-21 catalogue panel assertion also attaches a named screenshot for Root review. Breadth requires actual successful evaluation with positive eligible members; pass count, pass percentage, excluded/requested counts and coverage are checked against the response members and independent arithmetic before selecting a result row.",
+        "evidence": [
+          "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts :: closes and recreates every canonical catalogue tool with a per-family useful-content witness",
+          "backend/app/services/workstation_tool_catalogue.py :: authenticated canonical 21-tool catalogue",
+          "backend/app/routers/workspaces.py::_factory_tabs :: eight canonical factory layouts and their window definitions",
+          "frontend/src/components/workstation/RelativeRotationTool.vue :: 3.5-DPR latest-point arcs and keyboard tooltip interaction",
+          "frontend/src/components/workstation/MarketGaugeTool.vue and EasyScanTool.vue :: retained scan selection and evaluated/universe coverage",
+          "The Strategy-owned catalogue journey attaches one named screenshot immediately after each of the21 successful useful-content assertions, preserving the final user-visible panel state as review evidence."
+        ],
+        "browser_evidence": "Root R57 terminal 5 pass / 4 fail: the full RRG graph/math/tail/selection/resize/maximize/copy/tab-restore journey passed. The independent EasyScan result was queued and TC owns the async polling product repair. The Strategy My Favorites canonical Last/Chg % comparison and exact terminal EasyScan browser assertion are authored but not run; Root owns the next combined run."
+      },
+      {
+        "id": "WL3",
+        "actions": [
+          "rename layout",
+          "reorder tabs",
+          "cancel then confirm deletion",
+          "Undo",
+          "reload"
+        ],
+        "visible_outcome": "Cancel preserves the renamed layout; confirmation removes it; public Undo restores that same stable key and original renamed name. The fresh snapshot request initiated for Undo is acknowledged successfully, visible Workspace save status reaches saved, and the original renamed tab survives reload with data-bearing Benchmarks content.",
+        "evidence": [
+          "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts :: renames, reorders, cancels and confirms layout deletion, then undoes and reloads",
+          "frontend/src/views/WorkstationView.vue :: Rename layout input, Delete layout <name>, public Undo",
+          "R35 showed the renamed tab absent after reload. The corrected candidate arms waitForRequest before public Undo, matching a newly initiated PUT /workspaces/{id}/snapshot containing the restored stable key and original renamed name; it awaits that exact request response, checks the persisted payload and visible Workspace save status=saved, then reloads without another mutation. TC owns the shared save-feedback implementation; this body remains pending Root execution."
+        ]
+      },
+      {
+        "id": "WL4",
+        "actions": [
+          "duplicate workspace",
+          "cancel then confirm deletion",
+          "resize pane",
+          "maximize/restore",
+          "reload"
+        ],
+        "visible_outcome": "Workspace deletion cancellation preserves the copy; confirmation removes only the duplicate and the source workspace retains the same benchmark column configuration and ordered member identities after reload and resize, with finite numeric results visibly loaded at each checkpoint.",
+        "evidence": [
+          "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts :: duplicates and safely deletes a workspace while preserving its source and tool content through resize and maximize",
+          "frontend/src/views/WorkstationView.vue :: Duplicate workspace and Delete workspace",
+          "frontend/src/stores/workspace.ts :: cloneWorkspace and deleteCurrentWorkspace"
+        ],
+        "browser_evidence": "Root R33 screenshot and R34 exact-source bounded diagnostic show the Chart renders after resize/maximize/restore: .chart-tool canvas.first() is canvas.drawing-canvas with0 nontransparent/0 exact series pixels; .chart-tool .uplot canvas has4223 nontransparent/1696 exact series-color pixels. The test oracle now reads .chart-tool .uplot canvas and still requires >20 actual series-color pixels. R35 passed the Chart paint assertion but failed workspace comparison because initial rows were loading placeholders while later rows had live quotes. The candidate compares stable member names/order/count and visible columns, separately requiring at least two finite numeric result cells for source, duplicate, restored source and reload; it does not freeze changing quote text. R38 showed responsive YTD visibility differed because the test compared the source layout at its initial viewport with restored content at1100px; the candidate keeps the useful narrow-width Chart check and restores the original viewport before comparing source columns. The browser journey remains pending Root."
+      }
+    ],
+    "execution_boundary": "Focused Vitest checks passed 196/196 across Research Results, Strategy Lab v1, Strategy Lab v2, and Study Lab modules; frontend vue-tsc passes. Playwright discovery lists16 owned Study/workstation browser bodies. The E2E reference preflight reports no actionable unbound references; its separate existing fixture/type and missing Node ambient diagnostics are not a full E2E type pass. The current Breadth evaluation, Study dock-fit, per-tool screenshots, legacy SPY/D1 backtest, V2 controlled resource/pin recovery, and existing Study/Results/Library/workstation journeys remain unexecuted in a browser. Root owns the exact-source combined browser/profile and release gates. No Strategy browser fixture, Docker, native, provider, or production action ran."
+  },
+  "shared_source_consumptions": [
+    {
+      "owner": "ETF SearchBar producer; Strategy consumes released bytes without editing the shared component or its tests",
+      "source_commit": "a0c5250ee962452f55ad6410f4af6404f2bcc045",
+      "contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/etfa0c5250e-shared-search-development-consumption-contract.json",
+      "contract_sha256": "75be0b287ef0f83d9d193df64fb59e25e84ef1d4dedec9d1ab75affb815d8a94",
+      "paths": [
+        {
+          "path": "frontend/src/components/common/SearchBar.vue",
+          "git_blob": "38b7fd3bbdf998553ca0c407a6c7a6050c3f04b6",
+          "sha256": "3bfcd2461db4855d4363e5e089daa74dd57d75ed2a9e5b6dc3ee9aa426542af2"
+        },
+        {
+          "path": "frontend/tests/unit/components/test_search_bar.test.ts",
+          "git_blob": "5f3b2f70fc0837a4e71737589a3a7a85929546d5",
+          "sha256": "b422836247802690bbc7bd2d47ddfc7e5e3627bf4185534bb59590742b5f95a2"
+        }
+      ],
+      "import_check": "The earlier bfc39453 import is preserved as superseded history. Root verified both worktree paths still matched those old bfc blobs before this import. Restored only the two declared paths from a0c5250ee962452f55ad6410f4af6404f2bcc045; current absolute worktree files match both new contract Git blobs and SHA256 values. No unrelated path was restored; the producer's43/43 tests and type-check were not rerun in this consumer.",
+      "source_contract": "Shared automatic exact/provisional ticker preparation, default discovery, history plus ETF holdings datasets, ambiguity handling, and stale/strict-identity fencing; no duplicate producer logic.",
+      "qualification": "Development dependency consumption only. Root reports43/43 ETF tests and type-check for a0c5250; no Strategy browser, combined profile, release, deployment, or live-source acceptance is implied.",
+      "supersedes": {
+        "source_commit": "bfc39453bbc986f736e1187434df48d716351e6e",
+        "contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/etfbfc39453-shared-search-development-consumption-contract.json",
+        "contract_sha256": "88bb2743de90c5b80f0863c3ca7d9e8a1be7c61cb3a1001d9c0bdac4da4e075c"
+      },
+      "prior_import_claim_superseded": "The initial Strategy receipt incorrectly said the two paths were already byte-identical. Root review found the pre-import worktree hashes were SearchBar.vue=e860fcaf6a868cf7a183a08886758fd23b491ddecc75d479b834aea5eff322e5 and test_search_bar.test.ts=2ea86d91f80f77d9cd68cd5ffc4be35db2d2b86c42f6467865366cf411ec2db5. The earlier validation row is preserved; the corrected receipt records the actual import below."
+    },
+    {
+      "owner": "TC Study parent configuration mirror; Strategy consumes exact released component and matching regression",
+      "source_commit": "f3aa8c14d5bfce5cedac08baa7a27c1e62202686",
+      "contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-f3aa8c14-study-recursion-development-consumption-contract.json",
+      "contract_sha256": "9dc14cb015f03e701054c8c7e3e4067cc4809b392b714110469fa9a7f6f5a469",
+      "paths": [
+        {
+          "path": "frontend/src/components/workstation/StudyLabTool.vue",
+          "git_blob": "e416c6f498982206c2491850a40e962592b96dda",
+          "sha256": "0dae4ef98f440896334cb435bafc65f5c5f0d767c7f44898ed5b96130f2c5264"
+        },
+        {
+          "path": "frontend/tests/unit/components/test_study_lab_tool.test.ts",
+          "git_blob": "bce13f806092f0c6e4cda4dc1a987bd4a878acd7",
+          "sha256": "e2df24d48b0cdf7bd3c8a7dac2e08a545292328b2c5141e1a6d38ad7e8d117ea"
+        }
+      ],
+      "import_check": "Both worktree paths matched the declared old SHA256 values at source5703f214; exact f3 blobs/SHA/mode100644 verified and only those two paths were materialized. `git restore` could not create the shared index.lock on the read-only metadata mount; the exact guarded Git blobs were written to the owned worktree and reverified. No other path changed by import.",
+      "source_contract": "Batched parent configuration updates no longer synchronously emit intermediate delete/assign states through the Study configuration mirror.",
+      "qualification": "TC reports complete focused Study module64/64 pass on exact f3 source. Strategy type-check and Playwright discovery passed after import and retained-range spec edits; no Study unit replay or browser body."
+    },
+    {
+      "owner": "Provider controlled E2E seed source; Strategy consumes only the released fixture identity/history correction",
+      "source_commit": "f84c7020932558ecfc52a355c24ef360ff71386c",
+      "contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providerf84c7020-runtime-development-consumption-contract.json",
+      "contract_sha256": "d0476cba8b9973081ffcfac3cf090c271aafd0b0567e2fc3819a6e79fe3b90b7",
+      "paths": [
+        {
+          "path": "backend/app/services/e2e_seed.py",
+          "git_blob": "f202f9ca3f51d215291be788332221b4b176b571",
+          "sha256": "50bffcce84010c43a2712829237d3eb69ac7c403100e9b5fac14a9657d8e0975"
+        },
+        {
+          "path": "backend/tests/unit/services/test_e2e_seed.py",
+          "git_blob": "f5eac537d00a6accdaf9aa6123d53c2357a7680c",
+          "sha256": "0258607e702a6528be3780a3451a21f707784440f563842991d27c317545342d"
+        }
+      ],
+      "import_check": "All58 released f84 manifest paths now match actual Strategy consumer Git blob/SHA256/executable mode. The two seed deltas matched abed before import. Root later identified that baskets.py and test_baskets.py had remained at older Provider33 bytes; the exact two-path gap-closure authority was applied after old/new guards. No other file was restored.",
+      "source_contract": "Controlled fixture supplies truthful resolved SPY identity and canonical adjusted D1 history through the fixed 2025-12-29 end; no provider entitlement, live history, or native admission is fabricated.",
+      "qualification": "Root reports seven focused seed tests and pinned Ruff check/format for the exact two paths. Strategy did not rerun Provider tests; Root owns fixture rebuild and browser execution.",
+      "prior_import_claim_superseded": "The first f84 import receipt described the two basket paths as newer branch-owned bytes. Root compared them to Provider33 and established they were exactly old Provider33 bytes; the current consumer now imports the authorized f84 basket fixes. The old validation row remains historical; ETF7ea files were not accessed."
+    }
+  ],
+  "provider_runtime": {
+    "owner": "Provider",
+    "current_source": "22c31cd3e7f35e361e286ef40576d379aaf44449",
+    "contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider22c31cd3-runtime-development-consumption-contract.json",
+    "contract_sha256": "a5079b0eb78a8fd67e48e94a7d749bc171ffa2b21165fc9c59c405501dc2db85",
+    "strategy_import_paths": [
+      "backend/app/config.py",
+      "backend/app/providers/optional_market_data.py",
+      "backend/app/services/provider_runtime.py",
+      "backend/app/tasks/data_tasks.py",
+      "backend/tests/unit/providers/test_optional_market_data.py",
+      "backend/tests/unit/services/test_data_preparation_history_planning.py"
+    ],
+    "source_manifest_entries_verified": 67,
+    "qualification": "Exact Provider22c31cd3 development import; six declared paths and all67 source records match the Root manifest. This is development context only; full browser/profile, exact-source CI, integrated and release acceptance remain pending."
+  }
+}

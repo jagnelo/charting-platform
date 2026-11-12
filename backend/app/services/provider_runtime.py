@@ -5,6 +5,7 @@ import contextvars
 import inspect
 import json
 import logging
+import math
 import random
 import time
 from collections.abc import Callable
@@ -21,7 +22,8 @@ import httpx
 from sqlalchemy import and_, or_, select
 from sqlalchemy.dialects.postgresql import insert as postgresql_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
+from sqlalchemy.orm.attributes import set_committed_value
 
 from app.config import (
     marketdata_app_reviewed_plan,
@@ -99,6 +101,12 @@ _NATIVE_ETF_INITIAL_QUALIFICATION_CONTEXT: contextvars.ContextVar[object | None]
 _EXPLICIT_ACQUISITION_SEAL = object()
 _EXPLICIT_ACQUISITION_CONTEXT: contextvars.ContextVar[object | None] = contextvars.ContextVar(
     "provider_runtime_explicit_acquisition", default=None
+)
+_HISTORY_BOUND_WITNESS_CONTEXT: contextvars.ContextVar[dict[str, Any] | None] = (
+    contextvars.ContextVar("provider_runtime_history_bound_witness", default=None)
+)
+_BOUNDED_UNKNOWN_HISTORY_CONTEXT: contextvars.ContextVar[dict[str, Any] | None] = (
+    contextvars.ContextVar("provider_runtime_bounded_unknown_history", default=None)
 )
 _ETF_INITIAL_QUALIFICATION_OPERATIONS = frozenset(
     {
@@ -208,7 +216,15 @@ def bind_explicit_provider_acquisition(
     allowed_operations = {
         (ProviderCapability.INSTRUMENT_SEARCH, "search_instruments"),
         (ProviderCapability.INSTRUMENT_METADATA, "get_instrument_profile"),
+        (ProviderCapability.INSTRUMENT_EVENTS, "fetch_instrument_events"),
+        # Server-owned quota refresh jobs are queued only from an explicit
+        # eligible operation and remain restricted to their configured source.
+        (ProviderCapability.ACCOUNT_USAGE, "fetch_account_usage"),
         (ProviderCapability.PRICE_HISTORY, "fetch_ohlcv"),
+        (ProviderCapability.PRICE_HISTORY, "get_earliest_timestamp"),
+        # Durable server-owned preparation can invoke the existing bounded
+        # multi-provider history planner for one exact canonical instrument.
+        (ProviderCapability.PRICE_HISTORY, "bulk_fetch"),
         (ProviderCapability.ETF_HOLDINGS, "fetch_etf_holdings_latest"),
     }
     if not operations.issubset(allowed_operations):
@@ -1047,6 +1063,15 @@ class ResolvedProvider:
     support_status: str = SUPPORT_STATUS_UNKNOWN
     has_symbol_binding: bool = False
     entitlement: ProviderEntitlement | None = None
+    routing_score: Decimal | None = None
+
+    @property
+    def effective_score(self) -> Decimal:
+        """Return the live routing score without requiring an ORM write."""
+
+        if self.routing_score is not None:
+            return self.routing_score
+        return _effective_score(self.policy, self.health)
 
 
 @dataclass(slots=True)
@@ -1058,6 +1083,21 @@ class ProviderExecutionResult:
     result: Any
     response_payloads: tuple[Any, ...] = ()
     request_log_id: int | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class _ProviderQuotaContractReservation:
+    """Caller-local windows or independently committed window IDs.
+
+    The normal PostgreSQL path commits the application quota reservation
+    before provider I/O and reacquires those rows only to settle it. A local
+    window list is retained for first-use seeding, where the DataSource row is
+    not yet visible outside the caller's transaction, and for non-PostgreSQL
+    test/runtime binds.
+    """
+
+    local_windows: tuple[Any, ...] | None
+    window_ids: tuple[int, ...] = ()
 
 
 def provider_entitlement_admission(
@@ -1169,6 +1209,7 @@ def _operation_family(operation: str) -> str:
 PROVIDER_SERVICE_OPERATION_ALIASES = {
     "bulk_fetch": "fetch_ohlcv",
     "fetch_rfr_ohlcv": "fetch_ohlcv",
+    "get_earliest_timestamp": "fetch_ohlcv",
     "reconcile_universe_page": "discover_universe_page",
 }
 
@@ -1400,9 +1441,140 @@ def _dimension_applies_to_operation(dimension: dict[str, Any], operation: str) -
     if not isinstance(applies_to, list) or not applies_to:
         return False
     family = _operation_family(operation)
-    return operation in {str(item) for item in applies_to} or family in {
-        str(item) for item in applies_to
+    applies = {str(item) for item in applies_to}
+    upstream_family = PROVIDER_SERVICE_OPERATION_ALIASES.get(family, family)
+    return operation in applies or family in applies or upstream_family in applies
+
+
+def _history_witness_admits(
+    witness: dict[str, Any] | None,
+    *,
+    data_source: DataSource,
+    entitlement: ProviderEntitlement,
+    history_reason: str | None,
+    capability: ProviderCapability,
+    instrument_id: int | None,
+    provider_symbol: str | None,
+    operation: str,
+    adjusted: bool | None,
+    requested_start: datetime | None,
+    now: datetime,
+) -> bool:
+    """Validate the worker's short-lived, exact-source bound witness."""
+
+    # A source-specific earliest-history observation may fill a missing bound,
+    # but it cannot supersede an explicit or malformed entitlement contract.
+    if (
+        not isinstance(witness, dict)
+        or history_reason != "history_depth_unknown"
+        or capability != ProviderCapability.PRICE_HISTORY
+    ):
+        return False
+    parts = operation.split(":", 1)
+    if len(parts) != 2 or parts[0] != "fetch_ohlcv" or requested_start is None:
+        return False
+    if (
+        witness.get("version") != 1
+        or witness.get("provider_name") != data_source.name
+        or witness.get("data_source_id") != data_source.id
+        or witness.get("instrument_id") != instrument_id
+        or witness.get("canonical_symbol") != str(provider_symbol or "").strip().upper()
+        or witness.get("timeframe") != parts[1]
+        or witness.get("adjusted") is not adjusted
+        or witness.get("adjusted") is not False
+        or witness.get("adjustment_basis") != "raw"
+        or witness.get("feed_scope") != "twelve_data:time_series"
+        or witness.get("session") != "regular"
+        or witness.get("currency") is None
+        or witness.get("entitlement_revision") != entitlement.revision
+    ):
+        return False
+    try:
+        earliest = _as_utc(datetime.fromisoformat(str(witness["earliest_start"])))
+        observed_at = _as_utc(datetime.fromisoformat(str(witness["observed_at"])))
+        stale_after = _as_utc(datetime.fromisoformat(str(witness["stale_after"])))
+        requested = _as_utc(requested_start)
+    except (KeyError, TypeError, ValueError):
+        return False
+    return observed_at <= now and stale_after > now and requested >= earliest
+
+
+def _bounded_unknown_history_admits(
+    scope: dict[str, Any] | None,
+    *,
+    provider_name: str,
+    instrument_id: int | None,
+    provider_symbol: str | None,
+    operation: str,
+    adjusted: bool | None,
+    requested_start: datetime | None,
+    now: datetime,
+) -> bool:
+    if not isinstance(scope, dict) or requested_start is None:
+        return False
+    parts = operation.split(":", 1)
+    if len(parts) != 2 or parts[0] != "fetch_ohlcv":
+        return False
+    try:
+        scope_start = _as_utc(datetime.fromisoformat(str(scope["start_at"])))
+        scope_end = _as_utc(datetime.fromisoformat(str(scope["end_at"])))
+        requested = _as_utc(requested_start)
+    except (KeyError, TypeError, ValueError):
+        return False
+    return (
+        scope.get("provider_name") == provider_name
+        and scope.get("instrument_id") == instrument_id
+        and scope.get("canonical_symbol") == str(provider_symbol or "").strip().upper()
+        and scope.get("timeframe") == parts[1]
+        and scope.get("adjusted") is adjusted
+        and scope_start == requested
+        and scope_start < scope_end
+        and scope.get("expires_at")
+        and _as_utc(datetime.fromisoformat(str(scope["expires_at"]))) > now
+    )
+
+
+@contextmanager
+def bind_history_bound_witness(witness: dict[str, Any] | None):
+    """Bind a persisted worker witness to one subsequent history resolution."""
+
+    token = _HISTORY_BOUND_WITNESS_CONTEXT.set(dict(witness) if isinstance(witness, dict) else None)
+    try:
+        yield
+    finally:
+        _HISTORY_BOUND_WITNESS_CONTEXT.reset(token)
+
+
+@contextmanager
+def bind_bounded_unknown_history(
+    *,
+    provider_name: str,
+    instrument_id: int,
+    canonical_symbol: str,
+    timeframe: str,
+    adjusted: bool,
+    start_at: datetime,
+    end_at: datetime,
+):
+    """Allow one exact bounded request when this source publishes no floor."""
+
+    if end_at <= start_at:
+        raise ValueError("bounded unknown-history scope must have a positive interval")
+    scope = {
+        "provider_name": provider_name,
+        "instrument_id": instrument_id,
+        "canonical_symbol": canonical_symbol.strip().upper(),
+        "timeframe": timeframe,
+        "adjusted": adjusted,
+        "start_at": _as_utc(start_at).isoformat(),
+        "end_at": _as_utc(end_at).isoformat(),
+        "expires_at": (datetime.now(UTC) + timedelta(minutes=10)).isoformat(),
     }
+    token = _BOUNDED_UNKNOWN_HISTORY_CONTEXT.set(scope)
+    try:
+        yield scope
+    finally:
+        _BOUNDED_UNKNOWN_HISTORY_CONTEXT.reset(token)
 
 
 def _usage_cost_for_operation(
@@ -2116,6 +2288,20 @@ class TokenBucket:
         self.tokens -= units
         return True
 
+    def retry_after_seconds(self, units: int = 1) -> float | None:
+        """Return the local refill delay, or None when the burst can never admit it."""
+        if isinstance(units, bool) or not isinstance(units, int) or units <= 0:
+            raise ProviderQuotaUnknownError(
+                "provider minute bucket requires positive integer acquisition units"
+            )
+        if units > self.capacity:
+            return None
+        now = time.monotonic()
+        elapsed = now - self.last_refill
+        self.last_refill = now
+        self.tokens = min(self.capacity, self.tokens + elapsed * self.rate_per_second)
+        return max(0.0, (units - self.tokens) / self.rate_per_second)
+
 
 def _ewma(previous: Decimal, current: Decimal) -> Decimal:
     if previous == Decimal("0"):
@@ -2524,12 +2710,17 @@ def quota_contract_missing_dimensions(policy: ProviderPolicy) -> list[str]:
 
 
 def account_usage_reconciled_dimensions(
-    policy: ProviderPolicy, operation: str = "fetch_account_usage"
+    policy: ProviderPolicy,
+    operation: str = "fetch_account_usage",
+    *,
+    require_bootstrap: bool = True,
 ) -> set[str]:
     """Return the finite quota pools a native usage probe explicitly maps.
 
     A bootstrap declaration is a narrow control-plane exception, not a
-    blanket waiver for every unresolved provider pool.  Keep the mapping
+    blanket waiver for every unresolved provider pool. Callers using the
+    ordinary fully-admitted usage operation may read its explicit reconciliation
+    mapping without requiring the exception to be enabled. The mapping remains
     machine-checkable: it must be a non-empty list of unique names, every name
     must identify a finite dimension that applies to the usage operation, and
     concurrency leases can never be reconciled from an account counter.
@@ -2537,7 +2728,9 @@ def account_usage_reconciled_dimensions(
 
     contract = dict(getattr(policy, "quota_contract", None) or {})
     bootstrap = contract.get("account_usage_bootstrap")
-    if not isinstance(bootstrap, dict) or bootstrap.get("enabled") is not True:
+    if not isinstance(bootstrap, dict) or (
+        require_bootstrap and bootstrap.get("enabled") is not True
+    ):
         return set()
     raw_names = bootstrap.get("reconciled_dimensions")
     if not isinstance(raw_names, list) or not raw_names:
@@ -2824,28 +3017,287 @@ async def _apply_provider_capacity_hold(
     use persistent per-capability circuits for the same scope instead.
     """
 
-    scope = str(error.scope or policy.quota_scope or "").strip()
+    telemetry_factory = _independent_telemetry_session_factory(db)
+    if telemetry_factory is not None:
+        async with telemetry_factory() as telemetry_db:
+            async with telemetry_db.begin():
+                capacity_values = await _apply_provider_capacity_hold_in_session(
+                    telemetry_db,
+                    data_source_id=data_source_id,
+                    policy_id=policy.id,
+                    fallback_scope=policy.quota_scope,
+                    error=error,
+                )
+                if capacity_values is not None:
+                    await telemetry_db.flush()
+        if capacity_values is not None:
+            _sync_provider_capacity_identity_map(db, data_source_id, capacity_values)
+            return
+
+    await _apply_provider_capacity_hold_in_session(
+        db,
+        data_source_id=data_source_id,
+        policy_id=policy.id,
+        fallback_scope=policy.quota_scope,
+        error=error,
+        fallback_policy=policy,
+    )
+
+
+def _independent_telemetry_session_factory(db: AsyncSession):
+    """Build a short session on the caller's bind, or keep SQLite local.
+
+    This deliberately avoids the global application factory: tests and
+    isolated request scopes may bind to a private database/schema. SQLite's
+    shared in-memory connection and file-writer locking also make a second
+    writer inappropriate, so those callers retain their original transaction.
+    """
+
+    if not isinstance(db, AsyncSession):
+        return None
+    bind = db.bind
+    if not isinstance(bind, AsyncEngine) or bind.dialect.name == "sqlite":
+        return None
+    return async_sessionmaker(
+        bind=bind,
+        class_=AsyncSession,
+        autoflush=False,
+        expire_on_commit=False,
+    )
+
+
+def _sync_provider_quota_window_identity_map(db: AsyncSession, windows: list[Any]) -> None:
+    """Keep already-loaded quota counters current without making them dirty."""
+
+    from app.models.market_data_foundation import ProviderQuotaWindow
+
+    snapshots = {
+        int(window.id): {
+            name: getattr(window, name)
+            for name in ("limit_units", "reserved_units", "consumed_units", "cost_cents")
+        }
+        for window in windows
+    }
+    for instance in db.identity_map.values():
+        if isinstance(instance, ProviderQuotaWindow) and instance.id in snapshots:
+            for name, value in snapshots[instance.id].items():
+                set_committed_value(instance, name, value)
+
+
+def _provider_quota_reservation_requires_caller_transaction(
+    db: AsyncSession, resolved: ResolvedProvider
+) -> bool:
+    """Keep uncommitted runtime/config state in its caller-owned transaction."""
+
+    from app.models.market_data_foundation import ProviderQuotaWindow
+
+    if resolved.data_source in db.new or resolved.policy in db.new:
+        return True
+    if any(isinstance(instance, ProviderQuotaWindow) for instance in db.new):
+        return True
+    if db.is_modified(resolved.data_source) or db.is_modified(resolved.policy):
+        return True
+    return any(
+        isinstance(instance, ProviderQuotaWindow) and db.is_modified(instance)
+        for instance in db.identity_map.values()
+    )
+
+
+async def _reserve_provider_contract_for_call(
+    db: AsyncSession,
+    *,
+    resolved: ResolvedProvider,
+    capability: str,
+    units: int,
+    dimension_units: dict[str, int],
+    usage_identity: str | None,
+    now: datetime,
+    denial_details: dict[str, Any],
+) -> _ProviderQuotaContractReservation | None:
+    """Commit shared PostgreSQL window reservations before external transport.
+
+    ProviderQuotaWindow is the legacy application-side account window. Its
+    row locks must not remain in the request's broader business transaction
+    while a provider or fallback is running. Use the caller's bind and a short
+    same-database transaction for persisted sources. First-use runtime seeding
+    stays caller-owned because the FK target may still be uncommitted.
+    """
+
+    from app.services.provider_routing import reserve_provider_contract
+
+    factory = _independent_telemetry_session_factory(db)
+    if (
+        factory is None
+        or db.bind is None
+        or db.bind.dialect.name != "postgresql"
+        or _provider_quota_reservation_requires_caller_transaction(db, resolved)
+    ):
+        windows = await reserve_provider_contract(
+            db,
+            resolved=resolved,
+            capability=capability,
+            units=units,
+            dimension_units=dimension_units,
+            usage_identity=usage_identity,
+            now=now,
+            denial_details=denial_details,
+        )
+        return (
+            _ProviderQuotaContractReservation(local_windows=tuple(windows))
+            if windows is not None
+            else None
+        )
+
+    persisted_windows: list[Any] | None = None
+    use_caller_transaction = False
+    async with factory() as quota_db:
+        async with quota_db.begin():
+            source = await quota_db.get(DataSource, resolved.data_source.id)
+            if source is None:
+                use_caller_transaction = True
+            else:
+                persisted_windows = await reserve_provider_contract(
+                    quota_db,
+                    resolved=resolved,
+                    capability=capability,
+                    units=units,
+                    dimension_units=dimension_units,
+                    usage_identity=usage_identity,
+                    now=now,
+                    denial_details=denial_details,
+                )
+    if use_caller_transaction:
+        windows = await reserve_provider_contract(
+            db,
+            resolved=resolved,
+            capability=capability,
+            units=units,
+            dimension_units=dimension_units,
+            usage_identity=usage_identity,
+            now=now,
+            denial_details=denial_details,
+        )
+        return (
+            _ProviderQuotaContractReservation(local_windows=tuple(windows))
+            if windows is not None
+            else None
+        )
+    if persisted_windows is None:
+        return None
+    _sync_provider_quota_window_identity_map(db, persisted_windows)
+    return _ProviderQuotaContractReservation(
+        local_windows=None,
+        window_ids=tuple(int(window.id) for window in persisted_windows),
+    )
+
+
+async def _settle_provider_contract_for_call(
+    db: AsyncSession,
+    reservation: _ProviderQuotaContractReservation,
+    *,
+    units: int,
+    success: bool = True,
+    reserved_dimension_units: dict[str, int] | None = None,
+    consumed_dimension_units: dict[str, int] | None = None,
+    observed_dimension_totals: dict[str, int] | None = None,
+    consume_on_failure_dimensions: set[str] | None = None,
+    release_only_dimensions: set[str] | None = None,
+) -> None:
+    """Settle policy windows in a short transaction when they were committed independently."""
+
+    from app.models.market_data_foundation import ProviderQuotaWindow
+    from app.services.provider_routing import settle_provider_contract
+
+    if reservation.local_windows is not None:
+        settle_provider_contract(
+            list(reservation.local_windows),
+            units=units,
+            success=success,
+            reserved_dimension_units=reserved_dimension_units,
+            consumed_dimension_units=consumed_dimension_units,
+            observed_dimension_totals=observed_dimension_totals,
+            consume_on_failure_dimensions=consume_on_failure_dimensions,
+            release_only_dimensions=release_only_dimensions,
+        )
+        return
+    if not reservation.window_ids:
+        return
+
+    factory = _independent_telemetry_session_factory(db)
+    if factory is None or db.bind is None or db.bind.dialect.name != "postgresql":
+        raise ProviderQuotaUnknownError("provider quota settlement lost its PostgreSQL caller bind")
+    settled_windows: list[Any] = []
+    async with factory() as quota_db:
+        async with quota_db.begin():
+            settled_windows = list(
+                (
+                    await quota_db.execute(
+                        select(ProviderQuotaWindow)
+                        .where(ProviderQuotaWindow.id.in_(reservation.window_ids))
+                        .order_by(ProviderQuotaWindow.id)
+                        .with_for_update()
+                        .execution_options(populate_existing=True)
+                    )
+                )
+                .scalars()
+                .all()
+            )
+            if {int(window.id) for window in settled_windows} != set(reservation.window_ids):
+                raise ProviderQuotaUnknownError(
+                    "provider quota settlement could not find every reserved window"
+                )
+            settle_provider_contract(
+                settled_windows,
+                units=units,
+                success=success,
+                reserved_dimension_units=reserved_dimension_units,
+                consumed_dimension_units=consumed_dimension_units,
+                observed_dimension_totals=observed_dimension_totals,
+                consume_on_failure_dimensions=consume_on_failure_dimensions,
+                release_only_dimensions=release_only_dimensions,
+            )
+            await quota_db.flush()
+    _sync_provider_quota_window_identity_map(db, settled_windows)
+
+
+async def _apply_provider_capacity_hold_in_session(
+    db: AsyncSession,
+    *,
+    data_source_id: int,
+    policy_id: int,
+    fallback_scope: str | None,
+    error: ProviderRateLimitError,
+    fallback_policy: ProviderPolicy | None = None,
+) -> dict[str, dict[int, dict[str, Any]]] | None:
+    scope = str(error.scope or fallback_scope or "").strip()
     policies_query = select(ProviderPolicy).where(ProviderPolicy.data_source_id == data_source_id)
     if scope:
         policies_query = policies_query.where(ProviderPolicy.quota_scope == scope)
-    policies = list((await db.execute(policies_query)).scalars().all())
+    policies = list((await db.execute(policies_query.with_for_update())).scalars().all())
     if not policies:
-        policies = [policy]
+        if fallback_policy is None:
+            return None
+        policies = [fallback_policy]
 
     if error.retry_at is None:
         for affected_policy in policies:
             affected_policy.is_enabled = False
         await db.flush()
-        return
+        return {
+            "policies": {item.id: {"is_enabled": item.is_enabled} for item in policies},
+            "health": {},
+        }
 
     affected_capabilities = [item.capability for item in policies]
     health_rows = (
         (
             await db.execute(
-                select(ProviderHealthState).where(
+                select(ProviderHealthState)
+                .where(
                     ProviderHealthState.data_source_id == data_source_id,
                     ProviderHealthState.capability.in_(affected_capabilities),
                 )
+                .with_for_update()
             )
         )
         .scalars()
@@ -2855,6 +3307,32 @@ async def _apply_provider_capacity_hold(
         if health.circuit_open_until is None or health.circuit_open_until < error.retry_at:
             health.circuit_open_until = error.retry_at
     await db.flush()
+    return {
+        "policies": {},
+        "health": {
+            item.id: {"circuit_open_until": item.circuit_open_until} for item in health_rows
+        },
+    }
+
+
+def _sync_provider_capacity_identity_map(
+    db: AsyncSession,
+    data_source_id: int,
+    capacity_values: dict[str, dict[int, dict[str, Any]]],
+) -> None:
+    """Refresh only changed capacity attributes without dirtying the caller."""
+
+    policy_values = capacity_values.get("policies") or {}
+    health_values = capacity_values.get("health") or {}
+    for instance in db.identity_map.values():
+        if isinstance(instance, ProviderPolicy) and instance.id in policy_values:
+            if instance.data_source_id == data_source_id:
+                for name, value in policy_values[instance.id].items():
+                    set_committed_value(instance, name, value)
+        elif isinstance(instance, ProviderHealthState) and instance.id in health_values:
+            if instance.data_source_id == data_source_id:
+                for name, value in health_values[instance.id].items():
+                    set_committed_value(instance, name, value)
 
 
 def _capacity_response_headers(headers: dict[str, str] | None) -> dict[str, str]:
@@ -2965,6 +3443,7 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
                     )
                 )
             ).scalar_one_or_none()
+            policy_was_new = policy is None
             rate_seed = provider_rate_limit_seed(provider_name)
             freshness = settings.PROVIDER_FRESHNESS_SEEDS.get(
                 capability.value,
@@ -3185,6 +3664,7 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
                     )
                 )
             ).scalar_one_or_none()
+            health_was_new = health is None
             if health is None:
                 health = ProviderHealthState(
                     data_source_id=data_source.id,
@@ -3203,9 +3683,18 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
             if health.ewma_consistency is None:
                 health.ewma_consistency = Decimal("1")
             if health.observed_score is None:
-                health.observed_score = Decimal("0")
-            policy.effective_score = _effective_score(policy, health)
-            health.observed_score = policy.effective_score
+                health.observed_score = (
+                    _effective_score(policy, health)
+                    if policy_was_new or health_was_new
+                    else Decimal("0")
+                )
+            if policy_was_new or health_was_new:
+                # Seed the persisted display value once when the score rows are
+                # first created. Recomputing it on every request dirties shared
+                # policy/health rows before provider transport and can hold
+                # their locks throughout a slow source call.
+                policy.effective_score = _effective_score(policy, health)
+                health.observed_score = policy.effective_score
 
     # ETF publisher adapters are intentionally outside the generic Provider
     # registry, so the normal capability loop above cannot create their
@@ -3301,8 +3790,9 @@ async def resolve_provider_chain(
         and str(provider_symbol or "").strip().upper() == native_etf_qualification.provider_symbol
     )
     # The selected-history-bound endpoint uses this resolver to inspect the
-    # current reviewed chain without seeding rows or updating health scores.
-    # Runtime callers keep the established seed/update behavior by default.
+    # current reviewed chain without seeding rows. Routing scores are computed
+    # in memory for every caller; persisting a score during selection would
+    # dirty shared rows before the provider request starts.
     if not read_only:
         await seed_provider_runtime(db)
     if not settings.PROVIDER_ROUTING_ENABLED:
@@ -3519,10 +4009,37 @@ async def resolve_provider_chain(
                 )
             except Exception:  # noqa: BLE001 - a failed bound must fail closed.
                 continue
-            history_allowed, _history_reason = provider_history_entitlement_matches(
+            history_allowed, history_reason = provider_history_entitlement_matches(
                 entitlement, provider_history_start, now=now
             )
-            if not history_allowed:
+            witness = _HISTORY_BOUND_WITNESS_CONTEXT.get()
+            witnessed = _history_witness_admits(
+                witness,
+                data_source=data_source,
+                entitlement=entitlement,
+                history_reason=history_reason,
+                capability=capability,
+                instrument_id=instrument_id,
+                provider_symbol=provider_symbol,
+                operation=operation or "",
+                adjusted=adjusted,
+                requested_start=provider_history_start,
+                now=now,
+            )
+            bounded_unknown = (
+                history_reason == "history_depth_unknown"
+                and _bounded_unknown_history_admits(
+                    _BOUNDED_UNKNOWN_HISTORY_CONTEXT.get(),
+                    provider_name=data_source.name,
+                    instrument_id=instrument_id,
+                    provider_symbol=provider_symbol,
+                    operation=operation or "",
+                    adjusted=adjusted,
+                    requested_start=provider_history_start,
+                    now=now,
+                )
+            )
+            if not history_allowed and not witnessed and not bounded_unknown:
                 continue
         # This check is also enforced above for all runtime callers. Keep the
         # plan review check here for the account-usage bootstrap path.
@@ -3652,9 +4169,7 @@ async def resolve_provider_chain(
         )
         if effective_support == SUPPORT_STATUS_UNSUPPORTED:
             continue
-        if not read_only:
-            policy.effective_score = _effective_score(policy, health)
-            health.observed_score = policy.effective_score
+        routing_score = _effective_score(policy, health)
         resolved.append(
             ResolvedProvider(
                 provider_name=data_source.name,
@@ -3665,6 +4180,7 @@ async def resolve_provider_chain(
                 support_status=effective_support,
                 has_symbol_binding=data_source.id in binding_ids,
                 entitlement=entitlement,
+                routing_score=routing_score,
             )
         )
     resolved.sort(
@@ -3672,7 +4188,7 @@ async def resolve_provider_chain(
             0 if item.policy.is_pinned else 1,
             0 if item.support_status == SUPPORT_STATUS_SUPPORTED else 1,
             0 if item.has_symbol_binding else 1,
-            -float(item.policy.effective_score),
+            -float(item.effective_score),
             item.policy.base_priority,
             item.provider_name,
         )
@@ -3690,8 +4206,6 @@ async def _record_result(
     response_items: int | None = None,
     error: Exception | None = None,
 ) -> None:
-    health = resolved.health
-    policy = resolved.policy
     now = datetime.now(UTC)
 
     log_row.completed_at = now
@@ -3702,6 +4216,110 @@ async def _record_result(
         log_row.error_type = error.__class__.__name__
         log_row.error_message = bounded_redact_provider_message(error, max_length=4000)
 
+    await db.flush()
+
+    telemetry_factory = _independent_telemetry_session_factory(db)
+    if telemetry_factory is not None:
+        async with telemetry_factory() as telemetry_db:
+            async with telemetry_db.begin():
+                policy = await _locked_provider_policy(telemetry_db, resolved.policy.id)
+                health = await _locked_provider_health(
+                    telemetry_db,
+                    data_source_id=resolved.data_source.id,
+                    capability=resolved.health.capability,
+                )
+                if policy is not None and health is not None:
+                    _apply_provider_result_values(
+                        policy,
+                        health,
+                        now=now,
+                        success=success,
+                        latency_ms=latency_ms,
+                        response_items=response_items,
+                        error=error,
+                    )
+                    await telemetry_db.flush()
+                    policy_values = {
+                        name: getattr(policy, name)
+                        for name in ("learned_weight", "effective_score")
+                    }
+                    health_values = {name: getattr(health, name) for name in _RESULT_HEALTH_COLUMNS}
+                else:
+                    policy_values = None
+                    health_values = None
+        if policy_values is not None and health_values is not None:
+            for name, value in policy_values.items():
+                set_committed_value(resolved.policy, name, value)
+            for name, value in health_values.items():
+                set_committed_value(resolved.health, name, value)
+            return
+
+    # First-use runtime seeding may have created these rows in the caller's
+    # still-uncommitted transaction. Preserve that ownership and telemetry by
+    # applying the result locally when the short session cannot see them.
+    _apply_provider_result_values(
+        resolved.policy,
+        resolved.health,
+        now=now,
+        success=success,
+        latency_ms=latency_ms,
+        response_items=response_items,
+        error=error,
+    )
+    await db.flush()
+
+
+_RESULT_HEALTH_COLUMNS = (
+    "ewma_latency_ms",
+    "ewma_success_rate",
+    "ewma_completeness",
+    "ewma_freshness",
+    "ewma_consistency",
+    "failure_streak",
+    "last_success_at",
+    "last_failure_at",
+    "circuit_open_until",
+    "last_error_type",
+    "last_error_message",
+    "observed_score",
+)
+
+
+async def _locked_provider_policy(db: AsyncSession, policy_id: int) -> ProviderPolicy | None:
+    result = await db.execute(
+        select(ProviderPolicy)
+        .where(ProviderPolicy.id == policy_id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    return result.scalar_one_or_none()
+
+
+async def _locked_provider_health(
+    db: AsyncSession, *, data_source_id: int, capability: ProviderCapability
+) -> ProviderHealthState | None:
+    result = await db.execute(
+        select(ProviderHealthState)
+        .where(
+            ProviderHealthState.data_source_id == data_source_id,
+            ProviderHealthState.capability == capability,
+        )
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    return result.scalar_one_or_none()
+
+
+def _apply_provider_result_values(
+    policy: ProviderPolicy,
+    health: ProviderHealthState,
+    *,
+    now: datetime,
+    success: bool,
+    latency_ms: int,
+    response_items: int | None,
+    error: Exception | None,
+) -> None:
     health.ewma_latency_ms = _ewma(health.ewma_latency_ms, Decimal(str(latency_ms)))
     health.ewma_success_rate = _ewma(
         health.ewma_success_rate, Decimal("1") if success else Decimal("0")
@@ -3712,7 +4330,8 @@ async def _record_result(
     )
     health.ewma_freshness = _ewma(health.ewma_freshness, Decimal("1") if success else Decimal("0"))
     health.ewma_consistency = _ewma(
-        health.ewma_consistency, Decimal("1") if success else Decimal("0.25")
+        health.ewma_consistency,
+        Decimal("1") if success else Decimal("0.25"),
     )
 
     if success:
@@ -3733,7 +4352,6 @@ async def _record_result(
 
     policy.effective_score = _effective_score(policy, health)
     health.observed_score = policy.effective_score
-    await db.flush()
 
 
 async def execute_provider_call(
@@ -3755,6 +4373,7 @@ async def execute_provider_call(
     capture_response_payloads: bool = True,
     etf_holdings_adapters: dict[str, Any] | None = None,
     request_log_id_callback: Callable[[int], None] | None = None,
+    seed_runtime: bool = True,
 ) -> ProviderExecutionResult:
     if inspect.iscoroutinefunction(invoke):
         raise TypeError(
@@ -3808,6 +4427,10 @@ async def execute_provider_call(
         "adjusted": adjusted,
         "history_start": history_start,
         "etf_holdings_adapters": etf_holdings_adapters,
+        # Explicit discovery first resolves the already-seeded runtime once,
+        # then executes each candidate in order. Avoid replaying the full
+        # provider seed/reconciliation pass for every candidate.
+        "read_only": not seed_runtime,
     }
     if (
         _ETF_INITIAL_QUALIFICATION_CONTEXT.get() is not None
@@ -3821,6 +4444,7 @@ async def execute_provider_call(
     loop = asyncio.get_event_loop()
     last_error: Exception | None = None
     admission_denied: dict[str, datetime | None] = {}
+    local_application_bucket_denied: set[str] = set()
 
     for resolved in chain:
         resolved_usage_identity = (
@@ -3876,11 +4500,6 @@ async def execute_provider_call(
         # from multiplying a provider/IP/key allowance in process-local
         # buckets.  The import is intentionally lazy because provider_routing
         # imports the resolver for its candidate selection.
-        from app.services.provider_routing import (
-            reserve_provider_contract,
-            settle_provider_contract,
-        )
-
         operation_units = _positive_integer_cost(usage_units)
         if operation_units is None:
             raise ProviderQuotaUnknownError(
@@ -3890,7 +4509,7 @@ async def execute_provider_call(
         await semaphore.acquire()
         try:
             admission_details: dict[str, Any] = {}
-            reservations = await reserve_provider_contract(
+            reservations = await _reserve_provider_contract_for_call(
                 db,
                 resolved=resolved,
                 capability=capability.value,
@@ -3922,7 +4541,8 @@ async def execute_provider_call(
                 denial_details=coordinator_denial,
             )
         except BaseException:
-            settle_provider_contract(
+            await _settle_provider_contract_for_call(
+                db,
                 reservations,
                 units=operation_units,
                 success=False,
@@ -3933,7 +4553,8 @@ async def execute_provider_call(
             semaphore.release()
             raise
         if coordinator_reservation is None:
-            settle_provider_contract(
+            await _settle_provider_contract_for_call(
+                db,
                 reservations,
                 units=operation_units,
                 success=False,
@@ -3948,10 +4569,10 @@ async def execute_provider_call(
             resolved.policy.tokens_per_minute is not None
             and resolved.policy.burst_capacity is not None
         ):
-            if not _get_bucket(resolved.policy, resolved.provider_name).try_acquire(
-                operation_units
-            ):
-                settle_provider_contract(
+            bucket = _get_bucket(resolved.policy, resolved.provider_name)
+            if not bucket.try_acquire(operation_units):
+                await _settle_provider_contract_for_call(
+                    db,
                     reservations,
                     units=operation_units,
                     success=False,
@@ -3967,7 +4588,19 @@ async def execute_provider_call(
                     not_sent=True,
                 )
                 semaphore.release()
-                admission_denied[resolved.provider_name] = None
+                # This is the application's in-process burst envelope, not
+                # evidence about the provider's native reset. The bucket knows
+                # exactly when its next token becomes available; preserve that
+                # local retry point so durable work can resume without an
+                # invented fixed backoff. The already-created durable and
+                # policy reservations were settled as not-sent above.
+                retry_delay = bucket.retry_after_seconds(operation_units)
+                admission_denied[resolved.provider_name] = (
+                    datetime.now(UTC) + timedelta(seconds=math.ceil(retry_delay) + 1)
+                    if retry_delay is not None
+                    else None
+                )
+                local_application_bucket_denied.add(resolved.provider_name)
                 continue
         try:
             log_row = ProviderRequestLog(
@@ -3987,7 +4620,8 @@ async def execute_provider_call(
             if request_log_id_callback is not None:
                 request_log_id_callback(log_row.id)
         except BaseException:
-            settle_provider_contract(
+            await _settle_provider_contract_for_call(
+                db,
                 reservations,
                 units=operation_units,
                 success=False,
@@ -4010,7 +4644,8 @@ async def execute_provider_call(
                 capture_response_payloads=capture_response_payloads
             )
         except BaseException:
-            settle_provider_contract(
+            await _settle_provider_contract_for_call(
+                db,
                 reservations,
                 units=operation_units,
                 success=False,
@@ -4081,7 +4716,8 @@ async def execute_provider_call(
                 latency_ms=latency_ms,
                 response_items=count,
             )
-            settle_provider_contract(
+            await _settle_provider_contract_for_call(
+                db,
                 reservations,
                 units=operation_units,
                 success=True,
@@ -4188,7 +4824,8 @@ async def execute_provider_call(
                 reserved_dimension_units=dimension_units,
                 consumed_dimension_units=settled_dimension_units,
             )
-            settle_provider_contract(
+            await _settle_provider_contract_for_call(
+                db,
                 reservations,
                 units=operation_units,
                 success=False,
@@ -4288,8 +4925,14 @@ async def execute_provider_call(
             if retry_values and all(value is not None for value in retry_values)
             else None
         )
+        local_bucket_detail = (
+            " (local application burst window)"
+            if set(admission_denied).issubset(local_application_bucket_denied)
+            else ""
+        )
         raise ProviderQuotaAdmissionError(
-            f"durable provider quota admission denied for {capability.value}/{operation}: {names}",
+            f"durable provider quota admission denied for {capability.value}/{operation}: "
+            f"{names}{local_bucket_detail}",
             retry_at=retry_at,
         )
     raise RuntimeError(f"No enabled providers available for capability '{capability.value}'")
@@ -4397,11 +5040,15 @@ async def list_provider_status(db: AsyncSession) -> list[dict[str, Any]]:
                 "operation_costs_configured": provider_contract_operation_costs_configured(
                     policy, data_source
                 ),
-                "credentials_configured": provider_is_configured(data_source.name),
-                "required_environment_variables": list(
-                    provider_required_settings(data_source.name)
+                "credentials_configured": provider_is_configured(
+                    data_source.name, diagnostic_operation
                 ),
-                "missing_environment_variables": provider_missing_settings(data_source.name),
+                "required_environment_variables": list(
+                    provider_required_settings(data_source.name, diagnostic_operation)
+                ),
+                "missing_environment_variables": provider_missing_settings(
+                    data_source.name, diagnostic_operation
+                ),
                 "required_routing_control_variables": list(routing_control_settings),
                 "missing_routing_control_variables": missing_routing_controls,
                 "entitlement_state": (
@@ -4416,7 +5063,7 @@ async def list_provider_status(db: AsyncSession) -> list[dict[str, Any]]:
                 "routing_eligible": bool(
                     policy.is_enabled
                     and (quota_known or bootstrap_only)
-                    and provider_is_configured(data_source.name)
+                    and provider_is_configured(data_source.name, diagnostic_operation)
                     and not missing_routing_controls
                     and str(entitlement.live_probe_status or "not_run").strip().lower()
                     in _POSITIVE_LIVE_PROBE_STATUSES

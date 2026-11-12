@@ -59,6 +59,10 @@
         <button type="button" :aria-label="`${indicator.hidden ? 'Show' : 'Hide'} ${label(indicator)}`" :aria-pressed="indicator.hidden ? 'false' : 'true'" @click="toggle(index)"><WorkstationGlyph :kind="indicator.hidden ? 'hidden' : 'visible'" /></button><button type="button" :aria-label="`Move ${label(indicator)} up`" :disabled="index === 0" @click="move(index, -1)"><WorkstationGlyph kind="move-up" /></button><button type="button" :aria-label="`Move ${label(indicator)} down`" :disabled="index === chartStore.indicators.length - 1" @click="move(index, 1)"><WorkstationGlyph kind="move-down" /></button><button type="button" :aria-label="`Duplicate ${label(indicator)}`" @click="duplicate(index)"><WorkstationGlyph kind="duplicate" /></button><button type="button" :aria-label="`Copy ${label(indicator)} to linked charts`" :disabled="!linkedTargets" @click="copy(index, 'linked')"><WorkstationGlyph kind="copy-linked" /></button><button type="button" :aria-label="`Copy ${label(indicator)} to selected chart target`" :disabled="!copyTargetAvailable" @click="copy(index, selectedCopyTarget)"><WorkstationGlyph kind="copy" /></button><button type="button" :aria-label="`Promote ${label(indicator)}`" @click="selectPromotion(index)"><WorkstationGlyph kind="promote" /></button><button type="button" :aria-label="`Delete ${label(indicator)}`" @click="chartStore.removeIndicator(index)"><WorkstationGlyph kind="delete" /></button>
       </li></ol>
     </div>
+    <p v-if="indicatorSaveStatus" class="chart-plots__save-status" role="status" aria-live="polite" aria-atomic="true">
+      {{ indicatorSaveStatus }}
+      <button v-if="indicatorSaveRetryAvailable" type="button" @click="retryIndicatorSave">Retry save</button>
+    </p>
     <IndicatorSettingsDialog
       v-if="editingIndicator"
       :key="editingIndex ?? 'editing'"
@@ -101,6 +105,9 @@ const emit = defineEmits<{
   configuration: [windowKey: string, configuration: Record<string, unknown>]
 }>()
 const chartStore = usePanelStore(inject<string>('panelId', 'chart')); const open = ref(false); const catalog = INDICATOR_CATALOG; const workspaceStore = useWorkspaceStore()
+const indicatorSaveStatus = ref('')
+const indicatorSaveRetryAvailable = ref(false)
+let indicatorSaveGeneration = 0
 const indicatorSearch = ref('')
 const filteredCatalog = computed(() => {
   const query = indicatorSearch.value.toLocaleLowerCase()
@@ -374,16 +381,57 @@ function startPreviewDrag(event: DragEvent) {
   if (writeChartPlotDrag(event.dataTransfer, payload)) draggingIndex.value = 0
 }
 function endDrag() { draggingIndex.value = null; draggingPreview.value = null; scheduleAnalysisDragCleanup() }
-async function add(value: string) {
+watch(() => chartStore.instrument?.id, () => {
+  indicatorSaveGeneration += 1
+  indicatorSaveStatus.value = ''
+  indicatorSaveRetryAvailable.value = false
+})
+function retryIndicatorSave() {
+  const instrumentId = chartStore.instrument?.id
+  if (!instrumentId || !indicatorSaveRetryAvailable.value) return
+  const generation = indicatorSaveGeneration
+  indicatorSaveStatus.value = 'Retrying plot save…'
+  indicatorSaveRetryAvailable.value = false
+  void chartStore.saveIndicatorsForInstrument().then(saved => {
+    if (generation !== indicatorSaveGeneration || chartStore.instrument?.id !== instrumentId) return
+    indicatorSaveStatus.value = saved ? 'Plot saved.' : 'The plot save failed again; the local plot remains visible.'
+    indicatorSaveRetryAvailable.value = !saved
+  }).catch(() => {
+    if (generation !== indicatorSaveGeneration || chartStore.instrument?.id !== instrumentId) return
+    indicatorSaveStatus.value = 'The plot save failed again; the local plot remains visible.'
+    indicatorSaveRetryAvailable.value = true
+  })
+}
+function add(value: string) {
   if (!INDICATOR_CATALOG.some(item => item.type === value)) return
-  chartStore.addIndicator(cloneDefaultIndicator(value as IndicatorType))
-  // Persist immediately because a real drag can activate another Golden Layout
-  // tool before the chart store's debounced one-second save fires.
-  await chartStore.saveIndicatorsForInstrument()
-  // Selecting a plot is an insertion action, not a request to keep a modal
-  // surface over the chart. Close the fixed menu so the next chart gesture
-  // (drawing, pan, crosshair, or zoom) reaches the uPlot surface immediately.
+  const indicator = cloneDefaultIndicator(value as IndicatorType)
+  chartStore.addIndicator(indicator)
+  const generation = indicatorSaveGeneration
+  const instrumentId = chartStore.instrument?.id
   closeToTrigger()
+  if (!instrumentId) {
+    indicatorSaveStatus.value = `${indicatorDisplayName(indicator)} added locally; it will save when instrument details are available.`
+    return
+  }
+  indicatorSaveStatus.value = `Saving ${indicatorDisplayName(indicator)}…`
+  indicatorSaveRetryAvailable.value = false
+  // Let the store's mutation watcher install its normal debounced write first;
+  // the immediate save then cancels that timer instead of producing a second
+  // identical PUT one second later during the initial dashboard request burst.
+  void nextTick().then(() => {
+    if (generation !== indicatorSaveGeneration || chartStore.instrument?.id !== instrumentId) return
+    return chartStore.saveIndicatorsForInstrument().then(saved => {
+      if (generation !== indicatorSaveGeneration || chartStore.instrument?.id !== instrumentId) return
+      indicatorSaveStatus.value = saved
+        ? `${indicatorDisplayName(indicator)} saved.`
+        : `${indicatorDisplayName(indicator)} was added locally, but the save failed. It may not be available after reload.`
+      indicatorSaveRetryAvailable.value = !saved
+    }).catch(() => {
+      if (generation !== indicatorSaveGeneration || chartStore.instrument?.id !== instrumentId) return
+      indicatorSaveStatus.value = `${indicatorDisplayName(indicator)} was added locally, but the save failed. It may not be available after reload.`
+      indicatorSaveRetryAvailable.value = true
+    })
+  })
 }
 function style(index: number, key: 'color' | 'lineWidth', value: string | number) {
   const item = chartStore.indicators[index]

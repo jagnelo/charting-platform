@@ -658,6 +658,10 @@ describe('StrategyLabView', () => {
     expect(wrapper.text()).toContain('Realized return')
     expect(wrapper.text()).toContain('Realized')
     expect(wrapper.text()).toContain('Unrealized')
+    expect(wrapper.get('.summary-basis-note').attributes('role')).toBe('note')
+    expect(wrapper.get('.summary-basis-note').text()).toContain(
+      'Marked total uses the latest raw market price. Open P&L estimates closing costs and slippage',
+    )
     expect(wrapper.text()).toContain('$312.45')
     expect(wrapper.text()).toContain('+0.31%')
     expect(wrapper.text()).toContain('Open At End')
@@ -1063,8 +1067,58 @@ describe('StrategyLabView', () => {
           timeframe: 'D1',
         }),
         universe_config: { symbols: ['NVDA', 'AMD'] },
+        execution_model: expect.objectContaining({
+          max_symbol_allocation_pct: 35,
+          run_defaults: expect.objectContaining({ risk_per_trade_pct: 0.5 }),
+        }),
       }),
     }))
+  })
+
+  it('explains completed runs with zero positions rejected by the allocation cap', async () => {
+    const rejectedDefinition = clone(definition)
+    const rejectedRun = rejectedDefinition.runs[0]
+    rejectedRun.result_summary = {
+      ...rejectedRun.result_summary,
+      performance: {
+        ...rejectedRun.result_summary.performance,
+        trade_count: 0,
+        closed_trade_count: 0,
+        open_position_count: 0,
+      },
+      execution_assumptions: { max_symbol_allocation_pct: 35 },
+      portfolio: {
+        rejected_trade_count: 1,
+        rejection_breakdown: { max_symbol_allocation_pct: 1 },
+      },
+      rejected_trades: [
+        {
+          instrument_symbol: 'SPY',
+          reason: 'max_symbol_allocation_pct',
+          allocation_pct: 49.8259,
+        },
+      ],
+    }
+    const defaultGet = (api.get as ReturnType<typeof vi.fn>).getMockImplementation()
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string, ...args: any[]) => {
+      if (path === '/strategy-lab/definitions') {
+        return Promise.resolve([clone(rejectedDefinition)])
+      }
+      if (path === '/strategy-lab/definitions/4') {
+        return Promise.resolve(clone(rejectedDefinition))
+      }
+      return defaultGet?.(path, ...args) ?? Promise.resolve([])
+    })
+
+    const wrapper = mountView()
+    await flushPromises()
+    await ensurePanelExpanded(wrapper, 'Results')
+
+    const notice = wrapper.get('[role="status"]')
+    expect(notice.text()).toContain('No positions were opened.')
+    expect(notice.text()).toContain('SPY required 49.8% of capital')
+    expect(notice.text()).toContain('35.0% per-symbol limit')
+    expect(notice.text()).toContain('Review risk per trade, stop distance, and the allocation limit.')
   })
 
   it('names manual-universe symbol removal controls and removes the selected symbol', async () => {
@@ -1650,6 +1704,87 @@ describe('StrategyLabView', () => {
     }))
   })
 
+  it('keeps the active draft through a same-definition run refresh and opens the new run results', async () => {
+    const run = {
+      ...clone(definition.runs[0]),
+      id: 15,
+      strategy_id: 4,
+      strategy_version_id: 8,
+      status: 'completed',
+      timeframe: 'D1',
+      date_from: '2024-01-02T00:00:00Z',
+      date_to: '2024-06-28T23:59:59Z',
+    }
+    const refreshedDefinition = {
+      ...clone(definition),
+      runs: [run, ...clone(definition.runs)],
+    }
+    let resolveDefinitionRefresh!: (value: typeof refreshedDefinition) => void
+    const definitionRefresh = new Promise<typeof refreshedDefinition>(resolve => {
+      resolveDefinitionRefresh = resolve
+    })
+
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/strategy-lab/definitions') return Promise.resolve([clone(definition)])
+      if (path === '/strategy-lab/definitions/4') return definitionRefresh
+      if (path === '/watchlists' || path === '/screeners' || path === '/baskets' || path === '/etf-holdings') {
+        return Promise.resolve([])
+      }
+      return Promise.resolve([])
+    })
+    ;(api.post as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/strategy-lab/coverage-preview') return Promise.resolve(clone(coveragePreviewResponse))
+      if (path === '/strategy-lab/versions/8/runs') return Promise.resolve(clone(run))
+      return Promise.resolve({})
+    })
+
+    const wrapper = mountView()
+    await flushPromises()
+    await ensurePanelExpanded(wrapper, 'Strategy profile')
+    await wrapper.get('input[placeholder="Momentum Continuation"]').setValue('Unsaved profile edit')
+    await ensurePanelExpanded(wrapper, 'Entry logic')
+    await findFieldByLabel(wrapper, 'Timeframe')!.get('select').setValue('W1')
+    await ensurePanelExpanded(wrapper, 'Research runs')
+    await findFieldByLabel(wrapper, 'Run timeframe')!.get('select').setValue('D1')
+    await findFieldByLabel(wrapper, 'Date from')!.get('input').setValue('2024-01-02')
+    await findFieldByLabel(wrapper, 'Date to')!.get('input').setValue('2024-06-28')
+
+    const runsPanel = wrapper.findAll('.panel').find(node => node.find('h3').text().trim() === 'Research runs')!
+    await runsPanel.get('.panel-head-heading__button').trigger('click')
+    const resultsPanel = wrapper.findAll('.panel').find(node => node.find('h3').text().trim() === 'Results')!
+    if (resultsPanel.find('.panel-body').exists()) {
+      await resultsPanel.get('.panel-head-heading__button').trigger('click')
+    }
+    const runButton = wrapper.findAll('button').find(button => button.text().trim() === 'Run backtest')
+    expect(runButton).toBeTruthy()
+
+    const runClick = runButton!.trigger('click')
+    await flushPromises()
+    expect(api.post).toHaveBeenCalledWith('/strategy-lab/versions/8/runs', expect.objectContaining({
+      timeframe: 'D1',
+      date_from: '2024-01-02T00:00:00Z',
+      date_to: '2024-06-28T23:59:59Z',
+    }))
+    expect(wrapper.get('.scroll-list-toggle').attributes('aria-expanded')).toBe('true')
+    expect(resultsPanel.get('.panel-head-heading__button').attributes('aria-expanded')).toBe('true')
+
+    resolveDefinitionRefresh(refreshedDefinition)
+    await runClick
+    await flushPromises()
+
+    expect((wrapper.get('input[placeholder="Momentum Continuation"]').element as HTMLInputElement).value)
+      .toBe('Unsaved profile edit')
+    expect((findFieldByLabel(wrapper, 'Timeframe')!.get('select').element as HTMLSelectElement).value).toBe('W1')
+    expect((findFieldByLabel(wrapper, 'Run timeframe')!.get('select').element as HTMLSelectElement).value).toBe('D1')
+    expect((findFieldByLabel(wrapper, 'Date from')!.get('input').element as HTMLInputElement).value).toBe('2024-01-02')
+    expect((findFieldByLabel(wrapper, 'Date to')!.get('input').element as HTMLInputElement).value).toBe('2024-06-28')
+    expect(runsPanel.find('.panel-body').exists()).toBe(true)
+    expect(wrapper.get('.scroll-list-toggle').attributes('aria-expanded')).toBe('true')
+    expect(wrapper.findAll('.run-item').filter(item => item.attributes('aria-pressed') === 'true')).toHaveLength(1)
+    expect(resultsPanel.find('.run-detail').exists()).toBe(true)
+    expect(resultsPanel.text()).toContain('Realized return')
+  })
+
   it('preserves promoted Python signal lineage during profile edits and runs its immutable version', async () => {
     let pythonSignal = clone(definition)
     pythonSignal.definition_type = 'python'
@@ -1797,6 +1932,72 @@ describe('StrategyLabView', () => {
         }),
       }),
     }))
+  })
+
+  it('keeps editable version controls busy through profile save, revision save, and final hydration', async () => {
+    const originalGet = (api.get as ReturnType<typeof vi.fn>).getMockImplementation()
+    const originalPatch = (api.patch as ReturnType<typeof vi.fn>).getMockImplementation()
+    let savedVersionPayload: Record<string, any> | null = null
+    let definitionReads = 0
+    let finalRefreshStarted = false
+    let releaseFinalRefresh: ((value: any) => void) | undefined
+
+    ;(api.patch as ReturnType<typeof vi.fn>).mockImplementation((path: string, payload?: any) => {
+      if (path === '/strategy-lab/versions/8') savedVersionPayload = clone(payload)
+      return originalPatch?.(path, payload) ?? Promise.resolve({})
+    })
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string, ...args: any[]) => {
+      if (path === '/strategy-lab/definitions/4') {
+        definitionReads += 1
+        const persisted = clone(definition)
+        if (savedVersionPayload) {
+          persisted.versions[0] = { ...persisted.versions[0], ...clone(savedVersionPayload) }
+        }
+        if (definitionReads === 2) {
+          finalRefreshStarted = true
+          return new Promise(resolve => {
+            releaseFinalRefresh = resolve
+          })
+        }
+        return Promise.resolve(persisted)
+      }
+      return originalGet?.(path, ...args) ?? Promise.resolve([])
+    })
+
+    const wrapper = mountView()
+    await flushPromises()
+    await ensurePanelExpanded(wrapper, 'Entry logic')
+    await addTechnicalCondition(wrapper)
+    const revisionNote = wrapper.get('input[placeholder="What changed in this revision?"]')
+    await revisionNote.setValue('Preserve the saved rule and revision note.')
+    expect(wrapper.text()).toContain('Condition 2')
+
+    await wrapper.get('button[aria-label="Save profile"]').trigger('click')
+    await vi.waitFor(() => expect(finalRefreshStarted).toBe(true))
+
+    const editorFields = wrapper.get('.detail-columns')
+    expect(editorFields.attributes('aria-busy')).toBe('true')
+    expect(editorFields.attributes('inert')).toBeDefined()
+    expect(revisionNote.element.closest('[inert]')).toBe(editorFields.element)
+    const addCondition = wrapper.findAll('button').find(button => button.text().includes('Add technical condition'))
+    expect(addCondition).toBeTruthy()
+    expect(addCondition!.element.closest('[inert]')).toBe(editorFields.element)
+    expect(wrapper.get('.detail-actions .btn-primary').element).toHaveProperty('disabled', true)
+    expect(wrapper.get('.profile-save-status').text()).toContain('Saving profile and revision')
+
+    const persisted = clone(definition)
+    persisted.versions[0] = { ...persisted.versions[0], ...clone(savedVersionPayload) }
+    expect(releaseFinalRefresh).toBeTypeOf('function')
+    releaseFinalRefresh?.(persisted)
+    await vi.waitFor(() => expect(wrapper.find('.detail-columns').attributes('aria-busy')).toBe('false'))
+
+    expect(wrapper.find('.detail-columns').attributes('aria-busy')).toBe('false')
+    expect(wrapper.find('.detail-columns').attributes('inert')).toBeUndefined()
+    expect(wrapper.find('.profile-save-status').exists()).toBe(false)
+    expect(wrapper.get('input[placeholder="What changed in this revision?"]').element).toHaveProperty('value', 'Preserve the saved rule and revision note.')
+    expect(wrapper.text()).toContain('Condition 2')
+    expect(savedVersionPayload).toMatchObject({ notes: 'Preserve the saved rule and revision note.' })
+    expect(savedVersionPayload?.definition_snapshot.conditions).toHaveLength(2)
   })
 
   it('persists and hydrates sweep-capable input modes for saved versions', async () => {

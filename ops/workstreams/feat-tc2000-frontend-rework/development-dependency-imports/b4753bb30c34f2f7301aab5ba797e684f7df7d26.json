@@ -1,0 +1,268 @@
+{
+  "at": "2026-11-11T08:41:17.240222+00:00",
+  "authority": "Root coordinates the human-approved common-interface implementation; no staging or deployment acceptance",
+  "state": "released_for_exact_development_consumption_not_product_acceptance",
+  "source": "b4753bb30c34f2f7301aab5ba797e684f7df7d26",
+  "base": "139b350238b5e1c8a170dce5af09a805301d857e",
+  "previous_sources": [
+    "7f1dd9c142d94455174e38b5da222ff3395b03b0",
+    "f52828f60fcf63bfad31c7b4012a122900b22e04"
+  ],
+  "previous_manifests": [
+    "strategy7f1dd9c1-domain-frontend-development-consumption-contract.json",
+    "strategyf52828f6-domain-frontend-development-consumption-contract.json"
+  ],
+  "files": [
+    {
+      "path": "frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue",
+      "status_from139": "M",
+      "git_blob": "f5fcda94ed0025215d2921d332b0a9b43a8dbad8",
+      "sha256": "2b620a83f9c6c7b836b549b1078b8a984d3dc695d09f057aa43c0731384b4121"
+    },
+    {
+      "path": "frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue",
+      "status_from139": "M",
+      "git_blob": "df43a517499d8893dde970f85e42e5f25cc71733",
+      "sha256": "fe942768bf7da5799ffeeb7d7885b741f47e93c2e3d3e7d8bebdb157cb0fe333"
+    },
+    {
+      "path": "frontend/src/components/dashboard/DashboardInstrumentSearch.vue",
+      "status_from139": "M",
+      "git_blob": "3227a985105878ae948700827f2fc5c15813581d",
+      "sha256": "41cf044f69f03c1e0efc448a2322a26f546bd8b9a60a5bbec31c59e2ac1e9d50"
+    },
+    {
+      "path": "frontend/src/components/dashboard/DashboardLineChartWidget.vue",
+      "status_from139": "M",
+      "git_blob": "aca987112e0729e9554c5892ce54e1cec517ca29",
+      "sha256": "1285d5b6ebf0d3291fb87db642eaa5f723bc49d61eb968d65beba401aa5658d6"
+    },
+    {
+      "path": "frontend/src/components/dashboard/DashboardQuoteWidget.vue",
+      "status_from139": "M",
+      "git_blob": "586c6b856a20745c5d2fbf6e45500331c0da0b63",
+      "sha256": "35a9e36f0f7d494fdd06e0205c9c26fc7122788c0a4937077e634b68abac87ea"
+    },
+    {
+      "path": "frontend/src/components/workstation/CodeLibraryTool.vue",
+      "status_from139": "M",
+      "git_blob": "e41f80729935e28cb113c23f172acb6189144402",
+      "sha256": "3a10988d7e5e1954db0e32bcfb66be352a0f95ef1d0f866f385a913cbe71c22b"
+    },
+    {
+      "path": "frontend/src/components/workstation/PythonSourceEditor.vue",
+      "status_from139": "M",
+      "git_blob": "7164932765faaaf15d68936d72c232bc7f147d16",
+      "sha256": "23d4078c17a333b151ba81f69f137c5fb5561ece7d055a346a17b44750cf5c1e"
+    },
+    {
+      "path": "frontend/src/components/workstation/ResearchResultsTool.vue",
+      "status_from139": "M",
+      "git_blob": "a6c2cd2787b69d8c22b2c52116ec5c72dc7e31c0",
+      "sha256": "5f3b9e48b4c144c7ec777d84909d38af7e68769c72d15bfc2f800b8aa86158e6"
+    },
+    {
+      "path": "frontend/src/components/workstation/StudyBarsUPlot.vue",
+      "status_from139": "M",
+      "git_blob": "44b3faadb5141c3b78ea69012abcf8fd8cce6ad0",
+      "sha256": "34b4f168162964211cd74387a07aee93ad0930a8cc159fd4df76857bdf0c2b2d"
+    },
+    {
+      "path": "frontend/src/components/workstation/StudyHistogramUPlot.vue",
+      "status_from139": "M",
+      "git_blob": "f8804d0b3a7ee762e8ad3c3dd62e16d502ecabfc",
+      "sha256": "018f1fb27b22cd5e4173b158d2ac1db76bc8477186badc4b48cf81a1cd7a5393"
+    },
+    {
+      "path": "frontend/src/components/workstation/StudyLabTool.vue",
+      "status_from139": "M",
+      "git_blob": "e21f32922dc60fda58a84440d801d240fd2f7e91",
+      "sha256": "14d9a833a6598fe644029306fad875578bc2e2cae94222be42fdfe1c6fbd834d"
+    },
+    {
+      "path": "frontend/src/components/workstation/StudyRangeUPlot.vue",
+      "status_from139": "M",
+      "git_blob": "34bb853c4fc98750fe7188c2ffd5a8da2b06e661",
+      "sha256": "f72b702b00a6a474ea855f004c82fd847079df0ecc28acd55a2ed5ff31076193"
+    },
+    {
+      "path": "frontend/src/components/workstation/StudyScatterUPlot.vue",
+      "status_from139": "M",
+      "git_blob": "443381f40baae6793703ce559a3362f34dc4007f",
+      "sha256": "ecc8ad6b5192a6b00004af8f8a0046c739a5c7fe3c306fed8d32c4b70c2bcaf2"
+    },
+    {
+      "path": "frontend/src/components/workstation/StudySeriesUPlot.vue",
+      "status_from139": "M",
+      "git_blob": "8d55a1f2833fe83a036590ae51beb865da314b8b",
+      "sha256": "18d8ba9804f5bd1bf63e0eb6867682843d283fd1460d2b4e3634e28bbfd3f82b"
+    },
+    {
+      "path": "frontend/src/lib/workstation/researchQueryKeys.ts",
+      "status_from139": "A",
+      "git_blob": "086bcb7261f5ce47e5725bb841abd111b47e211a",
+      "sha256": "d2efc149f5351df0bd33e726b78713c9edee581109977fe6045ae8da13b6dd03"
+    },
+    {
+      "path": "frontend/src/lib/workstation/researchRunCancellation.ts",
+      "status_from139": "A",
+      "git_blob": "3db3eae08833b145c1e08f4f712a6a754857d803",
+      "sha256": "9f7257a325b87a9ca04145485c8142d514d62c116f68c93a83777def6832a43b"
+    },
+    {
+      "path": "frontend/src/stores/dashboard.ts",
+      "status_from139": "M",
+      "git_blob": "147a7b073f15afc5042f28daa338b7306ccaf1eb",
+      "sha256": "d66b2584e1fe955e2322d0dceaa587b5c5ff5d735b6cea72f4091b0e4aa22d6a"
+    },
+    {
+      "path": "frontend/src/views/DashboardView.vue",
+      "status_from139": "M",
+      "git_blob": "a3e4e1e1d73aefd418721ebef931df9a814e99c9",
+      "sha256": "1425c4fb8b632be2e24066c092e07e4e7970ee6e09b64150101374375c7cff2e"
+    },
+    {
+      "path": "frontend/src/views/StrategyLabView.vue",
+      "status_from139": "M",
+      "git_blob": "284678cf8b4614d67febdbdc1e11d4d80b5d194f",
+      "sha256": "ffa2e6299c8c4607dbb3b25e7a2269deacffadc92de45ea1387d30c4a9e0e26c"
+    },
+    {
+      "path": "frontend/tests/e2e/dashboard_usability_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "1612b1898507d1e646e7b3d86eddec3cd192bf47",
+      "sha256": "1c2ca7f936686e0af1626906814bc254112582a8195455a7ccf8dceafb180d6e"
+    },
+    {
+      "path": "frontend/tests/e2e/strategy_study_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "6eae4311567190d728b930b48dab0b31c959c190",
+      "sha256": "d65f3c60b9c5a336bdfc894032322a1df43f83b184b926e811032431d068306e"
+    },
+    {
+      "path": "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "ecd92e22df02e290ac9846bb350587571d28c223",
+      "sha256": "a7ec53c4a806d385ed02414023320b01b156177f3c0a349cd61fc4dc8cd29fa9"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_code_library_tool.test.ts",
+      "status_from139": "M",
+      "git_blob": "4bdaeda0f4eac4bc2034640a1fcd60c261c7c173",
+      "sha256": "27633e4b9b3cf32fc34b764e0974e97845686688480bed4667ee61d2e7748893"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts",
+      "status_from139": "M",
+      "git_blob": "6b875cfb169dea3a11169f5904a0d8aa3c3d4c64",
+      "sha256": "0e2de2b57a395888125c9a2d3739dbf390a2524dc3c1ac366b86387c18b7753e"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_dashboard_instrument_search.test.ts",
+      "status_from139": "M",
+      "git_blob": "c972ca9d1b48fefc92c6dcca6bd655cbf4e01e9c",
+      "sha256": "a2950e328b88bb49dbac0a08447e3119ed6786ce23cd765fb00a53667cc5e676"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts",
+      "status_from139": "M",
+      "git_blob": "019b9620563ef7c3953a1b3b013dd3953f0ee7db",
+      "sha256": "291dd83bef30984b7aa37f0b2ee87d990d8fee2d89ade372a78a933f6e0d94d0"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts",
+      "status_from139": "A",
+      "git_blob": "196ac971ba87c420c08fe7c2f5025cab6f54346f",
+      "sha256": "969d23d8a3c6239809e309ff0acba13e5181ce69aa678aa3047b1fb110ade508"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_python_source_editor.test.ts",
+      "status_from139": "M",
+      "git_blob": "26665a879f07a06e9ac1e67723103d3880cf5ee4",
+      "sha256": "8936d8f72d6f0fd8f17ac6f160cfe970220132c680b6fb83342d5f9292a8f237"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_research_results_tool.test.ts",
+      "status_from139": "M",
+      "git_blob": "8ff5cc54a6375d0b90121adb4f521816d87a8b2a",
+      "sha256": "b6ff81d08a407040fd3b0478be0d03e87df99b6309580a6e426dec62fb9a879e"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_study_lab_tool.test.ts",
+      "status_from139": "M",
+      "git_blob": "4802bcadbfe0bde9b65615ab8108f0778ee2a1a5",
+      "sha256": "3c00cae6f1cfd9301d0e4ad28270d205a0e812c5b565167a9472601f9af8dad1"
+    },
+    {
+      "path": "frontend/tests/unit/stores/test_dashboard_store.test.ts",
+      "status_from139": "M",
+      "git_blob": "e30d5676749a5d53ae3d80ee779b8d277aabcecf",
+      "sha256": "11286f17b314f28de3aed15b235bd0461bbffb9bd5476f61f1ac65bb94099827"
+    },
+    {
+      "path": "frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts",
+      "status_from139": "A",
+      "git_blob": "665ef5310ab01b5a7aa65025a3bdbe2f14aaedb1",
+      "sha256": "21374e32a9d7bd774cf9c1df0cf64b91ca131df08cd41523c3c2fac4041e7efe"
+    },
+    {
+      "path": "frontend/tests/unit/views/test_strategy_lab_view.test.ts",
+      "status_from139": "M",
+      "git_blob": "e3fc08660d20b1a7c3ecbdd910fd2c6b27af3cd9",
+      "sha256": "82ac26c04bab1e9b6d206fe94d3372b5e8e4a776547d2eae788d4b214cef8ee7"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_study_bars_histogram_uplot.test.ts",
+      "status_from139": "A",
+      "git_blob": "1f18f7ac91b803b7d2046a02e740243e1b6c66f2",
+      "sha256": "e5ac5e72488bf62e11361f445b0442c88d9d7cd0b7d7801996a99f3f622b39ef"
+    }
+  ],
+  "changed_paths_since_previous": [
+    "frontend/src/components/workstation/StudyBarsUPlot.vue",
+    "frontend/src/components/workstation/StudyHistogramUPlot.vue",
+    "frontend/src/components/workstation/StudyLabTool.vue",
+    "frontend/tests/unit/components/test_study_lab_tool.test.ts"
+  ],
+  "consumers": [
+    {
+      "consumer": "TC",
+      "import_paths": [
+        "frontend/src/components/workstation/StudyBarsUPlot.vue",
+        "frontend/src/components/workstation/StudyHistogramUPlot.vue",
+        "frontend/src/components/workstation/StudyLabTool.vue",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts"
+      ],
+      "old_guards": {
+        "frontend/src/components/workstation/StudyBarsUPlot.vue": {
+          "sha256": "71b0fee70f55b0515a02251ec9ceb464cf66a5525779bfb8906ce3be2bac6c86",
+          "known_sources": [
+            "f52828f60fcf63bfad31c7b4012a122900b22e04"
+          ]
+        },
+        "frontend/src/components/workstation/StudyHistogramUPlot.vue": {
+          "sha256": "f4ed5c1a72a69564c7f13f48b4765c3ff743fa68c4eda6d5d9a1f33cf67eb57c",
+          "known_sources": [
+            "f52828f60fcf63bfad31c7b4012a122900b22e04"
+          ]
+        },
+        "frontend/src/components/workstation/StudyLabTool.vue": {
+          "sha256": "5ef71a1b23cd2bc2fd5afa5874fce4aa88ff6aa9350ad70920720c2ca47340b6",
+          "known_sources": [
+            "f52828f60fcf63bfad31c7b4012a122900b22e04"
+          ]
+        },
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts": {
+          "sha256": "7b50592561c5414e5da2bc0eed626a4dc1e0e3637cb0aaa74530d9197a8ae40f",
+          "known_sources": [
+            "f52828f60fcf63bfad31c7b4012a122900b22e04"
+          ]
+        }
+      },
+      "owned_overlap": []
+    }
+  ],
+  "scope": "Strategy private source tuple, including only actual approved legacy save-race extension paths: acknowledged profile-save editor lifecycle and narrow-dock Study controls, plus retained foreground Study/Results/Library read and action priority, preserved canonical terminal cancellation, immutable version/draft/cache/auth fences, stable editor targets, known cached identity and useful dashboard widget behavior. Exact focused owner checks remain distinct from complete combined browser qualification.",
+  "preserve": "Full roadmap/history, native holds/quotas, genuine datasets, ordinary async failures, reviewed references and tolerances. No amend, overlapping writer, staging, deployment or product acceptance.",
+  "released_by": "Root (Claude Code): Study validates on partial local history (CI-identical E2E)"
+}

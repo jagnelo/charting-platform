@@ -1,0 +1,118 @@
+{
+  "at": "2026-11-07T10:21:48.833116+00:00",
+  "authority": "Root coordinates the human-approved common-interface implementation; no staging or deployment acceptance",
+  "state": "released_for_exact_development_consumption_not_product_acceptance",
+  "source": "3191a94397ffe12c9c79113aee45af85eaa9f534",
+  "base": "139b350238b5e1c8a170dce5af09a805301d857e",
+  "previous_source": "3f72fcd8c201d57d7631a485abf02eb6924da73b",
+  "files": [
+    {
+      "path": "frontend/src/components/workstation/CodeLibraryTool.vue",
+      "status_from139": "M",
+      "git_blob": "66f72713ccf42a6974b63c3c61aa05de9b6fbdad",
+      "sha256": "ca33fcd04d362146b851c7fc40748d83fbfcacde769a69b981a8eeeff0e20c80"
+    },
+    {
+      "path": "frontend/src/components/workstation/ResearchResultsTool.vue",
+      "status_from139": "M",
+      "git_blob": "0ef9cd69542979f09d006721981adc2a76cf2092",
+      "sha256": "9b52f04abb0219d1a15c59695ac339698f97053dcc47c88583fa61bbedd51e7e"
+    },
+    {
+      "path": "frontend/src/components/workstation/StudyLabTool.vue",
+      "status_from139": "M",
+      "git_blob": "438af6057442618551ae78507cf2cc4fb837c4bd",
+      "sha256": "8a3d9681b9333d6762445fa610466e2f1dac9ca223f77beabdebe483a0f376ff"
+    },
+    {
+      "path": "frontend/src/lib/workstation/researchQueryKeys.ts",
+      "status_from139": "A",
+      "git_blob": "086bcb7261f5ce47e5725bb841abd111b47e211a",
+      "sha256": "d2efc149f5351df0bd33e726b78713c9edee581109977fe6045ae8da13b6dd03"
+    },
+    {
+      "path": "frontend/tests/e2e/helpers.ts",
+      "status_from139": "M",
+      "git_blob": "0585840e77c5e5db008a9b7ba26143e1fe813eed",
+      "sha256": "8439a43437cc6045a4b24185e5500b2d2980486adc64ea48f70fdd5740415ac5"
+    },
+    {
+      "path": "frontend/tests/e2e/strategy_study_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "67fbaf164c963d648d5581f3734a3e467973ce33",
+      "sha256": "dd555087aa72a471f304eca59d437fd87c461e574163a8fc88c46548e1f8d3ad"
+    },
+    {
+      "path": "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "071c088a1773b8f6a1affeac4ec01134e953dc5c",
+      "sha256": "d0bc12bbbd80b9763ea51dee17400dd2b713e420887544b8e9d008c6ddf6a06f"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_code_library_tool.test.ts",
+      "status_from139": "M",
+      "git_blob": "fa147870b4ca0496d4c2df2caa89211b56b84c5d",
+      "sha256": "2f14026c552b3e82b10cc74450b40a3554963ac67c75505845db162a265e0440"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_research_results_tool.test.ts",
+      "status_from139": "M",
+      "git_blob": "4044b901338c07b4c32e23e2d40cf8c85d81c720",
+      "sha256": "20253be64eb93bc15826585e3c92da4d676754c30675850bc29c0cbed7ba961b"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_study_lab_tool.test.ts",
+      "status_from139": "M",
+      "git_blob": "d23ab8e19497e336b72fe30556ddb34e80460b6d",
+      "sha256": "f7b95c74291704d15ed95a7d1cd870feb70fd99c0e0f52eaca4769bee27ff8ff"
+    },
+    {
+      "path": "frontend/tests/unit/e2e/test_browser_diagnostics.test.ts",
+      "status_from139": "M",
+      "git_blob": "471e86daef24d9c1bbbc1e9140dff9e436441811",
+      "sha256": "a3f336e075e5b802e9d14156a670638a8170347600f2b98c8d7087ab47703cea"
+    }
+  ],
+  "consumers": [
+    {
+      "consumer": "TC",
+      "import_paths": [
+        "frontend/src/components/workstation/ResearchResultsTool.vue",
+        "frontend/src/components/workstation/StudyLabTool.vue",
+        "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts"
+      ],
+      "old_guards": {
+        "frontend/src/components/workstation/ResearchResultsTool.vue": {
+          "sha256": "7a525e2d8b7ac6af67bbb10faa0577133d01bb060c4ef791d6bd1ea587dd89ee",
+          "known_source": "3f72fcd8c201d57d7631a485abf02eb6924da73b"
+        },
+        "frontend/src/components/workstation/StudyLabTool.vue": {
+          "sha256": "cf8a7604063ae852ff776fedc856e954975c9e6065300cb9d0739e450e7c25ce",
+          "known_source": "3f72fcd8c201d57d7631a485abf02eb6924da73b"
+        },
+        "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts": {
+          "sha256": "acd702ee662f3ec26aa31ed876dbb0cfb0911c35d59f6a6b7ba930e536020492",
+          "known_source": "3f72fcd8c201d57d7631a485abf02eb6924da73b"
+        },
+        "frontend/tests/unit/components/test_research_results_tool.test.ts": {
+          "sha256": "7d5b221f8a7b2891adaa1c1faf0bea01d93833ca4e282df45e90f9d698a476a4",
+          "known_source": "3f72fcd8c201d57d7631a485abf02eb6924da73b"
+        },
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts": {
+          "sha256": "9a72992f96028c66c34d959e10f22028431f51c5f423f6b74fb8d830d7df2645",
+          "known_source": "3f72fcd8c201d57d7631a485abf02eb6924da73b"
+        }
+      },
+      "owned_overlap": []
+    }
+  ],
+  "scope": "Full Strategy frontend domain11: saved editable draft symbol restoration independent of immutable run; Results stalled-list explicit recovery; exact real candle canvas oracle. Existing helper ownership unchanged.",
+  "evidence": {
+    "owner": "Frozen3191: Study66/66, prior Results69/69, type-check, browser discovery/workstream/diff pass.",
+    "root": "Exact five changed paths reviewed; TC old/new guards and Git100644 verified. R34 actual real canvas1696pixels vs transparent overlay0 proves selector correction; full browser still pending.",
+    "full_release": "Pending combined/browser/native/exactCI/deployment acceptance."
+  },
+  "preserve": "Keep wider roadmaps, historical receipts, all assertions and pixel thresholds. No amend frozen source or metadata-only commit."
+}

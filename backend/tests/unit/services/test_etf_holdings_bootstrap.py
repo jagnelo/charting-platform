@@ -340,11 +340,12 @@ async def test_ensure_internal_identifier_repairs_duplicate_internal_rows(db, in
         is_primary=True,
         is_active=True,
     )
+    stale_two_value = "legacy:" + ("A" * 73)
     stale_two = InstrumentIdentifier(
         instrument_id=instrument.id,
         data_source_id=None,
         identifier_type=InstrumentIdentifierType.INTERNAL,
-        identifier_value="legacy:AAPL",
+        identifier_value=stale_two_value,
         is_primary=False,
         is_active=True,
     )
@@ -372,9 +373,14 @@ async def test_ensure_internal_identifier_repairs_duplicate_internal_rows(db, in
     assert len(active) == 1
     assert active[0].identifier_value == f"instrument:{instrument.id}"
     assert active[0].is_primary is True
-    assert any(
-        "__superseded__" in row.identifier_value for row in identifiers if row.id != active[0].id
-    )
+    inactive = [row for row in identifiers if row.id != active[0].id]
+    assert {row.identifier_value for row in inactive} == {stale_two_value}
+    assert all(not row.is_active and not row.is_primary for row in inactive)
+
+    # Re-running the repair must not grow/mutate historical values.
+    await ensure_internal_identifier(async_db, instrument)
+    db.flush()
+    assert {row.identifier_value for row in inactive} == {stale_two_value}
     assert instrument.primary_identifier_type == InstrumentIdentifierType.INTERNAL.value
     assert instrument.primary_identifier_value == f"instrument:{instrument.id}"
 
@@ -1655,8 +1661,22 @@ async def test_acquire_holds_unproven_adapter_without_transport(monkeypatch):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("cancelled", [False, True], ids=["failure", "cancellation"])
-async def test_acquire_failure_or_cancellation_restores_provider_scope(monkeypatch, cancelled):
+@pytest.mark.parametrize(
+    ("failure", "expected_reason", "cancelled"),
+    [
+        (RuntimeError("bounded test failure"), None, False),
+        (
+            ValueError("Issuer holdings route returned a future composition date."),
+            "future_dated_source",
+            False,
+        ),
+        (asyncio.CancelledError(), None, True),
+    ],
+    ids=["failure", "future-date", "cancellation"],
+)
+async def test_acquire_failure_or_cancellation_restores_provider_scope(
+    monkeypatch, failure, expected_reason, cancelled
+):
     db = FakeBootstrapDB()
     instrument = _canonical_fund_instrument()
     prior_snapshot = SimpleNamespace(id=98, source_provider="vaneck")
@@ -1678,7 +1698,6 @@ async def test_acquire_failure_or_cancellation_restores_provider_scope(monkeypat
         sec_series_id=None,
         sec_class_id=None,
     )
-    failure = asyncio.CancelledError() if cancelled else RuntimeError("bounded test failure")
     failure_records = []
     binder_calls = _install_explicit_etf_acquisition_binder(monkeypatch)
 
@@ -1748,6 +1767,7 @@ async def test_acquire_failure_or_cancellation_restores_provider_scope(monkeypat
         assert result.refresh_attempted is True
         assert result.refresh_succeeded is False
         assert result.provider_request_log_ids == [582]
+        assert result.reason_code == expected_reason
         assert failure_records == [(profile, failure)]
 
     assert len(binder_calls) == 1

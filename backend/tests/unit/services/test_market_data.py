@@ -1,12 +1,17 @@
 import asyncio
 from datetime import UTC, date, datetime, timedelta
 from types import SimpleNamespace
+from unittest.mock import AsyncMock
 from zoneinfo import ZoneInfo
 
 import pytest
 from sqlalchemy.dialects import postgresql
 
+from app.models.exchange import Exchange
+from app.models.instrument import Instrument
+from app.models.listing import InstrumentListing
 from app.models.ohlcv import TIMEFRAME_SECONDS, OHLCVBar, Timeframe
+from app.providers.base import InstrumentProfile
 from app.services import market_data
 from app.services.market_data import (
     _bar_as_dict,
@@ -18,6 +23,7 @@ from app.services.market_data import (
 from app.services.ohlcv_coverage import (
     CoverageStatus,
     assess_ohlcv_coverage,
+    coverage_calendar_for_instrument,
     missing_range_slices,
 )
 from app.services.provider_runtime import ProviderNoDataError
@@ -54,6 +60,118 @@ def test_cached_ranges_tolerate_expected_provider_availability_failures():
         )
         is True
     )
+
+
+@pytest.mark.asyncio
+async def test_required_industry_profile_falls_through_generic_source_to_massive_sic(
+    db, monkeypatch
+):
+    from tests.unit.conftest import AsyncSessionAdapter
+
+    async_db = AsyncSessionAdapter(db)
+    generic = InstrumentProfile(
+        provider="alpaca",
+        symbol="XLB",
+        canonical_symbol="XLB",
+        name="Materials Select Sector SPDR",
+        extra={"sector": "Materials"},
+    )
+    sic = InstrumentProfile(
+        provider="massive",
+        symbol="XLB",
+        canonical_symbol="XLB",
+        name="Materials Select Sector SPDR",
+        extra={"sic_code": "6726", "sic_description": "Investment offices"},
+    )
+    monkeypatch.setattr(market_data, "_fresh_profile_from_cache", AsyncMock(return_value=generic))
+    monkeypatch.setattr(
+        market_data,
+        "resolve_provider_chain",
+        AsyncMock(
+            return_value=[
+                SimpleNamespace(provider_name="alpaca"),
+                SimpleNamespace(provider_name="massive"),
+            ]
+        ),
+    )
+    executions = []
+
+    async def fake_execute(*_args, provider_name, **_kwargs):
+        executions.append(provider_name)
+        return SimpleNamespace(result=generic if provider_name == "alpaca" else sic)
+
+    ingested = []
+
+    async def fake_ingest(_db, profile, **_kwargs):
+        ingested.append(profile.provider)
+
+    monkeypatch.setattr(market_data, "execute_provider_call", fake_execute)
+    monkeypatch.setattr(market_data, "ingest_provider_profile", fake_ingest)
+
+    result = await market_data.get_provider_profile_async(
+        async_db,
+        "XLB",
+        instrument_id=55,
+        required_profile_fields=["industry"],
+        raise_provider_errors=True,
+    )
+
+    assert result is sic
+    assert executions == ["alpaca", "massive"]
+    assert ingested == ["alpaca", "massive"]
+
+
+@pytest.mark.asyncio
+async def test_profile_cache_qualification_uses_the_explicit_provider_source(
+    db, instrument, monkeypatch
+):
+    from app.models.data_source import DataSource
+    from app.models.provider_observation import InstrumentProfileSnapshot
+    from tests.unit.conftest import AsyncSessionAdapter
+
+    async_db = AsyncSessionAdapter(db)
+    edgar = DataSource(name="edgar", is_active=True)
+    massive = DataSource(name="massive", is_active=True)
+    db.add_all([edgar, massive])
+    db.flush()
+    now = datetime.now(UTC)
+    db.add(
+        InstrumentProfileSnapshot(
+            instrument_id=instrument.id,
+            data_source_id=edgar.id,
+            provider_symbol=instrument.symbol,
+            observed_at=now,
+            fetched_at=now,
+            profile_hash="fresh-edgar-profile",
+            payload={"provider": "edgar", "canonical_symbol": instrument.symbol},
+        )
+    )
+    await async_db.flush()
+
+    async def resolved_chain(_db, _capability, **_kwargs):
+        return [
+            SimpleNamespace(
+                provider_name="edgar",
+                data_source=edgar,
+                policy=SimpleNamespace(freshness_seconds=3600),
+            ),
+            SimpleNamespace(
+                provider_name="massive",
+                data_source=massive,
+                policy=SimpleNamespace(freshness_seconds=3600),
+            ),
+        ]
+
+    monkeypatch.setattr(market_data, "resolve_provider_chain", resolved_chain)
+
+    cached = await market_data._fresh_profile_from_cache(
+        async_db,
+        instrument_id=instrument.id,
+        provider_symbol=instrument.symbol,
+        provider_name="massive",
+    )
+
+    assert cached is None
 
 
 def _semantic_bar() -> OHLCVBar:
@@ -401,6 +519,27 @@ def test_xnys_daily_gap_coalesces_across_weekend_holiday_and_dst():
     # The local-midnight bar timestamp after the DST transition is 04:00 UTC.
     assert slices[0][0] == datetime(2026, 3, 9, 4, tzinfo=UTC)
     assert _is_positive_repair_slice(*slices[0]) is True
+
+
+def test_xnys_thanksgiving_closure_and_saturday_new_year_observation():
+    from app.services.ohlcv_coverage import _xnys_holidays
+
+    # Thanksgiving is not a missing trading session, while the Friday after it
+    # remains a session (with its close handled by exchange_sessions).
+    start = datetime(2026, 11, 25, tzinfo=_NEW_YORK).astimezone(UTC)
+    end = datetime(2026, 11, 27, 16, tzinfo=_NEW_YORK).astimezone(UTC)
+    gap = missing_range_slices(
+        [_xnys_bar_open(date(2026, 11, 25)), _xnys_bar_open(date(2026, 11, 27))],
+        Timeframe.D1,
+        start,
+        end,
+        calendar="XNYS",
+    )
+    assert gap == []
+
+    # A Saturday New Year's Day is not observed on the preceding Friday.
+    assert date(2021, 12, 31) not in _xnys_holidays(2022)
+    assert date(2027, 12, 31) not in _xnys_holidays(2028)
 
 
 def test_xnys_daily_present_session_splits_true_interior_holes():
@@ -950,3 +1089,54 @@ async def test_latest_price_refresh_redis_timeout_fails_closed_without_provider(
     with pytest.raises(DistributedLockError, match="timed out"):
         await market_data.get_current_price_async(object(), instrument, redis=_Redis())
     assert provider_called is False
+
+
+def test_coverage_calendar_is_xnys_after_plain_db_get_without_preloaded_listings(db, instrument):
+    """A plain db.get must still see the primary listing that drives the XNYS calendar."""
+    exchange = Exchange(mic="XNYS", name="New York Stock Exchange", country_code="US")
+    db.add(exchange)
+    db.flush()
+    db.add(
+        InstrumentListing(
+            instrument_id=instrument.id,
+            exchange_id=exchange.id,
+            ticker=instrument.symbol,
+            currency="USD",
+            is_primary=True,
+            is_active=True,
+        )
+    )
+    db.flush()
+    db.expunge_all()
+
+    loaded = db.get(Instrument, instrument.id)
+
+    assert coverage_calendar_for_instrument(loaded) == "XNYS"
+
+
+@pytest.mark.parametrize(
+    ("start", "end"),
+    [
+        (date(2025, 12, 20), date(2026, 1, 10)),
+        (date(2020, 6, 15), date(2021, 1, 5)),
+        (date(2024, 1, 1), date(2024, 12, 31)),
+    ],
+)
+def test_memoized_xnys_session_days_match_a_naive_walk_and_return_fresh_sets(start, end):
+    """Calendar memoization must not change sessions, and callers cannot poison it."""
+    from app.services import ohlcv_coverage as coverage
+
+    holidays: set[date] = set()
+    for year in range(start.year, end.year + 1):
+        holidays.update(coverage._xnys_holidays(year))
+    expected: set[date] = set()
+    cursor = start
+    while cursor <= end:
+        if cursor.weekday() < 5 and cursor not in holidays:
+            expected.add(cursor)
+        cursor += timedelta(days=1)
+
+    first = coverage._xnys_session_days(start, end)
+    assert first == expected
+    first.clear()
+    assert coverage._xnys_session_days(start, end) == expected

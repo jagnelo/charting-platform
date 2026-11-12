@@ -1,6 +1,17 @@
 <template>
   <div class="chart-root" ref="rootRef" tabindex="0" role="region" aria-label="Chart workspace" :aria-describedby="`${chartControlId}-provenance`" :aria-busy="chartStore.isLoading || (chartStore.bars.length > 0 && !chartReady) ? 'true' : 'false'" :data-linked-timestamp="props.linkedTimestamp || undefined" :data-date-pointer-mode="datePointerMode" @keydown="handleDatePointerKeydown" @keydown.esc="handleChartEscape">
     <span :id="`${chartControlId}-provenance`" class="sr-only">{{ chartAriaLabel }}</span>
+    <div
+      v-if="calendarStatusMessage"
+      class="calendar-status"
+      role="status"
+      aria-live="polite"
+      :title="calendarStatusMessage"
+      data-testid="instrument-calendar-status"
+    >
+      <span class="calendar-status__summary" aria-hidden="true">{{ calendarStatusSummary }}</span>
+      <span class="sr-only">{{ calendarStatusMessage }}</span>
+    </div>
 
     <!-- Main price chart -->
     <div class="uplot-wrapper" ref="wrapperRef"
@@ -48,7 +59,7 @@
       <!-- Right-click context menu on price axis -->
       <div class="ctx-menu" v-if="ctxMenu.visible"
            :style="{ top: ctxMenu.y + 'px', right: '8px' }"
-           role="menu" aria-label="Price scale actions" @mouseleave="closePriceContextMenu" @keydown="handleContextMenuKeydown('price', $event)">
+           role="menu" aria-label="Price scale actions" @mouseenter="contextMenuPointerEntered = true" @mouseleave="contextMenuPointerEntered && closePriceContextMenu()" @keydown="handleContextMenuKeydown('price', $event)">
         <button type="button" role="menuitem" tabindex="-1" @click="toggleLogScaleFromMenu">{{ isLogScale ? '✓ ' : '' }}Log Scale</button>
         <button type="button" role="menuitem" tabindex="-1" @click="resetPriceScaleFromMenu">Reset Price Scale</button>
       </div>
@@ -76,7 +87,7 @@
     <!-- Drawing context menu (right-click on any drawing, main or sub-pane) -->
     <div class="ctx-menu" v-if="overlayInteractionsEnabled && drawCtxMenu.visible"
          :style="{ top: drawCtxMenu.y + 'px', left: drawCtxMenu.x + 'px' }"
-         role="menu" aria-label="Drawing actions" @mouseleave="closeDrawingContextMenu" @keydown="handleContextMenuKeydown('drawing', $event)">
+         role="menu" aria-label="Drawing actions" @mouseenter="contextMenuPointerEntered = true" @mouseleave="contextMenuPointerEntered && closeDrawingContextMenu()" @keydown="handleContextMenuKeydown('drawing', $event)">
       <button type="button" role="menuitem" tabindex="-1" @click="deleteSelectedDrawing">🗑 Delete Drawing</button>
       <button type="button" role="menuitem" tabindex="-1" @click="closeDrawingContextMenu(); drawStore.selectDrawing(null)">Deselect</button>
     </div>
@@ -192,7 +203,17 @@
 import { ref, watch, onMounted, onUnmounted, nextTick, computed, reactive, inject, useId } from 'vue'
 import uPlot from 'uplot'
 import 'uplot/dist/uPlot.min.css'
-import { api } from '@/lib/api'
+import { api, setQueuedApiRequestPriority, type ApiRequestPriority } from '@/lib/api'
+import {
+  fetchInstrumentCalendar,
+  invalidateInstrumentCalendar,
+  instrumentCalendarStatusQueryKey,
+  instrumentCalendarStatusRefetchInterval,
+  isCurrentInstrumentCalendarContext,
+  shouldRefreshInstrumentCalendar,
+  type InstrumentCalendarStatus,
+} from '@/lib/workstation/instrumentCalendar'
+import { assertAuthSessionCurrent, authSessionEpochView, captureAuthSession } from '@/lib/authSession'
 import { usePanelStore }        from '@/stores/chart'
 import { useLayoutStore }       from '@/stores/layout'
 import { useDrawingsStore }     from '@/stores/drawings'
@@ -200,7 +221,7 @@ import { useAlertsStore }       from '@/stores/alerts'
 import { useUserSettingsStore } from '@/stores/userSettings'
 import { useOptionsExposureStore } from '@/stores/optionsExposure'
 import { useWorkspaceStore } from '@/stores/workspace'
-import { useQuery } from '@tanstack/vue-query'
+import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { isEditorTarget } from '@/lib/workstation/keyboard'
 import { customDateSortRangeFromChartPositions } from '@/lib/workstation/customDateSort'
 import type { CustomDateSortRange } from '@/lib/workstation/customDateSort'
@@ -316,6 +337,7 @@ const PREFETCH_THRESHOLD = 80  // bar indices from left edge before prefetch fir
 // ── Stores & DOM refs ─────────────────────────────────────────────────────────
 const panelId            = inject<string>('panelId', 'main')
 const chartInstanceId    = useId()
+const queryClient        = useQueryClient()
 const chartStore         = usePanelStore(panelId)
 const layoutStore        = useLayoutStore()
 const drawStore          = useDrawingsStore()
@@ -539,6 +561,11 @@ const eventPopover = ref<{ event: InstrumentEvent; x: number; y: number } | null
 let eventMarkers: Array<{ event: InstrumentEvent; x: number; y: number; r: number }> = []
 let eventLoadSeq = 0
 let eventRangeKey = ''
+let eventLoadPromise: Promise<void> | null = null
+let eventLoadPromiseKey = ''
+let forcedEventReloadKey: string | null = null
+let calendarStatusProgressScope = ''
+let calendarStatusProgress: InstrumentCalendarStatus | null = null
 
 const fmt    = (v: number) => v != null ? v.toFixed(4) : '—'
 const fmtVol = (v: number) => v >= 1e9 ? `${(v/1e9).toFixed(1)}B` : v >= 1e6 ? `${(v/1e6).toFixed(1)}M` : v >= 1e3 ? `${(v/1e3).toFixed(0)}K` : String(Math.round(v))
@@ -650,9 +677,20 @@ function focusContextMenuItem(kind: 'price' | 'drawing', index: number) {
   if (items.length) items[Math.max(0, Math.min(index, items.length - 1))]?.focus()
 }
 
+// A context menu closes when the pointer leaves it, but only after the pointer
+// has actually entered it; a layout shift under a still pointer must not close it.
+const contextMenuPointerEntered = ref(false)
 function openContextMenu(kind: 'price' | 'drawing') {
+  contextMenuPointerEntered.value = false
   contextMenuSource.value = kind
-  void nextTick(() => focusContextMenuItem(kind, 0))
+  // Right-clicking an inactive chart also activates its window, which moves
+  // focus after this tick; focus the first item once that settles too.
+  void nextTick(() => {
+    focusContextMenuItem(kind, 0)
+    requestAnimationFrame(() => {
+      if (contextMenuSource.value === kind && !rootRef.value?.querySelector('.ctx-menu [role="menuitem"]:focus')) focusContextMenuItem(kind, 0)
+    })
+  })
 }
 
 function closePriceContextMenu() {
@@ -1043,7 +1081,7 @@ async function loadAlertFiringEvents() {
   }
 }
 
-async function loadInstrumentEvents() {
+async function loadInstrumentEvents(forceRefresh = false): Promise<void> {
   const symbol = chartStore.symbol
   const bars = chartStore.bars
   const instrument = chartStore.instrument
@@ -1058,20 +1096,70 @@ async function loadInstrumentEvents() {
     ? new Date(lastTs + 370 * 86_400_000).toISOString()
     : bars[bars.length - 1].ts
   const key = `${symbol}:${start}:${end}`
-  if (key === eventRangeKey) return
+  const instrumentId = instrument.id
+  const sessionEpoch = captureAuthSession().epoch
+  if (eventLoadPromise && eventLoadPromiseKey === key) {
+    if (forceRefresh) forcedEventReloadKey = key
+    await eventLoadPromise
+    if (forceRefresh && forcedEventReloadKey === key
+      && isCurrentInstrumentCalendarContext(symbol, chartStore.symbol, sessionEpoch, captureAuthSession().epoch, instrumentId, chartStore.instrument?.id)) {
+      forcedEventReloadKey = null
+      await loadInstrumentEvents(true)
+    }
+    return
+  }
+  const queueKey = `chart-calendar:${key}`
+  const rootRect = rootRef.value?.getBoundingClientRect()
+  const hasVisibleChartSurface = chartSurfaceVisible.value && chartDocumentVisible.value
+    && Boolean(rootRect && rootRect.width > 0 && rootRect.height > 0)
+  const priority: ApiRequestPriority = hasVisibleChartSurface ? 'high' : 'auto'
+  if (key === eventRangeKey && !forceRefresh) {
+    if (priority === 'high') setQueuedApiRequestPriority(queueKey, 'high')
+    return
+  }
   eventRangeKey = key
   const seq = ++eventLoadSeq
-  try {
-    const loaded = await api.get<InstrumentEvent[]>(
-      `/calendar/instruments/${encodeURIComponent(symbol)}/calendar`,
-      { start, end },
+  const read = (async () => {
+    try {
+    // Dock layout edits can recreate virtual tool roots even though the chart
+    // query is unchanged. Share the exact date-range read through the existing
+    // authenticated Vue Query cache so those remounts do not fan out duplicate
+    // calendar/enrichment requests.
+    if (forceRefresh) await invalidateInstrumentCalendar(queryClient, symbol, start, end)
+    const loaded = await fetchInstrumentCalendar<InstrumentEvent[]>(queryClient, symbol, start, end, signal =>
+      api.get<InstrumentEvent[]>(
+        `/calendar/instruments/${encodeURIComponent(symbol)}/calendar`,
+        { start, end },
+        { signal, priority, queueKey },
+      ),
+      { priority, queueKey, refresh: forceRefresh },
     )
-    if (seq === eventLoadSeq && symbol === chartStore.symbol) {
+    if (seq === eventLoadSeq && isCurrentInstrumentCalendarContext(
+      symbol, chartStore.symbol, sessionEpoch, captureAuthSession().epoch, instrumentId, chartStore.instrument?.id,
+    )) {
       instrumentEvents.value = loaded
       redrawVisuals()
     }
-  } catch {
-    if (seq === eventLoadSeq && symbol === chartStore.symbol) instrumentEvents.value = []
+    } catch {
+      // A refresh must never erase already-rendered events when the status/list
+      // read is temporarily unavailable. Initial failures remain explicit.
+      if (!forceRefresh && seq === eventLoadSeq
+        && isCurrentInstrumentCalendarContext(
+          symbol, chartStore.symbol, sessionEpoch, captureAuthSession().epoch, instrumentId, chartStore.instrument?.id,
+        )) {
+        instrumentEvents.value = []
+      }
+    }
+  })()
+  eventLoadPromise = read
+  eventLoadPromiseKey = key
+  try {
+    await read
+  } finally {
+    if (eventLoadPromise === read) {
+      eventLoadPromise = null
+      eventLoadPromiseKey = ''
+    }
   }
 }
 
@@ -1211,6 +1299,7 @@ const TF_POLL_MS: Record<string, number> = {
 }
 const chartSurfaceVisible = ref(true)
 const chartDocumentVisible = ref(typeof document === 'undefined' || document.visibilityState !== 'hidden')
+const calendarAuthSessionEpoch = authSessionEpochView()
 let chartVisibilityObserver: IntersectionObserver | null = null
 const chartReady = ref(false)
 function updateChartDocumentVisibility() {
@@ -1219,6 +1308,93 @@ function updateChartDocumentVisibility() {
 function livePollingAllowed() {
   return chartReady.value && chartSurfaceVisible.value && chartDocumentVisible.value
 }
+function calendarStatusObservationAllowed() {
+  const rect = rootRef.value?.getBoundingClientRect()
+  return livePollingAllowed() && Boolean(rect && rect.width > 0 && rect.height > 0)
+}
+
+const instrumentCalendarStatusQuery = useQuery({
+  queryKey: computed(() => instrumentCalendarStatusQueryKey(
+    chartStore.symbol, calendarAuthSessionEpoch.value, chartStore.instrument?.id,
+  )),
+  queryFn: async ({ signal, queryKey }) => {
+    const [, , symbol, instrumentId, sessionEpoch] = queryKey as ReturnType<typeof instrumentCalendarStatusQueryKey>
+    const session = captureAuthSession()
+    if (session.epoch !== sessionEpoch) throw new Error('The authenticated session changed before calendar status loading.')
+    const status = await api.get<InstrumentCalendarStatus>(
+      `/calendar/instruments/${encodeURIComponent(symbol)}/calendar/status`,
+      undefined,
+      { signal, priority: 'high', foreground: true, queueKey: `chart-calendar-status:${symbol}` },
+    )
+    assertAuthSessionCurrent(session)
+    if (!isCurrentInstrumentCalendarContext(
+      symbol, chartStore.symbol, session.epoch, captureAuthSession().epoch, instrumentId, chartStore.instrument?.id,
+    )) throw new Error('The selected instrument changed while calendar status was loading.')
+    if (!status) throw new Error('Calendar status response was empty.')
+    return status
+  },
+  enabled: computed(() => Boolean(chartStore.symbol && chartStore.bars.length && chartStore.instrument
+    && chartStore.instrument.symbol === chartStore.symbol && !chartStore.instrument.is_synthetic
+    && calendarStatusObservationAllowed())),
+  retry: false,
+  staleTime: 0,
+  refetchOnWindowFocus: true,
+  refetchIntervalInBackground: false,
+  refetchInterval: query => instrumentCalendarStatusRefetchInterval(query.state.data),
+})
+
+const calendarStatusMessage = computed(() => {
+  const status = instrumentCalendarStatusQuery.data.value
+  if (instrumentCalendarStatusQuery.error.value) return 'Calendar status could not be checked; available events remain visible.'
+  if (!status) return ''
+  if (status.status === 'deferred') {
+    const retryAt = status.retry_at ? Date.parse(status.retry_at) : Number.NaN
+    if (Number.isFinite(retryAt) && retryAt > Date.now()) {
+      return `Calendar update is waiting until ${new Date(retryAt).toLocaleTimeString()}.`
+    }
+    return status.retry_at
+      ? 'Calendar retry is due; checking for progress.'
+      : 'Calendar update is waiting for its next scheduled attempt.'
+  }
+  if (status.status === 'held') return 'Calendar data is temporarily held; available events remain visible.'
+  if (status.status === 'unavailable') return 'Calendar data is currently unavailable; available events remain visible.'
+  if (status.status === 'stale') return 'Calendar data may be out of date; available events remain visible.'
+  if (status.has_pending_work || status.status === 'queued' || status.status === 'running') {
+    return instrumentEvents.value.length
+      ? 'Updating calendar events; available events remain visible.'
+      : 'Preparing calendar events…'
+  }
+  if (status.status === 'partial' && status.has_pending_work) return 'Updating calendar events; available events remain visible.'
+  if (status.status === 'ready') {
+    const count = instrumentEvents.value.length
+    return count ? `Calendar ready · ${count} ${count === 1 ? 'event' : 'events'}` : 'Calendar ready · no events in this range'
+  }
+  if (status.status === 'partial') return `Calendar partially available · ${instrumentEvents.value.length} events`
+  return ''
+})
+
+const calendarStatusSummary = computed(() => {
+  if (instrumentCalendarStatusQuery.error.value) return 'Calendar status unavailable'
+
+  const status = instrumentCalendarStatusQuery.data.value
+  if (!status) return ''
+  if (status.status === 'deferred') {
+    const retryAt = status.retry_at ? Date.parse(status.retry_at) : Number.NaN
+    return Number.isFinite(retryAt) && retryAt > Date.now() ? 'Calendar update queued' : 'Calendar retrying'
+  }
+  if (status.status === 'held') return 'Calendar held'
+  if (status.status === 'unavailable') return 'Calendar unavailable'
+  if (status.status === 'stale') return 'Calendar may be stale'
+  if (status.has_pending_work || status.status === 'queued' || status.status === 'running') {
+    return instrumentEvents.value.length ? 'Updating calendar' : 'Preparing calendar'
+  }
+  if (status.status === 'ready') {
+    const count = instrumentEvents.value.length
+    return count ? `Calendar ready · ${count}` : 'Calendar ready · none'
+  }
+  if (status.status === 'partial') return `Calendar partial · ${instrumentEvents.value.length}`
+  return ''
+})
 
 function mergeLatestBars(mapped: OHLCVBar[]) {
   if (!mapped.length) return
@@ -1823,6 +1999,12 @@ async function initChart() {
 
 async function rebuildChart(): Promise<boolean> {
   if (!chartRef.value || !wrapperRef.value) return false
+  const w = wrapperRef.value.clientWidth
+  const h = wrapperRef.value.clientHeight
+  // Golden Layout can keep an inactive virtual component at zero size. Wait
+  // for the wrapper's own ResizeObserver rather than creating a guessed-size
+  // chart that is clipped when the dock later reveals the real pane.
+  if (w <= 0 || h <= 0) return false
   const generation = ++initGeneration
 
   // Snapshot the current viewport before destroying so we can restore it after
@@ -1841,9 +2023,6 @@ async function rebuildChart(): Promise<boolean> {
   const data = chartStore.uplotData as number[][]
   if (!data[0]?.length) return false
 
-  const w = wrapperRef.value.clientWidth || 900
-  const totalSubPaneH = subPanes.value.reduce((sum, p) => sum + (subPaneHeights[p.key] ?? SUB_PANE_DEFAULT_H), 0)
-  const h = Math.max(80, (rootRef.value?.clientHeight ?? 600) - totalSubPaneH - subPanes.value.length * 4 - 20)
   const series = buildSeries()
   lastSeriesCount = series.length
 
@@ -3406,10 +3585,14 @@ async function finishDrawing(points: DrawingPoint[], type: DrawingType, indicato
 
 // ── Resize ────────────────────────────────────────────────────────────────────
 function handleResize() {
-  if (!uplot || !wrapperRef.value) return
+  if (!wrapperRef.value) return
   const w = wrapperRef.value.clientWidth
-  const totalSubPaneH = subPanes.value.reduce((sum, p) => sum + (subPaneHeights[p.key] ?? SUB_PANE_DEFAULT_H), 0)
-  const h = Math.max(80, (rootRef.value?.clientHeight ?? 600) - totalSubPaneH - subPanes.value.length * 4 - 20)
+  const h = wrapperRef.value.clientHeight
+  if (w <= 0 || h <= 0) return
+  if (!uplot) {
+    void initChart()
+    return
+  }
   uplot.setSize({ width: w, height: h }); syncCanvasSize(w, h)
   drawingRenderer?.resize(); renderVisualOverlays()
   for (const pane of subPanes.value) {
@@ -3450,7 +3633,7 @@ onMounted(async () => {
     })
     chartVisibilityObserver.observe(rootRef.value)
   }
-  try { await userSettingsStore.loadSettings() } catch {}
+  try { await userSettingsStore.loadSettings('high') } catch {}
   const initialType = effectiveChartType.value
   if (chartStore.symbol && chartStore.barType !== initialType) {
     await chartStore.loadBars(chartStore.symbol, chartStore.timeframe, initialType)
@@ -3461,9 +3644,18 @@ onMounted(async () => {
   resizeObserver = new ResizeObserver(handleResize)
   if (rootRef.value) {
     resizeObserver.observe(rootRef.value)
-    // Prevent browser back/forward navigation gestures when over the chart
-    rootRef.value.addEventListener('wheel', (e) => e.preventDefault(), { passive: false, capture: true })
+    // Prevent browser back/forward navigation gestures over the plot while
+    // allowing ordinary vertical scrolling to reach indicator panes when the
+    // chart is taller than its dock.
+    rootRef.value.addEventListener('wheel', (event) => {
+      const root = rootRef.value
+      const target = event.target instanceof Element ? event.target : null
+      const scrollingPanes = !!root && root.scrollHeight > root.clientHeight && event.deltaY !== 0
+      if (scrollingPanes && target && !target.closest('.uplot-wrapper')) return
+      event.preventDefault()
+    }, { passive: false, capture: true })
   }
+  if (wrapperRef.value) resizeObserver.observe(wrapperRef.value)
 })
 
 onUnmounted(() => {
@@ -3515,6 +3707,22 @@ watch([() => chartStore.symbol, () => chartStore.timeframe, () => chartStore.bar
 })
 watch(() => chartStore.instrument?.id, () => { if (!chartStore.instrument?.is_synthetic) loadInstrumentEvents() })
 watch(() => chartStore.instrument?.id, () => { if (!chartStore.instrument?.is_synthetic) loadAlertFiringEvents() })
+watch(() => instrumentCalendarStatusQuery.data.value, status => {
+  const symbol = chartStore.symbol
+  const sessionEpoch = calendarAuthSessionEpoch.value
+  if (!status || !chartStore.symbol || !chartStore.bars.length || !chartStore.instrument
+    || chartStore.instrument.symbol !== symbol || chartStore.instrument.is_synthetic
+    || !calendarStatusObservationAllowed()
+    || !isCurrentInstrumentCalendarContext(symbol, chartStore.symbol, sessionEpoch, captureAuthSession().epoch)) return
+  const scope = `${symbol.trim().toUpperCase()}:${chartStore.instrument.id}:${sessionEpoch}`
+  const previous = calendarStatusProgressScope === scope ? calendarStatusProgress : null
+  calendarStatusProgressScope = scope
+  calendarStatusProgress = status
+  if (shouldRefreshInstrumentCalendar(previous, status)) void loadInstrumentEvents(true)
+})
+watch([chartSurfaceVisible, chartDocumentVisible], ([visible, documentVisible]) => {
+  if (visible && documentVisible && !chartStore.instrument?.is_synthetic) loadInstrumentEvents()
+})
 watch([visibleComparisonSeries, visiblePythonSeries], () => { if (uplot) updateData(); else initChart() }, { deep: true })
 watchIndicatorStack(() => visibleActiveIndicators.value, () => initChart())
 watch(effectiveChartType, async (type) => {
@@ -3630,15 +3838,50 @@ defineExpose({ jumpToTs })
   flex-direction: column;
   width: 100%; height: 100%;
   background: #080808;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   overscroll-behavior: none;
   user-select: none;
   -webkit-user-select: none;
 }
 
+.calendar-status {
+  position: relative;
+  flex: 0 0 20px;
+  align-self: flex-end;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: calc(100% - 20px);
+  min-width: 0;
+  height: 20px;
+  margin: 3px 10px 0;
+  padding: 2px 5px;
+  border: 1px solid rgba(125, 145, 165, 0.22);
+  border-radius: 3px;
+  background: #101214;
+  color: #929ba5;
+  font-size: 10px;
+  line-height: 14px;
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: auto;
+}
+
+.calendar-status__summary {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .uplot-wrapper {
   position: relative;
-  flex: 1;
+  /* Retain the usable price plane for normal/indicator layouts, but let it
+     shrink to the chart root's actual available height in compact docks. */
+  flex: 1 1 120px;
+  min-width: 0;
+  min-height: min(120px, 100%);
   overflow: hidden;
   touch-action: none;
   overscroll-behavior: none;

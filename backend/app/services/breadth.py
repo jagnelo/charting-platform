@@ -13,9 +13,11 @@ from __future__ import annotations
 import hashlib
 import json
 import math
-from collections.abc import Mapping
+from bisect import bisect_right
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
+from itertools import islice
 from types import SimpleNamespace
 from typing import Any
 
@@ -150,7 +152,44 @@ def _finite(value: Any) -> bool:
         return False
 
 
+class _PrefixView(Sequence):
+    """Read-only observed prefix of a sorted series, without copying bars.
+
+    ``closes`` is the series' float closes, shared by every prefix, and
+    ``nonfinite`` counts the non-finite values in this prefix. Evaluators only
+    read bars, so indexing, slicing, iteration and ``len`` behave as they did on
+    the copied list.
+    """
+
+    __slots__ = ("bars", "end", "closes", "nonfinite")
+
+    def __init__(self, bars: list[Any], end: int, closes: list[float], nonfinite: int) -> None:
+        self.bars = bars
+        self.end = end
+        self.closes = closes
+        self.nonfinite = nonfinite
+
+    def __len__(self) -> int:
+        return self.end
+
+    def __getitem__(self, index):
+        if isinstance(index, slice):
+            return [self[position] for position in range(*index.indices(self.end))]
+        if index < 0:
+            index += self.end
+        if not 0 <= index < self.end:
+            raise IndexError("prefix index out of range")
+        return self.bars[index]
+
+    def __iter__(self):
+        return islice(self.bars, self.end)
+
+
 def _close_values(bars: list[Any]) -> list[float] | None:
+    if isinstance(bars, _PrefixView):
+        if bars.nonfinite:
+            return None
+        return bars.closes[: bars.end]
     values = [float(getattr(bar, "close", math.nan)) for bar in bars]
     return values if all(math.isfinite(value) for value in values) else None
 
@@ -1517,6 +1556,50 @@ def evaluate_breadth(
     }
 
 
+class _PrefixSeries:
+    """Observed-prefix view of one bar series, sorted once for bisect lookups.
+
+    When bars are strictly ascending by timestamp, the observed prefix at a
+    timestamp is a slice and the current-bar test is an index check. Any other
+    input keeps the original filter, so results are identical either way.
+    """
+
+    __slots__ = ("bars", "ts", "closes", "nonfinite_before")
+
+    def __init__(self, bars: Sequence[Any]) -> None:
+        self.bars = list(bars)
+        stamps = [getattr(bar, "ts", None) for bar in self.bars]
+        strictly_ascending = all(stamp is not None for stamp in stamps) and all(
+            stamps[index] < stamps[index + 1] for index in range(len(stamps) - 1)
+        )
+        self.ts: list[Any] | None = stamps if strictly_ascending else None
+        self.closes: list[float] | None = None
+        self.nonfinite_before: list[int] = []
+        if self.ts is not None:
+            try:
+                closes = [float(getattr(bar, "close", math.nan)) for bar in self.bars]
+            except (TypeError, ValueError):
+                self.ts = None  # unusual closes keep the original per-call path
+            else:
+                self.closes = closes
+                running = 0
+                counts = [0]
+                for value in closes:
+                    running += 0 if math.isfinite(value) else 1
+                    counts.append(running)
+                self.nonfinite_before = counts
+
+    def observed(self, timestamp: Any) -> tuple[list[Any], bool]:
+        """Return the bars at or before ``timestamp`` and whether one is exactly there."""
+
+        if self.ts is None:
+            observed = [bar for bar in self.bars if getattr(bar, "ts", None) <= timestamp]
+            return observed, bool(observed and getattr(observed[-1], "ts", None) == timestamp)
+        index = bisect_right(self.ts, timestamp)
+        prefix = _PrefixView(self.bars, index, self.closes, self.nonfinite_before[index])
+        return prefix, index > 0 and self.ts[index - 1] == timestamp
+
+
 def evaluate_breadth_history(
     members: list[BreadthMember],
     bars_by_instrument: Mapping[int, list[Any]],
@@ -1545,15 +1628,26 @@ def evaluate_breadth_history(
     )
     if not timestamps:
         return []
+    # Each point depends only on its own timestamp, and the result keeps the
+    # newest ``kept`` points, so only that tail needs evaluating.
+    kept = max(1, min(limit, 5_000))
+    timestamps = timestamps[-kept:]
+    series_by_instrument: dict[int, _PrefixSeries] = {}
+    for member in members:
+        if member.instrument_id not in series_by_instrument:
+            series_by_instrument[member.instrument_id] = _PrefixSeries(
+                bars_by_instrument.get(member.instrument_id, [])
+            )
+    benchmark_series = _PrefixSeries(benchmark_bars) if benchmark_bars is not None else None
     points: list[dict[str, Any]] = []
     for timestamp in timestamps:
         snapshot_bars_by_instrument: dict[int, list[Any]] = {}
         snapshot_exclusions: dict[int, str] = {}
         member_results: list[BreadthMemberResult] = []
         for member in members:
-            member_bars = list(bars_by_instrument.get(member.instrument_id, []))
-            observed = [bar for bar in member_bars if getattr(bar, "ts", None) <= timestamp]
-            has_current_bar = bool(observed and getattr(observed[-1], "ts", None) == timestamp)
+            observed, has_current_bar = series_by_instrument[member.instrument_id].observed(
+                timestamp
+            )
             if not has_current_bar:
                 exclusion = "missing_bar_at_timestamp" if observed else "no_bars"
                 snapshot_exclusions[member.instrument_id] = exclusion
@@ -1581,14 +1675,9 @@ def evaluate_breadth_history(
                 continue
             snapshot_bars_by_instrument[member.instrument_id] = observed
             benchmark_at_timestamp = benchmark_bars
-            if benchmark_bars is not None:
-                benchmark_observed = [
-                    bar for bar in benchmark_bars if getattr(bar, "ts", None) <= timestamp
-                ]
-                if (
-                    not benchmark_observed
-                    or getattr(benchmark_observed[-1], "ts", None) != timestamp
-                ):
+            if benchmark_series is not None:
+                _, benchmark_has_current = benchmark_series.observed(timestamp)
+                if not benchmark_has_current:
                     benchmark_at_timestamp = []
             if _contains_cross_sectional(condition):
                 # The second pass below ranks all members at this timestamp;
@@ -1635,14 +1724,9 @@ def evaluate_breadth_history(
             )
         if _contains_cross_sectional(condition):
             benchmark_at_timestamp = benchmark_bars
-            if benchmark_bars is not None:
-                benchmark_observed = [
-                    bar for bar in benchmark_bars if getattr(bar, "ts", None) <= timestamp
-                ]
-                if (
-                    not benchmark_observed
-                    or getattr(benchmark_observed[-1], "ts", None) != timestamp
-                ):
+            if benchmark_series is not None:
+                _, benchmark_has_current = benchmark_series.observed(timestamp)
+                if not benchmark_has_current:
                     benchmark_at_timestamp = []
             member_results, _ = _evaluate_cross_sectional_tree(
                 members,
@@ -1666,7 +1750,7 @@ def evaluate_breadth_history(
                 "members": member_results,
             }
         )
-    return points[-max(1, min(limit, 5_000)) :]
+    return points
 
 
 def detect_breadth_occurrences(points: list[Mapping[str, Any]]) -> list[dict[str, Any]]:
