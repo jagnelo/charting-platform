@@ -4553,9 +4553,19 @@ async function addConditionColumn(payload: TechnicalConditionDragPayload) {
     })
     let scan: { id: number } = existing.find(item => item.name.toLowerCase() === screenerName.toLowerCase()) ?? { id: 0 }
     if (!scan.id) {
-      scan = await api.post<{ id: number }>(`/screeners/from-condition/${encodeURIComponent(stableKey)}`, {
-        name: screenerName, universe_type: 'all', timeframe: payload.timeframe,
-      })
+      try {
+        scan = await api.post<{ id: number }>(`/screeners/from-condition/${encodeURIComponent(stableKey)}`, {
+          name: screenerName, universe_type: 'all', timeframe: payload.timeframe,
+        })
+      } catch (cause: any) {
+        // The cached list can predate a same-named screener created by an
+        // earlier drop or another surface; reuse it instead of failing.
+        if (cause?.status !== 409 && !String(cause?.message ?? '').includes(' 409:')) throw cause
+        const fresh = (await api.get<Array<{ id: number; name: string }>>('/screeners')) ?? []
+        const reused = fresh.find(item => item.name.toLowerCase() === screenerName.toLowerCase())
+        if (!reused) throw cause
+        scan = reused
+      }
     }
     await api.post(`/screeners/${scan.id}/run`, {})
     await queryClient.invalidateQueries({ queryKey: ['workstation', 'screeners'] })
