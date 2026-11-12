@@ -7174,7 +7174,7 @@ async def group_snapshot(
         dict.fromkeys(instrument_ids + ([benchmark_instrument.id] if benchmark_instrument else []))
     )
     bars_by_id = _truncate_bars_at(
-        await _bars_by_instrument(db, all_ids, timeframe, adjusted), as_of
+        await _bars_by_instrument(db, all_ids, timeframe, adjusted, as_columns=True), as_of
     )
     stale_ids = (
         set()
@@ -7390,7 +7390,7 @@ async def group_breadth(
     members = _group_members_at(group, requested_as_of)
     member_ids = [member.instrument_id for member in members]
     bars_by_id = _truncate_bars_at(
-        await _bars_by_instrument(db, member_ids, timeframe, adjusted),
+        await _bars_by_instrument(db, member_ids, timeframe, adjusted, as_columns=True),
         requested_as_of,
     )
     # Current breadth must not treat expired provider-backed bars as current
@@ -7616,7 +7616,11 @@ async def group_breadth_history(
     exclusions: list[AnalysisWarning] = []
     bars_by_id = _truncate_bars_at(
         await _bars_by_instrument(
-            db, [member.instrument_id for member in members], timeframe, adjusted
+            db,
+            [member.instrument_id for member in members],
+            timeframe,
+            adjusted,
+            as_columns=True,
         ),
         as_of,
     )
