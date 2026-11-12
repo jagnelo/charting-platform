@@ -1,0 +1,104 @@
+{
+  "at": "2026-11-08T05:16:51.481985+00:00",
+  "authority": "Root human-authorized coordination; development-only operator/test context, no external-request allocation",
+  "state": "released_for_exact_development_consumption_not_product_acceptance",
+  "source": "aed0d62c7e93ee6bd320c6b7a22791bb8d3d8b87",
+  "base": "139b350238b5e1c8a170dce5af09a805301d857e",
+  "files": [
+    {
+      "path": "scripts/run-live-provider-probes.py",
+      "sha256": "d9b1e07c1b2b16c414c7a1abbc4fb65e556290b430361de381f5cc47da02f00a",
+      "git_blob": "cefa13e0e9f8d7deab63a513139d3bfe5a21b8e4"
+    },
+    {
+      "path": "backend/tests/live/test_market_data_providers_live.py",
+      "sha256": "4b3ee0dc1f8a1ce48c301a1e9b38ac1f53e488e8048f5ca4a704affb756d68b6",
+      "git_blob": "a2097900ddc57bce5e680d3a7ed1fba038406f4f"
+    },
+    {
+      "path": "backend/tests/unit/test_live_provider_runner.py",
+      "sha256": "94e2ca53d23fde880fdb4333952599ec032f768095bd0d2e885421c2d4cdf2a5",
+      "git_blob": "2d8529aa650b5319684bc1dd45d7e6b98f93939f"
+    }
+  ],
+  "consumers": [
+    {
+      "consumer": "TC",
+      "import_paths": [
+        "scripts/run-live-provider-probes.py",
+        "backend/tests/live/test_market_data_providers_live.py",
+        "backend/tests/unit/test_live_provider_runner.py"
+      ],
+      "old_guards": {
+        "scripts/run-live-provider-probes.py": {
+          "sha256": "3a5f3d8afa2031a56f0d55c1503db35e700509978de8ef10ec1714327af6cf14",
+          "known_source": "139b350238b5e1c8a170dce5af09a805301d857e",
+          "known_absent": false
+        },
+        "backend/tests/live/test_market_data_providers_live.py": {
+          "sha256": "691d8c7de15ab329731db7bf9f3babaa4f1cdfa1586eede19c2dd950e172eefd",
+          "known_source": "139b350238b5e1c8a170dce5af09a805301d857e",
+          "known_absent": false
+        },
+        "backend/tests/unit/test_live_provider_runner.py": {
+          "sha256": "38d42e17009fdde1b8d5cfd96c9465ba3633f44d4c334d0d886537b18c55ff07",
+          "known_source": "139b350238b5e1c8a170dce5af09a805301d857e",
+          "known_absent": false
+        }
+      }
+    },
+    {
+      "consumer": "ETF",
+      "import_paths": [
+        "scripts/run-live-provider-probes.py",
+        "backend/tests/live/test_market_data_providers_live.py",
+        "backend/tests/unit/test_live_provider_runner.py"
+      ],
+      "old_guards": {
+        "scripts/run-live-provider-probes.py": {
+          "sha256": "3a5f3d8afa2031a56f0d55c1503db35e700509978de8ef10ec1714327af6cf14",
+          "known_source": "139b350238b5e1c8a170dce5af09a805301d857e",
+          "known_absent": false
+        },
+        "backend/tests/live/test_market_data_providers_live.py": {
+          "sha256": "691d8c7de15ab329731db7bf9f3babaa4f1cdfa1586eede19c2dd950e172eefd",
+          "known_source": "139b350238b5e1c8a170dce5af09a805301d857e",
+          "known_absent": false
+        },
+        "backend/tests/unit/test_live_provider_runner.py": {
+          "sha256": "38d42e17009fdde1b8d5cfd96c9465ba3633f44d4c334d0d886537b18c55ff07",
+          "known_source": "139b350238b5e1c8a170dce5af09a805301d857e",
+          "known_absent": false
+        }
+      }
+    },
+    {
+      "consumer": "Strategy",
+      "import_paths": [
+        "scripts/run-live-provider-probes.py",
+        "backend/tests/live/test_market_data_providers_live.py",
+        "backend/tests/unit/test_live_provider_runner.py"
+      ],
+      "old_guards": {
+        "scripts/run-live-provider-probes.py": {
+          "sha256": "3a5f3d8afa2031a56f0d55c1503db35e700509978de8ef10ec1714327af6cf14",
+          "known_source": "139b350238b5e1c8a170dce5af09a805301d857e",
+          "known_absent": false
+        },
+        "backend/tests/live/test_market_data_providers_live.py": {
+          "sha256": "691d8c7de15ab329731db7bf9f3babaa4f1cdfa1586eede19c2dd950e172eefd",
+          "known_source": "139b350238b5e1c8a170dce5af09a805301d857e",
+          "known_absent": false
+        },
+        "backend/tests/unit/test_live_provider_runner.py": {
+          "sha256": "38d42e17009fdde1b8d5cfd96c9465ba3633f44d4c334d0d886537b18c55ff07",
+          "known_source": "139b350238b5e1c8a170dce5af09a805301d857e",
+          "known_absent": false
+        }
+      }
+    }
+  ],
+  "scope": "Three operator/live-probe inventory files aligned with actual optional adapters. Correct EODHD aggregate count4 and explicitly retain TwelveData earliest-timestamp method as blocked/unqualified. No backend app/runtime byte change; no new HTTP, credential, quota, hold or entitlement authority.",
+  "evidence": "Provider full test_live_provider_runner.py 163/163 passed on aed0d62c; Ruff/workstream/diff clean. Existing real5HTTP qualification receipts retained.",
+  "required": "Batch own3 import_paths through exact old_guards with final frozen frontend context. Record an active foreign dependency pin for exactly these3paths alongside unchanged79-path runtime pin. No extra metadata loops/fullsuite/live requests; cheap validators then one coherent context checkpoint. Root owns final combined qualification/promotion."
+}
