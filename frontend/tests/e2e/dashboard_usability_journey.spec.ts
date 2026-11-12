@@ -229,13 +229,18 @@ async function expectComparisonTooltip(chart: Locator, symbols: string[]) {
   await chart.scrollIntoViewIfNeeded()
   const plot = chart.locator('.uplot')
   await expect(plot).toBeVisible()
-  await plot.hover()
   const tooltip = chart.locator('.chart-tooltip')
-  await expect(tooltip).toBeVisible()
-  for (const symbol of symbols) {
-    await expect(tooltip.locator('b').filter({ hasText: new RegExp(`^${symbol}\\s`) })).toBeVisible()
-  }
-  await expect(tooltip.locator('b')).toHaveCount(symbols.length)
+  // A late series refresh can redraw the plot under a stationary cursor and
+  // empty the tooltip; re-hover until one complete tooltip is observed.
+  await expect(async () => {
+    await chart.page().mouse.move(0, 0)
+    await plot.hover()
+    await expect(tooltip).toBeVisible({ timeout: 2_000 })
+    for (const symbol of symbols) {
+      await expect(tooltip.locator('b').filter({ hasText: new RegExp(`^${symbol}\\s`) })).toBeVisible({ timeout: 2_000 })
+    }
+    await expect(tooltip.locator('b')).toHaveCount(symbols.length, { timeout: 2_000 })
+  }).toPass({ timeout: 20_000 })
 }
 
 function formattedQuote(close: number, currency: string | null | undefined) {
