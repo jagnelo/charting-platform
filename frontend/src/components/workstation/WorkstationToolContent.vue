@@ -1,7 +1,7 @@
 <template>
 <ToolWindow ref="toolWindowRef" :window-key="tool.instance_key" :title="tool.title || tool.tool_type" :symbol="toolHeaderSymbol" :link-group="localLinkGroup" :timeframe-link-group="timeframeLinkGroup" :timeframe="tool.tool_type === 'chart' ? activeTimeframe : ''" :active="isActiveToolWindow" :maximized="maximizedState?.value ?? false" :maximizing="maximizingState?.value ?? false" :scrollable-body="tool.instance_key === 'relative-rotation' || tool.tool_type === 'relative_rotation'" :favorite-available="tool.tool_type === 'chart' && favoriteStore.loaded && chartStore.instrument?.id != null" :favorite-active="favoriteStore.isFavorite(chartStore.instrument?.id)" :favorite-pending="favoriteStore.isPending(chartStore.instrument?.id)" @toggle-favorite="toggleChartFavorite" @pointerdown.capture="emit('activate')" @float="emit('float', tool.instance_key)" @maximize="emit('maximize', tool.instance_key)" @close="emit('close', tool.instance_key)" @update:link-group="handleLinkGroupChange" @update:timeframe-link-group="setTimeframeLinkGroup" @update:timeframe="setTimeframe">
     <span v-if="personalWatchlistError" class="workstation-tool-content__mutation-error" role="alert" aria-live="assertive">{{ personalWatchlistError }}</span>
-    <small v-if="isIndustryTool && industryProfilePreparation?.message" class="industry-list__load-state" role="status" aria-live="polite">{{ industryProfilePreparation.message }}</small>
+    <small v-if="isIndustryTool && !industries.length && industryProfilePreparation?.message" class="industry-list__load-state" role="status" aria-live="polite">{{ industryProfilePreparation.message }}</small>
     <div v-if="isBenchmarkUniverse" class="benchmark-surface">
       <div class="benchmark-surface__family-controls" aria-label="Benchmark family selector">
         <label>Family
@@ -395,8 +395,6 @@
       </div>
     </div>
     <div v-else-if="isIndustryTool && industries.length" class="industry-list">
-      <small v-if="workspaceStore.etfIndustryLoading[selectedETF]" class="industry-list__load-state" role="status">Refreshing dated classifications for {{ selectedETF }} holdings…</small>
-      <small v-else-if="workspaceStore.etfIndustryErrors[selectedETF]" class="industry-list__load-state" role="status">{{ workspaceStore.etfIndustryErrors[selectedETF] }} Existing classified rows remain visible.</small>
       <div class="industry-list__header" aria-label="Industry ranking columns">
         <span>Industry</span><span>Coverage</span><span>Proxies</span>
         <span v-for="column in industryRankingColumns" :key="column.key">{{ column.label }}</span>
@@ -419,6 +417,10 @@
           :aria-label="`${item.industry} classification provenance`"
         >{{ item.classificationLabel }}</small>
       </button>
+      <!-- Below the rows so a background refresh never shifts a row under the pointer. -->
+      <small v-if="industryProfilePreparation?.message" class="industry-list__load-state" role="status" aria-live="polite">{{ industryProfilePreparation.message }}</small>
+      <small v-if="workspaceStore.etfIndustryLoading[selectedETF]" class="industry-list__load-state" role="status">Refreshing dated classifications for {{ selectedETF }} holdings…</small>
+      <small v-else-if="workspaceStore.etfIndustryErrors[selectedETF]" class="industry-list__load-state" role="status">{{ workspaceStore.etfIndustryErrors[selectedETF] }} Existing classified rows remain visible.</small>
       <div v-if="selectedIndustry" class="industry-list__proxies">
         <small v-if="!industryProxyState">Checking curated ETF proxies…</small>
         <small v-else-if="!industryProxyState.proxies.length">No mapped ETF proxy · holdings/classification evidence required</small>
