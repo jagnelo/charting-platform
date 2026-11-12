@@ -17,7 +17,7 @@
       "text": "scripts/agent-session.py wording is runtime-neutral with no behaviour or JSON key change; focused workflow tests, workstream validation and branch-test manifest checks pass; every remaining tracked Codex mention is justified in the handoff."
     }
   ],
-  "active_session_id": "071334ca-c0f2-4cf6-850e-6a45949e8a9f",
+  "active_session_id": "6f8f10e1-f82b-4b8e-9063-c688846f26e6",
   "branch": "docs/runtime-neutral-agent-workflow",
   "dirty_paths": [],
   "docker": {
@@ -49,18 +49,20 @@
     "objective": "Advance docs/runtime-neutral-agent-workflow: Make the repository's agent workflow documentation runtime-neutral so Codex, Claude Code, or another agent runtime can run the same lifecycle; add a Claude Code entry point and a runtime adapter mapping without changing any workflow rule, tool behaviour or historical evidence.. Acceptance criteria: RN1: Root CLAUDE.md imports AGENTS.md (first line @AGENTS.md) and adds only short Claude Code pointers; AGENTS.md remains the single canonical entry for every runtime and keeps every existing rule in runtime-neutral wording.; RN2: docs/agent-orchestration.md uses runtime-neutral wording for goals, entry discovery, sessions, sandbox/Git recovery and worker messaging, with every rule preserved, and contains a Runtime adapters section mapping each workflow concept to Codex and Claude Code, a Switching runtimes procedure, and a model-tier-by-role table; new runtimes are added as a column, not a lifecycle change.; RN3: Living guidance elsewhere (development.md, feature-integration-coordination.md) no longer prescribes Codex-only mechanics; quoted human statements and dated historical records stay intact; historical evidence files and other branches' workstreams are untouched.; RN4: scripts/agent-session.py wording is runtime-neutral with no behaviour or JSON key change; focused workflow tests, workstream validation and branch-test manifest checks pass; every remaining tracked Codex mention is justified in the handoff.. Required local profile: unit. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
   },
   "goal_request_state": "planning_required",
-  "goal_state": "unavailable",
+  "goal_state": "resumed_after_takeover",
   "goal_unavailable_reason": "Claude Code delegated subagent session: no session-local /goal; work followed the recorded objective and workstream next_action; implementation 9071339 is ready_for_human_review.",
   "head": "83764877aa131bd7ea7cb035ffc97c7f2bcceb13",
   "implementation_sha": "9071339127b3427e82a6ddccf4efc86e215e5ed2",
   "last_checkpoint": "2026-11-10T00:06:42.368628+00:00",
   "local_validation_profile": "unit",
-  "next_action": "continue implementation from the branch workstream",
+  "next_action": "resume from the durable handoff and inspect displaced session state",
   "parent_branch": "staging",
   "plan_hash": "37f8272140c98ee0063bf42bab9bd4582b8a3563b0a758cf5b669ea7c6eb2ebf",
   "planning_required": true,
   "planning_state": "ready",
-  "previous_session_ids": [],
+  "previous_session_ids": [
+    "071334ca-c0f2-4cf6-850e-6a45949e8a9f"
+  ],
   "progress": {
     "completed": [],
     "current_blocker": "none",
@@ -74,6 +76,14 @@
   "schema": 2,
   "session_id": "071334ca-c0f2-4cf6-850e-6a45949e8a9f",
   "state": "checkpointed",
+  "takeover_history": [
+    {
+      "at": "2026-11-12T12:57:13.154676+00:00",
+      "displaced_session_id": "071334ca-c0f2-4cf6-850e-6a45949e8a9f",
+      "new_session_id": "6f8f10e1-f82b-4b8e-9063-c688846f26e6",
+      "reason": "Human request 2026-11-12 (Claude Code Desktop): import the VS Code AI-driven work into a single Desktop orchestration chat (higher-reasoning model using cheaper subagents for parallel divide-and-conquer, with merging/reconciliation/combined testing in the same chat); 'these rules should become part of the repo's own AI-driven development workflow rules & policies'."
+    }
+  ],
   "validation_tier": "full_integration",
   "workstream": "/home/m920q/charting-platform/.ai/worktrees/docs-runtime-neutral-agent-workflow/ops/workstreams/docs-runtime-neutral-agent-workflow",
   "workstream_files": [

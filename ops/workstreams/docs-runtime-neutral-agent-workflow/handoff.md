@@ -83,3 +83,26 @@ matches `origin/docs/runtime-neutral-agent-workflow`. After it, plan-ready, goal
 `ops/workstreams/docs-runtime-neutral-agent-workflow/session.json`; this records-only
 follow-up commits that file and this note (its own SHA is verified externally).
 Status remains `ready_for_human_review`.
+
+## Single-orchestrator extension (2026-11-12, Claude Code Desktop, claim 6f8f10e1)
+
+On 2026-11-12 the human directed that one orchestrator chat run at a time, using cheaper subagents, as quoted in `plan.yaml`. Claim taken over from `071334ca` under that request. Context `single-orchestrator-default-mode`, RN5:
+
+- `docs/agent-orchestration.md` has a new section, § Orchestrator and subagents (default operating mode), covering:
+  - work contexts, and the git-ignored `.ai/contexts/<slug>.md` index;
+  - the orchestrator holds every claim and runs commands with each worktree as its cwd;
+  - one writing subagent per worktree; the subagent prohibitions, including the human-authorization fields and the worktree lifecycle commands;
+  - commits stay with the orchestrator by default, and it verifies subagent reports before recording them;
+  - background commands need timeouts; at most 2 Docker-backed suites run concurrently;
+  - the orchestrator coordinates staging integration under the integration lock, without replacing any human closure, promotion or deployment decision;
+  - continuity; the retired multi-chat transport.
+- Other edits in the same file:
+  - Operating modes, Control/implementation sessions, Worker model, Stop-before-expiry and Orchestrator checkpoint rules: updated for the new mode.
+  - Runtime adapters table: rebuilt around subagents.
+  - Model tiers table: Opus as orchestrator, Sonnet and Haiku as subagents.
+- `AGENTS.md` and `CLAUDE.md` point to the default mode. `.gitignore` adds `.ai/contexts/`. `scripts/agent-turn.py` is removed; it was the retired transport, never merged, with no references.
+- An independent subagent review found contradictions, two bypass gaps and stale VS Code/worker wording. All are fixed. Anchors were verified.
+
+Validation: 67 focused workflow tests passed and 48 workstream records validated. The diff check is clean.
+
+Next action: human review. Closure needs an explicit human closure statement. Do not integrate, promote or deploy.

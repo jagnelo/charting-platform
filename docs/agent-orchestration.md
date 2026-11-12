@@ -17,17 +17,31 @@ This file is intentionally the top-level behavior document. An LLM should not ne
 - how handoffs between models must work
 
 Use this setup for interactive sessions under any supported agent runtime
-(VS Code or terminal) as well as overnight or unattended development with
+(desktop app, IDE extension, or terminal) as well as overnight or unattended development with
 multiple LLM coding agents.
 
 ## Supported operating modes
 
-The normal human-driven mode is one agent session (VS Code window or terminal
-session, under any supported runtime) per branch worktree. The control session plans and reports only; an implementation
-session is opened in the assigned worktree after explicit human activation.
+The default mode is **one orchestrator session per work context**, described
+in [Orchestrator and subagents](#orchestrator-and-subagents-default-operating-mode).
+A work context is one feature, fix, or set of related topics, together with
+its branches and worktrees. One chat, running a strong reasoning model, plans the
+context with the human present. It delegates bounded pieces to cheaper subagents
+that it spawns inside that same chat, several at once across worktrees where the
+pieces are independent. It then verifies, merges, reconciles, and
+validates the combined result through staging, all in that one chat. A different
+context gets a new orchestrator chat that follows the same rules. This works
+on any surface that hosts a session: a desktop app, an IDE extension, or a terminal.
+
+One standalone agent session per branch worktree remains a supported fallback.
+It is used only for a runtime without subagents, or when the human chooses it. In that mode the
+control session plans and reports only. An implementation session is opened in
+the assigned worktree after explicit human activation. Running separate
+long-lived worker chats driven by an orchestrator chat is retired; see
+[Retired: multi-chat worker transport](#retired-multi-chat-worker-transport).
 
 For unattended execution, LangGraph may orchestrate the same commands and
-handoffs. It is optional and does not replace the VS Code boundary.
+handoffs. It is optional and does not replace the session boundary.
 
 Why this one:
 - good fit for long-running, stateful agent workflows
@@ -36,8 +50,8 @@ Why this one:
 - flexible enough to switch between agent runtimes (Codex, Claude Code, or
   others) as workers
 
-Agent CLIs (Codex CLI, Claude Code CLI) and their VS Code extensions are
-interchangeable worker surfaces. If stronger crash-resume guarantees are needed later, add Temporal
+Agent runtimes and their surfaces (CLI, desktop app, IDE extension) are
+interchangeable. If stronger crash-resume guarantees are needed later, add Temporal
 under LangGraph; do not make that a prerequisite for local development.
 
 ### Canonical lifecycle
@@ -58,21 +72,28 @@ named topic is the activation signal. Requests to inspect, explain, review,
 discuss, or plan remain read-only. If intent is genuinely ambiguous, ask one
 short confirmation question before mutating anything.
 
-An implementation session must open the exact worktree in its own session
-(VS Code window or terminal session with that worktree as its working directory).
+In the default mode the orchestrator session is the implementation session for
+every worktree in its context; it holds their claims and works in each by path
+(see below). In the fallback mode an implementation session opens the exact
+worktree in its own session, with that worktree as its working directory.
 The repository entry point tells the agent to run the session preflight, read the
 printed workstream, and create or resume a session-local goal using the runtime's
-goal mechanism (see [Runtime adapters](#runtime-adapters)). A human only
-needs to open the generated worktree and describe the desired product work; the
-human does not need to supply orchestration instructions.
+goal mechanism (see [Runtime adapters](#runtime-adapters)). In the default mode
+that goal is optional while the human is present in the orchestrator chat. When
+no goal is created, record `goal_state: unavailable` with that reason. A human
+only describes the desired product work and never supplies orchestration
+instructions.
 The goal is an execution aid, not durable state: workstream files and commits are
 the source of truth. The goal ends at `ready_for_human_review`; it never authorizes
 integration, closure, promotion, or deployment.
 
 Only one writer may use a worktree. `agent-session-start` creates a persistent
-claim; another session is refused. Claims never expire automatically. After a
+claim; another session is refused. In the default mode the orchestrator
+session holds the claim, and the writer at any moment is either the
+orchestrator itself or the one writing subagent it delegated to, never both. Claims never expire automatically. After a
 crash, abandoned session, or runtime switch, the human must explicitly authorize
-`make agent-session-takeover CONFIRM=<old-session-id>` before a new writer starts.
+`make agent-session-takeover CONFIRM=<old-session-id> REQUEST='<recorded human
+authorization>'` before a new writer starts.
 
 ## Automatic repository entry
 
@@ -213,8 +234,10 @@ Before implementation targets the checkpoint, its owning session must:
    item. It must retain `integration_capture: exact branch HEAD`. Only after
    explicit human checkpoint acceptance may the coordinator integrate it.
 
-One staging coordinator owns the merge queue. Feature agents own preparation
-and source-branch repair. Integrate dependency providers first; after each
+One staging coordinator at a time owns the merge queue, serialized by the
+integration lock. In the default mode that coordinator is the orchestrator of
+the context being integrated. Feature agents (in the default mode, the same
+orchestrator and its subagents) own preparation and source-branch repair. Integrate dependency providers first; after each
 green staging result, dependent agents reconcile against that result before
 their own review and integration. A named batch is permitted only when all its
 sources are accepted and compatible without unimplemented dependency wiring.
@@ -513,98 +536,225 @@ must not become a cross-branch coordination hotspot.
 
 If a worker stops without updating those files, it has failed the handoff contract.
 
+## Orchestrator and subagents (default operating mode)
+
+Human direction 2026-11-12: AI-driven work runs in one orchestration chat at a
+time. That chat uses a higher-reasoning model and spawns lower-reasoning, cheaper
+subagents for the fine detail. It parallelizes and divides the work across
+branches and worktrees itself, and it does the merging, reconciliation, and
+combined testing and verification in the same chat. Each later feature or
+context gets a new chat that follows the same setup. This rule belongs to the
+repository, not to one IDE or app.
+
+### Work contexts
+
+- A **work context** is one feature, fix, or set of related topics that the human
+  activates together. It covers the branches and `.ai/worktrees/<slug>`
+  checkouts those topics need. Each context has exactly one orchestrator
+  session. A new or unrelated context gets a new session.
+- Activation, dependent-branch, closure, promotion, and deployment rules are
+  unchanged. Each branch in a context still needs its own recorded
+  `human_intent_authorization`. One human activation message may authorize
+  several topics at once only if it names each one. The orchestrator records
+  the same quote in each branch's plan. It never adds an unnamed topic to a
+  context because the topic looks related.
+- The orchestrator keeps a context index at `.ai/contexts/<context-slug>.md`,
+  which is local and git-ignored. It lists the context's branches and worktrees,
+  the dependency and integration order, decisions made, in-flight background
+  work, and the next action per branch. The index is a convenience. Anything a
+  later session must not lose goes into the owning branch's workstream handoff,
+  because the per-branch workstream records stay the durable truth.
+- Before activating anything, a new orchestrator reads the existing
+  `.ai/contexts/*.md` and `make worktree-overview`. It must not touch a worktree
+  claimed by another live context. If a claim is stale, it uses the takeover
+  procedure in [Switching runtimes or sessions](#switching-runtimes-or-sessions)
+  with an explicit human authorization.
+
+### The orchestrator
+
+The orchestrator session:
+
+- runs the strong model tier. It talks with the human in its chat and keeps a
+  visible task list. It reports at each phase boundary. It asks the human only
+  for decisions the [human intent boundary](#human-intent-boundary-non-negotiable)
+  reserves to them, plus genuine product choices. Recorded standing
+  authorizations still apply.
+- runs `make agent-session-start` in every worktree of its context, so it
+  holds every claim. It runs each worktree's commands with that worktree as the
+  working directory (for example `cd .ai/worktrees/<slug> && make …`). Role
+  classification (`make agent-context`) then follows the checkout. The main
+  checkout stays a read-only control checkout. Staging operations run only
+  from the persistent staging worktree. Subagents act under that claim; they
+  never start, take over, or finish a session.
+- owns the plan, the decomposition, every subagent brief, verification of every
+  subagent result, the changeset-closure protocol (commit, push, and the
+  workstream record), staging integration for its context, combined validation,
+  and the resource cleanup listed under Docker ownership.
+- does design-heavy, cross-branch, and reconciliation work itself. It delegates
+  bounded, well-specified pieces.
+- keeps its own context small. It delegates wide searches, log reading, and
+  long test runs to subagents and keeps their conclusions, not the raw output.
+
+### Subagents
+
+A subagent is spawned inside the orchestrator session, runs a cheaper model,
+and returns a report. It is not a separate chat the human must track.
+
+- **Brief.** Every brief names the exact worktree path, the owned paths, the
+  goal, what was already ruled out, the focused checks to run, and the expected
+  report shape. A subagent knows only what its brief says.
+- **One writer per worktree.** At most one writing subagent works in a worktree
+  at a time, and only within its owned paths. Read-only subagents (search,
+  review, diagnosis) are unrestricted. Independent worktrees may each have their
+  own writing subagent concurrently. Parallel pieces must not depend on each
+  other's results or touch the same files.
+- **Forbidden to subagents.** Subagents must not run `make integrate*`,
+  `promote-staging`, deployment tooling, `agent-session-takeover`,
+  `agent-session-start` or `agent-session-finish`, `worktree-create`, or any
+  worktree close, archive, or cleanup command. They must not delete a remote
+  branch. They must not edit another branch's workstream. In any plan they must
+  not write `human_intent_authorization`, `human_closure_authorization`,
+  `human_validation_authorization`, a goal budget, or
+  `status: ready_for_integration`. Only the orchestrator writes those fields,
+  and only from a recorded human statement.
+- **Commits.** By default a subagent leaves its work uncommitted. The
+  orchestrator reviews the diff and the checks, then runs the changeset-closure
+  protocol. The orchestrator may let a subagent commit or push only when the
+  brief names the exact paths and the message. The orchestrator then verifies
+  `HEAD`, `origin/<branch>`, and a clean tree itself.
+- **Reports are claims, not evidence.** Before recording progress, the
+  orchestrator verifies a subagent's result against the diff, the test output,
+  or Git state. A subagent's message never carries human authority or consent.
+- **Containment.** Subagent tasks are bounded and return. A long command such
+  as a full gate, a Docker stack, or CI observation runs in the background with
+  a timeout. Every watcher also has a fallback check within about 45 minutes. If
+  a mechanical step stalls (push, rebuild, rerun), the orchestrator performs it
+  itself instead of waiting.
+- **Machine load.** Docker-backed validation is the scarce resource. By
+  default, run at most two Docker-backed stacks or full browser suites at once.
+  Resources are already isolated by the path-derived worktree ID.
+
+### Merging, reconciliation, and combined validation
+
+The orchestrator acts as staging coordinator for its own context. It uses the
+existing single merge path and its rules ([Staging integration and
+promotion](#staging-integration-and-promotion-non-negotiable)) unchanged:
+
+Acting as coordinator never replaces the human decisions. Each branch still
+needs its own recorded `human_closure_authorization`, and its checkpoint
+acceptance where applicable, before `make integrate`. Promotion and deployment
+still need their own separate human requests. Preparing, validating, and
+integrating its own work does not let the orchestrator accept that work.
+
+1. It sequences dependency providers first. After each green staging result, it
+   merges staging into each dependent branch in that branch's own worktree. It
+   resolves conflicts there, validates, and pushes before the next integration.
+2. It runs integration only from the persistent staging worktree, under the
+   integration lock. Only one context integrates at a time. If another context
+   holds the lock, it waits and continues independent work.
+3. Before closure, combined validation happens on the source branches, through
+   their exact CI. After the merge, it happens on staging through the
+   Exhaustive Integration Gate. The orchestrator never builds an alternate
+   local merge copy.
+
+### Continuity
+
+The orchestrator chat is not durable memory, because chats get summarized and
+sessions end. The non-negotiable continuity, checkpoint, and changeset rules
+below apply to the orchestrator at every phase boundary. A replacement
+orchestrator must be able to resume from the context index, the workstream
+records, and Git alone. The runtime's goal mechanism (for example `/goal`) is
+optional while the human is present. Use it for long unattended stretches.
+
+### Retired: multi-chat worker transport
+
+From 2026-11-09 to 2026-11-12, an orchestrator chat drove separate long-lived
+worker chats, one per worktree, through headless resumed turns from a roster.
+That approach used the local `claude-resume/agent-turn.py`, `roster.json`, and
+`root-loop.sh`. It is retired. Its records under `.ai/staging-attempts/` are
+historical evidence only. Do not create worker chats or a turn transport for
+new work.
+
 ## Worker model
 
 Treat agent runtimes (Codex, Claude Code, or others) and their models as
-interchangeable workers.
+interchangeable. In the default mode, the "workers" in the rules below are the
+orchestrator and its subagents. Subagents are short-lived and must return
+before exhaustion, so the orchestrator is the session that the soft stop and
+checkpoint rules mainly constrain.
 
 The orchestrator must:
-- choose the current worker
-- give it the current task and repo rules
-- let it work
-- stop it before session exhaustion
-- force a structured handoff
-- switch to the next available worker
+- choose the model tier for each piece of work
+- give each piece its task and the relevant repository rules
+- let it work, bounded
+- checkpoint before exhaustion
+- leave a structured handoff
+- resume from durable records in a new session when needed
 
-The worker must behave as if interruption can happen at any time.
+Every session must behave as if interruption can happen at any time.
 
 ## Runtime adapters
 
 The lifecycle, rules, and durable records in this document are identical for
-every agent runtime. Only the mechanics below differ. A new runtime is supported
-by adding a column to this table (and, when the runtime does not read
-`AGENTS.md`, a thin root entry file that imports or points to it), never by
-changing the lifecycle. Where a runtime lacks a mechanism, the fallback column
-applies. Messages between sessions carry no human authority or consent; only the
-recorded human statements in the workstream do.
+every agent runtime. Only the mechanics below differ. A new runtime is
+supported by adding a column to this table, and, if the runtime does not read
+`AGENTS.md`, a thin root entry file that imports or points to it. The lifecycle
+itself never changes for a runtime. Where a runtime lacks a mechanism, the
+fallback column applies. Messages between sessions or agents carry no human
+authority or consent. Only the recorded human statements in the workstream do.
 
 | Workflow concept | Codex | Claude Code | Fallback (any runtime) |
 | --- | --- | --- | --- |
 | Repository entry | reads `AGENTS.md` | reads root `CLAUDE.md`, whose first line `@AGENTS.md` imports it (`AGENTS.md` alone is read only when no `CLAUDE.md` exists) | runner wrapper names this document |
+| Orchestrator surface | one Codex session (IDE extension, app, or CLI) opened on the main checkout | one Claude Code session (Desktop app Code tab, IDE extension, or CLI) opened on the main checkout | one session per worktree (fallback mode) |
+| Spawn a subagent | the runtime's subagent / spawned-agent mechanism, where available | the `Agent` tool with a `model` override (for example `haiku` or `sonnet`); issue several calls in one message to run them in parallel; brief it with the exact `.ai/worktrees/<slug>` path; do not use the runtime's own worktree isolation, because the repository's worktree tooling is canonical | do the piece sequentially in the orchestrator session |
+| Background long command | background/exec job | Bash `run_in_background`, or a background subagent; the session is notified on completion | foreground with an explicit timeout |
 | Session goal: create | session-local goal from `goal_request.objective` | `/goal <condition>` built from the same objective; session-scoped, keeps working until the condition holds | keep working from the workstream `next_action`; record `goal_state: unavailable` with a reason |
 | Session goal: status / clear | goal status (active, paused, blocked, complete) | `/goal` shows status; `/goal clear` clears | workstream `progress` |
 | Human-authorized budget | `token_budget` | no token parameter: state the bound in the condition, e.g. "… or stop after N turns" | record the bound in the handoff and stop at it |
-| Orchestrator → worker turn | App Server `turn/start` on the worker thread; the reply is the turn result | `scripts/agent-turn.py run <chat> "<task>"`: a headless turn resumed in the worker's own session (`claude -p --resume <id> --model … --effort …`); it blocks and returns the worker's reply, saved under `turns/` | write the instruction to the worker's handoff and resume the worker |
-| Steer a busy worker | App Server `turn/steer` | `agent-turn.py run <chat> --interrupt "<steer>"` stops the running turn and sends the new one | as above at the next checkpoint |
-| Discover workers | App Server thread listing | the orchestration roster (`agent-turn.py list`) | `make worktree-overview` |
-| Read worker state | durable workstream files and commits (`thread/read` only as a diagnostic) | durable workstream files and commits (never another session's transcript) | durable workstream files and commits |
-| Update a saved goal | App Server `thread/goal/set` / `thread/goal/get` | run a turn whose prompt is `/goal <new objective>` in the owning session | owning session updates on resume |
-| Model / effort pinning | session model and reasoning-effort settings | `claude --model <id> --effort <level>`, `/model`, `/effort`, or settings `model` / `effortLevel` | runtime default, recorded in the handoff |
-| Session naming / resume | thread ID | `claude -n "<name>"` or `/rename`; resume with `claude --resume "<name>"` | worktree slug |
-| Worker session surface | one visible Codex IDE-extension chat per worker thread | one named Claude Code session per worker, created in the main checkout's project so it is listed in the VS Code extension's chat-history dropdown (created with `CLAUDE_CODE_ENTRYPOINT=claude-vscode`, because the extension hides sessions recorded as headless SDK runs); the worker `cd`s into its worktree every turn | LangGraph or another runner calling the same Make targets |
-| Claim takeover on runtime switch | `make agent-session-takeover CONFIRM=<old-session-id> REQUEST='<recorded human authorization>'` | same | same |
+| Read another session's state | durable workstream files and commits | durable workstream files and commits (never another session's transcript) | durable workstream files and commits |
+| Model / effort pinning | session model and reasoning-effort settings | session model picker, `/model`, `/effort`, or settings `model` / `effortLevel`; per-subagent `model` override | runtime default, recorded in the handoff |
+| Claim takeover on runtime or session switch | `make agent-session-takeover CONFIRM=<old-session-id> REQUEST='<recorded human authorization>'` | same | same |
 
-**Approvals.** No human approves tool calls in unattended work. Worker turns
-run in the runtime's automatic permission mode (Claude Code `auto`), and every
-refused call is returned to the orchestrator: `permission_denials` in the turn
-result, plus a `DENIED:` line in the worker's report. The orchestrator decides
-under the recorded human authorizations. It either reruns that turn with a
-narrow grant (`agent-turn.py run <chat> --allow '<Tool(pattern)>'`) or refuses
-and records why.
+**Approvals.** When the human is present, the runtime's permission prompts
+reach them in the orchestrator chat. In unattended stretches, run in the
+runtime's automatic permission mode. A refused action is re-planned or
+reported. It is never retried through an indirect route.
 
-**Reports and media.** Workers end each turn with an outcome line
-(`DONE` / `BLOCKED` / `NEEDS-DECISION`), SHAs, paths and checks, plus
-`MEDIA:` absolute paths for screenshots. The orchestrator opens those files
-itself.
+### Switching runtimes or sessions
 
-**Orchestrator continuity.** The orchestrator runs under its runtime's goal
-(`/goal` in Claude Code). A small supervisor re-sets that goal when a run
-stops early, for example on a usage limit, as a Codex goal resumes. It ends when
-the orchestrator writes its completion marker.
-
-The turn transport is optional: the workstream record stays the source of truth,
-and the orchestrator verifies effects there rather than trusting a reply.
-
-### Switching runtimes
-
-No transcript import exists between runtimes. To move a worktree to another
-runtime (or to a fresh session of the same runtime):
+No transcript import exists between runtimes or surfaces. To move a context, or
+a single worktree, to another runtime or to a fresh session:
 
 1. Make sure the old session has checkpointed (`make agent-session-checkpoint`)
-   or is gone; never run two writers on one worktree.
-2. In that worktree, run `make agent-session-takeover CONFIRM=<old-session-id>
+   or has stopped, with its completed contexts committed and its unfinished
+   context recorded in the handoff. Never run two writers on one worktree.
+2. In each worktree, run `make agent-session-takeover CONFIRM=<old-session-id>
    REQUEST='<recorded human authorization>'` to move the exclusive claim.
-3. Seed the new session with a short resume brief derived only from durable
-   records: `plan.yaml`, `handoff.md`, `validation.jsonl`, `session.json`, and
-   recent commits.
-4. Recreate the session goal from the recorded `goal_request` objective using the
-   new runtime's mechanism, then record its state with
+3. Seed the new session only from durable records: the context index,
+   `plan.yaml`, `handoff.md`, `validation.jsonl`, `session.json`, and recent
+   commits.
+4. If a goal is wanted, recreate it from the recorded `goal_request` objective
+   with the new runtime's mechanism. Record its state with
    `make agent-session-goal-state`.
 
 ### Model tiers by role
 
-Model choice is data, not a rule: record the mapping used in the workstream or
-coordinator notes and change it freely. The human may change model or effort at
-any time. Current defaults:
+Model choice is data, not a rule. Record the mapping used in the context index
+or the workstream, and change it freely. The human may change model or effort at
+any time. Current defaults (human direction 2026-11-12):
 
 | Role | Tier | Codex | Claude Code |
 | --- | --- | --- | --- |
-| Orchestrator / staging coordinator / control session | strong | GPT 6.1 Sol, medium effort | Opus 5.5 |
-| Feature implementation worker | light | GPT 6 Luna | Haiku 5.5, low effort (human direction 2026-11-09) |
+| Orchestrator, including staging coordinator and control session | strong | GPT 6.1 Sol | Opus 5.5 |
+| Subagent: substantive implementation or test repair | mid | GPT 6 Luna | Sonnet 5.5 |
+| Subagent: search, mechanical edits, running checks, log reading | light | GPT 6 Luna, low effort | Haiku 5.5 |
 
 ## Stop-before-expiry rule
 
-The orchestrator must not let a worker run until hard exhaustion.
+The orchestrator must not let a worker run until hard exhaustion. In the
+default mode the orchestrator applies this rule to itself: it watches its own
+session and usage limits and checkpoints first.
 
 Use a **soft stop**:
 - stop at **4h 30m** of a 5h session, even if work is still in progress
@@ -1043,6 +1193,11 @@ The combination required for reliability is:
 - worker frequent checkpointing
 - orchestrator-enforced fallback checkpoints
 
+In the default mode this applies to subagents as bounded briefs with an
+expected report, and to the orchestrator itself: it checkpoints the owning
+workstream(s) and its context index at every phase boundary, before long
+validations, and before the conversation is likely to be summarized.
+
 ## Definition of done for each task
 
 A task is not done just because code was written.
@@ -1208,7 +1363,7 @@ This contract applies both:
 
 ## Prompting and progress rule
 
-Supported agent sessions (VS Code or terminal, any runtime) receive their
+Supported agent sessions (desktop app, IDE extension, or terminal; any runtime) receive their
 repository instructions through automatic `AGENTS.md` discovery (Claude Code
 via the `CLAUDE.md` import). The human's prompt should contain only the
 natural request or feedback. It must not be necessary to repeat this document's
@@ -1220,7 +1375,7 @@ fallback wrapper that names this document, but that wrapper is an adapter for
 the runner and is never a requirement imposed on the human.
 
 Every implementation goal must expose concrete acceptance criteria and stop at
-`ready_for_human_review`. Workers report progress after each meaningful phase
+`ready_for_human_review`. Workers (in the default mode, the orchestrator) report progress after each meaningful phase
 and approximately every 20 minutes during long work, using completed criteria
 over total criteria (`x/y`, with a percentage only when it is meaningful).
 Checkpoint state records the same progress, current phase, blocker, latest
@@ -1235,8 +1390,8 @@ Those root files should not compete with this one. They simply redirect agents h
 
 ## Minimal target architecture
 
-- **LangGraph**: workflow/orchestration
-- **Agent runtimes (Codex CLI, Claude Code CLI, others)**: workers
+- **One orchestrator session per work context** (strong model) with in-session subagents (cheaper models); LangGraph optional for unattended runs
+- **Agent runtimes (Codex, Claude Code, others)**: orchestrator and subagents
 - **Repo files under `ops/`**: durable memory
 - **Terminal tooling**: tests, docker, alembic, Playwright, logs
 
