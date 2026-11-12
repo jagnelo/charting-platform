@@ -59,7 +59,7 @@
       <!-- Right-click context menu on price axis -->
       <div class="ctx-menu" v-if="ctxMenu.visible"
            :style="{ top: ctxMenu.y + 'px', right: '8px' }"
-           role="menu" aria-label="Price scale actions" @mouseenter="contextMenuPointerEntered = true" @mouseleave="contextMenuPointerEntered && closePriceContextMenu()" @keydown="handleContextMenuKeydown('price', $event)">
+           role="menu" aria-label="Price scale actions" @mousemove="markContextMenuPointer($event)" @mouseleave="contextMenuPointerEntered && closePriceContextMenu()" @keydown="handleContextMenuKeydown('price', $event)">
         <button type="button" role="menuitem" tabindex="-1" @click="toggleLogScaleFromMenu">{{ isLogScale ? '✓ ' : '' }}Log Scale</button>
         <button type="button" role="menuitem" tabindex="-1" @click="resetPriceScaleFromMenu">Reset Price Scale</button>
       </div>
@@ -87,7 +87,7 @@
     <!-- Drawing context menu (right-click on any drawing, main or sub-pane) -->
     <div class="ctx-menu" v-if="overlayInteractionsEnabled && drawCtxMenu.visible"
          :style="{ top: drawCtxMenu.y + 'px', left: drawCtxMenu.x + 'px' }"
-         role="menu" aria-label="Drawing actions" @mouseenter="contextMenuPointerEntered = true" @mouseleave="contextMenuPointerEntered && closeDrawingContextMenu()" @keydown="handleContextMenuKeydown('drawing', $event)">
+         role="menu" aria-label="Drawing actions" @mousemove="markContextMenuPointer($event)" @mouseleave="contextMenuPointerEntered && closeDrawingContextMenu()" @keydown="handleContextMenuKeydown('drawing', $event)">
       <button type="button" role="menuitem" tabindex="-1" @click="deleteSelectedDrawing">🗑 Delete Drawing</button>
       <button type="button" role="menuitem" tabindex="-1" @click="closeDrawingContextMenu(); drawStore.selectDrawing(null)">Deselect</button>
     </div>
@@ -680,6 +680,11 @@ function focusContextMenuItem(kind: 'price' | 'drawing', index: number) {
 // A context menu closes when the pointer leaves it, but only after the pointer
 // has actually entered it; a layout shift under a still pointer must not close it.
 const contextMenuPointerEntered = ref(false)
+// Chromium sends synthetic enter/move/leave events with zero movement when the
+// layout shifts under a still pointer; only real pointer movement counts.
+function markContextMenuPointer(event: MouseEvent) {
+  if (event.movementX || event.movementY) contextMenuPointerEntered.value = true
+}
 function openContextMenu(kind: 'price' | 'drawing') {
   contextMenuPointerEntered.value = false
   contextMenuSource.value = kind
