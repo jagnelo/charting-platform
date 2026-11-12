@@ -183,6 +183,117 @@ async def test_refresh_worker_reselects_before_claiming_next_job(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_instrument_event_refresh_worker_uses_scoped_provider_and_queues_next_page(
+    db, instrument, monkeypatch
+):
+    from app.models.instrument_event import InstrumentEventFetchState
+    from app.models.market_data_foundation import MarketRefreshJob
+    from app.models.provider_runtime import ProviderCapability
+    from app.services import instrument_events
+    from app.services.provider_runtime import _EXPLICIT_ACQUISITION_CONTEXT
+    from tests.unit.conftest import AsyncSessionAdapter
+
+    now = datetime(2026, 11, 8, 12, tzinfo=UTC)
+    parent = MarketRefreshJob(
+        request_key=f"instrument-events:{instrument.id}:v3:initial",
+        instrument_id=instrument.id,
+        capability=ProviderCapability.INSTRUMENT_EVENTS.value,
+        priority=10,
+        status="leased",
+        attempts=1,
+        next_attempt_at=now,
+        lease_token="calendar-lease",
+        metadata_payload={"instrument_event_refresh": {"instrument_id": instrument.id}},
+    )
+    db.add(parent)
+    db.flush()
+    async_db = AsyncSessionAdapter(db)
+    calls = []
+
+    async def fake_fetch(fetch_db, selected_instrument, *, seed_runtime):
+        scope = _EXPLICIT_ACQUISITION_CONTEXT.get()
+        assert fetch_db is async_db
+        assert selected_instrument.id == instrument.id
+        assert seed_runtime is False
+        assert scope.instrument_id == instrument.id
+        assert (ProviderCapability.INSTRUMENT_EVENTS, "fetch_instrument_events") in scope.operations
+        calls.append(True)
+        fetch_db.add(
+            InstrumentEventFetchState(
+                instrument_id=instrument.id,
+                source="alpaca",
+                fetched_at=now,
+                event_count=4,
+                earnings_count=0,
+                fetch_version=3,
+                continuation_token="opaque-next-page",
+                query_fingerprint="a" * 64,
+                page_count=1,
+                complete=False,
+            )
+        )
+        await fetch_db.flush()
+        return 4
+
+    monkeypatch.setattr(instrument_events, "fetch_and_store_instrument_events", fake_fetch)
+
+    result = await data_tasks._process_instrument_events_refresh_job(async_db, parent)
+
+    next_page = (
+        db.query(MarketRefreshJob)
+        .filter(
+            MarketRefreshJob.capability == ProviderCapability.INSTRUMENT_EVENTS.value,
+            MarketRefreshJob.id != parent.id,
+        )
+        .one()
+    )
+    assert calls == [True]
+    assert result["preparation_status"] == "partial"
+    assert result["reason_code"] == "event_page_continuation_pending"
+    assert next_page.priority == 100
+    assert next_page.request_key == f"instrument-events:{instrument.id}:alpaca:{'a' * 64}:1"
+
+
+@pytest.mark.asyncio
+async def test_instrument_event_refresh_worker_preserves_unknown_quota_as_terminal_hold(
+    db, instrument, monkeypatch
+):
+    from app.models.market_data_foundation import MarketRefreshJob
+    from app.models.provider_runtime import ProviderCapability
+    from app.services import instrument_events
+    from app.services.provider_runtime import ProviderQuotaUnknownError
+    from tests.unit.conftest import AsyncSessionAdapter
+
+    now = datetime(2026, 11, 8, 12, tzinfo=UTC)
+    job = MarketRefreshJob(
+        request_key=f"instrument-events:{instrument.id}:v3:initial",
+        instrument_id=instrument.id,
+        capability=ProviderCapability.INSTRUMENT_EVENTS.value,
+        priority=10,
+        status="leased",
+        attempts=1,
+        next_attempt_at=now,
+        lease_token="calendar-lease",
+        metadata_payload={"instrument_event_refresh": {"instrument_id": instrument.id}},
+    )
+    db.add(job)
+    db.flush()
+
+    async def unknown_quota(*_args, **_kwargs):
+        raise ProviderQuotaUnknownError("native event quota state is unknown")
+
+    monkeypatch.setattr(instrument_events, "fetch_and_store_instrument_events", unknown_quota)
+
+    result = await data_tasks._process_instrument_events_refresh_job(AsyncSessionAdapter(db), job)
+
+    assert result == {
+        "preparation_status": "held",
+        "reason_code": "provider_quota_state_unknown",
+        "instrument_id": instrument.id,
+    }
+
+
+@pytest.mark.asyncio
 async def test_workstation_maintenance_skips_controlled_e2e_market_data(monkeypatch):
     monkeypatch.setattr(data_tasks.settings, "E2E_SEED_MARKET_DATA", True)
 

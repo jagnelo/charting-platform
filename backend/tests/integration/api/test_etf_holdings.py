@@ -772,11 +772,13 @@ async def selected_fund_acquire_database(db_engine):
         ETFProfile,
     )
     from app.models.instrument import Instrument
+    from app.models.listing import InstrumentListing
 
     requested_tables = (
         AssetClass.__table__,
         InstrumentType.__table__,
         Instrument.__table__,
+        InstrumentListing.__table__,
         ETFProfile.__table__,
         ETFHoldingsSnapshot.__table__,
         ETFHolding.__table__,

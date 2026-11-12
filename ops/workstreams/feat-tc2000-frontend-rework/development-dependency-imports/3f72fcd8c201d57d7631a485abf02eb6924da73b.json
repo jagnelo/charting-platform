@@ -1,0 +1,123 @@
+{
+  "at": "2026-11-07T09:22:55.292953+00:00",
+  "authority": "Root coordinates the human-approved common-interface implementation; no staging or deployment acceptance",
+  "state": "released_for_exact_development_consumption_not_product_acceptance",
+  "source": "3f72fcd8c201d57d7631a485abf02eb6924da73b",
+  "base": "139b350238b5e1c8a170dce5af09a805301d857e",
+  "previous_source": "174a32231380f2d21f87aa60380f8cecd3e704c0",
+  "files": [
+    {
+      "path": "frontend/src/components/workstation/CodeLibraryTool.vue",
+      "status_from139": "M",
+      "git_blob": "66f72713ccf42a6974b63c3c61aa05de9b6fbdad",
+      "sha256": "ca33fcd04d362146b851c7fc40748d83fbfcacde769a69b981a8eeeff0e20c80"
+    },
+    {
+      "path": "frontend/src/components/workstation/ResearchResultsTool.vue",
+      "status_from139": "M",
+      "git_blob": "5c902c437e286aed363b14293f190be463282913",
+      "sha256": "7a525e2d8b7ac6af67bbb10faa0577133d01bb060c4ef791d6bd1ea587dd89ee"
+    },
+    {
+      "path": "frontend/src/components/workstation/StudyLabTool.vue",
+      "status_from139": "M",
+      "git_blob": "a27b655082df444530aa2d3b328ae514e20a8953",
+      "sha256": "cf8a7604063ae852ff776fedc856e954975c9e6065300cb9d0739e450e7c25ce"
+    },
+    {
+      "path": "frontend/src/lib/workstation/researchQueryKeys.ts",
+      "status_from139": "A",
+      "git_blob": "086bcb7261f5ce47e5725bb841abd111b47e211a",
+      "sha256": "d2efc149f5351df0bd33e726b78713c9edee581109977fe6045ae8da13b6dd03"
+    },
+    {
+      "path": "frontend/tests/e2e/helpers.ts",
+      "status_from139": "M",
+      "git_blob": "0585840e77c5e5db008a9b7ba26143e1fe813eed",
+      "sha256": "8439a43437cc6045a4b24185e5500b2d2980486adc64ea48f70fdd5740415ac5"
+    },
+    {
+      "path": "frontend/tests/e2e/strategy_study_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "67fbaf164c963d648d5581f3734a3e467973ce33",
+      "sha256": "dd555087aa72a471f304eca59d437fd87c461e574163a8fc88c46548e1f8d3ad"
+    },
+    {
+      "path": "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "2c32b27fb3cd129b7f8c4d3935842ecf65f43b4f",
+      "sha256": "acd702ee662f3ec26aa31ed876dbb0cfb0911c35d59f6a6b7ba930e536020492"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_code_library_tool.test.ts",
+      "status_from139": "M",
+      "git_blob": "fa147870b4ca0496d4c2df2caa89211b56b84c5d",
+      "sha256": "2f14026c552b3e82b10cc74450b40a3554963ac67c75505845db162a265e0440"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_research_results_tool.test.ts",
+      "status_from139": "M",
+      "git_blob": "96bfc5ed988a92058d10a302c63a5f8b0bf6dd2e",
+      "sha256": "7d5b221f8a7b2891adaa1c1faf0bea01d93833ca4e282df45e90f9d698a476a4"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_study_lab_tool.test.ts",
+      "status_from139": "M",
+      "git_blob": "63eecefefd27cdbd561cf31b4b50037ce1c50217",
+      "sha256": "9a72992f96028c66c34d959e10f22028431f51c5f423f6b74fb8d830d7df2645"
+    },
+    {
+      "path": "frontend/tests/unit/e2e/test_browser_diagnostics.test.ts",
+      "status_from139": "M",
+      "git_blob": "471e86daef24d9c1bbbc1e9140dff9e436441811",
+      "sha256": "a3f336e075e5b802e9d14156a670638a8170347600f2b98c8d7087ab47703cea"
+    }
+  ],
+  "consumers": [
+    {
+      "consumer": "TC",
+      "import_paths": [
+        "frontend/src/components/workstation/ResearchResultsTool.vue",
+        "frontend/src/components/workstation/StudyLabTool.vue",
+        "frontend/tests/e2e/strategy_study_journey.spec.ts",
+        "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts"
+      ],
+      "old_guards": {
+        "frontend/src/components/workstation/ResearchResultsTool.vue": {
+          "sha256": "c07bdac209f79485da772c2c48244a7a64ff2c16713862e1f37c3a102ec1e736",
+          "known_source": "174a32231380f2d21f87aa60380f8cecd3e704c0"
+        },
+        "frontend/src/components/workstation/StudyLabTool.vue": {
+          "sha256": "0dae4ef98f440896334cb435bafc65f5c5f0d767c7f44898ed5b96130f2c5264",
+          "known_source": "174a32231380f2d21f87aa60380f8cecd3e704c0"
+        },
+        "frontend/tests/e2e/strategy_study_journey.spec.ts": {
+          "sha256": "bd46c96ece4cbd97817191dc418bf3f0c8a086d2492da468d34f1c013657a63d",
+          "known_source": "174a32231380f2d21f87aa60380f8cecd3e704c0"
+        },
+        "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts": {
+          "sha256": "ef84f5f843479bcf9f6203ee55b1945017dab1d2898769e66140731fdc20801e",
+          "known_source": "174a32231380f2d21f87aa60380f8cecd3e704c0"
+        },
+        "frontend/tests/unit/components/test_research_results_tool.test.ts": {
+          "sha256": "cc279070266d867dba35468f1ce9c2beda57bbf05e24837fbf69f8403e53cd82",
+          "known_source": "174a32231380f2d21f87aa60380f8cecd3e704c0"
+        },
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts": {
+          "sha256": "e2df24d48b0cdf7bd3c8a7dac2e08a545292328b2c5141e1a6d38ad7e8d117ea",
+          "known_source": "174a32231380f2d21f87aa60380f8cecd3e704c0"
+        }
+      },
+      "owned_overlap": []
+    }
+  ],
+  "scope": "Study/Results truthful deferred evaluation, visible-pane gated initial Results reads, semantic Results/lifecycle selectors including Undo and real splitter axis.11domainpaths include prior10unchangedTChelpers transportedwithownershipretained plusStrategy-ownedlifecyclebrowserfile. Backendf2f2pathmanifestseparate.",
+  "evidence": {
+    "owner": "Results68/68,typecheck andcurrentworkstreamguards; priorf2fResults/Study132/132 andactualresearch15/15 retained. No exactnewbrowserclaim",
+    "root": "Domain11exactsource/TCold-newguards reviewed; no runtime acceptance yet",
+    "full_release": "pending"
+  },
+  "preserve": "Keep fullroadmap/history, strict503checks and screenshotbaselines/tolerances. No amendfrozen source/metadata-onlycommits. Root owns combined browser/native/CI/release."
+}

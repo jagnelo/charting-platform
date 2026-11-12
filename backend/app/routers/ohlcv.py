@@ -4,12 +4,14 @@ from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.auth.dependencies import get_current_user
 from app.config import settings
 from app.database import get_db
 from app.models.data_source import DataSource
 from app.models.instrument import Instrument
+from app.models.listing import InstrumentListing
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.user import User
 from app.schemas.ohlcv import LocalSplitMaterializationOut, OHLCVBarOut
@@ -145,6 +147,25 @@ async def materialize_local_provider(
     return result
 
 
+_LOCAL_BAR_COLUMNS = (
+    OHLCVBar.ts,
+    OHLCVBar.open,
+    OHLCVBar.high,
+    OHLCVBar.low,
+    OHLCVBar.close,
+    OHLCVBar.volume,
+    OHLCVBar.vwap,
+    OHLCVBar.is_adjusted,
+    OHLCVBar.is_derived,
+    OHLCVBar.source_timeframe,
+    OHLCVBar.derivation_method,
+    OHLCVBar.derived_at,
+    OHLCVBar.source_bar_count,
+    OHLCVBar.source_start,
+    OHLCVBar.source_end,
+)
+
+
 @router.get("/local/{symbol:path}/{timeframe}", response_model=list[OHLCVBarOut])
 async def get_local_ohlcv(
     symbol: str,
@@ -185,13 +206,18 @@ async def get_local_ohlcv(
             OHLCVBar.data_source_id
             == select(DataSource.id).where(DataSource.name == "e2e_reference").scalar_subquery()
         )
+    # Only the response fields are read, so select them directly instead of
+    # materializing one ORM entity per bar on every page request.
     bars = (
         (
             await db.execute(
-                select(OHLCVBar).where(*predicates).order_by(OHLCVBar.ts.desc()).limit(limit)
+                select(*_LOCAL_BAR_COLUMNS)
+                .where(*predicates)
+                .order_by(OHLCVBar.ts.desc())
+                .limit(limit)
             )
         )
-        .scalars()
+        .mappings()
         .all()
     )
     if (
@@ -206,16 +232,16 @@ async def get_local_ohlcv(
             bars = (
                 (
                     await db.execute(
-                        select(OHLCVBar)
+                        select(*_LOCAL_BAR_COLUMNS)
                         .where(*predicates)
                         .order_by(OHLCVBar.ts.desc())
                         .limit(limit)
                     )
                 )
-                .scalars()
+                .mappings()
                 .all()
             )
-    return list(reversed(bars))
+    return [dict(bar) for bar in reversed(bars)]
 
 
 @router.get("/{symbol:path}/{timeframe}/transformed", response_model=list[OHLCVBarOut])
@@ -258,7 +284,11 @@ async def get_ohlcv_transformed(
             400, f"Unknown bar_type '{bar_type}'. Valid: {list(TRANSFORM_REGISTRY)}"
         )
 
-    result = await db.execute(select(Instrument).where(Instrument.symbol == symbol.upper()))
+    result = await db.execute(
+        select(Instrument)
+        .options(selectinload(Instrument.listings).selectinload(InstrumentListing.exchange))
+        .where(Instrument.symbol == symbol.upper())
+    )
     instrument = result.scalar_one_or_none()
     if instrument is None:
         raise HTTPException(404, f"Instrument '{symbol}' not found.")
@@ -381,7 +411,11 @@ async def get_ohlcv(
     current_user: User = Depends(get_current_user),
 ):
     local_only = local_only or settings.PROVIDER_REQUEST_DRIVEN_ONLY
-    result = await db.execute(select(Instrument).where(Instrument.symbol == symbol.upper()))
+    result = await db.execute(
+        select(Instrument)
+        .options(selectinload(Instrument.listings).selectinload(InstrumentListing.exchange))
+        .where(Instrument.symbol == symbol.upper())
+    )
     instrument = result.scalar_one_or_none()
     if instrument is None:
         raise HTTPException(

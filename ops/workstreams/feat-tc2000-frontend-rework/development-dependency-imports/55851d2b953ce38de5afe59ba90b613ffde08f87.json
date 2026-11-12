@@ -1,0 +1,187 @@
+{
+  "at": "2026-11-07T14:05:34.457345+00:00",
+  "authority": "Root coordinates the human-approved common-interface implementation; no staging or deployment acceptance",
+  "state": "released_for_exact_development_consumption_not_product_acceptance",
+  "source": "55851d2b953ce38de5afe59ba90b613ffde08f87",
+  "base": "139b350238b5e1c8a170dce5af09a805301d857e",
+  "previous_sources": [
+    "dd31aeac88ba926877b48474e2fc0d262ee1e99d"
+  ],
+  "previous_manifests": [
+    "strategydd31aeac-domain-frontend-development-consumption-contract.json"
+  ],
+  "files": [
+    {
+      "path": "frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue",
+      "status_from139": "M",
+      "git_blob": "6c57e773ad803ee2291aa00eef2327a8784bb451",
+      "sha256": "ee6e837832ba4bf2402bba09a025c22630136ecd756de17ad37da9ced70dfc3c"
+    },
+    {
+      "path": "frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue",
+      "status_from139": "M",
+      "git_blob": "c843ff0ee87f1cc2e4b851aa02ee8a63b831ec7f",
+      "sha256": "5bd7c3ae4ba475cdfa015b1a3798588d2c8a05741cc44f7a1566897da1b385a6"
+    },
+    {
+      "path": "frontend/src/components/dashboard/DashboardInstrumentSearch.vue",
+      "status_from139": "M",
+      "git_blob": "d088aa349151f59fc2db6bedc1e51fd2ca7b6cde",
+      "sha256": "a09050e5c1c3e8268390e875c1f893a865dd6ed9ecf44877b757d4ec559de4f6"
+    },
+    {
+      "path": "frontend/src/components/dashboard/DashboardLineChartWidget.vue",
+      "status_from139": "M",
+      "git_blob": "20d503fc7de32dccbd630419312c06bdafc1faab",
+      "sha256": "c20b73354eaaa79cf67ab4bab820bb75ea943f0947c3f4c50ba6480e1a0aa031"
+    },
+    {
+      "path": "frontend/src/components/dashboard/DashboardQuoteWidget.vue",
+      "status_from139": "M",
+      "git_blob": "b73925f93d36da82e27a5cfcc03c67f20b4ed54d",
+      "sha256": "6f3f77a7e4da7c14652d347a08d977192c49668d7e1df8b61b574c10ec590063"
+    },
+    {
+      "path": "frontend/src/components/workstation/CodeLibraryTool.vue",
+      "status_from139": "M",
+      "git_blob": "66f72713ccf42a6974b63c3c61aa05de9b6fbdad",
+      "sha256": "ca33fcd04d362146b851c7fc40748d83fbfcacde769a69b981a8eeeff0e20c80"
+    },
+    {
+      "path": "frontend/src/components/workstation/ResearchResultsTool.vue",
+      "status_from139": "M",
+      "git_blob": "db090de9f526b17a0f0111d384c359c080e08892",
+      "sha256": "7c7e1b13b6c7daf2c9d9becf4bbeaf6f998f06e5ffa9d6cfbdc524350ecc01a6"
+    },
+    {
+      "path": "frontend/src/components/workstation/StudyLabTool.vue",
+      "status_from139": "M",
+      "git_blob": "498beb8fe44a83485f2b438798202deac5b2b8d0",
+      "sha256": "09fbb9e6247362841ea7bb01a35d036d5cbe4b9580917ba60802dc9b191f713f"
+    },
+    {
+      "path": "frontend/src/lib/workstation/researchQueryKeys.ts",
+      "status_from139": "A",
+      "git_blob": "086bcb7261f5ce47e5725bb841abd111b47e211a",
+      "sha256": "d2efc149f5351df0bd33e726b78713c9edee581109977fe6045ae8da13b6dd03"
+    },
+    {
+      "path": "frontend/src/stores/dashboard.ts",
+      "status_from139": "M",
+      "git_blob": "147a7b073f15afc5042f28daa338b7306ccaf1eb",
+      "sha256": "d66b2584e1fe955e2322d0dceaa587b5c5ff5d735b6cea72f4091b0e4aa22d6a"
+    },
+    {
+      "path": "frontend/src/views/DashboardView.vue",
+      "status_from139": "M",
+      "git_blob": "a3e4e1e1d73aefd418721ebef931df9a814e99c9",
+      "sha256": "1425c4fb8b632be2e24066c092e07e4e7970ee6e09b64150101374375c7cff2e"
+    },
+    {
+      "path": "frontend/tests/e2e/dashboard_usability_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "bfbdba32b32fe1e24211faeb781be48a6a62f0ab",
+      "sha256": "546d3a800fd8d771c43fabafeb5b5471b1baff0a95997a97110655d2c52af612"
+    },
+    {
+      "path": "frontend/tests/e2e/helpers.ts",
+      "status_from139": "M",
+      "git_blob": "0585840e77c5e5db008a9b7ba26143e1fe813eed",
+      "sha256": "8439a43437cc6045a4b24185e5500b2d2980486adc64ea48f70fdd5740415ac5"
+    },
+    {
+      "path": "frontend/tests/e2e/strategy_study_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "80b0443ee93644cb0cdbcff754bce5b2ee3d75fc",
+      "sha256": "6df7bfd2d20365b30b576fdb93a808db1566d9ca4be93289fcae432dfa1214d1"
+    },
+    {
+      "path": "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "5dccec0be8c356f40d85b1891455323a2b4ff165",
+      "sha256": "1fceb279b47bb7040da3468ec0fe7c373bee3a33cf84cd91eb13ebacb8cd2de1"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_code_library_tool.test.ts",
+      "status_from139": "M",
+      "git_blob": "fa147870b4ca0496d4c2df2caa89211b56b84c5d",
+      "sha256": "2f14026c552b3e82b10cc74450b40a3554963ac67c75505845db162a265e0440"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts",
+      "status_from139": "M",
+      "git_blob": "e9d1a13f9f962ae3077cf7f73dc03c3ba769ee28",
+      "sha256": "a9e8562d60627a454c12b054705b2de12cd41bc6e329f8e295beeced1965de94"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_dashboard_instrument_search.test.ts",
+      "status_from139": "M",
+      "git_blob": "d1357d33a3c49b1ff8546d619abd754990b818f1",
+      "sha256": "6230175754d32d6b1ebdc84a3b0bc65a2f6122e9806925538ffbf537fd462c3d"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts",
+      "status_from139": "M",
+      "git_blob": "597f0d9e7339bc7593c327e5cb1c9c8d16283148",
+      "sha256": "8c2e07e95c5f4dd8a641219e2c4dcdd3c42d682490ac2ef3384fdc16fe0a6418"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts",
+      "status_from139": "A",
+      "git_blob": "1791aaf22afb8c446884bfc4e71f9994743aeb3e",
+      "sha256": "c37f73a135d008d2d302e6161b3feb9804560af8d4ea372739dd18c3d69f21f7"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_research_results_tool.test.ts",
+      "status_from139": "M",
+      "git_blob": "f9f1312d7e6cb00893160aa49de13514e0224c75",
+      "sha256": "57ff2e65e8c7eb69d4c62aa7f35a3d5780e9d43ac5018af04680ecf9a193719b"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_study_lab_tool.test.ts",
+      "status_from139": "M",
+      "git_blob": "413026f7e545122b1746adec16d2d5668e587419",
+      "sha256": "30bcc1eaaabe5ff916024b04631be07caa08a8ad33920ece4ff6b2bae7cc8a4f"
+    },
+    {
+      "path": "frontend/tests/unit/e2e/test_browser_diagnostics.test.ts",
+      "status_from139": "M",
+      "git_blob": "471e86daef24d9c1bbbc1e9140dff9e436441811",
+      "sha256": "a3f336e075e5b802e9d14156a670638a8170347600f2b98c8d7087ab47703cea"
+    },
+    {
+      "path": "frontend/tests/unit/stores/test_dashboard_store.test.ts",
+      "status_from139": "M",
+      "git_blob": "e30d5676749a5d53ae3d80ee779b8d277aabcecf",
+      "sha256": "11286f17b314f28de3aed15b235bd0461bbffb9bd5476f61f1ac65bb94099827"
+    },
+    {
+      "path": "frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts",
+      "status_from139": "A",
+      "git_blob": "665ef5310ab01b5a7aa65025a3bdbe2f14aaedb1",
+      "sha256": "21374e32a9d7bd774cf9c1df0cf64b91ca131df08cd41523c3c2fac4041e7efe"
+    }
+  ],
+  "changed_paths_since_previous": [
+    "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts"
+  ],
+  "consumers": [
+    {
+      "consumer": "TC",
+      "import_paths": [
+        "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts"
+      ],
+      "old_guards": {
+        "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts": {
+          "sha256": "5f3bb572acd9a2f0b44ccdb001d9dfcc622b7647aa42bfe944df1bd93803e210",
+          "known_sources": [
+            "dd31aeac88ba926877b48474e2fc0d262ee1e99d"
+          ]
+        }
+      },
+      "owned_overlap": []
+    }
+  ],
+  "scope": "Combined Strategy private Study/Results/Library and reserved secondary Dashboard domain, including actual Results detail preservation and ordinary teleported candidate selection; grounded lifecycle test corrections. Producer focused evidence does not replace combined browser qualification.",
+  "preserve": "Full roadmap/history, native holds/quotas, genuine datasets, ordinary async failures, reviewed references and tolerances. No amend, overlapping writer, staging, deployment or product acceptance."
+}

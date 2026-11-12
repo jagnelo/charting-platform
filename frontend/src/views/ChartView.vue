@@ -1138,7 +1138,8 @@ onUnmounted(() => {
 .wqm-new { color: #64b5f6; border-top: 1px solid #222; margin-top: 2px; }
 
 .sym      { font-size: 16px; font-weight: 700; color: #fff; }
-.sym-name { font-size: 11px; color: #666; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Fixed width: the active panel's name loads lazily, and a width change here re-wraps the header and shifts panels mid-click. */
+.sym-name { display: inline-block; width: 160px; font-size: 11px; color: #666; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sym-price { font-size: 14px; font-weight: 600; }
 .price-up   { color: #26a69a; }
 .price-down { color: #ef5350; }

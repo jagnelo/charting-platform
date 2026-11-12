@@ -658,15 +658,23 @@ describe('ETFHoldingsView', () => {
     })
     expect(wrapper.get('[data-testid="etf-selected-snapshot-kind"]').text()).toBe('Latest stored snapshot')
     expect(wrapper.get('[data-testid="etf-snapshot-lineage"]').text()).toContain('issuer current holdings')
+    expect(wrapper.get('[data-testid="etf-snapshot-lineage"]').text()).toContain('ETF SPY')
+    expect(wrapper.get('[data-testid="etf-snapshot-lineage"]').text()).toContain('Observed')
+    expect(wrapper.get('.snapshot-date-line').text()).toContain('Composition 2026-06-07')
     expect(wrapper.get('[data-testid="etf-snapshot-source-provider"]').text()).toBe('issuer-test')
-    expect(wrapper.get('[data-testid="etf-snapshot-source-identifier"]').text())
+    const sourceDetails = wrapper.get('[data-testid="etf-snapshot-details"]')
+    expect(sourceDetails.attributes('open')).toBeUndefined()
+    expect(sourceDetails.find('summary').text()).toBe('Source details')
+    expect(sourceDetails.get('[data-testid="etf-snapshot-source-identifier"]').text())
       .toBe('issuer-test:SPY:2026-06-07')
-    expect(wrapper.get('[data-testid="etf-snapshot-source-url"]').text())
+    expect(sourceDetails.get('[data-testid="etf-snapshot-source-url"]').text())
       .toBe('https://issuer.example.test/holdings/spy')
     expect(wrapper.get('[data-testid="etf-snapshot-known-at"]').attributes('datetime'))
       .toBe('2026-06-07T04:15:00Z')
-    expect(wrapper.get('[data-testid="etf-snapshot-lineage"]').text()).toContain('Source-reported publication')
-    expect(wrapper.get('[data-testid="etf-snapshot-lineage"]').text()).toContain('Not established')
+    expect(sourceDetails.text()).toContain('Source-reported publication')
+    expect(sourceDetails.text()).toContain('Not established')
+    expect(wrapper.findAll('.holdings-table, [data-testid="etf-snapshot-details"]').map(item => item.element.tagName))
+      .toEqual(['DIV', 'DETAILS'])
     expect(wrapper.find('.panel-meta').text()).toContain('Profile current eligibility: current')
     expect(api.get).toHaveBeenNthCalledWith(4, '/etf-holdings/SPY/diff', {
       left_snapshot_id: '54',
@@ -1263,7 +1271,7 @@ describe('ETFHoldingsView', () => {
     expect(wrapper.find('.panel-meta').text()).toContain('manual_csv')
     expect(wrapper.get('[data-testid="etf-snapshot-known-at"]').attributes('datetime'))
       .toBe('2026-06-07T04:15:00Z')
-    expect(wrapper.get('[data-testid="etf-snapshot-lineage"]').text()).toContain('Not established')
+    expect(wrapper.get('[data-testid="etf-snapshot-details"]').text()).toContain('Not established')
     expect(wrapper.find('.panel-meta').text()).toContain('Profile current eligibility: current')
   })
 
@@ -1763,6 +1771,52 @@ describe('ETFHoldingsView', () => {
     expect(wrapper.text()).toContain('MSFT')
     expect(wrapper.get('[data-testid="etf-snapshot-known-at"]').attributes('datetime')).toBe(originalKnownAt)
     expect(wrapper.find('.panel-meta').text()).toContain('Profile current eligibility: stale')
+    wrapper.unmount()
+  })
+
+  it('distinguishes a displayed saved snapshot from a capability check that found no current-eligible snapshot', async () => {
+    const administrativeReviewAction = 'Record a symbol-scoped first-party source investigation before claiming support.'
+    const capabilityWithoutCurrentSnapshot = {
+      ...profile.holdings_capability,
+      availability: 'unavailable',
+      identity_verified: false,
+      usable_for_current_analysis: false,
+      reason: 'No holdings snapshot has ever been stored for this ETF.',
+      symbol_audit: { next_action: administrativeReviewAction },
+    }
+    const selectedProfile = {
+      ...profile,
+      holdings_capability: capabilityWithoutCurrentSnapshot,
+    }
+    vi.mocked(api.get).mockImplementation(async (path: string) => {
+      if (path === '/etf-holdings') return [selectedProfile]
+      if (path === '/etf-holdings/SPY/capability') return capabilityWithoutCurrentSnapshot
+      if (path === '/etf-holdings/SPY/dates') return dates
+      if (path === '/etf-holdings/SPY/holdings') return holdingsPage()
+      if (path === '/etf-holdings/SPY/diff') return diffPayload()
+      if (path === '/etf-holdings/SPY/weight-evolution') return weightEvolutionPayload()
+      if (path === '/etf-holdings/SPY/transitions') return transitionTimelinePayload()
+      return []
+    })
+
+    const wrapper = mount(ETFHoldingsView)
+    await vi.waitFor(() => expect(wrapper.get('.holdings-table').text()).toContain('MSFT'))
+
+    expect(wrapper.get('[data-testid="etf-selected-snapshot-kind"]').text()).toBe('Latest stored snapshot')
+    expect(wrapper.get('[data-testid="etf-snapshot-known-at"]').attributes('datetime'))
+      .toBe('2026-06-07T04:15:00Z')
+    expect(wrapper.get('.notice--capability').text()).toContain('Current holdings are not verified.')
+    expect(wrapper.get('.notice--capability').text())
+      .toContain('The current-analysis check did not find an eligible snapshot.')
+    expect(wrapper.get('.notice--capability').text()).not.toContain(administrativeReviewAction)
+    expect(wrapper.get('[data-testid="etf-selected-snapshot-currentness"]').text())
+      .toContain('not verified as current')
+    expect(wrapper.text()).not.toContain('No holdings snapshot has ever been stored for this ETF.')
+    const sourceDetails = wrapper.get('[data-testid="etf-snapshot-details"]')
+    expect(sourceDetails.attributes('open')).toBeUndefined()
+    expect(sourceDetails.get('[data-testid="etf-source-review-action"]').text())
+      .toContain(administrativeReviewAction)
+    expect(wrapper.find('.panel-meta').text()).toContain('Profile current eligibility: unavailable')
     wrapper.unmount()
   })
 

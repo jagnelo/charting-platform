@@ -1,0 +1,118 @@
+{
+  "at": "2026-11-07T11:33:11.174087+00:00",
+  "authority": "Root coordinates the human-approved common-interface implementation; no staging or deployment acceptance",
+  "state": "released_for_exact_development_consumption_not_product_acceptance",
+  "source": "1ca97c377849fd06d413fb96b4c0a0621fea3bc1",
+  "base": "139b350238b5e1c8a170dce5af09a805301d857e",
+  "previous_source": "3191a94397ffe12c9c79113aee45af85eaa9f534",
+  "files": [
+    {
+      "path": "frontend/src/components/workstation/CodeLibraryTool.vue",
+      "status_from139": "M",
+      "git_blob": "66f72713ccf42a6974b63c3c61aa05de9b6fbdad",
+      "sha256": "ca33fcd04d362146b851c7fc40748d83fbfcacde769a69b981a8eeeff0e20c80"
+    },
+    {
+      "path": "frontend/src/components/workstation/ResearchResultsTool.vue",
+      "status_from139": "M",
+      "git_blob": "0ef9cd69542979f09d006721981adc2a76cf2092",
+      "sha256": "9b52f04abb0219d1a15c59695ac339698f97053dcc47c88583fa61bbedd51e7e"
+    },
+    {
+      "path": "frontend/src/components/workstation/StudyLabTool.vue",
+      "status_from139": "M",
+      "git_blob": "03f5d6fb85a6f0dba722b33751b9eb5bd57bde62",
+      "sha256": "3a620a594c0e095e1f26906ad54b81518157c48e3cf8a996b23a3a12d0d5f769"
+    },
+    {
+      "path": "frontend/src/lib/workstation/researchQueryKeys.ts",
+      "status_from139": "A",
+      "git_blob": "086bcb7261f5ce47e5725bb841abd111b47e211a",
+      "sha256": "d2efc149f5351df0bd33e726b78713c9edee581109977fe6045ae8da13b6dd03"
+    },
+    {
+      "path": "frontend/tests/e2e/helpers.ts",
+      "status_from139": "M",
+      "git_blob": "0585840e77c5e5db008a9b7ba26143e1fe813eed",
+      "sha256": "8439a43437cc6045a4b24185e5500b2d2980486adc64ea48f70fdd5740415ac5"
+    },
+    {
+      "path": "frontend/tests/e2e/strategy_study_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "687020600e141b39db692e98a12363744dcd3929",
+      "sha256": "1bffeb185086ca4567add00e38122bfda6934dc0631bba55ed2511c00fc512ac"
+    },
+    {
+      "path": "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "4946744e542095c38783d9694c53440562c66910",
+      "sha256": "3c8362043ce570ff6d633559f20725917a746257d9c61aeceec9d718e4c84509"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_code_library_tool.test.ts",
+      "status_from139": "M",
+      "git_blob": "fa147870b4ca0496d4c2df2caa89211b56b84c5d",
+      "sha256": "2f14026c552b3e82b10cc74450b40a3554963ac67c75505845db162a265e0440"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_research_results_tool.test.ts",
+      "status_from139": "M",
+      "git_blob": "4044b901338c07b4c32e23e2d40cf8c85d81c720",
+      "sha256": "20253be64eb93bc15826585e3c92da4d676754c30675850bc29c0cbed7ba961b"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_study_lab_tool.test.ts",
+      "status_from139": "M",
+      "git_blob": "f3191aa00745101e696adff3c3b93c720b31dc4e",
+      "sha256": "5d1234eab954b5b384c68acc112e936a7329881be78784ee9e7f6bfa159a0133"
+    },
+    {
+      "path": "frontend/tests/unit/e2e/test_browser_diagnostics.test.ts",
+      "status_from139": "M",
+      "git_blob": "471e86daef24d9c1bbbc1e9140dff9e436441811",
+      "sha256": "a3f336e075e5b802e9d14156a670638a8170347600f2b98c8d7087ab47703cea"
+    }
+  ],
+  "consumers": [
+    {
+      "consumer": "TC",
+      "import_paths": [
+        "frontend/src/components/workstation/StudyLabTool.vue",
+        "frontend/tests/e2e/strategy_study_journey.spec.ts",
+        "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts"
+      ],
+      "old_guards": {
+        "frontend/src/components/workstation/StudyLabTool.vue": {
+          "sha256": "8a3d9681b9333d6762445fa610466e2f1dac9ca223f77beabdebe483a0f376ff",
+          "known_source": "3191a94397ffe12c9c79113aee45af85eaa9f534"
+        },
+        "frontend/tests/e2e/strategy_study_journey.spec.ts": {
+          "sha256": "dd555087aa72a471f304eca59d437fd87c461e574163a8fc88c46548e1f8d3ad",
+          "known_source": "3191a94397ffe12c9c79113aee45af85eaa9f534"
+        },
+        "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts": {
+          "sha256": "d0bc12bbbd80b9763ea51dee17400dd2b713e420887544b8e9d008c6ddf6a06f",
+          "known_source": "3191a94397ffe12c9c79113aee45af85eaa9f534"
+        },
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts": {
+          "sha256": "f7b95c74291704d15ed95a7d1cd870feb70fd99c0e0f52eaca4769bee27ff8ff",
+          "known_source": "3191a94397ffe12c9c79113aee45af85eaa9f534"
+        }
+      },
+      "owned_overlap": []
+    }
+  ],
+  "scope": "Study complete configuration snapshots preserve independent draft plus immutable saved run across parent delete/assign and remount; real Study metrics/structured output; semantic ensure fence, original Undo own acknowledgment and viewport-aware lifecycle assertions. Future all-factory test expansion remains unexported.",
+  "producer_uncommitted_not_exported": [
+    {
+      "path": "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts",
+      "state": "Later Root-assigned factory-coverage test edits remain uncommitted and are NOT exported; frozen1ca version only."
+    }
+  ],
+  "evidence": {
+    "owner": "Frozen1ca: Study67/67, type-check,14case discovery, workstream/JSON/diff checks passed; owner subsequently resumed separate Root-assigned factory test-only work.",
+    "root": "Exact four committed changes reviewed; full11 TC old/new guards verified. No owner working edits overwritten or exported. Rejected rename replaced by original recovery own-save check. Runtime/release pending."
+  },
+  "preserve": "Keep roadmap and source history; no amendments or metadata-only commits. This is not acceptance of future uncommitted factory expansion."
+}

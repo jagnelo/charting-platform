@@ -1,0 +1,158 @@
+{
+  "at": "2026-11-07T07:43:21.143308+00:00",
+  "authority": "Root coordinates the human-approved common-interface implementation; no staging or deployment acceptance",
+  "state": "released_for_exact_development_consumption_not_product_acceptance",
+  "source": "174a32231380f2d21f87aa60380f8cecd3e704c0",
+  "base": "139b350238b5e1c8a170dce5af09a805301d857e",
+  "previous_source": "5703f21497e628576e9d381dede28dbaa0ca719d",
+  "files": [
+    {
+      "path": "frontend/src/components/workstation/CodeLibraryTool.vue",
+      "status_from139": "M",
+      "git_blob": "66f72713ccf42a6974b63c3c61aa05de9b6fbdad",
+      "sha256": "ca33fcd04d362146b851c7fc40748d83fbfcacde769a69b981a8eeeff0e20c80"
+    },
+    {
+      "path": "frontend/src/components/workstation/ResearchResultsTool.vue",
+      "status_from139": "M",
+      "git_blob": "41d80cecf0e2ef24edebe85f20e9a38ef945582a",
+      "sha256": "c07bdac209f79485da772c2c48244a7a64ff2c16713862e1f37c3a102ec1e736"
+    },
+    {
+      "path": "frontend/src/components/workstation/StudyLabTool.vue",
+      "status_from139": "M",
+      "git_blob": "e416c6f498982206c2491850a40e962592b96dda",
+      "sha256": "0dae4ef98f440896334cb435bafc65f5c5f0d767c7f44898ed5b96130f2c5264"
+    },
+    {
+      "path": "frontend/src/lib/workstation/researchQueryKeys.ts",
+      "status_from139": "A",
+      "git_blob": "086bcb7261f5ce47e5725bb841abd111b47e211a",
+      "sha256": "d2efc149f5351df0bd33e726b78713c9edee581109977fe6045ae8da13b6dd03"
+    },
+    {
+      "path": "frontend/tests/e2e/strategy_study_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "bc088ff4635f3ca4e0f59d789e3296aaad31c8cc",
+      "sha256": "bd46c96ece4cbd97817191dc418bf3f0c8a086d2492da468d34f1c013657a63d"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_code_library_tool.test.ts",
+      "status_from139": "M",
+      "git_blob": "fa147870b4ca0496d4c2df2caa89211b56b84c5d",
+      "sha256": "2f14026c552b3e82b10cc74450b40a3554963ac67c75505845db162a265e0440"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_research_results_tool.test.ts",
+      "status_from139": "M",
+      "git_blob": "7896c5f297d9a149f6a164a915f612232f2dc3da",
+      "sha256": "cc279070266d867dba35468f1ce9c2beda57bbf05e24837fbf69f8403e53cd82"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_study_lab_tool.test.ts",
+      "status_from139": "M",
+      "git_blob": "bce13f806092f0c6e4cda4dc1a987bd4a878acd7",
+      "sha256": "e2df24d48b0cdf7bd3c8a7dac2e08a545292328b2c5141e1a6d38ad7e8d117ea"
+    },
+    {
+      "path": "frontend/tests/e2e/helpers.ts",
+      "status_from139": "M",
+      "git_blob": "0585840e77c5e5db008a9b7ba26143e1fe813eed",
+      "sha256": "8439a43437cc6045a4b24185e5500b2d2980486adc64ea48f70fdd5740415ac5"
+    },
+    {
+      "path": "frontend/tests/unit/e2e/test_browser_diagnostics.test.ts",
+      "status_from139": "M",
+      "git_blob": "471e86daef24d9c1bbbc1e9140dff9e436441811",
+      "sha256": "a3f336e075e5b802e9d14156a670638a8170347600f2b98c8d7087ab47703cea"
+    }
+  ],
+  "changed_paths_for_TC": [
+    "frontend/src/components/workstation/CodeLibraryTool.vue",
+    "frontend/src/components/workstation/ResearchResultsTool.vue",
+    "frontend/tests/e2e/strategy_study_journey.spec.ts",
+    "frontend/tests/unit/components/test_code_library_tool.test.ts",
+    "frontend/tests/e2e/helpers.ts",
+    "frontend/tests/unit/e2e/test_browser_diagnostics.test.ts"
+  ],
+  "consumers": [
+    {
+      "consumer": "TC",
+      "import_paths": [
+        "frontend/src/components/workstation/CodeLibraryTool.vue",
+        "frontend/src/components/workstation/ResearchResultsTool.vue",
+        "frontend/tests/e2e/strategy_study_journey.spec.ts",
+        "frontend/tests/unit/components/test_code_library_tool.test.ts",
+        "frontend/tests/e2e/helpers.ts",
+        "frontend/tests/unit/e2e/test_browser_diagnostics.test.ts"
+      ],
+      "owned_overlap": []
+    }
+  ],
+  "scope": "Strategy full8 domain plus exact controlled-503 response diagnostic helper/negative tests2. Restores3ordinary UI fault-to-retry journeys; scopes mocks to Study history intent, uses explicit actual retained dates, incorporates qualified TC f3 recursion fix. ResearchResults detail errors expose visible retry without background retries.",
+  "evidence": "Owner78focusedunits, type-check and10case Playwright discovery passed; Root reviewed narrow exact response fault match/consume-once and negative guards, no browser bodies accepted. TC2f3import independently verified earlier. Root actual f84 retained-range API still waits for provider despite readable candles; Provider cache-readiness repair assigned separately.",
+  "consumer_rule": "Import only declared changed paths; verify every exact source row, blob and executable-bit using repository scope validator. Old/new guards preserved in consumer_old_new_guards. All source scope and acceptance restrictions retained. Strategy delta is6; ETF delta3.",
+  "preserve": "Full roadmaps, zero retries, strict diagnostics, native holds, producer records and private production data.",
+  "consumer_old_new_guards": {
+    "frontend/src/components/workstation/CodeLibraryTool.vue": {
+      "old_source": "5703f21497e628576e9d381dede28dbaa0ca719d",
+      "old_sha256": "420275b005be35929283965d0ab81b2a7fb00e4bd7a52633f1a43825b55c8d8d",
+      "git_mode": "100644"
+    },
+    "frontend/src/components/workstation/ResearchResultsTool.vue": {
+      "old_source": "5703f21497e628576e9d381dede28dbaa0ca719d",
+      "old_sha256": "7fcaf571911f463619f3b79a84a4207d68e831777bfe22002db3194f95a0f9f3",
+      "git_mode": "100644"
+    },
+    "frontend/src/components/workstation/StudyLabTool.vue": {
+      "old_source": "5703f21497e628576e9d381dede28dbaa0ca719d",
+      "old_sha256": "3628e280f2b108a3c35f1e34d6a79f50862f9a3e9ba4c957f493f1af23d8a632",
+      "git_mode": "100644"
+    },
+    "frontend/src/lib/workstation/researchQueryKeys.ts": {
+      "old_source": "5703f21497e628576e9d381dede28dbaa0ca719d",
+      "old_sha256": "d2efc149f5351df0bd33e726b78713c9edee581109977fe6045ae8da13b6dd03",
+      "git_mode": "100644"
+    },
+    "frontend/tests/e2e/strategy_study_journey.spec.ts": {
+      "old_source": "5703f21497e628576e9d381dede28dbaa0ca719d",
+      "old_sha256": "c309fa24f76abf416022a20641a205ff90ec72e015bd58bced45df85a832e3e1",
+      "git_mode": "100644"
+    },
+    "frontend/tests/unit/components/test_code_library_tool.test.ts": {
+      "old_source": "5703f21497e628576e9d381dede28dbaa0ca719d",
+      "old_sha256": "f480ce291882f75fef05fe1adeb49e180c1fe204eecb25351b715ce4bef8d4e9",
+      "git_mode": "100644"
+    },
+    "frontend/tests/unit/components/test_research_results_tool.test.ts": {
+      "old_source": "5703f21497e628576e9d381dede28dbaa0ca719d",
+      "old_sha256": "cc279070266d867dba35468f1ce9c2beda57bbf05e24837fbf69f8403e53cd82",
+      "git_mode": "100644"
+    },
+    "frontend/tests/unit/components/test_study_lab_tool.test.ts": {
+      "old_source": "5703f21497e628576e9d381dede28dbaa0ca719d",
+      "old_sha256": "9522c7960aec77d29eb786652ae254cd9065813b3b7a97ef23aa839051169426",
+      "git_mode": "100644"
+    },
+    "frontend/tests/e2e/helpers.ts": {
+      "old_source": "e8ed11f894b02593cd249f398911f157553fff77",
+      "old_sha256": "24eb70ea64818e84b212c59974f0815d1d16bf78898da2781ad4562a9ca59ee5",
+      "git_mode": "100644"
+    },
+    "frontend/tests/unit/e2e/test_browser_diagnostics.test.ts": {
+      "old_source": "e8ed11f894b02593cd249f398911f157553fff77",
+      "old_sha256": "a2007524016760b36566ed59c4f8b34cd2e0b7b0bdf7af7221bdeb15eea81414",
+      "git_mode": "100644"
+    }
+  },
+  "scope_projection_of": {
+    "path": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/strategy94ad763d-domain-frontend-development-consumption-contract.json",
+    "sha256": "85cb0c03d08d932151ac0f8b05b5aa50a5d52cde6491103348ed3d4fdc3e58ce",
+    "reason": "Strict TC scope validator file rows accept exactly path/status/blob/hash. Old/new/mode guards preserved at top level; source bytes and authorization unchanged."
+  },
+  "source_alias_provenance": {
+    "prior_source": "94ad763d5f5ca519a02100d16d8d277b36d7504e",
+    "branch_source": "174a32231380f2d21f87aa60380f8cecd3e704c0",
+    "proof": "All10frontend Git blobs byte-identical. Producer amended an unpublished commit; bind active scope to reachable current producer source174, retaining94original records as historical development evidence. Do not amend released174 while consumers reference it."
+  }
+}

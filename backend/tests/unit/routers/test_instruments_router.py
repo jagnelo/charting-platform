@@ -3165,3 +3165,49 @@ class TestInstrument52WStats:
         )
 
         assert _needs_52w_stats_refresh(instrument) is False
+
+
+@pytest.mark.parametrize("local_bars", ["covered", "none"])
+def test_history_availability_uses_local_coverage_when_no_provider_is_eligible(
+    client, auth_headers, instrument, monkeypatch, local_bars
+):
+    """With no eligible provider, complete local canonical bars make history eligible."""
+
+    now = datetime.now(UTC)
+
+    async def _qualified(_db, _instrument):
+        return object()
+
+    async def _resolve(*_args, **_kwargs):
+        return []
+
+    async def _local_fetch(_db, _instrument, _timeframe, start, *, end, **_kwargs):
+        assert _kwargs.get("allow_provider_fetch") is False
+        if local_bars == "none":
+            return []
+        days = [
+            (now - timedelta(days=2200) + timedelta(days=offset)).replace(
+                hour=0, minute=0, second=0, microsecond=0
+            )
+            for offset in range(2200 + 2)
+        ]
+        return [SimpleNamespace(ts=ts) for ts in days]
+
+    monkeypatch.setattr("app.routers.instruments._qualified_identity", _qualified)
+    monkeypatch.setattr("app.routers.instruments.resolve_provider_chain", _resolve)
+    monkeypatch.setattr("app.routers.instruments.fetch_ohlcv", _local_fetch)
+    response = client.get(
+        f"/api/v1/instruments/{instrument.id}/history-availability?timeframe=D1&adjusted=true",
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    if local_bars == "covered":
+        assert body["status"] == "eligible"
+        assert body["reason_code"] == "local_canonical_coverage"
+        assert body["earliest_start"] is not None
+    else:
+        assert body["status"] == "held"
+        assert body["reason_code"] == "no_eligible_history_provider"
+        assert body["earliest_start"] is None

@@ -7,6 +7,7 @@ from sqlalchemy import select
 from app.models.market_data_foundation import MarketRefreshJob
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.services.evaluator_preflight import preflight_ohlcv
+from app.services.ohlcv_coverage import observed_daily_session_bounds
 from tests.unit.conftest import AsyncSessionAdapter
 
 
@@ -50,7 +51,16 @@ async def test_preflight_reports_full_coverage_without_queueing(db, instrument):
 
 
 @pytest.mark.asyncio
-async def test_date_only_daily_preflight_accepts_close_labelled_endpoint_sessions(db, instrument):
+@pytest.mark.parametrize(
+    "date_to",
+    [
+        datetime(2024, 1, 5, 23, 59, 59, tzinfo=UTC),
+        datetime(2024, 1, 5, 23, 59, 59, 999999, tzinfo=UTC),
+    ],
+)
+async def test_date_only_daily_preflight_accepts_close_labelled_endpoint_sessions(
+    db, instrument, date_to
+):
     session_dates = [datetime(2024, 1, day, 21, tzinfo=UTC) for day in (2, 3, 4, 5)]
     close_bars = [
         OHLCVBar(
@@ -73,7 +83,7 @@ async def test_date_only_daily_preflight_accepts_close_labelled_endpoint_session
         instrument_ids=[instrument.id],
         timeframe=Timeframe.D1,
         date_from=datetime(2024, 1, 2, tzinfo=UTC),
-        date_to=datetime(2024, 1, 5, 23, 59, 59, 999999, tzinfo=UTC),
+        date_to=date_to,
         cached_bars={instrument.id: close_bars},
         now=datetime(2024, 1, 8, tzinfo=UTC),
     )
@@ -84,6 +94,224 @@ async def test_date_only_daily_preflight_accepts_close_labelled_endpoint_session
     assert item.covered_start == session_dates[0]
     assert item.covered_end == session_dates[-1]
     assert item.missing_slices == ()
+
+
+@pytest.mark.asyncio
+async def test_xnys_daily_preflight_treats_sunday_end_as_last_completed_session(instrument):
+    bars = [
+        OHLCVBar(
+            instrument_id=instrument.id,
+            timeframe=Timeframe.D1,
+            ts=datetime(2024, 1, day, 21, tzinfo=UTC),
+            open=Decimal("100"),
+            high=Decimal("101"),
+            low=Decimal("99"),
+            close=Decimal("100"),
+            volume=Decimal("1000"),
+            is_adjusted=True,
+        )
+        for day in (8, 9, 10, 11, 12)
+    ]
+
+    result = await preflight_ohlcv(
+        AsyncSessionAdapter(None),
+        evaluator="sunday_date_picker",
+        instrument_ids=[instrument.id],
+        timeframe=Timeframe.D1,
+        date_from=datetime(2024, 1, 8, tzinfo=UTC),
+        date_to=datetime(2024, 1, 14, 23, 59, 59, tzinfo=UTC),
+        cached_bars={instrument.id: bars},
+        calendar_by_instrument={instrument.id: "XNYS"},
+        now=datetime(2024, 1, 15, tzinfo=UTC),
+    )
+
+    item = result.items[0]
+    assert item.status.value == "ready"
+    assert item.bar_count == 5
+    assert item.covered_end == bars[-1].ts
+    assert item.missing_slices == ()
+
+
+@pytest.mark.asyncio
+async def test_xnys_daily_preflight_treats_thanksgiving_end_as_closed(instrument):
+    wednesday = OHLCVBar(
+        instrument_id=instrument.id,
+        timeframe=Timeframe.D1,
+        ts=datetime(2024, 11, 27, 21, tzinfo=UTC),
+        open=Decimal("100"),
+        high=Decimal("101"),
+        low=Decimal("99"),
+        close=Decimal("100"),
+        volume=Decimal("1000"),
+        is_adjusted=True,
+    )
+
+    result = await preflight_ohlcv(
+        AsyncSessionAdapter(None),
+        evaluator="holiday_date_picker",
+        instrument_ids=[instrument.id],
+        timeframe=Timeframe.D1,
+        date_from=datetime(2024, 11, 27, tzinfo=UTC),
+        date_to=datetime(2024, 11, 28, 23, 59, 59, tzinfo=UTC),
+        cached_bars={instrument.id: [wednesday]},
+        calendar_by_instrument={instrument.id: "XNYS"},
+    )
+
+    item = result.items[0]
+    assert item.status.value == "ready"
+    assert item.bar_count == 1
+    assert item.covered_end == wednesday.ts
+    assert item.missing_slices == ()
+
+
+@pytest.mark.asyncio
+async def test_xnys_early_close_is_required_at_its_actual_close_time(instrument):
+    wednesday = OHLCVBar(
+        instrument_id=instrument.id,
+        timeframe=Timeframe.D1,
+        ts=datetime(2024, 11, 27, 21, tzinfo=UTC),
+        open=Decimal("100"),
+        high=Decimal("101"),
+        low=Decimal("99"),
+        close=Decimal("100"),
+        volume=Decimal("1000"),
+        is_adjusted=True,
+    )
+    early_close = datetime(2024, 11, 29, 18, tzinfo=UTC)
+
+    result = await preflight_ohlcv(
+        AsyncSessionAdapter(None),
+        evaluator="early_close_missing_session",
+        instrument_ids=[instrument.id],
+        timeframe=Timeframe.D1,
+        date_from=datetime(2024, 11, 27, tzinfo=UTC),
+        date_to=early_close,
+        cached_bars={instrument.id: [wednesday]},
+        calendar_by_instrument={instrument.id: "XNYS"},
+    )
+
+    item = result.items[0]
+    assert item.status.value == "partial"
+    assert item.missing_slices
+    assert item.missing_slices[-1][0] < early_close <= item.missing_slices[-1][1]
+
+
+@pytest.mark.asyncio
+async def test_xnys_preflight_keeps_a_missing_last_required_session_partial(instrument):
+    monday = OHLCVBar(
+        instrument_id=instrument.id,
+        timeframe=Timeframe.D1,
+        ts=datetime(2024, 1, 8, 21, tzinfo=UTC),
+        open=Decimal("100"),
+        high=Decimal("101"),
+        low=Decimal("99"),
+        close=Decimal("100"),
+        volume=Decimal("1000"),
+        is_adjusted=True,
+    )
+
+    result = await preflight_ohlcv(
+        AsyncSessionAdapter(None),
+        evaluator="missing_last_session",
+        instrument_ids=[instrument.id],
+        timeframe=Timeframe.D1,
+        date_from=datetime(2024, 1, 8, tzinfo=UTC),
+        date_to=datetime(2024, 1, 9, 23, 59, 59, tzinfo=UTC),
+        cached_bars={instrument.id: [monday]},
+        calendar_by_instrument={instrument.id: "XNYS"},
+        now=datetime(2024, 1, 10, tzinfo=UTC),
+    )
+
+    item = result.items[0]
+    assert item.status.value == "partial"
+    assert item.missing_slices
+    expected_close = datetime(2024, 1, 9, 21, tzinfo=UTC)
+    assert item.missing_slices[0][0] < expected_close
+    assert item.missing_slices[0][1] >= expected_close
+    assert item.missing_slices[0][1] > item.missing_slices[0][0]
+
+
+@pytest.mark.asyncio
+async def test_daily_preflight_does_not_extend_intraday_or_unknown_calendar_bounds(instrument):
+    friday = OHLCVBar(
+        instrument_id=instrument.id,
+        timeframe=Timeframe.D1,
+        ts=datetime(2024, 1, 5, 21, tzinfo=UTC),
+        open=Decimal("100"),
+        high=Decimal("101"),
+        low=Decimal("99"),
+        close=Decimal("100"),
+        volume=Decimal("1000"),
+        is_adjusted=True,
+    )
+    intraday_bound = await preflight_ohlcv(
+        AsyncSessionAdapter(None),
+        evaluator="strict_intraday_bound",
+        instrument_ids=[instrument.id],
+        timeframe=Timeframe.D1,
+        date_from=datetime(2024, 1, 5, 20, tzinfo=UTC),
+        date_to=datetime(2024, 1, 5, 20, 30, tzinfo=UTC),
+        cached_bars={instrument.id: [friday]},
+        calendar_by_instrument={instrument.id: "XNYS"},
+    )
+    unknown_calendar = await preflight_ohlcv(
+        AsyncSessionAdapter(None),
+        evaluator="unknown_calendar_weekend",
+        instrument_ids=[instrument.id],
+        timeframe=Timeframe.D1,
+        date_from=datetime(2024, 1, 5, tzinfo=UTC),
+        date_to=datetime(2024, 1, 7, 23, 59, 59, tzinfo=UTC),
+        cached_bars={instrument.id: [friday]},
+    )
+
+    assert intraday_bound.items[0].bar_count == 0
+    assert intraday_bound.items[0].status.value == "missing"
+    assert unknown_calendar.items[0].status.value == "partial"
+
+
+@pytest.mark.asyncio
+async def test_xnys_calendar_does_not_expand_unsupported_intraday_grid(instrument):
+    intraday = OHLCVBar(
+        instrument_id=instrument.id,
+        timeframe=Timeframe.M15,
+        ts=datetime(2024, 1, 5, 21, tzinfo=UTC),
+        open=Decimal("100"),
+        high=Decimal("101"),
+        low=Decimal("99"),
+        close=Decimal("100"),
+        volume=Decimal("1000"),
+        is_adjusted=True,
+    )
+
+    result = await preflight_ohlcv(
+        AsyncSessionAdapter(None),
+        evaluator="unsupported_intraday_calendar",
+        instrument_ids=[instrument.id],
+        timeframe=Timeframe.M15,
+        date_from=datetime(2024, 1, 5, tzinfo=UTC),
+        date_to=datetime(2024, 1, 7, 23, 59, 59, tzinfo=UTC),
+        cached_bars={instrument.id: [intraday]},
+        calendar_by_instrument={instrument.id: "XNYS"},
+    )
+
+    item = result.items[0]
+    assert item.status.value == "partial"
+    assert item.required_end == datetime(2024, 1, 7, 23, 59, 59, tzinfo=UTC)
+
+
+@pytest.mark.parametrize("timeframe", [Timeframe.W1, Timeframe.MN])
+def test_daily_date_edge_normalization_leaves_coarse_periods_unchanged(timeframe):
+    start = datetime(2024, 1, 1, tzinfo=UTC)
+    end = datetime(2024, 1, 7, 23, 59, 59, 999999, tzinfo=UTC)
+
+    assert observed_daily_session_bounds(
+        timeframe,
+        start,
+        end,
+        datetime(2024, 1, 1, tzinfo=UTC),
+        datetime(2024, 1, 5, tzinfo=UTC),
+        calendar="XNYS",
+    ) == (start, end)
 
 
 @pytest.mark.asyncio

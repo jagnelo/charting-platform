@@ -92,7 +92,11 @@ from app.services.market_series import (
     adjustment_scope_predicate,
     get_or_create_series,
 )
-from app.services.ohlcv_coverage import assess_ohlcv_coverage, missing_range_slices
+from app.services.ohlcv_coverage import (
+    assess_ohlcv_coverage,
+    coverage_calendar_for_instrument,
+    missing_range_slices,
+)
 from app.services.provider_observations import (
     store_latest_price_snapshot,
     store_search_snapshot,
@@ -274,8 +278,8 @@ def _seeded_market_data() -> bool:
 
 
 def _coverage_calendar(instrument: Instrument) -> str | None:
-    """Use the local XNYS calendar only for explicitly USD instruments."""
-    return "XNYS" if (instrument.currency or "").upper() == "USD" else None
+    """Use XNYS only when the instrument has a recognized US equity MIC."""
+    return coverage_calendar_for_instrument(instrument)
 
 
 async def _get_or_create_datasource(db: AsyncSession) -> DataSource:

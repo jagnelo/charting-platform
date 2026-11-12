@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { Watchlist, WatchlistItem, WatchlistSource, WatchlistSourceResolved } from '@/types'
 import { api, setQueuedApiRequestPriority, type ApiRequestPriority } from '@/lib/api'
+import { AuthSessionChangedError } from '@/lib/authSession'
 import { ensureKnownInstrumentSymbol } from '@/lib/instruments'
 
 export interface WatchlistQuote {
@@ -92,6 +93,7 @@ export const useWatchlistStore = defineStore('watchlist', () => {
   }
 
   function isTransientLoadError(error: unknown): boolean {
+    if (error instanceof AuthSessionChangedError) return true
     const message = error instanceof Error ? error.message : String(error ?? '')
     return /Failed to fetch|ERR_ABORTED|Authentication required/i.test(message)
   }

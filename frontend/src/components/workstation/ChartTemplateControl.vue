@@ -221,7 +221,7 @@ async function load() {
   try {
     const nextItems = await queryClient.fetchQuery<TemplateItem[]>({
       queryKey: ['workstation', 'library-items', 'chart_template'],
-      queryFn: async () => (await api.get<TemplateItem[]>('/workspaces/library/items', { kind: 'chart_template' })) ?? [],
+      queryFn: async () => (await api.get<TemplateItem[]>('/workspaces/library/items', { kind: 'chart_template' }, { priority: 'high' })) ?? [],
       staleTime: 30_000,
     })
     if (mounted && generation === loadGeneration) items.value = nextItems

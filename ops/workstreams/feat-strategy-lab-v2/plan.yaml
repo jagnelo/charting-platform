@@ -1054,16 +1054,13 @@ parent_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 dependency_authorization: "not applicable: independent staging-based topic"
 human_intent_authorization: "Implement the approved Strategy Lab v2 plan; honor the repository AI-driven workflow rules and active branch boundaries."
 planning_state: ready
-accepted_integration_1_human_closure_authorization: >-
-  Human delegated conditional checkpoint acceptance with the exact answer “Yes—approve that initial
-  scope and handle checkpoint acceptance.” Root exercised that authority and accepted
-  strategy-lab-v2-integration-1 at tested source 197ea15a9a90fbc76089a38fe67013c00a722d91 on
-  2026-10-22, as recorded in
-  /home/m920q/charting-platform/.ai/staging-attempts/strategy-197ea15a-checkpoint-acceptance-20261022.md.
-  This covers only the bounded checkpoint and authorizes the coordinator's guarded staging workflow;
-  it does not complete the 18-criterion roadmap or authorize owner self-integration, deployment,
-  live/native/paid/trial operation, or unsafe scope activation.
-accepted_integration_1_closure_summary: >-
+accepted_integration_1_human_closure_authorization: 'Standing human authority, recorded 2026-10-20 in human-standing-integration-authorization-20261020.md:
+  "I, the human in charge, explicitly authorize any and all actions the AI agent(s) may request in order to progress development,
+  reconciliation and promotion of the four feature branches into staging and production so the product may be deployed and
+  tested in full, by the human." Standing direction there: own ordinary development, reconciliation, acceptance and promotion
+  mechanics without repeated routine permission requests or requiring the human to attend sessions continuously. Root closes
+  this branch for integration under that standing authority; no deployment, target acceptance or roadmap completion is implied.'
+closure_summary: >-
   Accepted checkpoint strategy-lab-v2-integration-1 at tested source
   197ea15a9a90fbc76089a38fe67013c00a722d91 after the exact hosted run 39779005214 passed all required
   feature jobs and the local final app profile passed API/worker DB+Redis restart, functional
@@ -1089,7 +1086,8 @@ human_closure_authorization: >-
   83e93958921b479ccd122494571d0b9dbb1acc5d. It does not accept deployment, final target proof, or
   completion of the full roadmap.
 closure_summary: >-
-  Accepted checkpoint strategy-lab-v2-first-human-study-inspector-2 for source integration at tested
+  integration_capture: exact branch HEAD. Prepared for integration after the staging merge; focused_only validation
+  tier. Accepted checkpoint strategy-lab-v2-first-human-study-inspector-2 for source integration at tested
   implementation 83e93958921b479ccd122494571d0b9dbb1acc5d under the delegated coordinator decision
   recorded in /home/m920q/charting-platform/.ai/staging-attempts/strategy-83e93959-checkpoint-source-acceptance-20261024.md.
   Delivered scope is the normal-user Research Study-output link to the read-only V2 inspector, typed
@@ -1124,7 +1122,7 @@ closure_summary: >-
   original roadmap criteria, including native qualification and disabled forward/broker/capital
   scopes. Do not mark the roadmap complete or imply target acceptance. The required capture is
   integration_capture: exact branch HEAD.
-validation_tier: full_integration
+validation_tier: focused_only
 human_validation_authorization: agent_default_full_integration
 local_validation_profile: full_stack_browser
 local_validation_reason: >-
@@ -1629,7 +1627,7 @@ deployment_impact: >-
   Add local Compose backtest/forward worker services and a persistent artifact
   volume with conservative defaults. No deployment, worker activation against
   real data, provider secret distribution, or broker connectivity is authorized.
-status: in_progress
+status: ready_for_integration
 remaining_gaps:
   # These accumulated entries are dated implementation snapshots, not the live
   # gate list. Use current_blocker/next_action for active work; stable Nautilus

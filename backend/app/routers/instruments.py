@@ -55,6 +55,7 @@ from app.schemas.instrument_acquisition import (
     InstrumentDiscoveryResponse,
     QualifiedInstrumentIdentity,
 )
+from app.services.arq_pool import SHARED_POOL_CONNECT_TIMEOUT_SECONDS, get_shared_arq_pool
 from app.services.bulk_fetch import get_fetch_progress
 from app.services.evaluator_preflight import preflight_ohlcv
 from app.services.exchange_catalog import normalize_exchange_mic
@@ -1719,6 +1720,39 @@ async def get_instrument_history_availability(
         if "history_depth_unknown" in bound_failures
         else "history_depth_invalid"
     )
+    if reason_code == "no_eligible_history_provider":
+        # No provider can supply history, but canonical local bars may already
+        # cover the default window. Report that without calling any provider.
+        # Same aligned default chunk the worker would have requested, so local
+        # bars that cover the worker's window also cover this check.
+        from app.tasks.data_tasks import _history_chunk_start
+
+        window_end = _history_chunk_start(now, timeframe, 1)
+        window_start = _history_chunk_start(window_end, timeframe, max_bars)
+        local_bars = await fetch_ohlcv(
+            db,
+            instrument,
+            timeframe,
+            window_start,
+            end=window_end,
+            adjusted=adjusted,
+            allow_provider_fetch=False,
+        )
+        if local_bars:
+            local_coverage = assess_ohlcv_coverage(
+                local_bars,
+                timeframe,
+                window_start,
+                window_end,
+                calendar=_coverage_calendar(instrument),
+            )
+            if local_coverage.status.value == "ready" and local_coverage.covered_start:
+                return HistoryAvailabilityResponse(
+                    **base,
+                    status="eligible",
+                    earliest_start=local_coverage.covered_start,
+                    reason_code="local_canonical_coverage",
+                )
     return HistoryAvailabilityResponse(**base, status="held", reason_code=reason_code)
 
 
@@ -1735,7 +1769,10 @@ async def acquire_instrument_history(
     instrument = (
         await db.execute(
             select(Instrument)
-            .options(selectinload(Instrument.listings).selectinload(InstrumentListing.exchange))
+            .options(
+                selectinload(Instrument.listings).selectinload(InstrumentListing.exchange),
+                selectinload(Instrument.equity_detail),
+            )
             .where(Instrument.id == instrument_id, Instrument.is_synthetic.is_(False))
         )
     ).scalar_one_or_none()
@@ -2891,20 +2928,21 @@ async def get_data_coverage(
         for row in rows
     }
 
+    instrument_id = instrument.id
+    # End the read transaction before Redis I/O, so no database transaction is
+    # held open while the progress hint is fetched.
+    await db.commit()
     progress: dict | None = None
     try:
-        from arq.connections import RedisSettings, create_pool
-
-        from app.config import settings
-
-        redis = await create_pool(RedisSettings.from_dsn(settings.REDIS_URL))
-        progress = await get_fetch_progress(instrument.id, redis)
-        await redis.aclose()
+        redis = await get_shared_arq_pool()
+        progress = await asyncio.wait_for(
+            get_fetch_progress(instrument_id, redis), timeout=SHARED_POOL_CONNECT_TIMEOUT_SECONDS
+        )
     except Exception:
         pass
 
     return {
-        "instrument_id": instrument.id,
+        "instrument_id": instrument_id,
         "symbol": symbol.upper(),
         "coverage": coverage,
         "is_fetching": progress is not None and progress.get("status") == "in_progress",

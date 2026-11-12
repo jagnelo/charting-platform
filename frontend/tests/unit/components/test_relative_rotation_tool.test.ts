@@ -33,6 +33,47 @@ describe('RelativeRotationTool', () => {
     return mount(RelativeRotationTool, { ...options, global: { ...(options.global ?? {}), plugins: [[VueQueryPlugin, { queryClient }], ...((options.global?.plugins as any[]) ?? [])] } })
   }
 
+  it('still plots the shared rotation read when the instance that started it unmounts and preparation fails', async () => {
+    // A duplicated layout mounts a second tool that joins the first tool's in-flight
+    // read for the same query key. The first tool's unmount must not cancel that
+    // shared read for the survivor, and a failed preparation must not hide the
+    // available rotation result.
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    const rotation = {
+      freshness: 'current',
+      benchmark: 'SPY',
+      rows: [{ instrument_id: 1, symbol: 'XLK', state: 'leading', trend: 0.1, momentum: 0.2, heading: 63, distance: 0.224, velocity: 0.02, transition: 'improving->leading', time_in_state: 3, coverage: 1, tail: [], history: [] }],
+    }
+    let rotationReads = 0
+    let releaseFirstRead: () => void = () => {}
+    vi.mocked(api.get).mockImplementation((path: string, _params?: unknown, options?: { signal?: AbortSignal }) => {
+      if (!path.includes('relative-rotation')) return Promise.resolve([])
+      rotationReads += 1
+      if (rotationReads === 1) {
+        // The first read is a real network request: an abort rejects it, otherwise it
+        // completes with a 200 once released.
+        return new Promise((resolve, reject) => {
+          options?.signal?.addEventListener('abort', () => reject(new DOMException('The operation was aborted.', 'AbortError')))
+          releaseFirstRead = () => resolve(rotation)
+        })
+      }
+      return Promise.resolve(rotation)
+    })
+    vi.mocked(api.post).mockRejectedValue(new Error('offline'))
+
+    const original = mountTool({}, queryClient)
+    await vi.waitFor(() => expect(rotationReads).toBe(1))
+    const duplicate = mountTool({}, queryClient)
+    await flushPromises()
+    original.unmount()
+    releaseFirstRead()
+
+    await vi.waitFor(() => expect(duplicate.find('[aria-label="Relative rotation trend and momentum plane"]').exists()).toBe(true))
+    expect(duplicate.text()).toContain('XLK')
+    expect(duplicate.text()).not.toContain('RRG update failed')
+    duplicate.unmount()
+  })
+
   it('resizes the existing uPlot instance instead of recreating it', async () => {
     vi.mocked(api.get).mockResolvedValue({
       freshness: 'current',

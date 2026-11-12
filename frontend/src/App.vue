@@ -35,12 +35,12 @@
       </header>
       <main class="tc-app-main">
         <div class="tc-app-route-frame">
-          <router-view :key="sessionEpoch" />
+          <router-view :key="routeViewKey" />
         </div>
         <StatusBar />
       </main>
     </template>
-    <router-view v-else :key="sessionEpoch" />
+    <router-view v-else :key="routeViewKey" />
     <Notification />
   </div>
 </template>
@@ -62,6 +62,10 @@ const alertsStore = computed(() => {
   sessionEpoch.value
   return useAlertsStore()
 })
+// Every login attempt advances the session epoch before its request is sent.
+// Keying the login route on that epoch would remount LoginView mid-submit and
+// drop a rejected attempt's error, so the public login route keeps one instance.
+const routeViewKey = computed(() => (route.path === '/login' ? 'login' : sessionEpoch.value))
 
 watch(() => authStore.isAuthenticated, (authenticated) => {
   if (authenticated) alertsStore.value.connectWebSocket()

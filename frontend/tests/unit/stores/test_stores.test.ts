@@ -10,7 +10,7 @@ import { useChartStore } from '@/stores/chart'
 import { clearOhlcvRequestCache } from '@/lib/workstation/ohlcvRequests'
 import { useAlertsStore } from '@/stores/alerts'
 import { router } from '@/router'
-import { captureAuthSession, currentAuthSessionEpoch } from '@/lib/authSession'
+import { AuthSessionChangedError, captureAuthSession, currentAuthSessionEpoch } from '@/lib/authSession'
 
 function preparationReady(instrumentId: number, symbol: string, timeframe = 'D1') {
   const timestamp = '2026-11-06T12:00:00Z'
@@ -1465,6 +1465,41 @@ describe('useAlertsStore', () => {
     const store = useAlertsStore()
     expect(store.alerts).toEqual([])
     expect(store.wsConnected).toBe(false)
+  })
+
+  it('suppresses only typed auth-boundary cancellation from socket history refresh', async () => {
+    localStorage.setItem('access_token', 'user-a-access')
+    const sockets: Array<{ readyState: number; onopen: (() => void) | null }> = []
+    class FakeWebSocket {
+      static CONNECTING = 0
+      static OPEN = 1
+      static CLOSED = 3
+      readyState = FakeWebSocket.CONNECTING
+      onopen: (() => void) | null = null
+      onclose: (() => void) | null = null
+      onmessage: ((event: { data: string }) => void) | null = null
+      onerror: (() => void) | null = null
+      close = vi.fn()
+      send = vi.fn()
+      constructor() { sockets.push(this) }
+    }
+    vi.stubGlobal('WebSocket', FakeWebSocket)
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const store = useAlertsStore()
+    ;(api.get as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new AuthSessionChangedError())
+    store.connectWebSocket()
+    sockets[0].onopen?.()
+    await vi.waitFor(() => expect(api.get).toHaveBeenCalledTimes(1))
+    await Promise.resolve()
+    expect(log).not.toHaveBeenCalled()
+
+    const programmingFailure = new Error('unexpected socket history failure')
+    ;(api.get as ReturnType<typeof vi.fn>).mockRejectedValueOnce(programmingFailure)
+    sockets[0].onopen?.()
+    await vi.waitFor(() => expect(log).toHaveBeenCalledWith(programmingFailure))
+    expect(api.get).toHaveBeenCalledTimes(2)
+    log.mockRestore()
+    vi.unstubAllGlobals()
   })
 
   it('loadAlerts populates alerts', async () => {

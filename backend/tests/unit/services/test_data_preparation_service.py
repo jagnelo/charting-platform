@@ -25,11 +25,15 @@ from app.models.provider_observation import (
 from app.models.provider_runtime import ProviderCapability, ProviderPolicy
 from app.schemas.data_preparation import DataEnsureRequest
 from app.services.data_preparation import (
+    _RETAINED_COVERAGE_MEMO,
     _analysis_required_start,
     _holdings_job_has_terminal_negative,
     _identity_job_has_terminal_negative,
+    _merge_parent_refs,
     _profile_is_fresh,
+    _request_scoped_coverage_memo,
     _resolve_requested_instruments,
+    _retained_history_coverage,
     create_data_preparation_request,
     create_maintenance_data_preparation_request,
     expand_resolved_identity_dependency,
@@ -583,7 +587,13 @@ async def test_retained_internal_gap_is_reported_and_only_gap_is_queued(db, inst
     assert children[0].end_at == datetime(2026, 1, 7)
     response = await get_data_preparation_response(async_db, parent=parent, owner_user_id=81)
     assert response.dependencies[0].status == "partial"
-    assert len(response.dependencies[0].covered_ranges) == 2
+    covered = response.dependencies[0].covered_ranges
+    assert len(covered) == 2
+    assert {item.market_series_id for item in covered} == {selected.id}
+    assert [(item.start_at.date(), item.end_at.date()) for item in covered] == [
+        (datetime(2026, 1, 1, tzinfo=UTC).date(), datetime(2026, 1, 2, tzinfo=UTC).date()),
+        (datetime(2026, 1, 8, tzinfo=UTC).date(), datetime(2026, 1, 9, tzinfo=UTC).date()),
+    ]
     assert response.dependencies[0].covered_start is None
     assert response.dependencies[0].covered_end is None
 
@@ -1387,10 +1397,12 @@ async def test_reconciled_sic_industry_keeps_its_snapshot_provider_and_timing(
                 SimpleNamespace(
                     provider_name="massive",
                     policy=SimpleNamespace(effective_score=1.0),
+                    effective_score=1.0,
                 ),
                 SimpleNamespace(
                     provider_name="alpaca",
                     policy=SimpleNamespace(effective_score=0.5),
+                    effective_score=0.5,
                 ),
             ]
         ),
@@ -2378,3 +2390,157 @@ async def test_two_unknown_ratio_legs_keep_independent_late_dependencies(
         "LEFT": (left.id, "queued"),
         "RIGHT": (right.id, "queued"),
     }
+
+
+def _refresh_job(db, *, request_key, status="queued", refs=None):
+    job = MarketRefreshJob(
+        request_key=request_key,
+        capability="price_history",
+        priority=10,
+        status=status,
+        attempts=0,
+        next_attempt_at=datetime(2026, 11, 10, tzinfo=UTC),
+        metadata_payload={"data_preparation_child": {"parent_refs": list(refs or [])}},
+    )
+    db.add(job)
+    db.flush()
+    return job
+
+
+@pytest.mark.asyncio
+async def test_merge_parent_refs_is_one_lookup_and_one_flush_for_many_existing_refs(db):
+    """A child with 300 refs gets one batched lookup, one write and one flush."""
+    parent = _refresh_job(db, request_key="parent-live")
+    new_parent = _refresh_job(db, request_key="parent-new")
+    child = _refresh_job(
+        db,
+        request_key="shared-child",
+        refs=[{"parent_job_id": parent.id, "request_id": f"req-{index}"} for index in range(300)],
+    )
+    adapter = AsyncSessionAdapter(db)
+    flushes = 0
+    real_flush = adapter.flush
+
+    async def counting_flush(*args, **kwargs):
+        nonlocal flushes
+        flushes += 1
+        return await real_flush(*args, **kwargs)
+
+    lookups = 0
+    real_execute = adapter.execute
+
+    async def counting_execute(*args, **kwargs):
+        nonlocal lookups
+        lookups += 1
+        return await real_execute(*args, **kwargs)
+
+    adapter.flush = counting_flush
+    adapter.execute = counting_execute
+    try:
+        new_ref = {"parent_job_id": new_parent.id, "request_id": "req-new"}
+        await _merge_parent_refs(adapter, child, [new_ref])
+    finally:
+        del adapter.flush
+        del adapter.execute
+
+    assert lookups == 1
+    assert flushes == 1
+    refs = child.metadata_payload["data_preparation_child"]["parent_refs"]
+    assert len(refs) == 64
+    assert refs[-1] == new_ref
+    assert refs[0] == {"parent_job_id": parent.id, "request_id": "req-237"}
+
+
+@pytest.mark.asyncio
+async def test_merge_parent_refs_drops_only_missing_parents_and_keeps_the_added_ref(db):
+    """Missing parents are pruned; live and terminal parents keep their refs."""
+    live = _refresh_job(db, request_key="parent-live")
+    terminal = _refresh_job(db, request_key="parent-done", status="completed")
+    new_parent = _refresh_job(db, request_key="parent-new")
+    missing_id = new_parent.id + 1000
+    child = _refresh_job(
+        db,
+        request_key="shared-child-prune",
+        refs=[
+            {"parent_job_id": live.id, "request_id": "a"},
+            {"parent_job_id": missing_id, "request_id": "gone"},
+            {"parent_job_id": terminal.id, "request_id": "done"},
+        ],
+    )
+    adapter = AsyncSessionAdapter(db)
+    added = {"parent_job_id": missing_id, "request_id": "still-added"}
+
+    await _merge_parent_refs(adapter, child, [added])
+
+    refs = child.metadata_payload["data_preparation_child"]["parent_refs"]
+    assert refs == [
+        {"parent_job_id": live.id, "request_id": "a"},
+        {"parent_job_id": terminal.id, "request_id": "done"},
+        added,
+    ]
+
+
+@pytest.mark.asyncio
+async def test_retained_coverage_runs_once_per_key_within_one_planning_pass(monkeypatch):
+    """Repeated lookups in one ensure pass reuse one coverage result per key."""
+    from app.models.ohlcv import Timeframe
+    from app.services import data_preparation
+
+    calls: list[int] = []
+
+    async def fake_uncached(_db, *, instrument_id, **_kwargs):
+        calls.append(instrument_id)
+        return None, [{"instrument_id": instrument_id}]
+
+    monkeypatch.setattr(data_preparation, "_retained_history_coverage_uncached", fake_uncached)
+    start = datetime(2026, 1, 1, tzinfo=UTC)
+    end = datetime(2026, 11, 1, tzinfo=UTC)
+
+    @_request_scoped_coverage_memo
+    async def planning_pass():
+        results = []
+        for member in range(12):
+            for _ in range(8):
+                results.append(
+                    await _retained_history_coverage(
+                        object(),
+                        instrument_id=member,
+                        timeframe=Timeframe.D1,
+                        adjusted=True,
+                        requested_start=start,
+                        requested_end=end,
+                    )
+                )
+        return results
+
+    results = await planning_pass()
+
+    assert sorted(calls) == list(range(12))
+    assert len(results) == 96
+    assert all(
+        ranges == [{"instrument_id": member}]
+        for member, (_, ranges) in zip([i // 8 for i in range(96)], results)
+    )
+    # Callers get copies: mutating one result must not leak into the memo.
+    results[0][1][0]["instrument_id"] = 999
+    assert results[1][1] == [{"instrument_id": 0}]
+    # The memo ends with the planning pass; an unscoped call is not cached.
+    assert _RETAINED_COVERAGE_MEMO.get() is None
+    calls.clear()
+    await _retained_history_coverage(
+        object(),
+        instrument_id=0,
+        timeframe=Timeframe.D1,
+        adjusted=True,
+        requested_start=start,
+        requested_end=end,
+    )
+    await _retained_history_coverage(
+        object(),
+        instrument_id=0,
+        timeframe=Timeframe.D1,
+        adjusted=True,
+        requested_start=start,
+        requested_end=end,
+    )
+    assert calls == [0, 0]

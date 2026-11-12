@@ -2,19 +2,18 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from uuid import uuid4
 
-from arq.connections import RedisSettings, create_pool
 from fastapi import APIRouter, Depends, Header, status
-from redis.exceptions import TimeoutError as RedisTimeoutError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
-from app.config import settings
 from app.database import get_db
 from app.models.user import User
 from app.schemas.data_preparation import DataEnsureRequest, DataEnsureResponse
+from app.services.arq_pool import get_shared_arq_pool
 from app.services.data_preparation import (
     create_data_preparation_request,
     get_data_preparation_response,
@@ -25,30 +24,36 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/data", tags=["data-preparation"])
 
 
-async def _wake_refresh_worker() -> None:
-    """Wake the registered queue consumer; durable DB rows survive Redis failure."""
+# The durable database queue is authoritative. The Redis wake is a best-effort
+# hint, so it must never hold a request, a transaction or a lock.
+_WAKE_TIMEOUT_SECONDS = 1.0
+_wake_tasks: set[asyncio.Task] = set()
 
-    redis = None
+
+async def _enqueue_worker_wake() -> None:
+    pool = await get_shared_arq_pool()
+    await pool.enqueue_job(
+        "task_process_refresh_jobs",
+        _job_id=f"data-preparation-wakeup:{uuid4().hex}",
+        _expires=600,
+    )
+
+
+async def _wake_refresh_worker() -> None:
+    """Enqueue one worker wake within a fixed bound; failures are logged, never raised."""
+
     try:
-        redis = await create_pool(RedisSettings.from_dsn(settings.REDIS_URL))
-        await redis.enqueue_job(
-            "task_process_refresh_jobs",
-            _job_id=f"data-preparation-wakeup:{uuid4().hex}",
-            _expires=600,
-        )
+        await asyncio.wait_for(_enqueue_worker_wake(), timeout=_WAKE_TIMEOUT_SECONDS)
     except Exception as exc:  # the committed database queue remains authoritative
         logger.warning("Could not prompt data-preparation worker: %s", type(exc).__name__)
-    finally:
-        if redis is not None:
-            try:
-                await redis.aclose()
-            except RedisTimeoutError as exc:
-                # The durable request was committed before this optional wake.
-                # A slow connection shutdown must not turn that acceptance into
-                # an HTTP error; the scheduled queue poll will still find it.
-                logger.warning(
-                    "Could not close data-preparation Redis pool: %s", type(exc).__name__
-                )
+
+
+def _schedule_worker_wake() -> None:
+    """Start the wake without delaying the HTTP response."""
+
+    task = asyncio.create_task(_wake_refresh_worker())
+    _wake_tasks.add(task)
+    task.add_done_callback(_wake_tasks.discard)
 
 
 @router.post(
@@ -70,8 +75,11 @@ async def ensure_data(
     )
     await db.commit()
     response = await get_data_preparation_response(db, parent=parent, owner_user_id=current_user.id)
+    # Close the read transaction before any Redis I/O, so no lock or
+    # transaction is held while the worker is woken.
+    await db.commit()
     if response.status in {"queued", "partial"}:
-        await _wake_refresh_worker()
+        _schedule_worker_wake()
     return response
 
 

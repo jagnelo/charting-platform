@@ -202,6 +202,25 @@ async def _ensure_default_series(
         }
 
 
+async def _load_instrument_with_listings(db: AsyncSession, instrument_id: int) -> Instrument | None:
+    """Load the instrument with listings and exchanges for calendar resolution.
+
+    The coverage calendar is inferred only from a primary listing's MIC; an
+    unloaded relationship is treated as unknown, so it must be preloaded here.
+    """
+    from sqlalchemy.orm import selectinload
+
+    from app.models.listing import InstrumentListing
+
+    return (
+        await db.execute(
+            select(Instrument)
+            .where(Instrument.id == instrument_id)
+            .options(selectinload(Instrument.listings).selectinload(InstrumentListing.exchange))
+        )
+    ).scalar_one_or_none()
+
+
 async def select_default_series_for_complete_range(
     db: AsyncSession,
     *,
@@ -230,7 +249,7 @@ async def select_default_series_for_complete_range(
     ):
         return False
 
-    instrument = await db.get(Instrument, instrument_id)
+    instrument = await _load_instrument_with_listings(db, instrument_id)
     if instrument is None:
         return False
     coverage_bars = list(
@@ -251,6 +270,7 @@ async def select_default_series_for_complete_range(
         .scalars()
         .all()
     )
+    from app.services.market_data import _coverage_calendar
     from app.services.ohlcv_coverage import assess_ohlcv_coverage
 
     coverage = assess_ohlcv_coverage(
@@ -258,7 +278,7 @@ async def select_default_series_for_complete_range(
         Timeframe(timeframe),
         start,
         end,
-        calendar="XNYS" if (instrument.currency or "").upper() == "USD" else None,
+        calendar=_coverage_calendar(instrument),
     )
     if coverage.status.value != "ready":
         return False
@@ -359,7 +379,7 @@ async def select_default_series_for_latest_contiguous_suffix(
     ):
         return False
 
-    instrument = await db.get(Instrument, instrument_id)
+    instrument = await _load_instrument_with_listings(db, instrument_id)
     if instrument is None:
         return False
     default = (

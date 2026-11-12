@@ -1,5 +1,5 @@
 import { test, expect } from './helpers'
-import type { Frame, Page, Request } from '@playwright/test'
+import type { Frame, Locator, Page, Request } from '@playwright/test'
 import type {
   ETFHolding,
   ETFHoldingsDate,
@@ -57,6 +57,14 @@ type InstrumentCalendarEvent = {
   source: string
   is_estimate: boolean
 }
+type InstrumentCalendarStatus = {
+  version: 1
+  status: 'not_requested' | 'queued' | 'running' | 'deferred' | 'ready' | 'partial' | 'held' | 'unavailable' | 'stale'
+  has_pending_work: boolean
+  retry_at: string | null
+  reason_code: string | null
+  updated_at: string | null
+}
 
 const fixtureOutcome = {
   provider: 'test-fixture',
@@ -86,6 +94,15 @@ async function expectSelectionHistoryDetails(page: Page, detailText: string) {
   await expect(notice.getByRole('status')).toHaveText(detailText)
   if (!await details.evaluate(element => (element as HTMLDetailsElement).open)) await summary.click()
   await expect(notice.locator('.compact-status__detail')).toHaveText(detailText)
+}
+
+async function chartProvenanceTarget(chart: Locator): Promise<Locator> {
+  const describedBy = await chart.getAttribute('aria-describedby')
+  const provenanceId = describedBy?.split(/\s+/).find(id => id.endsWith('-provenance'))
+  if (!provenanceId) throw new Error('Chart workspace must describe its chart provenance node.')
+  const provenance = chart.page().locator(`[id=${JSON.stringify(provenanceId)}]`)
+  await expect(provenance).toHaveCount(1)
+  return provenance
 }
 
 function resolvedIdentity(request: InstrumentRequestBody, instrumentId: number, instrumentType = 'ETF'): InstrumentAcquireResponse {
@@ -336,7 +353,7 @@ test('Workstation search resolves an unknown ticker and reports shared history p
   const previousChart = page.locator('.chart-tool:visible').getByRole('region', { name: 'Chart workspace' }).first()
   await expect(previousChart).toBeVisible()
   await expect(previousChart).toHaveAttribute('aria-busy', 'false')
-  const previousChartProvenance = previousChart.locator('.sr-only').first()
+  const previousChartProvenance = await chartProvenanceTarget(previousChart)
   const previousChartProvenanceText = await previousChartProvenance.innerText()
   expect(previousChartProvenanceText).toMatch(/\d+ bars;/)
   page.on('request', request => {
@@ -455,8 +472,9 @@ test('Workstation search resolves an unknown ticker and reports shared history p
   expect(selectedPreparation).not.toHaveProperty('end_at')
   const selectedChart = page.locator('.chart-tool:visible').getByRole('region', { name: 'Chart workspace' }).first()
   await expect(selectedChart).toBeVisible()
-  await expect(selectedChart.locator('.sr-only')).toContainText('chart; no OHLCV bars loaded.')
-  expect(await selectedChart.locator('.sr-only').innerText()).not.toBe(previousChartProvenanceText)
+  const selectedChartProvenance = await chartProvenanceTarget(selectedChart)
+  await expect(selectedChartProvenance).toContainText('chart; no OHLCV bars loaded.')
+  expect(await selectedChartProvenance.innerText()).not.toBe(previousChartProvenanceText)
   await expect(search).toHaveValue('TCNEW')
   await expectSelectionHistoryDetails(page, 'Some requested data is unavailable. Available results remain usable.')
   expect(legacyHistoryRequests).toEqual([])
@@ -476,6 +494,7 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
   let localReadCount = 0
   const optionsPanelRequests: string[] = []
   const calendarReads: Array<{ symbol: string; start: string; end: string }> = []
+  const calendarStatusReads: string[] = []
   const discoveryRequests: DiscoveryRequest[] = []
   const identityRequests: InstrumentRequestBody[] = []
   const historyRequests: DataEnsureRequest[] = []
@@ -553,6 +572,22 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
   // ChartView performs this bounded side-read only after local chart bars are
   // available. Match the one fictional symbol and endpoint exactly so a typo
   // or unrelated calendar URL still reaches the shared strict diagnostics.
+  await page.route(url => {
+    const parsed = new URL(url)
+    return parsed.pathname === `/api/v1/calendar/instruments/${symbol}/calendar/status`
+  }, async route => {
+    expect(route.request().method()).toBe('GET')
+    calendarStatusReads.push(symbol)
+    const status: InstrumentCalendarStatus = {
+      version: 1,
+      status: 'ready',
+      has_pending_work: false,
+      retry_at: null,
+      reason_code: null,
+      updated_at: '2026-11-07T12:00:00Z',
+    }
+    await route.fulfill({ status: 200, json: status })
+  })
   await page.route(url => {
     const parsed = new URL(url)
     return parsed.pathname === `/api/v1/calendar/instruments/${symbol}/calendar`
@@ -731,6 +766,7 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
   expect(historyRequests[0]?.timeframe).toBe('D1')
   await expect.poll(() => localReadCount).toBeGreaterThan(1)
   expect(localReadBars.at(-1)).toEqual([bar])
+  await expect.poll(() => calendarStatusReads).toContain(symbol)
 
   const readsBeforeReload = localReadCount
   const calendarReadsBeforeReload = calendarReads.length
@@ -833,6 +869,9 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
   const canonicalSearchRequests: string[] = []
   const localBarReadbacks: Array<{ symbol: string; timeframe: string; rows: OHLCVBar[]; afterAcquisition: boolean }> = []
   const calendarRequests: string[] = []
+  const calendarEventResponses: InstrumentCalendarEvent[][] = []
+  let calendarStatusReady = false
+  let calendarStatusReads = 0
   page.on('request', request => {
     const url = new URL(request.url())
     const path = url.pathname
@@ -845,6 +884,14 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
   // UPlotChart reads the instrument calendar when local bars become available.
   // TCNEW exists only in this page's controlled fixture, so return the API's
   // real empty-list response instead of allowing the backend to bootstrap it.
+  await page.route(url => new URL(url).pathname === '/api/v1/calendar/instruments/TCNEW/calendar/status', async route => {
+    expect(route.request().method()).toBe('GET')
+    calendarStatusReads += 1
+    const status: InstrumentCalendarStatus = calendarStatusReady
+      ? { version: 1, status: 'ready', has_pending_work: false, retry_at: null, reason_code: null, updated_at: '2026-11-08T12:00:02Z' }
+      : { version: 1, status: 'queued', has_pending_work: true, retry_at: null, reason_code: null, updated_at: '2026-11-08T12:00:01Z' }
+    await route.fulfill({ status: 200, json: status })
+  })
   await page.route(url => new URL(url).pathname === '/api/v1/calendar/instruments/TCNEW/calendar', async route => {
     const request = route.request()
     expect(request.method()).toBe('GET')
@@ -853,7 +900,13 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
     const symbol = decodeURIComponent(match?.[1] ?? '')
     expect(symbol, 'the synthetic identity must scope calendar reads to TCNEW').toBe('TCNEW')
     calendarRequests.push(symbol)
-    await route.fulfill({ status: 200, json: [] })
+    const events: InstrumentCalendarEvent[] = calendarStatusReady ? [{
+      id: 901, date: '2026-11-06', event_time: '2026-11-06T15:00:00Z', fetched_at: '2026-11-08T12:00:02Z',
+      event_type: 'earnings', symbol: 'TCNEW', title: 'Controlled earnings event', time_hint: 'after_close',
+      source: 'test-fixture', is_estimate: false,
+    }] : []
+    calendarEventResponses.push(events)
+    await route.fulfill({ status: 200, json: events })
   })
 
   await page.route('**/api/v1/instruments/search**', async route => {
@@ -1148,9 +1201,26 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
   await expect(page.getByTestId('workstation-history-acquisition')).toHaveCount(0)
   const visibleChart = page.locator('.chart-tool:visible .chart-root')
   await expect(visibleChart).toHaveAttribute('aria-busy', 'false', { timeout: 10_000 })
-  await expect(visibleChart.locator('.sr-only')).toContainText('M1 chart; 1 bars')
+  await expect(await chartProvenanceTarget(visibleChart)).toContainText('M1 chart; 1 bars')
   await expect.poll(() => calendarRequests.length).toBeGreaterThan(0)
   expect(calendarRequests.every(symbol => symbol === 'TCNEW')).toBe(true)
+
+  const calendarStatus = visibleChart.getByTestId('instrument-calendar-status')
+  await expect(calendarStatus.locator('.calendar-status__summary')).toHaveText('Preparing calendar')
+  calendarStatusReady = true
+  await expect(calendarStatus.locator('.calendar-status__summary')).toHaveText('Calendar ready · 1', { timeout: 10_000 })
+  await expect(calendarStatus.locator('.sr-only')).toHaveText('Calendar ready · 1 event')
+  await expect(calendarStatus).toHaveAttribute('title', 'Calendar ready · 1 event')
+  const calendarStatusBounds = await calendarStatus.boundingBox()
+  const calendarPlotBounds = await visibleChart.locator('.uplot-wrapper').boundingBox()
+  expect(calendarStatusBounds?.height ?? Infinity).toBeLessThanOrEqual(24)
+  expect(calendarStatusBounds && calendarPlotBounds
+    ? calendarStatusBounds.y + calendarStatusBounds.height <= calendarPlotBounds.y
+    : false).toBe(true)
+  expect(calendarStatusReads).toBeGreaterThan(1)
+  expect(calendarEventResponses.at(-1)).toEqual([expect.objectContaining({
+    id: 901, symbol: 'TCNEW', title: 'Controlled earnings event',
+  })])
   expect(tcnewPreparationRequests.filter(request => request.timeframe === 'M1'
     && request.target.kind === 'instrument'
     && 'instrument_id' in request.target
@@ -1465,7 +1535,7 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
   await expect(pricePlot).toBeVisible()
   const pricePlotCountBefore = await pricePlot.count()
   expect(pricePlotCountBefore).toBe(1)
-  await expect(priceChart.locator('.sr-only')).toContainText('D1 chart; 500 bars; adjusted;')
+  await expect(await chartProvenanceTarget(priceChart)).toContainText('D1 chart; 500 bars; adjusted;')
   const m1HistoryReady = page.waitForResponse(response => {
     const url = new URL(response.url())
     if (response.request().method() !== 'POST' || url.pathname !== '/api/v1/data/ensure') return false
@@ -1504,7 +1574,7 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
   expect(m1Coverage.status()).toBe(200)
   expect(await m1Coverage.json()).toMatchObject({ symbol: 'AMD', is_fetching: false })
   await expect(priceChart).toHaveAttribute('aria-busy', 'false')
-  await expect(priceChart.locator('.sr-only')).toHaveText('M1 chart; no OHLCV bars loaded.')
+  await expect(await chartProvenanceTarget(priceChart)).toHaveText('M1 chart; no OHLCV bars loaded.')
   await expect(pricePlot).toHaveCount(0)
   await expect(page.getByRole('status').filter({ hasText: 'Some requested data is unavailable. Available results remain usable.' })).toBeVisible()
   await expect(historicalContext).toBeVisible()
@@ -1530,13 +1600,23 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
   })
   await linkedTimeframe.selectOption('D1')
   await expect(linkedTimeframe).toHaveValue('D1')
-  const restoredD1Read = await restoredD1ReadReady
-  expect(restoredD1Read.status()).toBe(200)
-  const restoredD1Bars = await restoredD1Read.json() as OHLCVBar[]
-  expect(restoredD1Bars).toHaveLength(500)
-  expect(restoredD1Bars.every(bar => bar.is_adjusted === true)).toBe(true)
+  // The client may serve the cached D1 series without a new read; when it does
+  // read again, the response must be the same adjusted 500-bar series. Either
+  // way the rendered provenance below proves which series is on screen.
+  const restoredD1Read = await Promise.race([
+    restoredD1ReadReady,
+    new Promise<null>(resolve => setTimeout(() => resolve(null), 10_000)),
+  ])
+  if (restoredD1Read) {
+    expect(restoredD1Read.status()).toBe(200)
+    const restoredD1Bars = await restoredD1Read.json() as OHLCVBar[]
+    expect(restoredD1Bars).toHaveLength(500)
+    expect(restoredD1Bars.every(bar => bar.is_adjusted === true)).toBe(true)
+  } else {
+    restoredD1ReadReady.catch(() => undefined)
+  }
   await expect(pricePlot).toBeVisible()
-  await expect(priceChart.locator('.sr-only')).toContainText('D1 chart; 500 bars; adjusted;')
+  await expect(await chartProvenanceTarget(priceChart)).toContainText('D1 chart; 500 bars; adjusted;')
   await expect(historicalContext).toBeVisible()
   expect(identityRequests).toHaveLength(1)
   expect(directHistoryRequests).toEqual([])
@@ -2091,6 +2171,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
   const holdingsReads: FixtureSymbol[] = []
   const industryReads: FixtureSymbol[] = []
   const calendarReads: string[] = []
+  const calendarStatusReads: FixtureSymbol[] = []
   const localReadbacks: Array<{ symbol: FixtureSymbol; timeframe: string; bars: OHLCVBar[] }> = []
   const acquired = new Set<FixtureSymbol>()
   const bars = new Map<FixtureSymbol, OHLCVBar>()
@@ -2439,6 +2520,22 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     calendarReads.push(symbol)
     await route.fulfill({ status: 200, json: [] })
   })
+  await page.route(url => /^\/api\/v1\/calendar\/instruments\/[^/]+\/calendar\/status$/.test(new URL(url).pathname), async route => {
+    const request = route.request()
+    const url = new URL(request.url())
+    const symbol = decodeURIComponent(url.pathname.split('/')[5] ?? '').toUpperCase() as FixtureSymbol
+    if (request.method() !== 'GET' || !(symbol in instruments)) return route.continue()
+    calendarStatusReads.push(symbol)
+    const status: InstrumentCalendarStatus = {
+      version: 1,
+      status: 'ready',
+      has_pending_work: false,
+      retry_at: null,
+      reason_code: null,
+      updated_at: '2026-11-07T12:00:00Z',
+    }
+    await route.fulfill({ status: 200, json: status })
+  })
   await page.route('**/api/v1/etf-holdings/*/holdings**', async route => {
     const symbol = new URL(route.request().url()).pathname.split('/')[4] as FixtureSymbol
     if (!(symbol in instruments)) return route.continue()
@@ -2703,7 +2800,22 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     const igvHoldingsEnsureCount = holdingsEnsureRequests.filter(request => request.symbol === 'IGV').length
     expect(igvHoldingsEnsureCount).toBe(1)
     expect(capabilityReads).toContain('IGV')
+    const historyRequestsBeforeIgvSelection = historyRequests.length
+    const igvSelectionHistoryReady = waitForDatasetEnsure('IGV', 'history')
     await chooseETF('IGV')
+    const igvSelectionHistory = await igvSelectionHistoryReady
+    expect(igvSelectionHistory.status()).toBe(200)
+    expect(historyRequests).toHaveLength(historyRequestsBeforeIgvSelection + 1)
+    expect(historyRequests.at(-1)?.body).toMatchObject({
+      target: { kind: 'instrument', instrument_id: instruments.IGV.id },
+      timeframe: 'D1',
+      adjusted: true,
+    })
+    expect(historyRequests.at(-1)?.body.datasets).toContain('history')
+    expect(historyRequests.at(-1)?.body.start_at).toBeUndefined()
+    expect(historyRequests.at(-1)?.body.end_at).toBeUndefined()
+    await expect.poll(() => localReadbacks.some(readback => readback.symbol === 'IGV'
+      && readback.timeframe === 'D1' && readback.bars.length === 1)).toBe(true)
     const igvGroup = page.getByRole('group', { name: 'Constituents' })
     await expect(igvGroup).toContainText('IGV')
     const igvWidget = igvGroup.getByRole('listbox').first()
@@ -2737,6 +2849,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     expect(unxqHolding.is_resolved).toBe(false)
     expect(identityRequests.filter(request => request.symbol === 'UNXQ')).toHaveLength(0)
     expect(historyRequests.filter(request => request.symbol === 'UNXQ')).toHaveLength(0)
+    expect(calendarStatusReads.every(symbol => symbol in instruments)).toBe(true)
 
     // Row selection starts bounded discovery; changing funds before that
     // response settles must invalidate the old snapshot-bound action.
