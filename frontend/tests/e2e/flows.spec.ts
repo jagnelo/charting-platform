@@ -872,6 +872,8 @@ test.describe('Chart', () => {
     const ctrlResized = await measure()
     expect(Math.max(...ctrlResized.below) - Math.min(...ctrlResized.below)).toBeLessThan(3)
     await ctrlLayoutSaved
+    // A coalesced follow-up save may still be carrying the final sizes.
+    await expect(page.locator('.workstation__footer')).toContainText('Workspace saved', { timeout: 30_000 })
     await page.reload()
     await expect(host).toBeVisible({ timeout: 15_000 })
     const restoredBelow = await splitters.nth(candidateIndex).evaluate(element => {
