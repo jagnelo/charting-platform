@@ -82,7 +82,7 @@
     "thread_id": "01a05a0a-55c3-751d-87d8-4e01f1f75043",
     "token_budget": null
   },
-  "active_session_id": "b13ebfb2-763a-4d42-a47f-5b2fb0666150",
+  "active_session_id": "50447369-d991-41b6-b6bc-427a08c1f36f",
   "branch": "feat/etf-holdings-constituents",
   "browser_repair_validation": {
     "popup_log": ".ai/validation/etf-popup-focused-20261015.log",
@@ -102,7 +102,7 @@
     "conditions": "Exact-source technical review; required cross-feature contracts; full local and exact-source CI tests; verified free operations only; quota-held, unreviewed, paid/trial and unsafe operations remain disabled.",
     "coordinator_owns_conditional_acceptance": true,
     "etf_checkpoint": "accepted_and_integrated_in_exact_green_staging_0e342512e53ba2268425294d61c50e219eaafa4f; full_fourteen_criterion_roadmap_remains_open",
-    "human_answer": "Yes—approve that initial scope and handle checkpoint acceptance",
+    "human_answer": "Yes\u2014approve that initial scope and handle checkpoint acceptance",
     "not_authorized": "The accepted initial ETF checkpoint does not close the full roadmap or authorize deployment/master promotion, paid/trial activation, operational trial, unsafe transport, or retained-data cleanup.",
     "provider_product_checkpoint": "accepted_and_released_in_green_staging_9b230ba4c97126a2937667138c6eb2a0aa297baf",
     "recorded_at": "2026-10-15T22:55:31Z"
@@ -821,7 +821,7 @@
   "historical_continuation_goal_before_runner_repair_2026_10_30": {
     "accounting_note": "Existing unbudgeted native goal resumed in place for this bounded repair; no reset, replacement, or usage accounting change.",
     "created_at_epoch": 1793354839,
-    "objective": "Repair the ETF post-transport successor’s strict spent-reservation verifier to bind the actual immutable VanEck historical quota_group=oih_first_sample and dimension=vaneck_oih_first_sample_requests_120s pair with unit=requests, preserving all existing scope, chronology, settled-state, no-receipt, and lineage checks. Reconcile the exact green staging cb8240f69647138a9fdbdd932620e81aeb39cff0 without staging writes, add actual retained-row shape and wrong-group/dimension regression tests, run focused regression and required exact branch validation/CI, then prepare a Root-reviewable final qualification proposal. Preserve all accepted checkpoint/archive/journal/full AC1-AC14 roadmap and live-source/target/quota holds. Do not perform live source requests or heavy fixtures without Root release.",
+    "objective": "Repair the ETF post-transport successor\u2019s strict spent-reservation verifier to bind the actual immutable VanEck historical quota_group=oih_first_sample and dimension=vaneck_oih_first_sample_requests_120s pair with unit=requests, preserving all existing scope, chronology, settled-state, no-receipt, and lineage checks. Reconcile the exact green staging cb8240f69647138a9fdbdd932620e81aeb39cff0 without staging writes, add actual retained-row shape and wrong-group/dimension regression tests, run focused regression and required exact branch validation/CI, then prepare a Root-reviewable final qualification proposal. Preserve all accepted checkpoint/archive/journal/full AC1-AC14 roadmap and live-source/target/quota holds. Do not perform live source requests or heavy fixtures without Root release.",
     "status": "active",
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
@@ -2438,7 +2438,7 @@
     "source_http": 0,
     "status": "accepted_ready_for_integration_closing_tip_CI_pending"
   },
-  "next_action": "Release candidate d850a1c91 is frozen for publication: no product or test changes until Root releases the freeze. Root publishes and runs exact-source CI and the combined functional journey profile; ETF results follow only if a failure is found.",
+  "next_action": "resume from the durable handoff and inspect displaced session state",
   "ordinary_ishares_multitable_catalog_repair_2026_11_04": {
     "captured_response_bytes": 495609,
     "captured_response_path": "/tmp/etf-native-parallel-prequalification-565211-20261104/setup-attempt-003/artifacts/igv-catalog-body-captured-raw.html",
@@ -2949,7 +2949,8 @@
     "0bd23cfe-9271-4e5e-8621-db8985e62c75",
     "bb0f68af-76ab-45c0-83f1-52d805be699f",
     "87f0e599-289e-4ab5-b335-f75e455963f5",
-    "f206bbc5-abbf-473a-a44f-fb5706c81282"
+    "f206bbc5-abbf-473a-a44f-fb5706c81282",
+    "b13ebfb2-763a-4d42-a47f-5b2fb0666150"
   ],
   "previous_source_candidate_publication_2026_10_31": "Implementation source 802ef5b1e6a4246cc27f29da90950984878df947 is published and exact implementation CI41186532340 is green. The final review-record update preserves tested product/test bytes and does not self-reference its own publication SHA; integration_capture: exact branch HEAD.",
   "previous_staging_baseline_adoption_20261023": {
@@ -3078,7 +3079,7 @@
     },
     "remaining_gates": [
       "Exact final closing-tip CI must be terminal green before integration.",
-      "Root owns accepted compatible ETF→TC staging, green staging and independent master gates.",
+      "Root owns accepted compatible ETF\u2192TC staging, green staging and independent master gates.",
       "Root owns protected deployment and subsequent genuine deployed user-flow/source/account checks; broader AC1-AC14 and Tier-0/Tier-1 roadmap remains open."
     ],
     "retained_input_proof": {
@@ -3514,7 +3515,7 @@
       "full_local_matrix": ".ai/validation/etf-full-profile-a198ef83-attempt6-b-matrix.md",
       "full_roadmap": "all fourteen original criteria, issuer onboarding and post-integration 30-day observation remain open",
       "hosted_CI": "pending; mandatory on the exact final published HEAD (D)",
-      "human_acceptance_delegation": "Yes—approve that initial scope and handle checkpoint acceptance.",
+      "human_acceptance_delegation": "Yes\u2014approve that initial scope and handle checkpoint acceptance.",
       "provider_release": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
       "validated_implementation_sha": "79e0604c0a4b398a0fd92bdd4b099c308eee43eb"
     },
@@ -5322,6 +5323,12 @@
       "displaced_session_id": "f206bbc5-abbf-473a-a44f-fb5706c81282",
       "new_session_id": "b13ebfb2-763a-4d42-a47f-5b2fb0666150",
       "reason": "Human-authorized 2026-11-09/10 runtime migration: the user moved this workflow from Codex to Claude Code ('do whatever you must, i authorize you'). The Codex session for this branch stopped at its usage limit on 2026-11-09 02:37Z and is retired. A new Claude Code worker session (Haiku 5.5, low effort) with the same chat name continues the same goal from the durable workstream; preserve all source, evidence, roadmap and boundaries."
+    },
+    {
+      "at": "2026-11-12T13:14:33.271902+00:00",
+      "displaced_session_id": "b13ebfb2-763a-4d42-a47f-5b2fb0666150",
+      "new_session_id": "50447369-d991-41b6-b6bc-427a08c1f36f",
+      "reason": "Human request 2026-11-12 (Claude Code Desktop): import the ongoing VS Code AI-driven work into this single Desktop orchestration chat and 'only start working here and leave VS Code behind'; outgoing Root reported HANDOVER-READY 2026-11-12T13:10Z with all worktrees clean and pushed."
     }
   ],
   "updated_at": "2026-11-08T06:32:26Z",
