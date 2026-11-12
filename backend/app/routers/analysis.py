@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import math
@@ -6089,7 +6090,8 @@ async def benchmark_family_breadth(
                 )
                 for instrument_id in instrument_ids
             }
-            results, aggregate = evaluate_breadth(
+            results, aggregate = await asyncio.to_thread(
+                evaluate_breadth,
                 members,
                 condition_bars_by_id,
                 condition,
@@ -6321,7 +6323,8 @@ async def benchmark_family_breadth_history(
         by_timestamp: dict[datetime, dict[str, tuple[float | None, float]]] = {}
         role_exclusions = list(universe_warnings)
         for period in (20, 50, 200):
-            raw_points = evaluate_breadth_history(
+            raw_points = await asyncio.to_thread(
+                evaluate_breadth_history,
                 members,
                 bars_by_id,
                 {"kind": "above_moving_average", "params": {"period": period}},
@@ -9348,7 +9351,7 @@ async def get_python_breadth_result(
                 },
                 requested_count,
             )
-    occurrences = _python_breadth_occurrences(points)
+    occurrences = await asyncio.to_thread(_python_breadth_occurrences, points)
     manifest_warnings = _manifest_exclusion_warnings(
         run.dataset_manifest if isinstance(run.dataset_manifest, dict) else {}
     )
@@ -10659,7 +10662,8 @@ async def evaluate_generic_breadth(
         condition["reference_target"] = reference_provenance
     if event_provenance:
         condition["event_target"] = event_provenance
-    results, aggregate = evaluate_breadth(
+    results, aggregate = await asyncio.to_thread(
+        evaluate_breadth,
         members,
         bars_by_id,
         condition,
@@ -10845,7 +10849,8 @@ async def evaluate_generic_breadth_history(
         condition["reference_target"] = reference_provenance
     if event_provenance:
         condition["event_target"] = event_provenance
-    raw_points = evaluate_breadth_history(
+    raw_points = await asyncio.to_thread(
+        evaluate_breadth_history,
         members,
         bars_by_id,
         condition,
@@ -10853,7 +10858,7 @@ async def evaluate_generic_breadth_history(
         benchmark_bars=benchmark_bars,
         events_by_instrument=events_by_id,
     )
-    occurrence_rows = detect_breadth_occurrences(raw_points)
+    occurrence_rows = await asyncio.to_thread(detect_breadth_occurrences, raw_points)
     warnings = [*universe_warnings, *reference_warnings]
     points: list[BreadthDefinitionHistoryPointOut] = []
     for raw_point in raw_points:
