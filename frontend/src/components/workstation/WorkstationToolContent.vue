@@ -1,7 +1,7 @@
 <template>
 <ToolWindow ref="toolWindowRef" :window-key="tool.instance_key" :title="tool.title || tool.tool_type" :symbol="toolHeaderSymbol" :link-group="localLinkGroup" :timeframe-link-group="timeframeLinkGroup" :timeframe="tool.tool_type === 'chart' ? activeTimeframe : ''" :active="isActiveToolWindow" :maximized="maximizedState?.value ?? false" :maximizing="maximizingState?.value ?? false" :scrollable-body="tool.instance_key === 'relative-rotation' || tool.tool_type === 'relative_rotation'" :favorite-available="tool.tool_type === 'chart' && favoriteStore.loaded && chartStore.instrument?.id != null" :favorite-active="favoriteStore.isFavorite(chartStore.instrument?.id)" :favorite-pending="favoriteStore.isPending(chartStore.instrument?.id)" @toggle-favorite="toggleChartFavorite" @pointerdown.capture="emit('activate')" @float="emit('float', tool.instance_key)" @maximize="emit('maximize', tool.instance_key)" @close="emit('close', tool.instance_key)" @update:link-group="handleLinkGroupChange" @update:timeframe-link-group="setTimeframeLinkGroup" @update:timeframe="setTimeframe">
     <span v-if="personalWatchlistError" class="workstation-tool-content__mutation-error" role="alert" aria-live="assertive">{{ personalWatchlistError }}</span>
-    <small v-if="isIndustryTool && industryProfilePreparation?.message" class="industry-list__load-state" role="status" aria-live="polite">{{ industryProfilePreparation.message }}</small>
+    <small v-if="isIndustryTool && !industries.length && industryProfilePreparation?.message" class="industry-list__load-state" role="status" aria-live="polite">{{ industryProfilePreparation.message }}</small>
     <div v-if="isBenchmarkUniverse" class="benchmark-surface">
       <div class="benchmark-surface__family-controls" aria-label="Benchmark family selector">
         <label>Family
@@ -395,8 +395,6 @@
       </div>
     </div>
     <div v-else-if="isIndustryTool && industries.length" class="industry-list">
-      <small v-if="workspaceStore.etfIndustryLoading[selectedETF]" class="industry-list__load-state" role="status">Refreshing dated classifications for {{ selectedETF }} holdings…</small>
-      <small v-else-if="workspaceStore.etfIndustryErrors[selectedETF]" class="industry-list__load-state" role="status">{{ workspaceStore.etfIndustryErrors[selectedETF] }} Existing classified rows remain visible.</small>
       <div class="industry-list__header" aria-label="Industry ranking columns">
         <span>Industry</span><span>Coverage</span><span>Proxies</span>
         <span v-for="column in industryRankingColumns" :key="column.key">{{ column.label }}</span>
@@ -419,6 +417,10 @@
           :aria-label="`${item.industry} classification provenance`"
         >{{ item.classificationLabel }}</small>
       </button>
+      <!-- Below the rows so a background refresh never shifts a row under the pointer. -->
+      <small v-if="industryProfilePreparation?.message" class="industry-list__load-state" role="status" aria-live="polite">{{ industryProfilePreparation.message }}</small>
+      <small v-if="workspaceStore.etfIndustryLoading[selectedETF]" class="industry-list__load-state" role="status">Refreshing dated classifications for {{ selectedETF }} holdings…</small>
+      <small v-else-if="workspaceStore.etfIndustryErrors[selectedETF]" class="industry-list__load-state" role="status">{{ workspaceStore.etfIndustryErrors[selectedETF] }} Existing classified rows remain visible.</small>
       <div v-if="selectedIndustry" class="industry-list__proxies">
         <small v-if="!industryProxyState">Checking curated ETF proxies…</small>
         <small v-else-if="!industryProxyState.proxies.length">No mapped ETF proxy · holdings/classification evidence required</small>
@@ -2894,9 +2896,23 @@ const benchmarkFamilyMapRoleOptions = computed(() => benchmarkFamilyMapRoles.map
     available: Boolean(mapping?.symbol && mapping.holdings_available && mapping.available !== false),
   }
 }))
+// Roles a family overview has already proven available. A later overview for
+// another timeframe can still be loading; keep the user's proven choice
+// meanwhile instead of silently falling back to the cap-weight leg.
+const confirmedFamilyMapRoles = ref<Record<string, BenchmarkFamilyMapRole[]>>({})
+watch(benchmarkFamilyMapRoleOptions, options => {
+  if (!benchmarkFamilyKey.value || !benchmarkFamilyOverview.value) return
+  confirmedFamilyMapRoles.value = {
+    ...confirmedFamilyMapRoles.value,
+    [benchmarkFamilyKey.value]: options.filter(item => item.available).map(item => item.role),
+  }
+}, { immediate: true })
 const activeBenchmarkMapRole = computed<BenchmarkFamilyMapRole>(() => {
-  const selected = benchmarkFamilyMapRoleOptions.value.find(item => item.role === benchmarkFamilyMapRole.value && item.available)
-  return selected?.role ?? 'cap_weight'
+  const chosen = benchmarkFamilyMapRole.value
+  if (benchmarkFamilyOverview.value) {
+    return benchmarkFamilyMapRoleOptions.value.some(item => item.role === chosen && item.available) ? chosen : 'cap_weight'
+  }
+  return (confirmedFamilyMapRoles.value[benchmarkFamilyKey.value] ?? []).includes(chosen) ? chosen : 'cap_weight'
 })
 const benchmarkFamilyLoading = ref(false)
 const benchmarkFamilyPreparationStatus = ref('')
@@ -4537,9 +4553,19 @@ async function addConditionColumn(payload: TechnicalConditionDragPayload) {
     })
     let scan: { id: number } = existing.find(item => item.name.toLowerCase() === screenerName.toLowerCase()) ?? { id: 0 }
     if (!scan.id) {
-      scan = await api.post<{ id: number }>(`/screeners/from-condition/${encodeURIComponent(stableKey)}`, {
-        name: screenerName, universe_type: 'all', timeframe: payload.timeframe,
-      })
+      try {
+        scan = await api.post<{ id: number }>(`/screeners/from-condition/${encodeURIComponent(stableKey)}`, {
+          name: screenerName, universe_type: 'all', timeframe: payload.timeframe,
+        })
+      } catch (cause: any) {
+        // The cached list can predate a same-named screener created by an
+        // earlier drop or another surface; reuse it instead of failing.
+        if (cause?.status !== 409 && !String(cause?.message ?? '').includes(' 409:')) throw cause
+        const fresh = (await api.get<Array<{ id: number; name: string }>>('/screeners')) ?? []
+        const reused = fresh.find(item => item.name.toLowerCase() === screenerName.toLowerCase())
+        if (!reused) throw cause
+        scan = reused
+      }
     }
     await api.post(`/screeners/${scan.id}/run`, {})
     await queryClient.invalidateQueries({ queryKey: ['workstation', 'screeners'] })

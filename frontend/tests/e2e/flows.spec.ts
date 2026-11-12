@@ -798,17 +798,21 @@ test.describe('Chart', () => {
     })
     const before = await measure()
     const movement = 48
+    // Only a save requested after the drag ends carries the resized layout.
+    let shiftDragEndedAt = Number.POSITIVE_INFINITY
     const layoutSaved = page.waitForResponse(response =>
       response.url().includes('/api/v1/workspaces/')
       && response.url().includes('/snapshot')
       && response.request().method() === 'PUT'
-      && response.status() === 200,
+      && response.status() === 200
+      && response.request().timing().startTime >= shiftDragEndedAt,
     { timeout: 10_000 })
     await page.keyboard.down('Shift')
     await page.mouse.move(before.x + before.width / 2, before.y + before.height / 2)
     await page.mouse.down()
     await page.mouse.move(before.x + before.width / 2, before.y + before.height / 2 + movement, { steps: 8 })
     await page.mouse.up()
+    shiftDragEndedAt = Date.now()
     await page.keyboard.up('Shift')
 
     await expect.poll(async () => {
@@ -830,21 +834,36 @@ test.describe('Chart', () => {
       const panesBefore = siblings.slice(0, position).filter(child => child.classList.contains('lm_item')) as HTMLElement[]
       return panesBefore.map(pane => pane.getBoundingClientRect().height)
     })
-    expect(Math.max(...restored) - Math.min(...restored)).toBeLessThan(3)
-    expect(restored.reduce((sum, size) => sum + size, 0)).toBeGreaterThan(before.above.reduce((sum, size) => sum + size, 0) + movement - 5)
+    // Golden Layout applies the persisted sizes after the first render; wait
+    // for the restored column to settle before comparing.
+    const restoredAbove = () => splitters.nth(candidateIndex).evaluate(element => {
+      const parent = element.parentElement!
+      const siblings = Array.from(parent.children)
+      const position = siblings.indexOf(element)
+      const panesBefore = siblings.slice(0, position).filter(child => child.classList.contains('lm_item')) as HTMLElement[]
+      return panesBefore.map(pane => pane.getBoundingClientRect().height)
+    })
+    await expect.poll(async () => (await restoredAbove()).reduce((sum, size) => sum + size, 0), { timeout: 10_000 })
+      .toBeGreaterThan(before.above.reduce((sum, size) => sum + size, 0) + movement - 5)
+    const settledAbove = await restoredAbove()
+    expect(Math.max(...settledAbove) - Math.min(...settledAbove)).toBeLessThan(3)
+    expect(restored.length).toBeGreaterThan(0)
 
     const beforeCtrl = await measure()
+    let ctrlDragEndedAt = Number.POSITIVE_INFINITY
     const ctrlLayoutSaved = page.waitForResponse(response =>
       response.url().includes('/api/v1/workspaces/')
       && response.url().includes('/snapshot')
       && response.request().method() === 'PUT'
-      && response.status() === 200,
+      && response.status() === 200
+      && response.request().timing().startTime >= ctrlDragEndedAt,
     { timeout: 10_000 })
     await page.keyboard.down('Control')
     await page.mouse.move(beforeCtrl.x + beforeCtrl.width / 2, beforeCtrl.y + beforeCtrl.height / 2)
     await page.mouse.down()
     await page.mouse.move(beforeCtrl.x + beforeCtrl.width / 2, beforeCtrl.y + beforeCtrl.height / 2 + movement, { steps: 8 })
     await page.mouse.up()
+    ctrlDragEndedAt = Date.now()
     await page.keyboard.up('Control')
     await expect.poll(async () => {
       const measured = await measure()
@@ -853,6 +872,8 @@ test.describe('Chart', () => {
     const ctrlResized = await measure()
     expect(Math.max(...ctrlResized.below) - Math.min(...ctrlResized.below)).toBeLessThan(3)
     await ctrlLayoutSaved
+    // A coalesced follow-up save may still be carrying the final sizes.
+    await expect(page.locator('.workstation__footer')).toContainText('Workspace saved', { timeout: 30_000 })
     await page.reload()
     await expect(host).toBeVisible({ timeout: 15_000 })
     const restoredBelow = await splitters.nth(candidateIndex).evaluate(element => {
@@ -862,8 +883,18 @@ test.describe('Chart', () => {
       const panesAfter = siblings.slice(position + 1).filter(child => child.classList.contains('lm_item')) as HTMLElement[]
       return panesAfter.map(pane => pane.getBoundingClientRect().height)
     })
-    expect(Math.max(...restoredBelow) - Math.min(...restoredBelow)).toBeLessThan(3)
-    expect(restoredBelow.reduce((sum, size) => sum + size, 0)).toBeLessThan(beforeCtrl.below.reduce((sum, size) => sum + size, 0) - movement + 5)
+    const measureRestoredBelow = () => splitters.nth(candidateIndex).evaluate(element => {
+      const parent = element.parentElement!
+      const siblings = Array.from(parent.children)
+      const position = siblings.indexOf(element)
+      const panesAfter = siblings.slice(position + 1).filter(child => child.classList.contains('lm_item')) as HTMLElement[]
+      return panesAfter.map(pane => pane.getBoundingClientRect().height)
+    })
+    await expect.poll(async () => (await measureRestoredBelow()).reduce((sum, size) => sum + size, 0), { timeout: 10_000 })
+      .toBeLessThan(beforeCtrl.below.reduce((sum, size) => sum + size, 0) - movement + 5)
+    const settledBelow = await measureRestoredBelow()
+    expect(Math.max(...settledBelow) - Math.min(...settledBelow)).toBeLessThan(3)
+    expect(restoredBelow.length).toBeGreaterThan(0)
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -5892,8 +5923,13 @@ test.describe('TC2000 workstation', () => {
     // The chosen role applies once the family overview proves it available.
     await expect(mapRole.locator('option[value="equal_weight"]')).toBeEnabled({ timeout: 15_000 })
     await expect(mapRole).toHaveValue('equal_weight')
+    // Earlier flows in this serial suite can leave Market Map windows open;
+    // assert on the window this click opens.
+    const existingMapKeys = await page.locator('.tool-window[data-window-key]').filter({ has: page.locator('.market-map-tool') })
+      .evaluateAll(elements => elements.map(element => (element as HTMLElement).dataset.windowKey ?? ''))
     await benchmarkSurface.getByRole('button', { name: 'Open Market Map' }).click()
-    const mapWindow = page.locator('.tool-window:visible').filter({ has: page.locator('.market-map-tool') }).last()
+    const newMapSelector = `.tool-window[data-window-key]${existingMapKeys.map(key => `:not([data-window-key="${key}"])`).join('')}`
+    const mapWindow = page.locator(newMapSelector).filter({ has: page.locator('.market-map-tool') }).last()
     await expect(mapWindow).toBeVisible({ timeout: 15_000 })
     await expect(mapWindow.getByRole('combobox', { name: 'Market Map universe' })).toHaveValue('benchmark-family:sp500:equal_weight')
     await expect.poll(() => requestedSources.at(-1), { timeout: 15_000 }).toBe('benchmark-family:sp500:equal_weight')
