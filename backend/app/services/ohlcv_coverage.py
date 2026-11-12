@@ -6,11 +6,14 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
 from enum import StrEnum
+from functools import lru_cache
 from statistics import median
 from typing import Literal
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import and_, or_
+from sqlalchemy.exc import NoInspectionAvailable
+from sqlalchemy.inspection import inspect as sa_inspect
 
 from app.models.ohlcv import TIMEFRAME_SECONDS, OHLCVBar, Timeframe
 from app.models.provider_observation import MarketBarObservation
@@ -26,6 +29,7 @@ class CoverageStatus(StrEnum):
 CoverageMode = Literal["historical", "latest"]
 CalendarName = Literal["XNYS"]
 _XNYS_TZ = ZoneInfo("America/New_York")
+_SUPPORTED_US_CASH_EQUITY_MICS = frozenset({"XNYS", "ARCX", "XNAS", "BATS"})
 _XNYS_AD_HOC_CLOSURES = {
     # NYSE closed on Jan 9, 2025 for the National Day of Mourning.
     2025: {date(2025, 1, 9)},
@@ -273,9 +277,93 @@ def summarize_ohlcv_lineage(bars: Sequence[OHLCVBar], *, adjusted: bool) -> Ohlc
 
 
 def _as_utc(value: datetime) -> datetime:
-    if value.tzinfo is None:
+    if value.tzinfo is None or value.utcoffset() is None:
         return value.replace(tzinfo=UTC)
     return value.astimezone(UTC)
+
+
+def observed_daily_session_bounds(
+    timeframe: Timeframe,
+    start: datetime | None,
+    end: datetime | None,
+    observed_start: datetime | None,
+    observed_end: datetime | None,
+    *,
+    calendar: CalendarName | None = None,
+) -> tuple[datetime | None, datetime | None]:
+    """Normalize date-only D1 edges to observed close-labelled sessions.
+
+    Public date ranges commonly encode an inclusive end date as either
+    ``23:59:59`` or ``23:59:59.999999``. For D1 only, compare those bounds to
+    an observed edge or, with an explicit XNYS calendar, the last expected
+    session close before the requested date. Missing sessions remain visible;
+    explicit intraday bounds plus W1/MN periods keep their exact timestamps.
+    """
+    if timeframe != Timeframe.D1:
+        return start, end
+
+    normalized_start = _as_utc(start) if start is not None else None
+    normalized_end = _as_utc(end) if end is not None else None
+    first_observation = _as_utc(observed_start) if observed_start is not None else None
+    last_observation = _as_utc(observed_end) if observed_end is not None else None
+
+    if normalized_start is not None and normalized_start.time() == time.min:
+        if first_observation is not None and first_observation.date() == normalized_start.date():
+            normalized_start = first_observation
+
+    if normalized_end is not None and normalized_end.time() >= time(23, 59, 59):
+        if calendar == "XNYS":
+            local_end_date = normalized_end.astimezone(_XNYS_TZ).date()
+            local_start_date = (
+                normalized_start.astimezone(_XNYS_TZ).date()
+                if normalized_start is not None
+                else local_end_date
+            )
+            sessions = _xnys_session_days(local_start_date, local_end_date)
+            if sessions:
+                last_session = max(sessions)
+                expected_last_close = _xnys_session_close_at(last_session)
+                if normalized_start is None or expected_last_close >= normalized_start:
+                    # Canonical D1 bars may use UTC-midnight labels while
+                    # native provider bars use a session-close timestamp. If
+                    # the observation belongs to the final expected session,
+                    # retain its actual label; a missing final session still
+                    # uses that session's close as the required boundary.
+                    normalized_end = (
+                        last_observation
+                        if last_observation is not None and last_observation.date() == last_session
+                        else expected_last_close
+                    )
+        elif last_observation is not None and last_observation.date() == normalized_end.date():
+            normalized_end = last_observation
+
+    return normalized_start, normalized_end
+
+
+def coverage_calendar_for_instrument(instrument: object) -> CalendarName | None:
+    """Return the supported US cash-equity calendar from one primary listing.
+
+    Currency or a security-detail MIC alone is not enough to infer the selected
+    session calendar. Ambiguous, inactive, non-primary, and unknown listings
+    retain conservative coverage behavior.
+    """
+    from app.services.exchange_catalog import normalize_exchange_mic
+
+    try:
+        if "listings" in sa_inspect(instrument).unloaded:
+            return None
+    except NoInspectionAvailable:
+        pass
+    primary = [
+        listing
+        for listing in (getattr(instrument, "listings", None) or [])
+        if listing.is_primary and listing.is_active
+    ]
+    if len(primary) != 1:
+        return None
+    exchange = getattr(primary[0], "exchange", None)
+    mic = normalize_exchange_mic(getattr(exchange, "mic", None))
+    return "XNYS" if mic in _SUPPORTED_US_CASH_EQUITY_MICS else None
 
 
 def bar_visible_through_clause(cutoff: datetime):
@@ -353,6 +441,12 @@ def _last_weekday(year: int, month: int, weekday: int) -> date:
 
 def _xnys_holidays(year: int) -> set[date]:
     """Major XNYS full-day closures for a deterministic local daily calendar."""
+    return set(_xnys_holidays_frozen(year))
+
+
+@lru_cache(maxsize=256)
+def _xnys_holidays_frozen(year: int) -> frozenset[date]:
+    """Memoized per year; the holiday rules are pure functions of the year."""
     holidays = {
         _observed_new_year(year),
         _nth_weekday(year, 1, 0, 3),  # Martin Luther King Jr. Day
@@ -367,36 +461,59 @@ def _xnys_holidays(year: int) -> set[date]:
     if year >= 2022:
         holidays.add(_observed_fixed_holiday(year, 6, 19))  # Juneteenth
     holidays.update(_XNYS_AD_HOC_CLOSURES.get(year, set()))
-    return holidays
+    return frozenset(holidays)
 
 
 def _xnys_early_closes(year: int) -> set[date]:
     """Recurring XNYS 13:00 ET regular-session closes."""
 
-    holidays = _xnys_holidays(year)
+    return set(_xnys_early_closes_frozen(year))
+
+
+@lru_cache(maxsize=256)
+def _xnys_early_closes_frozen(year: int) -> frozenset[date]:
+    holidays = _xnys_holidays_frozen(year)
     thanksgiving = _nth_weekday(year, 11, 3, 4)
     candidates = {
         thanksgiving + timedelta(days=1),
         date(year, 12, 24),
         date(year, 7, 3),
     }
-    return {
+    return frozenset(
         candidate
         for candidate in candidates
         if candidate.weekday() < 5 and candidate not in holidays
-    }
+    )
+
+
+def _xnys_session_close_at(session: date) -> datetime:
+    close = time(13) if session in _xnys_early_closes(session.year) else time(16)
+    return datetime.combine(session, close, tzinfo=_XNYS_TZ).astimezone(UTC)
+
+
+@lru_cache(maxsize=256)
+def _xnys_weekdays_in_year(year: int) -> frozenset[date]:
+    """Every Monday-to-Friday date of one year, memoized."""
+    day = date(year, 1, 1)
+    weekdays: set[date] = set()
+    while day.year == year:
+        if day.weekday() < 5:
+            weekdays.add(day)
+        day += timedelta(days=1)
+    return frozenset(weekdays)
 
 
 def _xnys_session_days(start: date, end: date) -> set[date]:
+    # Holidays from every year in range apply, exactly as before; only the
+    # per-year weekday and holiday sets are now memoized.
     holidays: set[date] = set()
     for year in range(start.year, end.year + 1):
-        holidays.update(_xnys_holidays(year))
+        holidays.update(_xnys_holidays_frozen(year))
     sessions: set[date] = set()
-    cursor = start
-    while cursor <= end:
-        if cursor.weekday() < 5 and cursor not in holidays:
-            sessions.add(cursor)
-        cursor += timedelta(days=1)
+    for year in range(start.year, end.year + 1):
+        for day in _xnys_weekdays_in_year(year):
+            if start <= day <= end and day not in holidays:
+                sessions.add(day)
     return sessions
 
 
@@ -425,13 +542,21 @@ def _calendar_missing_slices(
         local_end = end.astimezone(_XNYS_TZ)
         close_label_count = sum(13 <= value.astimezone(_XNYS_TZ).hour < 18 for value in ordered)
         close_labelled = bool(ordered) and close_label_count * 2 >= len(ordered)
-        for session in sorted(_xnys_session_days(local_start.date(), local_end.date())):
+        utc_midnight_label_count = sum(value.time() == time.min for value in ordered)
+        utc_midnight_labelled = bool(ordered) and utc_midnight_label_count * 2 >= len(ordered)
+        session_start = start.date() if utc_midnight_labelled else local_start.date()
+        session_end = end.date() if utc_midnight_labelled else local_end.date()
+        for session in sorted(_xnys_session_days(session_start, session_end)):
             bar_start = datetime.combine(session, time.min, tzinfo=_XNYS_TZ).astimezone(UTC)
-            session_close = datetime.combine(session, time(16), tzinfo=_XNYS_TZ).astimezone(UTC)
+            session_close = _xnys_session_close_at(session)
             # Daily bars represent completed sessions. Do not manufacture a
             # missing tail for a session that has not closed yet.
             if close_labelled:
                 if session_close < start or session_close > end:
+                    continue
+            elif utc_midnight_labelled:
+                canonical_label = datetime.combine(session, time.min, tzinfo=UTC)
+                if canonical_label < start or canonical_label > end:
                     continue
             elif bar_start < start or session_close > end:
                 continue
@@ -441,7 +566,11 @@ def _calendar_missing_slices(
             periods.append(
                 (
                     session,
-                    session_close if close_labelled else bar_start,
+                    # A repair query must have a positive interval while still
+                    # containing the native close-labelled daily observation.
+                    # The caller's lower bound clamps this back to its admitted
+                    # range when it begins inside the session.
+                    bar_start,
                     min(next_midnight - timedelta(microseconds=1), end),
                 )
             )
@@ -478,9 +607,7 @@ def _calendar_missing_slices(
 
             sessions = _xnys_session_days(bucket, next_bucket - timedelta(days=1))
             if sessions:
-                last_session_close = datetime.combine(
-                    max(sessions), time(16), tzinfo=_XNYS_TZ
-                ).astimezone(UTC)
+                last_session_close = _xnys_session_close_at(max(sessions))
                 if last_session_close > end:
                     break
                 periods.append((bucket, bucket_start, min(bucket_end, end)))
@@ -582,6 +709,15 @@ def assess_ohlcv_coverage(
     start = _as_utc(start)
     end = _as_utc(end)
     ordered = sorted(_as_utc(bar.ts) for bar in cached if start <= _as_utc(bar.ts) <= end)
+    start, end = observed_daily_session_bounds(
+        timeframe,
+        start,
+        end,
+        ordered[0] if ordered else None,
+        ordered[-1] if ordered else None,
+        calendar=calendar,
+    )
+    ordered = [value for value in ordered if start <= value <= end]
     slices = tuple(missing_range_slices(cached, timeframe, start, end, calendar=calendar))
     covered_start = ordered[0] if ordered else None
     covered_end = ordered[-1] if ordered else None

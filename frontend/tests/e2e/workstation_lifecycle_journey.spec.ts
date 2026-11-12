@@ -61,19 +61,20 @@ async function openWorkspaceMenu(page: Page) {
 }
 
 async function activatePanel(page: Page, title: string) {
-  const tab = page.locator('.lm_tab').filter({ hasText: new RegExp(`^${escapeRegExp(title)}$`) })
-  if (await tab.first().isVisible().catch(() => false)) {
-    await tab.first().click()
-  } else {
-    // Golden Layout moves excess tabs into its ordinary header dropdown.
-    const header = tab.first().locator('xpath=ancestor::*[contains(concat(" ",normalize-space(@class)," ")," lm_header ")][1]')
-    const dropdown = header.locator('.lm_tabdropdown')
-    await expect(dropdown).toBeVisible()
-    await dropdown.click()
-    const overflowTab = header.locator('.lm_tabdropdown_list .lm_tab').filter({ hasText: new RegExp(`^${escapeRegExp(title)}$`) })
-    await expect(overflowTab).toBeVisible()
-    await overflowTab.click()
-  }
+  const name = new RegExp(`^${escapeRegExp(title)}$`)
+  // Golden Layout moves excess tabs into its header dropdown and re-flows them
+  // as tabs activate, so a tab can move between the row and the list. Retry
+  // until it is clickable in whichever place it currently lives.
+  await expect(async () => {
+    const rowTab = page.locator('.lm_header .lm_tabs > .lm_tab:visible').filter({ hasText: name }).first()
+    if (await rowTab.isVisible()) { await rowTab.click({ timeout: 2_000 }); return }
+    const listed = page.locator('.lm_tabdropdown_list .lm_tab:visible').filter({ hasText: name }).first()
+    if (await listed.isVisible()) { await listed.click({ timeout: 2_000 }); return }
+    const tab = page.locator('.lm_tab').filter({ hasText: name }).first()
+    const header = tab.locator('xpath=ancestor::*[contains(concat(" ",normalize-space(@class)," ")," lm_header ")][1]')
+    await header.locator('.lm_tabdropdown').click({ timeout: 2_000 })
+    throw new Error(`opened the tab list for ${title}; retrying`)
+  }).toPass({ timeout: 20_000 })
   const tool = page.getByRole('group', { name: title, exact: true })
   await expect(tool).toBeVisible()
   return tool
@@ -371,7 +372,50 @@ async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUT
     const breadth = tool.locator('.breadth-tool')
     await expect(breadth).toBeVisible({ timeout: 20_000 })
     await expect(breadth).toHaveAttribute('aria-busy', 'false', { timeout: 30_000 })
-    await expect(breadth.locator('.breadth-tool__coverage-detail')).toContainText(/\d/)
+    const evaluationResponse = page.waitForResponse(response => response.request().method() === 'POST'
+      && new URL(response.url()).pathname === '/api/v1/analysis/breadth')
+    await breadth.getByRole('button', { name: 'Evaluate', exact: true }).click()
+    const evaluation = await evaluationResponse
+    expect(evaluation.status()).toBe(200)
+    const result = await evaluation.json() as {
+      requested_count?: number
+      eligible_count?: number
+      pass_count?: number
+      excluded_count?: number
+      percentage?: number | null
+      coverage?: number | null
+      members?: Array<{ instrument_id?: number; symbol?: string; value?: boolean | null; metric?: number | null }>
+    }
+    const requested = result.requested_count
+    const eligible = result.eligible_count
+    const passed = result.pass_count
+    const excluded = result.excluded_count
+    expect(Number.isInteger(requested) && Number(requested) > 0).toBe(true)
+    expect(Number.isInteger(eligible) && Number(eligible) > 0).toBe(true)
+    expect(Number.isInteger(passed) && Number(passed) >= 0 && Number(passed) <= Number(eligible)).toBe(true)
+    expect(Number.isInteger(excluded) && Number(excluded) >= 0).toBe(true)
+    expect(Number.isFinite(result.percentage)).toBe(true)
+    expect(Number.isFinite(result.coverage)).toBe(true)
+    expect(result.percentage).toBeCloseTo(Number(passed) / Number(eligible), 8)
+    expect(result.coverage).toBeCloseTo(Number(eligible) / Number(requested), 8)
+    const members = result.members ?? []
+    const eligibleMembers = members.filter(member => typeof member.value === 'boolean')
+    expect(members.length).toBeGreaterThanOrEqual(Number(eligible))
+    expect(members.length).toBeLessThanOrEqual(Number(requested))
+    expect(new Set(members.map(member => member.instrument_id)).size).toBe(members.length)
+    expect(members.every(member => Number.isInteger(member.instrument_id) && /^[A-Z0-9._-]+$/.test(member.symbol ?? '') && (member.value == null || typeof member.value === 'boolean') && (member.metric == null || Number.isFinite(member.metric)))).toBe(true)
+    expect(eligibleMembers.length).toBe(Number(eligible))
+    expect(eligibleMembers.filter(member => member.value === true).length).toBe(Number(passed))
+    const visibleResult = breadth.locator('.breadth-tool__custom-result')
+    await expect(visibleResult).toBeVisible()
+    await expect(visibleResult).toContainText(`${passed}/${eligible} eligible`)
+    await expect(visibleResult).toContainText(`${(Number(passed) / Number(eligible) * 100).toFixed(1)}%`)
+    const memberState = Number(passed) > 0 ? 'pass' : 'fail'
+    await breadth.locator('.breadth-tool__generic-drilldown').getByRole('button', { name: new RegExp(`^${memberState === 'pass' ? 'Pass' : 'Fail'} `) }).first().click({ timeout: 5_000 })
+    const evaluatedMember = breadth.locator('.breadth-tool__generic-drilldown').getByRole('button', { name: /^Select / }).first()
+    await expect(evaluatedMember).toBeVisible()
+    await expect(evaluatedMember.locator('strong')).toHaveText(/^[A-Z0-9._-]+$/)
+    await expect(evaluatedMember.locator('span')).not.toBeEmpty()
   } else if (kind === 'coverage') {
     const coverage = tool.locator('.coverage-summary')
     await expect(coverage).toBeVisible({ timeout: 20_000 })
@@ -563,6 +607,20 @@ async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUT
       await expect(committedSymbol).toHaveText(startingSymbol)
     }
   } else if (kind === 'study') {
+    const originalViewport = page.viewportSize()
+    expect(originalViewport, 'the Study compact witness needs a sized browser viewport').not.toBeNull()
+    const studyRoot = tool.locator('.study-lab-tool')
+    const originalStudyWidth = await studyRoot.evaluate(root => root.clientWidth)
+    // Catalogue placement may recreate Study in a narrow stack; only narrow the viewport when it is still wide.
+    const narrowedStudyViewport = originalStudyWidth > 360
+    if (narrowedStudyViewport) {
+      await page.setViewportSize({ width: 1000, height: originalViewport!.height })
+      await expect.poll(() => studyRoot.evaluate(root => root.clientWidth), { timeout: 5_000 })
+        .toBeLessThanOrEqual(360)
+    } else {
+      expect(originalStudyWidth).toBeLessThanOrEqual(360)
+    }
+
     await tool.getByLabel('Factory study').selectOption('positive_streak')
     // The offline positive factory witness uses the retained controlled D1
     // range. An unbounded request can legitimately remain held when external
@@ -595,6 +653,89 @@ async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUT
     await expect(completedStreaks).toBeVisible()
     await expect(completedStreaks.locator('table caption')).toHaveText('completed_streaks table')
     await expect(completedStreaks.locator('table tbody tr').first()).toBeVisible()
+    const studyControlBounds = await tool.locator('.study-lab-tool').evaluate(root => {
+      const rootRect = root.getBoundingClientRect()
+      const contentLeft = rootRect.left + root.clientLeft
+      const contentRight = contentLeft + root.clientWidth
+      const controls = Array.from(root.querySelectorAll('input, select, textarea, button'))
+        .filter(control => {
+          const style = getComputedStyle(control)
+          return style.display !== 'none' && style.visibility !== 'hidden' && control.getClientRects().length > 0
+        })
+        .map(control => {
+          const rect = control.getBoundingClientRect()
+          return {
+            label: control.getAttribute('aria-label') ?? control.tagName.toLowerCase(),
+            left: rect.left,
+            right: rect.right,
+            width: rect.width,
+            selectedText: control instanceof HTMLSelectElement ? control.selectedOptions[0]?.textContent?.trim() ?? null : null,
+            contentLeft,
+            contentRight,
+          }
+        })
+      return { width: root.clientWidth, controls }
+    })
+    expect(studyControlBounds.width, 'the Study catalogue witness should exercise the compact dock layout').toBeLessThanOrEqual(360)
+    expect(studyControlBounds.width).toBeGreaterThan(0)
+    expect(studyControlBounds.controls.length, 'the narrow Study panel should expose its native controls').toBeGreaterThan(0)
+    for (const control of studyControlBounds.controls) {
+      expect(control.left, `${control.label} should remain within the Study panel's content edge`).toBeGreaterThanOrEqual(control.contentLeft - 1)
+      expect(control.right, `${control.label} should remain within the Study panel's content edge`).toBeLessThanOrEqual(control.contentRight + 1)
+    }
+    const universeSourceControl = studyControlBounds.controls.find(control => control.label === 'Study universe source')
+    const adjustmentControl = studyControlBounds.controls.find(control => control.label === 'Study adjustment')
+    expect(universeSourceControl?.width, 'the compact Study universe source selector should remain readable').toBeGreaterThan(180)
+    expect(adjustmentControl?.width, 'the compact Study adjustment selector should show its selected mode').toBeGreaterThan(180)
+    expect(adjustmentControl?.selectedText).toBe('Split adjusted')
+
+    const editorViewportState = () => studyRoot.evaluate(root => {
+      const editor = root.querySelector<HTMLElement>('[aria-label="Study Python source"]')
+      if (!editor) return null
+      const rootRect = root.getBoundingClientRect()
+      const editorRect = editor.getBoundingClientRect()
+      const visibleTop = rootRect.top + root.clientTop
+      const visibleBottom = visibleTop + root.clientHeight
+      return {
+        scrollTop: root.scrollTop,
+        wheelToEditorCenter: editorRect.top + editorRect.height / 2 - (visibleTop + root.clientHeight / 2),
+        contained: editorRect.top >= visibleTop - 1 && editorRect.bottom <= visibleBottom + 1,
+      }
+    })
+    const initialEditorState = await editorViewportState()
+    expect(initialEditorState).not.toBeNull()
+    if (initialEditorState!.scrollTop > 0) {
+      await studyRoot.hover()
+      await page.mouse.wheel(0, -initialEditorState!.scrollTop)
+      await expect.poll(() => studyRoot.evaluate(root => root.scrollTop)).toBe(0)
+    }
+    const topEditorState = await editorViewportState()
+    expect(topEditorState).not.toBeNull()
+    expect(topEditorState!.wheelToEditorCenter, 'the long Study form should place the editor below the initial dock viewport').toBeGreaterThan(0)
+    await studyRoot.hover()
+    await page.mouse.wheel(0, Math.round(topEditorState!.wheelToEditorCenter))
+    await expect.poll(async () => (await editorViewportState())?.contained ?? false).toBe(true)
+    await expect.poll(() => studyRoot.evaluate(root => root.scrollTop)).toBeGreaterThan(0)
+
+    const observedScrollTop = await studyRoot.evaluate(root => root.scrollTop)
+    await studyRoot.hover()
+    await page.mouse.wheel(0, -observedScrollTop)
+    await expect.poll(() => studyRoot.evaluate(root => root.scrollTop)).toBe(0)
+    const studyName = tool.getByRole('textbox', { name: 'Study name', exact: true })
+    await studyName.click()
+    await page.keyboard.press('Tab')
+    await page.keyboard.press('Tab')
+    await page.keyboard.press('Tab')
+    const validateButton = tool.getByRole('button', { name: 'Validate study', exact: true })
+    const runButton = tool.getByRole('button', { name: 'Run study', exact: true })
+    await expect(validateButton).toBeFocused()
+    await page.keyboard.press('Tab')
+    await expect(runButton).toBeFocused()
+    if (narrowedStudyViewport) {
+      await page.setViewportSize(originalViewport!)
+      await expect.poll(() => studyRoot.evaluate(root => root.clientWidth), { timeout: 5_000 })
+        .toBe(originalStudyWidth)
+    }
   } else if (kind === 'results') {
     await expect(tool.locator('.research-results-tool__run-select').first()).toBeVisible({ timeout: 30_000 })
     await expect(tool.locator('.research-results-tool__artifacts article').first()).toBeVisible({ timeout: 20_000 })
@@ -812,6 +953,10 @@ test.describe('Workstation lifecycle journeys', () => {
       await expect(catalogue).toBeVisible()
       await catalogue.getByRole('menuitem', { name: item.title, exact: true }).click()
       await assertUsefulTool(page, item.title, kind)
+      await test.info().attach(`catalogue-${item.key}-actual-panel`, {
+        body: await page.screenshot(),
+        contentType: 'image/png',
+      })
     }
 
     const createdWatchlist = await activatePanel(page, 'WatchList')
@@ -918,8 +1063,20 @@ test.describe('Workstation lifecycle journeys', () => {
     expect(sourceConfiguration.members.every(member => member.identity && member.position > 0 && member.count > 0)).toBe(true)
 
     const menu = await openWorkspaceMenu(page)
-    await menu.getByRole('menuitem', { name: 'Duplicate workspace', exact: true }).click()
     const duplicateName = 'US Top Down Copy'
+    const cloneResponsePromise = page.waitForResponse(response => {
+      const request = response.request()
+      const path = new URL(response.url()).pathname
+      return request.method() === 'POST' && /^\/api\/v1\/workspaces\/\d+\/clone$/.test(path)
+    })
+    await menu.getByRole('menuitem', { name: 'Duplicate workspace', exact: true }).click()
+    const cloneResponse = await cloneResponsePromise
+    const sourceWorkspaceMatch = new URL(cloneResponse.url()).pathname.match(/^\/api\/v1\/workspaces\/(\d+)\/clone$/)
+    expect(sourceWorkspaceMatch, 'the duplicate operation must identify its source workspace').not.toBeNull()
+    const sourceWorkspaceId = Number(sourceWorkspaceMatch![1])
+    const clonedWorkspace = await cloneResponse.json() as { id?: number }
+    expect(Number.isInteger(clonedWorkspace.id) && Number(clonedWorkspace.id) > 0, 'the duplicate response must identify the saved workspace').toBe(true)
+    const duplicateWorkspaceId = Number(clonedWorkspace.id)
     await expect(page.locator('.workstation__workspace-name')).toHaveText(duplicateName)
     const duplicateBenchmarks = await assertUsefulTool(page, 'Benchmarks', 'watchlist')
     await assertUsefulWatchlistNumbers(duplicateBenchmarks)
@@ -957,6 +1114,11 @@ test.describe('Workstation lifecycle journeys', () => {
       return before.map(pane => pane.getBoundingClientRect().height)
     })).not.toEqual(beforeSize.before)
     await expect(canvas).toBeVisible()
+    const priorSnapshotSave = page.waitForResponse(response => {
+      const request = response.request()
+      const path = new URL(response.url()).pathname
+      return request.method() === 'PUT' && path === `/api/v1/workspaces/${duplicateWorkspaceId}/snapshot` && response.ok()
+    })
     await chart.getByRole('button', { name: 'Maximize tool' }).click()
     await expect(chart).toBeVisible()
     await chart.getByRole('button', { name: 'Restore tool' }).click()
@@ -965,9 +1127,28 @@ test.describe('Workstation lifecycle journeys', () => {
     await assertUsefulTool(page, 'Chart', 'chart')
     await page.setViewportSize(originalViewport!)
 
+    await priorSnapshotSave
+    const saveStatus = page.getByRole('status', { name: 'Workspace save status', exact: true })
+    await expect(saveStatus).toHaveAttribute('data-state', 'saved')
+    await expect(saveStatus).toHaveText('Workspace saved')
+
     page.once('dialog', dialog => dialog.accept())
     const deleteMenu = await openWorkspaceMenu(page)
+    const deleteAcknowledgement = page.waitForResponse(response => {
+      const request = response.request()
+      return request.method() === 'DELETE'
+        && new URL(response.url()).pathname === `/api/v1/workspaces/${duplicateWorkspaceId}`
+    })
+    const restoredSourceRead = page.waitForResponse(response => {
+      const request = response.request()
+      return request.method() === 'GET'
+        && new URL(response.url()).pathname === `/api/v1/workspaces/${sourceWorkspaceId}`
+        && response.status() === 200
+    })
     await deleteMenu.getByRole('menuitem', { name: 'Delete workspace', exact: true }).click()
+    const deleteResponse = await deleteAcknowledgement
+    expect(deleteResponse.status(), 'the confirmed duplicate delete must be acknowledged').toBe(204)
+    await restoredSourceRead
     await expect(page.locator('.workstation__workspace-name')).toHaveText('US Top Down')
     await expect((await openWorkspaceMenu(page)).getByRole('option', { name: duplicateName, exact: true })).toHaveCount(0)
     await expect(page.locator('.workstation__workspace-name')).toHaveText(sourceName!.trim())

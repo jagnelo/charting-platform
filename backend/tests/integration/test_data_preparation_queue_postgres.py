@@ -7,6 +7,7 @@ from copy import deepcopy
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from types import SimpleNamespace
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
@@ -51,6 +52,33 @@ async def preparation_sessions(preparation_database_urls):
     with sync_engine.begin() as connection:
         connection.execute(text(f'DROP SCHEMA "{schema}" CASCADE'))
     sync_engine.dispose()
+
+
+async def _add_primary_xnys_listing(session, instrument) -> None:
+    """Give a US test equity its primary NYSE listing so the session calendar applies.
+
+    Coverage calendars come only from a primary listing, so an unlisted
+    instrument is judged leniently and these chunk expectations do not hold.
+    """
+    from app.models.exchange import Exchange
+    from app.models.listing import InstrumentListing
+
+    exchange = await session.scalar(select(Exchange).where(Exchange.mic == "XNYS"))
+    if exchange is None:
+        exchange = Exchange(mic="XNYS", name="New York Stock Exchange", country_code="US")
+        session.add(exchange)
+        await session.flush()
+    session.add(
+        InstrumentListing(
+            instrument_id=instrument.id,
+            exchange_id=exchange.id,
+            ticker=instrument.symbol,
+            currency="USD",
+            is_primary=True,
+            is_active=True,
+        )
+    )
+    await session.flush()
 
 
 def _canonical_instrument(symbol: str, instrument_type_id: int, *, domain_prefix: str):
@@ -658,6 +686,7 @@ async def test_worker_chunk_result_projects_while_older_continuation_is_queued(
         source = DataSource(name=f"prep-worker-source-{uuid4().hex[:8]}", is_active=True)
         session.add_all([instrument, source])
         await session.flush()
+        await _add_primary_xnys_listing(session, instrument)
         series = MarketSeries(
             instrument_id=instrument.id,
             data_source_id=source.id,
@@ -790,6 +819,7 @@ async def test_weekly_and_monthly_coverage_tracks_rematerialized_derived_series(
         source = DataSource(name=f"prep-derived-source-{uuid4().hex[:8]}", is_active=True)
         session.add_all([instrument, source])
         await session.flush()
+        await _add_primary_xnys_listing(session, instrument)
         daily = MarketSeries(
             instrument_id=instrument.id,
             data_source_id=source.id,
@@ -1832,7 +1862,7 @@ async def test_duplicate_ensure_returns_while_shared_history_child_is_leased(
     started = asyncio.Event()
     release = asyncio.Event()
 
-    async def no_wakeup():
+    def no_wakeup():
         return None
 
     async def fixed_plan(
@@ -1868,7 +1898,7 @@ async def test_duplicate_ensure_returns_while_shared_history_child_is_leased(
             await release.wait()
         return []
 
-    monkeypatch.setattr(data_preparation_router, "_wake_refresh_worker", no_wakeup)
+    monkeypatch.setattr(data_preparation_router, "_schedule_worker_wake", no_wakeup)
     monkeypatch.setattr(data_tasks, "AsyncSessionLocal", preparation_sessions)
     monkeypatch.setattr(data_tasks, "_history_chunk_plan_with_native_admission", fixed_plan)
     monkeypatch.setattr(data_tasks, "fetch_ohlcv", slow_local_fetch)
@@ -1878,6 +1908,7 @@ async def test_duplicate_ensure_returns_while_shared_history_child_is_leased(
         instrument = _canonical_instrument("ENSURELOCK", stock_type_id, domain_prefix="ensure-lock")
         session.add(instrument)
         await session.flush()
+        await _add_primary_xnys_listing(session, instrument)
         request = DataEnsureRequest.model_validate(
             {
                 "target": {"kind": "instrument", "instrument_id": instrument.id},
@@ -1941,12 +1972,218 @@ async def test_duplicate_ensure_returns_while_shared_history_child_is_leased(
             parent = await session.get(MarketRefreshJob, parent_id)
             dependency = parent.metadata_payload["data_preparation"]["dependencies"][0]
             parent_dependencies.append(dependency)
-        continuation_ids = parent_dependencies[0]["background_job_ids"]
-        assert len(continuation_ids) == 1
-        assert parent_dependencies[1]["background_job_ids"] == continuation_ids
-        continuation = await session.get(MarketRefreshJob, continuation_ids[0])
-        assert continuation is not None
-        assert {
-            int(ref["parent_job_id"])
-            for ref in continuation.metadata_payload["data_preparation_child"]["parent_refs"]
-        } == {first_parent_id, second_parent_id}
+        # slow_local_fetch returns no bars. The worker queues a deeper chunk only
+        # after a non-empty fetch, so neither parent gets a background
+        # continuation. The shared child still carries both parent refs above.
+        assert parent_dependencies[0].get("background_job_ids", []) == []
+        assert parent_dependencies[1].get("background_job_ids", []) == []
+
+
+async def _seed_local_weekday_history(session, instrument, source, *, first, last):
+    """Seed canonical daily bars for every weekday in [first, last]."""
+
+    from app.models.market_data_foundation import AdjustmentBasis, MarketSeries
+    from app.models.ohlcv import OHLCVBar, Timeframe
+
+    series = MarketSeries(
+        instrument_id=instrument.id,
+        data_source_id=source.id,
+        feed_scope="local-complete-test",
+        session_code="regular",
+        timeframe=Timeframe.D1.value,
+        adjustment_basis=AdjustmentBasis.SPLIT_ADJUSTED,
+        adjustment_version="local-complete-v1",
+        is_canonical=True,
+        is_active=True,
+    )
+    session.add(series)
+    await session.flush()
+    day = first
+    while day <= last:
+        if day.weekday() < 5:
+            session.add(
+                OHLCVBar(
+                    instrument_id=instrument.id,
+                    data_source_id=source.id,
+                    market_series_id=series.id,
+                    timeframe=Timeframe.D1,
+                    ts=day.replace(hour=14, minute=30),
+                    session="regular",
+                    scope_key="test:local-complete",
+                    open=Decimal("10"),
+                    high=Decimal("11"),
+                    low=Decimal("9"),
+                    close=Decimal("10.5"),
+                    is_adjusted=True,
+                    adjustment_basis="split_adjusted",
+                    adjustment_version="local-complete-v1",
+                )
+            )
+        day += timedelta(days=1)
+    await session.flush()
+    return series
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("default_range", [False, True])
+async def test_no_eligible_provider_completes_from_local_coverage_and_is_not_waiting(
+    preparation_sessions, monkeypatch, default_range
+):
+    """SPY-style case: local D1 bars cover the range, no provider can act.
+
+    The dependency and the top-level ensure status must both become ready after
+    the real worker runs, both for an explicit range and for the default window.
+    """
+
+    from app.models.data_source import DataSource
+    from app.models.market_data_foundation import MarketRefreshJob
+    from app.schemas.data_preparation import DataEnsureRequest
+    from app.services.data_preparation import (
+        create_data_preparation_request,
+        get_data_preparation_response,
+    )
+    from app.tasks import data_tasks
+
+    today = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
+    if default_range:
+        full_start = None
+        full_end = None
+        local_first = today - timedelta(days=2100)
+        local_last = today + timedelta(days=1)
+    else:
+        full_start = datetime(2025, 1, 2, 5, 0, tzinfo=UTC)
+        full_end = datetime(2025, 3, 28, 4, 59, 59, tzinfo=UTC)
+        local_first = datetime(2024, 12, 20, tzinfo=UTC)
+        local_last = datetime(2025, 4, 2, tzinfo=UTC)
+
+    async with preparation_sessions() as session:
+        stock_type_id, _ = await _create_instrument_types(session)
+        instrument = _canonical_instrument(
+            "LOCAL-COMPLETE", stock_type_id, domain_prefix="local-complete"
+        )
+        source = DataSource(name=f"local-complete-src-{uuid4().hex[:8]}", is_active=True)
+        session.add_all([instrument, source])
+        await session.flush()
+        await _add_primary_xnys_listing(session, instrument)
+        await _seed_local_weekday_history(
+            session, instrument, source, first=local_first, last=local_last
+        )
+        payload = {
+            "target": {"kind": "instrument", "instrument_id": instrument.id},
+            "datasets": ["history"],
+            "timeframe": "D1",
+        }
+        if full_start is not None:
+            payload["start_at"] = full_start.isoformat()
+            payload["end_at"] = full_end.isoformat()
+        request = DataEnsureRequest.model_validate(payload)
+        parent = await create_data_preparation_request(session, owner_user_id=813, request=request)
+        parent_id = parent.id
+        await session.commit()
+
+    monkeypatch.setattr(data_tasks, "AsyncSessionLocal", preparation_sessions)
+    monkeypatch.setattr(
+        data_tasks, "refresh_derived_timeframe_if_needed", AsyncMock(return_value=False)
+    )
+    for _ in range(4):
+        result = await data_tasks.process_refresh_jobs({"redis": None}, limit=5)
+        if not result.get("claimed"):
+            break
+
+    async with preparation_sessions() as session:
+        parent = await session.get(MarketRefreshJob, parent_id)
+        response = await get_data_preparation_response(session, parent=parent, owner_user_id=813)
+        history = next(item for item in response.dependencies if item.dataset.value == "history")
+        assert history.status == "ready", history
+        assert response.status == "ready", response.status
+
+
+async def test_prerequisite_completion_wakes_deferred_dependent_on_postgres(preparation_sessions):
+    """A dependency-deferred child becomes due when its prerequisite completes.
+
+    The wake reads the JSON wait list and the exact dependency error on real
+    PostgreSQL, and it must leave a quota-deferred sibling on its own deadline.
+    """
+
+    from app.models.market_data_foundation import MarketRefreshJob
+    from app.services.market_refresh_queue import (
+        DEPENDENCY_PENDING_ERROR,
+        claim_refresh_jobs,
+        complete_refresh_job,
+        enqueue_refresh_job,
+        retry_refresh_job,
+    )
+
+    now = datetime(2026, 11, 10, 12, tzinfo=UTC)
+    quota_retry_at = now + timedelta(hours=1)
+    async with preparation_sessions() as session:
+        prerequisite = await enqueue_refresh_job(
+            session,
+            request_key=f"wake-pg-prereq:{uuid4().hex}",
+            capability="instrument_metadata",
+            priority=100,
+            now=now,
+        )
+        dependent = await enqueue_refresh_job(
+            session,
+            request_key=f"wake-pg-dependent:{uuid4().hex}",
+            capability="price_history",
+            timeframe="D1",
+            priority=10,
+            metadata_payload={"data_preparation_child": {"wait_for_job_ids": [prerequisite.id]}},
+            now=now,
+        )
+        quota_sibling = await enqueue_refresh_job(
+            session,
+            request_key=f"wake-pg-quota:{uuid4().hex}",
+            capability="price_history",
+            timeframe="D1",
+            priority=20,
+            metadata_payload={"data_preparation_child": {"wait_for_job_ids": [prerequisite.id]}},
+            now=now,
+        )
+        await session.commit()
+
+    async with preparation_sessions() as session:
+        leased = {job.id: job for job in await claim_refresh_jobs(session, limit=2, now=now)}
+        assert dependent.id in leased and quota_sibling.id in leased
+        await retry_refresh_job(
+            session,
+            leased[dependent.id],
+            DEPENDENCY_PENDING_ERROR,
+            retry_at=now + timedelta(seconds=20),
+            lease_token=leased[dependent.id].lease_token,
+            now=now,
+        )
+        await retry_refresh_job(
+            session,
+            leased[quota_sibling.id],
+            "provider quota reset",
+            retry_at=quota_retry_at,
+            lease_token=leased[quota_sibling.id].lease_token,
+            now=now,
+        )
+        await session.commit()
+
+    prerequisite_now = now + timedelta(seconds=3)
+    async with preparation_sessions() as session:
+        (prereq_job,) = await claim_refresh_jobs(session, limit=1, now=prerequisite_now)
+        assert prereq_job.id == prerequisite.id
+        await complete_refresh_job(session, prereq_job, now=prerequisite_now)
+        await session.commit()
+
+    async with preparation_sessions() as session:
+        rows = {
+            job.id: job
+            for job in (
+                await session.execute(
+                    select(MarketRefreshJob).where(
+                        MarketRefreshJob.id.in_([dependent.id, quota_sibling.id])
+                    )
+                )
+            ).scalars()
+        }
+        assert rows[dependent.id].next_attempt_at.replace(tzinfo=UTC) == prerequisite_now
+        assert rows[quota_sibling.id].next_attempt_at.replace(tzinfo=UTC) == quota_retry_at
+        claimed = await claim_refresh_jobs(session, limit=1, now=prerequisite_now)
+        assert [job.id for job in claimed] == [dependent.id]

@@ -1,0 +1,123 @@
+{
+  "at": "2026-11-07T10:24:17.514126+00:00",
+  "authority": "Root coordinates the human-approved common-interface implementation; no staging or deployment acceptance",
+  "state": "released_for_exact_development_consumption_not_product_acceptance",
+  "source": "b0db1656ad8505e2aaa39546d60487015aca00d4",
+  "base": "139b350238b5e1c8a170dce5af09a805301d857e",
+  "previous_source": "6ff05d8224da622bf195c6d2829842d85d2d1acb",
+  "files": [
+    {
+      "path": "frontend/src/components/workstation/InstrumentNoteTool.vue",
+      "status_from139": "M",
+      "git_blob": "95a10b7d3021818cb5e54d8f8643b88dacb10cd5",
+      "sha256": "dfee1f12a212c4bfc138ef6d23eec5b83b84e4ca159c4e0c0fc5a5100899c33f"
+    },
+    {
+      "path": "frontend/src/views/BasketsView.vue",
+      "status_from139": "M",
+      "git_blob": "71b27cafc4019d5004e54e7f2536606c0484756e",
+      "sha256": "eb237b4610cae5c7565bfcacc6bf2718586b89d032885d642f98cc55dcb5b141"
+    },
+    {
+      "path": "frontend/src/views/ETFHoldingsView.vue",
+      "status_from139": "M",
+      "git_blob": "2f4497f047aea843841f601dc4ae5e455f0429d3",
+      "sha256": "069f39fcd8cb2eade1c1fb486e64ef52cd8f6c18e2cb0f458b147c5e1289491b"
+    },
+    {
+      "path": "frontend/tests/e2e/baskets_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "3515186f6ad23fde428c49bf8817b6b86affe3c0",
+      "sha256": "b6b0d4e138ee31c573fc39d80463c933e35712e62d5dc0b90c5698c06a059ef7"
+    },
+    {
+      "path": "frontend/tests/e2e/etf_holdings_preparation.spec.ts",
+      "status_from139": "A",
+      "git_blob": "996395716252a7550b93d02371869dba0542bca4",
+      "sha256": "27a01d30994c6e0246c5156e8db4eb27b7d7e49e2e412561e19d0cefa8e2e091"
+    },
+    {
+      "path": "frontend/tests/e2e/on_demand_acquisition.spec.ts",
+      "status_from139": "M",
+      "git_blob": "8aa8d3acf20b3eeaf89455ee0dd2b53059651253",
+      "sha256": "76d31dc7c7c59284ae5d5db4c2eb46db926bfa85f2557baba56cdbccd9c42f46"
+    },
+    {
+      "path": "frontend/tests/e2e/sp500_analysis_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "a3fc17a6c0cf04cebd7a2b5c2c63ac065967decc",
+      "sha256": "a49970e4a4ad5a07f51257f43570dee248046fe2848b61a30ace8f2b4e813ec8"
+    },
+    {
+      "path": "frontend/tests/e2e/supporting_features_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "9b3d1539ede7e94b9726f1f754bbd7e4387fef9d",
+      "sha256": "60e4cf196dd9e21bd4ee31206df7678f1b185ab6ca700924b3cd7c942be19451"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_instrument_note_tool.test.ts",
+      "status_from139": "A",
+      "git_blob": "ac808ec30dac2cfd8268f2fe0b45a9f77e6a4a29",
+      "sha256": "43b95300e0d3443baac6238f507fe2fbbb8d1a6da726a440f236dee46737a7db"
+    },
+    {
+      "path": "frontend/tests/unit/views/test_baskets_view.test.ts",
+      "status_from139": "M",
+      "git_blob": "0ebf9ba0bce23fcd5dfc5ed5daf8d98e69be9ec7",
+      "sha256": "8439f811cbaf26257f71591786d9b097ac2e92c49438a7f0f99b062d7d16c7cd"
+    },
+    {
+      "path": "frontend/tests/unit/views/test_etf_holdings_view.test.ts",
+      "status_from139": "M",
+      "git_blob": "ae90a782984d09fef3ea38f19aef98ddda4bf168",
+      "sha256": "f9261ffa840c5fc7a68bfef2c9394472d10418090b04b1657416f256dd471e8e"
+    }
+  ],
+  "consumers": [
+    {
+      "consumer": "TC",
+      "import_paths": [
+        "frontend/src/components/workstation/InstrumentNoteTool.vue",
+        "frontend/tests/e2e/baskets_journey.spec.ts",
+        "frontend/tests/e2e/sp500_analysis_journey.spec.ts",
+        "frontend/tests/e2e/supporting_features_journey.spec.ts",
+        "frontend/tests/unit/components/test_instrument_note_tool.test.ts"
+      ],
+      "old_guards": {
+        "frontend/src/components/workstation/InstrumentNoteTool.vue": {
+          "sha256": "a7f69dc18bd409706dcbe4d0f8a6c4f05b1dd818b54b39db4f30ec3f9aebc35a",
+          "known_source": "6ff05d8224da622bf195c6d2829842d85d2d1acb",
+          "absent": false
+        },
+        "frontend/tests/e2e/baskets_journey.spec.ts": {
+          "sha256": "4c0778071c712fdc65ad21e710da02e17a5d3d6618815dfdc7cbd324126de90b",
+          "known_source": "6ff05d8224da622bf195c6d2829842d85d2d1acb",
+          "absent": false
+        },
+        "frontend/tests/e2e/sp500_analysis_journey.spec.ts": {
+          "sha256": "262af40bbfc6737909a9a4efdd573be75944c2dd69b8d30fda48733e72e1d958",
+          "known_source": "6ff05d8224da622bf195c6d2829842d85d2d1acb",
+          "absent": false
+        },
+        "frontend/tests/e2e/supporting_features_journey.spec.ts": {
+          "sha256": "9cc0ee6bbeb8d832cf1de4616444f512cafe5ca3fb02edbf77f50248836b176b",
+          "known_source": "6ff05d8224da622bf195c6d2829842d85d2d1acb",
+          "absent": false
+        },
+        "frontend/tests/unit/components/test_instrument_note_tool.test.ts": {
+          "sha256": null,
+          "known_source": "6ff05d8224da622bf195c6d2829842d85d2d1acb",
+          "absent": true
+        }
+      },
+      "owned_overlap": []
+    }
+  ],
+  "scope": "Reviewed ETF usability successor: independent shared search/holdings behavior, note draft lifecycle with existing auth-session fencing, exact alert201, new-document RRG response provenance and cached basket premise; backend selected-series synthetic aggregation is separate Provider composite.",
+  "evidence": {
+    "owner": "Read frozen owner handoff and validation entries for exact substantive source; not broad release acceptance.",
+    "root": "Committed files equal owner working bytes; consumer old/new guards and Git100644 verified. Native/combined/full release pending.",
+    "postgres": "root-etf-selected-series-pg-cleanup-review.json"
+  },
+  "preserve": "Keep complete roadmaps and historical receipts, native holds and datasets. Only declared imports; no overlap with other owner writes, no amend source or metadata-only commit."
+}

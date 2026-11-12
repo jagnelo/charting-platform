@@ -656,7 +656,7 @@ describe('workspace store layout tabs', () => {
     expect(apiGet).toHaveBeenCalledWith('/analysis/benchmark-families/sp500/overview', {
       timeframe: 'W1',
       adjusted: false,
-    })
+    }, expect.objectContaining({ priority: 'auto' }))
     expect(result?.official_index_symbol).toBe('SPX')
     expect(store.benchmarkFamilyOverviews['sp500:W1:raw:latest']?.mappings[0]?.symbol).toBe('RSP')
     expect(store.benchmarkFamilyOverviewErrors['sp500:W1:raw:latest']).toBeNull()
@@ -798,7 +798,7 @@ describe('workspace store layout tabs', () => {
     expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp400/snapshot', { benchmark: 'MDY', timeframe: 'W1' }, {
       priority: 'auto', queueKey: 'top-down:group-snapshot:sp400',
     })
-    expect(apiGet).toHaveBeenCalledWith('/analysis/benchmark-families/sp400/overview', { timeframe: 'W1' })
+    expect(apiGet).toHaveBeenCalledWith('/analysis/benchmark-families/sp400/overview', { timeframe: 'W1' }, expect.objectContaining({ priority: 'auto' }))
     expect(store.marketGroups.sp400?.stable_key).toBe('sp400')
     expect(store.groupSnapshots.sp400).toEqual(expect.objectContaining({ group_key: 'sp400' }))
   })
@@ -2654,6 +2654,33 @@ describe('workspace store layout tabs', () => {
     expect(result?.exclusions).toEqual(['unclassified_constituent'])
     expect(store.etfIndustryLoading.XLB).toBe(false)
     expect(store.etfIndustryErrors.XLB).toBeNull()
+  })
+
+  it('clears an ETF industry loading flag when a newer load for another ETF supersedes it', async () => {
+    const store = useWorkspaceStore()
+    const composition = {
+      composition_date: '2026-11-02', known_at: null, provenance: 'dated_holdings_snapshot', source_provider: 'controlled-source',
+      completeness_status: 'complete', industries: [], exclusions: [], classification_systems: ['GICS'], classification_coverage: 0,
+    }
+    let releaseXLB!: (value: unknown) => void
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/market-groups/etf/XLB/industries') {
+        return new Promise(resolve => { releaseXLB = resolve })
+      }
+      if (path === '/market-groups/etf/XLK/industries') {
+        return Promise.resolve({ etf_symbol: 'XLK', ...composition })
+      }
+      return Promise.resolve([])
+    })
+
+    const firstLoad = store.loadETFIndustries('XLB')
+    await store.loadETFIndustries('XLK')
+    expect(store.etfIndustryLoading.XLB).toBe(true)
+
+    releaseXLB({ etf_symbol: 'XLB', ...composition })
+    await firstLoad
+
+    expect(store.etfIndustryLoading.XLB).toBe(false)
   })
 
   it('retains cached dated industry composition when a refresh has no current result', async () => {

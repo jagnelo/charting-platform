@@ -68,7 +68,9 @@ class Instrument(Base, TimestampMixin):
 
     instrument_type: Mapped["InstrumentType"] = relationship(back_populates="instruments")
     issuer: Mapped[Optional["Issuer"]] = relationship(back_populates="instruments")
-    listings: Mapped[list["InstrumentListing"]] = relationship(back_populates="instrument")
+    listings: Mapped[list["InstrumentListing"]] = relationship(
+        back_populates="instrument", lazy="selectin"
+    )
     ohlcv_bars: Mapped[list["OHLCVBar"]] = relationship(back_populates="instrument")
     market_series: Mapped[list["MarketSeries"]] = relationship(back_populates="instrument")
     drawings: Mapped[list["ChartDrawing"]] = relationship(back_populates="instrument")

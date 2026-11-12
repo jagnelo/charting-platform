@@ -1,0 +1,38 @@
+{
+  "at": "2026-11-07T03:49:55.569040+00:00",
+  "source": "b555268b8237d1c50e34b39320b4cb18a8bd9a03",
+  "authority": "Root coordinates the human-approved common-interface implementation; no staging or deployment acceptance",
+  "state": "released_for_exact_development_consumption_not_product_acceptance",
+  "base": "139b350238b5e1c8a170dce5af09a805301d857e",
+  "consumers": [
+    {
+      "consumer": "TC",
+      "owned_overlap": []
+    }
+  ],
+  "files": [
+    {
+      "path": "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "8c8b735f2384676e478ef1a2637f0d1e20eb8b4c",
+      "sha256": "ef84f5f843479bcf9f6203ee55b1945017dab1d2898769e66140731fdc20801e"
+    }
+  ],
+  "changed_paths_since_previous": [
+    "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts"
+  ],
+  "scope": "Four authored workstation lifecycle browser journeys: canonical eight-layout/full-catalogue inventory, useful outcomes for all copied default panels, public close/recreate tools, explicit reversible lifecycle, resize/maximize and persistence.",
+  "ownership": "Strategy remains sole writer for this browser spec; TC imports exact bytes and maps its global matrix. Common Product, ETF/S&P specs and producer workstream records are excluded.",
+  "evidence": {
+    "owner": "Frontend type-check and four-case Playwright discovery only; browser bodies unrun.",
+    "root": "Reviewed actual native-arc/raster RRG marker proof, series-color raster witnesses, all-default-panel copy iteration, ordinary controls, fresh Favorites prerequisite, finite executed scan/gauge arithmetic and bounded timeouts.",
+    "acceptance": "Pending Root combined actual browser execution, critical visual review and release qualification. No product or source acquisition acceptance implied."
+  },
+  "required_dependencies": [
+    "TC5a compatible shared runtime",
+    "Provider b1 compatible preparation backend",
+    "ETF a0c525 shared search",
+    "Strategy8d secondary Dashboard where relevant"
+  ],
+  "preserve": "No repeated metadata-only commit, duplicate full suite or new fixture. Preserve full roadmap, assertions, references and tolerances."
+}

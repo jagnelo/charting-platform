@@ -471,6 +471,38 @@ describe('StudyLabTool', () => {
     expect(apiPost).not.toHaveBeenCalledWith(expect.stringContaining('/cancel'), expect.anything())
   })
 
+  it('validates on a partial target that already has local history and says it is partial', async () => {
+    ensurePreparation.mockImplementation((request: { target: { symbol?: string } }) => request.target.symbol === 'SPY'
+      ? Promise.resolve({ status: 'partial', dependencies: [{ dataset: 'history', covered_ranges: [{ start_at: '2024-01-02', end_at: '2026-01-02' }] }] })
+      : Promise.resolve({ status: 'ready' }))
+    apiPost.mockImplementation((path: string) => path === '/code/validate'
+      ? Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] })
+      : Promise.resolve({}))
+    const wrapper = mountTool({
+      activeSymbol: 'XLB',
+      configuration: { symbols: 'SPY,XLK', benchmark: 'QQQ' },
+    })
+
+    await wrapper.get('button[aria-label="Validate study"]').trigger('click')
+    await vi.waitFor(() => expect(apiPost.mock.calls.some(([path]) => path === '/code/validate')).toBe(true))
+    await vi.waitFor(() => expect(wrapper.get('[aria-label="Study data preparation outcomes"]').text()).toContain('Partial local history for SPY is usable'))
+    expect(wrapper.get('[aria-label="Study data preparation"]').text()).not.toContain('Some selected Study data is not ready')
+  })
+
+  it('keeps blocking a partial target that has no local history', async () => {
+    ensurePreparation.mockImplementation((request: { target: { symbol?: string } }) => request.target.symbol === 'SPY'
+      ? Promise.resolve({ status: 'partial', dependencies: [{ dataset: 'history', covered_ranges: [] }] })
+      : Promise.resolve({ status: 'ready' }))
+    const wrapper = mountTool({
+      activeSymbol: 'XLB',
+      configuration: { symbols: 'SPY,XLK', benchmark: 'QQQ' },
+    })
+
+    await wrapper.get('button[aria-label="Validate study"]').trigger('click')
+    await vi.waitFor(() => expect(wrapper.get('[aria-label="Study data preparation"]').text()).toContain('Some selected Study data is not ready'))
+    expect(apiPost.mock.calls.some(([path]) => path === '/code/validate')).toBe(false)
+  })
+
   it('keeps later preparation outcomes when one target request rejects', async () => {
     ensurePreparation.mockImplementation((request: { target: { symbol?: string } }) => {
       if (request.target.symbol === 'SPY') return Promise.reject(new Error('Preparation request timed out.'))
@@ -2184,6 +2216,33 @@ describe('StudyLabTool', () => {
     expect(wrapper.find('.range-chart').exists()).toBe(true)
   })
 
+  it('previews large event and table results without rendering every row', async () => {
+    const events = Array.from({ length: 250 }, (_, index) => ({ symbol: 'SPY', timestamp: `2026-01-${String((index % 28) + 1).padStart(2, '0')}T${String(index % 24).padStart(2, '0')}:00:00Z`, kind: 'new_high' }))
+    const rows = Array.from({ length: 450 }, (_, index) => ({ event_index: index, horizon: 1, forward_return: index / 1000 }))
+    apiGet.mockImplementation((path: string) => path === '/code/assets'
+      ? Promise.resolve([{ versions: [{ id: 244, source: "output.events('highs', [])", parameter_schema: {}, default_parameters: {} }] }])
+      : Promise.resolve(undefined))
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['market', 'output'], lookback_hint: 1, output_contracts: ['events', 'table'] })
+      if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 244 }] })
+      if (path === '/research/runs') return Promise.resolve({ id: 245, code_version_id: 244, status: 'completed', artifacts: [
+        { id: 1, name: 'highs', artifact_type: 'events', payload: { value: events } },
+        { id: 2, name: 'returns', artifact_type: 'table', payload: { value: rows } },
+      ] })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool({ activeSymbol: 'SPY' })
+    await wrapper.find('[aria-label="Study Python source"]').setValue("output.events('highs', [])")
+    await wrapper.find('button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+    await wrapper.findAll('button')[1].trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #245'))
+    expect(wrapper.findAll('[aria-label="highs occurrences"] [role="listitem"]')).toHaveLength(200)
+    expect(wrapper.findAll('tbody tr')).toHaveLength(200)
+    expect(wrapper.text()).toContain('Showing the first 200 of 250 occurrences')
+    expect(wrapper.text()).toContain('Showing the first 200 of 450 rows')
+  })
+
   it('promotes a completed event study without coercing its event contract', async () => {
     apiGet.mockImplementation((path: string) => path === '/code/assets'
       ? Promise.resolve([{ versions: [{ id: 144, source: "output.events('signals', [])", parameter_schema: {}, default_parameters: {} }] }])
@@ -2245,7 +2304,8 @@ describe('StudyLabTool', () => {
       if (path === '/research/runs/91/rerun?snapshot=false') return Promise.resolve({ id: 92, status: 'queued', artifacts: [] })
       return Promise.resolve({})
     })
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    // Keep cache entries alive so the getQueryData assertion below cannot race garbage collection on a slow runner.
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } })
     const wrapper = mountTool({ activeSymbol: 'SPY' }, queryClient)
     await wrapper.find('button').trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
@@ -2276,7 +2336,8 @@ describe('StudyLabTool', () => {
       if (path === '/research/runs/150/rerun?snapshot=true') return rerun.promise
       return Promise.resolve({})
     })
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    // Keep cache entries alive so the getQueryData assertion below cannot race garbage collection on a slow runner.
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } })
     const results = mount(ResearchResultsTool, {
       global: { plugins: [[VueQueryPlugin, { queryClient }]], stubs: { RouterLink: { props: ['to'], template: '<a><slot /></a>' } } },
     })
@@ -2298,4 +2359,38 @@ describe('StudyLabTool', () => {
     expect(queryClient.getQueryData(['workstation', 'research-run', 151])).toMatchObject({ id: 151, status: 'queued' })
     results.unmount()
   })
+
+    it('sizes the Python source editor to show the whole default factory source', () => {
+      const wrapper = mountTool({ activeSymbol: 'SPY', configuration: {} })
+      const editor = wrapper.get('[aria-label="Study Python source"]').element as HTMLTextAreaElement
+      // Ten default factory lines at 14px each plus padding, so no line is cut off by default.
+      expect(editor.style.minHeight).toBe('156px')
+    })
+
+    it('lists validation diagnostics with their location and keeps the raw JSON behind Details', async () => {
+      const diagnostic = { message: 'Unknown name dataset2', line: 3, column: 5 }
+      apiPost.mockImplementation((path: string) => {
+        if (path === '/code/validate') return Promise.resolve({ valid: false, diagnostics: [diagnostic], dependencies: [], lookback_hint: null, output_contracts: [] })
+        return Promise.resolve({})
+      })
+      const wrapper = mountTool({ activeSymbol: 'SPY', configuration: {} })
+      await wrapper.get('button[aria-label="Validate study"]').trigger('click')
+      await vi.waitFor(() => expect(wrapper.text()).toContain('Validation errors'))
+
+      const items = wrapper.findAll('.study-lab-tool__diagnostics li')
+      expect(items).toHaveLength(1)
+      expect(items[0]!.text()).toBe('Unknown name dataset2 (line 3, column 5)')
+      expect(wrapper.get('.study-lab-tool__raw pre').text()).toContain('"message": "Unknown name dataset2"')
+    })
+
+    it('separates the validated status from its dependency summary', async () => {
+      apiPost.mockImplementation((path: string) => {
+        if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] })
+        return Promise.resolve({})
+      })
+      const wrapper = mountTool({ activeSymbol: 'SPY', configuration: {} })
+      await wrapper.get('button[aria-label="Validate study"]').trigger('click')
+      await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+      expect(wrapper.text()).toContain('Validated for isolated execution · Dependencies: output')
+    })
 })

@@ -7,6 +7,9 @@ from zoneinfo import ZoneInfo
 import pytest
 from sqlalchemy.dialects import postgresql
 
+from app.models.exchange import Exchange
+from app.models.instrument import Instrument
+from app.models.listing import InstrumentListing
 from app.models.ohlcv import TIMEFRAME_SECONDS, OHLCVBar, Timeframe
 from app.providers.base import InstrumentProfile
 from app.services import market_data
@@ -20,6 +23,7 @@ from app.services.market_data import (
 from app.services.ohlcv_coverage import (
     CoverageStatus,
     assess_ohlcv_coverage,
+    coverage_calendar_for_instrument,
     missing_range_slices,
 )
 from app.services.provider_runtime import ProviderNoDataError
@@ -1085,3 +1089,54 @@ async def test_latest_price_refresh_redis_timeout_fails_closed_without_provider(
     with pytest.raises(DistributedLockError, match="timed out"):
         await market_data.get_current_price_async(object(), instrument, redis=_Redis())
     assert provider_called is False
+
+
+def test_coverage_calendar_is_xnys_after_plain_db_get_without_preloaded_listings(db, instrument):
+    """A plain db.get must still see the primary listing that drives the XNYS calendar."""
+    exchange = Exchange(mic="XNYS", name="New York Stock Exchange", country_code="US")
+    db.add(exchange)
+    db.flush()
+    db.add(
+        InstrumentListing(
+            instrument_id=instrument.id,
+            exchange_id=exchange.id,
+            ticker=instrument.symbol,
+            currency="USD",
+            is_primary=True,
+            is_active=True,
+        )
+    )
+    db.flush()
+    db.expunge_all()
+
+    loaded = db.get(Instrument, instrument.id)
+
+    assert coverage_calendar_for_instrument(loaded) == "XNYS"
+
+
+@pytest.mark.parametrize(
+    ("start", "end"),
+    [
+        (date(2025, 12, 20), date(2026, 1, 10)),
+        (date(2020, 6, 15), date(2021, 1, 5)),
+        (date(2024, 1, 1), date(2024, 12, 31)),
+    ],
+)
+def test_memoized_xnys_session_days_match_a_naive_walk_and_return_fresh_sets(start, end):
+    """Calendar memoization must not change sessions, and callers cannot poison it."""
+    from app.services import ohlcv_coverage as coverage
+
+    holidays: set[date] = set()
+    for year in range(start.year, end.year + 1):
+        holidays.update(coverage._xnys_holidays(year))
+    expected: set[date] = set()
+    cursor = start
+    while cursor <= end:
+        if cursor.weekday() < 5 and cursor not in holidays:
+            expected.add(cursor)
+        cursor += timedelta(days=1)
+
+    first = coverage._xnys_session_days(start, end)
+    assert first == expected
+    first.clear()
+    assert coverage._xnys_session_days(start, end) == expected

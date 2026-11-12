@@ -50,10 +50,10 @@ describe('linked instrument tool stale-response guards', () => {
     apiGet.mockReturnValue(note.promise)
     const wrapper = mountNote({ props: { instrumentId: 1, symbol: 'SPY' } })
     await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/notes/instruments/1', undefined, {
-      foreground: false,
       priority: 'auto',
       queueKey: 'instrument-note:1',
       signal: expect.any(AbortSignal),
+      foreground: false,
     }))
     wrapper.unmount()
 

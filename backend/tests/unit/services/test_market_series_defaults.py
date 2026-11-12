@@ -6,7 +6,9 @@ from sqlalchemy.orm import Session
 
 import app.models  # noqa: F401 - register all foreign-key targets
 from app.database import Base
+from app.models.exchange import Exchange
 from app.models.instrument import Instrument
+from app.models.listing import InstrumentListing
 from app.models.market_data_foundation import (
     AdjustmentBasis,
     MarketSeries,
@@ -353,6 +355,16 @@ def test_deeper_provider_default_switches_only_after_complete_coherent_range():
                     is_active=True,
                     identity_status="resolved",
                 ),
+                Exchange(id=1, mic="XNYS", name="New York Stock Exchange", country_code="US"),
+                InstrumentListing(
+                    id=1,
+                    instrument_id=1,
+                    exchange_id=1,
+                    ticker="TEST",
+                    currency="USD",
+                    is_primary=True,
+                    is_active=True,
+                ),
                 massive,
                 alpaca,
                 MarketSeriesDefault(
@@ -523,6 +535,16 @@ def test_latest_contiguous_deeper_suffix_can_upgrade_default_without_hiding_olde
                     currency="USD",
                     is_active=True,
                     identity_status="resolved",
+                ),
+                Exchange(id=1, mic="XNYS", name="New York Stock Exchange", country_code="US"),
+                InstrumentListing(
+                    id=1,
+                    instrument_id=1,
+                    exchange_id=1,
+                    ticker="TEST",
+                    currency="USD",
+                    is_primary=True,
+                    is_active=True,
                 ),
                 massive,
                 alpaca,

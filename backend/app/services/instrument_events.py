@@ -17,6 +17,7 @@ from app.models.instrument_event import (
     InstrumentEventPageSnapshot,
     InstrumentEventType,
 )
+from app.models.market_data_foundation import MarketRefreshJob
 from app.models.ohlcv import OHLCVBar
 from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
 from app.models.provider_runtime import ProviderCapability
@@ -40,6 +41,285 @@ from app.services.provider_runtime import (
 logger = logging.getLogger(__name__)
 
 EVENT_FETCH_VERSION = 3
+
+
+def _as_utc(value: datetime | None) -> datetime | None:
+    if value is None:
+        return None
+    if value.tzinfo is None or value.utcoffset() is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
+
+
+def instrument_events_refresh_request_key(
+    instrument_id: int,
+    state: InstrumentEventFetchState | None = None,
+) -> str:
+    """Return a durable dedupe key for the next event page for one instrument."""
+
+    if (
+        state is not None
+        and not state.complete
+        and state.continuation_token
+        and state.query_fingerprint
+    ):
+        return (
+            f"instrument-events:{int(instrument_id)}:{state.source}:"
+            f"{state.query_fingerprint}:{state.page_count}"
+        )
+    if state is not None and not state.complete and state.query_fingerprint:
+        return (
+            f"instrument-events:{int(instrument_id)}:{state.source}:"
+            f"{state.query_fingerprint}:{state.page_count}"
+        )
+    return f"instrument-events:{int(instrument_id)}:v{EVENT_FETCH_VERSION}:initial"
+
+
+async def enqueue_instrument_events_refresh(
+    db: AsyncSession,
+    instrument: Instrument,
+    *,
+    refresh: bool = False,
+    priority: int = 10,
+    now: datetime | None = None,
+) -> bool:
+    """Persist a bounded event refresh request without blocking a cache read."""
+
+    if instrument.is_synthetic:
+        return False
+
+    current = _as_utc(now) or datetime.now(UTC)
+    fresh_dataset = (
+        await db.execute(
+            select(InstrumentDatasetState)
+            .where(
+                InstrumentDatasetState.instrument_id == instrument.id,
+                InstrumentDatasetState.dataset_type == "events",
+                InstrumentDatasetState.dataset_key == "calendar",
+                InstrumentDatasetState.status == DatasetStatus.FRESH,
+                InstrumentDatasetState.stale_after.is_not(None),
+                InstrumentDatasetState.stale_after > current,
+            )
+            .order_by(InstrumentDatasetState.stale_after.desc())
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    state = (
+        await db.execute(
+            select(InstrumentEventFetchState)
+            .execution_options(populate_existing=True)
+            .where(InstrumentEventFetchState.instrument_id == instrument.id)
+            .order_by(InstrumentEventFetchState.fetched_at.desc())
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    continuation_pending = (
+        state is not None
+        and state.fetch_version >= EVENT_FETCH_VERSION
+        and not state.complete
+        and bool(state.continuation_token)
+    )
+    if fresh_dataset is not None and not refresh and not continuation_pending:
+        return False
+
+    request_key = instrument_events_refresh_request_key(instrument.id, state)
+    existing_job = (
+        await db.execute(
+            select(MarketRefreshJob).where(MarketRefreshJob.request_key == request_key)
+        )
+    ).scalar_one_or_none()
+    existing_summary = (existing_job.result_summary if existing_job is not None else None) or {}
+    terminal_without_retry = (
+        existing_job is not None
+        and existing_job.status == "completed"
+        and (
+            existing_summary.get("preparation_status") in {"held", "unavailable"}
+            or existing_summary.get("reason_code") == "event_page_incomplete"
+        )
+        and not existing_summary.get("retry_at")
+    )
+    if terminal_without_retry and not refresh:
+        return False
+    existing_wait_is_live = existing_job is not None and existing_job.status in {
+        "retry",
+        "deferred",
+    }
+    if existing_wait_is_live:
+        existing_wait_is_live = _as_utc(existing_job.next_attempt_at) > _as_utc(current)
+    if existing_wait_is_live and not refresh:
+        return False
+
+    from app.services.market_refresh_queue import enqueue_refresh_job
+
+    job = await enqueue_refresh_job(
+        db,
+        request_key=request_key,
+        capability=ProviderCapability.INSTRUMENT_EVENTS.value,
+        instrument_id=instrument.id,
+        priority=priority,
+        metadata_payload={
+            "instrument_event_refresh": {
+                "instrument_id": int(instrument.id),
+                "requested_at": current.isoformat(),
+            }
+        },
+        now=current,
+        preserve_deferred_deadline=True,
+        requeue_completed=True,
+    )
+    return job.status not in {"leased", "deferred"}
+
+
+async def instrument_events_refresh_status(
+    db: AsyncSession,
+    instrument: Instrument,
+    *,
+    now: datetime | None = None,
+) -> dict[str, object]:
+    """Project existing cache and durable job state for a Calendar client."""
+
+    current = _as_utc(now) or datetime.now(UTC)
+    state = (
+        await db.execute(
+            select(InstrumentEventFetchState)
+            .execution_options(populate_existing=True)
+            .where(InstrumentEventFetchState.instrument_id == instrument.id)
+            .order_by(InstrumentEventFetchState.fetched_at.desc())
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    request_key = instrument_events_refresh_request_key(instrument.id, state)
+    job = (
+        await db.execute(
+            select(MarketRefreshJob).where(MarketRefreshJob.request_key == request_key)
+        )
+    ).scalar_one_or_none()
+    # Accepted queue work takes precedence over cache freshness. A fresh page
+    # may coexist with an explicit refresh or a cursor continuation; reporting
+    # ready first would cause clients to stop observing before that work ends.
+    if job is not None and job.status == "leased":
+        return {
+            "status": "running",
+            "has_pending_work": True,
+            "retry_at": None,
+            "reason_code": None,
+            "updated_at": _as_utc(job.updated_at or job.created_at),
+        }
+    if job is not None and job.status == "queued":
+        return {
+            "status": "queued",
+            "has_pending_work": True,
+            "retry_at": _as_utc(job.next_attempt_at),
+            "reason_code": None,
+            "updated_at": _as_utc(job.updated_at or job.created_at),
+        }
+    if job is not None and job.status in {"retry", "deferred"}:
+        defer_reason = (job.metadata_payload or {}).get("defer_reason")
+        return {
+            "status": "deferred",
+            "has_pending_work": True,
+            "retry_at": _as_utc(job.next_attempt_at),
+            "reason_code": "provider_reset"
+            if defer_reason == "provider_reset"
+            else "retry_backoff"
+            if job.status == "retry"
+            else "retry_wait",
+            "updated_at": _as_utc(job.updated_at or job.created_at),
+        }
+
+    if state is not None and state.fetch_version >= EVENT_FETCH_VERSION and not state.complete:
+        summary = (job.result_summary if job is not None else None) or {}
+        stored_status = str(summary.get("preparation_status") or "")
+        if stored_status in {"held", "unavailable"}:
+            return {
+                "status": stored_status,
+                "has_pending_work": False,
+                "retry_at": summary.get("retry_at"),
+                "reason_code": summary.get("reason_code"),
+                "updated_at": _as_utc(
+                    (job.updated_at or job.finished_at or job.created_at)
+                    if job is not None
+                    else state.fetched_at
+                ),
+            }
+        return {
+            "status": "partial",
+            "has_pending_work": False,
+            "retry_at": summary.get("retry_at"),
+            "reason_code": summary.get("reason_code")
+            or (
+                "event_continuation_not_queued"
+                if state.continuation_token
+                else "event_page_incomplete"
+            ),
+            "updated_at": _as_utc(
+                (job.updated_at or job.finished_at or job.created_at)
+                if job is not None
+                else state.fetched_at
+            ),
+        }
+
+    fresh_dataset = (
+        await db.execute(
+            select(InstrumentDatasetState)
+            .where(
+                InstrumentDatasetState.instrument_id == instrument.id,
+                InstrumentDatasetState.dataset_type == "events",
+                InstrumentDatasetState.dataset_key == "calendar",
+                InstrumentDatasetState.status == DatasetStatus.FRESH,
+                InstrumentDatasetState.stale_after.is_not(None),
+                InstrumentDatasetState.stale_after > current,
+            )
+            .order_by(
+                InstrumentDatasetState.fetched_at.desc(),
+                InstrumentDatasetState.observed_at.desc(),
+            )
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    if fresh_dataset is not None:
+        return {
+            "status": "ready",
+            "has_pending_work": False,
+            "retry_at": None,
+            "reason_code": None,
+            "updated_at": _as_utc(fresh_dataset.fetched_at or fresh_dataset.observed_at),
+        }
+    if job is None:
+        return {
+            "status": "not_requested",
+            "has_pending_work": False,
+            "retry_at": None,
+            "reason_code": None,
+            "updated_at": None,
+        }
+
+    summary = job.result_summary or {}
+    preparation_status = str(summary.get("preparation_status") or "")
+    reason_code = summary.get("reason_code")
+    if preparation_status == "ready":
+        return {
+            "status": "stale",
+            "has_pending_work": False,
+            "retry_at": None,
+            "reason_code": "calendar_cache_stale",
+            "updated_at": _as_utc(job.updated_at or job.finished_at or job.created_at),
+        }
+    if preparation_status in {"ready", "partial", "held", "unavailable"}:
+        return {
+            "status": preparation_status,
+            "has_pending_work": False,
+            "retry_at": summary.get("retry_at"),
+            "reason_code": reason_code,
+            "updated_at": _as_utc(job.updated_at or job.finished_at or job.created_at),
+        }
+    return {
+        "status": "unavailable",
+        "has_pending_work": False,
+        "retry_at": None,
+        "reason_code": "refresh_failed",
+        "updated_at": _as_utc(job.updated_at or job.finished_at or job.created_at),
+    }
 
 
 def _event_query_fingerprint(
@@ -164,7 +444,12 @@ async def _materialize_provider_adjusted_views(
             )
 
 
-async def fetch_and_store_instrument_events(db: AsyncSession, instrument: Instrument) -> int:
+async def fetch_and_store_instrument_events(
+    db: AsyncSession,
+    instrument: Instrument,
+    *,
+    seed_runtime: bool = True,
+) -> int:
     if instrument.is_synthetic:
         return 0
     prior_state = (
@@ -238,6 +523,7 @@ async def fetch_and_store_instrument_events(db: AsyncSession, instrument: Instru
         invoke=_invoke,
         response_items=lambda result: len(result.events),
         treat_empty_as_failure=False,
+        seed_runtime=seed_runtime,
     )
 
     page = execution.result

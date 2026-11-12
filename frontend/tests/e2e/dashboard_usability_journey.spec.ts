@@ -67,13 +67,14 @@ function dailyBarsResponse(page: Page, symbol: string, limit: number) {
   }, { timeout: 20_000 })
 }
 
-function localDailyBarsResponse(page: Page, symbol: string, limit: number) {
+function localDailyBarsResponse(page: Page, symbol: string, limit: number, startedAfter = 0) {
   return page.waitForResponse(response => {
     if (response.request().method() !== 'GET') return false
+    if (response.request().timing().startTime < startedAfter) return false
     const url = new URL(response.url())
     return url.pathname === `/api/v1/ohlcv/local/${encodeURIComponent(symbol)}/D1`
       && Number(url.searchParams.get('limit')) === limit
-  }, { timeout: 20_000 })
+  }, { timeout: 20_000 }).then(retainBody)
 }
 
 function preparationResponse(page: Page, symbol: string) {
@@ -84,12 +85,20 @@ function preparationResponse(page: Page, symbol: string) {
   }, { timeout: 20_000 })
 }
 
-function instrumentProfileResponse(page: Page, symbol: string) {
+function instrumentProfileResponse(page: Page, symbol: string, startedAfter = 0) {
   return page.waitForResponse(response =>
     response.request().method() === 'GET'
+      && response.request().timing().startTime >= startedAfter
       && responsePath(response) === `/api/v1/instruments/${encodeURIComponent(symbol)}`,
     { timeout: 20_000 },
-  )
+  ).then(retainBody)
+}
+
+// Read the body as soon as the response arrives: a reload can otherwise
+// discard it before the assertion reads it ("No resource with given identifier").
+async function retainBody(response: Response): Promise<Response> {
+  await response.body().catch(() => undefined)
+  return response
 }
 
 type DailyBar = { ts?: string; close?: number }
@@ -880,8 +889,10 @@ test('Dashboard Advanced Chart and Instrument Details stay useful on cached data
       config: { symbol: 'XLB', timeframe: 'D1' },
     })
 
-    const restoredSpyBars = localDailyBarsResponse(page, 'SPY', 500)
-    const restoredXlbProfile = instrumentProfileResponse(page, 'XLB')
+    // Only responses requested by the reloaded page count as restored reads.
+    const reloadStartedAt = Date.now()
+    const restoredSpyBars = localDailyBarsResponse(page, 'SPY', 500, reloadStartedAt)
+    const restoredXlbProfile = instrumentProfileResponse(page, 'XLB', reloadStartedAt)
     await page.reload()
     await expect(page.locator('.dashboard-view')).toBeVisible()
     const restoredAdvanced = page.locator('.dashboard-widget').filter({ has: page.locator('.advanced-chart-widget') })

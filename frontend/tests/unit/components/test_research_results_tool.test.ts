@@ -84,7 +84,7 @@ describe('ResearchResultsTool', () => {
       expect(apiGet).toHaveBeenCalledWith(
         '/research/runs',
         { limit: 26, include_artifacts: false },
-        expect.objectContaining({ priority: 'high' }),
+        expect.objectContaining({ priority: 'high', foreground: true }),
       )
       await flushPromises()
       expect(wrapper.text()).toContain('No persisted studies yet. Run a study in the adjacent Study Lab pane.')
@@ -154,7 +154,7 @@ describe('ResearchResultsTool', () => {
     expect(apiGet).toHaveBeenCalledWith(
       '/research/runs',
       { limit: 26, include_artifacts: false },
-      { signal: expect.any(AbortSignal), priority: 'high' },
+      { signal: expect.any(AbortSignal), priority: 'high', foreground: true },
     )
     expect(wrapper.text()).toContain('Run #9')
     expect(wrapper.text()).toContain('current_streak')
@@ -282,7 +282,7 @@ describe('ResearchResultsTool', () => {
       include_artifacts: false,
       before_created_at: firstPage[24].created_at,
       before_id: firstPage[24].id,
-    }, expect.objectContaining({ priority: 'high' }))
+    }, expect.objectContaining({ priority: 'high', foreground: true }))
     expect(wrapper.findAll('[role="listitem"]')).toHaveLength(50)
     expect(wrapper.get('[role="listitem"].research-results-tool__run[aria-current="true"]').text()).toContain('Run #77')
     expect((wrapper.get('input[aria-label="Compare run 100"]').element as HTMLInputElement).checked).toBe(true)

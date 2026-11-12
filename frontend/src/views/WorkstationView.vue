@@ -352,7 +352,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, useId, watch, type Ref, type VNode } from 'vue'
+import { computed, defineComponent, h, nextTick, onBeforeUnmount, onMounted, ref, useId, watch, type PropType, type Ref, type VNode } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuery } from '@tanstack/vue-query'
 import WorkspaceLayoutHost from '@/components/workstation/WorkspaceLayoutHost.vue'
@@ -360,7 +360,7 @@ import WorkstationToolContent from '@/components/workstation/WorkstationToolCont
 import WorkstationGlyph from '@/components/workstation/WorkstationGlyph.vue'
 import { refreshMountedWorkstationChartPanels, useChartStore } from '@/stores/chart'
 import { useAuthStore } from '@/stores/auth'
-import { useWorkspaceStore, type LinkGroup, type OpenableToolDefinition, type WorkspaceTabRecovery } from '@/stores/workspace'
+import { useWorkspaceStore, type LinkGroup, type OpenableToolDefinition, type WorkspaceTabRecovery, type WorkspaceWindowState } from '@/stores/workspace'
 import type { LayoutConfig } from 'golden-layout'
 import { resolveKnownInstrument } from '@/lib/instruments'
 import { createKnownTemporaryRetryLifecycle, isConfirmedInstrumentSelection, isCurrentETFHoldingsCapability, isEligibleETFHoldingsInstrumentType, readETFHoldingsCapability, resolveExistingInstrument, type InstrumentDiscoveryResponse } from '@/lib/onDemandAcquisition'
@@ -1109,15 +1109,10 @@ function humanizeWorkspaceError(error: string | null | undefined): string {
 // canonical requests. Vue Query automatically pauses the interval while the
 // document is hidden; the explicit visibility gate also prevents a queued
 // refresh from starting while hidden.
-// Priority for the next market-analysis read. A visible mount requests 'high'
-// through the single query path, so one mount issues one store refresh.
-let marketAnalysisQueryPriority: 'auto' | 'high' = 'auto'
 const marketAnalysisQuery = useQuery({
   queryKey: ['workstation', 'market-analysis'],
   queryFn: async () => {
-    const priority = marketAnalysisQueryPriority
-    marketAnalysisQueryPriority = 'auto'
-    await workspaceStore.refreshMarketAnalysis(priority)
+    await workspaceStore.refreshMarketAnalysis()
     return true
   },
   enabled: computed(() => !isPopout.value && documentVisible.value && Boolean(workspaceStore.workspace) && workspaceStore.isPersistenceLeader),
@@ -1159,9 +1154,13 @@ async function refreshMarketData() {
     return
   }
   if (workspaceStore.isPersistenceLeader) {
-    // Mounting a visible analysis surface is user-visible work. Request it at
-    // high priority through the query, which is the only refresh path here.
-    marketAnalysisQueryPriority = 'high'
+    // Mounting a visible analysis surface is user-visible work. If the shell's
+    // interval refresh already queued these same reads, the store promotes the
+    // existing requests rather than issuing duplicates.
+    // The store dedupes concurrent refreshes and promotes queued reads to 'high',
+    // so this single direct call owns the mount-time priority; the Query refetch
+    // below then joins the in-flight promise instead of issuing a second set.
+    await workspaceStore.refreshMarketAnalysis('high')
     await marketAnalysisQuery.refetch()
   } else {
     // Followers still hydrate once when they open. Subsequent periodic refreshes are
@@ -1335,6 +1334,10 @@ function syncChartRouteToSelection(
   if (isPopout.value || !/^\/chart(?:\/|$)/.test(route.path)) return
   const symbol = rawSymbol.trim().toUpperCase()
   if (!symbol) return
+  // A requested SPX that resolved to its labelled tradable proxy keeps the
+  // user's SPX URL; rewriting it would present the proxy as the request.
+  const requestedRouteSymbol = typeof route.params.symbol === 'string' ? route.params.symbol.trim().toUpperCase() : ''
+  if (requestedRouteSymbol === 'SPX' && symbolProxyNotice.value === `SPX official series unavailable; using tradable proxy ${symbol}`) return
   const candidateHoldingContext = candidateContext
     ?? (!isPrivateBasketToken(symbol) && activeHoldingContext.value?.symbol === symbol
       ? activeHoldingContext.value.context
@@ -3134,8 +3137,37 @@ async function reconcilePopoutPlacement(windowKey: string, popup: Window, initia
   }
 }
 
-function renderDockTool(dockTool: { instance_key: string; title: string; tool_type: string }, actions: { toggleMaximize: () => Promise<void>; maximized: Readonly<Ref<boolean>>; maximizing: Readonly<Ref<boolean>>; close: () => void }): VNode {
-  const tool = workspaceStore.activeTab?.windows.find(window => window.instance_key === dockTool.instance_key)
+type DockToolDescriptor = { instance_key: string; title: string; tool_type: string }
+type DockToolRenderActions = { toggleMaximize: () => Promise<void>; maximized: Readonly<Ref<boolean>>; maximizing: Readonly<Ref<boolean>>; close: () => void }
+
+// Golden Layout renders each virtual tool once into a detached root. Every
+// acknowledged snapshot replaces the store's window records, so binding the
+// mount-time record would strand later configuration edits on an object the
+// mounted tool never reads. Re-resolve the live record on each reactive render.
+const DockToolBinding = defineComponent({
+  name: 'DockToolBinding',
+  props: {
+    dockTool: { type: Object as PropType<DockToolDescriptor>, required: true },
+    actions: { type: Object as PropType<DockToolRenderActions>, required: true },
+  },
+  setup(bindingProps) {
+    let lastTool: WorkspaceWindowState | undefined
+    return () => {
+      const key = bindingProps.dockTool.instance_key
+      const tool = workspaceStore.activeTab?.windows.find(window => window.instance_key === key)
+        ?? workspaceStore.workspace?.tabs.flatMap(tab => tab.windows).find(window => window.instance_key === key)
+        ?? lastTool
+      if (tool) lastTool = tool
+      return renderDockToolContent(tool, bindingProps.dockTool, bindingProps.actions)
+    }
+  },
+})
+
+function renderDockTool(dockTool: DockToolDescriptor, actions: DockToolRenderActions): VNode {
+  return h(DockToolBinding, { dockTool, actions })
+}
+
+function renderDockToolContent(tool: WorkspaceWindowState | undefined, dockTool: DockToolDescriptor, actions: DockToolRenderActions): VNode {
   if (!tool) return h('div', { class: 'workstation__missing-tool' }, `Missing persisted tool: ${dockTool.instance_key}`)
   return h(WorkstationToolContent, {
     tool,
@@ -3260,7 +3292,8 @@ function handleKeydown(event: KeyboardEvent) {
     if (!activeWindowKey) return
     const activeTool = Array.from(document.querySelectorAll<HTMLElement>('.tool-window[data-window-key]'))
       .find(tool => tool.dataset.windowKey === activeWindowKey)
-    const maximizeButton = activeTool?.querySelector<HTMLButtonElement>('[aria-label="Maximize tool"]')
+    // A maximized tool exposes "Restore tool" instead, and Shift+L must toggle back.
+    const maximizeButton = activeTool?.querySelector<HTMLButtonElement>('[aria-label="Maximize tool"], [aria-label="Restore tool"]')
     if (!maximizeButton) return
     event.preventDefault()
     maximizeButton.click()

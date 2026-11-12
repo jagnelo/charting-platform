@@ -120,8 +120,14 @@ def test_cached_instrument_calendar_does_not_enrich_identity_on_read(
     async def _unexpected_identity_enrichment(*_args, **_kwargs):
         raise AssertionError("a calendar cache read must not request stable identifiers")
 
+    # The identity helper now lives in instrument_mastering and is re-exported by
+    # instrument_sync; guard both so any read-path enrichment is caught.
     monkeypatch.setattr(
-        "app.services.instrument_events.ensure_external_identifier",
+        "app.services.instrument_mastering.ensure_external_identifier",
+        _unexpected_identity_enrichment,
+    )
+    monkeypatch.setattr(
+        "app.services.instrument_sync.ensure_external_identifier",
         _unexpected_identity_enrichment,
     )
 

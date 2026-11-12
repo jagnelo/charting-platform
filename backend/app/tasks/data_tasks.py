@@ -31,7 +31,7 @@ from app.models.workstation import (
     WorkspaceTab,
     WorkspaceWindow,
 )
-from app.providers.errors import bounded_redact_provider_message
+from app.providers.errors import ProviderNotConfiguredError, bounded_redact_provider_message
 from app.services.derived_timeframes import (
     materialize_derived_timeframes,
     refresh_derived_timeframe_if_needed,
@@ -39,6 +39,7 @@ from app.services.derived_timeframes import (
 from app.services.market_data import fetch_ohlcv
 from app.services.market_data_monitoring import build_shadow_report
 from app.services.market_refresh_queue import (
+    DEPENDENCY_PENDING_ERROR,
     RefreshLeaseLostError,
     _acquire_enqueue_lock,
     claim_refresh_jobs,
@@ -47,7 +48,11 @@ from app.services.market_refresh_queue import (
     retry_refresh_job,
 )
 from app.services.market_universe import reconcile_us_universe, record_core_daily_coverage
-from app.services.provider_runtime import ProviderNoDataError, bind_explicit_provider_acquisition
+from app.services.provider_runtime import (
+    ProviderNoDataError,
+    ProviderQuotaUnknownError,
+    bind_explicit_provider_acquisition,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -1299,6 +1304,101 @@ def _older_chunk_priority(
     return 100
 
 
+async def _local_history_completion(
+    db,
+    *,
+    job,
+    instrument,
+    timeframe: Timeframe,
+    preparation: dict,
+) -> dict | None:
+    """Complete a no-eligible-provider history plan from canonical local bars.
+
+    No provider is called here. The window is the explicit range, or the same
+    default chunk the provider path would have requested. ``ready`` requires
+    complete local coverage; ``partial`` reports the covered span and the gaps.
+    Only a window with no local bars at all returns None, which keeps the
+    original provider-eligibility reason.
+    """
+
+    from sqlalchemy import select as _select
+
+    from app.services.market_data import _coverage_calendar
+    from app.services.ohlcv_coverage import assess_ohlcv_coverage
+
+    now = datetime.now(UTC)
+    # Default end is the latest completed bucket, matching the availability
+    # check, so a daily bar stamped at midnight is not reported as a gap.
+    end = (
+        _optional_datetime(preparation.get("range_end"))
+        or _optional_datetime(job.end_at)
+        or _history_chunk_start(now, timeframe, 1)
+    )
+    max_bars = max(1, int(settings.PROVIDER_ON_DEMAND_MAX_REQUESTED_BARS))
+    start = _optional_datetime(preparation.get("range_start")) or _history_chunk_start(
+        end, timeframe, max_bars
+    )
+    adjusted = bool(preparation.get("adjusted", True))
+    bars = await fetch_ohlcv(
+        db,
+        instrument,
+        timeframe,
+        start,
+        end=end,
+        adjusted=adjusted,
+        allow_provider_fetch=False,
+    )
+    if bars:
+        coverage = assess_ohlcv_coverage(
+            bars,
+            timeframe,
+            start,
+            end,
+            calendar=_coverage_calendar(instrument),
+        )
+        covered_start = coverage.covered_start
+        covered_end = coverage.covered_end
+        missing = list(coverage.missing_slices)
+        ready = coverage.status.value == "ready"
+        bar_count = len(bars)
+    else:
+        any_local = (
+            await db.execute(
+                _select(OHLCVBar.id)
+                .where(
+                    OHLCVBar.instrument_id == instrument.id,
+                    OHLCVBar.timeframe == timeframe,
+                    OHLCVBar.is_adjusted.is_(adjusted),
+                )
+                .limit(1)
+            )
+        ).first()
+        if any_local is None:
+            return None
+        covered_start = covered_end = None
+        missing = [(start, end)]
+        ready = False
+        bar_count = 0
+    return {
+        "preparation_status": "ready" if ready else "partial",
+        "reason_code": None if ready else "history_coverage_partial",
+        "instrument_id": instrument.id,
+        "timeframe": timeframe.value,
+        "requested_start": start.isoformat(),
+        "requested_end": end.isoformat(),
+        "bars_observed": bar_count,
+        "covered_start": covered_start.isoformat() if covered_start else None,
+        "covered_end": covered_end.isoformat() if covered_end else None,
+        "missing_slices": [
+            {"start": gap_start.isoformat(), "end": gap_end.isoformat()}
+            for gap_start, gap_end in missing
+        ],
+        "local_only": True,
+        "provider_plan_reason": "no_eligible_history_provider",
+        "retry_at": None,
+    }
+
+
 def _history_chunk_data_status(*, bars: list, range_coverage_status: str | None) -> str:
     """Do not turn a zero-output range into useful partial coverage."""
     if not bars:
@@ -2006,10 +2106,12 @@ async def _enqueue_older_history_chunk(
         )
     ).scalar_one_or_none()
     if existing is not None:
+        from app.services.data_preparation import _MAX_PARENT_REFS, _dedupe_parent_refs
+
         existing_child = (existing.metadata_payload or {}).get("data_preparation_child") or {}
-        for ref in existing_child.get("parent_refs") or []:
-            if ref not in refs:
-                refs.append(ref)
+        refs = _dedupe_parent_refs([*refs, *(existing_child.get("parent_refs") or [])])[
+            -_MAX_PARENT_REFS:
+        ]
     useful_start = _optional_datetime(preparation.get("analysis_required_start"))
     next_priority = _older_chunk_priority(
         current_priority=job.priority,
@@ -2062,6 +2164,108 @@ async def _enqueue_older_history_chunk(
         }
     await db.flush()
     return next_job.id
+
+
+async def _process_instrument_events_refresh_job(
+    db: AsyncSession,
+    job: MarketRefreshJob,
+) -> dict:
+    """Run one durable instrument-event page without coupling it to a GET."""
+
+    from app.models.instrument_event import InstrumentEventFetchState
+    from app.services.instrument_events import (
+        EVENT_FETCH_VERSION,
+        fetch_and_store_instrument_events,
+        instrument_events_refresh_request_key,
+    )
+
+    instrument = await db.get(Instrument, job.instrument_id) if job.instrument_id else None
+    if instrument is None:
+        return {"preparation_status": "unavailable", "reason_code": "instrument_not_found"}
+
+    try:
+        with bind_explicit_provider_acquisition(
+            request_id=f"calendar-refresh:{job.id}",
+            operations=frozenset(
+                {
+                    (
+                        ProviderCapability.INSTRUMENT_EVENTS,
+                        "fetch_instrument_events",
+                    )
+                }
+            ),
+            instrument_id=instrument.id,
+        ):
+            inserted = await fetch_and_store_instrument_events(
+                db,
+                instrument,
+                # Runtime policies are seeded at application startup. A cache
+                # refresh must not repeat the full registry seed while holding
+                # the worker transaction.
+                seed_runtime=False,
+            )
+    except ProviderNoDataError:
+        return {
+            "preparation_status": "unavailable",
+            "reason_code": "event_source_unavailable",
+            "instrument_id": instrument.id,
+        }
+    except ProviderNotConfiguredError:
+        return {
+            "preparation_status": "unavailable",
+            "reason_code": "event_provider_not_configured",
+            "instrument_id": instrument.id,
+        }
+    except ProviderQuotaUnknownError:
+        return {
+            "preparation_status": "held",
+            "reason_code": "provider_quota_state_unknown",
+            "instrument_id": instrument.id,
+        }
+
+    state = (
+        await db.execute(
+            select(InstrumentEventFetchState)
+            .where(InstrumentEventFetchState.instrument_id == instrument.id)
+            .order_by(InstrumentEventFetchState.fetched_at.desc())
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    page_incomplete = bool(
+        state is not None and state.fetch_version >= EVENT_FETCH_VERSION and not state.complete
+    )
+    has_continuation = page_incomplete and bool(state.continuation_token)
+    if has_continuation:
+        next_request_key = instrument_events_refresh_request_key(instrument.id, state)
+        if next_request_key != job.request_key:
+            await enqueue_refresh_job(
+                db,
+                request_key=next_request_key,
+                capability=ProviderCapability.INSTRUMENT_EVENTS.value,
+                instrument_id=instrument.id,
+                priority=100,
+                metadata_payload={
+                    "instrument_event_refresh": {
+                        "instrument_id": int(instrument.id),
+                        "requested_at": datetime.now(UTC).isoformat(),
+                    }
+                },
+                preserve_deferred_deadline=True,
+                requeue_completed=True,
+            )
+
+    return {
+        "preparation_status": "partial" if page_incomplete else "ready",
+        "reason_code": "event_page_continuation_pending"
+        if has_continuation
+        else "event_page_incomplete"
+        if page_incomplete
+        else None,
+        "instrument_id": instrument.id,
+        "events_observed": int(state.event_count or 0) if state is not None else inserted,
+        "page_count": int(state.page_count or 0) if state is not None else 0,
+        "source": state.source if state is not None else None,
+    }
 
 
 async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
@@ -2143,6 +2347,13 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                         "provider_account_usage_refresh"
                     ) or {}
                     result_summary = await _run_native_usage_refresh_job(db, request)
+                    await db.refresh(job)
+                    await complete_refresh_job(db, job, result_summary=result_summary)
+                    completed += 1
+                    await db.commit()
+                    continue
+                if job.capability == ProviderCapability.INSTRUMENT_EVENTS.value:
+                    result_summary = await _process_instrument_events_refresh_job(db, job)
                     await db.refresh(job)
                     await complete_refresh_job(db, job, result_summary=result_summary)
                     completed += 1
@@ -2681,6 +2892,24 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                         continue
                     if plan_reason:
                         await refresh_cached_coarse_from_daily()
+                        local_outcome = None
+                        if plan_reason == "no_eligible_history_provider":
+                            local_outcome = await _local_history_completion(
+                                db,
+                                job=job,
+                                instrument=instrument,
+                                timeframe=timeframe,
+                                preparation=preparation,
+                            )
+                        if local_outcome is not None:
+                            await complete_refresh_job(
+                                db,
+                                job,
+                                result_summary=local_outcome,
+                            )
+                            completed += 1
+                            await db.commit()
+                            continue
                         await complete_refresh_job(
                             db,
                             job,
@@ -3129,7 +3358,7 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
 
 class RefreshDependencyPending(RuntimeError):
     def __init__(self, *, retry_at: datetime) -> None:
-        super().__init__("data preparation dependency is not complete")
+        super().__init__(DEPENDENCY_PENDING_ERROR)
         self.retry_at = retry_at
 
 

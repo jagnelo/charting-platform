@@ -12,6 +12,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.market_data_foundation import MarketRefreshJob
 from app.providers.errors import redact_provider_message
 
+DEPENDENCY_PENDING_ERROR = "data preparation dependency is not complete"
+_DEPENDENT_WAKE_SCAN_LIMIT = 500
+
 
 class RefreshLeaseLostError(RuntimeError):
     """Raised when a worker tries to mutate a job it no longer owns."""
@@ -62,6 +65,7 @@ async def enqueue_refresh_job(
     metadata_payload: dict | None = None,
     now: datetime | None = None,
     preserve_deferred_deadline: bool = False,
+    requeue_completed: bool = False,
 ) -> MarketRefreshJob:
     """Insert or coalesce a queued job, raising priority for urgent demand."""
 
@@ -97,7 +101,13 @@ async def enqueue_refresh_job(
             and job.status == "deferred"
             and existing_next_attempt > current
         )
-        if not native_wait_is_live:
+        if requeue_completed and job.status == "completed":
+            job.status = "queued"
+            job.next_attempt_at = current
+            job.finished_at = None
+            job.result_summary = None
+            job.last_error = None
+        elif not native_wait_is_live:
             job.status = "queued" if job.status in {"failed", "deferred", "expired"} else job.status
             job.next_attempt_at = min(existing_next_attempt, current)
         job.metadata_payload = {**(job.metadata_payload or {}), **(metadata_payload or {})}
@@ -186,6 +196,53 @@ async def complete_refresh_job(
     job.last_error = None
     job.finished_at = current
     job.result_summary = summary
+    # Dependents waiting on this prerequisite must not sit out their fixed
+    # recheck interval. Waking them only moves next_attempt_at; every provider,
+    # quota and gating check still runs when they are leased.
+    await wake_waiting_dependents(db, prerequisite_id=job.id, now=current)
+
+
+async def wake_waiting_dependents(
+    db: AsyncSession,
+    *,
+    prerequisite_id: int,
+    now: datetime | None = None,
+) -> int:
+    """Make dependency-deferred jobs due now when a prerequisite completes.
+
+    Only jobs deferred with DEPENDENCY_PENDING_ERROR are woken, so quota and
+    provider-reset deferrals keep their own deadlines. The scan is bounded;
+    any dependent beyond it keeps the normal fixed recheck, so a miss degrades
+    to the previous latency rather than a stall.
+    """
+
+    current = now or datetime.now(UTC)
+    waiting = (
+        (
+            await db.execute(
+                select(MarketRefreshJob)
+                .where(
+                    MarketRefreshJob.status == "deferred",
+                    MarketRefreshJob.last_error == DEPENDENCY_PENDING_ERROR,
+                    MarketRefreshJob.next_attempt_at > current,
+                )
+                .order_by(MarketRefreshJob.next_attempt_at, MarketRefreshJob.id)
+                .limit(_DEPENDENT_WAKE_SCAN_LIMIT)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    woken = 0
+    for dependent in waiting:
+        child = (dependent.metadata_payload or {}).get("data_preparation_child") or {}
+        wait_ids = {int(value) for value in child.get("wait_for_job_ids") or []}
+        if prerequisite_id in wait_ids:
+            dependent.next_attempt_at = current
+            woken += 1
+    if woken:
+        await db.flush()
+    return woken
 
 
 async def retry_refresh_job(

@@ -460,7 +460,7 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.code-library-tool { display:grid; grid-template-rows:auto auto minmax(0,1fr) auto; gap:6px; height:100%; min-height:0; padding:6px; background:#11161b; color:#cbd5dc; font:10px "Segoe UI",Arial,sans-serif; }
+.code-library-tool { display:grid; grid-template-rows:auto auto minmax(0,1fr) auto; gap:6px; height:100%; min-height:0; min-width:0; padding:6px; background:#11161b; color:#cbd5dc; font:10px "Segoe UI",Arial,sans-serif; container-type:inline-size; }
 .code-library-tool__header { display:grid; grid-template-columns:auto minmax(0,1fr) auto auto; align-items:center; gap:5px; }
 .code-library-tool__header input:not(.code-library-tool__file), .code-library-tool button { border:1px solid #3a4954; background:#172027; color:#dce6ed; font:inherit; padding:3px 5px; }
 .code-library-tool__file { display:none; }
@@ -474,7 +474,7 @@ onBeforeUnmount(() => {
 .code-library-tool__validation pre { margin:0; white-space:pre-wrap; font:9px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace; }
 .code-library-tool__validation small { color:#9cb0ba; }
 .code-library-tool__assets { overflow:auto; display:grid; align-content:start; gap:3px; }
-.code-library-tool__asset { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:6px; align-items:center; border:1px solid #293740; padding:5px; }
+.code-library-tool__asset { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:6px; align-items:center; min-width:0; border:1px solid #293740; padding:5px; }
 .code-library-tool__asset--archived { opacity:.62; }
 .code-library-tool__asset-main { display:grid; gap:2px; min-width:0; }
 .code-library-tool__asset-main strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -488,4 +488,14 @@ onBeforeUnmount(() => {
 .code-library-tool__asset-actions { display:flex; gap:3px; }
 .code-library-tool__asset-actions button { padding:2px 4px; }
 .code-library-tool__error { color:#f0a2a2; }
+@container (max-width: 360px) {
+  .code-library-tool__asset { grid-template-columns:minmax(0,1fr); }
+  .code-library-tool__asset-main { min-width:0; }
+  .code-library-tool__asset-main strong { overflow:visible; overflow-wrap:anywhere; text-overflow:clip; white-space:normal; }
+  .code-library-tool__asset-actions { flex-wrap:wrap; min-width:0; }
+  .code-library-tool__asset-actions button { max-width:100%; }
+  .code-library-tool__editor label { display:grid; grid-template-columns:minmax(0,1fr); min-width:0; }
+  .code-library-tool__editor select,
+  .code-library-tool__editor textarea { box-sizing:border-box; min-width:0; max-width:100%; }
+}
 </style>

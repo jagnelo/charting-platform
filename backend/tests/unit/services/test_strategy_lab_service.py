@@ -4,9 +4,12 @@ from types import SimpleNamespace
 
 import pytest
 
+from app.models.exchange import Exchange
+from app.models.listing import InstrumentListing
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.research import CodeVersion, ResearchRun
 from app.models.strategy import StrategyDefinition, StrategyRun, StrategyVersion
+from app.services.ohlcv_coverage import coverage_calendar_for_instrument
 from app.services.strategy_lab import (
     _apply_portfolio_constraints,
     _build_benchmark_summary,
@@ -16,10 +19,13 @@ from app.services.strategy_lab import (
     _promotion_lineage_from_diagnostics,
     _queue_python_signal_research,
     _run_rules_paper_forward,
+    _strategy_coverage_preflight,
     _symbol_performance_snapshot,
     _trade_distributions,
+    preview_strategy_coverage,
 )
 from app.services.strategy_lab_nautilus import NautilusOpenPosition, NautilusTrade
+from tests.unit.conftest import AsyncSessionAdapter
 
 
 def test_study_fallback_timestamp_uses_canonical_utc_z(monkeypatch):
@@ -76,6 +82,20 @@ class _ResearchQueueDB:
 
     async def flush(self):
         return None
+
+
+def test_usd_currency_without_primary_cash_equity_listing_does_not_infer_xnys():
+    instrument = SimpleNamespace(
+        currency="USD",
+        listings=[
+            SimpleNamespace(
+                is_primary=True,
+                is_active=True,
+                exchange=SimpleNamespace(mic="XCME"),
+            )
+        ],
+    )
+    assert coverage_calendar_for_instrument(instrument) is None
 
 
 @pytest.mark.asyncio
@@ -151,6 +171,119 @@ async def test_universe_coverage_summary_serializes_all_timestamps_as_canonical_
     assert summary["collective_coverage_to"] == "2024-01-02T00:00:00Z"
     assert summary["instruments"][0]["available_from"] == "2024-01-01T00:00:00Z"
     assert summary["instruments"][0]["available_to"] == "2024-01-02T00:00:00Z"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    (
+        "bar_dates",
+        "start_month",
+        "start_day",
+        "end_month",
+        "end_day",
+        "end_microsecond",
+        "label_hour",
+        "expected_status",
+    ),
+    [
+        (((1, 8), (1, 9), (1, 10), (1, 11), (1, 12)), 1, 8, 1, 14, 0, 21, "full"),
+        (((1, 8), (1, 9), (1, 10), (1, 11), (1, 12)), 1, 8, 1, 14, 999999, 0, "full"),
+        (((1, 8),), 1, 8, 1, 9, 0, 21, "partial"),
+        (((11, 27),), 11, 27, 11, 28, 0, 21, "full"),
+        (((11, 27), (11, 29)), 11, 27, 11, 29, 999999, 21, "full"),
+    ],
+)
+async def test_strategy_preview_and_evaluator_agree_on_xnys_daily_edges(
+    db,
+    instrument,
+    bar_dates,
+    start_month,
+    start_day,
+    end_month,
+    end_day,
+    end_microsecond,
+    label_hour,
+    expected_status,
+):
+    from app.services.evaluator_preflight import preflight_ohlcv
+
+    exchange = Exchange(
+        mic="XNAS",
+        name="Nasdaq",
+        country_code="US",
+        timezone="America/New_York",
+    )
+    db.add(exchange)
+    db.flush()
+    instrument.listings.append(
+        InstrumentListing(
+            exchange=exchange,
+            ticker=instrument.symbol,
+            currency="USD",
+            is_primary=True,
+            is_active=True,
+        )
+    )
+    assert coverage_calendar_for_instrument(instrument) == "XNYS"
+    bars = [
+        OHLCVBar(
+            instrument_id=instrument.id,
+            timeframe=Timeframe.D1,
+            ts=datetime(2024, month, day, label_hour, tzinfo=UTC),
+            open=Decimal("100"),
+            high=Decimal("101"),
+            low=Decimal("99"),
+            close=Decimal("100"),
+            volume=Decimal("1000"),
+            is_adjusted=True,
+        )
+        for month, day in bar_dates
+    ]
+    db.add_all(bars)
+    db.flush()
+    async_db = AsyncSessionAdapter(db)
+    date_from = datetime(2024, start_month, start_day, tzinfo=UTC)
+    date_to = datetime(2024, end_month, end_day, 23, 59, 59, end_microsecond, tzinfo=UTC)
+
+    preview = await preview_strategy_coverage(
+        async_db,
+        source_type="strategy",
+        timeframe_value="D1",
+        date_from=date_from,
+        date_to=date_to,
+        universe_config={"symbols": ["AAPL"]},
+        benchmark_config=None,
+    )
+    evaluator = await preflight_ohlcv(
+        async_db,
+        evaluator="strategy_preview_parity",
+        instrument_ids=[instrument.id],
+        timeframe=Timeframe.D1,
+        date_from=date_from,
+        date_to=date_to,
+        cached_bars={instrument.id: bars},
+        calendar_by_instrument={instrument.id: "XNYS"},
+    )
+    strategy_ready, strategy_preflight = await _strategy_coverage_preflight(
+        async_db,
+        evaluator="strategy_run_preview_parity",
+        instrument_ids=[instrument.id],
+        timeframes=[Timeframe.D1],
+        date_from=date_from,
+        date_to=date_to,
+        queue_repairs=False,
+        calendar_by_instrument={instrument.id: coverage_calendar_for_instrument(instrument)},
+    )
+
+    assert preview["universe"]["instruments"][0]["requested_status"] == expected_status, preview[
+        "universe"
+    ]
+    assert preview["universe"]["requested_fits_collective_range"] is (expected_status == "full")
+    assert (evaluator.items[0].status.value == "ready") is (expected_status == "full")
+    assert (instrument.id in strategy_ready) is (expected_status == "full")
+    assert (strategy_preflight["timeframes"]["D1"]["items"][0]["status"] == "ready") is (
+        expected_status == "full"
+    )
 
 
 @pytest.mark.asyncio

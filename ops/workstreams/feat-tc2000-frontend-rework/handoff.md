@@ -1,3 +1,129 @@
+# 2026-11-11 — Study Lab local-partial readiness and Provider ensure evidence
+
+Frontend: a Study target whose ensure response is `partial` with local history coverage now validates and runs, with a per-target partial note; `failed` and uncovered partial responses still block (`hasUsableLocalPartialCoverage` in `dataPreparation.ts`, consumed by `StudyLabTool.vue`; unit tests added).
+
+Provider evidence (CI-identical stack, 7d28c699f, user e2euser). Request: `POST /api/v1/data/ensure`
+`{"target":{"kind":"instrument","symbol":"SPY"},"datasets":["identity","profile","history"],"timeframe":"D1","adjusted":true}`
+Response: HTTP 202, top-level `status: "waiting"`, completed 0 of 3. Dependencies: identity `waiting` (`candidate_not_found_or_not_admitted`), profile `waiting` (`candidate_not_found_or_not_admitted`), history `waiting` (`no_eligible_history_provider`) with covered 2019-01-02T21:00:00Z to 2025-12-29T21:00:00Z and one covered range.
+
+Gap: the history dependency already holds local canonical coverage, yet the top-level status is `waiting`, not `partial`. The frontend rule requires `partial`, so this response still blocks Study. Provider should report `partial` (or `ready`) for a range that local canonical data already covers. Frontend will not widen the rule to `waiting`.
+
+# 2026-11-10 — Accept reviewed Linux visual references and set closure fields
+
+Root's final combined qualification on frontend cc61c9b6 and backend c5732fee passed: functional journeys 68/68 with no retries or flakes, visual 104/104 captured. Root reviewed the captures and accepted all 104 as the new Linux references (darwin untouched). plan.yaml now sets status ready_for_integration with the closure authorization text recorded. Exact-HEAD CI is the remaining gate.
+
+# 2026-11-10 — Adopt Provider c5732fee breadth-history and hot-path performance fixes
+
+Provider released c5732fee: breadth-history evaluator fix, hot-path read trims, shared arq pool and the Dockerfile worker change. 14 backend paths imported unchanged from its 103-hash manifest (sha256 3c422e35…e22fde), including new arq_pool.py and breadth_reference_oracle.py. 82850f7c archived in plan history. No TC product change.
+
+# 2026-11-10 — Follow Study Lab collapsible diagnostics in the visual parity spec
+
+Study's presentation repair moved raw validation JSON behind a Details summary and nested run diagnostics under their own summaries. The visual spec now opens the validation Details before asserting its pre, and targets each run block's direct summary. Spec-only; no product change; reference PNGs are for Root to recapture and review.
+
+# 2026-11-10 — Add setLegend to the shared uPlot unit mock
+
+CI Frontend Unit Tests failed on an unhandled `chart.setLegend is not a function` from the released Study histogram. The shared uPlot mock lacked setLegend although the real library has it; the component is unchanged. Test-only mock fix; full vitest now exits 0.
+
+# 2026-11-10 — Adopt Provider 82850f7c data-preparation lock fix and integration test stabilisation
+
+Provider re-released the final adoption as 82850f7c (four-key manifest, sha256 fb8ab54c…4804, 98 files); 12 backend paths imported unchanged, including ETF's bridge runtime test. 254e83ed archived in plan history. No TC product change; pushed with the earlier Strategy and RRG commits.
+
+# 2026-11-10 — Keep the RRG plane when a duplicate's preparation fails
+
+The duplicated RRG tool joined the original's shared rotation read; the original's unmount aborted that fetch, so the survivor showed 'RRG update failed' with no plane. The shared query now owns its cancellation, and a failed preparation over loaded rows is a non-blocking 'RRG local results' notice. Unit reproduction added; no e2e assertion loosened; not pushed.
+
+# 2026-11-10 — Adopt Strategy f52828f6 Study test stabilisation
+
+Strategy released f52828f6, which stabilises the Study bars/histogram tests that were failing the Frontend Unit CI job. Four Study files imported unchanged from its canonical 34-path manifest (sha256 5a6a5242…8ee2be); 7f1dd9c1 archived in plan history. No TC product change; not pushed (Provider adoption follows, then one push).
+
+# 2026-11-10 — Batch B: clear stale workstation banners and stop clipping tables
+
+Industry loading now clears per symbol, breadth shows its loading line only before metrics, the industry empty state shows loading while holdings bind, refresh status over rows sits in the corner, and non-virtualized watchlist columns keep their minimum width so numeric columns scroll instead of clipping. Timeframe selects are 40px so D1/W1/MN fit. Product changes are TC-owned workstation files and store code, with two focused unit tests added; no Strategy/ETF/Provider file touched.
+
+# 2026-11-10 — Adopt Strategy 7f1dd9c1 Study presentation repair
+
+Strategy released 7f1dd9c1 (S1-S4): Study bars, histogram and lab presentation plus their unit tests, imported unchanged from its canonical 34-path manifest (sha256 21bb4147…6b96); 4873c65b archived in plan history. No TC product change; Root owns the replay.
+
+# 2026-11-10 — Honest chart, ratio, industry and technicals states (batch A)
+
+Empty chart bars after a finished load show a no-history message; the industry proxy column is added and aligned; ratio, technicals and holdings show loading text until their requests settle. Unit tests cover these; full vitest 1990/1990 and type-check pass. Test-only expectations were updated for the new loading text. Frontend src/test only; no browser run.
+
+# 2026-11-10 — Align two frontend unit expectations with the current refresh and foreground contracts
+
+Popout top-down refresh now asserts at-least-once 'high' with initial promises resolved (the real store deduplicates); linked note load expects foreground:false; the optional-analysis-failure mock resolves because the real store never rejects. Full vitest run: 1985/1985 passed, exit 0. Test-only; no product change.
+
+# 2026-11-10 — Adopt Provider 254e83ed final backend (release candidate, BLOCKED)
+
+17 backend paths and the 93-hash Provider manifest adopted from 254e83ed, superseding 4b9f53bca. Backend unit: 4319 passed, 4 failed (Tiingo quota-limit assertions); frontend unit: 1983 passed, 2 failed (linked-instrument late note load; popout top-down refresh). Failures recorded, not fixed; Root decides.
+
+# 2026-11-10 — Adopt Strategy 4873c65b catalogue-placement Study witness
+
+Strategy released 4873c65b, which makes the lifecycle Study-width check conditional: narrowing runs only when Add tool places Study in a wide stack. Imported unchanged from its canonical 33-path manifest (sha256 2527fca3…43d4); 5d19 archived in plan history. Test-only; no product change; Root owns the replay.
+
+# 2026-11-10 — Widen the ratio-chart busy-settle wait for SPY/RSP preparation
+
+The chart provider-error visual waits for `.ratio-chart` aria-busy=false; the SPY/RSP ensure request settles about 13s after it starts (worker pickup about 10s), so the 15s deadline was too tight. Timeout raised to 45s, assertion unchanged; this is the only such wait. Test-only; no product change; Root owns the replay.
+
+# 2026-11-10 — Replace leftover chart provider-error regexes with the exact D1 copy
+
+Root's C-stage replay showed the chart error visual still matched a loose regex in tc2000_visual.spec.ts (seeded block) and in flows.spec.ts F8i-a; both now assert `No local D1 price history is available for SPY.` exactly. Test-only; no product change, no browser run, Root owns the replay.
+
+# 2026-11-08 — Correct selected-holding lineage instrument expectation
+
+Root's exact de410 run confirmed geometry, ordinary candidate click, identity, and history requests pass. The remaining lineage expectation incorrectly used IGV's fund ID, although `ETFHoldingDrilldownContext.instrumentId` identifies the selected resolved holding. The test now expects UNXQ's canonical instrument ID (`991006`) while retaining fund, snapshot, row, source, known-at, and composition assertions. No product code changed.
+
+TC scope/workstream/journey validators and E2E unbound-reference preflight pass; broader type diagnostics remain pre-existing advisories in this long spec. No browser or broad test ran. Root owns the next exact-source ETF and full-profile qualification.
+
+---
+
+# 2026-11-08 — ETF selection-panel bounds and modern history request assertions
+
+Root's measured prototype for the IGV reported-holding selection showed the candidate at y=542..584 while its selection panel ended at y=510.25. Removing the panel's `max-height: 75%` cap lets the selection details use the available tool body; the test retains full containment, center-hit, and ordinary-click assertions. The lineage assertion now includes the canonical ETF instrument ID shown in the accessible detail.
+
+The same journey's UNXQ history is recorded from `POST /data/ensure`. Its final assertion now matches the actual `instrumentHistoryPreparationRequest` contract: exact instrument ID, `identity`/`profile`/`history` datasets, D1, adjusted, and no client-supplied `start_at`/`end_at`. The separate IWM assertion now reads `timeframe` from its recorded `DataEnsureRequest`, not nonexistent `.body`. Auditing the rest of this journey found no further stale history endpoint/range assumptions; legacy compatibility coverage elsewhere is unchanged.
+
+Frontend type-check, E2E unbound-reference preflight, TC scope/workstream validators, journey matrix, and `git diff --check` pass. Playwright listed seven on-demand cases but exited with EACCES writing `frontend/playwright-report/index.html`; no browser was run. Root owns exact-source browser and full-profile qualification.
+
+---
+
+# 2026-11-08 — Resolve focused unit failures and consume Provider operator/test context
+
+Root's complete frontend unit run on frozen product `9ec4d783` reported 1903 passed and 5 failed across MarketGaugeTool and the chart-store module. The two chart-store failures were stale call-shape assertions: the local canonical OHLCV and transformed requests already used the correct route and `priority: high`, now asserted as the API's third options argument.
+
+The three Gauge failures were caused by test lifetime/isolation. The saved-definition context test asserted abort synchronously, although the shared coordinator retains an identical request for its bounded 50 ms subscriber handoff. Its mocked POST also ignored AbortSignal, and wrappers were not consistently unmounted; the still-mounted Gauge could retain the same shared request context for later tests. The mock now rejects on abort, the test observes the bounded abort and always unmounts, and `enableAutoUnmount` plus coordinator cleanup isolates each case. The focused Gauge and chart-store modules pass 77/77 together. No product source was changed.
+
+Consumed only the three exact TC paths from Provider source `aed0d62c7e93ee6bd320c6b7a22791bb8d3d8b87`: `scripts/run-live-provider-probes.py`, `backend/tests/live/test_market_data_providers_live.py`, and `backend/tests/unit/test_live_provider_runner.py`. All three prior139 guards and released SHA/blob/mode records were verified before copying. The local source-named manifest preserves the exact Root release-manifest path and digest (`f90d3067d20e0d7a09d907ef947add918d70c1a758b8097056a4c1bf2f916e7c`) and records the three files in the existing strict consumer schema. The unchanged79-path Provider runtime pin remains separate. Provider reports its runner module 163/163; that producer proof was not replayed here.
+
+Frontend type-check, strict TC scope guard, workstream validator, journey matrix, and diff checks pass. Root's full mapped browser profile is active on frozen app/backend `9ec4d783`/`9e2de159` with exact journey source `c1171103`; no product or browser source was changed during that run. Root's current full profile remains active and lists nine observed failures: J12 drawing-read initialization, basket member preparation, on-demand lineage/discovery/ETF fixtures, Market Map default readiness, and WatchList readiness. The profile has not reached terminal review; inspect exact traces only after Root closes it, and do not change product/browser source meanwhile. This checkpoint does not claim the full unit suite, browser profile, or platform release accepted.
+
+---
+
+# 2026-11-08 — Scope future-source reason to the intended BWET fixture stage
+
+Root's exact 9ec4d783/9e2de159 affected run passed catalogue recreation. The BWET journey reached its future-warning assertion, but the controlled holdings response actually carried `reason_code: test_fixture_hold`; the generic unavailable UI was correct for that input. The test now arms a one-use typed `future_dated_source` override only at the intended BWET future-warning stage. All generic unavailable holdings cases keep `test_fixture_hold`, and the journey's identity, independent history/holdings, future-date, current-holdings, numeric, context, and delayed-response assertions are unchanged. No product code was modified.
+
+Scoped E2E reference preflight reports no actionable unbound names; remaining semantic advisories are pre-existing elsewhere in the long spec. Root's exact-source rerun is pending. This fixture correction does not establish browser acceptance or close the broader platform roadmap.
+
+---
+
+# 2026-11-07 — ETF 96ca input and RRG rendering repair candidate
+
+Imported only ETF four released TC paths from 96ca7e5be2a949babb098bd5c413c468d878a5e1; all four local SHA256 values and the source manifest digest match the frozen release. The active dependency pin now uses the reviewed four-entry, 98-path fragment. Preserved the prior c49 RRG marker draw-order/laptop sizing fix and aed9 chart-range behavior. Focused ETF Holdings tests passed 29/29, RRG tests passed 19/19, and frontend typecheck passed. Root owns rendered RRG and downstream browser qualification; these local checks do not establish browser, CI, integration, or release acceptance. The full PU roadmap remains open.
+
+# 2026-11-07 — Shared calendar/readiness deduplication and domain imports
+
+Imported only the released Provider 580571 calendar/analysis delta, retaining its exact 51-file manifest; imported the exact eight-file Strategy 5703 Study/Results/Library domain, retaining Strategy ownership; and retained the released ETF EED basket/holdings domain import. The shared calendar query and benchmark-family readiness now reuse the existing Vue Query client across ordinary dock remounts. The Constituent pane keeps both the choose-source instruction and missing-snapshot message in scrollable flow; breadth local reads start independently of preparation and refresh on progress. The focused Workstation/Market Map suite passed 79/79 before these exact-source imports; `vue-tsc --noEmit` passed after import. Scope, workstream, journey inventory, and staged-diff checks passed with 82 exact Root-released imports. These are development inputs, not combined browser or release acceptance. Root owns the next current-source family/ETF/Strategy browser checks and final qualification; remaining TC analysis consumers, catalogue recreation, lifecycle, routes, and shared presentation journeys stay open.
+
+---
+
+# 2026-11-06 — Provider data-preparation runtime dependency consumed for development
+
+Root released Provider checkpoint `55b956f40615f1623a0f7d084b9fc0a355727053` for exact development consumption under `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider-runtime-development-consumption-contract.json` (SHA256 `b23c835ede9b509a7063e6f971e543eca28e77d669b5234e64fb17286704e901`). The exact 30 listed backend app/test paths were imported from that Git commit and verified against all listed SHA256 and Git blob IDs. The byte-identical contract is preserved at `ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/55b956f40615f1623a0f7d084b9fc0a355727053.json`; the plan pins its exact path set and digest. The scope guard now recognizes this exact development-only manifest without treating it as green staging, product acceptance, integration, or deployment. Provider's reported 440 focused unit and 5 PostgreSQL integration passes are source-producer evidence; full release gates remain pending. Existing ETF-owned basket and Strategy-owned research/workspace implementation paths were not imported. TC consumer work remains in progress; Root owns the combined qualification and release.
+
+Auth boundary follow-up: API-owned refresh expiry now synchronizes the active auth-store refs through the session boundary and routes to login. Same-subject token rotation retains the current user context; a different JWT subject in another same-origin window aborts old requests, clears private stores/query cache, then reloads the authenticated user. Focused auth units: 78/78 passed; `vue-tsc --noEmit` passed; Playwright collection found the single deterministic J12 case. The browser case is not yet run against the allocated fixture.
+
+---
+
 # 2026-11-05 — Same-snapshot reported-holding picker correction
 
 Root accepted the corrective followup to the existing ordinary-ticker checkpoint; receipt `/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/TC-same-snapshot-implementation-root-acceptance.json` (SHA256 `768cfc9a3ecca80fb392d08896a406f8a7849be049671a23eb1c5e84fad7e7f8`). CI `42070691181` for the unchanged staging source failed the UNXQ reported-holding flow before discovery began. The cause was a Vue watcher with a freshly allocated array as one source, which cleared the active picker on a same-snapshot refresh. It now watches fund, snapshot ID, and industry independently. The mounted regression passes 4/4 and type-check passes; real snapshot/industry/fund changes still clear the picker. The old CI failure and unchanged-source browser pass remain historical evidence. Exact published-bundle browser proof and closing-tip CI are pending Root. All nine roadmap criteria and earlier accepted archives remain intact.
@@ -26375,3 +26501,729 @@ Root directed non-fast-forward adoption of exact synchronized green staging/mast
 ## 2026-11-06 — Known retry on cached-fallback outcomes
 
 The shared selected-history and identity retry paths now consume a finite `retry_at` from any source outcome when the overall response is held, including a cached fallback marked `used`. Focused tests passed 91/91 and `vue-tsc --noEmit` passed. The existing lifecycle still rejects invalid/non-advancing waits and cancels superseded intent; native quota and hold behavior is unchanged. Root review, exact-tip CI, and Root-owned runtime/release gates remain pending.
+
+## 2026-11-06 — Green 139b350 context adoption
+
+Root directed non-fast-forward adoption of exact synchronized green staging/master `139b350238b5e1c8a170dce5af09a805301d857e`. Local merge commit `e31fdd77d13f12ec740c321e7809104f4781f107` preserves the TC branch history. Frontend tree `9df32b87de20826dbe0e32c739d2cbf0d9e1a634` and backend tree `2dd5046fbc3edf9fe5d69659ae2dc2b1035177fc` are byte-identical to the released source; branch_tests and manifest descriptions remain unchanged. Canonical receipt `/home/m920q/charting-platform/.ai/validation/139b350238b5e1c8a170dce5af09a805301d857e.json` (SHA256 `3696ca6b1e85d492e08275ceac7b88ade3fe36bc554dbb9c0647721b8f7c51cd`); staging CI 42211787590 and master provenance CI 42222793213 succeeded. Root reports private deployment and business-row/schema/quota preservation, with genuine NVDA/XLE/IYF/AFG flows; final native-wait proof and guide remain pending. This is context adoption only; all nine roadmap and ten repair criteria remain open and unchanged. `integration_capture: exact branch HEAD`.
+
+## 2026-11-06 — Human-activated platform-usability checkpoint
+
+The complete platform-usability plan is active as `platform_usability_checkpoint_20261106`. Prior goal/session objective and accounting are snapshotted in the checkpoint before aligning current execution. The original nine roadmap criteria, ten repair criteria, branch-test descriptions and 139b350 context remain preserved. TC owns the frontend partition and general journeys; Provider owns shared backend preparation and worker; ETF and Strategy retain their exact file exclusions. First implementation target is the measured RRG numeric plot failure; semantic clone/catalogue and reversible lifecycle work follows. No live source, provider, quota, Docker, production, staging or sibling operations were performed.
+
+## 2026-11-06 — Platform-usability RRG scale and coordinate correction
+
+The RRG update now keeps the plot host mounted during timeframe/group loading, replaces uPlot data without retaining old scale limits, and explicitly reapplies finite zero-inclusive x/y ranges. Plugin drawing uses canvas-pixel coordinates, device-pixel scaling and the plot bounding box; pointer/keyboard hit geometry uses the plot-area CSS origin. The focused platform slice passed 123/123 with frontend type-check and workstream/scope/diff guards green. Root real-library evidence had shown the prior hidden y-series range stayed at its initial domain. Real-browser DPR 1/1.25 and layout qualification remain pending Root allocation; no browser, Docker, or source requests were made here.
+
+## 2026-11-06 — Shared preparation consumer and RRG wiring
+
+Added the typed DataEnsureRequest/response consumer for Provider contract `3d10c4c4662249b53a6e3fc497f1d260b59b2079`. It deduplicates concurrent requests, polls durable status, resumes only at a supplied future retry time, cancels obsolete subscribers, and rejects contradictory progress. Status feedback maps structured reason classes to plain user-facing language without showing raw codes. RelativeRotationTool prepares the chosen group/family and analysis timeframe before reading its result. Focused coordinator/RRG coverage passed 22/22 with type-check and ownership guards green. Producer integration and live/browser qualification remain pending; no source requests or stack were run.
+
+Root review of the cc30 preview established that the visible hover target was lost when mouse focus selected the first keyboard point, and the generated Warnings header cell displaced labels. Pointer focus now preserves an existing hover; drawing uses canvas-pixel coordinates, DPR-scaled marks and uPlot bbox bounds, while hit-testing remains CSS-relative to `plot.rect`. The warning heading is a real third grid cell. The shared status mapper also translates known quota, identity, history and entitlement reasons without displaying reason codes. Focused coordinator/RRG tests passed 22/22 and type-check passed. Corrected-source browser/DPR qualification remains pending Root.
+
+## 2026-11-06 — Cached analysis during shared preparation
+
+Wired the Provider-owned `data/ensure` contract into the separate `RatioUPlot` entrypoint and changed both ratio and RRG loads to start their local analysis read immediately. A delayed, held, or failed preparation no longer hides or clears a useful current-context graph. The component keeps prior-context rows explicitly labeled while the new parameter context loads, then fences late results and refreshes only the exact ratio query or selected RRG group after meaningful partial/terminal preparation. Ratio preparation is scoped to the user-selected numerator/denominator pairs; no group/universe fan-out was added. The status mapper continues to distinguish request capacity from credential, identity, entitlement and source availability, avoids raw reason codes, and says when no automatic retry time exists rather than requiring a manual retry.
+
+Focused Vitest passed 41/41 across `test_data_preparation.test.ts`, `test_relative_rotation_tool.test.ts`, and `test_ratio_uplot.test.ts`; `vue-tsc --noEmit`, workstream validation, TC scope validation, and `git diff --check` passed. Provider producer/runtime integration and Root-owned actual-browser pointer/DPR, combined functional/visual, exact-tip CI and release gates remain pending. No backend, fixture, Source, quota, data, or reference changes were made.
+
+The ratio read now settles each selected denominator independently. A delayed or unavailable new comparator receives its own symbol-labeled status while successful same-context pairs stay plotted with their existing points; the mounted NVDA/SPY plus delayed-XLE 404 regression verifies the chart data survives. The focused slice is now 42/42; the broader catalogue, workspace lifecycle, route/action inventory and secondary-page work remain open for subsequent TC scope.
+
+Root preview identified a conditional-host lifecycle issue after ticker changes. RatioUPlot now tracks the DOM element bound to uPlot and destroys/recreates the plot when Vue replaces that host; a mounted test asserts the new host receives the new chart. Focused tests pass 43/43 and type-check passes; real visible-canvas browser verification remains pending Root.
+
+
+## 2026-11-06 — Laptop RRG and docked-tool lifecycle follow-up
+
+Root's laptop/maximize review identified a fixed 150px RRG plane, an under-specified table grid, stale maximize labels, and a Chart drawing toolbar that could overlay another focused tool. Relative Rotation now has a scrollable body and flexible plot/table tracks, explicit twelve-column alignment, and visible labels on the latest plotted symbols. ToolWindow follows GoldenLayout's maximized stack class for Maximize/Restore names, closes its body-ported menu on focus loss, and gives only the RRG body its own scroll viewport. Chart drawing controls mount only while that chart is the active tool; other visible tool panes remain interactive. Focused coverage: five files, 68 tests passed; `vue-tsc --noEmit`, workstream validation, TC scope validation and diff check passed. Root laptop/maximize/restore and rendered pointer review remain pending; no browser, Docker, provider request, reference, backend or production change was made. Full catalogue, factory semantic roles, workspace lifecycle and route/action journeys remain open. `integration_capture: exact branch HEAD`.
+
+## 2026-11-07 — Current platform scope and Provider074 development import
+
+The canonical current goal and acceptance criteria now reflect the active complete TC platform-usability scope (PU01–PU09). The displaced ordinary-ticker goal, its ten criteria and prior current progress/status fields are retained as parsed values in `platform_usability_checkpoint_20261106.preserved_prior_execution_state.prior_top_level_plan_fields_json`; the original nine-item roadmap and all prior receipts remain unchanged.
+
+Provider074 source `07490844c39d56e7023294f5e8798e4da2acdce0` is the current development-only runtime dependency, superseding 99v2. The 11 authorized successor files were imported and the complete 38-file source/hash/blob manifest was verified. Provider focused maintenance/seed evidence is owner-supplied; this import is not CI, release or deployment qualification. TC focused evidence remains 195 frontend tests, type-check, strict frontend boundary, journey inventory, workstream and scope checks. Search/secondary entrypoints, reversible workspace lifecycle, complete journeys, exact-tip CI and Root-owned combined qualification remain pending.
+
+## 2026-11-07 — Standalone chart and current Industries preparation
+
+Standalone Chart now uses the shared preparation coordinator for deliberate initial selection and timeframe changes without converting the chart viewport into an acquisition boundary. The Industries surface requests `required_profile_fields: [industry]` through that same coordinator for every resolved equity ID belonging to the exact active holdings snapshot. Requests are started independently; explicit historical `as_of` contexts are excluded, stale snapshot/tool responses are fenced, cached dated composition stays visible, and source-labelled composition refreshes through the shared progress refresh queue as profile fields become ready. A missing refresh result no longer clears prior dated composition. Unresolved and non-equity rows are not submitted, and no industry mapping is inferred.
+
+Focused validation: 141 frontend tests passed across the data-preparation client, WorkstationToolContent, workspace store and standalone Chart view; frontend type-check passed; the strict frontend-provider boundary passed 1/1; workstream, scope and diff guards passed. This is focused implementation evidence only. Shared SearchBar/secondary routes, reversible workspace lifecycle, complete user journeys, exact-source CI and Root-owned combined browser/release gates remain pending. `integration_capture: exact branch HEAD`.
+
+
+## 2026-11-07 — Provider732 development dependency and first-use chart startup
+
+Imported only the 13 paths in Provider's released successor delta over 074. The exact current 43-file manifest is `development-dependency-imports/732da0f9f84ee495ee58ca3b9f8311839291ff59.json` (v2 SHA256 `d6508b43f603ef2d92d6dc00b63d53a4b9248b53ede7ad643eda8eab3ad00123`); all 43 path/status-from-139/Git-blob/SHA256 entries match. The initial manifest with its missing authority field is preserved as `development-dependency-imports/732da0f9f84ee495ee58ca3b9f8311839291ff59-invalid-metadata.json`; v2 is the active pin. Provider's reported 32 focused cases and exact-source Ruff checks are producer evidence only; this import is not release qualification.
+
+The visible canonical Workstation route now loads local bars first and starts the shared preparation lifecycle for `/chart`, direct canonical symbols and return visits. A fresh NVDA chart test verifies preparation begins without a click, useful partial progress renders bars, and the request has no arbitrary start/end cap. Private basket tokens and untrusted dated holding routes remain on their separate guarded paths. The focused route/preparation slice passed 238/238 and `vue-tsc --noEmit` passed. Full journey coverage, exact-tip CI, and Root-owned combined browser/release gates remain pending; broader catalogue, shared search and reversible workspace work is still in progress.
+
+
+## 2026-11-07 — Legacy chart first-use preparation
+
+The backward-compatible `/legacy/chart/:symbol` route now follows cached-first shared history preparation on direct URL hydration as well as deliberate selection. Private basket symbols remain on their member-preparation route. Bare dated holding query data keeps its display lineage but cannot supply a trusted instrument ID; current canonical history is independently prepared from the chart's loaded identity. The updated ChartView suite passed 17/17 and `vue-tsc --noEmit` passed. The first run's single stale ensure-call-count expectation was corrected to account for the new mount request. This is focused proof only; all remaining user journeys and Root-owned combined/release gates remain pending.
+
+
+## 2026-11-07 — Revalidated dated holding context on dashboard reload
+
+A replayed dated holding URL now restores its compact historical caption only after the normal canonical identity lookup independently matches the context ID. The route value never supplies the ID for selection/acquisition, and the ETF is not re-established as current membership. Mismatched identity clears the lineage. The accessible detail retains instrument/snapshot/holding row/source row/reported symbol and name/type/composition/known-at/provider/provenance. Workstation and ChartView route tests passed 105/105 with type-check green; the first focused run caught and then corrected omitted source-row detail. No live account or source request was made.
+
+
+## 2026-11-07 — Reversible layout deletion recovery
+
+Deleting a saved layout now captures its configuration, window identities, and original position for a bounded same-workspace Undo. Restoring regenerates local IDs, rejects cross-workspace or identity collisions, and persists the restored layout. The workspace-store and mounted Workstation tests passed 183/183; frontend type-check and workstream/scope/journey/diff guards passed. Full browser roundtrip, complete route/action journey acceptance, exact-tip CI, and Root-owned combined release gates remain open. `integration_capture: exact branch HEAD`.
+
+
+## 2026-11-07 — Radar preview preparation and catalogue inventory status
+
+The selected Radar detection preview now loads its local candles first, then asks the shared coordinator to prepare history using the exact canonical instrument ID carried by the detection. Current partial/ready coverage refreshes the local preview; a changed detection aborts the prior observer and fences late progress. Focused component tests passed 2/2 and frontend type-check passed. The global matrix now cites this evidence and the released server-backed catalogue dependency; it no longer describes the catalogue contract as unreleased. All 21 Add-tool semantic/recreation browser journeys, complete routes/actions, exact CI and Root-owned release gates remain pending. The exact Radar preview source path is now included in TC owned_paths. `integration_capture: exact branch HEAD`.
+
+
+## 2026-11-07 — Configured breadth preparation and catalogue dispatch
+
+The configured Workstation breadth group now loads its local snapshot first, then requests shared history preparation with the exact market-group/family target and timeframe; current progress refreshes the same analysis query, historical as-of views skip present-day preparation, and unmount/context changes abort stale work. The focused mounted tests cover that flow. The Add-tool test dispatches all 21 canonical server definitions with their exact semantic keys/configurations. Layout actions are now labelled “Duplicate layout” and “Rename layout”. Provider464 was imported from the Root-released exact development manifest (45 files; four delta paths restored; exact source/blob/hash/index checks passed). Focused tests passed 102/102; typecheck and workstream/scope/journey/diff guards passed. TC06 catalogue recreation and TC08 broader analysis consumers/full visible journey remain pending, as do exact-source CI and Root-owned combined qualification.
+
+
+## 2026-11-07 — Workstation activation and layout rendering successor
+
+Virtual Golden Layout tabs now publish the exact clicked window key, and mounted tests cover pointer activation and asynchronous tool-body mounting. Chart resizing uses the measured plot wrapper; watchlist controls flow at narrow sizes; repeated Market Map readiness requests are deduplicated. The nested SFC inventory now counts controls beyond nested template closes and fails when a newly exposed control is unmapped. The focused 190-test slice, Vue type-check, strict provider-boundary test, workstream/scope/journey guards, and diff check passed. Provider33e1 and ETF055 are exact development imports. Root browser proof for ordinary tab activation, analysis journeys, and remaining UI scope is pending; no full release acceptance is claimed.
+
+
+## 2026-11-07 — Single shared top-down refresh on Workstation mount
+
+Root R12 network evidence showed repeated group/snapshot reads. Workstation mount now starts the shared refresh concurrently with local-first chart hydration and awaits that same promise at completion, removing the second mount-time refetch. A focused regression asserts exactly one shared refresh while the cached chart remains usable; it passed 1/1 with Vue type-check. Root rendered list visibility and end-to-end latency are still pending; no complete family/list journey is claimed. `integration_capture: exact branch HEAD`.
+
+
+## 2026-11-07 — Frozen layout activation candidate and scope-compatible imports
+
+The candidate adds layout rename persistence on input, remaps cloned component identities to the clone response, and updates appended/removed dock tools without rebuilding existing virtual panels. The three focused rename/clone/layout tests passed and `vue-tsc --noEmit` passed. Current exact imports are Provider8c (59 paths; manifest SHA256 `e4422b07e2758de6e3c872b0e7de001b6782d7d487b4df6210bceb6087d39449`), ETF41 scope-compatible (8 paths; `371d04a40183d4db8aac13d9d037f9ac1fd6001f93c7e3b5807618dd57f1d3e1`), and Strategy174 scope-compatible (10 paths; `9327c9ec183a4df85388b0c22aa5504a8cacd7b2bb385a56d8461cb879f53a75`), alongside the existing Dashboard and workspace-browser imports. Their imported file bytes, Git blobs and modes were checked against the released manifests. The exposed-control mapping was refreshed only for WorkstationView: its 47 controls remain mapped and browser evidence remains pending. The active dependency block was updated from the reviewed five-entry fragment without changing any other parsed plan value; historical imports remain preserved. R20 basket member preparation remains unresolved pending a fresh observation on this source; the old e8 requests were pending/cancelled. Root build/browser, exact-tip CI, remaining journeys and combined release gates remain pending. This is a development freeze only, not platform-usability acceptance. `integration_capture: exact branch HEAD`.
+
+
+## 2026-11-07 — Cached-first family rows, basket preparation, and durable maximize state
+
+This coherent TC development candidate keeps curated sector members visible while analysis snapshots load, starts independent basket member preparation before the synthetic basket chart read completes, coalesces identical shell/panel market-analysis reads, and waits for the workspace snapshot save before changing the visible maximize/restore state. The Provider dependency pin now uses exact released dcd3 source with the reviewed 61-file manifest; all 61 file hashes and Git blobs matched. The control inventory was refreshed only for the two source signatures changed by these controls; counts and journey mappings remain unchanged. Focused frontend checks passed: 194 tests across WorkspaceLayoutHost, workspace store, shared stores, and Workstation history acquisition; `vue-tsc --noEmit` passed. Scope, workstream, journey-inventory and diff guards passed.
+
+Root R26 evidence independently confirms the High-Low Study journey passes, while RRG still fails to restore its maximized label/state after reload and Study Results remains in its loading state. Those failures are not claimed fixed by this checkpoint; Root owns the next browser verification. Other full journeys, exact-tip CI and combined release gates remain pending. `integration_capture: exact branch HEAD`.
+
+
+## 2026-11-07 — Cached chart publication and reversible maximize during save
+
+The local-only chart read now publishes valid bars as soon as they arrive, independently of the slower canonical instrument metadata lookup; a metadata failure keeps those bars visible with an explicit status. The dock toolbar reflects the live maximize state immediately and accepts Restore while a prior snapshot save is pending. Each pending save remains represented until it settles, and the workspace store's existing generation-aware save path submits the latest layout. Focused Workstation store/layout tests passed 180/180; `vue-tsc --noEmit` passed.
+
+Exact dependency imports in this checkpoint include Strategy3f72 (11/11 manifest entries verified), ETF6ff05 (9/9; only its three declared TC journey paths imported), and Providerdd703 (61/61, including its four declared deltas). The four-entry active dependency fragment is current. Workstream, TC scope (95 exact Root imports), journey inventory (28 routes/aliases, 11 shell actions, 21 Add-tool definitions, 8 factory layouts/38 instances, 9 TC journeys), and diff guards passed.
+
+Root R29's valid 500-bar XLB local response was hidden while metadata was unresolved; this source addresses that gate but still needs new rendered-browser proof. Maximize/Restore during an in-flight save now has a focused unit regression; durable reload behavior remains pending Root's browser check. Basket-member preparation remains unverified in the current runtime. R30 Notes save delay is assigned to ETF's isolated note paths; Alerts returned 201 while its imported journey expected 200; Watchlist/Settings JS chunk requests remained pending alongside startup requests, without evidence proving a frontend handler or backend as the cause. Those route journeys are not claimed fixed. Root's R32 comparison, full route/action browser coverage, exact-tip CI, and combined qualification remain pending. `integration_capture: exact branch HEAD`.
+
+## 2026-11-07 — Preserve local ratio status alongside preparation holds
+
+Root's R32 trace (`focused-backend-r32`, frontend45ea/backenddd703) shows the XLB/SPY analysis GET is a successful canonical-local result: split-adjusted, `freshness=current`, `freshness_detail` has 2 current of 2 requested inputs, full preflight coverage, 1,824 points from 2019-01-02 through 2025-12-29, and no warnings. The request has no explicit `start_at`, `end_at`, or `as_of`. Separately, the open-ended ensure request for XLB/SPY returns a genuine waiting result with no eligible history provider for both legs; that hold remains visible because it may prevent extending beyond the cached range. `RatioUPlot` now composes both facts in its polite status instead of letting the preparation hold replace the successful local-adjusted status. Focused RatioUPlot tests passed 20/20 and `vue-tsc --noEmit` passed. No Root browser rerun, source CI, or full platform journey acceptance is claimed; Root owns those gates.
+
+The Root-reviewed 1366px shell finding is addressed in `App.vue`: at widths up to 1500px the full shared navigation moves to its own row, preserving every link and keyboard target rather than leaving later links only in a clipped horizontal strip beside the account area. Focused app-shell and route tests passed 12/12, and `vue-tsc --noEmit` passed. Actual viewport/rendered geometry remains pending Root verification; no visual acceptance is claimed.
+
+## 2026-11-07 — Flush workspace layout recovery on Undo
+
+R33 trace showed the first in-flight workspace PUT contained only the duplicate default tab; no subsequent PUT containing the renamed/reordered/restored tab reached the server before reload. Undo previously relied only on the 350 ms trailing debounce. The Workstation Undo action now explicitly awaits the store's generation-aware `saveSnapshot()` before replacing the dock, so it drains the older revision and sends the restored latest layout. A store regression holds the earlier write and verifies the follow-up payload includes the restored tab name/order; a mounted test verifies Undo requests the flush. Workspace/store and Workstation focused tests pass 189/189, and `vue-tsc --noEmit` passes. Exact browser persistence remains pending Root verification; no lifecycle or chart browser acceptance is claimed.
+
+## 2026-11-07 — Strategy/ETF domain successors and Provider23b6 composite
+
+Imported only the five TC-declared changed paths from Strategy3191 and ETFb0db after their old-byte guards; all 11 source-manifest rows for each were verified. Provider23b6 replaces dd703 for seven declared TC paths; all 61 source rows were verified. The active import block now contains the four Root-approved sources and 97 distinct exact paths; historical manifests and other plan values are preserved. Provider's one changed PG concurrency case and all combined browser/release gates remain pending Root; owner-provided focused evidence is not full release acceptance. The f881 Undo flush remains the current TC layout fix, and its browser reload proof is pending. Combined frontend type-check passes after imports. Root R34 confirms real candle pixels and assigns the transparent-first-canvas selector correction to Strategy; TC made no chart change.
+
+## 2026-11-07 — R35 save acknowledgment and accessible action controls
+
+R35 traces show the layout rename/Undo and maximized RRG state were reloaded before the latest conflict-rebased snapshot PUT was acknowledged. The UI now exposes `Saving layout…`, `Workspace saved`, or a recoverable save error; Undo remains visible until its restored layout is acknowledged, and provides retry after failure. Added focused store and mounted regressions for pending, failed, retried, and acknowledged saves. Added explicit accessible names and expanded-state linkage for Watchlist options and names for icon-only Watchlist/Alerts actions. Settings preset actions already have visible text labels; no Settings source change was needed. Focused Vitest passed 195/195, `vue-tsc --noEmit` passed, and workstream, scope, journey-inventory, and diff checks pass. Exact R35 browser persistence/accessibility recheck and the broader platform journey/release gates remain Root-owned and pending.
+
+## 2026-11-07 — Screener action accessibility and R38 configuration trace
+
+A source audit found icon-only Screener controls without accessible names: add-to-watchlist stars, the alert toggle/close control, and save-watchlist cancel. They now have contextual names, the alert toggle reports expanded state and controls its settings group, and the existing route focus-visible rule applies. A mounted route regression verifies accessible names, toggle association, and keyboard focus. R38's later workspace PUT already omitted the Study run fields in canonical `windows[].configuration`; TC's snapshot serializer writes that configuration and the dock `componentState` is identity-only. No TC hydration strip was found; Strategy owns the Study emitter that produced the later config. Focused Screener/Alerts/Watchlist tests passed 4/4 and `vue-tsc --noEmit` passed; workstream, scope, inventory, and diff checks pass. Root's rendered journeys and full release gates remain pending.
+
+## 2026-11-07 — Legacy Chart watchlist picker accessibility
+
+The legacy Chart route's watchlist star had only a glyph/title and its quick-pick choices were clickable divs. The trigger now names the active symbol, exposes expanded state and controls its associated labeled group; choices are native named buttons, preserving standard Tab/Enter behavior and the existing focus-visible style. The ChartView mounted regression verifies the trigger disclosure, active-symbol-specific choice, and focus on the button. Focused ChartView tests passed 18/18 and `vue-tsc --noEmit` passed; workstream, scope, journey-inventory, and diff checks pass. The complete TC route/action journeys and Root-owned rendered/release gates remain pending.
+
+## 2026-11-07 — Market Map comparison preparation uses each source identity
+
+The Market Map shared-preparation path now resolves a `market_group` target's canonical key from the requested source definition rather than reusing the active primary source. This matters when a relative-return comparison uses a second market-group universe: both groups are submitted with their own stable keys. The focused regression asserts the primary and reference targets independently; MarketMapTool passed 66/66, EasyScan and Market Gauge passed 32/32, Vue type-check passed, and workstream, TC scope, journey inventory, and diff guards passed. These unit results do not establish real D1/W1/MN analysis or complete comparison journeys; Root's combined browser qualification remains pending. The full platform goal and remaining route, lifecycle, factory recreation, presentation, and journey acceptance stay open.
+
+## 2026-11-07 — Frozen Strategy 1ca97c and ETF 9f3ffcd development imports
+
+Imported only the four Strategy-declared and six ETF-declared TC paths after their exact old-byte guards. Verified all 22 source-manifest rows across both releases against local SHA256, Git blob, source-tree blob, and mode; all 97 active dependency rows across Provider23b6, Dashboard8dfeed, Strategy1ca, and ETF9f3 match. The active import block and current matrix import pointers now identify these successors; prior manifests and roadmap history remain intact. Frontend type-check, workstream validation, strict TC scope guard, and journey inventory pass. Root owns current-source browser, exact CI, native, and release acceptance; these remain pending. The candidate includes TC c86caba Market Map reference-target preparation fix.
+
+## 2026-11-07 — Keep legacy Chart custom history range in the viewport
+
+Addressed Root R17 laptop geometry evidence in the TC-owned shared `HistoryAcquisitionControl`: its native Custom date range disclosure now positions the panel from its summary and clamps it to the current viewport on open, resize, and scroll, including when the header anchor is partly offscreen. Native details/summary keyboard behavior, date bounds, acquisition flow, and held feedback are unchanged. The focused control and ChartView consumer modules pass 32/32; `vue-tsc --noEmit` passes. The unit placement regression uses a narrow viewport and offscreen anchor; actual rendered laptop geometry remains pending Root browser review. This does not claim the broader route/action or full platform acceptance.
+
+## 2026-11-07 — RRG laptop plot sizing and marker paint order
+
+Root R42 showed that the RRG component's 560px minimum grid exceeded a laptop dock viewport, leaving most of the plot below the fold. The component now allocates a smaller responsive plot/table layout, keeps the panel keyboard-scrollable, and permits the existing scrollable ToolWindow body to expose the remainder. The R42 marker audit found near-coincident latest XLK/XLY points; opaque symbol-label backgrounds were painted after marker circles. Markers now paint last, preserving visible state-colored centers without changing analysis data or raster assertions. The focused RRG module passed 19/19, `vue-tsc --noEmit` and workstream/scope/journey/diff guards passed. Root's laptop geometry and complete D1/W1/MN browser qualification remain pending. No browser, backend, fixture, data, or reference changes were made.
+
+## 2026-11-07 — Provider182 and Strategyab46 development successors
+
+Imported only the four Provider182 and three Strategyab46 declared TC paths after verifying their exact old-byte/absence guards. Verified all 62 Provider and 11 Strategy manifest rows against source Git blobs, SHA256 and modes; the strict TC scope guard confirms the four-entry active block has 98 exact imports. Updated only the current Provider and Strategy source pointers in the journey inventory; prior manifests/history and the ETF9f3 pin remain intact. Focused StudyLab and RRG modules passed 87/87; frontend type-check, workstream, scope, journey inventory and diff guards passed. Provider182/Strategyab46 remain development dependencies, not product or release acceptance. RRG laptop rendering and full D1/W1/MN browser qualification, exact CI, combined qualification and Root-owned release gates remain pending. The earlier aed9 custom history range correction remains in branch ancestry.
+
+## 2026-11-07 — Preserve Study Lab dataset draft during shared-symbol publication
+
+R44 showed that workspace hydration restored Study Lab's saved XLB draft and run context, then the workstation's shared-SPY publication rewrote `configuration.symbol` for every blue-linked tool. The workspace publisher now treats the semantic `study_lab` tool type as an independent editable dataset and preserves its configuration during shared-symbol fallback updates. The focused real-store regression loads shared SPY with Study XLB/run 8 plus linked Chart, Notes, and WatchList, replays the startup SPY publication, then selects XLK from the linked Chart. Study remains XLB with its saved-run fields; the other linked fallbacks update to XLK. Workspace store tests passed 100/100, frontend type-check passed, and the TC scope/workstream guards passed. Root owns the rendered reload journey and broader platform qualification; they remain pending.
+
+
+## 2026-11-07 — Shared preparation for legacy ChartPanel panes
+
+The multi-pane ChartPanel now uses the shared preparation coordinator for deliberate symbol selection, restored saved panels, and timeframe changes. Requests use the canonical instrument identity when available and omit `start_at`, leaving admitted-depth selection to Provider. Cached bars remain visible while preparation runs; progress can refresh only the still-current panel, and selection/unmount guards abort obsolete observers. The focused ChartPanel lifecycle module passed 8/8 and `vue-tsc --noEmit` passed. Workstream, TC scope, journey-inventory, and diff guards passed. Root's R46 browser run did not exercise ChartPanel; its Study Results, factory RRG marker, and recreated WatchList locator failures remain with their owning review paths. This is a focused development checkpoint only; all full route/action, exact-tip CI, combined, native, and release gates remain open.
+
+
+## 2026-11-07 — Prepare linked ChartPanel panes concurrently
+
+ChartPanel now starts preparation before its local bar load finishes and observes each mounted pane's own symbol/timeframe after a sibling selection updates linked panes. This lets linked D1/H4 panes request their own admitted history while cached bars load, with each pane's context and abort fence preserved. A mounted regression covers the initial request during a pending restore load and both linked pane requests. The focused ChartPanel lifecycle module passed 9/9 and `vue-tsc --noEmit` passed. The Root-owned RRG browser slot remains allocated to ETF, so no browser run was started; rendered multi-pane behavior and all full route/action and release gates remain pending.
+
+## 2026-11-07 — R48 compact status and laptop RRG layout
+
+The R48 laptop review showed long acquisition messages overflowing the Workstation toolbar and RRG content exceeding its short dock. Added a shared compact status disclosure that keeps a brief visible label, accessible full reason, and persistent live announcement; applied it to Workstation, ChartPanel, Ratio, and RRG statuses. RRG settings and sortable rows are now collapsed, keyboard-discoverable disclosures, leaving the plot to use the available panel height; uPlot no longer enforces a 130px plot minimum. Added a short-host sizing regression. Focused status/data-preparation/RRG/Ratio tests passed 65/65, ChartPanel/Workstation tests passed 104/104, and `vue-tsc --noEmit` passed. No browser/screenshot was run; Root's actual laptop screenshot qualification and all full route/action, exact-tip CI, combined, native, and release gates remain pending.
+
+The RRG public controls follow the agreed `Settings` and `Rows · <count>` native disclosure labels; both are keyboard-operable. Compact statuses keep full reasons in the accessible disclosure and live region. The settings and rows overlays are bounded to the RRG body rather than the small header. ETF cfd23fa and Strategy 55851d2b exact test-only disclosure successors are imported; runtime geometry and journeys remain pending Root review.
+
+## 2026-11-07 — Fail-closed route and action journey inventory
+
+The current journey matrix now maps all 28 routes/aliases, 11 shell actions, 21 canonical Add-tool entries, 8 factory layouts/38 panel instances, and all 76 owner action rows to explicit journey IDs and exact named test cases. Added two authenticated Playwright journeys for the secondary-route aliases and Strategy Lab v2 read-only resource navigation. The validator now rejects missing/unknown journey IDs, absent or non-test case references, missing critical-review slots, and exposed controls without mapped cases; its nested-SFC self-test also covers native disclosure summaries. The inventory self-test passes, the two browser cases are discoverable, Vue type-check and workstream/scope guards pass. Browser cases, critical-review slots, and combined qualification remain pending Root execution; this inventory is coverage mapping, not acceptance.
+
+## 2026-11-07 — Provider dd05 exact development import
+
+Imported only the six TC-authorized Provider paths after verifying each old guard against the local worktree and its recorded source. Verified all 64 rows in the dd05 manifest against local SHA256, source Git blob, and executable mode; the active dependency pin and journey inventory now identify dd05, while the prior 182 manifest and pin remain in history. The source adds reviewed cash-equity calendar handling and evolving sector-series fixtures for development; it is not release qualification. Added a focused CompactStatusNotice test for native disclosure open/close and accessible detail; the module passes 3/3. Journey-inventory self-tests, strict import/scope checks, workstream validation, and diff checks remain the relevant TC gates. Root owns rendered browser journeys, exact-tip CI, and combined qualification; those are pending.
+
+## 2026-11-07 — Keep manual legacy Chart history secondary
+
+The legacy Chart already prepares selected instrument/timeframe history through the shared coordinator, while `HistoryAcquisitionControl` remains available for explicit missing-history/custom-range work. Its header action now uses a compact muted/outlined secondary treatment with visible hover/focus states; the button label, keyboard access, custom-range disclosure, bounds, and acquisition flow are unchanged. The focused HistoryAcquisitionControl and ChartView suites pass 32/32, Vue type-check passes, and the strict journey-inventory signature was refreshed from the actual four controls. Rendered visual review, route/action journeys, exact-tip CI, and combined qualification remain pending Root.
+
+## 2026-11-07 — RRG latest-marker draw order and stronger TC03 evidence map
+
+Root R53 on frozen `c9fc3bbb`/Provider `dd05c5e8` exposed a real paint-order defect: all tails were rendered first, but the subsequent per-row point loop allowed later rows' historical circles to cover earlier rows' latest marker centers. The RRG renderer now draws every historical circle first and every latest circle afterward; coordinates, colors, data, calculations, labels, and visual tolerances are unchanged. A focused unit regression overlays another row's historical point on a latest marker and asserts the latest marker paints on top. `test_relative_rotation_tool.test.ts` passed 21/21, `vue-tsc --noEmit` passed, and journey, workstream, scope, and diff guards passed. The journey matrix now maps TC03 to the existing swing-analysis, gesture navigation, and all seven native indicator-promotion cases instead of treating F6 mount as chart-exploration coverage; those cases and all nine critical review slots remain pending Root. No browser run was started; Root owns the full RRG rerun and remaining release gates.
+
+## 2026-11-07 — EasyScan follows queued visual-condition runs
+
+Root R57 showed that visual saved conditions can return an asynchronous Python research run even when the Python selector is Off. EasyScan now follows the returned research-run ID through the existing screener-results poll path for every condition type, with no fixed completion timeout. Queued/running attempts keep the prior completed result and coverage visible; only a matching completed result replaces it, while failed/canceled attempts report their outcome and retain the useful prior result. Run generations and unmount cancellation fence stale responses. The focused EasyScan module passed 24/24, `vue-tsc --noEmit` passed, and workstream, TC scope, journey inventory/self-test, and diff checks passed. Root's combined browser rerun, exact-tip CI, and full platform acceptance remain pending.
+
+## 2026-11-07 — Keep Workstation primary actions visible at 1024 CSS pixels
+
+Root's R61 native-viewport screenshot showed Refresh and Sign out beyond the initial 1024 CSS pixel viewport at 125% desktop scaling. The Workstation header now uses a narrow-width rule to reduce menu/search spacing and constrain optional status summaries while keeping Refresh and Sign out non-shrinking. Existing status disclosures retain full detail; no shell actions or application semantics changed. `vue-tsc --noEmit`, strict TC scope, workstream, journey inventory, and diff checks passed. Root's actual 1024/1280/1920 action-bounds and screenshot check remains pending; no browser was started locally.
+
+
+# 2026-11-07 — Root final UI domain successors assembled
+
+Imported the exact six TC paths from Strategy b7e13e77 and one TC view path from ETF 2450abb9. Verified every row in the 27-file Strategy and 11-file ETF manifests, including source blob/hash and staged mode; also verified all 86 d954 common-runtime rows and all 67 Provider 22c31 rows remained exact. The active pin now retains Provider 22c31 and replaces only the superseded Strategy/ETF entries with b7/2450; historical manifests remain untouched. Updated the TC-owned owner-matrix snapshots and exact source provenance, and added the authored Advanced Chart/Instrument Details browser case to TC08/TC09 with execution pending. Scope, workstream, journey-matrix (including self-test), and staged diff checks pass. No browser or full test suite ran; Root owns current-source compilation, affected journey execution, combined qualification, and release gates. The full platform roadmap remains open.
+
+## 2026-11-07 — Preserve Industry factory semantics when saved configuration collides
+
+Root R62 showed the cloned Industry Indexes panel displaying unrelated Personal watchlists when its dated classification result had no rows. The shared workstation renderer and mount path now resolve generic personal-watchlist behavior only after excluding the semantic Industry and Constituents roles. A focused mounted regression supplies a saved `personal: true` flag to the Industry factory role and verifies the dated empty-classification explanation and provenance remain visible across ETF-context changes. The WorkstationToolContent module passed 15/15, `vue-tsc --noEmit` passed, and scope, workstream, journey-matrix, and diff checks passed. Other R62 Dashboard/Study/lifecycle failures remain with their Strategy-owned paths; Root's rendered recheck and full platform acceptance remain pending.
+
+## 2026-11-07 — Gauge/Scan async result recovery and saved Study dataset return
+
+R63's two analysis regressions are repaired in the shared TC components: EasyScan now follows the exact submitted/replacement run ID through terminal status, keeps the last completed result and coverage while a replacement is queued, and applies matching completed coverage when ready. Market Gauge watches the saved scan's result history, retains its last completed value during queued replacement work, and refreshes only after that scan reaches a terminal state. Workstation's saved Library Study handoff now copies `symbol` along with the retained dataset defaults, so XLB does not fall back to the linked SPY when reopening an immutable version. The focused Workstation/Gauge/EasyScan modules passed 130/130, the Code Library module passed 21/21, and `vue-tsc --noEmit` passed. Imported the two guarded Strategy2144 Code Library paths over Strategy73 and verified the full owner manifest; current Strategy matrix/test provenance remains pending Root browser execution. No browser/native/backend work ran. Root's rendered journeys, exact-tip CI, combined qualification, and release gates remain pending; the full platform roadmap remains open.
+
+## 2026-11-07 — R65 factory semantics and useful Market Map default
+
+Root R65 showed a chart titled “Sector Comparison” taking the sector-watchlist renderer because presentation role detection used title substrings without honoring the catalogue type. Specialized roles now require the matching concrete tool type and semantic configuration; legacy copied watchlist keys remain supported by stable prefixes. The current matrix-driven contract checks all 21 Add-tool definitions and 38 factory panels, including chart/title/config collisions. This also lets Breadth tools with sector-named titles reach the Breadth renderer; a partial response without `above_ma` now displays unavailable values instead of throwing.
+
+Root's captured Market Map request selected pending `etf-holdings:IBB` with zero members while the source API exposed the actual empty-result path. A blank Market Map now refreshes its source list, prefers a populated current S&P universe, rejects pending or empty sources as defaults, shows a truthful unavailable message when no compatible source exists, and starts the existing shared preparation lifecycle for the selected default. New defaulted universes use the explicit Equal area metric with Return color, avoiding an unsupported market-cap assumption; an existing configured source/metric remains untouched. Focused Market Map, source-capability, and factory-catalogue modules passed 84/84; WorkstationToolContent passed 15/15; `vue-tsc --noEmit`, strict TC scope, workstream, journey-matrix/self-test, and diff checks passed. The exact Strategy6f811206 test-only successor (three browser specs) is imported with all 27 manifest entries hash-verified; its browser cases remain Root-pending. No browser, backend, source, or native operation was run. Root owns the rendered R65 recheck, exact-tip CI, combined qualification, and release gates; broader platform criteria remain open.
+
+
+## 2026-11-07 — Refresh Gauge metrics after an in-flight stale response
+
+Root R68 captured an older `/analysis/gauges/{id}` response returning queued 0/0 after the saved scan result had already completed 1/1. Market Gauge now serializes refreshes: when terminal completion arrives during an older metrics GET, it waits for that request to drain and then reads the metrics again. It keeps the last completed value visible while this refresh is pending and retains it with a truthful notice if the fetched metrics do not match the completed run. A deterministic deferred-response regression reproduces the stale response arriving after completion. The focused MarketGaugeTool module passes 12/12 and `vue-tsc --noEmit` passes. Imported exactly the three guarded Strategy48aa35a2 test paths and verified the full 27-entry manifest. Root-owned rendered journeys, exact-tip CI, combined qualification, and all broader platform-usability criteria remain pending.
+
+
+The R68 checkpoint's exact Strategy manifest verification and current TC scope/workstream/journey validators passed; Playwright discovery listed 19 tests across the imported Dashboard, Study, and workstation lifecycle specs. These are static/test-discovery results only; no browser execution or Root acceptance is claimed.
+
+## 2026-11-07 — Start selected-chart preparation before cold local read completes
+
+The cold ChartView regression used a confirmed `instrument_id` target even though the new behavior submits preparation before the first local identity read completes. It now models the supported NVDA symbol target, verifies D1 and the absence of artificial date bounds, and waits for the local read and progress refresh independently. The mounted test confirms preparation starts while identity is still unresolved, keeps existing bars, and displays newly prepared bars after progress; the stale-symbol cancellation case remains in the focused module. The ChartView radar handoff module passed 18/18 and `vue-tsc --noEmit` passed. Workstream, strict TC scope, journey self-test, and diff checks passed. Root owns the rendered R69 follow-up and full qualification; no browser or native operation was run.
+
+
+## 2026-11-07 — Public application navigation and current owner imports
+
+Root traced the Watchlist, Alerts, and Settings menu failures to the Workstation menu closing its conditional RouterLink during activation. The menu now remains mounted until the route commits, then closes through a route watcher. Added an ordinary menu-click browser journey for all three views; its execution remains pending Root. Updated the existing TC02 discovery case title and Workstation control signature in the route/action matrix, and kept browser status pending. Imported exact ETF fb378d7a supporting-journey delta (10 manifest rows) and Strategy bc98876b private test delta (27 manifest rows); both manifests and all declared file hashes/blobs/modes were verified. Focused App-shell/workspace-store units passed 108/108, Vue type-check passed, Playwright discovery passed (191 flows cases and 7 acquisition cases), and strict scope/workstream/journey/diff checks passed. The public-navigation browser journey, exact-tip CI, combined qualification, native proof, and release acceptance remain Root-owned and pending. No browser or provider/native operation ran.
+
+
+## 2026-11-07 — Provider 591bdfd9 exact backend dependency import
+
+Root released Provider source 591bdfd977fd156d2a489b055bb8662f487e6b3c for development consumption. Imported its exact 18 TC consumer paths after old-byte checks and verified all 73 manifest rows against source blob, SHA256, and file mode. The current Provider pin now points to this source; the prior 22c31 pin and manifests remain historical. The frontend stays frozen at e1ee9d984ecbf8de66783612902cbc76fa0b8ef3. Root owns build/browser qualification, exact-tip CI, combined acceptance, native proof, and release; all remain pending. No tests, browser, service, or native operation was started for this import.
+
+
+## 2026-11-07 — Independent preparation feedback and Provider ad114d20
+
+Root reviewed two common Workstation feedback defects. Future-dated holdings now explain that current holdings are unavailable because the source snapshot is dated in the future; no future snapshot is described as current. History feedback now reports covered partial D1/W1/MN data independently from identity/profile waits, while an actual history backfill remains identified as older-history work and retains its real retry time. Focused coverage includes the BWET future-dated reason and the mounted partial-history feedback case.
+
+Imported only Provider ad114d20's 11 declared TC delta paths after exact old-byte checks; all 74 source manifest rows and consumer hashes/modes were verified. The active Provider pin now uses the exact ad114 manifest; the earlier 591 source remains available in the previous commit and immutable manifest. Data-preparation tests passed 25/25, the mounted Workstation feedback test passed 1/1, and `vue-tsc --noEmit` passed. The full Workstation unit module had 94/95 pass; the remaining failure is the separate application-menu test expectation at `test_workstation_popout_bindings.test.ts:397`, outside this feedback assignment. Root's build and ten critical affected journeys remain pending, as do full route/action and release gates. No browser, source request, or runtime was started.
+
+## 2026-11-07 — Stabilize ordinary Plots clicks and persist active layout
+
+Root's exact pointer trace proved the inactive chart's conditional DrawingToolbar insertion shifted the Plots button 40px between pointerdown and mousedown. The inactive chart now reserves the same 40px rail with an `inert`/`aria-hidden` placeholder, keeping controls fixed while preventing keyboard interaction with inactive drawing controls. Ordinary Add-tool semantics remain per-active-layout and preserve the supplied configuration; once the new panel is actually active, the active-tab/window snapshot is flushed. Ordinary tab selection also flushes its `active_tab_key` instead of waiting only for the trailing debounce. Focused regressions cover the inert reserved rail and active-tab save/restore path. The auth-boundary journey now requires visible Results and Notes before and after same-user re-login; the on-demand fixture uses the actual active chart region and accepts independent history versus holdings ensure requests without erasing stale-context assertions.
+
+Imported Strategy `be61e2d70e917a7ff758d137068c1dc779097129` under its exact released manifest and old-byte guard; all 27 manifest paths match source hashes/blobs/modes. The Strategy `bc98876` pointer is superseded in the active pin while its manifest/history remains intact. Also imported Provider `13630db12d4f0f5810b9baa73725f75fb7e653cc`: all 13 declared deltas passed their old-byte/known-absent guards, and all 76 manifest paths match source hashes/blobs/modes; the active Provider pin supersedes `ad114d20` while prior evidence remains historical. Focused rail/active-layout/store tests passed 3/3, frontend type-check passed, and Playwright discovery listed the 12 affected auth/on-demand/lifecycle cases without launching a browser. TC scope, workstream, and journey-matrix guards passed. No browser was started; Root owns ordinary Plots and critical-smoke replay, exact-tip CI, combined qualification, and release. The pre-existing Workstation view unit's mocked RouterLink teardown assertion remains outside this repair; actual public navigation passed Root's earlier browser smoke. Broader platform criteria and acceptance remain open.
+
+
+## 2026-11-07 — Reduce virtual-tool remounts and keep primary navigation responsive
+
+Root traced repeated identical preparation requests to structural Workstation changes destroying and recreating every virtual tool root. Closing a single-tab pane now removes that pane through its existing GoldenLayout parent when sibling panes remain, retaining unrelated mounted tools and their coordinator subscriptions; the focused host test verifies the remaining tool stays mounted. Primary Alerts, Settings, and Watchlist route entrypoints are eagerly imported so their normal menu navigation is not queued behind the initial Workstation API burst. The application-menu unit stub now exercises router navigation rather than asserting teardown of a mock link. The existing main-chart minimum plane/scroll adjustment and the auth/on-demand journey corrections remain in this same candidate.
+
+Imported Provider `9b196304` and its `cc31077c` successor under exact source manifests. Only the seven 9b deltas and two cc310 deltas were changed locally; the active Provider pin points to cc310's 76-file manifest, and earlier manifests remain available as history. Focused frontend checks passed: 124/124 across WorkspaceLayoutHost, UPlot context, application routes and Workstation popout modules; Vue type-check passed; Playwright discovery listed all eight auth/on-demand cases without launching a browser. The causal user journeys, full profile, exact-tip CI, Root integration/release gates, and genuine-source qualification remain pending. No browser, runtime, native request, or full suite was run in this worktree.
+
+Correction to the preceding public-navigation diagnosis: later Root event evidence showed the link remained connected and ordinary click reached the router; lazy Watchlist JavaScript was queued behind the initial API burst. The eager route entrypoints address that observed delay; no menu-focus or premature-dismissal workaround is claimed.
+
+
+## 2026-11-08 — Common flow repair and exact dependency successors
+
+The current source closes the Root-identified Plots insertion/save, auth cancellation, chart URL/provenance, and nested-pane close gaps. Direct, blue-linked, and private basket selections are covered by the same route synchronizer; the basket continues through its existing private data path. The journey matrix records the retryable plot-save case as focused local evidence with browser execution pending.
+
+Imported the exact 12 TC backend paths from Provider 0a1cda84 and the exact Strategy lifecycle test from 16a9523e. The complete Provider 76-row and Strategy 27-row source manifests were verified against hashes, Git blobs and modes; previous cc31077 and be61 pins were archived as superseded history. The active plan/session fields retain the full platform goal and open roadmap.
+
+Focused units passed 181/181, frontend vue-tsc passed, and Playwright discovery listed 307 tests across five affected files without launching a browser. Journey matrix validation passed for 28 routes/aliases, 21 Add-tool definitions, eight factory layouts/38 instances, 69 named cases, and explicit pending receipts. Root exact-source build and critical journeys remain pending; no integration, deployment, genuine-source, or full-roadmap completion is claimed.
+
+
+# 2026-11-08 — Confirmed ticker handoff and critical-smoke responsiveness
+
+Root’s exact 2a8dc9e4/b1929300 critical smoke completed 6/10 with zero retries. The TCNEW trace showed a successful local candidate resolution followed by a redundant canonical instrument GET that remained pending; `selectSymbol` now consumes only a response whose acquisition status is resolved, symbol matches exactly, identity status is resolved/verified, canonical ID is positive, and any separately supplied ID agrees. The existing acquisition/URL journey now asserts no canonical detail lookup after confirmation, while ordinary unconfirmed selections still use the canonical resolver. A pure regression covers matching resolved identities and rejects symbol, status, candidate-identity and supplied-ID conflicts. The saved Notes helper now targets the visible dock tab, and the IGV details helper compares the holdings heading case-insensitively while retaining the exact pending reason. Favorite mutations use high fetch priority during the initial same-origin request burst; their button reports a pending accessible name/busy state and remains server-confirmed rather than optimistic.
+
+Exact development inputs: Provider source `b19293006ea624a4f0c05a4fd91152ffd650a426`, full 78-file manifest, five TC-owned changed paths; Strategy source `2689c2c64996b1588dd764adcef2e7d570b15096`, full 27-file manifest, one changed private lifecycle journey. The previous Provider `0a1cda84` and Strategy `16a9523e` pins are retained in import history. The 2a8dc9e4 complete frontend manifest was copied byte-identically as context evidence: all 126 rows matched before TC changes, and its TC consumer import list is empty, so it is not an active pin. These dependencies are development-only, not release qualification.
+
+Focused proof: acquisition/on-demand contracts 40/40; API client, Favorites store and ToolWindow 43/43; the confirmed unknown-symbol Workstation case 1/1; frontend type-check passed. The broader Workstation bindings module was also sampled; one TC-owned visibility-return refresh-count failure remains an open required repair before branch release, and is not represented as green. Root owns the rendered critical-smoke rerun, exact CI and combined release qualification. Full PU01–PU09 remain open.
+
+
+# 2026-11-08 — Visibility-return refresh deduplication
+
+The required Workstation visibility-return regression exposed two calls: Vue Query’s focus handler and the explicit `visibilitychange` handler both refreshed the same query. `WorkstationView.vue` now disables automatic focus refetch for this query; the explicit visible-state handler remains the single refresh owner, while other query lifecycle and the shared store’s in-flight deduplication remain unchanged. The existing strict one-refresh regression passed 1/1 and `vue-tsc --noEmit` passed. Root’s browser build/run of the previously frozen `ccb0d82887b918ae4644963bfed543e7f8cb9a22` candidate is separate and unaffected; this one-file successor needs its own later render qualification.
+
+## 2026-11-08 — Critical-journey observer handoff and fixture corrections
+
+On Root’s terminal `ccb0` evidence, corrected the TCNEW request observer to collect the actual canonical lookup and fixed the IGV cancellation journey to wait for OIH’s real status poll to start before switching; the obsolete waiter for a response guaranteed absent after cancellation is removed. J12 now distinguishes B’s owner-scoped state from the default Notes factory pane by checking the distinct B workspace and the ordinary activated pane’s B-only note value. In the shared preparation coordinator, a last observer detachment keeps the exact request/context entry attachable for 50 ms before aborting it; a replacement observer cancels that timer and joins the same creation. `cancelAll()` still removes the entry and aborts immediately, and context keys remain isolated. Focused coordinator tests passed 26/26, `vue-tsc --noEmit` passed, browser-reference preflight reported no actionable unbound names, and TC scope, workstream, journey-matrix and diff guards passed. Root’s browser qualification and the full platform gates remain pending; this checkpoint does not claim the Study flow or wider roadmap complete.
+
+## 2026-11-08 — Provider 19d34d0b exact development dependency
+
+Imported only the eight TC-declared Provider deltas from `19d34d0b3e875b29b276ee80e471311586e6023f` over `b19293006ea624a4f0c05a4fd91152ffd650a426`, preserving previous manifests. Verified all 79 manifest rows against source Git blobs and SHA256; the eight changed paths passed old-byte/known-absent checks before import, and all unchanged consumer paths already matched. The Provider pin now references the exact 19d manifest and full manifest path set. This is a development dependency only; Provider's focused/PG results do not replace Root native, browser, CI, combined, or release qualification.
+
+## 2026-11-08 — Cold local-history chart publication and current journey handoff
+
+Root's retained-source IHI trace shows the initial local D1 read returned zero, then governed preparation progress reached covered history and a subsequent exact IHI/D1 local read returned 500 bars. The chart-store refresh was `forceFresh`, which disabled early bar publication; `performLoadBars` then awaited a canonical instrument GET before assigning the bars. That metadata GET remained pending in the trace, so a valid local OHLCV response could not paint the selected chart. Current-scope nonempty local reads now publish immediately while identity/indicator hydration continues; a zero-row refresh still preserves an already-rendered chart. A focused store regression holds the identity response open after the fresh local read and verifies OHLCV/uPlot data is available before releasing it.
+
+Also adopted Strategy `88b70230f03cab3f45b2817033892e4c9e1ea9f5`'s exact single declared lifecycle journey delta; all 27 private manifest paths were verified and the active pin was advanced without removing prior history. Updated the current TCNEW test to prove confirmed identity, URL selection, and the exact-ID-or-symbol ensure request proceed while an independent canonical metadata lookup is deliberately held. Updated the IGV holdings locator to use the actual fund-specific accessible listbox name while preserving the dated rows and BWET context transition. Workspace snapshot writes use high fetch priority for visible layout/session actions and retain server-confirmed save semantics.
+
+Focused store and workspace modules passed `166/166`; frontend type-check passed; E2E reference preflight found no actionable unbound names; TC scope (including all self-tests), workstream, journey-matrix, and staged diff checks passed. Root owns the actual retained-fixture/native chart render check and combined qualification. No browser, backend service, native request, or production operation was run here; the full platform roadmap and release acceptance remain open.
+
+
+## 2026-11-08 — Reloaded WatchList hydration and current auth/selection follow-up
+
+Root’s exact 921 review confirms the post-reload WatchList membership and local SPY/D1 cache are available: the same 31-bar quote request succeeds before reload with close 518.75789924 and +0.4%, while three duplicate post-reload reads were recorded without HTTP responses and Last/Chg remained blank. The trace does not establish whether those requests were aborted or still queued, so this checkpoint does not claim a proven cancellation source. WatchList hydration now coalesces same-symbol reads by local/provider mode across concurrent mount and row watchers; completed local OHLCV still derives Last and change from the final two bars. An auth-boundary generation fence prevents an old quote result from publishing after account change, and reset removes prior-session WatchList/quote state. Focused regressions verify one actual quote read, calculated values, and no old-session result/state. No unconditional retry was added.
+
+The same successor carries the actual 921 fixes: J12 activates the visible Notes tab before asserting B’s saved note, the TCNEW D1-zero-bars journey asserts the actual public unavailable status and full Details reason without accepting stale bars, and BWET consumes the canonical metadata type (Exchange Traded Vehicle) from its already-needed lookup so the holdings context is correctly ETV without an extra acquire. The exact one-count armed auth-session AbortError diagnostic is covered; duplicate and unrelated abort errors remain fatal.
+
+Imported Strategy’s exact25-path private view `a24d4c0f08b6eaffe364ef4d670c6889463000ad`; all25 source SHA/blob/mode entries were verified unchanged. The prior full Strategy manifest remains in history. Root’s exact shared-diagnostics transfer allows TC changes only in `frontend/tests/e2e/helpers.ts` and `frontend/tests/unit/e2e/test_browser_diagnostics.test.ts`; the active pin now covers the25 unchanged Strategy-owned paths, with the two named TC seams recorded as exact exceptions.
+
+Focused unit checks passed 141/141 across instrument resolution, WatchList state, browser diagnostic attribution, and the full Workstation bindings module. `vue-tsc --noEmit` passed. The selected E2E reference preflight reported no actionable unbound names; journey mapping passed for 28 routes/aliases, 21 Add-tool definitions, eight factory layouts/38 instances, and all currently mapped actions. Root browser/native/build qualification is pending; no browser or live source was run in this worktree.
+
+
+## 2026-11-08 — Bind the real seeded chart response in the cold-selection journey
+
+Root’s exact-source review found that the real-API journey observer accepted the first D1 OHLCV response by path alone. That could bind a WatchList `limit=31` quote or the chart’s initial empty `limit=500` read, then incorrectly fail even after preparation produced usable history. The observer now requires the primary `limit=500` D1 request, the current adjusted scope, HTTP 200, and a nonempty set of finite OHLC values; empty initial pages are ignored. The captured successful payload is the one asserted by the journey. This changes only the TC-owned E2E observer and does not prewarm, retry, or alter product data.
+
+Frontend type-check, E2E reference-only preflight, Playwright discovery for the seven on-demand cases, and staged diff checks passed. The browser journey itself remains pending Root; no browser or runtime was started here.
+
+## 2026-11-08 — Preserve selected holdings reasons under aggregate partial status
+
+Root's frozen d020/9e2 review found BWET's future-dated holdings explanation replaced by a generic aggregate partial message, even though D1 history remained usable. Workstation status presentation now scopes progress to the exact selected instrument's holdings dependencies before rendering status/reason/coverage; unrelated ready history no longer masks the typed future-source hold. The focused mixed-response regression verifies history-ready plus holdings-failed/future-dated state, retained chart loading, and user-safe reason text without accepting a fake current snapshot. Workstation view tests passed 99/99, frontend type-check passed, and scope/workstream/journey validators passed. Root owns rendered verification on the immutable d020 runtime; broader qualification remains pending.
+
+## 2026-11-08 — Shared transport priority and durable EasyScan unmount
+
+The current candidate adds a bounded priority queue to the common API client. It reserves one admission slot for explicit high-priority user work, caps low-priority background reads, holds admission through response-body consumption, and removes queued requests on caller abort or auth-session change. Active Workstation local WatchList quote reads use the high-priority lane. EasyScan virtual unmount now ends its local progress subscriber and fences late UI updates without issuing an implicit research-run cancel; explicit user Cancel remains available and unchanged.
+
+The exact private test imports are ETF55c0e52d4afdf7703fe23fab2fda9e81b2c40bf8 (10 manifest paths) and Strategy68c5f5ef9fe2f0903476b1cb813d57695f2481ec (26 manifest paths), replacing the prior active ETF/Strategy pins while retaining superseded manifest history. Dataset-specific holdings reason selection remains in the candidate.
+
+Focused evidence: API client 22/22, EasyScan 26/26, WatchList store 25/25, Workstation tool acquisition 15/15, and frontend type-check passed. The two manifests were verified against all 36 declared worktree paths and Git modes. Root owns retained-fixture/browser/native qualification, exact CI, and full platform acceptance; none is claimed complete here.
+
+## 2026-11-08 — Correct BWET future-source journey fixture
+
+Root's exact two-journey run on `9ec4d7833c45cd2fc51916a2378445f7761b425e` / Provider `9e2de1591cb8fc124839309ff4549808b7632844` passed the complete factory recreation case. The selected-ETF case failed at BWET's detailed hold message. The trace shows the test interceptor itself returned an unavailable holdings dependency with `reason_code: test_fixture_hold`, while the journey asserted the typed `future_dated_source` behavior. The UI rendered the generic message that corresponds to that fixture reason; this run does not demonstrate a product regression.
+
+The controlled BWET response now uses `future_dated_source`, and the E2E assertion checks that exact dependency reason before checking the public message. Existing unit and Workstation regressions already verify that this typed reason becomes a plain user-safe future-snapshot explanation while ready history remains usable. No product code, live source, or browser runtime was changed by TC. E2E reference preflight found no actionable unbound names; Playwright discovery lists all seven on-demand cases. Root owns the exact-source rerun and remaining platform qualification; the failed predecessor result remains preserved.
+
+## 2026-11-08 — Preserve foreground priority and independent ETF holdings
+
+Root's exact timeline showed selected ETF holdings preparation could wait behind unrelated chart/technical hydration. The selection path now starts the holdings cache read independently; when a current holdings capability is known, only that exact holdings cache operation is awaited before publishing current holdings status. Stale/unavailable holdings continue into the shared ensure path without waiting for chart data. Focused Workstation regressions hold chart and technical reads open while checking that holdings work/status proceeds.
+
+The WatchList quote priority check now follows actual visible GoldenLayout ancestry rather than focused-window state, and promotes an already queued local quote when the list becomes visible. Shared queued request priority is monotonic (`low < auto < high`): a hidden Favorites/secondary consumer can join the same SPY quote but cannot demote a visible WatchList request. Regressions verify a high-priority visible read remains the single HTTP request when a low-priority hidden consumer joins.
+
+Imported only the seven TC-authorized Provider paths from exact source `9e2de1591cb8fc124839309ff4549808b7632844`; all 79 manifest rows were verified against SHA256, Git blobs, and executable modes. The current Provider dependency pin is advanced to the 9e2 manifest; prior manifest files and history remain intact. Focused frontend tests and type-check pass. Root owns retained-fixture browser/native qualification, exact CI, and full platform acceptance; those remain pending.
+
+
+## 2026-11-08 — Coalesced foreground-priority candidate and ETF Notes successor
+
+The current staged candidate includes the shared foreground-priority and cached-first fixes, exact Strategy `f1c4c0aa6dae80e4415880d45b633ba3b9ccef98` private context, and ETF `44bb7a538241ca6d5388c5a200a3cf9811ec19ec` Notes successor. Only ETF's two declared TC import paths were copied; both old-byte guards passed and all ten released manifest rows match consumer SHA256, Git blob, and executable mode. The active ETF pin now points to the ten-path 44bb manifest; the superseded 55c0 receipt remains historical. Strategy's active 26-path f1c4 pin and Provider 9e2/aed0 pins remain unchanged.
+
+The full frontend unit proof is 1914/1914 on the pre-Notes cohort; ETF separately reports Notes 6/6 and type-check green, and no duplicate private-module replay was run. Combined frontend type-check, TC scope guard, workstream validator, journey matrix (28 routes/aliases, 21 tools, 38 factory instances, 76 actions), and staged diff check pass after the exact imports. Root owns the next combined browser and release gates; this development checkpoint does not claim browser or full platform acceptance.
+
+
+## 2026-11-08 — Bind the first Study browser case explicitly
+
+Root's launcher preflight for frozen source `245fc873f7d0a0e633ca03717d745e7778cb1da4` found that the first authored Study browser case was executed by the full profile but lacked an individual journey-matrix binding. Added `TC08-study-saved-context` for the exact `Study journey keeps saved identity, refreshes Results, and returns from Python Library on the immutable version` case under `TC08`. The case remains `authored_pending_root_run`; no execution or acceptance is claimed. Root's preflight reported zero browser execution, so no application rebuild is needed for this records-only mapping correction.
+
+
+## 2026-11-08 — Bound high-priority preparation transport occupancy
+
+Root's terminal critical-eight review on frontend `245fc873f7d0a0e633ca03717d745e7778cb1da4` / backend `9e2de1591cb8fc124839309ff4549808b7632844` reproduced foreground starvation: repeated high-priority `POST /data/ensure` work could occupy all six client transport slots, while Notes and canonical ticker search/discovery had not reached transport. The API client now keeps `POST /data/ensure` at high queue priority while counting it against the existing five-slot non-interactive admission limit. One of six slots remains available for foreground high-priority reads/mutations; total capacity, low-priority cap, abort/body-release/session behavior and durable job semantics are unchanged. The focused API regression holds five high-priority ensures, queues a sixth, and proves an ordinary foreground high-priority read enters the reserved slot before the waiting ensure; the queued ensure still enters next when capacity releases.
+
+The same run's BWET journey had already received the explicit `future_dated_source` holdings outcome, returned zero current membership, and rendered the correct future-source Details explanation. Its listbox correctly named the empty control `No point-in-time ETF holdings snapshot symbols`; only the test expected a dated BWET listbox despite the fixture containing no current snapshot. Updated that assertion and documented why no IGV rows may be carried into BWET. No snapshot was relabeled current and the supported fund assertions remain intact.
+
+Focused API client tests pass 25/25; frontend `vue-tsc --noEmit`, TC scope/workstream/journey validators and diff checks pass. E2E reference preflight reports zero actionable unbound names (existing semantic advisories remain unqualified). Root's 245 critical-eight result remains 4/8 pending requalification of these changes; Strategy owns the Results occurrence-filter failure. No browser/runtime, provider HTTP, native or production operation was run by TC.
+
+
+## 2026-11-08 — Synchronize held OIH failure poll in the on-demand journey
+
+Root's exact three-case follow-up on frontend `e6d9eda1fc5109505944291859b078cb3e0152fc` / backend `9e2de1591cb8fc124839309ff4549808b7632844` found the ETF-switch journey asserting the delayed OIH failure-poll URL immediately after the ensure POST was accepted. The fixture only records that URL when the status GET actually enters its route. Added a dedicated route-start signal and await it before registering the expected controlled 503 and changing to XHB. The GET remains held until after the context switch, and the existing late-response, identity, holdings, history, numeric, future-date, and timing assertions remain unchanged. This is test synchronization only; no API or product behavior changed.
+
+The targeted E2E reference preflight reports zero actionable unbound references. Playwright discovery listed all seven cases in `on_demand_acquisition.spec.ts`, then exited with `EACCES` attempting to write `frontend/playwright-report/index.html`; no browser cases ran. TC scope, workstream, journey-matrix, and diff checks pass. Root owns the next fixture run and combined acceptance; the prior auth Notes issue belongs to ETF and is not changed here.
+
+
+## 2026-11-08 — Foreground admission and cached-first analysis startup
+
+Root's e6d9 five-surface result showed the shared client could let high-priority data-preparation requests occupy every transport slot. `api.ts` now keeps `POST /data/ensure` at high queue priority but counts it within the existing non-interactive admission bound, leaving one of six slots available to foreground requests. The regression holds five preparations, queues another, and proves a default user mutation reaches transport before the sixth preparation; the waiting preparation still enters after capacity releases. Existing total capacity, bounded low-priority admission, request cancellation, and explicit background priorities remain intact. The API-client suite passes 26/26.
+
+The same run showed cached WatchList rows becoming `aria-busy` because a separate workspace analysis was refreshing. WatchList now distinguishes its own loading state from that shared refresh: cached rows stay available and are announced as refreshing without setting the list busy. The focused component suite passes 96/96.
+
+Market Map startup no longer waits for optional saved-snapshot metadata, personal publication targets, or Python assets before requesting its selected universe. Those reads hydrate independently; a saved Python-backed map still waits for its selected asset before running. A deferred-read regression verifies the first map response and plotted tiles appear while optional metadata remains held. The Market Map component suite passes 69/69.
+
+Imported only the two TC-authorized Strategy Results paths from source `2ec3221df8d6e4ae5216572b9353a2c986e02902` and three ETF Notes/basket journey paths from source `9ef3be0c2387ac173efae81ec3018863d49d3554`; both released manifests' complete path rows and exact imported blobs, hashes, and modes were verified against the consumer. Current Strategy and ETF pins advance to these sources; earlier manifests and validation history remain preserved. Strategy reports 75 focused Results cases passing. ETF reports Notes 5/5 plus type-check, and its three basket discovery cases passed; the basket browser body remains pending Root's combined run.
+
+The combined API, WatchList, and Market Map focused modules pass 191/191. Frontend `vue-tsc --noEmit` passes. Root's exact-source browser requalification, complete unit gate on the final source, full platform journey profile, exact CI, and release acceptance remain pending. TC did not run a browser, fixture, provider request, native operation, or production change.
+
+
+## 2026-11-08 — Synchronize the held OIH poll with context cancellation
+
+Root's seven-case run on `fac5c2b027945b04339d9c7e8310ef6233f7d69b` passed four cases and timed out in the TC-owned ETF switch journey. The retained trace shows OIH holdings ensure `c0ca4e15-68bd-4ee4-8d74-b2002f697063` was accepted, its first status GET reached the controlled route and was aborted when selection changed to XHB, and the fixture released its gated 503 afterward. The ensure-response waiter had been registered only after the OIH selection. Moved that waiter before the selection, asserted the status URL belongs to the accepted request, retained the gate until after the XHB switch, and now assert both the exact stale-poll cancellation and fixture route release. This matches the observed client cancellation rather than waiting for a response the browser no longer consumes; numeric/context/holdings assertions and retry policy are unchanged.
+
+The reference preflight found no actionable unbound names and Playwright discovery collected all seven cases with no browser execution. Root owns the source rebuild/retest; the other two failures are ETF-owned Settings and Strategy-owned Results. Full platform acceptance remains pending.
+
+Also imported the one changed ETF Settings journey path from frozen source `6412cf5a92a316536ae406ccd261e595da69a438` under its exact old-byte guard. All ten manifest rows were verified against the producer blobs, SHA256, and executable modes; the other nine consumer files remain byte-identical. The active ETF pin advances from 9ef3be0c to this ten-path manifest, with prior manifests and history preserved. ETF's private source owner reports only the Settings test change; the combined browser journey remains pending Root.
+
+## 2026-11-08 — Bound expensive high-priority reads and align Auth Notes readiness
+
+Root's passive Auth diagnostic on predecessor `fac5c2b027945b04339d9c7e8310ef6233f7d69b` showed the B workspace read complete while its retained Notes pane was still hidden behind saved-active Results; the test required a B Notes GET before clicking the Notes tab. Moved the owner-read assertion after ordinary Notes-tab activation, retaining account A/B isolation and the saved active Results checks. The same trace showed six active same-origin requests, including expensive market analysis, universe, and chart-history reads, before a fast Auth Notes read. The API scheduler now counts high-priority analysis, market-group, full-chart OHLCV, and basket OHLCV GETs against its existing five-request non-interactive budget. It preserves their high queue order, keeps the total six-request cap, leaves canonical instrument identity and Notes/Results reads in the reserved lane, and keeps short 31-bar WatchList price reads interactive. The new deferred-response regression verifies Notes, Results and canonical identity admission while expensive reads fill the bounded lane and checks that queued analysis resumes after release; existing WatchList promotion and request lifecycle cases remain in the module.
+
+Focused `test_api_client.test.ts` passes 27/27; frontend `vue-tsc --noEmit` passes. Root's diagnostic was passive and terminal on the predecessor source; no browser was run for this successor. Exact-source Auth/browser qualification, full mapped journey qualification, exact CI and all release gates remain pending.
+
+
+## 2026-11-08 — Use the current IGV holdings listbox name
+
+Root's exact 985 terminal review showed the ETF switch journey had a stale test-only accessible-name expectation (`Constituents symbols`). The current UI correctly names the listbox with the fund and snapshot context. Updated the locator within the Constituents group and asserted the current `IGV holdings … symbols` name, preserving the UNXQ, futures/cash, identity, lineage, and selection assertions. No product code or runtime behavior changed.
+
+Reference-only preflight reported no actionable unbound names; Playwright discovery listed all seven on-demand cases without launching a browser. TC scope, workstream, journey-matrix, and diff checks pass. Root's Auth diagnostic remains separate and pending; no browser/runtime/native/provider operation was run here. Root owns exact-source requalification and full acceptance.
+
+
+## 2026-11-08 — Keep the exact holding candidate inside its selection panel
+
+Root's normal `cd3f1a42` geometry diagnostic measured the UNXQ candidate at `(8,542)-(272,584)` while its selection panel ended at `y=510.25`; the candidate center hit a native `select`, although the candidate and tool body were visible. The constituent grid had implicitly placed the selection panel into the short first track while forcing the watchlist track to a 160px minimum. Made the grid placement explicit (empty context, scrollable watchlist, provenance, selection) and reduced the watchlist minimum to 80px so the picker can use the available body height. The existing strict containment, center-hit, ordinary-click, and provenance assertions are unchanged. No browser ran in TC; Root owns geometric requalification and the full profile.
+
+Frontend `vue-tsc --noEmit`, TC scope guard, workstream validator, journey-matrix validator, and `git diff --check` pass. Full route/action acceptance, exact-source browser profile, CI, and release remain pending.
+
+
+## 2026-11-08 coherent search and acquisition-flow checkpoint
+
+The bounded common repair preserves a typed exact ticker draft across a linked map publication while Go has focus, lets a newer Go intent supersede an older unresolved search, and retains explicit arrow-selected prefix behavior. Canonical instrument lookup now uses the shared high-priority request path. The UNXQ status assertion reflects typed partial history; the IWM/OIH browser contracts observe shared `/data/ensure` requests and explicit identity/issuer actions; ordinary ETF Holdings navigation uses the visible application menu.
+
+Imported the exact Strategy `6595b47a3d56220deda0e925901e4351df06cb1c` and ETF `e9c3f938621e853d38017e9eef8f90ba308efcf2` successors. All 26 Strategy and 10 ETF manifest rows match source SHA256/Git blob IDs; only the six declared changed paths were imported. The current journey matrix reflects the updated Notes control signature without changing journey coverage.
+
+Focused Workstation/instrument-query tests passed 106/106. E2E unbound-reference preflight found no actionable unbound names; existing semantic advisories remain unqualified. Frontend type-check, workstream validator, journey-matrix validator (28 routes/aliases, 21 tools, 38 factory instances), and diff check passed. Root owns exact-source browser qualification; this is not full-platform acceptance.
+
+
+## 2026-11-08 — Confirm fresh versus restored holding captions
+
+Root's latest exact error context confirms fresh OIH selection renders `AMD from OIH holdings · 2026-01-02`; the test already expects that caption. The fresh IWM handoff likewise expects `AMD from IWM holdings`. The `dated holdings` caption is reserved for restored route context, and the separate UNXQ reload assertion remains dated. No caption/product change was needed. Current frontend type-check passes; Root owns browser requalification.
+
+
+## 2026-11-08 — Prioritize visible canonical ticker search and tighten ensure witnesses
+
+Root's remaining-five run on `1930aff0829c62b4c1379347db6ac930e47e3f0d` was 1 passed / 4 failed. Its exact review identified three TC on-demand test-contract issues: the UNXQ history waiter could consume an unrelated SPY 202 response; confirmed AMD identity from selected holdings must be reused without a second `/instruments/acquire`; and nested `covered_ranges` assertions need partial matching for legitimate lineage/source metadata. The UNXQ, IWM, and OIH response waiters now match the intended target, dataset, timeframe, and adjustment contract; identity counts require only the explicit IWM/OIH acquisition; history assertions retain adjusted coverage, local readback, held/partial reason, selected identity and dated lineage.
+
+Root's passive factory diagnostic then proved visible SPY canonical search waited 5.36 seconds in the client queue before its 96.81ms HTTP response. `scheduleSymbolSearch` now submits this existing deduplicated canonical query with `priority: high`; its query key, cache and selection semantics are unchanged. The focused Go-while-search-is-pending regression still selects exact SPY over SPYG/SPYV, and all unit expectations for canonical search now assert the foreground priority. Root owns exact-source browser requalification; no browser, native, provider HTTP or production operation was run in TC.
+
+## 2026-11-08 — Preserve same-symbol holding-route hydration and cached Coverage Summary
+
+Root's terminal remaining-five run on frontend `927f9cfe93b7b490bf35d2e2491116cf77041294` / backend `9e2de1591cb8fc124839309ff4549808b7632844` found that a persisted workspace restoring the same symbol as an initial selected-holding URL could still trigger the active-symbol watcher before route hydration completed. The route guard now protects that initial holding context regardless of whether the restored symbol differs from the URL, and the existing hydration/new-explicit-selection clearing points remain in place. A focused regression restores UNXQ from the workspace, verifies the full selected holding query survives, then switches normally to SPY and verifies holding query fields clear.
+
+The same run showed valid holdings-only ensure POSTs for IWM/OIH omit `timeframe`; only the two holdings-only response waiters had incorrectly required D1. They now match the canonical symbol and holdings dataset while the price-history waiters continue to require D1/M1 and adjusted history. Coverage Summary's local and ranged OHLCV GETs now use the existing high-priority lane. It seeds its local view from a matching-symbol TanStack cache entry before awaiting refresh, retains that same-symbol coverage and dataset states after refresh failure with visible error feedback, and clears/hides values belonging to another symbol. Unit regressions cover cached presentation, same-symbol refresh failure, other-symbol isolation, and foreground request options.
+
+Focused Workstation tests pass 107/107, Coverage Summary tests 9/9, frontend `vue-tsc --noEmit` passes, and TC scope/workstream/journey validators plus `git diff --check` pass. Root's run remains terminal 0/5 and the fixes are not yet browser-qualified. ETF separately owns its measured holdings-list query batching repair; TC did not edit ETF-owned files. No browser/runtime/native/provider HTTP/production operation was run by TC.
+
+## 2026-11-08 — Correct exact UNXQ reload fixture and modern acquisition controls
+
+Root's b011 four-case run passed factory-tool recreation/useful defaults and failed three acquisition journeys. Root corrected its initial UNXQ causal diagnosis: the saved route does not add UNXQ to the Workstation's known benchmark/sector set. The browser fixture's `**/api/v1/instruments/UNXQ` route missed `?canonical_only=true`, so the synthetic ticker fell through to the real absent-instrument response. The fixture now matches the exact pathname and GET, retains 404 while the candidate is unresolved, and returns canonical ID 779004 with resolved identity status after candidate selection. Reload now explicitly checks that canonical 200 response and retains the full existing URL, holding identity, snapshot/row/source/known-time provenance, local D1 bar and lineage assertions. No Workstation product change was needed.
+
+The IWM held-history journey now targets the modern accessible Chart workspace and visible `.uplot`, asserting the actual adjusted D1 500-bar chart instead of the removed `.chart-body canvas`. IWM and OIH change to M1 through the accessible Linked timeframe control rather than the removed `.tf-select`; their exact ensure target/dataset/timeframe/adjustment, held/partial outcomes, local readback and provenance assertions remain. Whole-spec selector audit found no remaining `.tf-select` or `.chart-body` references.
+
+Root also released the two catalogue batching paths at source 09938f32e97b9c21530b96d055380baccbb88c6c. Their old guards and source hashes/blob IDs/modes were verified, but the immutable manifest declares state released_for_exact_development_consumption_not_release_acceptance and omits authority. The unchanged strict scope validator requires its exact common-interface state and authority, so it rejected the import. No validator or producer manifest was edited; the two imported bytes, copied manifest, and active pin were restored/removed. A scope-compatible immutable Root manifest is needed before those backend paths can be consumed. The ETF Holdings view remains exclusively ETF-owned.
+
+Frontend type-check and on-demand E2E reference-only preflight pass with zero actionable unbound references; no browser/runtime/native/provider HTTP operation was run by TC. Root owns the three acquisition cases, full66 and final acceptance, all pending.
+
+
+# 2026-11-08 — Exact acquisition fixture and released dependency assembly
+
+Root released ETF catalogue frontend source `cbb4b2761a884b99af79a24fdfe5a691bb1ee994` (10-file manifest) and Provider runtime source `fc220242ff9ff8be603c632dc80350a90708bec7` (81-file manifest). Imported only ETFHoldingsView and its focused view test, plus the two ETF catalogue backend files already present in the Provider composite; all remaining manifest rows were verified byte/blob/mode-identical. The two backend blobs match the earlier 09938 ETF release exactly. Operator/test imports remain unchanged.
+
+The UNXQ fixture retains an exact `/instruments/UNXQ` pathname match for GET. It returns 404 before explicit candidate resolution, and the controlled positive canonical response (ID 779004, `identity_status: resolved`) after resolution for both plain and `canonical_only=true` GETs; non-GET methods continue normally. No product code, browser/runtime, provider HTTP, or native operation changed. Root owns the next browser qualification and full profile.
+
+
+Root issued the scope-compatible Provider manifest alias for the same fc220 source. Only `authority` differs from the immutable producer contract; all source rows, hashes, consumers, guards, state, and evidence are unchanged. The active TC import pin now records the alias digest `b8412e6902c6a1bc343885c4d9200a75a8ea748049b6a61e9fc25688087d59b1`; the producer manifest remains preserved unchanged at the Root attempt path.
+
+
+# 2026-11-08 — Primary timeframe preparation and UNXQ reload contract
+
+Root's terminal `cd94fb5b3688fd5c5ffc56969d17c2e9e17eec9d` acquisition-three review showed that changing the shared Linked timeframe loaded local primary-chart bars but did not submit primary-chart history preparation; M1 ensure requests were limited to ratio legs. The Workstation shell now starts its local chart read immediately and submits a high-priority, history-only shared ensure against the active canonical instrument ID. Current symbol, timeframe, observer generation, and abort signals fence progress and readback; late M1 completion cannot refresh a newer M5 chart. Blue-linked chart period changes use the same shell lifecycle; isolated/non-blue tools keep their existing explicit history path. This uses the existing preparation coordinator and does not rely on comparison panels.
+
+The exact review also established one identical ID `779004` D1 ensure per document across UNXQ reload and no mounted Options panels. The UNXQ journey now asserts the second post-reload request and unchanged request contract, and verifies that no hidden Options exposure/expiration requests are issued. The existing exact-path fixture continues to return pre-resolution 404 and resolved canonical ID 779004 for both plain and `canonical_only=true` GETs; non-GET requests continue normally. Calendar, bar readback, holding lineage, and no-legacy-history assertions remain.
+
+Focused evidence: Workstation pop-out bindings module 108/108; frontend type-check passed; on-demand reference-only preflight has zero actionable unbound names (other semantic advisories remain unqualified); exact Provider fc220 alias SHA `b8412e6902c6a1bc343885c4d9200a75a8ea748049b6a61e9fc25688087d59b1` and all 81 source rows verified, including TC old guards; scope/workstream/journey guards pass. Root owns the exact acquisition-three browser rerun and full mapped suite. No browser, runtime, provider HTTP, native, CI, staging, or production operation was run here.
+
+
+# 2026-11-08 — History-only M1 response assertions
+
+Root’s exact 52de7718/fc220 acquisition-three run passed the complete UNXQ case. IWM and OIH reached the primary AMD M1 ensure, returned the expected held/unavailable and useful partial outcomes respectively, and completed local readback; only their response assertions failed because they still expected identity/profile dependencies. The chart timeframe request is intentionally history-only. Those two assertions now require the response to contain exactly the history dependency, retain the precise held reason or adjusted covered range, and match the canonical ID, M1, adjustment, and no client date bounds. Initial D1 identity/profile checks, per-timeframe counts, local bars, held/partial status, current holding lineage, and no identity replay remain. Focused reference/discovery and record guards remain to run; Root owns the acquisition rerun and mapped suite. No product source or runtime was changed.
+
+
+# 2026-11-08 — Frozen-candidate unit contract follow-up
+
+Root’s complete frontend unit run on the 52de candidate ended 1934 passed / 4 failed across three modules. The TC failures were (1) a standalone WorkstationToolContent test expecting the removed legacy direct endpoint for a blue-linked chart, and (2) a linked-note late-unmount spy assertion that omitted the actual priority, queue key, and abort signal arguments. The timeframe test now uses a red/isolated timeframe link so it continues to verify deliberate W1/MN acquisition by the component; blue-linked history preparation remains shell-owned. The race assertion now checks the actual request options and still verifies that late data is not published after unmount. Only these two TC-owned unit files changed; the two remaining failures are ETF-owned InstrumentNoteTool identity assertions and were not edited. Focused modules pass 31/31; the final combined unit gate remains pending the ETF-owned correction. The frozen app source and controlled runtime were not changed by this test-only follow-up.
+
+
+# 2026-11-08 — ETF Notes unit-test successor import
+
+Root’s complete unit gate on product source 52de found two failures in ETF-owned `test_instrument_note_tool.test.ts`; TC did not edit that private path. ETF released source `27e360de1057368bb49da11662d33e268ed999b9` with a ten-path manifest (SHA256 `7c727c676fba6e760e51891c92bdc1345a32ff0abf6a62e3eb248de38327b01c`). Imported only the guarded unit-test path; the other nine paths already matched, and all ten consumer files match the released SHA256/Git blob/mode rows. The active ETF pin now points to 27e; the prior cbb manifest/archive remains unchanged. This is a test-only import; no product bytes or Root’s running 52de/13d8 browser inputs changed. Root owns the next full unit rerun after the ETF and TC unit corrections are coalesced.
+
+## 2026-11-08 — Ratio duplicate-add idempotency
+
+The RRG ratio journey already had the inverse SPY/sector leg visible before its second Add action. The component now treats adding that normalized existing symbol as a no-op, so it does not re-emit configuration or restart comparison reads. The focused component regression verifies chips remain unique and no reads restart. Ratio module proof is 21/21; frontend type-check passes. The S&P E2E file was restored to the exact ETF-pinned `27e360de` blob after Root preserved the TC proposal for ETF ownership; its browser oracle remains pending. TC scope/workstream/journey and diff checks pass for the two owned ratio paths. This checkpoint does not establish full ratio browser acceptance or close the broader journey matrix.
+
+## 2026-11-08 — Protect newer Watchlist selection from late bootstrap
+
+Root trace showed the Watchlist view’s initial list GET dispatching after two successful creates; `onMounted` then unconditionally selected the first row (ID 36) over the second created list (ID 37). The view now records active-selection intent and applies its initial first-list default only when there was no newer intent; it preserves a still-valid selected ID and falls back coherently if that ID no longer exists. Focused view tests cover two creates while the initial read is deferred, adding SPY to the still-active second list after the read settles, and the unchanged first-list default when no user selection occurs. The focused module passes 2/2 and frontend type-check passes. No E2E, browser, runtime, or full-suite validation ran; Root owns browser qualification. The full failure ledger and scaling criterion remain open.
+
+## 2026-11-08 — Consume ETF S&P journey successor 52b8e749
+
+After the Watchlist bootstrap checkpoint closed, imported only the declared TC path `frontend/tests/e2e/sp500_analysis_journey.spec.ts` from ETF source `52b8e74999a3e4ae8feedb551bc6ef5a2eb95b3b` under the exact old guard. The release manifest SHA is `4c31d41077f12166c3aeee5726bcedf943e5f7b49b5d7455a20b0d9306a0c85f`; all ten source rows match SHA256, Git blob, and executable mode, and the other nine files were already byte-identical. The prior 27e360 pin and manifest remain archived unchanged. ETF reports the revised test preserves the eleven-sector, both-direction math/canvas assertions while reusing only an actually observed already-visible ratio pair. No test/browser replay occurred here; Root owns exact-source qualification and all broader acceptance gates remain pending.
+
+## 2026-11-08 — Publish acquired local history before optional chart hydration settles
+
+Root's passive XHB trace showed the accepted history ensure returned a covered partial response and `refreshLocalBars()` was invoked, but no second local OHLCV request started. The refresh waited for the full `inFlightLoad`, whose tail still awaited optional instrument-indicator hydration and statistics. The store now tracks the initial local-history promise separately and refreshes once that exact read is complete, without waiting for metadata/indicator tails or restarting their work. A local-read publication generation prevents an older empty load from overwriting the fresh read; symbol/timeframe/transform generation checks still reject late prior-context responses. When a fresh read is temporarily empty, matching already-rendered bars and backfill eligibility remain visible; a new timeframe still starts empty rather than displaying stale bars. The existing no-progress history retry cursor is cleared by explicit refresh as before. The complete chart-store module passes 67/67, including deferred indicators/statistics, later positive readback, same-scope empty-read preservation, new-timeframe emptiness, and stale-symbol response fencing; frontend type-check passes. Root owns browser requalification; no browser/runtime operation ran here. The shared API admission investigation and full failure ledger remain open.
+
+## 2026-11-08 — Keep chart metadata hydration out of the visible-action reservation
+
+Root's Study trace showed a visible high-priority Results read not sent until 4.62 seconds into its five-second assertion, with six earlier API reads still unresolved. In the existing API admission scheduler, non-canonical `/instruments/{symbol}` metadata and `/instrument-indicators/{id}` saved-configuration hydration could occupy the same final slot reserved for interactive requests. These reads now remain high-order work but count against the existing bounded non-interactive lane; canonical-only identity lookups, search, Notes/Results, and writes remain eligible for the reserved slot. No total or lane limit changed and no caller retry/timeout behavior changed. The API client module passes 28/28; its deferred transport test fills five analysis slots, queues the two chart hydration reads, and confirms the visible Results request is admitted before them. The exact-source browser requalification remains Root-owned; this focused unit evidence does not claim end-to-end acceptance.
+
+## 2026-11-08 — Preserve newer Watchlist intent across pending create/copy
+
+The existing Watchlist selection fence covered late initial list loading, but Root's read-only review identified the same last-intent race in create and copy: both methods selected the returned row only after awaiting the server, so a later ordinary list choice could be stolen. Create/copy now capture the selection-intent token before the request and select the new row only if that intent is still current; the durable row is retained either way. Create-form cleanup also checks the submitted form generation and value so an old response cannot close a canceled/reopened or edited form. Focused view tests pass 4/4, covering deferred initial loading, normal first-list default, pending create/copy followed by a newer selection, retained created/copied rows, create-form ownership, and normal acknowledged-copy selection. Frontend type-check passes. Root owns actual browser qualification; no browser/runtime/full suite ran here.
+
+## 2026-11-08 — Keep four remaining journey repairs responsive and generation-safe
+
+The AFC four-case batch closes shared user-action gaps and the IWM negative-timeframe oracle. Workspace deletion now removes the acknowledged row immediately, refreshes the catalogue in the background, and loads a known fallback without waiting for that list. Selection generations prevent stale fallback reads from replacing newer choices. Selecting the already-active workspace settles loading and invalidates an older pending selection read. Cloning retains the raw server clone as its persisted baseline until remapped component IDs are actually saved. EasyScan dispatch no longer waits for the shared screener-list refetch. Visible charts use the existing high-priority calendar request lane, and visibility promotes an already-deduplicated pending calendar read. The IWM negative M1 case now asserts honest empty M1 state and ordinary D1 return to adjusted bars, rather than stale D1 pixels under M1. Focused workspace/EasyScan/calendar modules pass 135/135; frontend type-check and journey, scope, workstream and diff guards pass. The on-demand E2E reference preflight has no actionable unbound names; existing semantic advisories remain unqualified. Root owns browser qualification and broader acceptance; no browser/runtime/native/CI operation ran in this worktree.
+# 2026-11-08 — Visible benchmark admission, responsive shell, Radar status flow, and loaded history range
+
+Root's exact frozen `eb8a286f` run passed three of four focused journeys. The Workspace lifecycle precondition showed no Benchmarks rows by 20 seconds. Root's passive one-worker diagnostic then observed 11 sector rows at 5.649 seconds; the `us-benchmarks` request was started only at 15.848 seconds with AUTO priority, returned HTTP 200 in about 279 ms, and contained five rows. This points to delayed queue admission rather than a backend/source failure. A visible tool with semantic `benchmark-universe` role now joins the existing keyed market-group request at high priority, allowing the store's existing deduplicated queue promotion instead of starting another GET. A mounted unit regression holds the shell request pending and proves visible Benchmarks promotes it.
+
+The measured 1024 CSS px Workstation clipping is addressed with a compact two-row shell header, horizontally reachable shell/dock tabs, and a container-sized tool header that moves controls to a second row when a pane is narrow. Radar preparation status now occupies normal flow above the plot instead of overlapping the OHLCV legend. Same-scope local history refresh now merges by timestamp, fresh values win overlaps, and an already loaded older range/exhaustion state is retained; the chart's exact context/generation fences remain unchanged.
+
+Focused unit validation: WorkstationToolContent history/acquisition 16/16, chart store 68/68, Radar detail preview 2/2 (86/86 total); frontend `vue-tsc --noEmit` passes. TC scope guard and self-tests, workstream validation, journey matrix (28 routes/aliases, 21 Add tools, 38 factory instances, 9 journeys), and `git diff --check` pass. No browser/runtime/full suite ran in TC. Root owns viewport screenshots, rendered benchmark admission recheck, the remaining full profile, exact CI, and release acceptance; this checkpoint does not claim those results.
+
+## 2026-11-08 — Keep dock labels and chart axes within the rendered pane
+
+Root's rendered review of the exact `dbb0d739` screenshots confirmed lower GoldenLayout dock labels wrapped inside the fixed-height tab header at 1024×640 CSS px / DPR 1.25. The tab strip no longer overrides GoldenLayout's native placement, sizing, or overflow dropdown, and tab labels do not wrap. The chart geometry review also found the primary uPlot wrapper's unconditional 120px minimum and RatioUPlot's 120×90px constructor floors could exceed the visible pane and crop axes. The primary plot retains its 120px preferred/ minimum plane when room exists but can shrink to its chart root's actual available height; ratio plots use measured host dimensions and wait for a zero-sized inactive pane to become visible before creating a plot. Radar's previously accepted status flow is unchanged.
+
+Focused workspace layout, ratio plot, and chart-context modules pass 43/43, including a compact ratio-host measurement assertion. Frontend type-check and strict TC scope/self-tests, workstream, journey-matrix, and diff checks pass. Root's actual rendered requalification is pending; no browser/runtime operation ran in TC and this is not visual or full-platform acceptance.
+
+## 2026-11-08 — Import ETF's compact S&P overflow journey successor
+
+Root released ETF source `646fe8d8e60acce32afcedf94de023c86b2d69fd` with manifest SHA256 `6278c41718149bd4360ef1e3a97a5fcb9513d452fe1e16f14426307b7b407d6a`. The exact old guard for `frontend/tests/e2e/sp500_analysis_journey.spec.ts` matched. All ten manifest rows, Git blobs, SHA256 values, and modes were checked; only that declared S&P journey file differed, while the other nine ETF files were byte-identical. The spec now uses ordinary GoldenLayout overflow-tab actions from the released source. The previous ETF `52b8e749` active pin and manifest are preserved in history; only the active pin advances. No frontend product, unit, configuration, or backend bytes changed.
+
+The S&P journey reference-only preflight reports no actionable unbound names or other semantic advisories; it reports the existing missing Node ambient type as an unqualified diagnostic. Journey matrix and diff checks pass. Root's compact rendered profile and full66 requalification remain pending; this is exact development consumption, not browser or release acceptance.
+
+## 2026-11-08 — Reclaim compact Ratio and RRG plot area
+
+Root's exact c681 replay rendered the compact RRG at 1093×614 CSS px / DPR1.25 with a 90px canvas against the unchanged 100px requirement. Its decoded DOM measured a 143px ToolWindow, 116px body, 26px RRG header and 90px plot shell; all 11 actual markers and tails were present and the canvas stayed inside every clipping ancestor. The compressed data plane was not a data or clipping failure. RatioUPlot and RelativeRotationTool now hide the redundant uPlot HTML legend, use measured y-axis tick-label widths, allocate explicit compact tick/label sizes and tighter internal padding while retaining the complete labels/values. At short viewport heights, RRG settings/rows/status controls use reduced vertical chrome so the existing plot shell gains room; persisted dock proportions are untouched. The axis-size callbacks handle uPlot's initial null-label sizing pass before later measured labels.
+
+Focused RatioUPlot and RelativeRotationTool modules pass 44/44, including null and populated axis-size callbacks, retained percentage labels, the hidden duplicate legend, compact padding and unchanged short-host sizing behavior. Frontend type-check passes. Root owns the next rendered 100px/data-plane and Ratio/RRG screenshot review; no browser, full suite or runtime operation ran in TC. All broader route/action, journey, full-suite, exact CI, native and release criteria remain open.
+
+---
+
+
+## 2026-11-08 — Compact RRG labels and diagnosed journey setup repairs
+
+The compact RRG now uses smaller measured axes/padding and places latest-symbol labels in available non-overlapping plot space; RatioUPlot uses compact measured axes in short panes. Root/ETF diagnoses were applied to the TC-owned tests: wait for saved Results reactivation to be acknowledged before opening the second session, click the TCNEW candidate by its actual option role, settle `/chart/SPY` before the ordinary public-navigation menu action, and gate the no-snapshot fixture's M1 bar on M1 acquisition rather than its earlier D1 response. ETF's exact bd5129 successor was consumed for the single S&P E2E path; its other nine private paths remain byte-identical.
+
+Focused RatioUPlot/RelativeRotationTool modules pass 44/44, frontend type-check passes, and reference-only preflight for the four affected E2E files reports no actionable unbound names. Root's immutable 8a full66 and rendered compact-profile qualification remain pending; TC ran no browser or runtime.
+
+
+## 2026-11-08 — Import Strategy workspace lifecycle acknowledgement test
+
+Consumed only the Strategy `011e2fc8` lifecycle journey successor after its exact old guard matched. All 26 manifest rows, source blobs, SHA256 values and executable modes were verified; the other 25 private paths already matched the released bytes. The previous `6595b47a` pin and manifest remain in history, and the current Strategy pin now records the full 26-path manifest. No product code or ETF-owned path changed.
+
+Root's scoped TC837 evidence reports compact daily/weekly/monthly RRG resize/copy/restore, six visual profiles, 1955 frontend unit tests and all 11 routes across three profiles passing. The older 8a full66 terminal result was 61/66; Root owns the exact5 replay and rendered requalification. No suite/browser/runtime was run for this test-only import; overall release criteria remain open.
+
+## 2026-11-08 — Preserve a verified symbol across delayed startup hydration
+
+Root's original 8a timing review placed the accepted TCNEW selection at 108722.577ms and the pending `/workspaces/default` GET completion at 108729.175ms; the final screenshot showed the symbol reverted to SPY. The initial workspace active-symbol watcher was applying that later persisted value to the route, chart, and input after the user's verified selection. WorkstationView now fences the restored blue symbol while a newer committed selection is pending, then republishes that selection after the initial read settles. A later non-restore linked selection still supersedes the pending selection. The regression defers workspace hydration, selects a verified TCNEW candidate, resolves the default workspace to SPY, and asserts the final blue symbol/route stay TCNEW while a grey Study context remains XLB.
+
+The WorkstationView module passes 109/109, the API client module passes 28/28, and frontend type-check passes. The TCNEW browser locator now targets the actual `Use TCNEW` button. Imported ETF017's six exact TC consumer paths; all ten ETF manifest rows match the released Git blobs, SHA256 values, and Git modes, and the prior bd5129 active pin is retained in history. The E2E reference preflight reports no actionable unbound names. Temporary API queue phase observations are opt-in and do not affect scheduling; Root's bounded exact2 diagnostic may enable them for the separate Results dispatch case. They must be removed after that measurement. Strict scope/workstream/matrix/diff guards pass. The provisional checkpoint commit is pending. Root owns all browser qualification; no browser/runtime/full-suite/release acceptance is claimed.
+
+
+## 2026-11-08 — Prioritize explicitly foreground API intent within bounded admission
+
+Root's sanitized 30c diagnostic proved the restored visible Results GET was enqueued high while all six same-origin slots were occupied and 28 startup requests were queued. Nine earlier high-priority startup reads were admitted over the next 846–4773ms; the visible Results request never reached transport before its five-second assertion. The shared API coordinator now accepts an explicit foreground-intent option, schedules such high-priority work ahead of already-queued startup requests, and treats it as eligible for the existing reserved interactive capacity. The six-request transport bound and existing high/auto/low priorities are unchanged; queued abort, authentication boundaries, body consumption/release, and ordinary startup progress retain the existing paths. The temporary API queue observer used for Root's diagnostic has been removed. Strategy owns opting its visible Results read into this shared contract; no Strategy component bytes are changed in this checkpoint.
+
+Focused API client tests pass 29/29, including a deferred six-slot startup burst proving the foreground request reaches transport next and queued startup work resumes afterward. Frontend type-check passes; TC scope/workstream/journey-matrix and diff checks pass. Root owns the normal uninstrumented Results/auth replay and full qualification; no browser/runtime/full suite ran in TC. Wider route/action coverage and all final acceptance gates remain open.
+
+
+## 2026-11-08 — Extend canonical journey inventory to imported domains
+
+Imported only the three changed ETF consumer paths from `aae3665b6a8512ea9c5d53d9d6397da7407005ee` (BasketsView, ETFHoldingsView and its view unit). The exact old guards matched; all ten source manifest rows were checked by blob, SHA256 and Git mode, with the other seven byte-identical. The prior ETF017 pin remains archived; the current dependency pin and journey provenance point to aae.
+
+Expanded the existing control scanner to include private ETF/Strategy view and component controls, record source ownership, and require exact journey IDs and named case references. Added 15 unit-only witnesses for imported owner controls and the ETF holdings panel/Study view controls. The matrix now records 77 control surfaces and 88 case mappings (62 E2E, 26 unit-only); summary counts are checked by the validator. Mutation self-tests cover private-source discovery, new-control signature drift, missing case/owner mappings and stale counts.
+
+Focused journey-matrix self-tests and validation pass; workstream validation and `git diff --check` pass. All nine critical-review slots remain `pending_root_receipt`; source mappings and unit witnesses do not claim rendered acceptance. Root owns browser, visual, full-suite, CI and release qualification.
+
+
+## 2026-11-08 — Import Strategy371 product paths for combined qualification
+
+Imported exactly the five TC consumer paths from `371aa656fef7faed8c6139dfddba02b3248ee70a` after all five old guards matched. All 26 manifest rows were verified by Git blob, SHA256 and mode; the other 21 consumer paths were already byte-identical. The exact manifest is archived at `development-dependency-imports/371aa656fef7faed8c6139dfddba02b3248ee70a.json`, the active private pin now references all 26 paths, and the previous `011e2fc8` pin is preserved in dependency history.
+
+This is a product/build checkpoint only. The released Strategy owner-matrix source and its exact destination guard are verified but its copy, provenance, new journey rows, private control crosswalk and case counts are the next records-only step. Root owns the combined build/browser/visual/full-suite and release qualification; no such results are claimed here.
+
+
+## 2026-11-08 — Refresh Strategy371 owner matrix and pending case crosswalk
+
+Copied the exact Strategy owner journey matrix from source commit `371aa656fef7faed8c6139dfddba02b3248ee70a` after the old destination SHA guard matched. The frozen copy is verified by blob `fba6e73e9e876314b81b981c940a3d50bfa7a80d` and SHA256 `c5ac4eecd0587997ebb229c65cc796326a089d748aa66342f58bd4c9326071c8`; its 18 owner journey rows and 23 approved journey references are represented in the canonical cross-owner record.
+
+Mapped the new authored Strategy E2E cases `legacy Strategy Lab creates, edits, reloads, and safely deletes a supported definition` and `Strategy Lab v2 reads a selected owner resource and recovers from a denied reference without writes` to exact case IDs and relevant TC09/TC08 routes, actions and private view controls. The existing Study saved-context case remains the witness for Library-to-Study immutable pin navigation. Private control counts/signatures were recomputed from the current imported source; the existing signatures remain unchanged.
+
+The canonical inventory now has 90 mapped cases (64 E2E, 26 unit-only), 77 control surfaces, 28 routes/aliases, 21 Add-tool definitions, 8 factory layouts and 38 factory instances. All nine critical-review slots remain `pending_root_receipt`; Root's build/rendered execution and final release qualification are not claimed here. Product source remains frozen at `f9e44e3e1985934891fcd3f452590823411364cd`.
+
+
+## 2026-11-08 — Keep generic Breadth member controls reachable beside history
+
+Root's finalized factory-copy trace showed the ordinary `Pass 9` action repeatedly intercepted by the generic breadth-history canvas (696×110), with the generic drilldown also sharing the cramped Breadth flex column. The history plot retains its minimum useful height while the generic member drilldown is now a non-shrinking, independently scrollable flex item inside the existing scrollable Breadth panel. No chart, calculation, member, or E2E assertion was changed. A focused mounted-component regression evaluates a real-shaped one-member result, verifies the history plot and Pass control coexist, and selects the member through its ordinary button.
+
+The focused WorkstationToolContent history/acquisition module passes 17/17; frontend type-check and current scope, workstream, journey-matrix, and diff checks pass. Root's original 16-case browser run remains in progress and owns rendered proof; no browser/runtime was started in TC. All nine critical-review slots and broader release criteria remain pending.
+
+
+## 2026-11-08 — Coalesce Strategy f7 and ETF 2bf UI successors
+
+Consumed only the two guarded Strategy f7 E2E files and four guarded ETF 2bf view/unit files. Both original old guards matched; the full Strategy 26-row and ETF 10-row manifests were verified against source Git blobs, SHA256 values and modes. The canonical manifests are archived under their source commit names, the prior 371/aae pins are preserved as superseded history, and only the active Strategy/ETF pins advance. The journey-matrix validator confirms current control signatures, case counts and mappings remain valid; no matrix or owner control rows needed alteration.
+
+The d5 Breadth fix and its focused test remain unchanged. Root's 16-case run on f9 ended 11/16 and does not qualify d5; the affected UI replay remains pending on the coalesced candidate. No producer suites, browser, fixture, native, or release operation ran in TC. The newly approved shared Calendar status consumer is the next bounded TC task; Provider owns its backend implementation.
+
+
+## 2026-11-08 — Add shared Calendar readiness and precise missing-reference diagnostics
+
+Implemented the approved Calendar status-v1 consumer in the existing shared calendar query/cache path and UPlotChart. Cached event rows remain visible; visible charts poll the authenticated status endpoint through Vue Query, pause while hidden, and key status by normalized symbol, canonical instrument, and auth-session epoch. A real queued-to-ready completion or newer ready/partial `updated_at` invalidates and refreshes only the loaded symbol/range; late symbol/instrument/session responses are fenced, and a failed refresh does not erase visible events. Status text distinguishes preparing, deferred with the provider's actual `retry_at`, held, unavailable, stale, and ready outcomes. The existing TCNEW ordinary chart journey now covers queued-to-ready event arrival without reload; it was authored but not browser-run in TC.
+
+The shared browser diagnostics helper now treats only GET 404 for a positive Strategy study/reference artifact pair as the documented missing-read result. Unit coverage keeps unrelated methods/paths and 503/504 fatal; the existing positive pin/digest and Strategy negative-read journey assertions are unchanged.
+
+Focused Calendar and browser-diagnostics modules pass 22/22; frontend type-check passes; the E2E reference-only preflight reports no actionable unbound names. Journey-matrix and scope/workstream guards remain required for this source checkpoint. Provider owns the backend status route; the backend source has not been imported here. Root owns combined build, Calendar/critical browser journeys and all full-suite, CI, integration, native, and release qualification. No browser/runtime, backend, fixture, or deployment action ran in TC.
+
+
+## 2026-11-08 — Keep Calendar status readable without covering the chart
+
+Root's inspected 1280×720 benchmark-list capture showed the unavailable Calendar message wrapping over six lines above the price plot and obscuring OHLC data. UPlotChart now reserves a compact one-line status row before the plot, uses short visible labels for each Calendar state, and retains the complete message in the live status region and tooltip. Calendar polling, cache/session/context fences, retry timing, event rows, and the existing queued-to-ready journey are unchanged. Frontend type-check and the required scope, workstream, journey-matrix, and diff guards pass. TC did not capture a new browser render; Root owns visual verification. No backend or foreign-private source was changed.
+
+Root's source preflight identified the TCNEW journey's old exact full-text assertion as incompatible with the concise visible label. The existing positive queued-to-ready flow now checks the visible ready count, complete screen-reader message, full tooltip text, status height at most 24px, and that the row ends before the chart plot begins. Hover is enabled on this separate status row. API reads, event identity, no-reload progress, and zero-retry assertions are unchanged. Type-check and required TC scope/workstream/matrix/diff guards pass; this assertion update is authored but not browser-run in TC.
+
+
+## 2026-11-08 — Coalesce Strategy 4a0785 private lifecycle and Study repair
+
+Imported only the four approved TC consumer paths from Strategy source `4a0785fffbf3f75f99c138f59938bb141ab81c86` after their exact old SHA guards matched. Verified all 28 manifest source blobs, SHA256 values and Git modes; the other 24 private paths already matched. The exact manifest is archived at `development-dependency-imports/4a0785fffbf3f75f99c138f59938bb141ab81c86.json`; the active Strategy pin now covers all 28 paths and the prior f7 pin/history remains preserved. The ETF private10 pin from 2bf remains byte-identical; no backend files were imported.
+
+The canonical matrix refreshed only the changed StrategyLabView control signature; its 123 controls, 90 journey cases, action counts and case mappings are unchanged. The 474 Calendar status presentation and TCNEW visible/accessibility/geometry assertions remain intact. Frontend type-check, staged scope, workstream, journey-matrix and diff checks pass. Root owns targeted legacy/Calendar rendering and all broader qualification; this is a development checkpoint, not rendered or release acceptance.
+
+
+## 2026-11-08 — Scope on-demand chart provenance assertions to their accessible target
+
+Root’s exact 2f targeted pair found the M1 provenance check matching both the chart’s direct provenance and the nested Calendar full-description text. Updated all chart provenance checks in the TC-owned on-demand journey to resolve the provenance node named by the chart region’s `aria-describedby` reference. The full Calendar message remains checked through `calendarStatus.locator('.sr-only')`. Existing bar counts, timeframe, identity, readback, Calendar status geometry and journey assertions are unchanged. Frontend type-check and E2E reference-only preflight pass; no browser or full-suite rerun was performed. Root owns the next targeted qualification.
+
+
+## 2026-11-08 — Import Strategy a85 Study panel and retained-run successor
+
+Imported only the four guarded TC consumer paths from Strategy source `a85fc643a5f64d80701c243b734d170b712ca07b`: StudyLabTool.vue, StrategyLabView.vue, strategy_study_journey.spec.ts, and test_strategy_lab_view.test.ts. The exact 28-path manifest is archived at `development-dependency-imports/a85fc643a5f64d80701c243b734d170b712ca07b.json` (SHA256 `57bc5186dc6859d30abdb79fa8f7900c5ca9180a98cc88812e4af078e1dcac7d`). All 28 source blobs/hashes and Git modes were checked; the four old guards matched and the other 24 private paths were already exact. ETF 2bf private10 remains unchanged. The former Strategy 4a pin is preserved in import history and a85 is the active 28-path pin.
+
+The imported changes add the measured narrow Study control containment and preserve submitted run context through same-definition store refreshes. Type-check, E2E reference-only preflight, workstream validation and journey-matrix validation pass; the matrix confirms existing signatures and mappings. Root owns rendered containment and complete journey qualification. No producer tests, browser, backend, or release operation was run in TC; source import is development context, not acceptance.
+
+
+## 2026-11-08 — Import Strategy 8ef8fe8bd83e34eea7afe6b6c02fdce31a1047bc Study containment successor
+
+Imported only the two guarded TC paths (`StudyLabTool.vue` and `workstation_lifecycle_journey.spec.ts`) from Strategy source `8ef8fe8bd83e34eea7afe6b6c02fdce31a1047bc`. The full 28-path manifest is archived at `ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/8ef8fe8bd83e34eea7afe6b6c02fdce31a1047bc.json` (SHA256 `b66336da67e8f3e4cfe5144ec0aa9d0b4d23a0352c0ed0e9ebeee9a62f04b149`). All 28 source blobs, SHA256 values, and Git modes were checked; both old guards matched and the other 26 paths were byte/mode-identical. The a85 pin is retained in import history and 8ef is the active Strategy 28-path pin. No producer tests or browser were run in TC; Root owns combined rendered qualification.
+
+
+## 2026-11-08 — Import Provider 4b9f53bca2097501e7c2843cb2f92567c8f74ea5 Calendar and data-preparation successor
+
+Imported only the 17 guarded TC consumer paths from Provider source `4b9f53bca2097501e7c2843cb2f92567c8f74ea5`. The full 85-path manifest is archived at `ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/4b9f53bca2097501e7c2843cb2f92567c8f74ea5.json` (SHA256 `2957b74824051e0bf95ccbdbe8bdc67acfe6a0e6cf0a50ac981ed8788fd09ce4`). All 85 source blobs and SHA256 values were verified; all 17 old guards matched; the other 68 paths were byte-identical with matching Git modes. The prior fc220 Provider pin is retained in import history and 4b9 is active. Provider tests/image and exact Root review are producer/development evidence, not final acceptance; Root owns the combined browser and release qualification.
+
+
+## 2026-11-08 — Import Strategy 7aa843efeec7b5a37e1ecc52fa5392069cda9326 narrow-dock and legacy selector successor
+
+Imported only the three guarded TC paths from Strategy source `7aa843efeec7b5a37e1ecc52fa5392069cda9326`: `StudyLabTool.vue`, `StrategyLabView.vue`, and `strategy_study_journey.spec.ts`. The full 28-path manifest is archived at `ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/7aa843efeec7b5a37e1ecc52fa5392069cda9326.json` (SHA256 `74f456831181fbbdd5c48939e8122a4798cfecd6e5c799acb7b5e227ea952617`). All 28 source blobs, SHA256 values, and Git modes were checked; all three old guards matched and the other 25 paths were byte/mode-identical. The 8ef pin is retained in history and 7aa is the active Strategy 28-path pin. Producer tests/browser were not rerun in TC; Root owns the combined focused browser proof.
+
+
+## 2026-11-08 — Clear stale benchmark busy state and capture only acknowledged layouts
+
+The benchmark-family watcher now clears its foreground loading state immediately on a family-context generation change, including when the new context is the plain Major US Benchmarks list. The prior family request remains fenced; the focused deferred test verifies the cached five-member list is no longer busy before the old response resolves and remains so after that late completion. The visual tab case captures an inactive tab title/window identity before clicking and uses that stable identity afterward. Visual mutations for family selection, EasyScan addition, maximize/restore, tab activation, float and factory reset wait for matching workspace snapshot responses and a Saved status before their screenshots. Shared TechnicalConditionEditor and ConditionGroupEditor presentation now uses TC workstation tokens, readable labels, compact flat controls and visible keyboard focus, with behavior unchanged.
+
+Consumed only Strategy's declared `frontend/tests/e2e/strategy_study_journey.spec.ts` path from `bd50269c862e577a48063b084ce2ba8d13aaef76`; the exact manifest is archived under its full source-hash name. All 28 source blobs/hashes/modes and the old guard were verified, while the other 27 paths remain byte-identical. Strategy 087 remains in development-import history and bd502 is the active private28 pin. Focused WorkstationToolContent/TechnicalConditionEditor tests pass 24/24, frontend type-check passes and E2E reference preflight has no actionable unbound names. No browser/runtime or full suite ran in TC; Root owns the rendered capture review and combined qualification.
+
+
+## 2026-11-08 — Strategy regex and visual capture readiness
+
+Imported only Strategy's guarded `frontend/tests/e2e/strategy_study_journey.spec.ts` correction from source `10260e603e7b45a8216069d10d4a7a07f55a6250`; the exact 28-path manifest is archived under its full source-hash name and is the active Strategy private28 pin. All 28 Strategy rows and the unchanged ETF private10 rows match source blobs, hashes, and Git modes; the Strategy old guard matched and the other 27 paths were unchanged. The tabbed visual capture now resolves benchmark-column editor readiness from the current benchmark refresh and the top refresh control before taking its ordinary-state screenshot; intentional gap-state captures are unchanged. E2E reference preflight reported no actionable unbound names, and Playwright discovery listed 116 tests with `--reporter=line`. Root's 3413 six-capture ordinary assertions passed, but rendered reference review remains pending. No product bytes changed; Root owns browser and acceptance qualification.
+
+
+## 2026-11-08 — First-profile visual fixture corrections and owned checkpoint
+
+The eight first-profile visual setup failures now have targeted corrections in the TC-owned visual spec: maximize/restore uses the actual Restore action; floating-state acknowledgement matches the retained registry window and persisted popout geometry; the Constituents busy state is scoped to its inner watchlist region; the unavailable case returns an empty local SPY series; and the four Study validation/run/result/sandbox states receive only a controlled covered SPY history response. That response uses canonical SPY instrument ID 2, matches only D1 adjusted history requests, and reports the controlled 2020-01-02 through 2027-01-01 coverage window. Existing visual references, numerical thresholds, and gap-state assertions are unchanged.
+
+The current candidate also includes the acknowledged and unacknowledged stale-default-load workspace regressions and the shared Breadth result/history independence regression. Strategy c3 and ETF efdc private dependency imports were verified against all 28 and 10 manifest rows respectively, including the exact old guards. Focused WorkstationToolContent/workspace-store tests pass 127/127; frontend type-check passes and Playwright visual discovery lists 104 cases. No browser ran in TC. Root owns the affected-nine journey and first-26 visual rerun; the remaining visual profile, exact CI, and release criteria remain pending.
+
+
+## 2026-11-09 — First-profile fixture corrections, Study run visibility and narrow-chart controls
+
+Root's immutable e4ff/e949 first-26 visual run ended 19/26 with seven failures. The four TC fixture causes are now represented by exact current contracts: both SPY search fixtures carry resolved instrument ID 2 and ETF type; the provider-error case asserts the actual dated SPY holdings region label; the EasyScan Build-tree action is treated as a local advanced-mode toggle while the real Add/OpenScan workspace-save acknowledgement remains required; and the IGV history assertion reads the recorded shared-ensure request envelope. The three Study running/completed/sandbox captures now require the same current run, status, artifacts and diagnostics in the adjacent Results pane as in Study Lab. The old loading/empty-Results assertions were removed only for those accepted runs; intentional loading and validation-error gap states remain unchanged. References and 0.005 pixel thresholds are unchanged.
+
+The compact-control container fix now applies to plain chart surfaces as well as comparison charts, retaining separate visible Plots and Templates controls. WatchList reload handling treats only the typed `AuthSessionChangedError` as an expected auth-boundary abort; unrelated AbortError failures remain visible and logged. Focused WorkstationToolContent/ChartPlotLibrary tests passed 64/64, WatchList store tests passed 30/30, browser-diagnostics helper tests passed 15/15, and frontend type-check passed. Playwright visual discovery lists 104 cases; reference preflight across the affected visual, on-demand and auth journeys reports no actionable unbound names. No browser ran in TC.
+
+Imported only Strategy's three declared TC paths from source `1faab002aee3ee17f0df37625fe3a21ba8a1e1d5`; all 28 manifest rows and all three old guards were verified by SHA256, Git blob, and mode. The exact full-source manifest is archived at `ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/1faab002aee3ee17f0df37625fe3a21ba8a1e1d5.json` (SHA256 `8d1c2957498476710e5d50ad84f5963d34ea0d961b7a5963527e7ff79df85d96`). Strategy c3 is retained in import history; 1fa is the active private28 pin. ETF's existing efdc private10 pin remains unchanged. The second-window Notes canonical-read priority issue remains ETF-owned and is not modified here. Root owns focused browser replay and full final qualification; these changes do not claim browser or release acceptance.
+
+## 2026-11-09 — ETF Notes promotion successor and focused current TC repairs
+
+The ETF `4945aedd20e7cfa701b3a13cdfa637f1c3fb355f` source is consumed as the current private10 pin. Its exact full-source manifest is archived at `ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/4945aedd20e7cfa701b3a13cdfa637f1c3fb355f.json` (SHA256 `d841d42704c0cb20462a54c36c91ba208db7cb92e0c650721fff94186736fc4d`). All ten manifest rows, source/worktree blobs and Git modes were verified; the two Notes rows are the only byte deltas from efdc and already matched the released source, while the remaining eight stayed exact. The efdc source and manifest remain archived in dependency history.
+
+The Notes fallback-priority unit verifies that canonical SPY ID 2 is resolved from an initially null instrument prop, its pending `instrument-note:2` request is promoted when the panel becomes high priority, and the resolved note editor remains enabled. The typed alert socket auth-boundary cancellation is suppressed while a genuine failure is still logged. Breadth no longer renders a custom history-unavailable plot before Evaluate; stale/delayed visual captures now require actual cached chart bars, an aligned visible ratio plot, and finite technical data while preserving honest background-refresh status. Focused WorkstationToolContent, Notes, and store tests passed 97/97; frontend type-check passed; E2E reference preflight has no actionable unbound names. Scope, workstream, and journey-matrix guards pass. No TC browser ran; Root owns the six-case functional replay, corrected visual profile, and final release qualification.
+
+
+## 2026-11-09 — Foreground admission for user Notes and comparisons
+
+Root trace evidence showed five bounded startup reads plus an unclassified ETF-holdings request occupying all six browser transport slots. RSP canonical lookup and local history were delayed until 15.1 seconds after Add; the canonical lookup, RSP/SPY 500-bar responses and current relative-strength response were valid, with matching daily timestamps. The shared API coordinator now counts ETF-holdings GETs against its existing five-background cap, and queued requests can be promoted to foreground without another HTTP call. Canonical identity helper requests carry a stable queue key. Explicit chart comparison identity/history and user symbol/timeframe lookups use the foreground lane.
+
+The focused API regression holds five high-priority background reads, then promotes a queued Notes request into the reserved slot ahead of ETF holdings; no duplicate Notes transport is created and bounded work resumes after a background body is consumed. Focused API/instrument/query/comparison units pass 44/44, frontend type-check passes, and scope/workstream/matrix/diff guards pass. InstrumentNoteTool.vue and its private unit remain ETF-owned; the required consumer contract is to pass foreground=true for active high-priority canonical identity and note GETs, and call setQueuedApiRequestPriority(key, 'high', true) when visible Notes joins a queued request. Root owns the next exact J12/F9c browser replay; no browser, fixture, backend, native, full-suite or CI action ran in TC.
+
+## 2026-11-09 — Common foreground-admission checkpoint handoff
+
+The common API checkpoint is frozen at `a10b07353246ecd1251c25742bb070803fbc02d5`. ETF may now consume this exact source and continue its private Notes implementation. API/instrument/query/comparison focused checks (44/44) and frontend type-check were already green on this source; current TC scope, workstream, journey-matrix, and staged/unstaged diff guards pass. No browser, CI, native, backend, or full-suite work ran in this checkpoint. Root owns combined qualification; the ETF private successor will be imported only through its released guarded manifest.
+
+## 2026-11-09 — ETF Notes foreground-intent successor import
+
+Imported only the two guarded TC consumer paths from ETF source `d850a1c91f93f509e2b3a2f90c66887537b75362`: `InstrumentNoteTool.vue` and its focused unit. The exact full private10 manifest is archived at `ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/d850a1c91f93f509e2b3a2f90c66887537b75362.json` (SHA256 `3b6a0c883dee88a64b0fb8fe05521a381b62dd69af2db70509413ad749b21352`). Both old 4945 guards matched before import; all ten source blobs, SHA256 values and modes now match the released manifest. The 4945 pin remains in history and d850 is the active ETF private10 pin. ETF's 10/10 focused tests and workstream checks are owner evidence and were not rerun here; the combined frontend type-check passes. Root owns the combined J12/F9c browser replay and release qualification. No browser, full suite, CI, native, backend or production action ran in TC.
+
+
+## 2026-11-09 — Responsive dock, ratio capture readiness and chart error copy
+
+The mobile F9c layout now installs a temporary single-stack tab projection below 640 CSS pixels and restores the unchanged canonical desktop tree when widened. The projection is never emitted or returned by saveLayout; active-tab selection remains separate, compact state changes cannot persist projected sizing, and close updates only the canonical tree. F9c uses ordinary Chart-tab activation at mobile width and verifies the Chart, WatchList and Notes panes plus the saved line rendering after returning to desktop.
+
+Ordinary visual captures now require a matching displayed ratio context, finite aligned data points, and pixels from the current ratio-series palette across the plot canvas. The stale/delayed helper no longer requires background aria-busy=false or an absent warning, so cached useful ratios remain valid while honest refresh or aligned-calendar warnings continue. Root pixel evidence showed 993 continuous series-color pixels for the near-constant 2.8 SPY/RSP line; ratio math/scales/data were not changed. Known local ticker and basket history API errors now have plain user-facing chart copy while the raw chartStore.error message remains intact.
+
+Focused host/ratio/error units pass 48/48; frontend type-check passes; Playwright discovery lists 295 tests across the affected flows and visual specs. Scope, workstream, journey-matrix and diff guards pass. No TC browser, fixture, full suite, backend, native or CI action ran. Root owns F9c replay, rendered capture review and final qualification.
+
+
+## 2026-11-09 — Strategy a1ffe2dd private source adoption
+
+Imported the exact eight TC consumer paths from Strategy source `a1ffe2ddc401c71c9874be7d11c6e8f73332b8d6` under manifest SHA256 `2316539deaa762d0c48ac4106ff692d5f96d705c5c63a1bdd696b51d8d149941`. All eight old guards matched before copying; all 33 producer manifest file hashes/Git blobs/modes were verified. The prior 1faab002 Strategy pin is archived in `development_dependency_import_history`; a1ffe2dd is the active exact four-key 33-path pin. No producer tests were rerun. Root owns the three functional journeys, eight desktop visual states, combined browser qualification and all final release gates.
+
+
+## 2026-11-09 — e68 test-only assumption corrections and Strategy 5d19 E2E adoption
+
+Test-only checkpoint on top of e68 (no product src change). `flows.spec.ts` F9c now asserts per-workspace state: after the mobile-to-desktop widen, TC Classic keeps `candles`, and switching to US Top Down still shows its `line` bar type, so the line template is not wrongly expected to apply to TC Classic. `tc2000_visual.spec.ts` gains an `expectContainedBounds()` helper that checks x/y/width/height containment for the monthly_frequency bars and the following streak_distribution header in both Study Lab and Results before the controlled Study screenshot (4 bounds checks in total). The error assertion at about line 1088 now expects the exact copy `No local D1 price history is available for SPY.` and asserts no `/api/v1/` path or JSON in the visible text; the terminal-404 and no-canvas checks are kept. `strategy_study_journey.spec.ts` is an imported Strategy file, byte-identical to Strategy source `5d19e512bbf3858185cc2ad1c8e41eea7615c4b2` (sha256 d65f3c60...306e). Its canonical 33-file manifest is archived under `development-dependency-imports/5d19e512bbf3858185cc2ad1c8e41eea7615c4b2.json` (sha256 50f10be5825935742dfdad1df39a75e3cbcdfcc21f2553e4578180ec082a2100). The active Strategy pin in plan.yaml moved from a1ffe2dd to 5d19e512 with exact four keys; a1ffe2dd is archived in `development_dependency_import_history` with `superseded_by` 5d19e512. That pin was applied with Root's script and is not rerun here. The E2E reference preflight (`--references-only`) returns an empty `actionable` list across the three files; its advisories are unchanged. An initial preflight run failed because the helper resolves `typescript` from cwd, so it was rerun from `frontend/`. Playwright discovery lists 307 tests across flows, visual and strategy_study_journey. No browser, type-check, unit, CI, build or Docker action ran in TC. Root owns the overlay replay, the functional F9c/Study journeys, the error and visual cases, and final qualification.

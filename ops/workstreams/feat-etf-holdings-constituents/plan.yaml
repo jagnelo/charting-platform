@@ -82,7 +82,8 @@ ordinary_ticker_selection_activation_2026_11_03: Human activated the ordinary ti
   This current focused slice is ETF-owned backend contract and deterministic no-network tests only. Provider owns its generic
   sealed initial-qualification callable and TC owns frontend invocation/presentation. No live source request, target/policy/quota
   mutation, or cross-worktree write is authorized here.
-human_intent_authorization: 'Continue the existing ETF holdings provider coverage goal from current green staging; carry forward
+human_intent_authorization: 'Root-delegated continuation under /home/m920q/charting-platform/.ai/staging-attempts/human-standing-integration-authorization-20261020.md (recorded 2026-10-20). Quoted verbatim: "I, the human in charge, explicitly authorize any and all actions the AI agent(s) may request in order to progress development, reconciliation and promotion of the four feature branches into staging and production so the product may be deployed and tested in full, by the human" and "Standing direction: own ordinary development, reconciliation, acceptance and promotion mechanics without repeated routine permission requests or requiring the human to attend sessions continuously." Ordinary CI waits and fixable defects do not require renewed human consent.'
+archived_prior_human_intent_authorization_20261110: 'Continue the existing ETF holdings provider coverage goal from current green staging; carry forward
   the remaining native-provider work. The human approved the exhaustive implementation plan and explicitly authorized persisting
   it for a later Codex implementation session. On 2026-10-04, the human separately instructed the agent to independently fix
   the full-gate-blocking F9c chart control hit-target defect within this assigned branch. On 2026-10-25, the coordinator directed
@@ -254,7 +255,7 @@ previously_accepted_erf_closure_summary: 'Root accepted the retained-IWM reparse
   Preserve prior FHSC/FQ/RIW history, 15 Tier-0 and 156 Tier-1, 119 spent requests, all holds/quarantines, raw/PIT lineage,
   and the 30-day observation. No current/native route claim, live request, target mutation, deployment, or full-roadmap completion
   is claimed. integration_capture: exact branch HEAD.'
-validation_tier: full_integration
+validation_tier: focused_only
 human_validation_authorization: The human requested continued product development from staging; all application/provider changes
   use the complete integration gate.
 local_validation_profile: full_stack_browser
@@ -5814,10 +5815,11 @@ integration_checkpoint:
   remaining: Provider732 is a Root-authorized development dependency only; TC owns the pending shared frontend companion and Workstation handoff parsing, while Root owns full release gates, combined profile and genuine-source proof.
   focused_validation: "After exact Provider732 development import, ETF preparation, hook, and checkpoint-consumer service modules passed 46/46. ETFHoldingsView unit suite passed 24/24, type-check passed, SPDR US DOLLAR parser regression passed 1/1, and Playwright discovery listed four ETF cases without executing browser bodies. Basket view unit suite previously passed 20/20 and its separate PG CRUD proof remains recorded. No live provider/production operation or combined browser profile was run."
   integration_capture: exact branch HEAD
-status: in_progress
+status: ready_for_integration
 closure_pending: true
-human_closure_authorization: Human authorized implementation of the complete plan; no checkpoint acceptance or release completion is claimed.
-closure_summary: ETF platform-usability implementation is in progress. The complete original ETF roadmap and accepted checkpoint histories remain preserved. Root owns technical acceptance, integration, deployment and final genuine-flow proof.
+human_closure_authorization: 'Root-delegated (human absent; standing direction 2026-11-10), under the 2026-10-20 standing authorization in /home/m920q/charting-platform/.ai/staging-attempts/human-standing-integration-authorization-20261020.md, quoted verbatim: "I, the human in charge, explicitly authorize any and all actions the AI agent(s) may request in order to progress development, reconciliation and promotion of the four feature branches into staging and production so the product may be deployed and tested in full, by the human". No checkpoint acceptance or release completion is claimed by this branch.'
+archived_prior_human_closure_authorization_20261110: Human authorized implementation of the complete plan; no checkpoint acceptance or release completion is claimed.
+closure_summary: 'ETF holdings constituents branch merged with origin/staging d9e535aea (TC landed). ETF-owned paths kept; TC and Provider shared paths taken from staging; WorkstationView market-analysis double-refresh fix reapplied and verified against the staging popout contract. Focused validation: the five previously failing backend tests pass (calendar router identity guard retargeted to instrument_mastering/instrument_sync); full frontend Vitest 170 files / 2007 tests pass on exact HEAD. Root owns integration. integration_capture: exact branch HEAD'
 root_allocated_basket_crud_followup_2026_11_06:
   authority: Root directly added this concrete backend repair under the human-activated platform-usability plan; no new human quote or checkpoint acceptance is claimed.
   scope: Repair normal authenticated manual basket create/update/read/delete with real AsyncSession behavior; leave TC frontend ownership and unrelated platform paths unchanged.

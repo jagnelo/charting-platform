@@ -1,5 +1,5 @@
 <template>
-  <div ref="root" class="ratio-chart" :aria-busy="loading" :data-linked-timestamp="props.linkedTimestamp || undefined" @mousemove="releaseLinkedCursor">
+  <div ref="root" class="ratio-chart" :aria-busy="loading" :data-linked-timestamp="props.linkedTimestamp || undefined" :data-ratio-context="ratioContext" :data-ratio-point-count="finiteAlignedPointCount" @mousemove="releaseLinkedCursor">
     <div class="ratio-chart__legend">
       <strong>{{ ratioLabels }}</strong>
       <template v-if="editableBenchmarks">
@@ -15,7 +15,7 @@
       />
     </div>
     <div v-if="error" class="ratio-chart__state ratio-chart__state--error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</div>
-    <div v-else-if="!hasPoints" class="ratio-chart__state" role="status" aria-live="polite" aria-atomic="true">No aligned local bars.</div>
+    <div v-else-if="!hasPoints" class="ratio-chart__state" role="status" aria-live="polite" aria-atomic="true">{{ loading ? 'Checking ratio inputs…' : 'No aligned local bars.' }}</div>
     <div v-else ref="host" class="ratio-chart__host" />
     <small v-if="warning" class="ratio-chart__warning">{{ warning }}</small>
   </div>
@@ -113,7 +113,20 @@ const alignedTimestamps = computed(() => {
     .filter(timestamp => otherTimestamps.every(timestamps => timestamps.has(timestamp)))
     .sort()
 })
+const finiteAlignedPointCount = computed(() => {
+  const valuesByBenchmark = series.value.map(item => new Map(item.points.map(point => [point.timestamp, point.value])))
+  return alignedTimestamps.value.filter(timestamp => {
+    const values = valuesByBenchmark.map(values => values.get(timestamp))
+    return values.every(value => typeof value === 'number' && Number.isFinite(value))
+  }).length
+})
 const hasPoints = computed(() => alignedTimestamps.value.length > 0)
+const ratioContext = computed(() => JSON.stringify({
+  symbol: props.symbol.trim().toUpperCase(),
+  benchmarks: localBenchmarks.value.map(benchmark => benchmark.toUpperCase()),
+  timeframe: props.timeframe.toUpperCase(),
+  asOf: asOfDraft.value || null,
+}))
 const colors = ['#6bc0ef', '#e7b35b', '#aa86e8', '#5fc8a2']
 
 function persistBenchmarks(next: string[]) {

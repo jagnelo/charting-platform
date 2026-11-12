@@ -1,0 +1,43 @@
+{
+  "at": "2026-11-07T03:37:38.606910+00:00",
+  "authority": "Root coordinates the human-approved common-interface implementation; no staging or deployment acceptance",
+  "state": "released_for_exact_development_consumption_not_product_acceptance",
+  "source": "bfc39453bbc986f736e1187434df48d716351e6e",
+  "base": "139b350238b5e1c8a170dce5af09a805301d857e",
+  "consumers": [
+    {
+      "consumer": "TC",
+      "owned_overlap": []
+    },
+    {
+      "consumer": "Strategy",
+      "owned_overlap": []
+    }
+  ],
+  "files": [
+    {
+      "path": "frontend/src/components/common/SearchBar.vue",
+      "status_from139": "M",
+      "git_blob": "dcafe47a9c3c7e538a5d8f0145d39cab88c441ce",
+      "sha256": "5a5a3e119c403276f0859eeb71b634869f8bbb8fdc6bd8c12b63be7fa6006aaf"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_search_bar.test.ts",
+      "status_from139": "M",
+      "git_blob": "aeb57390a005c47c356f0ff4c8089367dce1c2ff",
+      "sha256": "b090aac0a9d7e321718d297ad30fa0bc730c9c848d3f97d5e192500fe352a942"
+    }
+  ],
+  "changed_paths_since_previous": [
+    "frontend/src/components/common/SearchBar.vue",
+    "frontend/tests/unit/components/test_search_bar.test.ts"
+  ],
+  "scope": "Shared SearchBar automatic exact ticker preparation, default discovery, independent ETF datasets, canonical selected-context preservation and explicit ambiguity handling.",
+  "ownership": "ETF remains the only repair writer for these two paths. Consumers import exact bytes; preserve all unrelated changes and original roadmaps.",
+  "evidence": {
+    "owner": "42/42 SearchBar focused tests and frontend type-check pass in committed owner handoff.",
+    "root": "Reviewed canonical exact/provisional preparation, identity conflict and strict holding-symbol gates, stale generation fence and resolved instrument/acquire-response handoff; consumer paths clean.",
+    "browser": "Pending combined execution; this manifest does not assert browser, staging, deployment or live-source acceptance."
+  },
+  "preserve": "No broad reruns, fixture, provider requests, production/quota/ledger changes or closure implied. Existing common coordinator runtime required."
+}

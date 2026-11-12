@@ -1,0 +1,218 @@
+{
+  "at": "2026-11-07T19:06:01.912316+00:00",
+  "authority": "Root coordinates the human-approved common-interface implementation; no staging or deployment acceptance",
+  "state": "released_for_exact_development_consumption_not_product_acceptance",
+  "source": "6f81120613ffbb1e43a5dc05c51ef2315afe9421",
+  "base": "139b350238b5e1c8a170dce5af09a805301d857e",
+  "previous_sources": [
+    "2144d9647a33eadd4fcce973933c4c9fdc8cef4d",
+    "bc88f4b7097098049fe7650fee794a23c46b43be"
+  ],
+  "previous_manifests": [
+    "strategy2144d964-domain-frontend-development-consumption-contract.json",
+    "strategybc88f4b7-domain-frontend-development-consumption-contract.json"
+  ],
+  "files": [
+    {
+      "path": "frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue",
+      "status_from139": "M",
+      "git_blob": "f5fcda94ed0025215d2921d332b0a9b43a8dbad8",
+      "sha256": "2b620a83f9c6c7b836b549b1078b8a984d3dc695d09f057aa43c0731384b4121"
+    },
+    {
+      "path": "frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue",
+      "status_from139": "M",
+      "git_blob": "df43a517499d8893dde970f85e42e5f25cc71733",
+      "sha256": "fe942768bf7da5799ffeeb7d7885b741f47e93c2e3d3e7d8bebdb157cb0fe333"
+    },
+    {
+      "path": "frontend/src/components/dashboard/DashboardInstrumentSearch.vue",
+      "status_from139": "M",
+      "git_blob": "3227a985105878ae948700827f2fc5c15813581d",
+      "sha256": "41cf044f69f03c1e0efc448a2322a26f546bd8b9a60a5bbec31c59e2ac1e9d50"
+    },
+    {
+      "path": "frontend/src/components/dashboard/DashboardLineChartWidget.vue",
+      "status_from139": "M",
+      "git_blob": "aca987112e0729e9554c5892ce54e1cec517ca29",
+      "sha256": "1285d5b6ebf0d3291fb87db642eaa5f723bc49d61eb968d65beba401aa5658d6"
+    },
+    {
+      "path": "frontend/src/components/dashboard/DashboardQuoteWidget.vue",
+      "status_from139": "M",
+      "git_blob": "586c6b856a20745c5d2fbf6e45500331c0da0b63",
+      "sha256": "35a9e36f0f7d494fdd06e0205c9c26fc7122788c0a4937077e634b68abac87ea"
+    },
+    {
+      "path": "frontend/src/components/workstation/CodeLibraryTool.vue",
+      "status_from139": "M",
+      "git_blob": "9a08027912ffbf2cb9314d06e27348a0641b107f",
+      "sha256": "d97f163b4cb8fec3b1e9c3febc3aff5611ce2a59338f044c1bda49ed36f669a1"
+    },
+    {
+      "path": "frontend/src/components/workstation/PythonSourceEditor.vue",
+      "status_from139": "M",
+      "git_blob": "7164932765faaaf15d68936d72c232bc7f147d16",
+      "sha256": "23d4078c17a333b151ba81f69f137c5fb5561ece7d055a346a17b44750cf5c1e"
+    },
+    {
+      "path": "frontend/src/components/workstation/ResearchResultsTool.vue",
+      "status_from139": "M",
+      "git_blob": "db090de9f526b17a0f0111d384c359c080e08892",
+      "sha256": "7c7e1b13b6c7daf2c9d9becf4bbeaf6f998f06e5ffa9d6cfbdc524350ecc01a6"
+    },
+    {
+      "path": "frontend/src/components/workstation/StudyLabTool.vue",
+      "status_from139": "M",
+      "git_blob": "498beb8fe44a83485f2b438798202deac5b2b8d0",
+      "sha256": "09fbb9e6247362841ea7bb01a35d036d5cbe4b9580917ba60802dc9b191f713f"
+    },
+    {
+      "path": "frontend/src/lib/workstation/researchQueryKeys.ts",
+      "status_from139": "A",
+      "git_blob": "086bcb7261f5ce47e5725bb841abd111b47e211a",
+      "sha256": "d2efc149f5351df0bd33e726b78713c9edee581109977fe6045ae8da13b6dd03"
+    },
+    {
+      "path": "frontend/src/stores/dashboard.ts",
+      "status_from139": "M",
+      "git_blob": "147a7b073f15afc5042f28daa338b7306ccaf1eb",
+      "sha256": "d66b2584e1fe955e2322d0dceaa587b5c5ff5d735b6cea72f4091b0e4aa22d6a"
+    },
+    {
+      "path": "frontend/src/views/DashboardView.vue",
+      "status_from139": "M",
+      "git_blob": "a3e4e1e1d73aefd418721ebef931df9a814e99c9",
+      "sha256": "1425c4fb8b632be2e24066c092e07e4e7970ee6e09b64150101374375c7cff2e"
+    },
+    {
+      "path": "frontend/tests/e2e/dashboard_usability_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "a19cad4a76282784559aa6c29e0aacb1247a5e0a",
+      "sha256": "a5ebdb6a73fb54c080d3d6a86a2a03817ce4af185c44c4d9e614b682405c9a3b"
+    },
+    {
+      "path": "frontend/tests/e2e/helpers.ts",
+      "status_from139": "M",
+      "git_blob": "0585840e77c5e5db008a9b7ba26143e1fe813eed",
+      "sha256": "8439a43437cc6045a4b24185e5500b2d2980486adc64ea48f70fdd5740415ac5"
+    },
+    {
+      "path": "frontend/tests/e2e/strategy_study_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "db55cdb7fcd6f852c462fed80c82048bfbf58d91",
+      "sha256": "decbd6d99a1ea175f6ace8e8564804aa24a794d9df0f2255a122a7804306b408"
+    },
+    {
+      "path": "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "cbd6a5377721fefdd61bce0a8c652aeeae290a47",
+      "sha256": "aec0a42b2d5f7305fee6fa01fbdf5d501083a3ed40e66c26a62d09c9d3ff0724"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_code_library_tool.test.ts",
+      "status_from139": "M",
+      "git_blob": "12450697257a27352a4df38bcf53d8c84c00e3bf",
+      "sha256": "6b157186b1e26e52488aea3c1b92aaacfe5655056de74b74ef79ae2e36890bf4"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts",
+      "status_from139": "M",
+      "git_blob": "6b875cfb169dea3a11169f5904a0d8aa3c3d4c64",
+      "sha256": "0e2de2b57a395888125c9a2d3739dbf390a2524dc3c1ac366b86387c18b7753e"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_dashboard_instrument_search.test.ts",
+      "status_from139": "M",
+      "git_blob": "c972ca9d1b48fefc92c6dcca6bd655cbf4e01e9c",
+      "sha256": "a2950e328b88bb49dbac0a08447e3119ed6786ce23cd765fb00a53667cc5e676"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts",
+      "status_from139": "M",
+      "git_blob": "019b9620563ef7c3953a1b3b013dd3953f0ee7db",
+      "sha256": "291dd83bef30984b7aa37f0b2ee87d990d8fee2d89ade372a78a933f6e0d94d0"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts",
+      "status_from139": "A",
+      "git_blob": "196ac971ba87c420c08fe7c2f5025cab6f54346f",
+      "sha256": "969d23d8a3c6239809e309ff0acba13e5181ce69aa678aa3047b1fb110ade508"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_python_source_editor.test.ts",
+      "status_from139": "M",
+      "git_blob": "26665a879f07a06e9ac1e67723103d3880cf5ee4",
+      "sha256": "8936d8f72d6f0fd8f17ac6f160cfe970220132c680b6fb83342d5f9292a8f237"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_research_results_tool.test.ts",
+      "status_from139": "M",
+      "git_blob": "f9f1312d7e6cb00893160aa49de13514e0224c75",
+      "sha256": "57ff2e65e8c7eb69d4c62aa7f35a3d5780e9d43ac5018af04680ecf9a193719b"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_study_lab_tool.test.ts",
+      "status_from139": "M",
+      "git_blob": "413026f7e545122b1746adec16d2d5668e587419",
+      "sha256": "30bcc1eaaabe5ff916024b04631be07caa08a8ad33920ece4ff6b2bae7cc8a4f"
+    },
+    {
+      "path": "frontend/tests/unit/e2e/test_browser_diagnostics.test.ts",
+      "status_from139": "M",
+      "git_blob": "471e86daef24d9c1bbbc1e9140dff9e436441811",
+      "sha256": "a3f336e075e5b802e9d14156a670638a8170347600f2b98c8d7087ab47703cea"
+    },
+    {
+      "path": "frontend/tests/unit/stores/test_dashboard_store.test.ts",
+      "status_from139": "M",
+      "git_blob": "e30d5676749a5d53ae3d80ee779b8d277aabcecf",
+      "sha256": "11286f17b314f28de3aed15b235bd0461bbffb9bd5476f61f1ac65bb94099827"
+    },
+    {
+      "path": "frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts",
+      "status_from139": "A",
+      "git_blob": "665ef5310ab01b5a7aa65025a3bdbe2f14aaedb1",
+      "sha256": "21374e32a9d7bd774cf9c1df0cf64b91ca131df08cd41523c3c2fac4041e7efe"
+    }
+  ],
+  "changed_paths_since_previous": [
+    "frontend/tests/e2e/dashboard_usability_journey.spec.ts",
+    "frontend/tests/e2e/strategy_study_journey.spec.ts",
+    "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts"
+  ],
+  "consumers": [
+    {
+      "consumer": "TC",
+      "import_paths": [
+        "frontend/tests/e2e/dashboard_usability_journey.spec.ts",
+        "frontend/tests/e2e/strategy_study_journey.spec.ts",
+        "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts"
+      ],
+      "old_guards": {
+        "frontend/tests/e2e/dashboard_usability_journey.spec.ts": {
+          "sha256": "b792a6710bd73ca6b5c3fe3c2b0149a856d7442fd0407ea50773eb092bf31996",
+          "known_sources": [
+            "2144d9647a33eadd4fcce973933c4c9fdc8cef4d"
+          ]
+        },
+        "frontend/tests/e2e/strategy_study_journey.spec.ts": {
+          "sha256": "b6dcf58560cde27980be4350b84ea2ef8a5af08fcaad13ac069b07f2936f17d4",
+          "known_sources": [
+            "2144d9647a33eadd4fcce973933c4c9fdc8cef4d"
+          ]
+        },
+        "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts": {
+          "sha256": "5617047eb2ff94e900b47c6568630c48d1eefc57fca27dd8127d02dfca3e75e8",
+          "known_sources": [
+            "2144d9647a33eadd4fcce973933c4c9fdc8cef4d",
+            "bc88f4b7097098049fe7650fee794a23c46b43be"
+          ]
+        }
+      },
+      "owned_overlap": []
+    }
+  ],
+  "scope": "Combined Strategy private27 paths: Study/Results/Library, stable editor suggestions above rather than below action targets, knowncached exact identity selection independentofdiscovery, fourcachedwidget publicjourney coverage, correctly configured Favorites numericaloracles and actual terminal scan assertions. Focused producer checks do not replace complete combined browserqualification.",
+  "preserve": "Full roadmap/history, native holds/quotas, genuine datasets, ordinary async failures, reviewed references and tolerances. No amend, overlapping writer, staging, deployment or product acceptance."
+}

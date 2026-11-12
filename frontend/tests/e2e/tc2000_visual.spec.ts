@@ -3,7 +3,7 @@
  * the backend manifest validator; the board variant uses the accepted composite board policy
  * and still requires deterministic local geometry and screenshot evidence.
  */
-import type { Page, Response } from '@playwright/test'
+import type { Locator, Page, Response } from '@playwright/test'
 import { test, expect } from './helpers'
 
 async function assertSeededBackend(page: Page) {
@@ -40,6 +40,77 @@ async function waitForSelectionPreparationToSettle(page: Page) {
   }, { timeout: 15_000 }).toEqual({ history: true, holdings: true, settled: true })
 }
 
+async function waitForRatioPlotToBePainted(ratio: Locator) {
+  await expect.poll(() => ratio.evaluate(root => {
+    let context: { symbol?: string; benchmarks?: string[]; timeframe?: string } | null = null
+    try {
+      context = JSON.parse(root.getAttribute('data-ratio-context') ?? 'null')
+    } catch {
+      context = null
+    }
+    const legs = (root.querySelector('.ratio-chart__legend strong')?.textContent ?? '')
+      .split('·').map(label => label.trim()).filter(Boolean)
+    const contextMatches = Boolean(context?.symbol && context.timeframe && context.benchmarks
+      && legs.length === context.benchmarks.length
+      && legs.every((leg, index) => {
+        const [symbol, benchmark] = leg.split('/').map(value => value.trim().toUpperCase())
+        return symbol === context?.symbol?.toUpperCase()
+          && benchmark === context?.benchmarks?.[index]?.toUpperCase()
+      }))
+    const finitePointCount = Number(root.getAttribute('data-ratio-point-count'))
+    const plot = root.querySelector('.uplot')
+    const palette = [[107, 192, 239], [231, 179, 91], [170, 134, 232], [95, 200, 162]]
+    let linePixels = 0
+    const lineColumns = new Set<number>()
+    for (const canvas of Array.from(plot?.querySelectorAll('canvas') ?? [])) {
+      const context = canvas.getContext('2d', { willReadFrequently: true })
+      if (!context || canvas.width <= 0 || canvas.height <= 0) continue
+      let pixels: ImageData
+      try {
+        pixels = context.getImageData(0, 0, canvas.width, canvas.height)
+      } catch {
+        continue
+      }
+      for (let pixel = 0; pixel < pixels.data.length; pixel += 4) {
+        const red = pixels.data[pixel]
+        const green = pixels.data[pixel + 1]
+        const blue = pixels.data[pixel + 2]
+        const alpha = pixels.data[pixel + 3]
+        if (alpha < 100 || !palette.some(([r, g, b]) => Math.abs(red - r) <= 30 && Math.abs(green - g) <= 30 && Math.abs(blue - b) <= 30)) continue
+        linePixels += 1
+        const pixelIndex = pixel / 4
+        lineColumns.add(pixelIndex % canvas.width)
+      }
+    }
+    const canvasWidth = Math.max(0, ...Array.from(plot?.querySelectorAll('canvas') ?? []).map(canvas => (canvas as HTMLCanvasElement).width))
+    const requiredColumns = Math.max(16, Math.min(32, Math.ceil(canvasWidth * 0.08)))
+    return {
+      contextMatches,
+      finitePoints: Number.isFinite(finitePointCount) && finitePointCount > 0,
+      paintedSeries: linePixels >= requiredColumns && lineColumns.size >= requiredColumns,
+      linePixels,
+      lineColumns: lineColumns.size,
+      requiredColumns,
+    }
+  }), { timeout: 15_000, intervals: [250, 500, 1000] }).toMatchObject({
+    contextMatches: true,
+    finitePoints: true,
+    paintedSeries: true,
+  })
+}
+
+async function expectContainedBounds(container: Locator, content: Locator, label: string) {
+  const [containerBox, contentBox] = await Promise.all([container.boundingBox(), content.boundingBox()])
+  if (!containerBox || !contentBox) throw new Error(`${label} must have visible layout bounds`)
+  expect(contentBox.width, `${label} width`).toBeGreaterThan(0)
+  expect(contentBox.height, `${label} height`).toBeGreaterThan(0)
+  expect(contentBox.x, `${label} left`).toBeGreaterThanOrEqual(containerBox.x - 1)
+  expect(contentBox.y, `${label} top`).toBeGreaterThanOrEqual(containerBox.y - 1)
+  expect(contentBox.x + contentBox.width, `${label} right`).toBeLessThanOrEqual(containerBox.x + containerBox.width + 1)
+  expect(contentBox.y + contentBox.height, `${label} bottom`).toBeLessThanOrEqual(containerBox.y + containerBox.height + 1)
+  return contentBox
+}
+
 async function waitForCachedChartAnalysisToRender(page: Page) {
   const chart = page.locator('.chart-tool:visible .chart-root:visible').first()
   await expect(chart).toBeVisible()
@@ -53,9 +124,8 @@ async function waitForCachedChartAnalysisToRender(page: Page) {
 
   const ratio = page.locator('.ratio-chart:visible').filter({ hasText: 'SPY/RSP' }).first()
   await expect(ratio).toBeVisible()
-  await expect(ratio).toHaveAttribute('aria-busy', 'false')
   await expect(ratio.locator('.uplot')).toBeVisible()
-  await expect(ratio.locator('.ratio-chart__warning')).toHaveCount(0)
+  await waitForRatioPlotToBePainted(ratio)
 
   const metrics = page.locator('.metrics:visible').first()
   await expect(metrics).toBeVisible()
@@ -77,7 +147,7 @@ async function waitForCachedChartAnalysisToRender(page: Page) {
  */
 async function waitForOrdinaryVisualCapture(page: Page, options: OrdinaryCaptureOptions = {}) {
   await expect(page.locator('.workstation__layout-state')).toHaveCount(0)
-  await expect(page.getByRole('status', { name: 'Workspace save status' })).toHaveAttribute('data-state', 'saved')
+  await expect(page.getByRole('status', { name: 'Workspace save status' })).toHaveAttribute('data-state', 'saved', { timeout: 15_000 })
 
   if (process.env.E2E_SEED_MARKET_DATA === 'true') {
     await waitForSelectionPreparationToSettle(page)
@@ -131,6 +201,13 @@ async function waitForOrdinaryVisualCapture(page: Page, options: OrdinaryCapture
       const emptyState = await results.getByText('No persisted studies yet. Run a study in the adjacent Study Lab pane.', { exact: true }).count()
       return listedRuns + emptyState
     }, { timeout: 15_000 }).toBeGreaterThan(0)
+  }
+
+  const visibleRatios = page.locator('.ratio-chart:visible')
+  for (let index = 0; index < await visibleRatios.count(); index++) {
+    const ratio = visibleRatios.nth(index)
+    await expect(ratio.locator('.uplot')).toBeVisible()
+    await waitForRatioPlotToBePainted(ratio)
   }
 }
 
@@ -1008,7 +1085,9 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     })
     await page.goto('/chart')
     await expect(page.locator('.workstation')).toBeVisible()
-    await expect(page.locator('.chart-tool .tool-state--error')).toContainText(/Request failed|unavailable|observations/i, { timeout: 10_000 })
+    const chartError = page.locator('.chart-tool .tool-state--error')
+    await expect(chartError).toHaveText('No local D1 price history is available for SPY.', { timeout: 10_000 })
+    await expect(chartError).not.toContainText(/\/api\/v1\/|\{\s*"detail"/i)
     await expect(page.locator('.chart-tool canvas')).toHaveCount(0)
     if (process.env.E2E_SEED_MARKET_DATA === 'true') {
       // This gap intentionally keeps the primary chart in its terminal 404
@@ -1029,12 +1108,13 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
       await expect(constituents).toHaveAttribute('aria-busy', 'false', { timeout: 15_000 })
       await expect(constituents.locator('.watchlist__row')).toHaveCount(6, { timeout: 15_000 })
       await expect(page.locator('.industry-list__row')).toHaveCount(2, { timeout: 15_000 })
-      await expect(page.locator('.ratio-chart')).toHaveAttribute('aria-busy', 'false', { timeout: 15_000 })
+      // Settles after the ratio pair's preparation request; worker pickup can take ~10s.
+      await expect(page.locator('.ratio-chart')).toHaveAttribute('aria-busy', 'false', { timeout: 45_000 })
       await expect(page.locator('.ratio-chart__legend strong').first()).toHaveText('SPY/RSP', { timeout: 15_000 })
       await expect(page.locator('.tool-window').filter({ hasText: 'Technicals' }).locator('.metrics')).toContainText('100.00', { timeout: 15_000 })
       // Keep the target failure—not a later state transition—as the screenshot
       // oracle's chart composition.
-      await expect(page.locator('.chart-tool .tool-state--error')).toContainText(/Request failed|unavailable|observations/i)
+      await expect(page.locator('.chart-tool .tool-state--error')).toHaveText('No local D1 price history is available for SPY.')
       await expect(page.locator('.chart-tool canvas')).toHaveCount(0)
     }
     // Bind the capture to the terminal shared workstation state as well as the
@@ -1202,6 +1282,8 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await study.getByRole('textbox', { name: 'Study Python source' }).fill("output.scalar('broken'")
     await study.getByRole('button', { name: 'Validate' }).click()
     await expect(study).toContainText('Validation errors', { timeout: 10_000 })
+    // The raw validation JSON is collapsed behind its own Details summary.
+    await study.locator('.study-lab-tool__validation--bad details.study-lab-tool__raw > summary').click()
     await expect(study.locator('.study-lab-tool__validation--bad pre')).toBeVisible()
     await expect(study.getByRole('button', { name: 'Run study', exact: true })).toBeDisabled()
     await expect(page).toHaveScreenshot('study-lab-validation-error-gap.png', {
@@ -1371,8 +1453,23 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     for (const artifact of ['event_count', 'monthly_frequency', 'streak_distribution', 'summary', 'occurrences']) {
       await expect(resultsDetail.getByRole('article', { name: new RegExp(`^${artifact} `) })).toBeVisible()
     }
-    await expect(study.locator('.study-bars canvas')).toBeVisible()
-    await expect(study.locator('.study-histogram canvas')).toBeVisible()
+    const studyRun = study.locator('.study-lab-tool__run')
+    const studyBars = study.locator('article[aria-label="monthly_frequency bar result"] .study-bars')
+    const studyNextHeader = study.locator('article[aria-label="streak_distribution histogram result"] .study-lab-tool__artifact-header')
+    await expect(studyBars.locator('canvas')).toBeVisible()
+    await expect(study.locator('article[aria-label="streak_distribution histogram result"] .study-histogram canvas')).toBeVisible()
+    const studyBarsBounds = await expectContainedBounds(studyRun, studyBars, 'Study monthly_frequency readout')
+    const studyNextHeaderBounds = await expectContainedBounds(studyRun, studyNextHeader, 'Study next artifact header')
+    expect(studyNextHeaderBounds.y).toBeGreaterThanOrEqual(studyBarsBounds.y + studyBarsBounds.height - 1)
+
+    const resultsArtifacts = resultsDetail.locator('.research-results-tool__artifacts')
+    const resultsBars = resultsDetail.locator('article[aria-label="monthly_frequency bar result"] .study-bars')
+    const resultsNextHeader = resultsDetail.locator('article[aria-label="streak_distribution histogram result"] .research-results-tool__artifact-header')
+    await expect(resultsBars.locator('canvas')).toBeVisible()
+    await expect(resultsDetail.locator('article[aria-label="streak_distribution histogram result"] .study-histogram canvas')).toBeVisible()
+    const resultsBarsBounds = await expectContainedBounds(resultsArtifacts, resultsBars, 'Results monthly_frequency readout')
+    const resultsNextHeaderBounds = await expectContainedBounds(resultsArtifacts, resultsNextHeader, 'Results next artifact header')
+    expect(resultsNextHeaderBounds.y).toBeGreaterThanOrEqual(resultsBarsBounds.y + resultsBarsBounds.height - 1)
     await expect(page).toHaveScreenshot('study-lab-structured-result-gap.png', {
       animations: 'disabled',
       caret: 'hide',
@@ -1451,10 +1548,11 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await expect(study.locator('.study-lab-tool__run-status--failed')).toBeVisible({ timeout: 10_000 })
     await expect(study).toContainText('Run #780')
     const diagnostics = study.locator('.study-lab-tool__run-details').filter({ hasText: 'Diagnostics (1)' })
-    await diagnostics.locator('summary').click()
+    // Each run block has its own summary; nested raw Details summaries must not match.
+    await diagnostics.locator(':scope > summary').click()
     await expect(diagnostics).toContainText('Network access is disabled')
     const warnings = study.locator('.study-lab-tool__run-details').filter({ hasText: 'Warnings (1)' })
-    await warnings.locator('summary').click()
+    await warnings.locator(':scope > summary').click()
     await expect(warnings).toContainText('run was terminated')
     await expect(study).toContainText('Rerun snapshot')
     await expect(page.locator('.workstation__refresh')).toHaveText('Refreshing…')

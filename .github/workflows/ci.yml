@@ -117,9 +117,13 @@ jobs:
           if [ -d app/strategy_lab_v2/tests ]; then
             set -- "$@" app/strategy_lab_v2/tests
           fi
+          set -o pipefail
           ENV_FILE=.env.dev uv run pytest "$@" \
             --cov=app --cov-report=xml --cov-report=term-missing \
-            --no-header -q
+            --no-header -q -rfE 2>&1 | tee /tmp/unit.log || {
+            grep -E '^(FAILED|ERROR) ' /tmp/unit.log | head -50 | sed 's/^/::error title=unit test::/'
+            exit 1
+          }
 
       - name: Run integration tests (with testcontainers)
         run: |
@@ -233,8 +237,8 @@ jobs:
   # ── E2E tests ─────────────────────────────────────────────────────────────────
   e2e:
     name: E2E Tests (Playwright)
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
     needs: [changed-scope]
     if: github.ref != 'refs/heads/master' && github.ref != 'refs/heads/staging' && needs.changed-scope.outputs.scope == 'broad'
 
@@ -253,8 +257,23 @@ jobs:
       - name: Install frontend deps
         run: bash scripts/ci-retry.sh -- bash -c 'cd frontend && npm ci'
 
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
+
+      - name: Install Playwright system dependencies
+        # GitHub's Ubuntu images already ship Chrome's shared libraries; apt
+        # mirrors have hung here, so bound this step and let the browser run
+        # itself prove whether anything is missing.
+        timeout-minutes: 4
+        continue-on-error: true
+        run: cd frontend && timeout 150 npx playwright install-deps chromium
+
       - name: Install Playwright browsers
-        run: bash scripts/ci-retry.sh -- bash -c 'cd frontend && npx playwright install --with-deps chromium'
+        timeout-minutes: 12
+        run: bash scripts/ci-retry.sh -- bash -c 'cd frontend && timeout 300 npx playwright install chromium'
 
       - name: Build stack images
         run: docker compose -f docker-compose.yml -f docker-compose.e2e.yml -p charting-platform-ci build

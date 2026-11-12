@@ -1,0 +1,80 @@
+{
+  "at": "2026-11-07T05:37:00.213080+00:00",
+  "authority": "Root coordinates the human-approved common-interface implementation; no staging or deployment acceptance",
+  "source": "055641eaafab37a8160908e974a3ec1a4483e7c6",
+  "base": "139b350238b5e1c8a170dce5af09a805301d857e",
+  "state": "released_for_exact_development_consumption_not_product_acceptance",
+  "files": [
+    {
+      "path": "frontend/src/views/BasketsView.vue",
+      "status_from139": "M",
+      "git_blob": "71b27cafc4019d5004e54e7f2536606c0484756e",
+      "sha256": "eb237b4610cae5c7565bfcacc6bf2718586b89d032885d642f98cc55dcb5b141"
+    },
+    {
+      "path": "frontend/src/views/ETFHoldingsView.vue",
+      "status_from139": "M",
+      "git_blob": "2f4497f047aea843841f601dc4ae5e455f0429d3",
+      "sha256": "069f39fcd8cb2eade1c1fb486e64ef52cd8f6c18e2cb0f458b147c5e1289491b"
+    },
+    {
+      "path": "frontend/tests/e2e/baskets_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "1328f71a75448f92063b1a7fa00586033e414a6f",
+      "sha256": "c4bb362691bc1866f5b4391b9b7f966dca89ac6a557e02eb49fed5d106ed8fb8"
+    },
+    {
+      "path": "frontend/tests/e2e/etf_holdings_preparation.spec.ts",
+      "status_from139": "A",
+      "git_blob": "955de57535283baf0e824113f0793e420c154e15",
+      "sha256": "965ac8d88a93df9e7466b90e3039aba46b7a0228bc9efa208a81bd1d6ed105d7"
+    },
+    {
+      "path": "frontend/tests/e2e/on_demand_acquisition.spec.ts",
+      "status_from139": "M",
+      "git_blob": "8aa8d3acf20b3eeaf89455ee0dd2b53059651253",
+      "sha256": "76d31dc7c7c59284ae5d5db4c2eb46db926bfa85f2557baba56cdbccd9c42f46"
+    },
+    {
+      "path": "frontend/tests/e2e/sp500_analysis_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "bdcd36f575df04c330f79ef2358ac69a60bce0f2",
+      "sha256": "4003cd338595912d11d05b932ba7ca580197809b1fae0e1df04bcd7e7ef36b21"
+    },
+    {
+      "path": "frontend/tests/unit/views/test_baskets_view.test.ts",
+      "status_from139": "M",
+      "git_blob": "0ebf9ba0bce23fcd5dfc5ed5daf8d98e69be9ec7",
+      "sha256": "8439f811cbaf26257f71591786d9b097ac2e92c49438a7f0f99b062d7d16c7cd"
+    },
+    {
+      "path": "frontend/tests/unit/views/test_etf_holdings_view.test.ts",
+      "status_from139": "M",
+      "git_blob": "ae90a782984d09fef3ea38f19aef98ddda4bf168",
+      "sha256": "f9261ffa840c5fc7a68bfef2c9394472d10418090b04b1657416f256dd471e8e"
+    }
+  ],
+  "consumers": [
+    {
+      "consumer": "TC",
+      "import_paths": [
+        "frontend/tests/e2e/on_demand_acquisition.spec.ts"
+      ],
+      "owned_overlap": []
+    }
+  ],
+  "scope": "ETF-owned basketasync materialization and actual R14 fixturecontract followup; preservewholefeature roadmap and all prior acceptance requirements.",
+  "owner_acknowledgement": "Original ETF session current clean committedeedc synchronization successor;4cfee/b0 imports and focused type/discovery checks reported.",
+  "consumer_rule": "TC imports only3changeddeclaredspec paths fromEED, verifyall8hashes; retainETFownership and unrelateddirt. Fold with current substantive commonruntimecheckpoint. No repeatedunchangedunits/browserstack.",
+  "evidence": "Root reviewed exact owned source/test successor; actual issuer materialization MissingGreenlet receives new collection initialization; fixtures preserve savedmembership, semanticinstrumentidentity and required RRGbenchmark. Prior R14failure and R15APIgreen retained; nextactualbodies/CI/native/release pending.",
+  "preserve": "No new fixtures, policy/ledger/native request changes, historical rewrite or acceptance implied.",
+  "supersedes_manifest": "etf68c34ae4-domain-frontend-development-consumption-contract.json",
+  "metadata_correction": "Retains normalized existing common-interface authority; no validator exception.",
+  "previous_source": "68c34ae4a0bde129add3d75ecba88c9cb5d4c4d4",
+  "previous_manifest": "etf35fe1722-domain-frontend-development-consumption-contract-v2.json",
+  "changed_paths_since_previous": [
+    "frontend/tests/e2e/baskets_journey.spec.ts",
+    "frontend/tests/e2e/etf_holdings_preparation.spec.ts",
+    "frontend/tests/e2e/sp500_analysis_journey.spec.ts"
+  ]
+}

@@ -1,0 +1,107 @@
+{
+  "at": "2026-11-07T12:03:52.348804+00:00",
+  "authority": "Root coordinates the human-approved common-interface implementation; no staging or deployment acceptance",
+  "state": "released_for_exact_development_consumption_not_product_acceptance",
+  "source": "ab46db86965dcc59f1121416ca52950f2ccc8514",
+  "base": "139b350238b5e1c8a170dce5af09a805301d857e",
+  "previous_source": "1ca97c377849fd06d413fb96b4c0a0621fea3bc1",
+  "files": [
+    {
+      "path": "frontend/src/components/workstation/CodeLibraryTool.vue",
+      "status_from139": "M",
+      "git_blob": "66f72713ccf42a6974b63c3c61aa05de9b6fbdad",
+      "sha256": "ca33fcd04d362146b851c7fc40748d83fbfcacde769a69b981a8eeeff0e20c80"
+    },
+    {
+      "path": "frontend/src/components/workstation/ResearchResultsTool.vue",
+      "status_from139": "M",
+      "git_blob": "0ef9cd69542979f09d006721981adc2a76cf2092",
+      "sha256": "9b52f04abb0219d1a15c59695ac339698f97053dcc47c88583fa61bbedd51e7e"
+    },
+    {
+      "path": "frontend/src/components/workstation/StudyLabTool.vue",
+      "status_from139": "M",
+      "git_blob": "498beb8fe44a83485f2b438798202deac5b2b8d0",
+      "sha256": "09fbb9e6247362841ea7bb01a35d036d5cbe4b9580917ba60802dc9b191f713f"
+    },
+    {
+      "path": "frontend/src/lib/workstation/researchQueryKeys.ts",
+      "status_from139": "A",
+      "git_blob": "086bcb7261f5ce47e5725bb841abd111b47e211a",
+      "sha256": "d2efc149f5351df0bd33e726b78713c9edee581109977fe6045ae8da13b6dd03"
+    },
+    {
+      "path": "frontend/tests/e2e/helpers.ts",
+      "status_from139": "M",
+      "git_blob": "0585840e77c5e5db008a9b7ba26143e1fe813eed",
+      "sha256": "8439a43437cc6045a4b24185e5500b2d2980486adc64ea48f70fdd5740415ac5"
+    },
+    {
+      "path": "frontend/tests/e2e/strategy_study_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "687020600e141b39db692e98a12363744dcd3929",
+      "sha256": "1bffeb185086ca4567add00e38122bfda6934dc0631bba55ed2511c00fc512ac"
+    },
+    {
+      "path": "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "b924967da5c70440768fe7f0fff68495c4493340",
+      "sha256": "aa63aded9ceb9921febff20d4dc91adc9158ea62fe420565ba9c08618a2b11ca"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_code_library_tool.test.ts",
+      "status_from139": "M",
+      "git_blob": "fa147870b4ca0496d4c2df2caa89211b56b84c5d",
+      "sha256": "2f14026c552b3e82b10cc74450b40a3554963ac67c75505845db162a265e0440"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_research_results_tool.test.ts",
+      "status_from139": "M",
+      "git_blob": "4044b901338c07b4c32e23e2d40cf8c85d81c720",
+      "sha256": "20253be64eb93bc15826585e3c92da4d676754c30675850bc29c0cbed7ba961b"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_study_lab_tool.test.ts",
+      "status_from139": "M",
+      "git_blob": "413026f7e545122b1746adec16d2d5668e587419",
+      "sha256": "30bcc1eaaabe5ff916024b04631be07caa08a8ad33920ece4ff6b2bae7cc8a4f"
+    },
+    {
+      "path": "frontend/tests/unit/e2e/test_browser_diagnostics.test.ts",
+      "status_from139": "M",
+      "git_blob": "471e86daef24d9c1bbbc1e9140dff9e436441811",
+      "sha256": "a3f336e075e5b802e9d14156a670638a8170347600f2b98c8d7087ab47703cea"
+    }
+  ],
+  "consumers": [
+    {
+      "consumer": "TC",
+      "import_paths": [
+        "frontend/src/components/workstation/StudyLabTool.vue",
+        "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts"
+      ],
+      "old_guards": {
+        "frontend/src/components/workstation/StudyLabTool.vue": {
+          "sha256": "3a620a594c0e095e1f26906ad54b81518157c48e3cf8a996b23a3a12d0d5f769",
+          "known_source": "1ca97c377849fd06d413fb96b4c0a0621fea3bc1"
+        },
+        "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts": {
+          "sha256": "3c8362043ce570ff6d633559f20725917a746257d9c61aeceec9d718e4c84509",
+          "known_source": "1ca97c377849fd06d413fb96b4c0a0621fea3bc1"
+        },
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts": {
+          "sha256": "5d1234eab954b5b384c68acc112e936a7329881be78784ee9e7f6bfa159a0133",
+          "known_source": "1ca97c377849fd06d413fb96b4c0a0621fea3bc1"
+        }
+      },
+      "owned_overlap": []
+    }
+  ],
+  "scope": "Restored XLB draft remains independent of immutable SPY saved run through async detail load, linked-symbol watcher and parent snapshot echo; original Undo persistence uses stable accessible rename editor; all8factory-layout useful-content checks plus coverage alias. No dataset/queue/provider/native policy changes.",
+  "evidence": {
+    "owner": "68 focused Study tests, frontend typecheck and14case discovery recorded by original visible Strategy owner; actual R40 still failed on previous1ca source, new browser bodies pending.",
+    "root": "Exact committed full11domain working bytes, consumer old/new hash guards and Git100644 verified. No runtime/CI/release acceptance."
+  },
+  "preserve": "Keep roadmap and source history; no amendments or metadata-only commits. This is not acceptance of future uncommitted factory expansion."
+}

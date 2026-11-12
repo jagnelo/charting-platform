@@ -21,7 +21,9 @@ test('TC2000 function key loads its assigned chart template on the active chart'
   await page.getByRole('button', { name: 'Chart templates' }).first().click()
   const templates = page.getByRole('dialog', { name: 'Chart templates panel' })
   await templates.getByLabel('Chart bar type').selectOption('line')
-  await templates.getByLabel('Chart template name').fill('F5 line template')
+  // A unique name keeps retries and earlier runs from turning this into v2.
+  const templateName = `F5 line template ${Date.now()}`
+  await templates.getByLabel('Chart template name').fill(templateName)
   const templateSaved = page.waitForResponse(response => {
     const url = new URL(response.url())
     return url.pathname.includes('/workspaces/library/items/chart_template/')
@@ -30,7 +32,7 @@ test('TC2000 function key loads its assigned chart template on the active chart'
   await templates.getByRole('button', { name: 'Save', exact: true }).click()
   const saveResponse = await templateSaved
   expect(saveResponse.ok(), `chart template save returned ${saveResponse.status()}`).toBe(true)
-  const template = templates.getByRole('button', { name: 'F5 line template v1', exact: true })
+  const template = templates.getByRole('button', { name: `${templateName} v1`, exact: true })
   await expect(template).toBeVisible()
 
   const savedCandles = page.waitForResponse(response => workspaceSnapshotHasBarType(response, 'candles'))
@@ -40,7 +42,7 @@ test('TC2000 function key loads its assigned chart template on the active chart'
   const assignmentSaved = page.waitForResponse(response => response.url().includes('/workspaces/library/items/chart_template/')
     && response.request().method() === 'PUT'
     && response.request().postDataJSON()?.payload?.function_key === 'F5')
-  await templates.getByLabel('Function key for F5 line template').selectOption('F5')
+  await templates.getByLabel(`Function key for ${templateName}`).selectOption('F5')
   await assignmentSaved
   await templates.getByRole('button', { name: 'Close chart templates' }).click()
 

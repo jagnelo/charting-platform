@@ -2,7 +2,7 @@
   <section class="watchlist" :class="{ 'watchlist--columns-open': columnMenuOpen, 'watchlist--sets-open': columnSetMenuOpen, 'watchlist--condition-open': Boolean(conditionFilterState || pythonConditionState), 'watchlist--grouped': hasColumnGroups, 'watchlist--plot-drop-active': plotDropActive }" :aria-label="label" :aria-busy="loading ? 'true' : 'false'" :data-row-count="filteredRows.length" :data-rendered-row-count="virtualItems.length" :data-row-budget="workstationRowBudgetState(filteredRows.length)" @click="contextMenu = null; pinContextMenu = null" @keydown.esc="handleWatchlistEscape" @dragenter.prevent="dragOverPlot" @dragover.prevent="dragOverPlot" @dragleave="dragLeavePlot" @drop.prevent="dropPlot">
     <p v-if="plotDropActive" class="watchlist__plot-drop-hint" role="status" aria-live="polite" aria-atomic="true">Drop to add the chart plot as a numeric column</p>
     <p v-if="dropError" class="watchlist__drop-error" role="alert" aria-live="assertive" aria-atomic="true">{{ dropError }}</p>
-    <p v-if="loading || refreshing" class="watchlist__loading-status" role="status" aria-live="polite" aria-atomic="true">{{ loading ? loadingLabel : refreshingLabel }}</p>
+    <p v-if="loading || refreshing" class="watchlist__loading-status" :class="{ 'watchlist__loading-status--compact': !loading && filteredRows.length > 0 }" role="status" aria-live="polite" aria-atomic="true">{{ loading ? loadingLabel : refreshingLabel }}</p>
     <p v-if="errorMessage" class="watchlist__data-error" role="alert" aria-live="assertive" aria-atomic="true">{{ errorMessage }}</p>
     <header class="watchlist__controls">
       <span>{{ label }}</span>
@@ -640,9 +640,11 @@ const columnRenderItems = computed<ColumnRenderItem[]>(() => {
     .filter((item): item is ColumnRenderItem => item.column != null)
 })
 const headerScrollLeft = ref(0)
+// Non-virtualized lists still need their column minimums to drive a horizontal
+// surface; otherwise numeric columns overflow the clipped header and body.
 const headerStyle = computed(() => columnVirtualized.value
   ? { width: `${columnTotalWidth.value}px`, minWidth: `${columnTotalWidth.value}px`, transform: `translateX(-${headerScrollLeft.value}px)` }
-  : gridStyle.value)
+  : { ...gridStyle.value, minWidth: `${columnTotalWidth.value}px`, transform: `translateX(-${headerScrollLeft.value}px)` })
 const rowCanvasStyle = computed(() => ({
   height: `${virtualizer.value.getTotalSize()}px`,
   position: 'relative' as const,
@@ -699,7 +701,9 @@ function handleWindowColumnMouseMove(event: MouseEvent) { continueColumnResize(e
 function handleWindowColumnMouseEnd(event: MouseEvent) { finishColumnResize(event as unknown as PointerEvent) }
 function rowStyle(virtualRow: { size: number; start: number }) {
   return {
-    ...(columnVirtualized.value ? { width: `${columnTotalWidth.value}px` } : gridStyle.value),
+    ...(columnVirtualized.value
+      ? { width: `${columnTotalWidth.value}px` }
+      : { ...gridStyle.value, width: '100%', minWidth: `${columnTotalWidth.value}px` }),
     height: `${virtualRow.size}px`,
     transform: `translateY(${virtualRow.start}px)`,
   }
@@ -1868,6 +1872,8 @@ function onCtrlWheel(event: WheelEvent) {
 .watchlist__plot-drop-hint { position: absolute; z-index: 4; inset: 3px 3px auto; margin: 0; padding: 4px 6px; border: 1px solid #69a9d2; background: #193040eF; color: #dcecf6; text-align: center; pointer-events: none; }
 .watchlist__drop-error { position: absolute; z-index: 4; inset: 3px 3px auto; margin: 0; padding: 4px 6px; border: 1px solid #9e5b5b; background: #3a1d1d; color: #f1b0b0; pointer-events: none; }
 .watchlist__loading-status { position: absolute; z-index: 3; inset: 25px 3px auto; margin: 0; padding: 4px 6px; border: 1px solid #4d7084; background: #193040eF; color: #c7e4f4; text-align: center; pointer-events: none; }
+/* Refresh-only status over loaded rows sits in the lower corner so it never covers the header controls. */
+.watchlist__loading-status--compact { inset: auto 6px 6px auto; width: auto; max-width: calc(100% - 12px); text-align: left; }
 .watchlist__data-error { position: absolute; z-index: 3; inset: 25px 3px auto; margin: 0; padding: 4px 6px; border: 1px solid #9e5b5b; background: #3a1d1d; color: #f1b0b0; text-align: center; pointer-events: none; }
 .watchlist--columns-open, .watchlist--sets-open { grid-template-rows: minmax(23px, auto) auto auto minmax(0, 1fr); }
 .watchlist--condition-open { grid-template-rows: minmax(23px, auto) auto auto minmax(0, 1fr); }

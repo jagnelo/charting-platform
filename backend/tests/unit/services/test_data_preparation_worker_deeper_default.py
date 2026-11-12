@@ -6,6 +6,8 @@ from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
 from app.config import settings
 from app.models.data_source import DataSource
+from app.models.exchange import Exchange
+from app.models.listing import InstrumentListing
 from app.models.market_data_foundation import MarketRefreshJob, MarketSeries, MarketSeriesDefault
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.services import market_data
@@ -49,6 +51,20 @@ async def test_worker_persists_first_alternate_series_returns_bars_and_queues_ol
     massive = DataSource(name="massive")
     alpaca = DataSource(name="alpaca")
     db.add_all([massive, alpaca])
+    db.flush()
+    exchange = Exchange(mic="XNYS", name="New York Stock Exchange", country_code="US")
+    db.add(exchange)
+    db.flush()
+    db.add(
+        InstrumentListing(
+            instrument_id=instrument.id,
+            exchange_id=exchange.id,
+            ticker=instrument.symbol,
+            currency="USD",
+            is_primary=True,
+            is_active=True,
+        )
+    )
     db.flush()
     massive_series = MarketSeries(
         instrument_id=instrument.id,
