@@ -207,6 +207,23 @@ def _record_testcontainer(container) -> None:
         return
 
 
+class _AsyncNestedTransaction:
+    """Wrap a sync SAVEPOINT so production ``async with db.begin_nested()`` works."""
+
+    def __init__(self, session: Session):
+        self._transaction = session.begin_nested()
+
+    async def __aenter__(self):
+        return self._transaction
+
+    async def __aexit__(self, exc_type, exc, tb):
+        if exc_type is None:
+            self._transaction.commit()
+        else:
+            self._transaction.rollback()
+        return False
+
+
 class AsyncSessionAdapter:
     """Small async facade so FastAPI async dependencies can use the sync test session."""
 
@@ -240,6 +257,10 @@ class AsyncSessionAdapter:
 
     async def delete(self, *args, **kwargs):
         self._session.delete(*args, **kwargs)
+
+    def begin_nested(self):
+        """Async-context savepoint matching ``AsyncSession.begin_nested``."""
+        return _AsyncNestedTransaction(self._session)
 
     def add(self, *args, **kwargs):
         return self._session.add(*args, **kwargs)
