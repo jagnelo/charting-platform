@@ -350,10 +350,11 @@ def coverage_calendar_for_instrument(instrument: object) -> CalendarName | None:
     from app.services.exchange_catalog import normalize_exchange_mic
 
     try:
-        if "listings" in sa_inspect(instrument).unloaded:
-            return None
+        state = sa_inspect(instrument)
     except NoInspectionAvailable:
-        pass
+        state = None
+    if state is not None and "listings" in state.unloaded:
+        return None
     primary = [
         listing
         for listing in (getattr(instrument, "listings", None) or [])
@@ -709,7 +710,7 @@ def assess_ohlcv_coverage(
     start = _as_utc(start)
     end = _as_utc(end)
     ordered = sorted(_as_utc(bar.ts) for bar in cached if start <= _as_utc(bar.ts) <= end)
-    start, end = observed_daily_session_bounds(
+    bounded_start, bounded_end = observed_daily_session_bounds(
         timeframe,
         start,
         end,
@@ -717,6 +718,10 @@ def assess_ohlcv_coverage(
         ordered[-1] if ordered else None,
         calendar=calendar,
     )
+    # Non-None inputs always yield non-None bounds; the guard only narrows types.
+    if bounded_start is None or bounded_end is None:
+        raise ValueError("coverage bounds must be defined for a supplied range")
+    start, end = bounded_start, bounded_end
     ordered = [value for value in ordered if start <= value <= end]
     slices = tuple(missing_range_slices(cached, timeframe, start, end, calendar=calendar))
     covered_start = ordered[0] if ordered else None

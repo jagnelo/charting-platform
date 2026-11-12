@@ -1,0 +1,51 @@
+{
+  "at": "2026-11-07T10:24:17.750108+00:00",
+  "authority": "Root coordinates the human-approved common-interface implementation; no staging or deployment acceptance",
+  "state": "released_for_exact_development_consumption_not_product_acceptance",
+  "source": "b0db1656ad8505e2aaa39546d60487015aca00d4",
+  "base": "139b350238b5e1c8a170dce5af09a805301d857e",
+  "previous_source": "6ff05d8224da622bf195c6d2829842d85d2d1acb",
+  "files": [
+    {
+      "path": "backend/app/services/baskets.py",
+      "status_from139": "M",
+      "git_blob": "88ea39ba873e7b515c02b6a8c9f0685fb92dd51e",
+      "sha256": "d4d2bc5f247d31fe1e382b1708861c545e4ad7e982fea9f1acc03a1d696207bc"
+    },
+    {
+      "path": "backend/tests/integration/api/test_baskets.py",
+      "status_from139": "M",
+      "git_blob": "47bafba3d2ce7d7fbb78c0234785cda41f9614ec",
+      "sha256": "5ede032abeb7eb5c44effff911e1c2586f116122e6b0fcfc3a1bb8d0b3d81555"
+    }
+  ],
+  "consumers": [
+    {
+      "consumer": "Provider",
+      "import_paths": [
+        "backend/app/services/baskets.py",
+        "backend/tests/integration/api/test_baskets.py"
+      ],
+      "old_guards": {
+        "backend/app/services/baskets.py": {
+          "sha256": "ca07301c1d8861aebe4e3d35df38c878eeafe7e0e259357e1eece2e457ac234d",
+          "known_source": "6ff05d8224da622bf195c6d2829842d85d2d1acb",
+          "absent": false
+        },
+        "backend/tests/integration/api/test_baskets.py": {
+          "sha256": "8c49e34d169817d8aa544af1f9b594598ca5d74866ea62c3f05cf4d81f30debd",
+          "known_source": "6ff05d8224da622bf195c6d2829842d85d2d1acb",
+          "absent": false
+        }
+      },
+      "owned_overlap": []
+    }
+  ],
+  "scope": "Selected-series basket aggregation reuses existing canonical selection and preserves independent rebased-weighted math; exact2 real PostgreSQL tests passed in unique leased DB, Root cleanup complete.",
+  "evidence": {
+    "owner": "Read frozen owner handoff and validation entries for exact substantive source; not broad release acceptance.",
+    "root": "Committed files equal owner working bytes; consumer old/new guards and Git100644 verified. Native/combined/full release pending.",
+    "postgres": "root-etf-selected-series-pg-cleanup-review.json"
+  },
+  "preserve": "Keep complete roadmaps and historical receipts, native holds and datasets. Only declared imports; no overlap with other owner writes, no amend source or metadata-only commit."
+}

@@ -1388,8 +1388,13 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         else delete merged[key]
         continue
       }
+      // snapshotPayload always rewrites the active tab from this window's own
+      // selection, so another window's value is never a structural conflict.
+      if (key === 'active_tab_key') continue
       // Unknown workspace settings are not inferred or merged. Preserve the
-      // existing recovery behavior if either side changed anything else.
+      // existing recovery behavior if either side changed anything else,
+      // unless both sides converged on the same value.
+      if (sameSettingEntry(localEntry, remoteEntry)) continue
       if (!sameSettingEntry(localEntry, baseEntry) || !sameSettingEntry(remoteEntry, baseEntry)) return null
     }
     return merged
@@ -3387,6 +3392,23 @@ export const useWorkspaceStore = defineStore('workspace', () => {
           }
           try {
             const latest = await api.get<WorkspaceState>(`/workspaces/${current.id}`)
+            const live = workspace.value
+            if (!live || live.id !== current.id) return false
+            // Another window of the same account can write identical content
+            // first (both normalising the same layout on load). That is not a
+            // conflict: adopt its revision, keep the live state, and resave only
+            // if a newer local edit (e.g. an opened tool) arrived meanwhile.
+            if (sameJson({ ...payloadAtStart, base_revision: 0 }, { ...snapshotPayload(latest), base_revision: 0 })) {
+              live.revision = latest.revision
+              persistedWorkspace = cloneSerializable(latest)
+              if (generation !== snapshotGeneration) {
+                scheduleSnapshot()
+                return false
+              }
+              snapshotSaveStatus.value = 'saved'
+              snapshotSaveError.value = null
+              return true
+            }
             const merged = mergeDisjointWindowChanges(persistedWorkspace, current, latest)
             if (merged) {
               const saved = await api.put<WorkspaceState>(`/workspaces/${latest.id}/snapshot`, snapshotPayload(merged), { priority: 'high' })

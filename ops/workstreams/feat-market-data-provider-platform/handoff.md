@@ -1,4 +1,522 @@
+## 2026-11-10 — Retained coverage memo per preparation request (Provider, Claude Code)
+
+_retained_history_coverage ran about 8x per instrument in one ensure, reloading about 1,800 bars each time. It now memoizes per (instrument, timeframe, adjusted, start, end) inside a ContextVar set by the ensure and maintenance entrypoints. The memo ends with that call; GET responses are not cached. Callers get copies.
+
+Test: 12 members x 8 lookups -> 12 uncached runs, results unchanged, no leak. Full backend unit suite: 4326 passed, 0 failed. Latency is unmeasured here; Root's fixture run decides the 0.5s target.
+
+## 2026-11-10 — Breadth history linear-time evaluation (Provider, Claude Code)
+
+evaluate_breadth_history evaluated every timestamp over full bar prefixes and converted closes each time. It now evaluates only the returned tail, uses bisect and a read-only prefix view with precomputed closes, and the generic route loads breadth columns only. Realistic case (50 members, 2000 D1 bars, limit 500): 55.0 s to 0.73 s, output byte-identical at that size. The test-only oracle breadth_reference_oracle.py preserves the HEAD algorithm for a 250-case randomised comparison.
+
+## 2026-11-10 — Backend hot-path CPU and wait reduction (Provider, Claude Code)
+
+Memoized XNYS calendar helpers, column selects for retained coverage and local OHLCV reads, one shared Redis pool, and data-coverage no longer holds a transaction across Redis. Probe medians (sqlite, 3y D1): ohlcv 29.9 to 20.2 ms; ensure 101 to 57 ms (noisy); data-coverage 5016 ms (Redis retries) to 5 ms. Uvicorn workers now follow WEB_CONCURRENCY (default 1). Keep it at 1 until the alert scheduler has a single leader. Unit suite 6214 passed; touched integration 54 passed.
+
+## 2026-11-10 — ETF bridge runtime clock pin consumed
+
+Consumed ETF f43b90ee8's exact bytes of test_etf_holdings_provider_bridge_runtime.py (blob verified). The file passes 112 tests on this branch, matching ETF's count.
+
+## 2026-11-10 — Deterministic radar integration clock (Provider, Claude Code)
+
+test_radar.py read the real clock in three places: seeded bars, radar freshness, and the evaluator coverage preflight. Results depended on time of day. The file now uses one fixed instant (2026-11-10 16:00 UTC), pins the radar engine and preflight clocks in an autouse fixture, and seeds from that instant. Assertions are unchanged. test_radar.py: 13 passed at the fixed instant and at two other instants. Radar unit tests: 39 passed.
+
+## 2026-11-10 — Ensure never holds a transaction across the worker wake (Provider, Claude Code)
+
+ensure_data now commits the read transaction after building the response, before any Redis work. The worker wake is one shared lazy arq pool (no per-request create_pool, no connect retries). The pool creation and enqueue share a 1-second bound, and the wake runs fire-and-forget, so the 202 never waits for it. The pool closes on app shutdown.
+
+Duplicate-ensure integration test: the product is correct. A deeper chunk is queued only after a non-empty fetch (`if bars and ...`), and this test's fake fetch returns no bars. The test now asserts that neither parent has a background continuation. The leased-child assertions (duplicate returns promptly, no duplicate child, both parent refs on the shared child) are unchanged.
+
+Results: router unit 9 passed; touched integration 100 passed; unit suite (ENV_FILE=/dev/null) 6211 passed, 1 skipped; full integration 645 passed, 2 skipped, 6 failed. Three of the six are the expected ETF bridge tests. The other three are test_radar.py: they seed bars relative to datetime.now and run freshness and coverage on the real clock, so they depend on time of day. They also failed at 254e83ed2, before these changes.
+
+## 2026-11-10 — Integration test setup for listing-dependent fixtures (Provider, Claude Code)
+
+Test setup only; no product changes. Three partial-schema files now include instrument_listing (the FK closure does not reach it). The queue fixtures carry a primary XNYS listing, since the coverage calendar needs it.
+
+Touched integration files: 99 passed, 1 failed. The failure is test_duplicate_ensure_returns_while_shared_history_child_is_leased (KeyError background_job_ids). It fails the same way at 254e83ed2, so it predates the recent commits.
+
+Not fixed: the three ETF-owned bridge tests in test_etf_holdings_provider_bridge_runtime.py. Pinning the freshness clock moved the failures instead of clearing them. The next step needs ETF's decision.
+
+Unit suite (tests/unit plus strategy_lab_v2 tests, with ENV_FILE=/dev/null): 6208 passed, 0 failed. Running from backend/ with the default .env.dev picks up a local Tiingo custom-plan env file and fails 4 quota tests; that is a local environment artifact.
+
+## 2026-11-10 — Bounded parent refs (perf, Provider, Claude Code)
+
+POST /data/ensure spent its time in per-ref parent-ref writes: each ref deep-copied the whole list, scanned it linearly, and flushed. Children now merge refs once: one dedupe, one batched lookup of live parents, one payload write, one flush (data_preparation._merge_parent_refs). Refs for parents that no longer exist are dropped. Refs being added are always kept. Only the newest 64 refs are kept.
+
+Terminal parents keep their refs on purpose: worker child-driven parent updates read them, and GET only partly recomputes from child jobs. Pruning terminal parents would lose updates.
+
+Tests: 300 refs give one lookup, one flush, 64 kept; missing parents are pruned. Full backend unit suite: 4325 passed, 0 failed.
+
+## 2026-11-10 — ETF native composition freshness test imported (Provider, Claude Code)
+
+Imported the ETF owner's exact bytes of test_etf_holdings_native_qualification.py from 04af30bb0 (blob verified equal, no edits, +20 lines). The file and test_etf_issuer_catalog.py pass (107). The full backend unit suite passes: 4323 passed, 0 failed.
+
+## 2026-11-10 — Stale fakes in two worker tests (Provider, Claude Code)
+
+Two tests failed because the fake sessions lacked the queries that refresh_derived_timeframe_if_needed runs (reached through the refresh_cached_coarse_from_daily closure). Each test now stubs that call with AsyncMock(return_value=False). No product code or assertions changed.
+
+Both files pass (87 tests). The full unit suite: 16 failed, 4307 passed. The 16 remaining failures are all tests/unit/services/test_etf_holdings_native_qualification.py, which the ETF branch is fixing.
+
+## 2026-11-10 — Lazy listing loads and fixture repair (Provider, Claude Code)
+
+Root diagnosis A applied at the class level: Instrument.listings and InstrumentListing.exchange are lazy=selectin, so db.get callers see the primary listing and the XNYS calendar. The worker fixture now carries a primary XNYS listing; all four worker cases pass. A regression proves a plain db.get yields XNYS, and it fails without the model change.
+
+The ETF batch catalogue keeps its bounded query count by lazy-loading listings on its own path (3 SELECTs). Diagnosis B: the SIC mock now sets effective_score on the resolved provider objects.
+
+Full backend unit suite: 18 failed, 4305 passed (baseline 1cdc612f7: 23 failed, 4299 passed). No new failures. The 18 remaining failures also fail at 1cdc612f7: 16 ETF native-qualification tests whose fixtures are stale against the current date, 1 native usage prerequisite test, and 1 arq lease-lost test.
+
+## 2026-11-10 — Deep-history honesty proof (Provider, Claude Code)
+
+Existing tests already prove the two halves; no duplicate was added.
+
+- Deeper coherent source older than Massive's 2-year floor: test_history_planner_pins_deepest_admitted_provider_for_all_chunks and test_history_planner_uses_deeper_real_admission_chain_over_recent_massive_cache (both pass).
+- Internal gap, partial status, covered ranges: test_retained_internal_gap_is_reported_and_only_gap_is_queued. Strengthened to assert covered_ranges are exactly 2026-01-01..02 and 01-08..09, all from the selected series. The alternate series is never reported as covered. Passes.
+- Not fixed: test_data_preparation_worker_deeper_default.py has 3 failing cases, and they fail identically at e949552bc. The fixture instrument has no primary listing, so the coverage calendar is None and default selection is suppressed. Adding an XNYS listing to the fixture moved one case to a retained-alternate fetch assertion. This needs a Root decision or a separate investigation.
+- Also pre-existing at e949552bc: 2 failures in test_reconciled_sic_industry_keeps_its_snapshot_provider_and_timing (SimpleNamespace has no effective_score).
+
+## 2026-11-10 — Tiingo deep-history gates and 15c8bf3b4 focused check (Provider, Claude Code)
+
+Root decision root-Provider-Tiingo-deep-history-decision-20261110.json applied offline.
+
+- 15c8bf3b4 (default-series calendar from primary listing): focused test_market_series_defaults.py 9 passed. Not a release check.
+- Tiingo persistent-storage authority: tiingo_persistent_storage_authority_missing() was a no-op shim returning []. It now requires TIINGO_PERSISTENT_STORAGE_AUTHORIZED, a reference, an allowed written scope (same two perpetual-archive scopes as Alpaca), a past reviewed_at, and an unexpired expires_at if set. Code default stays not authorized. No routing caller existed before; the registry test was updated to the new semantics.
+- Tiingo custom plan: classified as reviewed custom when all four TIINGO_CUSTOM_* limits are > 0 and TIINGO_CUSTOM_QUOTA_EVIDENCE is non-empty, regardless of TIINGO_REVIEWED_PLAN. Partial values with plan custom stay non-routable. Partial values with starter/power keep the published profile. Note: a Power account that sets full custom values is overridden by the custom profile.
+- Native quota/baseline hold (config checkpoint dict, tiingo *) left in force. Releasing it would need a recorded current-window native baseline per dimension, not just the reset/evidence settings.
+- Checks: test_tiingo_deep_history_gates.py, test_market_series_defaults.py, test_provider_registry.py, test_provider_quota_contract.py: 191 passed. Ruff check and format clean.
+- No live HTTP, no Docker, no policy/quota/hold rows, no production config changed.
+
+## 2026-11-08 — TC common runtime context 3055946 development import
+
+Imported only the 28 Provider-declared paths from `3055946ceabbfd51e51281f06c3f98f766f0d019` after all 28 old-byte
+guards matched. All 99 released manifest rows matched their SHA256 and Git blob,
+and all 28 imported worktree files match source bytes, blobs, and executable
+modes. The exact manifest is retained at `ops/workstreams/feat-market-data-provider-platform/development-dependency-imports/3055946ceabbfd51e51281f06c3f98f766f0d019.json`.
+
+The current common pointer now names `3055946ceabbfd51e51281f06c3f98f766f0d019` in `session.json` and replaces
+the stale `2a8dc9e4` common frontend pointer in `plan.yaml`. The active Provider
+backend, ETF basket, and Strategy research pins remain unchanged; earlier common
+imports remain historical. Frontend `vue-tsc --noEmit` passed. This is
+development context only; no producer suite was replayed and no product or
+release acceptance is claimed. Root owns exact CI and combined release gates.
+
+## 2026-11-08 — fresh-window EODHD history qualification
+
+Root supplied a new single-use v3 pair after the v2 history preflight proved
+the actual 60-second native minute baseline had expired during the operator
+gap. The pair completed usage preflight, one account-usage request, an immediate
+read-only check of the shared native baseline, history preflight, and the one
+recent raw AAPL D1 request in one process. The current observation was Free,
+20 calls/day with zero current-day calls, and the fresh minute baseline was
+within the reviewed cap; the history case then passed its nonempty/ordered,
+finite-OHLC and exact-one-request assertions.
+
+The previously passed Nasdaq directory case remains 2/2 requests. Total actual
+requests across the authorized sequence are 5: EODHD account usage twice
+(first v2 observation plus the freshly paired v3 observation), EODHD recent
+history once, and Nasdaq's two official files. The v1 and v2 blocked history
+preflights remain preserved; no failed or held request was replayed. No quota
+reset/copy, policy change, production configuration change, or application
+source change occurred. The normal runner used the shared ledger for the
+observations and history request. Broader Provider qualification and Root's
+combined release gates remain open.
+
+The single-use authorization and redacted mode receipts/logs are in the Root
+attempt directory with the `Provider-four-http-v3-` prefix; the fresh-baseline
+receipt is `Provider-four-http-v3-fresh-native-baseline-review.json`.
+
+## 2026-11-08 — bounded EODHD usage and Nasdaq qualification
+
+Using Root's corrected single-use runner entry at the pinned source
+`959006e7501942d8d55cc06e212fa8f72f4dec2f`, the EODHD account-usage case
+passed with one HTTP request and the Nasdaq official-directory case passed
+with exactly two file requests. The sanitized EODHD snapshot identified the
+plan as `free`, reported a 20-call daily limit and last-active usage date
+2026-10-19; the existing adapter interprets that past date as zero current-UTC-day
+usage, without folding the separate extra-call balance into the daily cap.
+Native minute headers reported 1,199 of 1,200 remaining.
+
+The EODHD recent-history preflight remained held before transport because the
+shared coordinator reported `eodhd/fetch_ohlcv: active requests_per_minute
+usage baseline is unknown`. No history request was sent, and this unknown
+baseline was not bypassed. Across the corrected allocation, three of four
+possible HTTP requests were made (usage 1, Nasdaq 2); all were accounted by
+the existing shared runner/ledger. The earlier v1 scope-less preflight receipts
+remain preserved and no mode was replayed. Root owns any baseline reconciliation
+and a separately authorized future history attempt. No policy, quota, account,
+production configuration, or application source was changed.
+
+Redacted runner receipts/logs are under
+`/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/`
+with the `Provider-four-http-v2-` prefix.
+
 # feat/market-data-provider-platform
+
+## 2026-11-08 — keep Twelve Data earliest-timestamp outside live coverage
+
+The global live-runner inventory found a concrete `get_earliest_timestamp`
+method on `TwelveDataProvider`, a one-credit operation in the cost map, and
+unit-only adapter tests for symbol/MIC/timeframe and timezone response
+validation. No live case exercises this endpoint, and an OHLCV read is not
+evidence for it. The runner now records an explicit `blocked` disposition for
+this one operation. It is not a method alias, is not counted as successful
+coverage, and does not enable transport; the unrelated live manifest can pass
+its structural inventory check without broadening Twelve Data qualification.
+No source HTTP, credential access, quota/ledger/policy change, or application
+code change occurred. Product source remains frozen at `9e2`; Root owns actual
+EODHD/Nasdaq qualification and any later Twelve Data account/operation review.
+
+## 2026-11-08 — isolated EODHD free-plan history qualification probe
+
+Added `test_eodhd_free_recent_daily_history` to the existing live-probe
+runner. It performs one observed, quota-reserved EODHD AAPL D1 request over the
+existing recent five-day window with raw/unadjusted bars, validates positive
+finite OHLC values, timestamps and ordering, and asserts exactly one HTTP
+request. The runner maps the case only to `fetch_ohlcv`; the separate EODHD
+account-usage one-request probe and Nasdaq two-file/two-request case are
+unchanged. Once the runner's global manifest preflight is clear, Root can
+qualify the requested four-request sequence without unrelated quote/discovery
+reads in the older EODHD compound case. The current preflight has a
+pre-existing unrelated inventory error for
+`twelve_data/get_earliest_timestamp`; the exact same error reproduces from
+the frozen 9e2 runner, and this isolated EODHD scope does not alter it.
+
+The scoped EODHD display gate is supported by current official guidance:
+<https://eodhd.com/help/personal-use> permits private display to the account
+holder on their own devices and private research, while prohibiting display,
+sharing or redistribution to other people and business/team/public use. Root's
+read-only review is
+`root-EODHD-current-private-display-source-review-20261108.json`. This applies
+only to the private single-owner m920q use; it is not a vendor exception letter
+or general distribution right. The app's source/configuration, Free 20/day and
+one-year limits, native usage reconciliation, shared ledger, profile exclusion,
+and all holds remain unchanged. No EODHD or Nasdaq HTTP, runtime, quota, policy
+or ledger action was performed here. Focused manifest/test evidence and exact
+source hashes are appended in `validation.jsonl`; Root owns current-usage
+admission and actual transport qualification. The broader Provider roadmap
+remains in progress.
+
+## 2026-11-08 — refresh cached coarse defaults on held or empty D1 work
+
+The retained upgrade path can already have a deeper selected Alpaca D1 series
+while W1/MN still point to old Massive rows. A later D1 continuation may be
+held before transport or return no bars. Those worker branches previously
+completed/paused before the post-fetch derived refresh, leaving useful cached
+daily data unreconciled.
+
+The D1 worker now checks stale W1/MN from the full selected D1 cache before
+native-hold, planner-hold, usage-hold, and prerequisite-wait exits. It also
+runs the same cache-only check after normal D1 work even when the chunk returns
+no bars. Explicit point-in-time derivation remains unchanged. A focused worker
+case starts with retained Alpaca D1 selected, old Massive W1/MN selected, and
+an older chunk held with `native_usage_bootstrap_not_admitted`; derived defaults
+follow Alpaca while the hold, older coverage gap, Massive observations, and
+lineage remain intact. No provider HTTP or runtime/database/quota/policy/hold
+mutation occurred. The worker/derivation modules pass 16 tests; exact-source CI
+and Root native replay remain pending, and the full Provider goal remains open.
+
+## 2026-11-08 — refresh current derived defaults after an older D1 chunk
+
+Root's review of `bd6de08da` found that its worker refresh guard compared the
+latest selected D1 timestamp with the current job end. That incorrectly skipped
+W1/MN repair for older chunks when the selected daily series already extended
+through 2026. The retained IHI jobs were queued older chunks, and the D1 cache
+already had current rows; no new latest bar or coarse-timeframe request is
+required to reconcile its derived defaults.
+
+The D1 worker now checks the full selected D1 signature after any nonempty D1
+job and refreshes stale W1/MN without truncating at that job's end. Derived
+series/default selection therefore follows the current canonical D1 source,
+while older coverage gaps stay partial and old provider rows remain preserved.
+Explicit point-in-time materialization still uses its existing `end` bound.
+
+The focused older-chunk worker case uses cached data only: its chunk ends in
+2021 while the selected Alpaca D1 cache extends to 2026. The worker updates both
+W1/MN defaults from that full current series. Worker and derivation modules
+passed 15/15; Ruff 0.4.7 check/format, compilation, and diff checks passed. No
+provider HTTP or runtime/database/quota/policy/hold changes occurred. Root's
+native replay and exact-source CI remain pending; the full Provider goal stays
+in progress.
+
+## 2026-11-08 — unattended derived W1/MN follows the selected D1 source
+
+Root's browser-closed retained-copy readback showed that all eleven sector D1
+defaults had advanced to Alpaca while their W1/MN defaults still pointed to the
+older Massive series. The source path explains the mismatch: the D1 worker's
+optional coarse materialization ran before its daily default selection, and
+ordinary D1 jobs did not refresh coarse data unless a W1/MN dependency set a
+special flag. The retained receipt contains no W1/MN job state, so this finding
+does not assume queued work was pending.
+
+The worker now checks the selected daily series after D1 processing and lazily
+refreshes W1/MN when that source reaches the job's end. Historical point-in-time
+jobs that stop before newer selected D1 observations leave current defaults
+alone. Derived series carry the selected D1 source and adjustment lineage; a
+complete range or its latest genuinely complete suffix may become the default.
+An older gap remains visible as partial, provider-supplied rows are retained,
+and no feeds are spliced. The derived signature records its output series so
+preserved old derived rows do not trigger repeated rebuilds.
+
+Focused worker and derivation modules passed 14/14. The worker regression starts
+with Massive W1/MN defaults and verifies automatic coherent Alpaca-derived
+defaults after a D1 job, with both complete and older-gap cases, original
+Massive observations retained, and no stale refresh remaining. Ruff 0.4.7
+check/format and `git diff --check` passed. No provider HTTP, runtime, database,
+quota, policy, or hold mutation occurred. Exact-source CI and Root's retained
+runtime/browser requalification remain pending; the wider Provider roadmap is
+still in progress.
+
+## 2026-11-07 — source-specific history-bound witness guard and TC context
+
+The unknown-depth history repair now limits a provider witness to the exact
+`history_depth_unknown` entitlement result. A matching earliest-history
+observation cannot override a concrete exceeded floor or an invalid/future or
+malformed contract. The regression derives `history_depth_exceeded` from an
+actual two-year entitlement and verifies that a matching witness is rejected.
+
+The witness clamp uses listing and provider-symbol `effective_at` lifecycle
+dates. The existing producer path maps provider IPO/effective dates into those
+fields and records `known_at` separately as the observation time; `known_at` is
+not queried or used as a history boundary. Bounded requests remain independently
+eligible per source when another provider has no computable floor. The Twelve
+Data endpoint is a one-credit, exact symbol/timeframe/MIC operation through
+normal provider admission. Its account-specific permitted use is unresolved and
+Root-owned; no live calls, quota/ledger/policy changes, or provider activation
+occurred. Known eligible Alpaca remains independently usable under its own
+reviewed history and native quota contract.
+
+Focused verification passed 54 tests across history planning, provider routing,
+and the two Twelve Data witness adapter cases. Ruff check/format, `py_compile`,
+and `git diff --check` passed on six Python paths. No broad suite, database,
+provider request, or production operation was run.
+
+Imported the six Provider-declared files from TC source
+`2666aa559afbff7cff8dff6b50ead357ae1f654f` after all 86 manifest rows and all
+six old-byte guards matched; imported Git blobs, hashes, and modes match 6/6.
+This is exact development consumption only. The current TC dependency pointer
+is `2666aa55`; ETF `b0db1656` and Strategy `f6521237` remain the other current
+pins. Earlier common imports remain historical. Exact-source CI, Root's native
+permitted-use review, combined browser/release qualification, and the broader
+Provider roadmap remain pending/open.
+
+## 2026-11-07 — R23 selected-series and date-bound coverage repair
+
+Root's retained R23 trace showed two shared backend defects. The RRG analysis
+loader queried every adjusted series for a symbol/timeframe, so retained coarse
+rows could duplicate timestamps from the newly derived canonical W1/MN series.
+It now applies the same selected-default-series predicate as ordinary local
+OHLCV reads. A focused regression retains incompatible RAW coarse rows, adds
+canonical split-adjusted D1, materializes W1/MN twice, and verifies analysis
+inputs/tails stay strictly increasing without deleting or relabeling the old
+rows.
+
+The shared evaluator preflight also treated date-only D1 midnight/end-of-day
+bounds as literal bar timestamps. It now aligns an observed endpoint date to
+that day's actual close-labelled bar; an absent endpoint date and interior gaps
+remain incomplete. This is generic date-only range handling, not a Study or
+fixture exception. The affected analysis, evaluator-preflight, and derivation
+unit modules pass 55 tests; Ruff check/format and `git diff --check` pass. No
+provider transport, database fixture, retained/public data, or policy/ledger
+was touched. Full exact-source CI and Root's combined release qualification
+remain pending; the overall Provider roadmap remains in progress.
+
+## 2026-11-07 — consumed ETF issuer-basket materialization dependency
+
+Root released source `055641eaafab37a8160908e974a3ec1a4483e7c6` for exact development consumption under `etf055641ea-domain-backend-development-consumption-contract.json` (SHA-256 `e981824b12ac3812b16676b8643978a448aa03239cb9169a598585c4b3619c90`). Imported only `backend/app/services/baskets.py` and `backend/tests/integration/api/test_baskets.py`; verified all five manifest files against the exact Git blobs, SHA-256 values, and `100644` modes.
+
+Focused unit verification: `backend/.venv/bin/pytest backend/tests/unit/services/test_etf_holdings_adapters.py backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py -q` passed 702 tests. Ruff check/format over the five manifest paths and `git diff --check` passed. The real-AsyncSession CRUD regression was not run here: its standard `db_engine` fixture calls `Base.metadata.create_all/drop_all`, and the available Root database is the shared browser fixture, not an isolated lease. Root owns the isolated API/PG replay. This is development consumption only; no ETF acceptance, provider/native request, quota/ledger/policy change, or release gate is claimed.
+
+## 2026-11-06 — platform-usability release: shared preparation contract (active)
+
+The human activated the complete platform-usability plan in the original
+Provider session. Root owns combined acceptance and release. This Provider
+checkpoint owns shared backend preparation, durable dependency/job planning,
+the actual ARQ worker path, provider-neutral range planning, and Provider
+workstream records. It does not own frontend code or ETF-specific implementation.
+
+### Implemented shared contract for TC and ETF
+
+The first Provider-owned wire and callable types are implemented in
+`backend/app/schemas/data_preparation.py` and
+`backend/app/services/data_preparation_contracts.py`.
+
+**Request DTO (`DataEnsureRequest`)**
+
+- `target`: discriminated object with `kind: instrument | market_group |
+  family`. Instrument target requires exactly one of `instrument_id` or
+  canonical `symbol`; a non-unique listing resolves to `waiting` with
+  `reason_code=selection_required`, before any ingestion. Group/family use the
+  repository's stable `group_key` / `family_key`.
+- `datasets`: optional unique array of `identity | profile | history |
+  holdings | fundamentals`. Omitted means supported useful defaults; ETF
+  holdings is included only for a resolved ETF and the real ETF handler must
+  exist.
+- `timeframe` reuses the full existing `app.models.ohlcv.Timeframe` enum for
+  all chart flows, plus `adjusted` and optional `start_at/end_at`. Omitted
+  range means latest useful data first, then progressive history to the
+  deepest currently admitted reviewed bound.
+- `analysis.kind` is `ratio` or `rrg`. For `ratio`, `analysis.legs` is exactly
+  two instrument targets and both legs are resolved and prepared. The model
+  also uses existing names `lookback`, integer `sampling`, `tail_length`, and
+  `history_length`, with optional `benchmark_symbol`. Defaults match the
+  existing RRG endpoint (`lookback=20`, `sampling=1`, `tail_length=10`,
+  `history_length=0`). Server-side `required_raw_bars` includes both lookback
+  windows and all requested tail/history points:
+  `(lookback * 2 + tail_length + history_length) * sampling` (50 sampled bars
+  at defaults). Clients cannot claim warmup coverage.
+- Optional `Idempotency-Key` is scoped to the authenticated user. It only
+  coalesces an identical normalized request; it does not alter provider quota
+  identity or bypass existing request/native limits.
+
+**Response DTO (`DataEnsureResponse`)**
+
+- `request_id: UUID`, `status: queued | running | partial | ready | waiting |
+  unavailable | failed`, `created_at`, `updated_at`, monotonically increasing
+  `version`, and `target`.
+- `dependencies[]`: `dependency_id`, `depends_on[]`, `instrument_id`,
+  `dataset`, `status: queued | running | partial | ready | waiting | unavailable |
+  failed`, `requested_start/end`, `covered_start/end`, `reason_code`, nullable
+  known `retry_at`, and `updated_at`.
+- top-level `completed`, `total`, and `last_progress_at`. `ready` means all
+  requested applicable dependencies are complete; `partial` means useful
+  dependencies are ready while others are held/unavailable; `waiting` means
+  the request is still actionable but has no currently ready dependency;
+  `unavailable` means no safe route exists; `failed` is reserved for unexpected
+  errors and exposes only a safe code/request reference.
+- `has_pending_work: bool` is computed from the persisted child and continuation
+  jobs referenced by the owner request, including identity and D1 prerequisites.
+  It is true only while one of those jobs is queued, leased, retrying or
+  deferred. A partial or unavailable dataset with no live durable job reports
+  false, so consumers can settle useful partial results instead of polling
+  forever. The API always emits the field; its schema default preserves older
+  fixture payloads that omit it. When only deferred work remains, each
+  dependency's known `retry_at` is the next poll time.
+
+`GET /api/v1/data/requests/{request_id}` returns the same durable DTO only to
+the authenticated owner. Equivalent acquisition work may share existing queue
+jobs across requests, while request visibility and user-owned state remain
+private. No raw provider messages, credentials or source payloads are exposed.
+A missing downstream handler is unavailable, never synthetic success.
+
+### ETF callable boundary
+
+The Provider-owned module exports the callable Protocol and concrete context
+and result types in `app.services.data_preparation_contracts`:
+
+```python
+async def prepare_etf_holdings(
+    db: AsyncSession,
+    instrument: Instrument,
+    *,
+    context: DatasetPreparationContext,
+) -> DatasetPreparationResult: ...
+```
+
+`DatasetPreparationContext` carries only request/dependency identity, dataset,
+full timeframe, adjustment, normalized range, priority, and deadline. The
+result carries status, covered range, safe reason, only known `retry_at`, and
+acquired version. There is no cancellation/progress abstraction in this hook;
+the existing durable queue owns progress and retry state. ETF implements the
+callable in its owned service and Root wires the import only after a real
+implementation exists. The hook must use existing native issuer qualification,
+quota, free-only and identity gates. Provider will not edit ETF files, claim
+holdings success, or ship a fake hook.
+
+Durability reuses `MarketRefreshJob`: one opaque parent tracking job stores
+owner-scoped normalized request/dependency/status metadata, and existing child
+jobs represent executable dataset work. A parent tracking row is never treated
+as price work. No second request/dependency table or migration is planned.
+
+### Provider account and deep-history readiness (static contract)
+
+Every source still needs a registered capability and exact operation, matching
+instrument/listing/feed/adjustment, enabled policy, reviewed entitlement/terms,
+known account-scoped quota baseline, and any persistent-storage authorization
+required by its plan. Credential presence alone never makes a provider ready.
+Root's read-only deployment inventory says production currently has only the
+Massive credential; owner application credentials are not evidence that
+production is provisioned. Root owns deploying applicable credentials and
+operator account evidence. No secret value is recorded here.
+
+- **Alpaca deep daily:** the existing free route is the authenticated IEX feed,
+  not paid SIP. Owner settings need `ALPACA_API_KEY`, `ALPACA_SECRET_KEY`,
+  `ALPACA_DATA_FEED=iex`, reviewed free-IEX entitlement, the native account
+  usage bootstrap/200-requests-per-minute quota identity, and retained
+  provider response quota headers. The checked-in seed describes history from
+  2016-01-01 and delayed latest data. The per-provider
+  `ALPACA_PERSISTENT_STORAGE_*` settings are not an additional routing gate:
+  `alpaca_persistent_storage_authority_missing` is a compatibility shim that
+  returns no missing requirements under the owner's already-approved private
+  persistence decision. Keep actual IEX access, entitlement, native quota,
+  current account admission, and provider terms separate and enforced. Do not
+  switch to SIP or infer access/entitlement from credentials alone.
+- **Tiingo deep daily:** Root's owner-app-only evidence is a reviewed `custom`
+  account with 500 unique symbols/month, 50 requests/hour, 1,000 requests/day,
+  and 2,000,000,000 bytes/month; custom quota evidence is present. Do not replace
+  this with the Starter public 1 GB profile. Deployment configuration must carry
+  exact values in `TIINGO_CUSTOM_UNIQUE_SYMBOLS_PER_MONTH`,
+  `TIINGO_CUSTOM_REQUESTS_PER_HOUR`, `TIINGO_CUSTOM_REQUESTS_PER_DAY`,
+  `TIINGO_CUSTOM_BANDWIDTH_BYTES_PER_MONTH`, and
+  `TIINGO_CUSTOM_QUOTA_EVIDENCE`, plus positive per-operation
+  `TIINGO_OPERATION_BYTE_BOUNDS`. The account-scope is the Tiingo API key.
+  The effective cost/free classification of this custom plan must be grounded
+  in Root's account terms; this code treats non-Starter as not free absent an
+  explicit reviewed classification. The legacy `/account/usage` 403 is a
+  non-retryable unsupported path and must not be replayed for a baseline.
+  Unknown resets remain guarded by the existing rolling safety windows unless
+  exact reset evidence is configured. Root owns this profile; no credential,
+  policy, or quota changes were made by this worktree.
+
+### Deep-provider series selection and current native observations
+
+The progressive history worker inspects the currently admitted chain without
+transport, chooses the provider with the deepest reviewed `history_constraints`,
+and pins that provider across recent-first bounded chunks. Each fetch/cache read
+is restricted to one provider `MarketSeries`; overlapping timestamps from
+another source remain separate. The existing `MarketSeriesDefault` stays on the
+current useful feed while an alternate range is incomplete. After the alternate
+series proves complete coverage for the whole requested range, and that range
+extends the current default's earliest data while reaching its latest timestamp,
+the existing default mapping switches atomically to that single feed. Ordinary
+OHLCV and Research reads then see one coherent source/adjustment series, never a
+timestamp splice. `bulk_fetch` duplicate detection is likewise scoped to the
+incoming series rather than the current default.
+
+Focused offline coverage exercises a populated two-year default against a
+ten-year alternate through the normal Research reader: the default remains
+selected while the alternate is shallow/incomplete; after older chunks fill the
+same alternate series, the read returns the full range from that source only.
+The tests also retain both feeds' overlapping observations and adjustment/source
+lineage. The current focused set (market-data, series-default, bulk-fetch,
+history-planning and preparation-service modules) passes 63 tests; Ruff passes.
+This is local unit evidence only, not the allocated PostgreSQL worker/API proof
+or the final combined release qualification.
+
+Root's six native account-usage checks passed at their individual observation
+times for Alpaca, Twelve Data, EODHD, Finnhub, FMP, and MarketData.app; the
+read-only receipt is
+`/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/native-quota-observations.json`.
+Those observations are not future availability guarantees or authorization to
+route: production policy inventory still shows those providers administratively
+disabled, and normal reservations/holds remain required. Root owns any later
+configuration/provisioning and full release qualification.
+
+### Current progress and next action
+
+- Existing claim `f093caba-0194-4527-b22b-0bfa26344c34` was retained. The
+  automatic UV session preflight completed with the isolated offline cache;
+  native goal `1793988315` is active and unbudgeted. Prior goals and accepted
+  history remain recorded.
+- Exact green/deployed context `139b350238b5e1c8a170dce5af09a805301d857e`
+  remains adopted; backend/frontend trees are unchanged by this task so far.
+- The owner-scoped parent envelope, shared child-job deduplication, late
+  identity expansion, real ETF hook dispatch, authenticated API/wakeup, ARQ
+  registration, and recent-first source-pinned history path are in the current
+  uncommitted implementation. Focused units cover the provider-series selection
+  trap; Root's one isolated real-AsyncSession PostgreSQL allocation is still
+  required for concurrent-owner graph persistence, queue reconstruction,
+  authorization, hook outcomes, and dependency isolation.
+- No provider request, real quota/ledger/policy mutation, Docker fixture,
+  sibling/staging/master/production write, or deployment has occurred in this
+  active checkpoint.
 
 ## 2026-10-25 — accepted staging consumption and SEC first-qualification review
 
@@ -33037,3 +33555,691 @@ Checkpoint status is `ready_for_integration`; `integration_capture` is the exact
 - Second, exact selected-symbol acquisition can reuse only unambiguous retained CUSIP/SEDOL/ISIN evidence tied to verified native issuer snapshot/artifact provenance for the same normalized symbol. The actual producer stores artifacts under shared `etf_holdings_internal`; external issuer identity is carried separately by snapshot `source_provider` and legal metadata. Supported SPDR, Invesco and iShares evidence is checked without equating those fields. Manual/unverified-only, conflicting/ambiguous identifiers, domain collisions and wrong listings remain rejected; CIK is never used as a security key.
 - Final focused run after Ruff formatting: 61 passed, 0 failed, 0 skipped across `TestExplicitAcquireCanonicalIdentity`, `test_ohlcv_router.py`, and `test_derived_timeframes.py`. Ruff check, Ruff format check and `git diff --check` passed. Root's enforced PostgreSQL READ ONLY verification against real instrument 359 and all six retained issuer links returned CUSIP `G0450A105` and SEDOL `2740542`; no source request or write occurred.
 - No migration, provider configuration, quota, policy, hold, ledger, deployment or production change. Earlier accepted checkpoints and CI failures remain historical. All 24 Provider/14 ETF roadmaps remain open. Exact closing-tip CI and combined staging/master/deployed proof are mandatory and Root-owned; none is claimed green here. `integration_capture: exact branch HEAD`.
+
+
+## 2026-11-06 — exact green release context adoption 139b350
+
+- Under Root's direct bounded context-adoption instruction, merged exact synchronized staging/master `139b350238b5e1c8a170dce5af09a805301d857e` into this Provider branch with a normal non-fast-forward merge. Local merge commit: `bfdeecb8083a166c7dae58111e4f5673fa685bc8`; merge-base is the exact released SHA. The merged backend and frontend tree IDs match the released source exactly: `2dd5046fbc3edf9fe5d69659ae2dc2b1035177fc` and `9df32b87de20826dbe0e32c739d2cbf0d9e1a634`.
+- Root reports staging CI `42211787590` exhaustive green (202 functional, 104 strict visual, 1,614 frontend unit), master provenance CI `42222793213` green, private deployment preservation checks passed, and genuine NVDA/XLE/IYF history journeys succeeded. Root's native-wait proof and final guide remain in progress; this record does not claim broader product or roadmap completion.
+- This is context adoption only. Provider source/API, provider requests, Docker, target data, quotas/holds, policies, and sibling/staging branches were not changed by this owner. The Provider goal/accounting and all 24 Provider/14 ETF roadmap criteria remain preserved. Existing full_backend/full_stack_browser, exact-source validation and genuine-release dependencies remain as recorded. `integration_capture: exact branch HEAD`.
+
+
+## 2026-11-06 — executable platform preparation API/worker checkpoint
+
+- The active Provider platform-usability goal remains `in_progress`. This coherent implementation checkpoint is available to Root for downstream development; it is not a full-scope acceptance, integration, deployment, or roadmap completion.
+- Provider source includes the authenticated ensure/poll API and typed contracts, owner-scoped parent tracking on the existing refresh-job queue, exact dependency planning for instruments/groups/families/RRG benchmarks/ratio legs, shared identity/profile/history/holdings jobs, real ETF hook invocation, ARQ processing/wakeup/continuations, and priority-aware range-limited free-history routing.
+- Coverage now distinguishes a completed chunk from unfinished total depth. A real worker result with whole-range `data_status=partial` and `chunk_coverage_status=ready` reports the useful completed interval while older continuation remains queued. W1/MN coverage reads the persisted derived series and follows D1 worker rematerialization; it does not use daily request bounds as coarse coverage or join incompatible lineages. Per-lineage covered ranges never bridge missing periods or claim coverage from a zero-output job.
+- Focused offline Provider tests passed 440/440 across the affected provider, router, queue, series, worker, preparation-contract and ETF-hook modules. Root's already allocated isolated PostgreSQL suite passed 5/5. It exercises separate AsyncSessions, shared parent/job references, priority promotion, API authorization, real worker result persistence, queued continuation, and W1/MN coverage growth after a later D1 worker chunk rematerializes derived series. Ruff checks and `git diff --check` passed.
+- All provider transports are mocked or absent in this proof; no real source HTTP, credentials, real quota ledger, policy/hold mutation, or production data was used. Root owns the PG fixture cleanup. No new schema tables or migration were added.
+- Remaining scope is active: automatic default/saved-list/analysis maintenance ordering, complete provider/account readiness and eligible deeper-source continuation, exact full backend/DDL and branch CI, then Root's combined release profile. All 24 Provider and 14 ETF roadmaps and prior acceptance/failure records remain preserved.
+
+
+## 2026-11-06 — maintenance cadence and system-identity successor
+
+- The existing 15-minute `scheduled_refresh_queue_process` now reevaluates due workstation inputs before draining shared refresh jobs. Publication/session-aware cutoffs make equivalent premarket, intraday, and closed-session observations coalesce while a later completed publication can enqueue new shared work. Unknown exchange timezones fail closed to the existing bounded observation bucket.
+- Ownerless maintenance identity jobs now use the explicit system-tracking parent boundary. Maintenance requests share the ordinary planner and queue; no new scheduler, request/dependency table, or migration was introduced. Saved Relative Rotation Graph parameters (`lookback`, `sampling`, `tail_length`, and history length) flow into the common analysis planner.
+- Data-preparation status keeps useful partial output visible, reports the earliest retry only when all remaining jobs are time-gated, and does not let a deferred child hide runnable work. Existing shared native retry time and reason are preserved.
+- Focused offline unit tests passed 82/82 across maintenance planning/tasks, queue response projection, ARQ cadence, catalogue maintenance projection, and the authenticated catalogue route. The exact Root-allocated isolated PostgreSQL maintenance slice passed 3/3 (`test_startup_maintenance_uses_shared_planner_and_catalogue_defaults`, ownerless system identity processing, and later-publication reentry). The first sandboxed connection attempt errored before test bodies; the same fixture and cases passed under the already authorized isolated-fixture connection. Ruff check/format, workstream validation, hosted-like branch manifest validation, and `git diff --check` passed.
+- Read the Root v2 operational controls review: existing Marketstack history/discovery operation scopes and FINRA synchronous-versus-async bounds are already correct. No redundant provider restriction was added. No provider HTTP, production config, credentials, quota, ledger, policy, hold, or target data was changed.
+- This is an executable development successor, not full-scope acceptance. Root owns the allocated PG fixture cleanup, production provider/account operations, exact-source CI, combined release qualification, and integration. The remaining approved scope includes provider readiness/deeper-history behavior and final browser qualification of the extended controlled E2E fixture. All prior checkpoint history and all 24 Provider/14 ETF roadmap criteria remain preserved and open.
+
+
+## 2026-11-06 — controlled monthly RRG E2E fixture extension
+
+- The opt-in `seed_e2e_market_data` path now adds deterministic older D1 rows only for SPY and the 11 sector proxies, then invokes the canonical `materialize_derived_timeframes` service for their W1/MN views. The controlled E2E data source and dataset-state provenance remain explicitly marked; this fixture is not native/provider acquisition evidence.
+- The recent 520-row D1 generation loop remains unchanged. A SQLite-backed seeder regression confirms all 12 recent adjusted OHLCV series against fixed SHA-256 digests, at least 60 monthly observations derived from D1, D1 lineage for W1/MN, and that unrelated NVDA remains at the original 520 daily rows without new derived fixture history. It then runs the existing `_rotation_metrics` calculation for all 11 sector/benchmark pairs at D1/W1/MN using default lookback 20, sampling 1, and tail length 10; all have at least 50 aligned observations and finite nonempty metric/tail output. The focused seeder module passed 7/7; Ruff check/format and `git diff --check` passed.
+- Final monthly browser qualification remains pending and Root-owned. The exact 60-month addition is isolated to opt-in E2E data; no native series, provider response, production data, credential, quota, ledger, policy, hold, reference, tolerance, or unrelated screenshot fixture is altered. All prior roadmaps and validation history remain preserved.
+
+
+## 2026-11-07 — native quota readiness and industry-profile dependency
+
+- The shared preparation request now accepts the optional `required_profile_fields: [industry]` requirement on the existing profile dataset. The field is persisted in the durable identity/profile job and dedupe key, and generic cached metadata does not satisfy a field-sensitive freshness check unless it actually carries the field. Normal admitted metadata providers are tried in order until one supplies it; incomplete generic profiles remain useful, but the requested profile dependency stays unavailable when no eligible source provides the field.
+- Massive SIC evidence is exposed as `industry` only when both `sic_code` and `sic_description` are present. It remains explicitly classified as `SEC_SIC` with the source field, provider and SIC code carried into profile evidence/provenance. No GICS or industry value is inferred from sector labels. XLB's snapshot-19 shape (27 holdings, 26 resolved, no industry, no profile snapshot) is the motivating retained-data case; this implementation makes no live request.
+- On-demand native account-usage prerequisites now cover the exact admitted operation for price history, profile metadata, and identity search through the existing `MarketRefreshJob` and `refresh_provider_account_usage` service. A request-driven scope is bound to the precise provider/capability/operation; the provider must also be in the explicit account-usage allowlist, and its reviewed `fetch_account_usage` policy must reconcile the same pool, dimension and window. The job deduplicates by provider and native window. Each worker rechecks admission and verifies the operation's resulting baseline before its source call. Known exhaustion, unsupported usage contracts, unknown account scope, disabled policies and providers outside the allowlist remain held; the worker never fabricates a zero baseline or infers account exclusivity. Tests include a cold profile-only request against Alpaca's checked-in shared `market_data_requests_per_minute` pool under `PROVIDER_REQUEST_DRIVEN_ONLY`, cold identity/search deferral, worker execution through the existing usage service, nonexclusive minute/day baseline expiry and native-observation recovery, unsupported-provider holds, and same-window dedupe.
+- Focused local tests passed 33/33 across field freshness/dedupe, both legacy and newly parsed retained SIC snapshot shapes with original provider/timing provenance, Massive SEC_SIC parsing, metadata fallback, Marketstack's operation-specific status projection, native quota expiry/reconciliation, exact-pool rejection, and queue worker prerequisites. FINRA's synchronous-versus-async scope is unchanged. No production policy, entitlement, credential, quota, ledger, hold or provider data was changed; no source HTTP or Docker fixture was used in this context.
+
+### Operator handoff for the next qualified deployment
+
+- Required worker/configuration switches are `CORE_WORKSTATION_BOOTSTRAP_ENABLED=true`, `MARKET_UNIVERSE_RECONCILIATION_ENABLED=true`, and (only for reviewed native providers) `PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED=true` with an explicit `PROVIDER_ACCOUNT_USAGE_REFRESH_PROVIDERS` allowlist. Keep the existing ARQ worker enabled: startup queues the core bootstrap, the scheduled refresh queue runs every 15 minutes, and scheduled native account usage runs only when explicitly enabled. The bootstrap lookback and normal provider/free/quota admission controls remain in force. This code path performs no account probe unless the ordinary history request reaches an unknown native baseline and every bootstrap guard passes.
+- Removing Massive-only selection requires ordinary admin policy/entitlement work per provider and operation: enable only the reviewed capability, remove an obsolete provider pin/priority restriction only where the operation is qualified, confirm account/feed and free/paid plan, operation cost and quota dimensions, set the matching account scope, require the normal positive live-probe state, and let the native baseline be admitted. Root's operation-aware proposal contains 68 candidate rows; these are review candidates, not a bulk-enable instruction. Keep all existing free-only, paid/trial, request-driven, domain/adjustment and quota guards.
+- The proposal's 24 historical checkpoint holds remain pending current evidence review: Alpha Vantage (7 operations: daily headroom); Bybit xStocks tokenized assets (deployment egress); CTA Plan discovery (daily directory quota); Dinari (3 tokenized operations: reset/cost and canary-only restriction); EODHD (profile entitlement plus history/latest/discovery live qualification); Marketstack (history/latest/discovery cost or monthly headroom); Nasdaq discovery (daily headroom); Tiingo (profile/search/latest/history: actual custom plan and active hourly/daily usage). These are dated checkpoint holds, not claims that every limitation is permanent. Preserve them until Root's current native evidence and ordinary admission justify a reviewed change.
+- Alpaca's owner profile remains IEX/free only for this route, with the already verified account-usage surface and native 200/minute limit; do not infer SIP, persistent-storage gates, or deeper-history success from credentials alone. Tiingo's owner evidence remains Custom (500 unique/month, 50/hour, 1,000/day, 2,000,000,000 bytes/month); do not replace it with Starter limits or classify the plan as free without reviewed terms. Its prior `/account/usage` 403 remains unsupported/non-retryable.
+- Authoritative operator inventory: `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider-activation-proposal-v2.json` and `provider-operational-controls-review-v2.json`. The v2 review supersedes the earlier coarse inventory: Marketstack's existing history/latest routing is operation-scoped, and FINRA's synchronous operations do not require the async response-size setting. No extra Marketstack/FINRA configuration gate is requested.
+
+This readiness handoff does not claim current production enablement or live qualification. Root owns account provisioning, operation-level policy/entitlement review, native evidence collection, deployment configuration and all real-source checks. The full Provider release scope, the 24 Provider and 14 ETF roadmaps, full local/hosted qualification and combined release remain open.
+
+
+## 2026-11-07 — PostgreSQL worker planner-mock contract correction
+
+- Exact CI `42328517364` on `46462f5531d689acf4c8004517dc4fb345d822ba` passed backend units but failed two tests in `test_data_preparation_queue_postgres.py`; the backend integration job reported 634 passed, 2 failed, 2 skipped. The original failed run is retained. A bounded real-PostgreSQL reproduction confirmed the persisted child state was `retry` with `last_error` reporting that each `fixed_chunk_plan` mock rejected the new `excluded_provider_names` keyword.
+- The two coverage-focused mocks now accept and honor the worker's exclusion argument and use a deterministic already-admitted native-baseline seam. Production history/native admission code and assertions are unchanged; separate native fallback/hold tests remain intact.
+- Both failing PostgreSQL cases passed 2/2, then the containing real-PostgreSQL queue module passed 10/10. Ruff check/format and `git diff --check` passed. The one owned internal PostgreSQL container was capped at 512 MiB/1 CPU/128 PIDs, used tmpfs only and was removed with its network after schema/client counts reached zero. Container/image/network/volume IDs for the protected baseline were unchanged. Private allocation and cleanup evidence is in `/tmp/provider-prep-46462-pg-20261107-r2/`.
+- This is a test-only correction, not a release claim. Root owns source publication and exact-tip CI; all broader Provider criteria and roadmaps remain open.
+
+
+## 2026-11-07 — resolver-backed deeper-history planning regression
+
+- Added a focused no-network regression using the real provider resolver under request-driven and free-only admission. With an active primary USD XNAS listing and recent cached Massive D1 data selected as the default, synthetic reviewed credentials/policies for Massive (two-year bound) and Alpaca (fixed 2016-01-01 bound) make the shared history planner select Alpaca for the deeper range while preserving the existing Massive default and its cached row. The resolver ran read-only; no `ProviderRequestLog` was created.
+- `backend/tests/unit/services/test_data_preparation_history_planning.py` passed 4/4. The existing fake-chain planner tests remain useful for chunk and priority mechanics; this added case exercises actual credential, entitlement, operation-cost, adjustment, quota-contract, request-scope, provider-registry, instrument-class, and exact listing admission together. No source HTTP, Root PostgreSQL fixture, container, real credential, or real quota ledger was used in this focused check.
+- This proves eligible deeper-source selection, not actual production Alpaca acquisition or account readiness. Root still owns current operation-policy review, genuine deeper-history acquisition, exact-source CI, and combined release qualification. The full Provider goal and all preserved roadmaps remain open.
+
+
+## 2026-11-07 — native-baseline-aware deeper-history selection
+
+- A focused PREP-4 review found that the initial history planner selected the deepest resolver candidate before checking whether its native quota baseline could be admitted. If the baseline was unknown and the exact usage prerequisite was unavailable, the worker held the request without trying a shallower eligible source.
+- The worker now retries the real resolver chain for an unpinned first chunk after that candidate returns a genuine native hold. It keeps exact listing, feed, adjustment, operation-cost, entitlement and quota admission; a queued native usage refresh remains a prerequisite, and no baseline is fabricated. If no alternate exists, the original native hold is retained. Once a source is pinned, continuations keep that source and hold rather than splice another lineage.
+- The real-resolver regression covers useful fallback to Massive when deeper Alpaca's native baseline is unknown and refresh is not enabled, the preserved hold when no alternative exists, and no switching for a pinned Alpaca continuation. The history-planning and native-usage prerequisite modules passed 12/12; Ruff check/format and diff check passed. No provider HTTP, real credentials, real quota ledger, database fixture or production change was used.
+- The Root-allocated PostgreSQL fixture is no longer needed by this worktree. Earlier allocated cases completed successfully and their per-test teardown drops the isolated schemas and disposes database engines; no test process or connection from this worktree remains. The container itself remains Root-owned and was not stopped or removed.
+- Exact-source branch CI and Root's combined release qualification remain pending and Root-owned. Provider/account activation and genuine deeper-history acquisition are not claimed. All original Provider/ETF roadmaps and prior validation history remain preserved; the full goal remains in progress.
+
+
+## 2026-11-07 — Root-approved ETF test-clock dependency
+
+- Root released only `backend/tests/unit/services/test_etf_holdings_native_qualification.py` and `backend/tests/unit/services/test_etf_issuer_catalog.py` from exact ETF source `ed8215a8ded8bb372ba57121d7f21acda8195826`. Both files match the approved SHA-256 values in `etf-ed821-clock-repair-development-consumption-contract.json`; no ETF product code or ETF workstream records were imported.
+- The approved fixture-clock correction keeps the fixed Oct 30 evidence dates, payloads, freshness thresholds, and assertions unchanged. Both modules passed 107/107 locally; Ruff check and format check passed. The prior exact Provider CI on `59c89fb79ca18be63f22a2646bd52f623604d2d8` remains a failed historical run: its backend unit job reported 6,026 passed, 4 failed, 1 skipped, with all four failures in those two ETF-owned test modules. Root's review identifies the fixture clock as the cause; no Provider product change was made for it.
+- This is a test-only dependency correction, not release acceptance. Root owns publication and the next exact-source CI. The full Provider scope, all original roadmaps, and combined qualification remain open.
+
+
+## 2026-11-07 — saved-screener preparation target
+
+Root approved the `{kind: screener, screener_id}` target on the existing authenticated `POST /api/v1/data/ensure` API and MarketRefreshJob queue. The implementation snapshots the authenticated owner's saved definition and engine-resolved membership, honors its saved timeframe, and expands the frozen membership in bounded 50-member worker batches. Equivalent requests retain separate owner-visible parent records while sharing the expansion/history children. All, asset_class, custom, watchlist and basket use the screener engine's same scoping rules; missing/foreign/empty private selections do not widen to all.
+
+Focused offline tests passed 75/75. One isolated internal-only PostgreSQL case passed with 55 synthetic members across 50/5 continuation batches, an independent worker/session reconstruction, shared equivalent-request dedupe, cross-owner request/status denial, custom-empty and foreign-watchlist refusal, and changed-definition snapshot separation. The exact test fixture was removed; its schema and other connections were zero before cleanup, and all protected Docker inventory IDs had zero deltas. Receipt: `/tmp/provider-screener-preparation-20261107-r1/final-receipt.json` (SHA-256 `173d20dad0f1c1ed592af9a7785c193b9d325299c363de749395968287a270cd`). Ruff check/format passed. No migration, provider HTTP, real ledger, production, or sibling change. The older b1 Actions run is separate: backend/frontend/branch-declared passed, Playwright was cancelled, so it is not green. Root owns export/distribution and exact-tip CI; full platform criteria and combined release remain open.
+
+## 2026-11-07 — `/data/ensure` expired timestamp regression
+
+Root released the exact dffcf2e2 backend freeze for the captured `MissingGreenlet` failure in `get_data_preparation_response`. The eager `max(..., default=parent.updated_at)` expression accessed the fallback even when dependency timestamps existed. The response now aggregates dependency timestamps without touching that expired ORM field; when no dependencies exist, it explicitly refreshes `updated_at` asynchronously before using the parent fallback.
+
+The new regression follows the same request lifecycle in the existing `preparation_sessions` fixture: create an instrument request and history child, commit, expire only `updated_at`, then build the response in the same AsyncSession. It passed against Root's existing isolated PostgreSQL lease (1 passed in 8.22s). The ordinary fixture dropped its unique `provider_prep_<uuid>` schema; a read-only check found zero such schemas afterward. Ten other Root service DB sessions were present and left untouched. The first sandbox attempt failed during database setup before the test body; it remains an environment failure, separate from the passing host-authorized run. Ruff check/format and `git diff --check` passed. No provider HTTP, public schema/data, production, real ledger/policy/quota, or other service was changed.
+
+The exact TC ce2262ab companion remains imported as all 66 contract-listed paths, byte-identical to its manifest; the SearchBar files remain the separately authorized ETF bytes. This source has not received TC browser qualification or exact-tip CI. Root will rebuild only backend/worker from the repair descendant and repeat the pinned ensure journey in its existing fixture. Exact-source CI, combined release qualification, provider activation and the broader Provider roadmap remain pending. `integration_capture: exact branch HEAD`.
+
+
+## 2026-11-07 — duplicate ensure row-lock repair
+
+- Root's read-only runtime trace of repeated authenticated SPY ensure showed a request blocked while updating the already shared history child. The worker had claimed the row but kept the claim transaction open through provider work; the second request waited on that row lock instead of promptly returning its tracking parent.
+- `process_refresh_jobs` now commits the durable lease before dispatch and commits each job outcome before moving to the next job in the batch. This releases the claimed-row lock during slow provider work without changing native reservation, lease-token, retry, or deduplication rules.
+- Older-history continuation creation refreshes `parent_refs` while holding the current child's enqueue advisory lock. This carries an owner joined during a slow fetch to the continuation and each parent's `background_job_ids`.
+- The new regression uses the Root-leased test PostgreSQL through `preparation_sessions`: with the mocked fetch blocked, a second authenticated ensure returned within five seconds, reused the same child, and both parent references survived on the continuation after commit. The exact unique `provider_prep_<uuid>` schema teardown ran normally; no external provider transport was used.
+- The imported ETF holdings view fixture now includes the actual `etfSymbol: SPY` in its selection context. Its focused module passed 20/20 with route query/state assertions and no-snapshot-mutation checks intact.
+- Ruff check/format, Python compileall, and `git diff --check` passed. CI `42339572365` on predecessor `5cdc5ee06e26b191d889212b8cd1554d28abbc8f` was still live at last read: Frontend Unit was red only on this fixture-context mismatch, Backend and Playwright remained in progress. That run does not qualify the new local repair; Root owns repeated HTTP verification and the compatible final candidate's exact CI/release gates.
+- No source HTTP, credentials, native quota/ledger, public schema/data, production, or sibling worktree changes. The full Provider goal and all roadmaps remain open.
+
+
+## 2026-11-07 — family-calendar read-path latency candidate
+
+Root's retained family-browser trace showed repeated SPY calendar requests taking 18.9–27.5 seconds, family-readiness calls taking 3.9–8.4 seconds, and 88 requests still pending. Read-only inspection of the existing isolated database found SPY provisional with no retained external identifiers or event-cache state. The calendar loader attempted stable-identifier provider resolution before checking its fresh event cache. The focused backend change removes that enrichment from ordinary calendar reads; explicit event acquisition and cache freshness behavior remain.
+
+The same read-only profile measured 85 sequential SQL statements for eight families/32 roles and 588.9 ms wall time unloaded (90.5 ms SQL time). It did not reproduce the loaded browser latency and no PostgreSQL waits were observed, so database query pressure is recorded as evidence, not a proven sole cause. TC owns frontend fan-out.
+
+Calendar/event unit tests passed 12/12; Ruff check/format and diff check passed. Imported only the four paths listed in Root's 4cfee companion manifest; all 66 contract files matched their expected SHA-256/Git blobs and modes. The exact browser recheck and full release gates remain Root-owned and pending. No source HTTP, database writes, provider policy/quota/ledger changes, or production changes. The held provider-operation review remains deferred behind this latency work.
+
+
+## 2026-11-07 — benchmark-family readiness query reuse
+
+A read-only isolated profile of the existing readiness endpoint measured 85 SQL statements across eight families and 32 roles. Each composed family report repeated the same provider source and eligible-entitlement table reads. The route now shares those two lookup maps on its request-scoped AsyncSession and clears that cache at readiness entry; family-specific memberships, adapter states, holdings, bar ranges, freshness and entitlement classification remain unchanged. No cross-request cache was added.
+
+The focused analysis-router module passed 35/35; Ruff check/format and diff check passed. The regression confirms the first metadata lookup performs two selects and a repeated lookup on the same request session performs none. By source structure this removes 14 repeated selects from the eight-family composition; this is an expected query-count reduction, not a new loaded-browser timing result. Root owns the browser recheck and full release qualification.
+
+
+The readiness query-reuse regression now invokes the actual `benchmark_family_readiness` composition over all registered families (with no provider evidence seeded) and counts executed SQL statements. It confirms the eight-family response selects `DataSource` once and `ProviderEntitlement` once; the complete analysis-router unit module passes 36/36. This validates same-request reuse without asserting the loaded browser latency or full family-data performance.
+
+
+## 2026-11-07 — retained analysis group read latency and compatible source imports
+
+Root authorized a bounded analysis latency review on the retained fixture at `http://127.0.0.1:31183`, limited to the sector snapshot, breadth, breadth-history and benchmark-family-readiness GET endpoints and read-only PostgreSQL profiling. The exact fake account was loaded from Root's private fixture record without printing credentials. Two samples of each endpoint returned HTTP 200: snapshot 2.022/2.064s, breadth 2.048/1.729s, breadth history 2.052/2.117s and readiness 0.343/0.360s; one additional breadth sample was 2.231s. The complete local HTTP count was 12, including one earlier 401 from the browser CJS fallback password before Root supplied the exact fake-account credential record. This is endpoint latency evidence only, not browser acceptance.
+
+The retained database was verified as `chartingdb` and every profile transaction used `SET TRANSACTION READ ONLY`. No `pg_stat_statements` extension is installed. A read-only activity sample during breadth found no active query or wait, so the observed delay was not a long-running lock wait. `EXPLAIN (ANALYZE, BUFFERS)` on the old shared selected-series bar query took 1,391.348ms for 20,064 rows; its correlated selected-series `EXISTS` executed an indexed lookup 20,064 times, with 40,128 shared buffer hits. This is the concrete backend cause shared by the three slow sector endpoints.
+
+`_bars_by_instrument` now resolves valid mapped series in one batched query, canonical fallbacks in one query for remaining instruments, and legacy null-series scopes only when neither applies; the final bar query filters selected `(instrument_id, market_series_id)` pairs directly. It preserves active-series, instrument/timeframe, adjustment-basis/version and legacy fallback semantics while removing the per-bar correlated check. On the same retained 11-member group it returned all 20,064 selected bars with 561.53ms helper wall time; the selected-bar SQL took 135.02ms and contains no correlated `EXISTS`. This profile does not claim a rebuilt HTTP response time; Root must rebuild and remeasure the exact candidate.
+
+The focused regression covers mapped-series precedence over another canonical series, canonical fallback, legacy rows, an empty mapped series falling back to a populated canonical series, and rejection of an incompatible RAW series. It also asserts the final OHLCV query contains no correlated existence subquery. The new test plus the existing repeated W1/MN derivation/selected-series regression passed 2/2 in 3.49s. Ruff check, Ruff format check and `git diff --check` passed. No full suite or fixture replay occurred.
+
+This checkpoint also consumes only the ten Provider-declared paths from TC `45ea51bfa78b6ae167462b518358164a5a3e29f4` (all 77 contract files matched their SHA-256, Git blobs and mode semantics) and the two exact Strategy paths from `f2f6d37a3384ff7e6f3d8d425bad3b39cc5a23ba` (both SHA/blob guards match). No ETF/Strategy private-domain file was copied. These imports are development dependencies, not consumer browser or release acceptance. No provider source calls, production/public market-data writes, DDL, native quota, policy, real ledger or hold changes occurred; the permitted fake login only updated that isolated account's `last_login_at`.
+
+Root owns the backend/worker rebuild and post-fix endpoint/browser recheck, exact-source CI and combined release qualification. The held Alpha Vantage/Nasdaq/CTA/Marketstack/EODHD operation review, genuine deeper-history acquisition, provider activation and the full Provider roadmap remain open. No release acceptance, deployment or full-roadmap completion is claimed.
+
+## 2026-11-07 — controlled default M15 fixture
+
+Root's read-only fixture review found no M15 bars for the factory's ordinary
+SPY 15 Minute chart. The opt-in market-data seeder now returns without SQL
+unless E2E_SEED_MARKET_DATA is enabled, ensures the controlled SPY listing,
+and writes 520 independent deterministic M15 bars across 20 regular-session
+windows into a source-, listing-, and split-adjustment-scoped canonical series.
+It records M15 freshness/coverage separately and leaves existing D1/W1/MN bars
+and production routing unchanged.
+
+The focused seeder module passed 8/8. It verifies disabled-mode zero SQL,
+finite/increasing session timestamps and valid OHLCV, selected-series identity,
+controlled source/adjustment/listing provenance, separate M15 dataset state,
+and idempotent rows/default mapping. Ruff check, Ruff format check and
+git diff --check passed. No provider HTTP, production/public data, quota,
+ledger, policy, or hold mutation occurred.
+
+Root will verify the authenticated ordinary M15 local response and default
+factory panel in its existing fixture. This controlled fixture is not native
+intraday evidence; genuine native intraday/deep-history acquisition, exact-tip
+CI, combined release qualification and the full Provider roadmap remain open.
+
+
+## 2026-11-07 — consistent workspace reads during snapshot replacement
+
+Root's R39 trace showed a default-workspace response returning the right
+revision and tab IDs but empty windows while a snapshot writer replaced the
+children. Ordinary workspace reads now eager-load the entire graph in one SQL
+statement, giving the response one READ COMMITTED snapshot. Snapshot and
+factory-reset writers retain their existing parent lock and optimistic revision
+checks.
+
+The focused PostgreSQL regression forced an independent locked writer to commit
+after the reader captured its rows. It passed 1/1 in 8.47 seconds and verified
+complete default revision-2 output, then complete revision-3 by-ID/list output
+and clone. A first sandbox attempt failed during database setup before the test
+body; the same exact node on the same Root-leased database passed with the
+authorized host connection. Ruff check/format and `git diff --check` passed.
+Private source-bound test receipt: `/tmp/provider-workspace-read-consistency-20261107.json`.
+
+Root owns cleanup of the exact leased database. The prior controlled M15 fixture
+checkpoint is retained in this successor's ancestry; its authenticated API/UI
+recheck, exact-source CI, combined release qualification, genuine native
+acquisition and the complete Provider roadmap remain open. No provider HTTP,
+quota/ledger/policy, production, or retained public database changes occurred.
+
+## 2026-11-07 — TC a2e22225 shared UI context imported
+
+Root released common source `a2e222251d4ea796d0d4bfb6b0e8705f503c1e4d` for exact development consumption. Imported only the 22 Provider-declared paths after the old guards matched (21 existing files matched their old hashes; the declared Screener accessibility test was absent as specified). Verified all 83 source rows against the released manifest SHA, Git blobs, and source-tree modes (`100644`); all 22 imported worktree files now match their source hashes/blobs/modes. The exact 83-row manifest is preserved at `ops/workstreams/feat-market-data-provider-platform/development-dependency-imports/a2e222251d4ea796d0d4bfb6b0e8705f503c1e4d.json`.
+
+The current `approved_development_dependency_imports` pointer now has only the latest common TC source `a2e22225`, while retaining the active imported ETF basket pin `b0db1656` and Strategy research pin `f6521237`. Earlier common sources remain in historical checkpoint records and are not accumulated as current pins. The unrelated dirty frontend files outside the 22-path consumer block remain untouched.
+
+The concise no-seed bootstrap procedure is `/tmp/provider-genuine-phase-bootstrap-20261107.md` (40 lines, SHA-256 `96a7787242ea51a2a4a5fe6c30991d662d6589c890f8e9630942d9f75538ef4e`). It is an operator handoff only; no DB, service, policy, credential or quota operation was performed. Root's 84b compile/runtime does not include the additional a2 ChartPanel delta, so no compile/typecheck or producer suite is claimed here. Root owns the compatible UI build, runtime/browser qualification, native phase and final exact-source/release gates. Broader Provider/ETF roadmaps and all holds remain open.
+
+## 2026-11-07 — R50 controlled sector RRG fixture and XNYS maintenance calendar
+
+Root's R50 review showed degenerate controlled sector/benchmark relative paths
+in the final RRG tail. The E2E-only sector generator now overlays deterministic,
+symbol-specific evolving relative returns across its controlled D1 history and
+uses a separate `sector-relative-path-v2` source-series/provenance identity.
+SPY's recent 520 bars remain byte-for-byte pinned by the existing digest, with
+its positive final eight sessions asserted. Tests exercise distinct finite
+sector paths after D1/W1/MN derivation and require at least five nontrivial
+segments in every ten-point calculated RRG tail. Repeated seeding retains
+sector row IDs; the disabled seed path still performs no DB I/O. No existing
+provider, non-E2E, or retained database rows were modified.
+
+The same successor applies the existing XNYS holiday basis to US regular-session
+maintenance windows and preserves explicit dated exceptions. Thanksgiving is a
+closure; supported 13:00 closes, DST conversion, non-US sessions, unknown
+venues, and Saturday New Year behavior are covered. In particular, a Saturday
+January 1 does not create a prior-Friday closure.
+
+Focused verification passed 14 tests across the E2E seed module, the relevant
+exchange-session cases, and the XNYS coverage cases. Ruff check/format and
+`git diff --check` passed on six Python paths. Root's fresh seeded database,
+rendered RRG visual, exact-source CI, and combined release qualification remain
+pending. No provider HTTP, retained/public database, quota, policy, or ledger
+operation was performed.
+
+The 16 frontend paths that remained dirty after the initial a2 import were each
+verified byte-for-byte against the same released a2 Git blobs and `100644`
+modes; they are included with the exact common-source import in this coherent
+successor. Other unrelated frontend edits remain outside this change. The
+no-seed operator procedure remains at
+`/tmp/provider-genuine-phase-bootstrap-20261107.md` (SHA-256
+`96a7787242ea51a2a4a5fe6c30991d662d6589c890f8e9630942d9f75538ef4e`); no
+bootstrap helper has been executed and no database or service was changed.
+
+### Root review corrections for the R50/calendar successor
+
+Root's review of `1160c2557` found two bounded issues, both corrected in this
+successor. The built-in XNYS fallback now applies only to US regular cash-equity
+MICs XNYS, ARCX, XNAS, and BATS; an unknown US venue keeps its own session
+rule, while explicit dated exceptions continue to win. The final eight-day
+sector path now computes its positive-streak baseline separately and applies
+the sector factor exactly once per close. SPY still uses its unchanged baseline
+and exact 520-bar digest/streak. Updated sector digests pin the intentional
+versioned fixture output.
+
+The same focused 14-test selection passed in 28.58s, including the new
+unknown-US-MIC regression. Ruff check/format and `git diff --check` pass for the
+four modified Python files. No fresh DB, provider call, or external/production
+write was performed; Root owns the prepared fresh-database visual check.
+
+## 2026-11-07 — current native admission handoff
+
+The actionable exact-22c native admission/profile procedure is in
+`native-admission-handoff-20261107.md`. It distinguishes the isolated 64-row
+authenticated policy preparation from live qualification, marks the Nov 7
+14:49Z ledger snapshot as historical, prioritizes free Alpaca IEX independently
+of Twelve Data display rights, and gives Root bounded normal ensure/worker
+checks. No provider HTTP, runtime launch, ledger, policy, or production change
+was made. Native execution, exact-source CI, combined browser qualification,
+and the wider Provider roadmap remain Root-owned/open.
+
+
+## 2026-11-07 — TC D954 common context consumed
+
+Consumed only the three Provider-declared D954 files: `EasyScanTool.vue`,
+`WorkstationView.vue`, and `test_easy_scan_tool.test.ts`. Verified all 86 rows in
+the released common manifest and preserved the Provider 22c backend's 67 pinned
+rows. The current common dependency pointer is D954; ETF `b0db1656` and Strategy
+`f6521237` imports remain unchanged. No tests, browser, native calls, database or
+policy operations were run. This is development context only; exact-source CI,
+Root integration/release gates, and the full Provider roadmap remain open.
+
+## 2026-11-07 — native account-usage admission and identity recovery
+
+Root's no-seed review found that the authenticated admin account-usage refresh
+called the provider service without a sealed request-driven scope. The route
+now binds only `ACCOUNT_USAGE/fetch_account_usage`, and binds one named provider
+when the request names one. Native bootstrap holds for identity/profile work
+are now persisted as waiting rather than terminal unavailable, with the
+provider, target capability/operation, unknown dimensions, and reason retained
+on the existing queue child and result summary.
+
+After an account-usage refresh, the existing worker/admin/scheduled refresh
+paths recheck held identity children without transport. A child is requeued
+only if the same provider remains eligible for its exact symbol operation and
+the exact recorded native quota dimensions report verified. Older completed
+holds without the new metadata are also recovered by deriving the exact search
+or profile operation and passing the same resolver and baseline checks. The
+parent identity/profile dependencies return to queued; dependent history stays
+waiting on identity. No zero/fake baseline, hold bypass, real-ledger mutation,
+or provider request was made. Focused route/resolver/queue verification passed
+18/18; Ruff and diff checks passed. Root owns rebuilding and replaying the
+existing no-seed runtime, exact-source CI, and combined release gates. The
+complete Provider roadmap remains in progress.
+
+
+## 2026-11-07 — native metadata fallback and cold-start recovery
+
+The Root review `root-native-metadata-fallback-defect-review.json` showed that an unknown first provider (Finnhub) could hold an otherwise valid search/profile operation and that resumed children were filtered to the original hold provider. The worker now tries the exact resolver chain before holding, resumes a prior child only when the provider whose native observation triggered recovery is still eligible for the same operation and all of its quota dimensions verify, and preserves the former provider hold in child history. Search/profile identity acquisition also continues after a weak exact-symbol profile, accepting a later profile only when its own provider, symbol, selected listing and stable security identity (or verified retained issuer identity) agree. It does not cross a selected listing or infer identifiers.
+
+The existing per-operation prerequisite path is sufficient for cold first use: an explicitly allowlisted provider with either the narrow bootstrap permission or a fully known normal account-usage quota/cost and explicit pool mapping gets a durable usage job in the shared queue. Unknown usage contracts stay held. Same-provider duplicate usage observations now count as one provider result; mixed provider sets do not satisfy a provider-specific refresh. The existing daily cron remains maintenance, not a prerequisite for first use.
+
+Focused offline checks passed 37/37 across native prerequisite/resume behavior, quota mapping, scheduled refresh, and exact-profile fallback/negative listing cases. Ruff check/format and `git diff --check` pass. No provider HTTP, native ledger/policy/quota changes, database fixture or runtime operation occurred. Root owns preserved-DB replay and exact-source CI; wider Provider criteria remain open.
+
+## 2026-11-07 — weak issuer-hint and terminal-negative recovery
+
+Root's BWET UI trace showed an exchange-less EDGAR issuer hint being selected
+as if it were a listing, while the acquire route skipped exact-profile
+fallback whenever a provider was already selected. Discovery now makes at
+most one exact metadata lookup for a ticker-shaped exact miss/weak hint, using
+only participating providers that remain eligible through the ordinary
+metadata resolver. A returned candidate must carry the exact symbol and a
+provider-owned listing; acquisition additionally requires stable security
+identity or already-verified retained issuer identity and preserves any
+explicit selected exchange. Exact search cache rows from different providers
+and exchanges remain distinct so the resolver can evaluate their own profile
+authority.
+
+A fresh normal ensure now retries a completed identity child only when it
+recorded a negative result or native usage prerequisite. The prior child and
+hold evidence remain immutable; equivalent same-hour requests coalesce on a
+deterministic recovery child, and ordinary provider/native admission still
+governs execution. The shared planner also recognizes the canonical
+Exchange-Traded-Product / Exchange-Traded-Vehicle taxonomy without requiring
+an ETFProfile. Synthetic instruments cannot dispatch holdings; their
+independent history dependency remains actionable.
+
+Focused instrument-router, provider-search-persistence and preparation-service
+tests passed 137/137 after adding the unresolved/synthetic ETV gates and completed no_match/identity_conflict retry cases. Ruff
+check/format and `git diff --check` pass. No source
+HTTP, live runtime, database fixture, real-ledger, policy, quota or hold change
+was made. Root owns no-seed API/UI verification and exact-source/combined
+qualification; the complete Provider roadmap remains open and active.
+
+## 2026-11-07 — exact profile failover and canonical fund parity
+
+Root's no-seed SPY trace found that an exact EDGAR metadata operation could
+surface the legacy `No enabled providers available for capability` RuntimeError
+and stop before a later admitted exact listing provider. Acquisition now
+continues only for typed expected source failures/holds, typed no-data, and
+that exact legacy no-enabled error. Unexpected RuntimeErrors remain failed and
+do not fall through. Fallback remains exact-symbol and requires qualified
+security identity plus the same known exchange/currency; a user-selected
+exchange-qualified provider candidate is not switched. Fallback holds remain
+visible in source outcomes. Provider-specific profile cache lookup now ignores
+fresh snapshots owned by other providers.
+
+Default preparation planning now mirrors the ETF handler's canonical accepted
+fund taxonomy, including index ETFs, mutual funds, closed-end funds, and the
+Exchange Traded Vehicle / Exchange Traded Product pair, without requiring an
+ETFProfile. Synthetic and unresolved identity gates and independent history
+planning remain in force.
+
+Focused router/preparation/profile-cache modules passed 174/174; Ruff
+check/format, `py_compile`, `git diff --check`, and the workstream validator
+pass. No provider HTTP, native runtime call, real-ledger/quota/policy/hold
+mutation, fixture, or migration was performed. Root owns the preserved no-seed
+runtime replay, exact-source CI, and combined qualification; the full Provider
+roadmap remains in progress.
+
+
+## 2026-11-07 — cold canonical history boundary
+
+Root's retained e870 evidence showed BWET's automatic history child planned the Massive two-year floor from the request end timestamp, then the later worker admission check found that moving floor had advanced and resolved no provider before transport. The instrument is a canonical US ETV; the current resolver intentionally routes ETV price history to Massive only, so this was not an alternate-provider mapping defect. Automatic relative floors now use current planning time with a one-day in-window margin; fixed earliest dates and explicit caller ranges are unchanged. Typed no-eligible-provider outcomes now remain empty/unavailable with `no_eligible_history_provider`, and empty results no longer enqueue older chunks or claim partial progress.
+
+The cold canonical ETV regression uses the real resolver/planner, one exact Massive listing binding, no alternate mapping, and no provider request. The history planning and preparation response modules passed 62/62; Ruff check/format and the workstream/diff guards pass. Root owns replay against the retained no-seed native runtime and exact-source/combined qualification. No live provider call, runtime/DB write, policy/ledger/quota mutation, or source identity/lineage change occurred here. The full Provider roadmap remains active.
+
+
+## 2026-11-07 — holdings negative recovery and derived cache readiness
+
+Root's e08b native receipt showed that BWET chart history succeeded, while a
+same-hour holdings ensure reused completed child 739 after issuer policies had
+been enabled. The shared queue now preserves that negative job and creates one
+deterministic recovery child for a fresh ensure. Equivalent requests join the
+recovery child, its ETF request ID is distinct from the original held attempt,
+and a recorded future retry time is respected. Existing issuer admission and
+native quota checks still govern execution; the ETF-owned acquisition bridge
+was not changed.
+
+Root's derived-timeframe receipt showed W1/MN rows being added but queried
+before flush with the application's autoflush-disabled session. The retained
+state also had a null source signature, pending status, zero row count, and
+null bounds despite existing derived rows. Materialization now flushes before
+projecting persisted rows, republishes derived coverage and counts from those
+rows, inherits source D1 timestamps/expiry, and writes the selected D1
+adjustment basis, version, and derivation provenance on coarse bars. The normal
+coarse-read refresh check repairs pending or count-inconsistent state even
+when its source signature is null.
+
+The two directly affected service modules passed 58/58 unit tests. Ruff check
+and format passed for the four changed Python paths. The regressions cover
+holdings negative recovery/coalescing and retry timing, plus an autoflush-false
+cached W1/MN repair with null and present prior signatures, lineage, and
+freshness assertions. No provider HTTP,
+database/runtime mutation, quota/ledger/policy change, migration, or fixture
+was used. Root owns the retained native-runtime replay, exact-source CI and
+combined release qualification; the full Provider roadmap remains open.
+
+## 2026-11-07 — durable ensure survives Redis pool close timeout
+
+Root's retained 591 run showed a queued authenticated `/data/ensure` request
+was already committed, but `redis.aclose()` raised a Redis `TimeoutError` from
+the router's `finally` block and converted the accepted request into HTTP 500.
+The router now handles only that expected Redis cleanup timeout, logs it, and
+returns the durable response. Unexpected cleanup errors still propagate; the
+existing database queue poll and retry path remain unchanged.
+
+The focused preparation-router module passed 6/6, including the authenticated
+ensure/readback path with a simulated close timeout and a regression proving
+an unexpected `RuntimeError` still surfaces. Ruff check/format and
+`git diff --check` passed on the two changed Python paths. No native HTTP,
+live runtime, quota/ledger/policy change, or fixture was used. Root owns
+exact-source rebuild/replay and the broader release gates; the full Provider
+roadmap remains open.
+
+## 2026-11-07 — shared cached W1/MN readiness on analysis and preparation paths
+
+Root's retained 591 analysis replay showed that normal monthly reads could
+return derived rows while their dataset states remained `PENDING` with zero
+count and null coverage. The freshness repair had only been called from the
+`/ohlcv/local` route. A shared cache-only repair now runs before standard
+local-only W1/MN selection, RRG analysis reads, and durable W1/MN preparation
+assesses retained coverage. It uses the existing selected D1 source and
+materializer, preserves adjustment/freshness evidence, and skips rebuilding
+once the persisted source signature and row count are valid.
+
+The focused slice passed 9/9 across the authenticated ensure router, normal
+coarse OHLCV route, RRG route, and monthly preparation. The actual RRG caller
+repairs pending/zero-count W1/MN states, returns a finite tail from retained
+bars, makes no provider call, and does not rebuild on a second read. The normal
+MN route also repairs the retained pending state; durable preparation observes
+the repaired cache state. Ruff, format, workstream validation, and diff checks
+passed. The Redis close-timeout fix is included in this same coherent
+successor. No provider HTTP, live runtime, database fixture, quota/ledger/
+policy mutation or migration was used. Root owns native replay, exact-source
+CI and combined release qualification; broader roadmaps remain open.
+
+## 2026-11-07 — typed ETF future-date outcome survives shared status projection
+
+Root released the exact two-file ETF dependency from `01cf9e6a`:
+`etf_holdings_refresh.py` and its bootstrap regression module. Both old-byte
+guards were clean before import; the resulting SHA-256 values match the
+consumption contract. This preserves the adapter's `future_dated_source`
+classification and date guard for the retained Nov 9 source rows; it does not
+turn that future composition into current holdings.
+
+The shared data-preparation response now keeps a completed failed child’s
+supplied typed `reason_code`, using `preparation_job_failed` only when the
+worker supplied none. A focused projection test covers both cases and exposes
+no exception text. The combined focused slice passed 55/55, including the
+imported ETF bootstrap module and the existing Redis/coarse-cache regressions.
+Ruff check/format and workstream/diff validation passed. Root still owns
+genuine replay and exact-source release qualification; XHB/IGV and future-dated
+BWET outcomes remain distinct native cases, and the full Provider roadmap
+remains open.
+
+## 2026-11-07 — shared redirect admission retry
+
+Root's XHB evidence shows a completed first SPDR hop and a quota-admission hold
+before the redirect target transport. The retained error does not identify
+which admission branch denied it, and 4/18 application requests do not prove
+native quota headroom. I fixed the concrete shared-runtime gap: when the
+application's in-process burst bucket is the denying gate, it now supplies a
+conservative retry time from its token refill delay. Both durable and policy
+reservations for that unstarted hop are settled not-sent. Unknown native
+coordinator holds and operation costs larger than the burst capacity remain
+untimed. Redirects continue
+through one independent admission and settlement per physical hop. Seven
+focused bridge/runtime/deferred-queue tests pass; a known reset now schedules
+at its actual conservative time instead of being extended by generic
+exponential backoff. Ruff check/format pass. No
+source HTTP, runtime/fixture work, policy/hold change, or ledger mutation was
+performed. Root owns the exact-source build and genuine native replay; broader
+release and Provider roadmap remain open.
+
+## 2026-11-07 — truthful retained-history status and deeper default continuation
+
+The AMD retained-runtime trace showed that a first alternate-provider fetch
+could persist bars but report zero observed bars: the post-fetch read reused
+the pre-fetch `MarketSeries.id IS NULL` predicate after the provider had
+created a series. The worker now re-reads from that exact persisted series,
+reports its bars, and can enqueue the source-pinned older continuation. A
+worker regression covers both first-series creation and a retained Massive
+default with a deeper Alpaca series; the latter selects only the contiguous
+useful suffix, keeps the older gap partial, and preserves both sources' stored
+rows and lineage.
+
+The BWET retained-cache trace exposed a related status projection gap for
+open-ended requests: 495 cached Massive bars existed, but instrument and
+SPY/BWET ratio responses had no covered ranges. Open-ended responses now
+project exact selected-series ranges while remaining partial; they do not
+claim complete unbounded history. The independent `future_dated_source`
+holdings outcome remains unchanged.
+
+The combined focused slice passed 68 tests. Ruff check/format, workstream
+validation, and diff checks passed. No provider HTTP, runtime/database
+mutation, quota/ledger/policy change, or fixture was used. Root owns exact-tip
+CI and retained native replay; actual native deeper-history upgrade remains
+unproven, and the full Provider roadmap remains open.
+
+## 2026-11-07 — preserve ETF future-source hook regression
+
+Root's export review found one newer ETF-owned regression absent from the
+previous backend coalescing. I imported only
+`test_etf_holdings_preparation_hook.py` from released source `d5a303a6` after
+verifying the declared old guard. Its Git blob is
+`4b48c647a0a13891f9f55bd3aafb16232792164e`, SHA-256
+`d50b231ee6aa2b5f7f471f114cf5620622890ebaae8df4e57c90671a1cc44f47`, mode
+`100644`. No other source or test path changed.
+
+The focused hook module passed 15/15, including the future-dated source
+failure preserving stale snapshot semantics. Pinned Ruff check/format passed.
+The previous checkpoint's 68 focused results remain intact and were not
+rerun. Root owns the build and native replay; exact-source CI and combined
+release qualification remain pending, and the full Provider roadmap remains
+open.
+
+
+## 2026-11-07 — worker retry recovery after identifier failure
+
+Root's retained native worker trace showed a PostgreSQL `VARCHAR(80)` truncation while repeated normalization rewrote duplicate `INTERNAL` identifier values with ever-growing `__superseded__<row-id>` suffixes. The offending value reached 92 characters. The artifact proves the row type and locally generated suffix; it does not identify the external provider that originally supplied the prefix. The repair now deactivates duplicate internal rows without rewriting their historical values.
+
+The worker now saves the original exception, rolls back the failed transaction, asynchronously refreshes the job, checks the originally claimed lease token, and uses the existing queue CAS to persist retry state. Other claimed jobs are refreshed after a rollback before access. Identity outcome projection explicitly refreshes expired metadata while retaining loaded hold updates. A secondary retry-persistence error is surfaced and chained from the original error.
+
+The separate Redis connection timeout occurred in ARQ `processmain`; current evidence does not establish it as a consequence of the PostgreSQL error, so no Redis restart policy or code behavior was changed. Four focused affected modules passed 118 tests; pinned Ruff check/format and diff checks passed. Root owns the PostgreSQL native replay and exact-source CI; the full Provider/platform roadmaps remain open.
+
+
+## 2026-11-07 — retain expected native-usage prerequisite waits
+
+Root's browser-closed MSFT replay on `9b196304` showed history jobs repeatedly deferred on `RefreshDependencyPending`, while their newly created native-usage job and `wait_for_job_ids` remained absent. The generic exception path had rolled back an expected wait. The worker now treats that exception separately: it locks and validates the current unexpired lease row, commits the prerequisite and wait edge, then persists the actual defer time through the existing retry CAS. Genuine transaction failures retain the rollback/refresh/retry behavior from `9b196304`; native admission and unknown-hold rules are unchanged.
+
+The two affected worker modules passed 65/65, with Ruff check/format and diff validation passing. No native HTTP, runtime, ledger, policy, or quota mutation was performed. Root owns replay on the preserved native runtime and exact-source CI; the full Provider goal remains open.
+
+
+## 2026-11-08 — async retry recovery and IGV discovery latency
+
+The native identifier error was an attempted 92-character locally generated
+`INTERNAL` value against `VARCHAR(80)`, caused by repeatedly adding a
+`__superseded__<row-id>` suffix to a duplicate historical identifier. Existing
+source `9b196304` fixes this without changing the historical value; it does not
+truncate identifiers or infer which external provider supplied the original
+prefix.
+
+The retry handler now reloads the claimed job by its previously captured ID and
+lease token under `FOR UPDATE`, requiring the lease to remain unexpired before
+reading attempts or persisting the retry through the existing queue CAS. It
+uses the same reload after rollback before processing another claimed job.
+Identity outcome projection obtains the primary key from SQLAlchemy's persistent
+identity and asynchronously refreshes only required JSON, avoiding an implicit
+load of an expired `id` attribute. The original error remains the retry cause;
+a secondary retry persistence error stays visible and chained.
+
+The IGV request spends no time reconciling all provider seeds for each ordered
+search candidate. Application startup and the provider operator API seed that
+registry; explicit discovery now reads those rows and passes the same
+read-only-resolver choice through provider execution. All eligible providers
+still run serially and all merged candidates are retained. This preserves quota,
+configuration, exact-identity and provider-result behavior while avoiding the
+repeated registry seed before the first logged transport and between candidates.
+
+The separate Redis timeout came from the actual ARQ worker's installed
+one-second connection timeout; the Root receipt showed a healthy Redis with no
+rejections. The actual `app.workers.arq_worker` now uses a bounded five-second
+connect timeout and retains ARQ's five retries/one-second retry delay. No
+PostgreSQL causality or Redis outage was inferred, and no job/lease/quota policy
+changed.
+
+The focused affected tests passed 148/148 in 16.14 seconds. Ruff 0.4.7 check
+and format, workstream validation, and `git diff --check` passed. No provider
+HTTP, Root runtime/database, quota-ledger, policy, or hold mutation occurred.
+Root owns exact-source native replay and remaining release gates; all Provider
+roadmaps remain open.
+
+
+## 2026-11-08 — avoid score-row writes during provider selection
+
+Root's IYW runtime trace recorded shared `provider_health_state` score updates
+blocking concurrent operations while transactions remained open around
+provider work. Selection and ranking now compute the current effective score
+from policy and health values in memory. That same value flows through
+`ResolvedProvider`, provider-routing decision reports, and instrument
+mastering. Runtime seeding initializes persisted display scores only for new
+score rows; outcome telemetry after provider responses and operator updates
+are unchanged.
+
+The focused resolver regression exercises two concurrent resolver coroutines
+with test admission gates isolated. It proves current health-derived ranking
+wins over deliberately stale stored score columns and leaves the policy/health
+rows unchanged. The routing report regression proves it serializes the same
+computed score. The bounded read-only PostgreSQL sample during this turn showed
+four brief idle-in-transaction sessions and no active blocker; it did not
+reproduce the Root blocker chain. Root owns the genuine concurrent runtime
+replay and exact-source qualification.
+
+Focused runtime/routing tests passed 40/40 in 5.20 seconds. An initial full
+runtime-module pass had 169 passes and one pre-existing expected-alias
+mismatch; the expectation was corrected to include the already-present
+`get_earliest_timestamp` alias and the exact case passed in the focused rerun.
+Ruff 0.4.7 check/format, workstream validation, and diff checks passed. No
+provider HTTP, runtime/database write, quota-ledger, policy, or hold mutation
+occurred. The full Provider/platform roadmaps remain open.
+
+
+## 2026-11-08 — consume TC common runtime context 2a8dc9e4
+
+Root released `2a8dc9e4c28a9632ffdf8f484ad12a985df70cd3` for exact development consumption. Imported only the 33 Provider-declared paths after all old guards matched; verified all 91 manifest rows and imported SHA-256/Git blobs/modes against the source. All 91 source paths are mode(s) 100644; imported files use the same mode. The current common dependency pointer now names `2a8dc9e4c28a9632ffdf8f484ad12a985df70cd3` while retaining the active ETF and Strategy domain pins. This is compatible-source development context, not release acceptance. Producer tests were not rerun; Root owns combined qualification.
+
+
+## 2026-11-08 — compose combined TC2a8 and Provider b192 context
+
+Root released the complete 126-path TC `2a8dc9e4c28a9632ffdf8f484ad12a985df70cd3` snapshot and the exact 78-path Provider `b19293006ea624a4f0c05a4fd91152ffd650a426` runtime manifest for development. All old guards matched. Imported only the 35 differing Provider-declared frontend paths (35 authorized paths total); equal-byte files were preserved. The complete manifest rows, imported frontend blobs/hashes/modes, and the backend source contract were verified. Current dependency pointers now carry the complete TC snapshot, Provider b192 runtime, and existing ETF/Strategy pins. The only pre-existing local product-adjacent diff retained is the focused test-only score-update regression in `backend/tests/unit/services/test_provider_runtime.py`; Provider production code remains frozen at b192. Focused typecheck and required guards are recorded with this checkpoint; Root owns exact CI, concurrent native replay, and release qualification.
+
+
+## 2026-11-08 — shared health transaction boundaries and visible-job fairness
+
+Root captured shared provider-health result updates blocking concurrent work while a provider operation remained in an open transaction. Result telemetry and capacity-hold updates now use a short session on the caller's database bind for PostgreSQL; caller-owned request logs/business writes remain uncommitted by this path. First-use rows that are not yet committed are updated in the caller session, and SQLite retains its single-writer path. Same-session resolver checks see unknown-reset disablement and known-retry circuits immediately. The existing worker now claims one bounded job at a time and reselects, allowing newly queued visible work to precede remaining background jobs.
+
+The allocated real PostgreSQL regressions passed 5/5 in 44.91 seconds, covering concurrent outcome updates, caller rollback/isolation, first-use seeding, same-caller hold visibility, and progress during a blocked fallback transport. Focused unit tests passed 89/89 in 4.68 seconds; Ruff 0.4.7 and diff checks passed. No source HTTP or runtime/production quota, policy, ledger, or hold mutation occurred. Root owns the native replay, exact-source CI, and combined release qualification.
+
+
+## 2026-11-08 — release app quota-window locks before provider transport
+
+Root's full 19d trace classified the first Massive profile result as a genuine
+native quota hold with a known retry time (`01:57:01Z`); preserve that hold and
+allowance. The later retry timeout was a separate application defect: PostgreSQL
+`provider_quota_window` row locks remained held in the caller transaction
+through provider transport, blocking other admissions. For persisted clean
+runtime rows on PostgreSQL, app-side quota dimensions now reserve and settle in
+short sessions on the caller's exact bind. First-use uncommitted source/policy/
+window state and SQLite remain caller-owned. The caller transaction and business
+writes are never committed by this path, and quota reservations, settlements,
+failure charging, distinct-identity claims, native coordinator admission, and
+provider holds remain in place.
+
+The allocated real-PostgreSQL transaction module passed 7/7, including a full
+`execute_provider_call` test where a second admitted operation completes while
+the first mock transport is blocked, plus first-use uncommitted state and caller
+rollback isolation. Three existing execute/quota unit regressions passed. Ruff
+0.4.7 check/format, Python compilation, and `git diff --check` passed. No provider
+HTTP, retained runtime/database access, native ledger, policy, or hold mutation
+occurred. Exact-source CI and Root's runtime replay remain pending; all wider
+Provider criteria remain open.
+
+
+## 2026-11-08 — consume TC e750 complete frontend context
+
+Root released TC source `e7500fb2905ed217c96d3ac8b32a19d719ee9564` for exact development consumption. Verified all 145 manifest rows against the source tree SHA-256/Git blobs/modes, all 57 Provider old guards, and imported only those 57 guarded consumer paths. The remaining foreign context paths were already byte-identical; all 145 now match the release. The exact contract is retained at `ops/workstreams/feat-market-data-provider-platform/development-dependency-imports/e7500fb2905ed217c96d3ac8b32a19d719ee9564-full-frontend-context.json`.
+
+The active Provider runtime pin was refreshed from `b1929300` to `9e2de159`; all 79 released backend paths were already byte/mode-identical. The three aed0 operator/test paths were also verified identical, so none needed copying. Current pins now comprise e750 frontend (145 foreign context paths), 9e2 backend (79 paths), aed0 operator/test (3 paths), and the existing ETF/Strategy domain pins. Superseded 3055946 and b192 manifests and prior evidence remain archived.
+
+This is development context only. Root's full browser profile, exact-tip CI, combined acceptance and release gates remain pending; no product implementation, tests, provider HTTP, Docker, quota, policy or runtime changes were made in this checkpoint.
+
+
+## 2026-11-08 — consume ETF 09938f32 catalogue backend context
+
+Root released ETF backend source `09938f32e97b9c21530b96d055380baccbb88c6c` for Provider development consumption. Verified the contract SHA-256, both source Git blobs/modes, and both Provider old guards. Imported only `backend/app/services/etf_holdings.py` and its focused catalogue query-equivalence unit test; retained the exact contract manifest at `ops/workstreams/feat-market-data-provider-platform/development-dependency-imports/etf09938f32-catalogue-backend-development-consumption-contract.json`. The existing 9e2 runtime (79 paths), aed0 operator context (3 paths), and prior ETF basket/Strategy pins remain intact. No conflicting active path pin required replacement.
+
+Owner evidence reports 2/2 SQLite query-count/output-equivalence cases; this Provider worktree did not rerun those tests. The additional two backend paths take the current combined runtime context from 79 to 81 unique paths. This is development consumption only; exact CI, combined acceptance, and Root release gates remain pending.
+
+
+## 2026-11-08 — consume TC DB4 final frontend context
+
+Root released TC source `db4b1f55f78b1d907aab9d062da9470b5e3cc109` for exact Provider development consumption. Verified all 150 manifest rows against source Git blobs, SHA-256 values, and modes; all 37 Provider old guards matched; imported only the 37 declared Provider paths. All 150 foreign context paths now match the released source. The exact contract is retained at `ops/workstreams/feat-market-data-provider-platform/development-dependency-imports/db4b1f55f78b1d907aab9d062da9470b5e3cc109-full-frontend-context.json`.
+
+The previous e750 frontend context remains archived in its existing manifest and handoff history. Backend fc220 (81 paths), operator aed0 (3 paths), and existing ETF/Strategy pins were preserved. No browser, Docker, native/provider HTTP, full suite, CI, production, quota, or policy operation was performed. This is development context only; Root owns combined qualification and release.
+
+
+## 2026-11-08 — consume TC common runtime context 1379d956
+
+Root released TC source `1379d9567a27c7262ea0bc62a1c3e04352916029` for exact development consumption. Verified the contract SHA-256, all 114 manifest rows (SHA-256/Git blob/mode), all 18 Provider old guards, and imported only the 18 declared Provider paths. The active common pointer now names this source; the previous DB4 common manifest remains archived, and Provider, ETF, and Strategy domain pins are preserved. This is compatible development context only; no producer suite, browser, provider HTTP, runtime, quota, or release gate was run. Exact-source CI and combined qualification remain Root-owned.
+
+
+## 2026-11-08 — consume Strategy Nautilus lifecycle fix 0875336e
+
+Root authorized exact development consumption of `0875336efeafd2339ed609e7bb1ec781fd5682d5`. Verified both declared source blobs, SHA-256 values, Git mode `100644`, and Provider old guards before import; copied only `backend/app/services/strategy_lab_nautilus.py` and `backend/tests/unit/services/test_strategy_lab_nautilus.py`. The full contract is retained at `ops/workstreams/feat-market-data-provider-platform/development-dependency-imports/strategy0875336efeafd2339ed609e7bb1ec781fd5682d5.json`. Producer reports 16 focused Nautilus tests plus style/type checks passing; not rerun here. Local Ruff check/format and diff checks pass. No browser, DB, Docker, native/provider HTTP, CI, quota or runtime action. Development context only; Root owns exact build and combined qualification.
+
+
+## 2026-11-08 — replace Strategy Nautilus engine pin with bd50269c
+
+Root authorized the exact two-path successor `bd50269c862e577a48063b084ce2ba8d13aaef76`. The 087 engine pin is archived by its retained manifest and journal; the current dependency pin now names this source. Verified both old guards against 087, both new source blobs/SHA-256/modes, and imported only `backend/app/services/strategy_lab_nautilus.py` and `backend/tests/unit/services/test_strategy_lab_nautilus.py`. Full contract: `ops/workstreams/feat-market-data-provider-platform/development-dependency-imports/strategybd50269c862e577a48063b084ce2ba8d13aaef76.json`. Producer reports 17 focused Nautilus tests and canonical Ruff/type/discovery checks passing; not rerun here. No broader tests, browser, DB, Docker, native/provider HTTP, CI, quota or runtime action. Development context only; Root owns combined build and qualification.
+
+
+## 2026-11-11 — next-cycle item: visible-wake latency (not in this release)
+
+Observed in the CI-identical E2E stack: a `instrument_metadata` job for an already-known instrument waited 41 seconds in the queue before running 14 seconds. Read-only analysis (no code change) shows the worker runs at most 4 ARQ jobs at once (`max_jobs=4`, 600-second job timeout) across all task types. The visible wake (`task_process_refresh_jobs`) and the 15-minute cron (`scheduled_refresh_queue_process`, which runs the planner before claiming) share those slots. Once a batch is running, a running background job is not preempted, so a visible job waits for it to finish. Queue priority itself is correct (visible = 10).
+
+Leave as is for this release. Next-cycle options: (1) a dedicated visible-wake slot or ARQ queue, or (2) a preemption point between background jobs when a priority-10 job is queued. Confirm first with worker logs showing ARQ enqueue and start times for the wake and cron jobs, plus the metadata job's claim time.
+
+Related change this cycle: dependency-deferred jobs are woken when their prerequisite completes (commit 9a343a86f), replacing the fixed 20-second recheck as the only path.
