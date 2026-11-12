@@ -1,0 +1,97 @@
+{
+  "at": "2026-11-08T12:59:37.010846+00:00",
+  "authority": "Root coordinates the human-approved common-interface implementation; no staging or deployment acceptance",
+  "state": "released_for_exact_development_consumption_not_product_acceptance",
+  "source": "52b8e74999a3e4ae8feedb551bc6ef5a2eb95b3b",
+  "base": "139b350238b5e1c8a170dce5af09a805301d857e",
+  "previous_sources": [
+    "27e360de1057368bb49da11662d33e268ed999b9"
+  ],
+  "previous_manifests": [
+    "etf27e360de-domain-frontend-development-consumption-contract.json"
+  ],
+  "files": [
+    {
+      "path": "frontend/src/components/workstation/InstrumentNoteTool.vue",
+      "status_from139": "M",
+      "git_blob": "e3dee9a9c968a2e1f6f65a33af8a33b5823735cc",
+      "sha256": "e4fc90fc10c81b8087465d60923e203e4acaa8de9cd102a5968615957250a15a"
+    },
+    {
+      "path": "frontend/src/views/BasketsView.vue",
+      "status_from139": "M",
+      "git_blob": "71b27cafc4019d5004e54e7f2536606c0484756e",
+      "sha256": "eb237b4610cae5c7565bfcacc6bf2718586b89d032885d642f98cc55dcb5b141"
+    },
+    {
+      "path": "frontend/src/views/ETFHoldingsView.vue",
+      "status_from139": "M",
+      "git_blob": "6a4f56b58368988585c71fd1acbf8221110a95d8",
+      "sha256": "4fcf66917ab705052478e8bf91597c3d593806e5de18b03e93a9493d5df9c9e4"
+    },
+    {
+      "path": "frontend/tests/e2e/baskets_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "d11d84ce8c62bfcc6feac0407c1e3154dd530884",
+      "sha256": "61a380015d6ee85410942ace6b1ce7939dfc549f291609500285bb30983fa511"
+    },
+    {
+      "path": "frontend/tests/e2e/etf_holdings_preparation.spec.ts",
+      "status_from139": "A",
+      "git_blob": "d3db0535661b15a4461582fc1b53a84d15ce1c37",
+      "sha256": "0c8585967b15edad772d3fe272d75813ac533d5e018047a79bf76cc9b4483615"
+    },
+    {
+      "path": "frontend/tests/e2e/sp500_analysis_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "415405cf6b29aa4035c6b351ccceae42b49161e3",
+      "sha256": "7588f7031e38b51e4f9fd3eeeddabfc3d0f929889439a70670ebf8e041dbb3c9"
+    },
+    {
+      "path": "frontend/tests/e2e/supporting_features_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "2aea73ea7c12c2718965e2d378227ce55cafc9eb",
+      "sha256": "68db2c02810e7fd105b97a0e0542d8dbac34d0b646a541bdd5d539f9a3c9dea1"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_instrument_note_tool.test.ts",
+      "status_from139": "A",
+      "git_blob": "2febf61a7e0684c9234eb797df40253b8460c147",
+      "sha256": "0ef83d02c33b27989e82a3f82db9844b553f63aa4ef6be00975dc6ec2d66e153"
+    },
+    {
+      "path": "frontend/tests/unit/views/test_baskets_view.test.ts",
+      "status_from139": "M",
+      "git_blob": "0ebf9ba0bce23fcd5dfc5ed5daf8d98e69be9ec7",
+      "sha256": "8439f811cbaf26257f71591786d9b097ac2e92c49438a7f0f99b062d7d16c7cd"
+    },
+    {
+      "path": "frontend/tests/unit/views/test_etf_holdings_view.test.ts",
+      "status_from139": "M",
+      "git_blob": "e00e9c3ba368a4e53ae40e86f6b15a6499b8e717",
+      "sha256": "de306c796983bac3ba75f4f6056c25b64ee6a09ffa20a3e44ff89d6c726d1903"
+    }
+  ],
+  "changed_paths_since_previous": [
+    "frontend/tests/e2e/sp500_analysis_journey.spec.ts"
+  ],
+  "consumers": [
+    {
+      "consumer": "TC",
+      "import_paths": [
+        "frontend/tests/e2e/sp500_analysis_journey.spec.ts"
+      ],
+      "old_guards": {
+        "frontend/tests/e2e/sp500_analysis_journey.spec.ts": {
+          "sha256": "1e271e50bd236f6871c5c8ba9527c8cc1e1babe8d01c826c803b44c16c5a7c07",
+          "known_sources": [
+            "27e360de1057368bb49da11662d33e268ed999b9"
+          ]
+        }
+      },
+      "owned_overlap": []
+    }
+  ],
+  "scope": "ETF-owned frontend domain and strict alpha-aware final-canvas S&P journey; numerical/marker/tail/raster minima remain, actual corrected-fixture execution pending.",
+  "preserve": "Full roadmap/history, native holds/quotas, genuine datasets, ordinary async failures, reviewed references and tolerances. No amend, overlapping writer, staging, deployment or product acceptance."
+}

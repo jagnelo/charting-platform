@@ -245,7 +245,7 @@ const groups: LinkGroup[] = WORKSTATION_LINK_GROUPS.map(group => group.id)
 .tool-window__menu button:hover, .tool-window__menu button:focus-visible { border-color: var(--tc-border); background: var(--tc-control-bg); color: var(--tc-text); outline: none; }
 .tool-window__link { width: 54px; height: 18px; flex: 0 1 54px; min-width: 28px; color: var(--tc-text); border: 1px solid var(--tc-border-strong); background: var(--tc-input-bg); font: 10px var(--tc-font-family); }
 .tool-window__link-swatch { width: 8px; height: 8px; flex: 0 0 8px; border: 1px solid #0b0f12; border-radius: 50%; box-shadow: 0 0 0 1px #65737d; }
-.tool-window__timeframe { width: 27px; flex: 0 1 27px; min-width: 24px; height: 18px; color: var(--tc-text); border: 1px solid var(--tc-border-strong); background: var(--tc-input-bg); font: 10px var(--tc-font-family); }
+.tool-window__timeframe { width: 40px; flex: 0 0 40px; min-width: 40px; height: 18px; color: var(--tc-text); border: 1px solid var(--tc-border-strong); background: var(--tc-input-bg); font: 10px var(--tc-font-family); }
 .tool-window__timeframe-link { width: 54px; flex: 0 1 54px; min-width: 28px; height: 18px; color: var(--tc-text); border: 1px solid var(--tc-border-strong); background: var(--tc-input-bg); font: 10px var(--tc-font-family); }
 .tool-window__body { min-width: 0; min-height: 0; flex: 1; overflow: hidden; }
 .tool-window--scrollable-body > .tool-window__body { overflow: auto; overscroll-behavior: contain; }
@@ -255,7 +255,7 @@ const groups: LinkGroup[] = WORKSTATION_LINK_GROUPS.map(group => group.id)
   .tool-window__actions { gap: 1px; }
   .tool-window__actions .tool-window__link-swatch { display: none; }
   .tool-window__link, .tool-window__timeframe-link { width: 32px; min-width: 24px; }
-  .tool-window__timeframe { width: 24px; min-width: 22px; }
+  .tool-window__timeframe { width: 40px; min-width: 40px; }
   .tool-window__actions button { min-width: 16px; padding: 0 1px; }
 }
 @container tool-window (max-width: 560px) {

@@ -3,7 +3,7 @@
  * the backend manifest validator; the board variant uses the accepted composite board policy
  * and still requires deterministic local geometry and screenshot evidence.
  */
-import type { Page } from '@playwright/test'
+import type { Locator, Page, Response } from '@playwright/test'
 import { test, expect } from './helpers'
 
 async function assertSeededBackend(page: Page) {
@@ -16,6 +16,342 @@ async function assertSeededBackend(page: Page) {
 }
 
 type ShellReadiness = 'loaded' | 'expected-chart-loading'
+type OrdinaryCaptureOptions = {
+  requireSeededUniverses?: boolean
+  requirePrimaryChart?: boolean
+  requireResearchResults?: boolean
+  freshness?: 'current' | 'partial'
+}
+
+async function waitForSelectionPreparationToSettle(page: Page) {
+  const summaries = page.locator('.workstation__selection-acquisition .compact-status__summary')
+  // A terminal ready, waiting, unavailable, or failed notice is valid visual
+  // state. Only the shared "preparing" summary is still changing as queued
+  // identity/history work completes, so do not capture that intermediate UI.
+  // Requiring both data domains prevents the initial empty toolbar from being
+  // mistaken for settled preparation before Workstation mounts its notices.
+  await expect.poll(async () => {
+    const current = await summaries.allTextContents()
+    return {
+      history: current.some(summary => /^History\b/i.test(summary.trim())),
+      holdings: current.some(summary => /^Holdings\b/i.test(summary.trim())),
+      settled: current.every(summary => !/\bpreparing\b/i.test(summary.trim())),
+    }
+  }, { timeout: 15_000 }).toEqual({ history: true, holdings: true, settled: true })
+}
+
+async function waitForRatioPlotToBePainted(ratio: Locator) {
+  await expect.poll(() => ratio.evaluate(root => {
+    let context: { symbol?: string; benchmarks?: string[]; timeframe?: string } | null = null
+    try {
+      context = JSON.parse(root.getAttribute('data-ratio-context') ?? 'null')
+    } catch {
+      context = null
+    }
+    const legs = (root.querySelector('.ratio-chart__legend strong')?.textContent ?? '')
+      .split('·').map(label => label.trim()).filter(Boolean)
+    const contextMatches = Boolean(context?.symbol && context.timeframe && context.benchmarks
+      && legs.length === context.benchmarks.length
+      && legs.every((leg, index) => {
+        const [symbol, benchmark] = leg.split('/').map(value => value.trim().toUpperCase())
+        return symbol === context?.symbol?.toUpperCase()
+          && benchmark === context?.benchmarks?.[index]?.toUpperCase()
+      }))
+    const finitePointCount = Number(root.getAttribute('data-ratio-point-count'))
+    const plot = root.querySelector('.uplot')
+    const palette = [[107, 192, 239], [231, 179, 91], [170, 134, 232], [95, 200, 162]]
+    let linePixels = 0
+    const lineColumns = new Set<number>()
+    for (const canvas of Array.from(plot?.querySelectorAll('canvas') ?? [])) {
+      const context = canvas.getContext('2d', { willReadFrequently: true })
+      if (!context || canvas.width <= 0 || canvas.height <= 0) continue
+      let pixels: ImageData
+      try {
+        pixels = context.getImageData(0, 0, canvas.width, canvas.height)
+      } catch {
+        continue
+      }
+      for (let pixel = 0; pixel < pixels.data.length; pixel += 4) {
+        const red = pixels.data[pixel]
+        const green = pixels.data[pixel + 1]
+        const blue = pixels.data[pixel + 2]
+        const alpha = pixels.data[pixel + 3]
+        if (alpha < 100 || !palette.some(([r, g, b]) => Math.abs(red - r) <= 30 && Math.abs(green - g) <= 30 && Math.abs(blue - b) <= 30)) continue
+        linePixels += 1
+        const pixelIndex = pixel / 4
+        lineColumns.add(pixelIndex % canvas.width)
+      }
+    }
+    const canvasWidth = Math.max(0, ...Array.from(plot?.querySelectorAll('canvas') ?? []).map(canvas => (canvas as HTMLCanvasElement).width))
+    const requiredColumns = Math.max(16, Math.min(32, Math.ceil(canvasWidth * 0.08)))
+    return {
+      contextMatches,
+      finitePoints: Number.isFinite(finitePointCount) && finitePointCount > 0,
+      paintedSeries: linePixels >= requiredColumns && lineColumns.size >= requiredColumns,
+      linePixels,
+      lineColumns: lineColumns.size,
+      requiredColumns,
+    }
+  }), { timeout: 15_000, intervals: [250, 500, 1000] }).toMatchObject({
+    contextMatches: true,
+    finitePoints: true,
+    paintedSeries: true,
+  })
+}
+
+async function expectContainedBounds(container: Locator, content: Locator, label: string) {
+  const [containerBox, contentBox] = await Promise.all([container.boundingBox(), content.boundingBox()])
+  if (!containerBox || !contentBox) throw new Error(`${label} must have visible layout bounds`)
+  expect(contentBox.width, `${label} width`).toBeGreaterThan(0)
+  expect(contentBox.height, `${label} height`).toBeGreaterThan(0)
+  expect(contentBox.x, `${label} left`).toBeGreaterThanOrEqual(containerBox.x - 1)
+  expect(contentBox.y, `${label} top`).toBeGreaterThanOrEqual(containerBox.y - 1)
+  expect(contentBox.x + contentBox.width, `${label} right`).toBeLessThanOrEqual(containerBox.x + containerBox.width + 1)
+  expect(contentBox.y + contentBox.height, `${label} bottom`).toBeLessThanOrEqual(containerBox.y + containerBox.height + 1)
+  return contentBox
+}
+
+async function waitForCachedChartAnalysisToRender(page: Page) {
+  const chart = page.locator('.chart-tool:visible .chart-root:visible').first()
+  await expect(chart).toBeVisible()
+  await expect(chart).toHaveAttribute('aria-busy', 'false')
+  await expect(chart.locator('.uplot')).toBeVisible()
+  await expect.poll(() => chart.evaluate(root => {
+    const describedBy = root.getAttribute('aria-describedby')
+    const provenance = describedBy ? document.getElementById(describedBy)?.textContent ?? '' : ''
+    return provenance
+  }), { timeout: 15_000 }).toMatch(/\b[1-9]\d* bars;/)
+
+  const ratio = page.locator('.ratio-chart:visible').filter({ hasText: 'SPY/RSP' }).first()
+  await expect(ratio).toBeVisible()
+  await expect(ratio.locator('.uplot')).toBeVisible()
+  await waitForRatioPlotToBePainted(ratio)
+
+  const metrics = page.locator('.metrics:visible').first()
+  await expect(metrics).toBeVisible()
+  await expect.poll(() => metrics.locator('b').evaluateAll(nodes =>
+    nodes.some(node => {
+      const text = node.textContent?.trim() ?? ''
+      if (!text) return false
+      const value = Number(text.replace(/[%,$]/g, ''))
+      return Number.isFinite(value)
+    }),
+  )).toBe(true)
+}
+
+/**
+ * Wait for the current ordinary workstation state before a visual capture.
+ * This deliberately uses visible user-facing state and persisted workspace
+ * acknowledgement instead of networkidle or a timing delay. Gap-state and
+ * active-drag captures do not call this helper.
+ */
+async function waitForOrdinaryVisualCapture(page: Page, options: OrdinaryCaptureOptions = {}) {
+  await expect(page.locator('.workstation__layout-state')).toHaveCount(0)
+  await expect(page.getByRole('status', { name: 'Workspace save status' })).toHaveAttribute('data-state', 'saved', { timeout: 15_000 })
+
+  if (process.env.E2E_SEED_MARKET_DATA === 'true') {
+    await waitForSelectionPreparationToSettle(page)
+    await expect(page.locator('.workstation__refresh')).toHaveText('Refresh', { timeout: 15_000 })
+    const visibleWatchlists = page.locator('.watchlist:visible')
+    await expect.poll(async () => {
+      const count = await visibleWatchlists.count()
+      if (!count) return !options.requireSeededUniverses
+      for (let index = 0; index < count; index++) {
+        const watchlist = visibleWatchlists.nth(index)
+        if (await watchlist.getAttribute('aria-busy') !== 'false') return false
+        if (await watchlist.locator('.watchlist__loading-status').count()) return false
+      }
+      return true
+    }, { timeout: 15_000 }).toBe(true)
+
+    if (options.requireSeededUniverses) {
+      const benchmarks = page.getByRole('region', { name: 'Major US benchmarks' })
+      const sectors = page.getByRole('region', { name: 'Relative to SPY' })
+      await expect(benchmarks).toHaveAttribute('aria-busy', 'false')
+      await expect(sectors).toHaveAttribute('aria-busy', 'false')
+      await expect(benchmarks.locator('.watchlist__row')).toHaveCount(5)
+      await expect(sectors.locator('.watchlist__row')).toHaveCount(11)
+    }
+  }
+
+  if (options.requirePrimaryChart) {
+    const chart = page.locator('.chart-tool:visible .chart-root:visible').first()
+    await expect(chart).toBeVisible()
+    await expect(chart).toHaveAttribute('aria-busy', 'false')
+    await expect(chart.locator('.uplot')).toBeVisible()
+    await expect.poll(() => chart.evaluate(root => {
+      const describedBy = root.getAttribute('aria-describedby')
+      const provenance = describedBy ? document.getElementById(describedBy)?.textContent ?? '' : ''
+      return provenance
+    }), { timeout: 15_000 }).toMatch(/\b[1-9]\d* bars;/)
+  }
+
+  if (options.freshness === 'current') {
+    await expect(page.locator('.workstation__footer')).toContainText(/Current|Ready/i)
+  } else if (options.freshness === 'partial') {
+    await expect(page.locator('.workstation__footer')).toContainText('Partial coverage')
+  }
+
+  if (options.requireResearchResults) {
+    const results = page.getByRole('region', { name: 'Study Lab research results' })
+    await expect(results).toBeVisible()
+    await expect(results.locator('.research-results-tool__notice').filter({ hasText: /Loading/i })).toHaveCount(0, { timeout: 15_000 })
+    await expect.poll(async () => {
+      const listedRuns = await results.getByRole('listitem').count()
+      const emptyState = await results.getByText('No persisted studies yet. Run a study in the adjacent Study Lab pane.', { exact: true }).count()
+      return listedRuns + emptyState
+    }, { timeout: 15_000 }).toBeGreaterThan(0)
+  }
+
+  const visibleRatios = page.locator('.ratio-chart:visible')
+  for (let index = 0; index < await visibleRatios.count(); index++) {
+    const ratio = visibleRatios.nth(index)
+    await expect(ratio.locator('.uplot')).toBeVisible()
+    await waitForRatioPlotToBePainted(ratio)
+  }
+}
+
+async function installCoveredStudyHistoryFixture(page: Page) {
+  await page.route('**/api/v1/data/ensure', async route => {
+    const body = route.request().postDataJSON() as {
+      target?: { kind?: string; symbol?: string; instrument_id?: number }
+      datasets?: string[]
+      timeframe?: string
+      adjusted?: boolean
+      start_at?: string | null
+      end_at?: string | null
+    }
+    const target = body.target
+    const datasets = body.datasets ?? []
+    const targetSymbol = target?.symbol?.toUpperCase()
+    const isCanonicalSpy = target?.instrument_id === 2
+      ? (targetSymbol === undefined || targetSymbol === 'SPY')
+      : (target?.instrument_id === undefined && targetSymbol === 'SPY')
+    const fixtureStart = Date.parse('2020-01-02T00:00:00.000Z')
+    const fixtureEnd = Date.parse('2027-01-01T00:00:00.000Z')
+    const requestedStart = body.start_at ? Date.parse(body.start_at) : null
+    const requestedEnd = body.end_at ? Date.parse(body.end_at) : null
+    const rangeFitsFixture = (requestedStart === null || (Number.isFinite(requestedStart) && requestedStart >= fixtureStart && requestedStart <= fixtureEnd))
+      && (requestedEnd === null || (Number.isFinite(requestedEnd) && requestedEnd >= fixtureStart && requestedEnd <= fixtureEnd))
+      && !(requestedStart !== null && requestedEnd !== null && requestedStart > requestedEnd)
+    if (route.request().method() !== 'POST'
+      || target?.kind !== 'instrument'
+      || !isCanonicalSpy
+      || body.timeframe !== 'D1'
+      || body.adjusted !== true
+      || datasets.length !== 1
+      || datasets[0] !== 'history'
+      || !rangeFitsFixture) {
+      await route.continue()
+      return
+    }
+    const instrumentId = 2
+    const now = '2026-11-08T12:00:00Z'
+    const dependencies = datasets.map(dataset => ({
+      dependency_id: `visual-study-${dataset}-${instrumentId}`,
+      depends_on: dataset === 'history' ? datasets.filter(item => item !== 'history').map(item => `visual-study-${item}-${instrumentId}`) : [],
+      instrument_id: instrumentId,
+      symbol: 'SPY',
+      dataset,
+      status: 'ready',
+      requested_start: body.start_at ?? null,
+      requested_end: body.end_at ?? null,
+      covered_start: dataset === 'history' ? '2020-01-02T00:00:00Z' : null,
+      covered_end: dataset === 'history' ? '2027-01-01T00:00:00Z' : null,
+      reason_code: null,
+      retry_at: null,
+      updated_at: now,
+      covered_ranges: dataset === 'history' ? [{
+        start_at: '2020-01-02T00:00:00Z',
+        end_at: '2027-01-01T00:00:00Z',
+        data_source_id: 1,
+        market_series_id: 1,
+        adjustment_basis: 'split_adjusted',
+        adjustment_version: 'controlled-visual-fixture-v1',
+        is_adjusted: true,
+      }] : [],
+    }))
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+      request_id: `visual-study-${instrumentId}-D1`,
+      status: 'ready',
+      created_at: now,
+      updated_at: now,
+      version: 1,
+      target,
+      dependencies,
+      completed: dependencies.length,
+      total: dependencies.length,
+      last_progress_at: now,
+      has_pending_work: false,
+    }) })
+  })
+}
+
+async function waitForActiveWindowSnapshotAcknowledgement(page: Page, tabKey: string, windowKey: string) {
+  return page.waitForResponse(async response => {
+    const request = response.request()
+    if (request.method() !== 'PUT' || !/\/workspaces\/[^/]+\/snapshot$/.test(new URL(request.url()).pathname)) return false
+    try {
+      const payload = request.postDataJSON() as { tabs?: Array<{ stable_key?: string; active_window_key?: string | null }> }
+      return payload.tabs?.some(tab => tab.stable_key === tabKey && tab.active_window_key === windowKey) ?? false
+    } catch {
+      return false
+    }
+  })
+}
+
+async function waitForWindowConfigurationSnapshotAcknowledgement(
+  page: Page,
+  tabKey: string,
+  windowKey: string,
+  matches: (configuration: Record<string, unknown>) => boolean,
+) {
+  return page.waitForResponse(async response => {
+    const request = response.request()
+    if (request.method() !== 'PUT' || !/\/workspaces\/[^/]+\/snapshot$/.test(new URL(request.url()).pathname)) return false
+    try {
+      const payload = request.postDataJSON() as { tabs?: Array<{ stable_key?: string; windows?: Array<{ instance_key?: string; configuration?: Record<string, unknown> }> }> }
+      const tab = payload.tabs?.find(candidate => candidate.stable_key === tabKey)
+      const window = tab?.windows?.find(candidate => candidate.instance_key === windowKey)
+      return Boolean(window?.configuration && matches(window.configuration))
+    } catch {
+      return false
+    }
+  })
+}
+
+async function waitForNewActiveWindowSnapshotAcknowledgement(page: Page, tabKey: string, previousWindowKey: string) {
+  return page.waitForResponse(async response => {
+    const request = response.request()
+    if (request.method() !== 'PUT' || !/\/workspaces\/[^/]+\/snapshot$/.test(new URL(request.url()).pathname)) return false
+    try {
+      const payload = request.postDataJSON() as { tabs?: Array<{ stable_key?: string; active_window_key?: string | null }> }
+      return payload.tabs?.some(tab => tab.stable_key === tabKey
+        && Boolean(tab.active_window_key)
+        && tab.active_window_key !== previousWindowKey) ?? false
+    } catch {
+      return false
+    }
+  })
+}
+
+async function waitForWorkspaceSnapshotAcknowledgement(page: Page) {
+  return page.waitForResponse(response => response.request().method() === 'PUT'
+    && /\/workspaces\/[^/]+\/snapshot$/.test(new URL(response.url()).pathname))
+}
+
+async function activeWorkspaceTabKey(page: Page) {
+  const key = await page.locator('.workstation__tabs [role="tab"][aria-selected="true"]').getAttribute('data-tab-key')
+  expect(key).toBeTruthy()
+  return key!
+}
+
+async function expectWorkspaceSaveAcknowledged(page: Page, response: Response) {
+  expect(response.status()).toBe(200)
+  const status = page.getByRole('status', { name: 'Workspace save status' })
+  await expect(status).toHaveAttribute('data-state', 'saved')
+  await expect(status).toHaveText('Workspace saved')
+}
 
 async function waitForShellReady(page: Page, readiness: ShellReadiness = 'loaded') {
   await expect(page.locator('.workstation')).toBeVisible()
@@ -31,14 +367,7 @@ async function waitForShellReady(page: Page, readiness: ShellReadiness = 'loaded
   await expect(page.locator('canvas').first()).toBeVisible({ timeout: 15_000 })
   if (process.env.E2E_SEED_MARKET_DATA === 'true') {
     await expect(page.locator('.ratio-chart__legend strong').first()).toHaveText('SPY/RSP', { timeout: 15_000 })
-    await expect(page.locator('.workstation__refresh')).toHaveText('Refresh', { timeout: 15_000 })
-    // The shell freshness label can settle before the adjacent chart finishes
-    // its canonical OHLCV request.  All board baselines include that chart, so
-    // require its terminal state explicitly instead of allowing a loading
-    // frame to race the screenshot oracle.
-    await expect(page.locator('.chart-tool .tool-state')).toHaveCount(0, { timeout: 15_000 })
-    await page.waitForTimeout(750)
-    await expect(page.locator('.workstation__refresh')).toHaveText('Refresh', { timeout: 15_000 })
+    await waitForOrdinaryVisualCapture(page)
   }
 }
 
@@ -70,9 +399,12 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await page.goto('/')
     const reset = page.getByTitle('Reset factory workspace').first()
     if (await reset.count()) {
+      await expect(page.getByRole('status', { name: 'Workspace save status' })).toHaveAttribute('data-state', 'saved')
+      const resetAcknowledgement = waitForWorkspaceSnapshotAcknowledgement(page)
       page.once('dialog', dialog => dialog.accept())
       await reset.click()
       await expect(page.locator('.workstation__layout-state')).toHaveCount(0, { timeout: 15_000 })
+      await expectWorkspaceSaveAcknowledged(page, await resetAcknowledgement)
     }
   })
 
@@ -114,16 +446,12 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
       // workstation contract is the SPY/RSP benchmark-versus-equal-weight
       // comparison.
       await expect(page.locator('.ratio-chart__legend strong').first()).toHaveText('SPY/RSP', { timeout: 15_000 })
-      await expect(page.locator('.workstation__refresh')).toHaveText('Refresh', { timeout: 15_000 })
-      // Require the ready label to remain stable across a refresh/render turn;
-      // otherwise a second shared-analysis refresh can begin between the first
-      // assertion and the screenshot and reintroduce a transient header state.
-      await page.waitForTimeout(750)
-      await expect(page.locator('.workstation__refresh')).toHaveText('Refresh', { timeout: 15_000 })
-    } else {
-      await page.waitForTimeout(250)
     }
-    await expect(page.locator('.chart-tool .tool-state')).toHaveCount(0, { timeout: 15_000 })
+    await waitForOrdinaryVisualCapture(page, {
+      requireSeededUniverses: process.env.E2E_SEED_MARKET_DATA === 'true',
+      requirePrimaryChart: true,
+      freshness: process.env.E2E_SEED_MARKET_DATA === 'true' ? 'current' : undefined,
+    })
     const overlapIssues = await page.evaluate(() => {
       const rect = (element: Element | null) => {
         if (!element) return null
@@ -180,6 +508,36 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
       maxDiffPixelRatio: 0.005,
       scale: 'css',
     })
+
+    // An inactive Chart keeps the 40px rail but removes its controls from both
+    // sight and keyboard focus. Verify the ordinary header-click path still
+    // exposes the drawing tools in the current factory workstation.
+    const chartWindow = page.locator('.tool-window:visible').filter({ has: page.locator('.chart-tool') }).first()
+    await expect(chartWindow).toBeVisible()
+    let drawingToolbar = chartWindow.locator('.chart-tool__drawing-toolbar:not(.chart-tool__drawing-toolbar--inactive)')
+    if (await drawingToolbar.count() === 0) {
+      const inactiveRail = chartWindow.locator('.chart-tool__drawing-toolbar--inactive')
+      await expect(inactiveRail).toHaveAttribute('aria-hidden', 'true')
+      await expect(inactiveRail).toHaveAttribute('inert', '')
+      await expect(inactiveRail.locator('button')).toHaveCount(0)
+      const chartWindowKey = await chartWindow.getAttribute('data-window-key')
+      const activeWorkspaceTabKey = await page.locator('.workstation__tabs [role="tab"][aria-selected="true"]').getAttribute('data-tab-key')
+      expect(chartWindowKey).toBeTruthy()
+      expect(activeWorkspaceTabKey).toBeTruthy()
+      const saveAcknowledgement = waitForActiveWindowSnapshotAcknowledgement(page, activeWorkspaceTabKey!, chartWindowKey!)
+      await chartWindow.locator('.tool-window__title').click()
+      drawingToolbar = chartWindow.locator('.chart-tool__drawing-toolbar:not(.chart-tool__drawing-toolbar--inactive)')
+      const savedSelection = await saveAcknowledgement
+      expect(savedSelection.status()).toBe(200)
+      await expect(page.getByRole('status', { name: 'Workspace save status' })).toHaveAttribute('data-state', 'saved')
+    }
+    await expect(drawingToolbar).toBeVisible()
+    const lines = drawingToolbar.getByRole('button', { name: 'Lines', exact: true })
+    await expect(lines).toBeVisible()
+    await lines.click()
+    await expect(drawingToolbar.getByRole('menuitem', { name: 'Trend Line', exact: true })).toBeVisible()
+    await lines.click()
+    await expect(drawingToolbar.getByRole('menu', { name: 'Lines drawing tools' })).toHaveCount(0)
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -191,6 +549,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await expect(menu).toBeVisible()
     await expect(menu.getByRole('menuitem', { name: 'Duplicate active layout', exact: true })).toBeVisible()
     await expect(menu.getByRole('menuitem', { name: 'Export workspace', exact: true })).toBeVisible()
+    await waitForOrdinaryVisualCapture(page, { requirePrimaryChart: true })
     await expect(page).toHaveScreenshot('application-shell-menu-open.png', {
       animations: 'disabled',
       caret: 'hide',
@@ -235,6 +594,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
       }
     })
     expect(menuGeometry).toEqual({ menuInViewport: true, itemInViewport: true, centerHit: true })
+    await waitForOrdinaryVisualCapture(page, { requirePrimaryChart: true })
     await expect(page).toHaveScreenshot('workspace-tool-menu-open.png', {
       animations: 'disabled',
       caret: 'hide',
@@ -250,22 +610,41 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
   test('watchlist column editor open state has a deterministic board baseline', async ({ page, loggedIn, browserDiagnostics }) => {
     await page.goto('/')
     await waitForShellReady(page)
+    const benchmarkWindow = page.locator('.tool-window:visible').filter({ has: page.locator('.benchmark-surface') }).first()
+    const benchmarkWindowKey = await benchmarkWindow.getAttribute('data-window-key')
+    const benchmarkTabKey = await activeWorkspaceTabKey(page)
+    expect(benchmarkWindowKey).toBeTruthy()
     const benchmarkSurface = page.locator('.benchmark-surface:visible')
     const familySelector = benchmarkSurface.getByLabel('Benchmark family', { exact: true })
     await expect(benchmarkSurface.getByLabel('Benchmark family readiness')).toHaveCount(0)
+    let familySave = waitForWindowConfigurationSnapshotAcknowledgement(page, benchmarkTabKey, benchmarkWindowKey!, configuration => configuration.benchmark_family_key === 'sp500')
     await familySelector.selectOption({ label: 'S&P 500' })
+    await expectWorkspaceSaveAcknowledged(page, await familySave)
     await expect(benchmarkSurface.getByLabel('Benchmark family readiness'))
       .toContainText('All-family readiness:', { timeout: 15_000 })
+    familySave = waitForWindowConfigurationSnapshotAcknowledgement(page, benchmarkTabKey, benchmarkWindowKey!, configuration => configuration.benchmark_family_key == null)
     await familySelector.selectOption({ label: 'Major US benchmarks' })
+    await expectWorkspaceSaveAcknowledged(page, await familySave)
     await expect(benchmarkSurface.getByLabel('Benchmark family readiness')).toHaveCount(0)
     await waitForShellReady(page)
     const benchmarks = page.getByRole('region', { name: 'Major US benchmarks' })
     await expect(benchmarks).toBeVisible()
+    await expect(benchmarks).toHaveAttribute('aria-busy', 'false', { timeout: 15_000 })
+    await expect(benchmarks.getByText('Loading family legs…', { exact: true })).toHaveCount(0)
+    await expect(benchmarks.locator('.watchlist__loading-status')).toHaveCount(0)
+    const expectedBenchmarkSymbols = ['DIA', 'IWM', 'QQQ', 'RSP', 'SPY']
+    const benchmarkRows = benchmarks.locator('.watchlist__row')
+    await expect(benchmarkRows).toHaveCount(expectedBenchmarkSymbols.length)
+    await expect.poll(async () => benchmarkRows.evaluateAll(rows => rows.map(row =>
+      row.getAttribute('aria-label')?.trim().split(/\s+/)[0] ?? '',
+    ))).toEqual(expectedBenchmarkSymbols)
     await benchmarks.getByRole('button', { name: 'Columns', exact: true }).click()
     const editor = benchmarks.locator('.watchlist__column-menu')
     await expect(editor).toBeVisible()
     await expect(editor.getByRole('button', { name: 'Paste column settings' })).toBeVisible()
     await expect(editor.locator('.watchlist__column-editor-row')).toHaveCount(15)
+    await expect(benchmarks.locator('.watchlist__loading-status')).toHaveCount(0)
+    await waitForOrdinaryVisualCapture(page, { requireSeededUniverses: true, requirePrimaryChart: true, freshness: 'current' })
     await expect(page).toHaveScreenshot('watchlist-column-editor-open.png', {
       animations: 'disabled',
       caret: 'hide',
@@ -278,6 +657,11 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
   test('EasyScan condition editor open state has a deterministic local baseline', async ({ page, loggedIn, browserDiagnostics }) => {
     await page.goto('/')
     await waitForShellReady(page)
+    await expect(page.getByRole('status', { name: 'Workspace save status' })).toHaveAttribute('data-state', 'saved')
+    const tabKey = await activeWorkspaceTabKey(page)
+    const previousWindowKey = await page.locator('.tool-window:visible').first().getAttribute('data-window-key')
+    expect(previousWindowKey).toBeTruthy()
+    const saveAcknowledgement = waitForNewActiveWindowSnapshotAcknowledgement(page, tabKey, previousWindowKey!)
     await page.getByRole('button', { name: 'Add tool', exact: true }).click()
     const toolMenu = page.getByRole('menu', { name: 'Workstation tools' })
     await expect(toolMenu).toBeVisible()
@@ -286,11 +670,22 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     // target the newly foregrounded visible tool rather than a hidden tab body.
     const scan = page.locator('.easy-scan:visible').last()
     await expect(scan).toBeVisible({ timeout: 10_000 })
+    const scanWindowKey = await scan.locator('xpath=ancestor-or-self::*[contains(concat(" ", normalize-space(@class), " "), " tool-window ")]').getAttribute('data-window-key')
+    expect(scanWindowKey).toBeTruthy()
+    const savedLayout = await saveAcknowledgement
+    expect(savedLayout.status()).toBe(200)
+    const savedPayload = savedLayout.request().postDataJSON() as { base_revision?: number; tabs: Array<{ stable_key: string; active_window_key: string | null }> }
+    const savedTab = savedPayload.tabs
+      .find(candidate => candidate.stable_key === tabKey)
+    expect(savedTab?.active_window_key).toBe(scanWindowKey)
+    await expectWorkspaceSaveAcknowledged(page, savedLayout)
     await scan.getByRole('button', { name: 'Build technical condition tree', exact: true }).click()
     await expect(scan.getByRole('region', { name: 'Advanced technical condition builder' })).toBeVisible()
     await expect(scan.getByRole('combobox', { name: 'Condition group operator' })).toHaveValue('AND')
     await expect(scan.getByRole('button', { name: '+ Condition', exact: true })).toBeVisible()
     await expect(scan.getByRole('button', { name: '+ Group', exact: true })).toBeVisible()
+    await expect(page.getByRole('status', { name: 'Workspace save status' })).toHaveAttribute('data-state', 'saved')
+    await waitForOrdinaryVisualCapture(page, { requirePrimaryChart: true })
     await expect(page).toHaveScreenshot('easyscan-condition-editor-open.png', {
       animations: 'disabled',
       caret: 'hide',
@@ -312,9 +707,14 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await menuTrigger.click()
     await expect(menu).toHaveCount(1)
     await expect(menu).toHaveRole('menu')
+    const tabKey = await activeWorkspaceTabKey(page)
+    const windowKey = await tool.getAttribute('data-window-key')
+    expect(windowKey).toBeTruthy()
+    const saveAcknowledgement = waitForActiveWindowSnapshotAcknowledgement(page, tabKey, windowKey!)
     await menu.getByRole('menuitem', { name: 'Maximize' }).click()
     await expect(page.locator('.lm_maximised')).toHaveCount(1)
     await expect(tool).toBeVisible()
+    await expectWorkspaceSaveAcknowledged(page, await saveAcknowledgement)
     await expect(page).toHaveScreenshot('workspace-maximized.png', {
       animations: 'disabled',
       caret: 'hide',
@@ -327,11 +727,34 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
   test('workspace tabbed state has a deterministic board baseline', async ({ page, loggedIn, browserDiagnostics }) => {
     await page.goto('/')
     await waitForShellReady(page)
-    const tabs = page.locator('.lm_tab:visible')
-    await expect.poll(() => tabs.count(), { timeout: 10_000 }).toBeGreaterThan(1)
-    const selectedTab = tabs.nth(1)
-    await selectedTab.click()
-    await expect(selectedTab).toHaveClass(/lm_active/)
+    // The former tabs.nth(1) could be active already when multiple stacks are
+    // present. The visual state now uses the first genuinely inactive public
+    // tab, so the captured destination can differ from that ineffective case.
+    const inactiveTabs = page.locator('.lm_tab:visible:not(.lm_active)')
+    await expect.poll(() => inactiveTabs.count(), { timeout: 10_000 }).toBeGreaterThan(0)
+    const selectedTab = inactiveTabs.first()
+    await expect(selectedTab).not.toHaveClass(/lm_active/)
+    const selectedTabKey = await page.locator('.workstation__tabs [role="tab"][aria-selected="true"]').getAttribute('data-tab-key')
+    expect(selectedTabKey).toBeTruthy()
+    const selectedTabTitle = await selectedTab.getAttribute('title')
+    expect(selectedTabTitle).toBeTruthy()
+    const stableSelectedTab = page.locator(`.lm_tab:visible[title=${JSON.stringify(selectedTabTitle)}]`)
+    await expect(stableSelectedTab).toHaveCount(1)
+    const selectedWindowKey = await stableSelectedTab.evaluate(tab => {
+      const title = tab.querySelector('.lm_title')?.textContent?.trim() || tab.textContent?.trim()
+      const matching = Array.from(document.querySelectorAll<HTMLElement>('.tool-window[data-window-key]'))
+        .filter(window => window.querySelector('.tool-window__title')?.textContent?.trim() === title)
+      return matching.length === 1 ? matching[0].dataset.windowKey ?? null : null
+    })
+    expect(selectedWindowKey).toBeTruthy()
+    const saveAcknowledgement = waitForActiveWindowSnapshotAcknowledgement(page, selectedTabKey!, selectedWindowKey!)
+    await stableSelectedTab.click()
+    await expect(stableSelectedTab).toHaveClass(/lm_active/)
+    const selectedWindow = page.locator(`.tool-window[data-window-key="${selectedWindowKey}"]`)
+    await expect(selectedWindow).toBeVisible()
+    await expect(selectedWindow).toHaveClass(/tool-window--active/)
+    await expectWorkspaceSaveAcknowledged(page, await saveAcknowledgement)
+    await waitForOrdinaryVisualCapture(page)
     await expect(page).toHaveScreenshot('workspace-tabbed.png', {
       animations: 'disabled',
       caret: 'hide',
@@ -353,11 +776,19 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await menuTrigger.click()
     await expect(menu).toHaveCount(1)
     await expect(menu).toHaveRole('menu')
+    const tabKey = await activeWorkspaceTabKey(page)
+    const windowKey = await tool.getAttribute('data-window-key')
+    expect(windowKey).toBeTruthy()
+    const maximizeAcknowledgement = waitForActiveWindowSnapshotAcknowledgement(page, tabKey, windowKey!)
     await menu.getByRole('menuitem', { name: 'Maximize' }).click()
     await expect(page.locator('.lm_maximised')).toHaveCount(1)
-    await tool.locator('button[title="Maximize"]').click()
+    await expectWorkspaceSaveAcknowledged(page, await maximizeAcknowledgement)
+    const restoreAcknowledgement = waitForActiveWindowSnapshotAcknowledgement(page, tabKey, windowKey!)
+    await tool.locator('button[title="Restore"]').click()
     await expect(page.locator('.lm_maximised')).toHaveCount(0)
     await expect(tool).toBeVisible()
+    await expectWorkspaceSaveAcknowledged(page, await restoreAcknowledgement)
+    await waitForOrdinaryVisualCapture(page, { requirePrimaryChart: true })
     await expect(page).toHaveScreenshot('workspace-restored.png', {
       animations: 'disabled',
       caret: 'hide',
@@ -371,9 +802,25 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await page.goto('/')
     await waitForShellReady(page)
     const sourceTool = page.locator('.tool-window').first()
+    const sourceWindowKey = await sourceTool.getAttribute('data-window-key')
+    const tabKey = await activeWorkspaceTabKey(page)
+    expect(sourceWindowKey).toBeTruthy()
     const expectedSymbols = ['DIA', 'IWM', 'QQQ', 'RSP', 'SPY']
     await expect(sourceTool.locator('.watchlist__row')).toHaveCount(expectedSymbols.length)
     const popupPromise = context.waitForEvent('page')
+    const floatAcknowledgement = page.waitForResponse(async response => {
+      const request = response.request()
+      if (request.method() !== 'PUT' || !/\/workspaces\/[^/]+\/snapshot$/.test(new URL(request.url()).pathname)) return false
+      try {
+        const payload = request.postDataJSON() as { tabs?: Array<{ stable_key?: string; active_window_key?: string | null; windows?: Array<{ instance_key?: string; style?: { popout?: { left?: number; top?: number; width?: number; height?: number } } }> }> }
+        const tab = payload.tabs?.find(candidate => candidate.stable_key === tabKey)
+        const floated = tab?.windows?.find(window => window.instance_key === sourceWindowKey)
+        const placement = floated?.style?.popout
+        return Boolean(tab?.active_window_key === sourceWindowKey
+          && placement
+          && [placement.left, placement.top, placement.width, placement.height].every(value => typeof value === 'number' && Number.isFinite(value)))
+      } catch { return false }
+    })
     await sourceTool.locator('button[title="Float"]').click()
     const popup = await popupPromise
     await popup.waitForLoadState('domcontentloaded')
@@ -394,6 +841,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
       const rowText = await popoutRows.allTextContents()
       return rowText.length === expectedSymbols.length && rowText.every(text => text.includes('Current'))
     }, { timeout: 15_000 }).toBe(true)
+    await expectWorkspaceSaveAcknowledged(page, await floatAcknowledgement)
     await expect(popup).toHaveScreenshot('workspace-floating.png', {
       animations: 'disabled',
       caret: 'hide',
@@ -476,6 +924,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     expect(helpLayout.rowCount).toBeGreaterThan(0)
     expect(helpLayout.unreadableGaps, 'shortcut key labels must leave at least 8 CSS pixels before descriptions').toEqual([])
     expect(helpLayout.clipped, 'shortcut text must remain within the Help dialog width').toEqual([])
+    await waitForOrdinaryVisualCapture(page, { requirePrimaryChart: true })
     await expect(page).toHaveScreenshot('application-shell-help-open.png', {
       animations: 'disabled',
       caret: 'hide',
@@ -491,7 +940,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify([
-          { symbol: 'SPY', name: 'S&P 500 proxy ETF', exchange: 'ARCX', type: 'ETF' },
+          { symbol: 'SPY', instrument_id: 2, name: 'S&P 500 proxy ETF', exchange: 'ARCX', type: 'ETF' },
           { symbol: 'SPX', name: 'S&P 500 Index', exchange: 'INDEX', type: 'INDEX' },
         ]),
       })
@@ -507,6 +956,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await expect(results).toBeVisible({ timeout: 10_000 })
     await expect(results).toContainText('SPY')
     await expect(symbolEntry).toHaveValue('SP')
+    await waitForOrdinaryVisualCapture(page, { requireSeededUniverses: true, requirePrimaryChart: true, freshness: 'current' })
     await expect(page).toHaveScreenshot('application-shell-search-focused.png', {
       animations: 'disabled',
       caret: 'hide',
@@ -522,7 +972,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify([
-          { symbol: 'SPY', name: 'S&P 500 proxy ETF', exchange: 'ARCX', type: 'ETF' },
+          { symbol: 'SPY', instrument_id: 2, name: 'S&P 500 proxy ETF', exchange: 'ARCX', type: 'ETF' },
           { symbol: 'SPX', name: 'S&P 500 Index', exchange: 'INDEX', type: 'INDEX' },
         ]),
       })
@@ -539,6 +989,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await expect(results.getByRole('option', { selected: true })).toContainText('SPY')
     await symbolEntry.press('ArrowDown')
     await expect(results.getByRole('option', { selected: true })).toContainText('SPX')
+    await waitForOrdinaryVisualCapture(page, { requireSeededUniverses: true, requirePrimaryChart: true, freshness: 'current' })
     await expect(page).toHaveScreenshot('application-shell-search-keyboard-selected.png', {
       animations: 'disabled',
       caret: 'hide',
@@ -569,15 +1020,6 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
   })
 
   test('Study Lab original surface uses the board-guided dense tool language', async ({ page, loggedIn, browserDiagnostics }) => {
-    // Keep the adjacent chart and persisted research list in their stable
-    // loading states. The surface baseline is about Study Lab composition, not
-    // whichever asynchronous data response wins the capture race.
-    await page.route(/\/api\/v1\/ohlcv(?:\/|$)/, async () => {
-      await new Promise(() => undefined)
-    })
-    await page.route(/\/api\/v1\/research\/runs(?:\?|$)/, async () => {
-      await new Promise(() => undefined)
-    })
     await page.goto('/')
     await expect(page.locator('.workstation')).toBeVisible()
     await expect(page.locator('.workstation__layout-state')).toHaveCount(0)
@@ -597,6 +1039,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await expect(study.getByRole('textbox', { name: 'Study Python source' })).toBeVisible()
     await expect(study.getByRole('button', { name: 'Validate' })).toBeVisible()
     await expect(study.getByRole('button', { name: 'Run study', exact: true })).toBeVisible()
+    await waitForOrdinaryVisualCapture(page, { requirePrimaryChart: true, freshness: 'current', requireResearchResults: true })
     const overlapIssues = await study.evaluate((root) => {
       const header = root.querySelector('.study-lab-tool__header')?.getBoundingClientRect()
       const editor = root.querySelector('.study-lab-tool__editor-shell')?.getBoundingClientRect()
@@ -642,7 +1085,9 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     })
     await page.goto('/chart')
     await expect(page.locator('.workstation')).toBeVisible()
-    await expect(page.locator('.chart-tool .tool-state--error')).toContainText(/Request failed|unavailable|observations/i, { timeout: 10_000 })
+    const chartError = page.locator('.chart-tool .tool-state--error')
+    await expect(chartError).toHaveText('No local D1 price history is available for SPY.', { timeout: 10_000 })
+    await expect(chartError).not.toContainText(/\/api\/v1\/|\{\s*"detail"/i)
     await expect(page.locator('.chart-tool canvas')).toHaveCount(0)
     if (process.env.E2E_SEED_MARKET_DATA === 'true') {
       // This gap intentionally keeps the primary chart in its terminal 404
@@ -652,7 +1097,9 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
       // without waiting for the chart to become ready.
       const benchmarks = page.getByRole('region', { name: 'Major US benchmarks' })
       const sectors = page.getByRole('region', { name: 'Relative to SPY' })
-      const constituents = page.getByRole('group', { name: 'Constituents', exact: true })
+      const constituents = page.locator('.tool-window[data-tool-key="constituent-list"]').getByRole('region')
+      await expect(constituents).toHaveCount(1)
+      await expect(constituents).toHaveAttribute('aria-label', 'SPY holdings · 2026-01-02 · e2e_reference')
       await expect(page.locator('.workstation__refresh')).toHaveText('Refresh', { timeout: 15_000 })
       await expect(benchmarks).toHaveAttribute('aria-busy', 'false', { timeout: 15_000 })
       await expect(benchmarks.locator('.watchlist__row')).toHaveCount(5, { timeout: 15_000 })
@@ -661,12 +1108,13 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
       await expect(constituents).toHaveAttribute('aria-busy', 'false', { timeout: 15_000 })
       await expect(constituents.locator('.watchlist__row')).toHaveCount(6, { timeout: 15_000 })
       await expect(page.locator('.industry-list__row')).toHaveCount(2, { timeout: 15_000 })
-      await expect(page.locator('.ratio-chart')).toHaveAttribute('aria-busy', 'false', { timeout: 15_000 })
+      // Settles after the ratio pair's preparation request; worker pickup can take ~10s.
+      await expect(page.locator('.ratio-chart')).toHaveAttribute('aria-busy', 'false', { timeout: 45_000 })
       await expect(page.locator('.ratio-chart__legend strong').first()).toHaveText('SPY/RSP', { timeout: 15_000 })
       await expect(page.locator('.tool-window').filter({ hasText: 'Technicals' }).locator('.metrics')).toContainText('100.00', { timeout: 15_000 })
       // Keep the target failure—not a later state transition—as the screenshot
       // oracle's chart composition.
-      await expect(page.locator('.chart-tool .tool-state--error')).toContainText(/Request failed|unavailable|observations/i)
+      await expect(page.locator('.chart-tool .tool-state--error')).toHaveText('No local D1 price history is available for SPY.')
       await expect(page.locator('.chart-tool canvas')).toHaveCount(0)
     }
     // Bind the capture to the terminal shared workstation state as well as the
@@ -725,6 +1173,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
     await expect(page.locator('.workstation__footer')).toContainText('Stale · cached', { timeout: 10_000 })
     await expect(page.locator('.workstation__refresh')).toHaveText('Refresh', { timeout: 10_000 })
+    await waitForCachedChartAnalysisToRender(page)
     await expect(page).toHaveScreenshot('stale-freshness-gap.png', {
       animations: 'disabled',
       caret: 'hide',
@@ -750,6 +1199,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
     await expect(page.locator('.workstation__footer')).toContainText('Delayed', { timeout: 10_000 })
     await expect(page.locator('.workstation__refresh')).toHaveText('Refresh', { timeout: 10_000 })
+    await waitForCachedChartAnalysisToRender(page)
     await expect(page).toHaveScreenshot('delayed-freshness-gap.png', {
       animations: 'disabled',
       caret: 'hide',
@@ -759,6 +1209,12 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
   })
 
   test('unavailable freshness gap state has a deterministic local baseline', async ({ page, loggedIn }) => {
+    await page.route(url => new URL(url).pathname === '/api/v1/ohlcv/local/SPY/D1', async route => {
+      expect(route.request().method()).toBe('GET')
+      // This scenario must contain no local observations; cached bars would
+      // correctly make the UI stale rather than unavailable.
+      await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
+    })
     await page.route(/\/api\/v1\/analysis\/instruments\/[^/]+\/technical(?:\?|$)/, async route => {
       await route.fulfill({
         status: 200,
@@ -800,6 +1256,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await expect(page.locator('.workstation')).toBeVisible()
     await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
     await expect(page.locator('.workstation__footer')).toContainText('Partial coverage', { timeout: 10_000 })
+    await waitForOrdinaryVisualCapture(page, { requireSeededUniverses: true, requirePrimaryChart: true, freshness: 'partial' })
     await expect(page).toHaveScreenshot('partial-coverage-gap.png', {
       animations: 'disabled',
       caret: 'hide',
@@ -809,6 +1266,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
   })
 
   test('Study Lab validation-error gap state has a deterministic local baseline', async ({ page, loggedIn }) => {
+    await installCoveredStudyHistoryFixture(page)
     // Keep the adjacent chart in its documented loading state. This visual case is
     // about the validation-error surface; allowing a seeded OHLCV response to race
     // the capture makes the expected loading baseline depend on fixture timing.
@@ -824,6 +1282,8 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await study.getByRole('textbox', { name: 'Study Python source' }).fill("output.scalar('broken'")
     await study.getByRole('button', { name: 'Validate' }).click()
     await expect(study).toContainText('Validation errors', { timeout: 10_000 })
+    // The raw validation JSON is collapsed behind its own Details summary.
+    await study.locator('.study-lab-tool__validation--bad details.study-lab-tool__raw > summary').click()
     await expect(study.locator('.study-lab-tool__validation--bad pre')).toBeVisible()
     await expect(study.getByRole('button', { name: 'Run study', exact: true })).toBeDisabled()
     await expect(page).toHaveScreenshot('study-lab-validation-error-gap.png', {
@@ -835,6 +1295,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
   })
 
   test('Study Lab running gap state has a deterministic local baseline', async ({ page, loggedIn, browserDiagnostics }) => {
+    await installCoveredStudyHistoryFixture(page)
     const runningRun = {
       id: 778,
       code_version_id: 777,
@@ -903,8 +1364,12 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await expect(study.getByRole('button', { name: 'Cancel study run', exact: true })).toBeVisible()
     await expect(page.locator('.workstation__refresh')).toHaveText('Refreshing…', { timeout: 15_000 })
     await expect(page.locator('.chart-tool .tool-state')).toHaveText('Loading SPY…')
-    await expect(page.getByRole('region', { name: 'Study Lab research results' }))
-      .toContainText('Loading reproducible research runs…')
+    const results = page.getByRole('region', { name: 'Study Lab research results' })
+    const resultsRun = results.getByRole('listitem').filter({ hasText: 'Run #778' })
+    await expect(resultsRun.getByRole('status')).toHaveAttribute('aria-label', 'Run 778 status: Running')
+    await expect(resultsRun).toContainText('0 artifacts')
+    const resultsDetail = results.getByRole('article', { name: 'Research run 778 details' })
+    await expect(resultsDetail).toContainText('runner active')
     await expect(page).toHaveScreenshot('study-lab-running-gap.png', {
       animations: 'disabled',
       caret: 'hide',
@@ -915,6 +1380,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
   })
 
   test('Study Lab structured-result gap state has a deterministic local baseline', async ({ page, loggedIn, browserDiagnostics }) => {
+    await installCoveredStudyHistoryFixture(page)
     const structuredRun = {
       id: 779,
       code_version_id: 778,
@@ -944,9 +1410,8 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     })
     await page.route(/\/api\/v1\/research\/runs$/, async route => {
       if (route.request().method() === 'GET') {
-        // The adjacent Persisted runs tool must not depend on whatever rows a
-        // shared E2E database happens to contain.  An empty, successful list
-        // is the deterministic factory state for this visual capture.
+        // Keep persisted server rows deterministic. The newly accepted run is
+        // published into the shared Results cache independently of this list.
         await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
         return
       }
@@ -979,9 +1444,32 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await expect(page.locator('.workstation__refresh')).toHaveText('Refresh', { timeout: 15_000 })
     await expect(page.locator('.chart-tool .tool-state')).toHaveCount(0, { timeout: 15_000 })
     await expect(page.locator('.chart-tool canvas').first()).toBeVisible()
-    await expect(page.getByRole('region', { name: 'Study Lab research results' })).toContainText('No persisted studies yet.')
-    await expect(study.locator('.study-bars canvas')).toBeVisible()
-    await expect(study.locator('.study-histogram canvas')).toBeVisible()
+    const results = page.getByRole('region', { name: 'Study Lab research results' })
+    const resultsRun = results.getByRole('listitem').filter({ hasText: 'Run #779' })
+    await expect(resultsRun.getByRole('status')).toHaveAttribute('aria-label', 'Run 779 status: Completed')
+    await expect(resultsRun).toContainText('5 artifacts')
+    const resultsDetail = results.getByRole('article', { name: 'Research run 779 details' })
+    await expect(resultsDetail).toContainText('Run #779')
+    for (const artifact of ['event_count', 'monthly_frequency', 'streak_distribution', 'summary', 'occurrences']) {
+      await expect(resultsDetail.getByRole('article', { name: new RegExp(`^${artifact} `) })).toBeVisible()
+    }
+    const studyRun = study.locator('.study-lab-tool__run')
+    const studyBars = study.locator('article[aria-label="monthly_frequency bar result"] .study-bars')
+    const studyNextHeader = study.locator('article[aria-label="streak_distribution histogram result"] .study-lab-tool__artifact-header')
+    await expect(studyBars.locator('canvas')).toBeVisible()
+    await expect(study.locator('article[aria-label="streak_distribution histogram result"] .study-histogram canvas')).toBeVisible()
+    const studyBarsBounds = await expectContainedBounds(studyRun, studyBars, 'Study monthly_frequency readout')
+    const studyNextHeaderBounds = await expectContainedBounds(studyRun, studyNextHeader, 'Study next artifact header')
+    expect(studyNextHeaderBounds.y).toBeGreaterThanOrEqual(studyBarsBounds.y + studyBarsBounds.height - 1)
+
+    const resultsArtifacts = resultsDetail.locator('.research-results-tool__artifacts')
+    const resultsBars = resultsDetail.locator('article[aria-label="monthly_frequency bar result"] .study-bars')
+    const resultsNextHeader = resultsDetail.locator('article[aria-label="streak_distribution histogram result"] .research-results-tool__artifact-header')
+    await expect(resultsBars.locator('canvas')).toBeVisible()
+    await expect(resultsDetail.locator('article[aria-label="streak_distribution histogram result"] .study-histogram canvas')).toBeVisible()
+    const resultsBarsBounds = await expectContainedBounds(resultsArtifacts, resultsBars, 'Results monthly_frequency readout')
+    const resultsNextHeaderBounds = await expectContainedBounds(resultsArtifacts, resultsNextHeader, 'Results next artifact header')
+    expect(resultsNextHeaderBounds.y).toBeGreaterThanOrEqual(resultsBarsBounds.y + resultsBarsBounds.height - 1)
     await expect(page).toHaveScreenshot('study-lab-structured-result-gap.png', {
       animations: 'disabled',
       caret: 'hide',
@@ -992,6 +1480,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
   })
 
   test('Study Lab sandbox-error gap state has a deterministic local baseline', async ({ page, loggedIn, browserDiagnostics }) => {
+    await installCoveredStudyHistoryFixture(page)
     const failedRun = {
       id: 780,
       code_version_id: 779,
@@ -1059,16 +1548,24 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await expect(study.locator('.study-lab-tool__run-status--failed')).toBeVisible({ timeout: 10_000 })
     await expect(study).toContainText('Run #780')
     const diagnostics = study.locator('.study-lab-tool__run-details').filter({ hasText: 'Diagnostics (1)' })
-    await diagnostics.locator('summary').click()
+    // Each run block has its own summary; nested raw Details summaries must not match.
+    await diagnostics.locator(':scope > summary').click()
     await expect(diagnostics).toContainText('Network access is disabled')
     const warnings = study.locator('.study-lab-tool__run-details').filter({ hasText: 'Warnings (1)' })
-    await warnings.locator('summary').click()
+    await warnings.locator(':scope > summary').click()
     await expect(warnings).toContainText('run was terminated')
     await expect(study).toContainText('Rerun snapshot')
     await expect(page.locator('.workstation__refresh')).toHaveText('Refreshing…')
     await expect(page.locator('.chart-tool .tool-state')).toHaveText('Loading SPY…')
-    await expect(page.getByRole('region', { name: 'Study Lab research results' }))
-      .toContainText('Loading reproducible research runs…')
+    const results = page.getByRole('region', { name: 'Study Lab research results' })
+    const resultsRun = results.getByRole('listitem').filter({ hasText: 'Run #780' })
+    await expect(resultsRun.getByRole('status')).toHaveAttribute('aria-label', 'Run 780 status: Failed')
+    await expect(resultsRun).toContainText('0 artifacts')
+    const resultsDetail = results.getByRole('article', { name: 'Research run 780 details' })
+    await expect(resultsDetail).toContainText('Run #780')
+    await expect(resultsDetail).toContainText('sandbox policy denied socket access')
+    await expect(resultsDetail).toContainText('Network access is disabled')
+    await expect(resultsDetail).toContainText('run was terminated')
     await expect(page).toHaveScreenshot('study-lab-sandbox-error-gap.png', {
       animations: 'disabled',
       caret: 'hide',

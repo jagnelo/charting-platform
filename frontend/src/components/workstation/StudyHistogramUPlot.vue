@@ -1,7 +1,10 @@
 <template>
   <div ref="root" class="study-histogram">
     <div v-if="!valid" class="study-histogram__state" role="status" aria-live="polite" aria-atomic="true">Distribution has no numeric observations.</div>
-    <div v-else ref="host" class="study-histogram__host" />
+    <template v-else>
+      <div ref="host" class="study-histogram__host" />
+      <div ref="legendHost" class="study-histogram__legend" />
+    </template>
   </div>
 </template>
 
@@ -15,6 +18,7 @@ interface HistogramBin { start: number; end: number; count: number }
 const props = defineProps<{ name: string; bins: HistogramBin[]; current?: number | null }>()
 const root = ref<HTMLElement | null>(null)
 const host = ref<HTMLElement | null>(null)
+const legendHost = ref<HTMLElement | null>(null)
 const valid = ref(false)
 let chart: uPlot | null = null
 let observer: ResizeObserver | null = null
@@ -23,6 +27,15 @@ function destroyChart() { chart?.destroy(); chart = null }
 function data(): uPlot.AlignedData {
   const indices = props.bins.flatMap((_, index) => [index]).concat(props.bins.length)
   return [indices, [...props.bins.map(bin => bin.count), 0]]
+}
+function categoryTickIndices(instance: uPlot, labels: string[]) {
+  if (labels.length <= 1) return labels.map((_, index) => index)
+  const widestLabel = Math.max(...labels.map(label => label.length))
+  const minimumLabelSpace = Math.max(32, Math.min(144, widestLabel * 6 + 10))
+  const visibleCount = Math.max(1, Math.min(labels.length, Math.floor(instance.bbox.width / minimumLabelSpace)))
+  if (visibleCount === labels.length) return labels.map((_, index) => index)
+  if (visibleCount === 1) return [Math.floor((labels.length - 1) / 2)]
+  return Array.from({ length: visibleCount }, (_, index) => Math.round(index * (labels.length - 1) / (visibleCount - 1)))
 }
 
 function drawBars(instance: uPlot) {
@@ -36,12 +49,10 @@ function drawBars(instance: uPlot) {
     const top = instance.valToPos(bin.count, 'y', true)
     context.fillRect(Math.floor(left) + 1, Math.min(top, baseline), Math.max(1, Math.floor(right - left) - 2), Math.max(1, Math.abs(baseline - top)))
   })
-  if (typeof props.current === 'number' && Number.isFinite(props.current) && props.bins.length) {
-    const index = props.current <= props.bins[0].start
-      ? 0
-      : props.current >= props.bins[props.bins.length - 1].end
-        ? props.bins.length - 1
-        : Math.max(0, props.bins.findIndex(bin => props.current! >= bin.start && props.current! <= bin.end))
+  // The current-value marker is drawn only while the pointer is over the plot, so no stray line sits in the chart at rest.
+  const hovered = instance.cursor.left != null && instance.cursor.left >= 0
+  if (hovered && typeof props.current === 'number' && Number.isFinite(props.current) && props.bins.length) {
+    const index = currentBinIndex()
     const marker = instance.valToPos(index + 0.5, 'x', true)
     context.strokeStyle = '#f0c674'
     context.lineWidth = 2
@@ -52,11 +63,22 @@ function drawBars(instance: uPlot) {
   }
   context.restore()
 }
+// Bin holding the current observation; falls back to the nearest end bin when it lies outside the histogram.
+function currentBinIndex() {
+  const current = props.current
+  if (typeof current !== 'number' || !Number.isFinite(current) || !props.bins.length) return props.bins.length - 1
+  if (current <= props.bins[0].start) return 0
+  if (current >= props.bins[props.bins.length - 1].end) return props.bins.length - 1
+  return Math.max(0, props.bins.findIndex(bin => current >= bin.start && current <= bin.end))
+}
+// The legend shows the current observation's bin whenever the pointer is not over the plot, and the hovered bin otherwise.
+function showRestingLegend(instance: uPlot) { if (instance.cursor.idx == null) instance.setLegend({ idx: currentBinIndex() }, false) }
 function hasValidData() { return props.bins.length > 0 && props.bins.every(bin => Number.isFinite(bin.start) && Number.isFinite(bin.end) && Number.isFinite(bin.count) && bin.count >= 0) }
 
 function draw() {
   valid.value = hasValidData()
   if (!valid.value || !host.value) { if (!valid.value) destroyChart(); return }
+  observer?.observe(host.value)
   const width = Math.max(180, host.value.clientWidth)
   const height = Math.max(120, host.value.clientHeight)
   if (chart) {
@@ -67,16 +89,26 @@ function draw() {
   chart = new uPlot({
     width,
     height,
+    legend: { mount: (_chart, element) => legendHost.value?.appendChild(element) },
     cursor: { drag: { x: false, y: false } },
     scales: { x: { time: false }, y: { auto: true, min: 0 } },
     axes: [
-      { stroke: '#70808b', grid: { stroke: '#26313a', width: 1 }, ticks: { stroke: '#40505a', width: 1 }, font: '10px Segoe UI', values: (_u, values) => values.map(value => {
-        const bin = props.bins[Math.round(value)]
-        return bin ? `${format(bin.start)}–${format(bin.end)}` : ''
-      }) },
+      {
+        stroke: '#70808b',
+        grid: { stroke: '#26313a', width: 1 },
+        ticks: { stroke: '#40505a', width: 1 },
+        font: '10px Segoe UI',
+        splits: instance => categoryTickIndices(instance, props.bins.map(bin => `${format(bin.start)}–${format(bin.end)}`)).map(index => index + 0.5),
+        values: (_u, values) => values.map(value => {
+          const binIndex = value - 0.5
+          const bin = Number.isInteger(binIndex) ? props.bins[binIndex] : undefined
+          return bin ? `${format(bin.start)}–${format(bin.end)}` : ''
+        }),
+      },
       { stroke: '#9aabb6', grid: { stroke: '#26313a', width: 1 }, ticks: { stroke: '#40505a', width: 1 }, font: '10px Segoe UI' },
     ],
     series: [{}, { label: props.name, stroke: 'transparent', width: 0 }],
+    hooks: { setLegend: [showRestingLegend] },
     plugins: [{ hooks: { draw: [drawBars] } }],
   }, data(), host.value)
 }
@@ -98,5 +130,5 @@ onBeforeUnmount(() => { observer?.disconnect(); destroyChart() })
 </script>
 
 <style scoped>
-.study-histogram { height:190px; min-height:120px; margin-top:4px; background:#101419; }.study-histogram__host { height:100%; }.study-histogram__state { display:grid; height:100%; place-items:center; color:#8497a4; font:10px "Segoe UI",Arial,sans-serif; }
+.study-histogram { display:grid; grid-template-rows:minmax(0,1fr) auto; gap:2px; height:190px; min-height:120px; min-width:0; margin-top:4px; background:#101419; }.study-histogram__host { min-height:0; min-width:0; }.study-histogram__legend { min-width:0; max-width:100%; color:#b8c8d3; }.study-histogram__legend :deep(.u-legend) { display:block; width:100%; max-width:100%; font:9px/1.2 "Segoe UI",Arial,sans-serif; }.study-histogram__legend :deep(.u-inline tr) { display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; width:100%; gap:2px 6px; margin:0; }.study-histogram__legend :deep(.u-legend th),.study-histogram__legend :deep(.u-legend td) { min-width:0; max-width:100%; padding:1px 2px; white-space:normal; overflow-wrap:anywhere; }.study-histogram__legend :deep(.u-legend th) { flex:1 1 auto; text-align:left; }.study-histogram__legend :deep(.u-legend td) { flex:0 1 auto; text-align:right; }.study-histogram__state { display:grid; height:100%; place-items:center; color:#8497a4; font:10px "Segoe UI",Arial,sans-serif; }
 </style>

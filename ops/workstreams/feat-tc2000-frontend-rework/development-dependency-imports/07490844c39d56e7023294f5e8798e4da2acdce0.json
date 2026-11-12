@@ -1,0 +1,252 @@
+{
+  "authority": "Root coordinates the human-approved common-interface implementation; no staging or deployment acceptance",
+  "base": "139b350238b5e1c8a170dce5af09a805301d857e",
+  "changed_paths_since_previous": [
+    "backend/app/services/data_preparation.py",
+    "backend/app/services/e2e_seed.py",
+    "backend/app/services/workstation_tool_catalogue.py",
+    "backend/app/tasks/data_tasks.py",
+    "backend/app/workers/arq_worker.py",
+    "backend/tests/integration/test_data_preparation_queue_postgres.py",
+    "backend/tests/unit/services/test_data_preparation_service.py",
+    "backend/tests/unit/services/test_e2e_seed.py",
+    "backend/tests/unit/services/test_workstation_tool_catalogue.py",
+    "backend/tests/unit/tasks/test_data_tasks.py",
+    "backend/tests/unit/workers/test_arq_worker.py"
+  ],
+  "contract_path": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider074-runtime-development-consumption-contract.json",
+  "contract_sha256": "f01f558d28fe6dc5864a4c46187de3fac0906b536d72dec1ed6cb92c8fdf3cfc",
+  "files": [
+    {
+      "git_blob": "bcdb5e07415c1fd84504adec4f835d824d24b8ff",
+      "path": "backend/app/main.py",
+      "sha256": "12df279e453e6c8fcf7e05ede9208af027fa27645eb927cd4e84fa4dc742f4ca",
+      "status_from139": "M"
+    },
+    {
+      "git_blob": "f04bb5b13374dfe4c5683acd70250d921bfbf5f5",
+      "path": "backend/app/providers/alpaca.py",
+      "sha256": "65cf8bf722a580c8c74d5562f73e57bc495196544590be8d71a1538b0182b3e6",
+      "status_from139": "M"
+    },
+    {
+      "git_blob": "9a80bb96d3a2ec6dcefbba641d970f67efdcc086",
+      "path": "backend/app/providers/massive.py",
+      "sha256": "a0b960e36199e58e332eeee13a0423479a536f5ecb75336012aa0de47659800b",
+      "status_from139": "M"
+    },
+    {
+      "git_blob": "6a076671ad88a0e4f93ca742a644d6fa8958032d",
+      "path": "backend/app/routers/data_preparation.py",
+      "sha256": "3f263b31955de71deac04cccbbeb63add7b5ac9d59d8afcf9e0a25ba344d634b",
+      "status_from139": "A"
+    },
+    {
+      "git_blob": "d0921270b79f2ac24419a32833f75e5f441af96e",
+      "path": "backend/app/routers/ohlcv.py",
+      "sha256": "420387926e48794e48cd452c04fbd9478b68980f0162762acdd434a019407b30",
+      "status_from139": "M"
+    },
+    {
+      "git_blob": "667444d2dd45c26dbf04b980eacfedf913385555",
+      "path": "backend/app/routers/workspaces.py",
+      "sha256": "1864849a684b08fc518e7d2b4c2884e4693866c9f6084f501b34c083540c1e2d",
+      "status_from139": "M"
+    },
+    {
+      "git_blob": "54ba1ffbbe34ed04d7bf0c3426ad23e684ed370e",
+      "path": "backend/app/schemas/data_preparation.py",
+      "sha256": "763455a0424f86c6d69bf10e6b1c60d60dc602a7dc9b1ba1f007a385b0d7a002",
+      "status_from139": "A"
+    },
+    {
+      "git_blob": "2ccd5aa9d04e2dc1b9e6bbabc45dfed96f68cf0b",
+      "path": "backend/app/services/bulk_fetch.py",
+      "sha256": "91c9d3312d0b6265622b1a025135edab6dbd281a4b5bd5164eb9ff43b8ebbbd5",
+      "status_from139": "M"
+    },
+    {
+      "git_blob": "22122d5cf2e48e15b0cc0c96862f3c36042c6097",
+      "path": "backend/app/services/data_preparation.py",
+      "sha256": "72ae97296a9d40054c794c85976cf8be7738d8771df7a02b8021416f07f178c3",
+      "status_from139": "A"
+    },
+    {
+      "git_blob": "c49bc33100b252eb4f523755223e0acbb43e5805",
+      "path": "backend/app/services/data_preparation_contracts.py",
+      "sha256": "03cdee95aa09144365115a3c0f005feb8863ff464bf463be551e8bdc0edb2298",
+      "status_from139": "A"
+    },
+    {
+      "git_blob": "3b2c6337ad25a533096f1a9ed213fcc7207d933f",
+      "path": "backend/app/services/derived_timeframes.py",
+      "sha256": "d88137707ebb337e7bb30ad7b2e55ba9c92b7c3e55c007b7d58c86a2caa492e5",
+      "status_from139": "M"
+    },
+    {
+      "git_blob": "aa87d6d9e78e398a28b6495ef89e5817db26cf5f",
+      "path": "backend/app/services/e2e_seed.py",
+      "sha256": "3233defc6e832232bbedc389369ff8fb43857454720c8661b77d25fa1bc8b8aa",
+      "status_from139": "M"
+    },
+    {
+      "git_blob": "f4470a83a237dc38e42680b3a45948e71dbe28b8",
+      "path": "backend/app/services/etf_holdings_preparation.py",
+      "sha256": "30a9b581609d2ee584d81667afa388df62e5a9133895cc98a841015cd6eb7df1",
+      "status_from139": "A"
+    },
+    {
+      "git_blob": "8ab7d7879661abb68309b668c61648cf212785cd",
+      "path": "backend/app/services/etf_holdings_refresh.py",
+      "sha256": "e258f61bcc7aa288897999cb421d320512439e101157ff0f91fe5be4b216fce3",
+      "status_from139": "M"
+    },
+    {
+      "git_blob": "bb2e2374f5b789f9871fd83f46705b2b50a8ecff",
+      "path": "backend/app/services/market_data.py",
+      "sha256": "b00a5e4a21c850b526cadee810d51d8dbe65a3aabb0be309e9bd50ff6d9ec72e",
+      "status_from139": "M"
+    },
+    {
+      "git_blob": "ee5f702001d0670e8d4c37a9533c5bc4809d5521",
+      "path": "backend/app/services/market_refresh_queue.py",
+      "sha256": "3ea7b26e93ae932bd17791c5032f2d21ec789fed34b74be7c45a905665525b5f",
+      "status_from139": "M"
+    },
+    {
+      "git_blob": "a971b4c3acb7856596afb77508401b4347414a89",
+      "path": "backend/app/services/market_series.py",
+      "sha256": "eecfac599f3d6a097f282ba467271a13194f99148ea3ffff339d7c1795b73597",
+      "status_from139": "M"
+    },
+    {
+      "git_blob": "c8243ac3ae256cdcf2e1f0209265b542fc0d1061",
+      "path": "backend/app/services/provider_runtime.py",
+      "sha256": "8d0a69a8216277ac95d5c69fa81fa04a2d42b276e331c9bfb03b180b9a1eff30",
+      "status_from139": "M"
+    },
+    {
+      "git_blob": "279a44ecea8ab0901741da0efaff3d06773d729d",
+      "path": "backend/app/services/workstation_tool_catalogue.py",
+      "sha256": "7a111059b60764c3f44ce01e562f4e4030447a0afa7e4673c237d44ba76e396f",
+      "status_from139": "A"
+    },
+    {
+      "git_blob": "1ffe06cea94dee31daf3ed564148fb405f8a02a9",
+      "path": "backend/app/tasks/data_tasks.py",
+      "sha256": "3047cae1c212e6e3eb37d64ab26b7d9b09ec7f651edb6af3d57ab4a8242c4ec1",
+      "status_from139": "M"
+    },
+    {
+      "git_blob": "8cef37e55479112b0d057305b680e01cb6112c5a",
+      "path": "backend/app/workers/arq_worker.py",
+      "sha256": "08a681809f7e425eac56ea5cad104bc1e34ba12f0df1d0417c3d41bff51226fd",
+      "status_from139": "M"
+    },
+    {
+      "git_blob": "d2a5dd61fbf92c2fcab2179e1cdf27f4aaa75797",
+      "path": "backend/tests/integration/test_data_preparation_queue_postgres.py",
+      "sha256": "a735488309428d8000584a96aa46ada8484944f2b9e0504b6b1596108c29f022",
+      "status_from139": "A"
+    },
+    {
+      "git_blob": "dea961137e8974516c2027d627e1e91c14a5b9c4",
+      "path": "backend/tests/unit/providers/test_new_providers.py",
+      "sha256": "743f26f4e9b39e9bc1fb1c7f7397f5fdb3c6ea5c01abfb08da07e9638cfd5a7c",
+      "status_from139": "M"
+    },
+    {
+      "git_blob": "22ea722f21f8b7c65a6d0c312aa2b7fed9a76513",
+      "path": "backend/tests/unit/routers/test_data_preparation_router.py",
+      "sha256": "c24567191da090d300ee7f092bf27c7d1e698c1e514381657165aeead317fa83",
+      "status_from139": "A"
+    },
+    {
+      "git_blob": "57cc0d615df4351a9a7f74ec798145f6ab9c1b0a",
+      "path": "backend/tests/unit/routers/test_ohlcv_router.py",
+      "sha256": "7f676110a98ab05c8739acf0c094bc797c5486fe4298dcce5982b62027be3ede",
+      "status_from139": "M"
+    },
+    {
+      "git_blob": "25d184d89c7ec5206962aa982e51fbd53a422c91",
+      "path": "backend/tests/unit/routers/test_workspace_tool_catalogue.py",
+      "sha256": "eab99dea4ad2af764775c312c1ff1caf08863f6607a170a408cd0282463b2873",
+      "status_from139": "A"
+    },
+    {
+      "git_blob": "b37d2fde245fa747924dab9eb7f36e0b3ee311fc",
+      "path": "backend/tests/unit/services/test_data_preparation_contracts.py",
+      "sha256": "731915d09bf814aac95d9c1195dd27084e7bf26eeb3998c73659597ee23d8271",
+      "status_from139": "A"
+    },
+    {
+      "git_blob": "a0a6518cfe4f7175aeddff06c741b09acdb87470",
+      "path": "backend/tests/unit/services/test_data_preparation_history_planning.py",
+      "sha256": "8d83b57c1f370d5fe1b611937c685b909382b9ce01c0db55e83ae9ebd6ad89d3",
+      "status_from139": "A"
+    },
+    {
+      "git_blob": "95dd6787e0d6eaa55e7db91fab8df0e2f4ec8098",
+      "path": "backend/tests/unit/services/test_data_preparation_service.py",
+      "sha256": "b8428f546c909c87b7fd1a6d8e3799d42785eff9a110e9d8365e5bbd675a3454",
+      "status_from139": "A"
+    },
+    {
+      "git_blob": "85811ade209a4adfbe1b095527453fa2608e9207",
+      "path": "backend/tests/unit/services/test_derived_timeframes.py",
+      "sha256": "a20cd49f05714cff8b14d564ca4a36ad0e0e3fe4888b4177f381d787c60bd66a",
+      "status_from139": "M"
+    },
+    {
+      "git_blob": "64e880b31a3c76d090f2e0c6cb8aca6e84535523",
+      "path": "backend/tests/unit/services/test_e2e_seed.py",
+      "sha256": "4e6ab2897bd997535a7e7726e5d1d86df4e9b3a1b152d0454a9dee26dda69661",
+      "status_from139": "M"
+    },
+    {
+      "git_blob": "8f0a484f033fc3a9c7700a7c96d99aa4469eb8e4",
+      "path": "backend/tests/unit/services/test_etf_holdings_preparation.py",
+      "sha256": "2d44f15dfeb27e00cb0799ab4b1ce4b61d35ff3288c9757d6e6f9638fc7ae939",
+      "status_from139": "A"
+    },
+    {
+      "git_blob": "d745f4845a06708a8deaa5fd7f3a3c8a3a39b560",
+      "path": "backend/tests/unit/services/test_etf_holdings_preparation_hook.py",
+      "sha256": "2d4ff55d6dbf495c42ad3f6cc1728aa98d6269fdb577afbbe9700c1a08f213f0",
+      "status_from139": "A"
+    },
+    {
+      "git_blob": "8f3fa448896f7c2d9a39bf86eae23a9e16e11caa",
+      "path": "backend/tests/unit/services/test_market_refresh_queue.py",
+      "sha256": "5f0b94451148f877fdbfbc3c8c32664d06e355c15eebc676cd384e49cd881dae",
+      "status_from139": "M"
+    },
+    {
+      "git_blob": "1d80bdd386cce3232181f59b7fcae52c5423c16e",
+      "path": "backend/tests/unit/services/test_market_series_defaults.py",
+      "sha256": "45020f23deb48434a2065f8828a9e0d45577e2da982ea0ee8834443866f84c7f",
+      "status_from139": "M"
+    },
+    {
+      "git_blob": "bcbeff75f63564353e86b447fb5d7be2f5911c13",
+      "path": "backend/tests/unit/services/test_workstation_tool_catalogue.py",
+      "sha256": "9ada1348e3136e707de13eec5699d2ffdb9dc217d15f3ccb6b7da6f1bf1d845a",
+      "status_from139": "A"
+    },
+    {
+      "git_blob": "6b5dbdbba5f3b0a5f4af2e27d5fa8db2abd30623",
+      "path": "backend/tests/unit/tasks/test_data_tasks.py",
+      "sha256": "3d2271a807e7bc30d7c2510c01d9faeb730422f7c3aff3d9b5e5eaca97425a28",
+      "status_from139": "M"
+    },
+    {
+      "git_blob": "1b3578e9d1fbb612bc3ad7f3dc4ff235a181b6b6",
+      "path": "backend/tests/unit/workers/test_arq_worker.py",
+      "sha256": "29ed8466dd10417310afadcc00cbd7d6b736806576a6e31974270c6bba25d886",
+      "status_from139": "M"
+    }
+  ],
+  "previous_source": "99ce73bbc67689aef5fc4fcffa76bcfebfa736da",
+  "source": "07490844c39d56e7023294f5e8798e4da2acdce0",
+  "state": "released_for_exact_development_consumption_not_product_acceptance"
+}

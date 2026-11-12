@@ -62,6 +62,7 @@ const { goldenLayouts, MockGoldenLayout } = vi.hoisted(() => {
   }
   return { goldenLayouts: layouts, MockGoldenLayout: Layout }
 })
+const resizeCallbacks: ResizeObserverCallback[] = []
 
 vi.mock('golden-layout', () => ({ GoldenLayout: MockGoldenLayout }))
 vi.mock('@/lib/workstation/layout', () => ({
@@ -75,8 +76,10 @@ import { api } from '@/lib/api'
 describe('WorkspaceLayoutHost', () => {
   beforeEach(() => {
     goldenLayouts.length = 0
+    resizeCallbacks.length = 0
     setActivePinia(createPinia())
     vi.stubGlobal('ResizeObserver', class {
+      constructor(callback: ResizeObserverCallback) { resizeCallbacks.push(callback) }
       observe() {}
       disconnect() {}
     })
@@ -207,6 +210,53 @@ describe('WorkspaceLayoutHost', () => {
     await wrapper.setProps({ layout: { root: { type: 'row', content: [] } } as any })
     await nextTick()
     expect(goldenLayouts).toHaveLength(1)
+    wrapper.unmount()
+  })
+
+  it('uses a temporary mobile tab stack and restores the saved desktop tree after widening', async () => {
+    const layout = {
+      root: { type: 'row', content: [
+        { type: 'stack', width: 35, content: [{ type: 'component', componentName: 'workstation-tool', title: 'Chart', componentState: { instance_key: 'chart-1', title: 'Chart', tool_type: 'chart', configuration: { comparison_symbols: ['RSP'] } } }] },
+        { type: 'stack', width: 30, content: [{ type: 'component', componentName: 'workstation-tool', title: 'WatchList', componentState: { instance_key: 'watchlist-1', title: 'WatchList', tool_type: 'watchlist', configuration: { visible_columns: ['symbol', 'last'] } } }] },
+        { type: 'stack', width: 35, content: [{ type: 'component', componentName: 'workstation-tool', title: 'Notes', componentState: { instance_key: 'notes-1', title: 'Notes', tool_type: 'notes', configuration: { note: 'retained draft' } } }] },
+      ] },
+    } as any
+    const wrapper = mount(WorkspaceLayoutHost, { props: { layout, activeWindowKey: 'chart-1', renderTool: () => h('div') } })
+    const host = wrapper.find('.workspace-layout-host').element as HTMLElement
+    let width = 390
+    Object.defineProperty(host, 'clientWidth', { configurable: true, get: () => width })
+    Object.defineProperty(host, 'clientHeight', { configurable: true, value: 760 })
+    expect(resizeCallbacks).toHaveLength(1)
+
+    resizeCallbacks[0]([{ contentRect: { width: 390, height: 760 } } as ResizeObserverEntry] as ResizeObserverEntry[], {} as ResizeObserver)
+    await new Promise(resolve => setTimeout(resolve, 0))
+    const mobile = goldenLayouts[1]
+    expect(mobile.loaded).toMatchObject({
+      root: { type: 'stack', activeItemIndex: 0, content: [
+        expect.objectContaining({ componentState: expect.objectContaining({ instance_key: 'chart-1', configuration: { comparison_symbols: ['RSP'] } }) }),
+        expect.objectContaining({ componentState: expect.objectContaining({ instance_key: 'watchlist-1', configuration: { visible_columns: ['symbol', 'last'] } }) }),
+        expect.objectContaining({ componentState: expect.objectContaining({ instance_key: 'notes-1', configuration: { note: 'retained draft' } }) }),
+      ] },
+    })
+    expect((wrapper.vm as any).saveLayout()).toEqual(layout)
+    mobile.callbacks.get('stateChanged')!()
+    expect(wrapper.emitted('changed')).toBeUndefined()
+
+    width = 1920
+    resizeCallbacks[0]([{ contentRect: { width, height: 1080 } } as ResizeObserverEntry] as ResizeObserverEntry[], {} as ResizeObserver)
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(goldenLayouts).toHaveLength(3)
+    expect(goldenLayouts[2].loaded).toMatchObject({
+      root: { type: 'row', content: [
+        expect.objectContaining({ width: 35, type: 'stack' }),
+        expect.objectContaining({ width: 30, type: 'stack' }),
+        expect.objectContaining({ width: 35, type: 'stack' }),
+      ] },
+    })
+    const desktopTree = (goldenLayouts[2].loaded as any).root.content
+    expect(desktopTree.map((column: any) => column.width)).toEqual([35, 30, 35])
+    expect(JSON.stringify(desktopTree)).toContain('retained draft')
+    expect(wrapper.emitted('changed')).toBeUndefined()
     wrapper.unmount()
   })
 

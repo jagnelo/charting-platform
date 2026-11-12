@@ -39,6 +39,17 @@ describe('VirtualWatchlistTool', () => {
     wrapper.unmount()
   })
 
+  it('keeps a refresh status over loaded rows in a compact corner and gives columns a horizontal minimum', () => {
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: { label: 'Major US benchmarks', rows, refreshing: true, refreshingLabel: 'Refreshing benchmark analysis…' },
+    })
+
+    expect(wrapper.get('[role="status"]').classes()).toContain('watchlist__loading-status--compact')
+    expect(wrapper.get('.watchlist__row').attributes('style')).toMatch(/min-width/)
+    expect(wrapper.get('.watchlist__header').attributes('style')).toMatch(/translateX/)
+    wrapper.unmount()
+  })
+
   it('selects a reported ETF holding by its stable row identity when tickers repeat', async () => {
     const duplicateReportedRows = [
       { rowKey: 'igv:510:610', instrumentId: null, symbol: 'DUP', name: 'Older reported line' },

@@ -494,6 +494,7 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
   let localReadCount = 0
   const optionsPanelRequests: string[] = []
   const calendarReads: Array<{ symbol: string; start: string; end: string }> = []
+  const calendarStatusReads: string[] = []
   const discoveryRequests: DiscoveryRequest[] = []
   const identityRequests: InstrumentRequestBody[] = []
   const historyRequests: DataEnsureRequest[] = []
@@ -571,6 +572,22 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
   // ChartView performs this bounded side-read only after local chart bars are
   // available. Match the one fictional symbol and endpoint exactly so a typo
   // or unrelated calendar URL still reaches the shared strict diagnostics.
+  await page.route(url => {
+    const parsed = new URL(url)
+    return parsed.pathname === `/api/v1/calendar/instruments/${symbol}/calendar/status`
+  }, async route => {
+    expect(route.request().method()).toBe('GET')
+    calendarStatusReads.push(symbol)
+    const status: InstrumentCalendarStatus = {
+      version: 1,
+      status: 'ready',
+      has_pending_work: false,
+      retry_at: null,
+      reason_code: null,
+      updated_at: '2026-11-07T12:00:00Z',
+    }
+    await route.fulfill({ status: 200, json: status })
+  })
   await page.route(url => {
     const parsed = new URL(url)
     return parsed.pathname === `/api/v1/calendar/instruments/${symbol}/calendar`
@@ -749,6 +766,7 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
   expect(historyRequests[0]?.timeframe).toBe('D1')
   await expect.poll(() => localReadCount).toBeGreaterThan(1)
   expect(localReadBars.at(-1)).toEqual([bar])
+  await expect.poll(() => calendarStatusReads).toContain(symbol)
 
   const readsBeforeReload = localReadCount
   const calendarReadsBeforeReload = calendarReads.length
@@ -1582,11 +1600,21 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
   })
   await linkedTimeframe.selectOption('D1')
   await expect(linkedTimeframe).toHaveValue('D1')
-  const restoredD1Read = await restoredD1ReadReady
-  expect(restoredD1Read.status()).toBe(200)
-  const restoredD1Bars = await restoredD1Read.json() as OHLCVBar[]
-  expect(restoredD1Bars).toHaveLength(500)
-  expect(restoredD1Bars.every(bar => bar.is_adjusted === true)).toBe(true)
+  // The client may serve the cached D1 series without a new read; when it does
+  // read again, the response must be the same adjusted 500-bar series. Either
+  // way the rendered provenance below proves which series is on screen.
+  const restoredD1Read = await Promise.race([
+    restoredD1ReadReady,
+    new Promise<null>(resolve => setTimeout(() => resolve(null), 10_000)),
+  ])
+  if (restoredD1Read) {
+    expect(restoredD1Read.status()).toBe(200)
+    const restoredD1Bars = await restoredD1Read.json() as OHLCVBar[]
+    expect(restoredD1Bars).toHaveLength(500)
+    expect(restoredD1Bars.every(bar => bar.is_adjusted === true)).toBe(true)
+  } else {
+    restoredD1ReadReady.catch(() => undefined)
+  }
   await expect(pricePlot).toBeVisible()
   await expect(await chartProvenanceTarget(priceChart)).toContainText('D1 chart; 500 bars; adjusted;')
   await expect(historicalContext).toBeVisible()
@@ -2143,6 +2171,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
   const holdingsReads: FixtureSymbol[] = []
   const industryReads: FixtureSymbol[] = []
   const calendarReads: string[] = []
+  const calendarStatusReads: FixtureSymbol[] = []
   const localReadbacks: Array<{ symbol: FixtureSymbol; timeframe: string; bars: OHLCVBar[] }> = []
   const acquired = new Set<FixtureSymbol>()
   const bars = new Map<FixtureSymbol, OHLCVBar>()
@@ -2491,6 +2520,22 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     calendarReads.push(symbol)
     await route.fulfill({ status: 200, json: [] })
   })
+  await page.route(url => /^\/api\/v1\/calendar\/instruments\/[^/]+\/calendar\/status$/.test(new URL(url).pathname), async route => {
+    const request = route.request()
+    const url = new URL(request.url())
+    const symbol = decodeURIComponent(url.pathname.split('/')[5] ?? '').toUpperCase() as FixtureSymbol
+    if (request.method() !== 'GET' || !(symbol in instruments)) return route.continue()
+    calendarStatusReads.push(symbol)
+    const status: InstrumentCalendarStatus = {
+      version: 1,
+      status: 'ready',
+      has_pending_work: false,
+      retry_at: null,
+      reason_code: null,
+      updated_at: '2026-11-07T12:00:00Z',
+    }
+    await route.fulfill({ status: 200, json: status })
+  })
   await page.route('**/api/v1/etf-holdings/*/holdings**', async route => {
     const symbol = new URL(route.request().url()).pathname.split('/')[4] as FixtureSymbol
     if (!(symbol in instruments)) return route.continue()
@@ -2755,7 +2800,22 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     const igvHoldingsEnsureCount = holdingsEnsureRequests.filter(request => request.symbol === 'IGV').length
     expect(igvHoldingsEnsureCount).toBe(1)
     expect(capabilityReads).toContain('IGV')
+    const historyRequestsBeforeIgvSelection = historyRequests.length
+    const igvSelectionHistoryReady = waitForDatasetEnsure('IGV', 'history')
     await chooseETF('IGV')
+    const igvSelectionHistory = await igvSelectionHistoryReady
+    expect(igvSelectionHistory.status()).toBe(200)
+    expect(historyRequests).toHaveLength(historyRequestsBeforeIgvSelection + 1)
+    expect(historyRequests.at(-1)?.body).toMatchObject({
+      target: { kind: 'instrument', instrument_id: instruments.IGV.id },
+      timeframe: 'D1',
+      adjusted: true,
+    })
+    expect(historyRequests.at(-1)?.body.datasets).toContain('history')
+    expect(historyRequests.at(-1)?.body.start_at).toBeUndefined()
+    expect(historyRequests.at(-1)?.body.end_at).toBeUndefined()
+    await expect.poll(() => localReadbacks.some(readback => readback.symbol === 'IGV'
+      && readback.timeframe === 'D1' && readback.bars.length === 1)).toBe(true)
     const igvGroup = page.getByRole('group', { name: 'Constituents' })
     await expect(igvGroup).toContainText('IGV')
     const igvWidget = igvGroup.getByRole('listbox').first()
@@ -2789,6 +2849,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     expect(unxqHolding.is_resolved).toBe(false)
     expect(identityRequests.filter(request => request.symbol === 'UNXQ')).toHaveLength(0)
     expect(historyRequests.filter(request => request.symbol === 'UNXQ')).toHaveLength(0)
+    expect(calendarStatusReads.every(symbol => symbol in instruments)).toBe(true)
 
     // Row selection starts bounded discovery; changing funds before that
     // response settles must invalidate the old snapshot-bound action.

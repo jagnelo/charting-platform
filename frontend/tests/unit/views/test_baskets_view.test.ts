@@ -275,6 +275,8 @@ describe('BasketsView', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('Read-only basket materialized from an ETF holdings snapshot.')
+    expect(wrapper.get('.basket-panel').classes()).toContain('basket-panel--readonly')
+    expect(wrapper.get('.member-table').text()).toContain('AAPL')
     expect(wrapper.find('input[placeholder="Basket name"]').attributes('disabled')).toBeDefined()
     expect(wrapper.find('.btn-primary').attributes('disabled')).toBeDefined()
     expect(wrapper.find('.btn-danger').exists()).toBe(false)
@@ -435,6 +437,7 @@ describe('BasketsView', () => {
       composition_date: '2026-11-05',
       is_system_managed: true,
       is_read_only: true,
+      latest_snapshot_date: '2026-11-05',
       metadata: {
         etf_symbol: 'SPY', source_provider: 'spdr', provenance: 'issuer_self_snapshotted_holdings',
         source_quality: 'verified', completeness_status: 'complete', source_identifier: 'SPDR:SPY:801',
@@ -456,6 +459,17 @@ describe('BasketsView', () => {
     await vi.waitFor(() => expect(api.get).toHaveBeenCalledWith('/baskets/22/snapshots'))
     await vi.waitFor(() => expect(wrapper.get('[data-testid="basket-snapshot-history"]').text()).toContain('2026-11-06T10:00:00Z'))
 
+    const summary = wrapper.get('[data-testid="basket-source-summary"]')
+    expect(summary.text()).toContain('SPY')
+    expect(summary.text()).toContain('spdr')
+    expect(summary.text()).toContain('2026-11-05')
+    expect(summary.text()).toContain('Latest stored snapshot')
+    expect(summary.text()).toContain('Current eligibility is assessed separately in ETF Holdings')
+    const sourceDetails = wrapper.get('[data-testid="basket-source-provenance"]')
+    expect(sourceDetails.attributes('open')).toBeUndefined()
+    expect(sourceDetails.find('summary').text()).toBe('Source details')
+    expect(wrapper.findAll('.member-table, [data-testid="basket-source-provenance"]').map(item => item.element.tagName))
+      .toEqual(['DIV', 'DETAILS'])
     expect(wrapper.get('[data-testid="basket-source-provenance"]').text()).toContain('2026-11-05')
     expect(wrapper.get('[data-testid="basket-source-provenance"]').text()).toContain('SPDR:SPY:801')
     expect(wrapper.get('[data-testid="basket-source-provenance"]').text()).toContain('issuer_self_snapshotted_holdings')

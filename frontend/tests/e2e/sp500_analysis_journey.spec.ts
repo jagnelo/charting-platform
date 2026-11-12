@@ -331,6 +331,28 @@ async function setDisclosureOpen(disclosure: Locator, open: boolean): Promise<vo
   else await expect(disclosure).not.toHaveAttribute('open')
 }
 
+async function activatePublicRotationTab(page: Page): Promise<void> {
+  const tab = page.locator('.lm_tab').filter({ hasText: /^Relative Rotation$/ }).first()
+  if (await tab.isVisible().catch(() => false)) {
+    await tab.click()
+  } else {
+    // Golden Layout moves excess tabs into the ordinary header overflow menu.
+    // Derive that menu from the exact named tab so virtual Vue roots do not
+    // need to be physical descendants of a particular stack element.
+    const header = tab.locator('xpath=ancestor::*[contains(concat(" ",normalize-space(@class)," ")," lm_header ")][1]')
+    const dropdown = header.locator('.lm_tabdropdown')
+    await expect(dropdown).toBeVisible()
+    await dropdown.click()
+    const overflowTab = header.locator('.lm_tabdropdown_list .lm_tab').filter({ hasText: /^Relative Rotation$/ }).first()
+    await expect(overflowTab).toBeVisible()
+    await overflowTab.click()
+  }
+  // The overflow click can reparent the active element from its dropdown into
+  // .lm_tabs; this named locator spans that move and verifies the public active
+  // state without depending on the old dropdown parent.
+  await expect(tab).toHaveClass(/lm_active/)
+}
+
 async function assertRotationPainted(page: Page, payload: RotationResponse): Promise<{ width: number; height: number }> {
   const rotation = page.getByRole('region', { name: 'Relative rotation vs SPY' })
   const settingsDisclosure = rotation.locator('details.rotation-tool__settings')
@@ -813,16 +835,16 @@ async function installRotationCanvasAudit(page: Page): Promise<void> {
       let sampleBounds: { left: number; top: number; width: number; height: number } | undefined
       let beforePixels: Uint8ClampedArray | undefined
       if (isTailStroke) {
-        const rect = this.canvas.getBoundingClientRect()
-        const ratioX = rect.width > 0 ? this.canvas.width / rect.width : 1
-        const ratioY = rect.height > 0 ? this.canvas.height / rect.height : 1
         const sampleFractions = [0.15, 0.325, 0.5, 0.675, 0.85]
         const centers = points.slice(1).flatMap((point, index) => sampleFractions.map((fraction, sampleIndex) => ({
           segmentIndex: index,
           sampleIndex,
           fraction,
-          x: Math.round((points[index].x + (point.x - points[index].x) * fraction) * ratioX),
-          y: Math.round((points[index].y + (point.y - points[index].y) * fraction) * ratioY),
+          // RelativeRotationTool records valToPos(..., true) directly from
+          // uPlot's identity-transform canvas context. These coordinates
+          // already address backing pixels, including at DPR > 1.
+          x: Math.round(points[index].x + (point.x - points[index].x) * fraction),
+          y: Math.round(points[index].y + (point.y - points[index].y) * fraction),
         })))
         const left = Math.max(0, Math.min(...centers.map(center => center.x - 1)))
         const top = Math.max(0, Math.min(...centers.map(center => center.y - 1)))
@@ -1061,10 +1083,7 @@ test('S&P 500 RRG renders deep D1/W1/MN data and survives selection, resize, max
 
   const rrgWindow = page.locator('.tool-window[data-window-key="relative-rotation"]')
   const rotation = page.getByRole('region', { name: 'Relative rotation vs SPY' })
-  const rrgTab = page.locator('.lm_tab:visible').filter({ hasText: /^Relative Rotation$/ }).last()
-  await expect(rrgTab).toBeVisible()
-  await rrgTab.click()
-  await expect(rrgTab).toHaveClass(/lm_active/)
+  await activatePublicRotationTab(page)
   await expect(rotation).toBeVisible()
   await expect(rrgWindow.getByRole('button', { name: 'Maximize tool' })).toBeVisible()
   const maximizeSnapshotAcknowledged = page.waitForResponse(response => {
@@ -1121,10 +1140,7 @@ test('S&P 500 RRG renders deep D1/W1/MN data and survives selection, resize, max
   await rrgWindow.getByRole('button', { name: 'Restore tool' }).click()
   await expect(rrgWindow.getByRole('button', { name: 'Maximize tool' })).toBeVisible()
   await expect(page.locator('.tool-window[data-window-key="primary-chart"]')).toBeVisible()
-  const reloadedRrgTab = page.locator('.lm_tab:visible').filter({ hasText: /^Relative Rotation$/ }).last()
-  await expect(reloadedRrgTab).toBeVisible()
-  await reloadedRrgTab.click()
-  await expect(reloadedRrgTab).toHaveClass(/lm_active/)
+  await activatePublicRotationTab(page)
   await expect(page.getByRole('region', { name: 'Relative rotation vs SPY' })).toBeVisible()
 
   for (const timeframe of TIMEFRAMES) {

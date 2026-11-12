@@ -408,7 +408,7 @@ describe('ChartTemplateControl', () => {
     apiGet.mockImplementation(() => new Promise(resolve => { resolveTemplates = resolve }))
     const wrapper = mount(ChartTemplateControl, { props: { configuration: {} } })
     await Promise.resolve()
-    expect(apiGet).toHaveBeenCalledWith('/workspaces/library/items', { kind: 'chart_template' })
+    expect(apiGet).toHaveBeenCalledWith('/workspaces/library/items', { kind: 'chart_template' }, { priority: 'high' })
 
     wrapper.unmount()
     resolveTemplates([{ stable_key: 'late', name: 'Late template', version: 1, payload: { configuration: {} } }])

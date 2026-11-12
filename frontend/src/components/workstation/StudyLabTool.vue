@@ -54,7 +54,7 @@
         ariaLabel="Study Python source"
         :invalid="sourceValidationInvalid"
         :described-by="sourceValidationDescriptionId"
-        min-height="110px"
+        :min-height="sourceEditorMinHeight"
         @update:model-value="markCustomSource"
       />
     </div>
@@ -68,8 +68,13 @@
     <section v-if="validation" :id="sourceValidationFeedbackId" class="study-lab-tool__validation" :role="validationMatchesSource && !validation.valid ? 'alert' : 'status'" :aria-live="validationMatchesSource && !validation.valid ? 'assertive' : 'polite'" aria-atomic="true" :class="{ 'study-lab-tool__validation--bad': validationMatchesSource && !validation.valid }">
       <template v-if="validationMatchesSource">
         <strong>{{ validation.valid ? 'Validated for isolated execution' : 'Validation errors' }}</strong>
-        <pre v-if="validation.diagnostics.length">{{ validation.diagnostics }}</pre>
-        <span v-else>Dependencies: {{ validation.dependencies.join(', ') || 'none' }} · Lookback: {{ validation.lookback_hint ?? 'none' }} · Outputs: {{ validation.output_contracts.join(', ') || 'none' }}</span>
+        <template v-if="validation.diagnostics.length">
+          <ul class="study-lab-tool__diagnostics" aria-label="Validation diagnostics">
+            <li v-for="(entry, index) in diagnosticEntries(validation.diagnostics)" :key="index"><span>{{ entry.text }}</span><small v-if="entry.location"> ({{ entry.location }})</small></li>
+          </ul>
+          <details class="study-lab-tool__raw"><summary>Details</summary><pre>{{ formatRaw(validation.diagnostics) }}</pre></details>
+        </template>
+        <span v-else> · Dependencies: {{ validation.dependencies.join(', ') || 'none' }} · Lookback: {{ validation.lookback_hint ?? 'none' }} · Outputs: {{ validation.output_contracts.join(', ') || 'none' }}</span>
       </template>
       <span v-else>Study source changed since validation. Validate the current source before running.</span>
     </section>
@@ -116,8 +121,14 @@
       <p v-if="run.reproducibility_hash">Reproducibility {{ run.reproducibility_hash }}</p>
       <p class="study-lab-tool__dataset-summary">Current draft dataset: {{ universeSourceId || universeSymbols || symbol }} · {{ timeframe }} · {{ adjustment === 'split_adjusted' ? 'split adjusted' : 'raw' }} · {{ session }} session · benchmark {{ benchmark || 'none' }} · {{ startDate || 'earliest available' }} → {{ endDate || 'latest available' }}</p>
       <p class="study-lab-tool__saved-dataset" role="status" aria-label="Saved run dataset">Saved run #{{ run.id }} dataset: {{ savedRunDatasetSummary }}</p>
-      <details v-if="run.diagnostics?.length" class="study-lab-tool__run-details"><summary>Diagnostics ({{ run.diagnostics.length }})</summary><pre>{{ formatMessages(run.diagnostics) }}</pre></details>
-      <details v-if="run.warnings?.length" class="study-lab-tool__run-details"><summary>Warnings ({{ run.warnings.length }})</summary><pre>{{ formatMessages(run.warnings) }}</pre></details>
+      <details v-if="run.diagnostics?.length" class="study-lab-tool__run-details"><summary>Diagnostics ({{ run.diagnostics.length }})</summary>
+        <ul class="study-lab-tool__diagnostics"><li v-for="(entry, index) in diagnosticEntries(run.diagnostics)" :key="index"><span>{{ entry.text }}</span><small v-if="entry.location"> ({{ entry.location }})</small></li></ul>
+        <details class="study-lab-tool__raw"><summary>Details</summary><pre>{{ formatRaw(run.diagnostics) }}</pre></details>
+      </details>
+      <details v-if="run.warnings?.length" class="study-lab-tool__run-details"><summary>Warnings ({{ run.warnings.length }})</summary>
+        <ul class="study-lab-tool__diagnostics"><li v-for="(entry, index) in diagnosticEntries(run.warnings)" :key="index"><span>{{ entry.text }}</span><small v-if="entry.location"> ({{ entry.location }})</small></li></ul>
+        <details class="study-lab-tool__raw"><summary>Details</summary><pre>{{ formatRaw(run.warnings) }}</pre></details>
+      </details>
       <details v-if="run.logs" class="study-lab-tool__run-details"><summary>Execution log</summary><pre>{{ run.logs }}</pre></details>
       <details v-if="Object.keys(run.resource_usage ?? {}).length" class="study-lab-tool__run-details"><summary>Resource usage</summary><pre>{{ formatObject(run.resource_usage) }}</pre></details>
       <div v-if="metricArtifacts.length" class="study-lab-tool__metrics" aria-label="Study metrics"><article v-for="artifact in metricArtifacts" :key="artifact.id" role="status" aria-live="polite" aria-atomic="true" :aria-label="`${artifact.name} metric`" :aria-describedby="artifactSummaryId(artifact.id)" :class="{ 'study-lab-tool__metric--true': artifact.artifact_type === 'boolean' && artifact.payload.value === true, 'study-lab-tool__metric--false': artifact.artifact_type === 'boolean' && artifact.payload.value === false }"><span :id="artifactSummaryId(artifact.id)" class="sr-only">{{ describeStudyArtifact(artifact) }}</span><small>{{ artifact.name }}</small><strong>{{ formatMetric(artifact) }}</strong><button type="button" :aria-label="`Export ${artifact.name}`" @click="exportArtifact(artifact)">Export</button><div v-if="structuredThresholdType(artifact) === 'scalar'" class="study-lab-tool__artifact-threshold" role="group" :aria-label="`${artifact.name} threshold condition`"><label>When <select v-model="conditionDraft(artifact).operator" :aria-label="`Structured scalar condition operator: ${artifact.name}`"><option value="gt">&gt;</option><option value="gte">≥</option><option value="lt">&lt;</option><option value="lte">≤</option><option value="eq">=</option><option value="ne">≠</option></select></label><input v-model.number="conditionDraft(artifact).threshold" type="number" step="any" :aria-label="`Structured scalar condition threshold: ${artifact.name}`" /><button type="button" :disabled="promotionBusy || !Number.isFinite(conditionDraft(artifact).threshold)" :aria-label="`Save Boolean column: ${artifact.name}`" @click="promoteStructuredThreshold(artifact, 'column')">Save Boolean column</button><button v-for="target in seriesConditionTargets" :key="`${artifact.id}-scalar-${target}`" type="button" :disabled="promotionBusy || !Number.isFinite(conditionDraft(artifact).threshold)" :aria-label="`${seriesConditionLabel(target)}: ${artifact.name}`" @click="promoteStructuredThreshold(artifact, target)">{{ seriesConditionLabel(target) }}</button></div></article></div>
@@ -126,7 +137,7 @@
         <div class="study-lab-tool__artifact-header"><strong>{{ artifact.name }}</strong><small>{{ artifact.artifact_type }}</small><button type="button" :aria-label="`Export ${artifact.name}`" @click="exportArtifact(artifact)">Export</button></div>
         <small v-if="seriesCapabilityNote(artifact)" role="note">{{ seriesCapabilityNote(artifact) }}</small>
         <div v-if="structuredThresholdType(artifact) === 'series' || structuredThresholdType(artifact) === 'range'" class="study-lab-tool__artifact-threshold" role="group" :aria-label="`${artifact.name} threshold condition`"><label>When <select v-model="conditionDraft(artifact).operator" :aria-label="`Structured ${structuredThresholdType(artifact)} condition operator: ${artifact.name}`"><option value="gt">&gt;</option><option value="gte">≥</option><option value="lt">&lt;</option><option value="lte">≤</option><option value="eq">=</option><option value="ne">≠</option></select></label><input v-model.number="conditionDraft(artifact).threshold" type="number" step="any" :aria-label="`Structured ${structuredThresholdType(artifact)} condition threshold: ${artifact.name}`" /><button type="button" :disabled="promotionBusy || !Number.isFinite(conditionDraft(artifact).threshold)" :aria-label="`Save Boolean column: ${artifact.name}`" @click="promoteStructuredThreshold(artifact, 'column')">Save Boolean column</button><button v-for="target in seriesConditionTargets" :key="`${artifact.id}-${structuredThresholdType(artifact)}-${target}`" type="button" :disabled="promotionBusy || !Number.isFinite(conditionDraft(artifact).threshold)" :aria-label="`${seriesConditionLabel(target)}: ${artifact.name}`" @click="promoteStructuredThreshold(artifact, target)">{{ seriesConditionLabel(target) }}</button></div>
-        <table v-if="artifact.artifact_type === 'table' && tableRows(artifact).length"><caption class="sr-only">{{ artifact.name }} table</caption><thead><tr><th v-for="column in tableColumns(artifact)" :key="column" scope="col">{{ column }}</th></tr></thead><tbody><tr v-for="(row, index) in tableRows(artifact)" :key="index"><td v-for="column in tableColumns(artifact)" :key="column">{{ formatCell(row[column]) }}</td></tr></tbody></table>
+        <template v-if="artifact.artifact_type === 'table' && tableRows(artifact).length"><table><caption class="sr-only">{{ artifact.name }} table</caption><thead><tr><th v-for="column in tableColumns(artifact)" :key="column" scope="col">{{ column }}</th></tr></thead><tbody><tr v-for="(row, index) in limitedTableRows(artifact)" :key="index"><td v-for="column in tableColumns(artifact)" :key="column">{{ formatCell(row[column]) }}</td></tr></tbody></table><p v-if="tableRows(artifact).length > RESULT_ROW_LIMIT" class="study-lab-tool__row-limit" role="note">Showing the first {{ RESULT_ROW_LIMIT }} of {{ tableRows(artifact).length.toLocaleString() }} rows. Export the run for the complete table.</p></template>
         <StudySeriesUPlot v-else-if="artifact.artifact_type === 'series' && seriesData(artifact)" :name="artifact.name" :timestamps="seriesData(artifact)!.timestamps" :values="seriesData(artifact)!.values" />
         <StudyBarsUPlot v-else-if="artifact.artifact_type === 'bar' && barData(artifact)" :name="artifact.name" :labels="barData(artifact)!.labels" :values="barData(artifact)!.values" />
         <StudyHistogramUPlot v-else-if="artifact.artifact_type === 'histogram' && histogramData(artifact)" :name="artifact.name" :bins="histogramData(artifact)!.bins" :current="histogramData(artifact)!.current" />
@@ -134,7 +145,7 @@
         <StudyScatterUPlot v-else-if="artifact.artifact_type === 'scatter' && scatterData(artifact)" :name="artifact.name" :x="scatterData(artifact)!.x" :y="scatterData(artifact)!.y" />
         <StudyHeatmap v-else-if="artifact.artifact_type === 'heatmap' && heatmapData(artifact)" :name="artifact.name" :rows="heatmapData(artifact)!.rows" :columns="heatmapData(artifact)!.columns" :values="heatmapData(artifact)!.values" />
         <StudyDashboard v-else-if="artifact.artifact_type === 'dashboard' && dashboardData(artifact)" :name="artifact.name" :panels="dashboardData(artifact)!" :artifacts="run?.artifacts ?? []" @occurrence="emit('occurrence', $event)" />
-        <div v-else-if="artifact.artifact_type === 'events' && eventRows(artifact).length" class="study-lab-tool__events" role="list" :aria-label="`${artifact.name} occurrences`"><div v-for="(event, index) in eventRows(artifact)" :key="`${event.timestamp}-${index}`" role="listitem"><button type="button" :aria-label="`${event.symbol} ${event.timestamp} ${event.kind ?? 'Event'}`" @keydown.stop @click="emit('occurrence', event)"><strong>{{ event.symbol }}</strong><span>{{ event.timestamp }}</span><small>{{ event.kind ?? 'Event' }}</small></button></div></div>
+        <template v-else-if="artifact.artifact_type === 'events' && eventRows(artifact).length"><div class="study-lab-tool__events" role="list" :aria-label="`${artifact.name} occurrences`"><div v-for="(event, index) in limitedEventRows(artifact)" :key="`${event.timestamp}-${index}`" role="listitem"><button type="button" :aria-label="`${event.symbol} ${event.timestamp} ${event.kind ?? 'Event'}`" @keydown.stop @click="emit('occurrence', event)"><strong>{{ event.symbol }}</strong><span>{{ event.timestamp }}</span><small>{{ event.kind ?? 'Event' }}</small></button></div></div><p v-if="eventRows(artifact).length > RESULT_ROW_LIMIT" class="study-lab-tool__row-limit" role="note">Showing the first {{ RESULT_ROW_LIMIT }} of {{ eventRows(artifact).length.toLocaleString() }} occurrences. Export the run for all occurrences.</p></template>
         <pre v-else>{{ artifactText(artifact.payload) }}</pre>
       </article>
     </section>
@@ -238,6 +249,8 @@ const crossSectionalBreadthSource = "field = str(parameters.get('field', 'close'
 const relativeStrengthHistorySource = "closes = market.close()\nbenchmark = market.benchmark_close()\nratio = [value / base if base else None for value, base in zip(closes, benchmark)]\noutput.series('relative_strength_ratio', ratio)\noutput.scalar('latest_relative_strength', ratio[-1] if ratio else None)"
 const currentHistorySource = "closes = market.close()\nreturns = [(closes[index] / closes[index - 1]) - 1 for index in range(1, len(closes)) if closes[index - 1]]\nhistory = returns[:-1]\ncurrent = returns[-1] if returns else None\ncomparison = research.historical_comparison(history, current)\noutput.scalar('historical_sample_size', comparison['sample_size'])\noutput.scalar('current_return', comparison['current'] if comparison['current'] is not None else 0)\noutput.scalar('historical_mean_return', comparison['mean'] if comparison['mean'] is not None else 0)\noutput.scalar('historical_median_return', comparison['median'] if comparison['median'] is not None else 0)\noutput.scalar('historical_percentile_rank', comparison['percentile_rank'] if comparison['percentile_rank'] is not None else 0)\noutput.scalar('historical_z_score', comparison['z_score'] if comparison['z_score'] is not None else 0)\noutput.histogram('historical_return_distribution', history, 12, comparison['current'])\noutput.table('current_vs_history', [comparison])"
 const source = ref(positiveStreakSource)
+// Show the whole default factory source (about 10 lines) without a tall empty editor; users can still resize it.
+const sourceEditorMinHeight = computed(() => `${Math.max(110, source.value.split('\n').length * 14 + 16)}px`)
 const studyLabInstanceId = (() => {
   const scope = globalThis as typeof globalThis & { __tc2000StudyLabInstanceSequence?: number }
   const next = (scope.__tc2000StudyLabInstanceSequence ?? 0) + 1
@@ -827,7 +840,9 @@ watch(() => props.configuration, configuration => {
   if (typeof configuration?.study_output_contract === 'string') openedStudyOutputContract.value = configuration.study_output_contract
   if (configuration && typeof configuration.study_default_parameters === 'object' && configuration.study_default_parameters && !Array.isArray(configuration.study_default_parameters)) openedStudyDefaultParameters.value = configuration.study_default_parameters as Record<string, unknown>
   if (typeof configuration?.timeframe === 'string') timeframe.value = normaliseTimeframe(configuration.timeframe)
-  if (configuration && !('benchmark' in configuration)) benchmark.value = ''
+  // An absent benchmark means the default, exactly as on first mount; an
+  // explicitly cleared benchmark is persisted as an empty string.
+  if (configuration && !('benchmark' in configuration)) benchmark.value = 'SPY'
   else if (typeof configuration?.benchmark === 'string') benchmark.value = configuration.benchmark
   if (configuration?.adjustment === 'raw' || configuration?.adjustment === 'split_adjusted') adjustment.value = configuration.adjustment
   if (configuration?.session === 'all' || configuration?.session === 'regular') session.value = configuration.session
@@ -939,6 +954,14 @@ function invalidateStudyPreparation() {
   preparationOutcomes.value = []
   if (preparationStatus.value) preparationStatus.value = 'Study data selection changed. Validate or run to prepare the current selection.'
 }
+// A partial preparation stays usable when a history dependency already holds
+// local canonical coverage. Partial responses without covered history block.
+function hasUsableLocalPartialCoverage(response: { status: string; dependencies?: Array<{ dataset: string; covered_ranges?: unknown[] | null; covered_start?: string | null; covered_end?: string | null }> }): boolean {
+  if (response.status !== 'partial') return false
+  return (response.dependencies ?? []).some(dependency => dependency.dataset === 'history'
+    && ((dependency.covered_ranges?.length ?? 0) > 0 || (dependency.covered_start != null && dependency.covered_end != null)))
+}
+
 async function prepareStudyDataset(intent: StudyDatasetIntent): Promise<boolean> {
   const generation = ++preparationGeneration
   preparationController?.abort()
@@ -970,8 +993,17 @@ async function prepareStudyDataset(intent: StudyDatasetIntent): Promise<boolean>
           },
         })
         if (!isCurrentIntent()) return false
+        if (response.status === 'ready') {
+          updateOutcome(preparationStatusMessage(response))
+          return true
+        }
+        // Local canonical history can still validate and run; say what is partial.
+        if (hasUsableLocalPartialCoverage(response)) {
+          updateOutcome(`Partial local history for ${label} is usable. The full requested range is not available; results cover only the local range.`)
+          return true
+        }
         updateOutcome(preparationStatusMessage(response))
-        return response.status === 'ready'
+        return false
       } catch (cause) {
         if (!isCurrentIntent() || controller.signal.aborted) return false
         updateOutcome(cause instanceof Error ? cause.message : 'Data preparation could not be completed.')
@@ -997,8 +1029,7 @@ watch([symbol, timeframe, benchmark, universeSourceId, universeSymbols, adjustme
   const configuration: Record<string, unknown> = { ...configurationSnapshot.value, timeframe: timeframe.value, adjustment: adjustment.value, session: session.value }
   if (symbol.value.trim()) configuration.symbol = symbol.value.trim().toUpperCase()
   else delete configuration.symbol
-  if (benchmark.value) configuration.benchmark = benchmark.value.toUpperCase()
-  else delete configuration.benchmark
+  configuration.benchmark = benchmark.value ? benchmark.value.toUpperCase() : ''
   if (universeSourceId.value) configuration.universe_source_id = universeSourceId.value
   else delete configuration.universe_source_id
   if (startDate.value) configuration.start_date = startDate.value
@@ -1106,13 +1137,40 @@ function exportArtifact(artifact: Artifact) {
   URL.revokeObjectURL(url)
 }
 function formatMetric(artifact: Artifact) { return artifact.artifact_type === 'boolean' ? artifact.payload.value === true ? 'True' : artifact.payload.value === false ? 'False' : '—' : artifact.payload.value ?? '—' }
-function formatMessages(messages: unknown[]) { return messages.map(message => typeof message === 'string' ? message : JSON.stringify(message)).join('\n') }
+function formatRaw(value: unknown) { return JSON.stringify(value, null, 2) }
+function diagnosticEntries(messages: unknown[]): Array<{ text: string; location: string }> {
+  return messages.map(message => {
+    if (!message || typeof message !== 'object') return { text: String(message), location: '' }
+    const record = message as Record<string, unknown>
+    const where = (record.location && typeof record.location === 'object' ? record.location : record) as Record<string, unknown>
+    const text = typeof record.message === 'string' ? record.message : typeof record.msg === 'string' ? record.msg : JSON.stringify(message)
+    const location = [
+      where.line != null ? `line ${String(where.line)}` : '',
+      where.column != null ? `column ${String(where.column)}` : '',
+      typeof where.field === 'string' ? `field ${where.field}` : '',
+    ].filter(Boolean).join(', ')
+    return { text, location }
+  })
+}
 function formatObject(value: Record<string, unknown> | undefined) { return JSON.stringify(value ?? {}, null, 2) }
 function tableRows(artifact: Artifact): Array<Record<string, unknown>> {
   const value = artifact.payload.value
   return Array.isArray(value) && value.every(row => row && typeof row === 'object' && !Array.isArray(row)) ? value as Array<Record<string, unknown>> : []
 }
-function tableColumns(artifact: Artifact) { return [...new Set(tableRows(artifact).flatMap(row => Object.keys(row)))] }
+// Large results (thousands of events or forward-return rows) must not render
+// every row: the view shows a bounded preview and the export keeps all rows.
+const RESULT_ROW_LIMIT = 200
+const tableColumnCache = new WeakMap<object, string[]>()
+function limitedTableRows(artifact: Artifact) { return tableRows(artifact).slice(0, RESULT_ROW_LIMIT) }
+function limitedEventRows(artifact: Artifact) { return eventRows(artifact).slice(0, RESULT_ROW_LIMIT) }
+function tableColumns(artifact: Artifact) {
+  const key = artifact.payload as object
+  const cached = tableColumnCache.get(key)
+  if (cached) return cached
+  const columns = [...new Set(limitedTableRows(artifact).flatMap(row => Object.keys(row)))]
+  tableColumnCache.set(key, columns)
+  return columns
+}
 function formatCell(value: unknown) { return value == null ? '—' : typeof value === 'number' ? value.toLocaleString(undefined, { maximumFractionDigits: 6 }) : String(value) }
 function seriesData(artifact: Artifact): { timestamps: string[]; values: Array<number | null> } | null {
   return normalizeStructuredNumericSeries(artifact.payload.value)
@@ -2041,9 +2099,36 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.study-lab-tool { display:grid; height:100%; min-height:0; grid-template-rows:auto minmax(110px,1fr) auto auto auto; gap:5px; padding:6px; background:#11161b; color:#cbd5dc; font:10px "Segoe UI",Arial,sans-serif; }
+.study-lab-tool { display:grid; height:100%; min-height:0; min-width:0; grid-template-columns:minmax(0,1fr); container-type:inline-size; grid-template-rows:auto minmax(110px,1fr) auto auto auto; gap:5px; padding:6px; overflow-y:auto; background:#11161b; color:#cbd5dc; font:10px "Segoe UI",Arial,sans-serif; }
+.study-lab-tool > * { min-width:0; }
+.study-lab-tool__header,.study-lab-tool__header-main,.study-lab-tool__dataset { min-width:0; }
+.study-lab-tool__header { grid-template-columns:minmax(0,1fr); }
+.study-lab-tool__header > *,
+.study-lab-tool__header-main > *,
+.study-lab-tool__dataset > * { box-sizing:border-box; min-width:0; max-width:100%; }
+.study-lab-tool__header-main input,
+.study-lab-tool__header-main select { box-sizing:border-box; width:100%; max-width:100%; }
+.study-lab-tool__run input,
+.study-lab-tool__run select,
+.study-lab-tool__run textarea,
+.study-lab-tool__run button { box-sizing:border-box; min-width:0; max-width:100%; }
+.study-lab-tool__run > .study-lab-tool__metrics { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(70px,100%),1fr)); min-width:0; }
+.study-lab-tool__metrics article { grid-template-columns:minmax(0,1fr); min-width:0; box-sizing:border-box; }
+.study-lab-tool__metrics article > * { min-width:0; max-width:100%; box-sizing:border-box; }
+.study-lab-tool__metrics article small,
+.study-lab-tool__metrics article strong { overflow-wrap:anywhere; }
+.study-lab-tool__metrics article button { justify-self:start; margin-left:0; }
+.study-lab-tool__series-condition,
+.study-lab-tool__artifact-threshold { box-sizing:border-box; min-width:0; max-width:100%; flex-wrap:wrap; }
+.study-lab-tool__series-condition > *,
+.study-lab-tool__artifact-threshold > * { box-sizing:border-box; min-width:0; max-width:100%; }
+.study-lab-tool__series-condition label,
+.study-lab-tool__artifact-threshold label { min-width:0; max-width:100%; flex-wrap:wrap; }
+.study-lab-tool__series-condition button,
+.study-lab-tool__artifact-threshold button { margin-left:0; white-space:normal; overflow-wrap:anywhere; }
 .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
 .study-lab-tool__editor-shell { min-height:0; }
+.study-lab-tool__diagnostics { margin:3px 0 0; padding-left:14px; color:#e0b4b4; font-size:10px; } .study-lab-tool__diagnostics small { color:#8fa3ae; } .study-lab-tool__raw { margin-top:3px; } .study-lab-tool__raw summary { color:#779ab0; font-size:9px; cursor:pointer; }
 .study-lab-tool__sdk-reference { display:grid; gap:2px; color:#8195a3; }
 .study-lab-tool__sdk-reference summary { cursor:pointer; color:#b5c6d0; }
 .study-lab-tool__parameters { display:grid; grid-template-columns:minmax(120px, 1fr) minmax(0, 2fr); gap:5px; align-items:start; color:#8ea3b0; }
@@ -2057,12 +2142,22 @@ onBeforeUnmount(() => {
 .study-lab-tool__run-status--deferred { color:#e7c274; }
 input,textarea,button,select { min-width:0; border:1px solid #3a4954; background:#172027; color:#dce6ed; font:inherit; } input,select { padding:2px 4px; } textarea { width:100%; resize:none; padding:5px; font:11px/1.35 ui-monospace,SFMono-Regular,monospace; } button { cursor:pointer; } button:disabled { cursor:default; opacity:.5; }
 .study-lab-tool__validation,.study-lab-tool__run { padding:5px; border:1px solid #34424c; background:#151b20; } .study-lab-tool__validation--bad,.study-lab-tool__error { border-color:#9e5757; color:#f0a2a2; } pre { max-height:100px; overflow:auto; margin:3px 0 0; color:#b8c6d0; white-space:pre-wrap; } .study-lab-tool__run > div { display:flex; align-items:center; gap:6px; } .study-lab-tool__run > div button { margin-left:auto; } .study-lab-tool__run p,.study-lab-tool__notice,.study-lab-tool__error { margin:0; color:#8195a3; } .study-lab-tool__universe-warning { margin:0; color:#e0b47d; } .study-lab-tool__dataset-summary { font-size:9px; } .study-lab-tool__run article { margin-top:5px; padding-top:4px; border-top:1px solid #29343c; } .study-lab-tool__run small { margin-left:5px; color:#779ab0; }.study-lab-tool__metrics { display:grid; grid-template-columns:repeat(auto-fit,minmax(70px,1fr)); gap:4px; margin-top:5px; }.study-lab-tool__metrics article { display:grid; gap:2px; margin:0; padding:4px; border:1px solid #29343c; background:#11161b; }.study-lab-tool__metrics strong { color:#b9e0f9; font-size:14px; }.study-lab-tool__metric--true { border-color:#3f8263!important; }.study-lab-tool__metric--true strong { color:#80d5a5!important; }.study-lab-tool__metric--false { border-color:#875454!important; }.study-lab-tool__metric--false strong { color:#f0a0a0!important; }.study-lab-tool__run table { width:100%; margin-top:4px; border-collapse:collapse; font-size:9px; }.study-lab-tool__run th,.study-lab-tool__run td { padding:2px 4px; border:1px solid #2c3943; text-align:left; white-space:nowrap; }.study-lab-tool__run th { color:#91a8b8; background:#1b252d; }.study-lab-tool__events { display:grid; gap:2px; margin-top:4px; }.study-lab-tool__events [role="listitem"] { display:grid; }.study-lab-tool__events button { display:grid; grid-template-columns:50px 1fr auto; gap:5px; padding:3px 4px; border:1px solid #2d3c46; background:#11161b; color:#cddbe5; text-align:left; }.study-lab-tool__events button:hover { background:#1d3543; }.study-lab-tool__events span,.study-lab-tool__events small { color:#91a8b4; }.study-lab-tool__run-status--completed { color:#82c49b; }.study-lab-tool__run-status--failed { color:#ed9696; }.study-lab-tool__run-status--queued,.study-lab-tool__run-status--running { color:#80bce8; }
+.study-lab-tool__row-limit { margin:3px 0 0; color:#91a8b4; font-size:9px; }
 .study-lab-tool__promotions { display:flex; flex-wrap:wrap; gap:4px; margin-top:4px; }.study-lab-tool__promotions button { margin-left:0!important; }.study-lab-tool__series-condition { display:flex; flex-wrap:wrap; align-items:center; gap:4px; width:100%; padding:3px 0; }.study-lab-tool__series-condition label { display:inline-flex; align-items:center; gap:3px; }.study-lab-tool__series-condition input { width:88px; }.study-lab-tool__artifact-threshold { display:flex; flex-wrap:wrap; align-items:center; gap:3px; width:100%; margin-top:3px; padding-top:3px; border-top:1px solid #29343c; }.study-lab-tool__artifact-threshold label { display:inline-flex; align-items:center; gap:3px; color:#91a8b8; }.study-lab-tool__artifact-threshold input { width:70px; }.study-lab-tool__artifact-threshold button { padding:1px 3px; }.study-lab-tool__promotion-status { color:#9fd3a9!important; }.study-lab-tool__run-guidance { margin:3px 0 0!important; color:#9ab1bf!important; }.study-lab-tool__run-status--failed + .study-lab-tool__run-guidance { color:#f0a2a2!important; }.study-lab-tool__run-status--canceled + .study-lab-tool__run-guidance { color:#e0b47d!important; }
 .study-lab-tool__metrics article button { justify-self:start; padding:1px 4px; }
 .study-lab-tool__run-details { margin-top:4px; border-top:1px solid #29343c; padding-top:3px; }.study-lab-tool__run-details summary { color:#9db0bc; cursor:pointer; }.study-lab-tool__run-details pre { max-height:90px; margin:3px 0 0; }
 .study-lab-tool__artifact-header { display:flex; align-items:center; gap:5px; }.study-lab-tool__artifact-header button { margin-left:auto; padding:1px 4px; }
 .study-lab-tool__preparation-outcomes { margin:0; padding-left:18px; display:grid; gap:2px; max-height:72px; overflow:auto; color:#91a8b4; }
-@media (max-width: 560px) {
+.study-lab-tool__metrics article button,
+.study-lab-tool__series-condition button,
+.study-lab-tool__artifact-threshold button { margin-left:0; }
+@container (max-width: 720px) {
+  .study-lab-tool__dataset { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .study-lab-tool__dataset label { grid-template-columns:minmax(0,1fr); gap:2px; white-space:normal; min-width:0; }
+  .study-lab-tool__dataset input,
+  .study-lab-tool__dataset select { box-sizing:border-box; width:100%; min-width:0; max-width:100%; }
+}
+@container (max-width: 560px) {
   .study-lab-tool { padding:4px; gap:4px; }
   .study-lab-tool__header-main { grid-template-columns:minmax(0,1fr) 52px; }
   .study-lab-tool__header-main input:first-child,
@@ -2072,5 +2167,12 @@ input,textarea,button,select { min-width:0; border:1px solid #3a4954; background
   .study-lab-tool__dataset label { grid-template-columns:1fr; gap:2px; white-space:normal; min-width:0; }
   .study-lab-tool__parameters { grid-template-columns:minmax(0,1fr); }
   .study-lab-tool__parameters > label { min-width:0; }
+}
+@container (max-width: 360px) {
+  .study-lab-tool__header-main { grid-template-columns:minmax(0,1fr); }
+  .study-lab-tool__header-main > * { grid-column:1 / -1; }
+  .study-lab-tool__dataset { grid-template-columns:minmax(0,1fr); }
+  .study-lab-tool__dataset label { min-width:0; }
+  .study-lab-tool__run > .study-lab-tool__metrics { grid-template-columns:minmax(0,1fr); }
 }
 </style>

@@ -37,7 +37,7 @@
     </aside>
 
     <main class="basket-main">
-      <section class="basket-panel">
+      <section class="basket-panel" :class="{ 'basket-panel--readonly': isReadOnly }">
         <div class="panel-title-row">
           <div>
             <h2>{{ isEditingExisting ? draft.name || 'Basket' : 'New basket' }}</h2>
@@ -105,37 +105,17 @@
 
         <section
           v-if="selectedBasket?.is_system_managed"
-          class="basket-provenance"
-          data-testid="basket-source-provenance"
-          aria-label="Issuer snapshot provenance"
+          class="basket-source-summary"
+          data-testid="basket-source-summary"
+          aria-label="Issuer snapshot summary"
         >
-          <h3>Source snapshot</h3>
-          <dl>
-            <div><dt>ETF</dt><dd>{{ selectedBasket.metadata?.etf_symbol || 'Unknown' }}</dd></div>
-            <div><dt>Composition date</dt><dd>{{ selectedBasket.composition_date || 'Unknown' }}</dd></div>
-            <div><dt>Source provider</dt><dd>{{ selectedBasket.metadata?.source_provider || 'Unknown' }}</dd></div>
-            <div><dt>Provenance</dt><dd>{{ selectedBasket.metadata?.provenance || 'Unknown' }}</dd></div>
-            <div><dt>Source quality</dt><dd>{{ selectedBasket.metadata?.source_quality || 'Unknown' }}</dd></div>
-            <div><dt>Completeness</dt><dd>{{ selectedBasket.metadata?.completeness_status || 'Unknown' }}</dd></div>
-            <div><dt>Snapshot ID</dt><dd>{{ selectedBasket.source_snapshot_id ?? 'Unknown' }}</dd></div>
-            <div><dt>Known at</dt><dd>{{ selectedBasket.metadata?.known_at || 'Unknown' }}</dd></div>
-            <div v-if="selectedBasket.metadata?.as_of_date"><dt>As of</dt><dd>{{ selectedBasket.metadata.as_of_date }}</dd></div>
-            <div v-if="selectedBasket.metadata?.source_identifier"><dt>Source identifier</dt><dd>{{ selectedBasket.metadata.source_identifier }}</dd></div>
-            <div v-if="selectedBasket.metadata?.source_url"><dt>Source URL</dt><dd class="basket-provenance__url">{{ selectedBasket.metadata.source_url }}</dd></div>
-            <div v-if="selectedBasket.metadata?.snapshot_hash"><dt>Snapshot SHA256</dt><dd>{{ selectedBasket.metadata.snapshot_hash }}</dd></div>
-            <div v-if="selectedBasket.metadata?.source_artifact_id"><dt>Raw artifact ID</dt><dd>{{ selectedBasket.metadata.source_artifact_id }}</dd></div>
-            <div v-if="selectedBasket.metadata?.source_artifact_hash"><dt>Raw artifact SHA256</dt><dd>{{ selectedBasket.metadata.source_artifact_hash }}</dd></div>
-          </dl>
-          <p v-if="snapshotLineageError" role="status" class="basket-list__state">{{ snapshotLineageError }}</p>
-          <ul v-else class="basket-snapshot-history" data-testid="basket-snapshot-history">
-            <li v-for="snapshot in selectedSnapshots" :key="snapshot.id">
-              <span>{{ snapshot.composition_date }} · {{ snapshot.member_count }} members</span>
-              <small>
-                {{ snapshot.metadata?.source_provider || snapshot.source_type }} · {{ snapshot.metadata?.provenance || 'provenance unavailable' }}
-                · known at {{ snapshot.known_at || 'unknown' }} · source snapshot {{ snapshot.source_snapshot_id ?? 'unknown' }}
-              </small>
-            </li>
-          </ul>
+          <p>
+            <strong>{{ selectedBasket.metadata?.etf_symbol || 'ETF' }}</strong>
+            · {{ selectedBasket.metadata?.source_provider || 'Source not established' }}
+            · As of {{ selectedBasket.metadata?.as_of_date || selectedBasket.composition_date || 'date unknown' }}
+            · {{ sourceSnapshotFreshness }}
+          </p>
+          <p>Current eligibility is assessed separately in ETF Holdings; this basket retains a dated composition.</p>
         </section>
 
         <div class="form-grid">
@@ -235,6 +215,42 @@
             Add at least one resolved instrument to create a basket.
           </div>
         </div>
+
+        <details
+          v-if="selectedBasket?.is_system_managed"
+          class="basket-provenance"
+          data-testid="basket-source-provenance"
+        >
+          <summary>Source details</summary>
+          <section aria-label="Issuer snapshot provenance">
+            <dl>
+              <div><dt>ETF</dt><dd>{{ selectedBasket.metadata?.etf_symbol || 'Unknown' }}</dd></div>
+              <div><dt>Composition date</dt><dd>{{ selectedBasket.composition_date || 'Unknown' }}</dd></div>
+              <div><dt>Source provider</dt><dd>{{ selectedBasket.metadata?.source_provider || 'Unknown' }}</dd></div>
+              <div><dt>Provenance</dt><dd>{{ selectedBasket.metadata?.provenance || 'Unknown' }}</dd></div>
+              <div><dt>Source quality</dt><dd>{{ selectedBasket.metadata?.source_quality || 'Unknown' }}</dd></div>
+              <div><dt>Completeness</dt><dd>{{ selectedBasket.metadata?.completeness_status || 'Unknown' }}</dd></div>
+              <div><dt>Snapshot ID</dt><dd>{{ selectedBasket.source_snapshot_id ?? 'Unknown' }}</dd></div>
+              <div><dt>Known at</dt><dd>{{ selectedBasket.metadata?.known_at || 'Unknown' }}</dd></div>
+              <div v-if="selectedBasket.metadata?.as_of_date"><dt>As of</dt><dd>{{ selectedBasket.metadata.as_of_date }}</dd></div>
+              <div v-if="selectedBasket.metadata?.source_identifier"><dt>Source identifier</dt><dd>{{ selectedBasket.metadata.source_identifier }}</dd></div>
+              <div v-if="selectedBasket.metadata?.source_url"><dt>Source URL</dt><dd class="basket-provenance__url">{{ selectedBasket.metadata.source_url }}</dd></div>
+              <div v-if="selectedBasket.metadata?.snapshot_hash"><dt>Snapshot SHA256</dt><dd>{{ selectedBasket.metadata.snapshot_hash }}</dd></div>
+              <div v-if="selectedBasket.metadata?.source_artifact_id"><dt>Raw artifact ID</dt><dd>{{ selectedBasket.metadata.source_artifact_id }}</dd></div>
+              <div v-if="selectedBasket.metadata?.source_artifact_hash"><dt>Raw artifact SHA256</dt><dd>{{ selectedBasket.metadata.source_artifact_hash }}</dd></div>
+            </dl>
+            <p v-if="snapshotLineageError" role="status" class="basket-list__state">{{ snapshotLineageError }}</p>
+            <ul v-else class="basket-snapshot-history" data-testid="basket-snapshot-history">
+              <li v-for="snapshot in selectedSnapshots" :key="snapshot.id">
+                <span>{{ snapshot.composition_date }} · {{ snapshot.member_count }} members</span>
+                <small>
+                  {{ snapshot.metadata?.source_provider || snapshot.source_type }} · {{ snapshot.metadata?.provenance || 'provenance unavailable' }}
+                  · known at {{ snapshot.known_at || 'unknown' }} · source snapshot {{ snapshot.source_snapshot_id ?? 'unknown' }}
+                </small>
+              </li>
+            </ul>
+          </section>
+        </details>
       </section>
     </main>
 
@@ -368,6 +384,13 @@ const canSave = computed(() => {
 const isDirty = computed(() =>
   draftSignature(draft) !== draftSignature(selectedBasket.value ? draftFromBasket(selectedBasket.value) : emptyDraft()),
 )
+const sourceSnapshotFreshness = computed(() => {
+  const basket = selectedBasket.value
+  if (!basket?.composition_date) return 'Snapshot date unavailable'
+  if (basket.latest_snapshot_date === basket.composition_date) return 'Latest stored snapshot'
+  if (basket.latest_snapshot_date) return `Historical snapshot · latest stored ${basket.latest_snapshot_date}`
+  return 'Dated snapshot · latest stored date unavailable'
+})
 
 onMounted(() => reload())
 
@@ -940,17 +963,44 @@ function humanize(value: string) {
 }
 
 .basket-provenance {
-  margin-top: 16px;
-  padding: 12px;
+  margin-top: 2px;
+  padding: 8px 10px;
   border: 1px solid var(--tc-border);
   border-radius: var(--tc-radius);
   background: var(--tc-window-bg);
 }
 
-.basket-provenance h3 {
-  margin: 0 0 10px;
+.basket-source-summary {
+  display: grid;
+  gap: 3px;
+  padding: 7px 10px;
+  border: 1px solid var(--tc-border);
+  border-radius: var(--tc-radius);
+  background: var(--tc-window-bg);
+  font-size: 11px;
+}
+
+.basket-source-summary p {
+  margin: 0;
+  color: var(--tc-text-muted);
+}
+
+.basket-source-summary strong {
   color: var(--tc-text);
-  font-size: 12px;
+}
+
+.basket-provenance > summary,
+.snapshot-source-details > summary {
+  color: var(--tc-accent-soft);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+  outline-offset: 3px;
+}
+
+.basket-provenance[open] > summary,
+.snapshot-source-details[open] > summary {
+  margin-bottom: 10px;
 }
 
 .basket-provenance dl {
@@ -1149,14 +1199,22 @@ function humanize(value: string) {
   margin-top: 16px;
 }
 
-@media (max-width: 920px) {
+@media (max-width: 1100px) {
   .basket-view {
     flex-direction: column;
   }
 
+  .basket-main {
+    order: 0;
+    min-height: 0;
+  }
+
   .basket-sidebar {
+    order: 1;
     width: 100%;
-    max-height: 280px;
+    max-height: 180px;
+    flex: 0 0 auto;
+    overflow: auto;
     border-right: 0;
     border-bottom: 1px solid #1a1a1a;
   }
@@ -1164,6 +1222,19 @@ function humanize(value: string) {
   .basket-main {
     padding: 14px;
   }
+
+  .basket-panel--readonly {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .basket-panel--readonly .panel-title-row { order: 0; }
+  .basket-panel--readonly .basket-source-summary { order: 1; }
+  .basket-panel--readonly .member-toolbar { order: 2; }
+  .basket-panel--readonly .member-table { order: 3; }
+  .basket-panel--readonly .form-grid { order: 4; }
+  .basket-panel--readonly .allocation-strip { order: 5; }
+  .basket-panel--readonly .basket-provenance { order: 6; }
 
   .form-grid,
   .member-row {

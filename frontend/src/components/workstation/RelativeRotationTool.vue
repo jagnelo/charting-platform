@@ -1,5 +1,5 @@
 <template>
-  <section class="rotation-tool" role="region" tabindex="0" :aria-label="`Relative rotation vs ${rotationBenchmark}`" :aria-busy="loading">
+  <section class="rotation-tool" role="region" tabindex="0" :aria-label="`Relative rotation vs ${rotationBenchmark}`" :aria-busy="loading && !rows.length">
     <header class="rotation-tool__header">
       <div class="rotation-tool__header-main"><strong>Relative Rotation · {{ rotationBenchmark }}</strong>
         <details class="rotation-tool__settings"><summary>Settings</summary><div class="rotation-tool__settings-panel"><div class="rotation-tool__controls"><label>Universe <select v-model="groupKey" aria-label="Rotation universe"><option value="sp500-sectors">S&amp;P 500 sectors</option><option value="us-benchmarks">US benchmarks</option><option v-for="family in familyKeys" :key="family.key" :value="family.key">{{ family.label }}</option></select></label><label>Benchmark <input v-model.trim="benchmark" aria-label="Rotation benchmark" :disabled="isFamily" /></label><label>Timeframe <select v-model="timeframe" aria-label="Rotation timeframe"><option value="D1">Daily</option><option value="W1">Weekly</option><option value="MN">Monthly</option></select></label><label>Sampling <input v-model.number="sampling" aria-label="Rotation sampling" type="number" min="1" max="30" /></label><label>Lookback <input v-model.number="lookback" aria-label="Rotation lookback" type="number" min="2" max="252" /></label><label>Tail <input v-model.number="tailLength" aria-label="Rotation tail length" type="number" min="1" max="100" /></label><label>History <input v-model.number="historyLength" aria-label="Rotation history length" type="number" min="0" max="5000" /></label><label>As of <input v-model="asOf" aria-label="Rotation as of" type="date" /></label><label class="rotation-tool__adjusted"><input v-model="adjusted" aria-label="Rotation split adjusted" type="checkbox" /> Adjusted</label></div><small>Trend: ratio return over {{ lookback }} sampled observations · Momentum: change in that trend{{ historyLength ? ` · ${historyLength} history points` : '' }}{{ asOf ? ` · As of ${asOf}` : '' }}{{ freshness ? ` · ${formatWorkstationFreshness(freshness)}` : '' }}</small></div></details>
@@ -82,7 +82,12 @@ const adjusted = ref(props.configuration?.adjusted !== false)
 const rotationStatusDetail = computed(() => error.value || preparationMessage.value || (loading.value
   ? rows.value.length ? 'Updating ratios…' : 'Calculating aligned local ratios…'
   : !rows.value.length ? `No ${isFamily.value ? 'family-leg' : 'sector'} rotation rows are available.` : ''))
-const rotationStatusSummary = computed(() => preparationMessageSummary(rotationStatusDetail.value, 'RRG'))
+// A failed preparation over a loaded rotation is a non-blocking notice; only a
+// failed rotation request is an "update failed" state.
+const rotationPreparationFailed = computed(() => /could not be completed|refresh failed/i.test(preparationMessage.value))
+const rotationStatusSummary = computed(() => !error.value && rows.value.length && rotationPreparationFailed.value
+  ? 'RRG local results'
+  : preparationMessageSummary(rotationStatusDetail.value, 'RRG'))
 const plotInstructionsId = `relative-rotation-plot-help-${useId()}`
 const plotHost = ref<HTMLElement | null>(null)
 const hovered = ref<{ symbol: string; point: PlotPoint; left: number; top: number } | null>(null)
@@ -470,7 +475,9 @@ async function load() {
     if (fresh) await queryClient.invalidateQueries({ queryKey, exact: true, refetchType: 'none' })
     return queryClient.fetchQuery<{ rows?: Row[]; roles?: Row[]; benchmark?: string; freshness?: string }>({
       queryKey,
-      queryFn: () => api.get<{ rows?: Row[]; roles?: Row[]; benchmark?: string; freshness?: string }>(path, params, { signal: controller.signal }),
+      // The query is shared by every tool with this key, so its cancellation must
+      // belong to the query, not to whichever instance started it.
+      queryFn: ({ signal }) => api.get<{ rows?: Row[]; roles?: Row[]; benchmark?: string; freshness?: string }>(path, params, { signal }),
       staleTime: fresh ? 0 : 30_000,
     })
   }
@@ -593,12 +600,12 @@ onBeforeUnmount(() => {
 .rotation-tool__settings>summary,.rotation-tool__rows-disclosure>summary{padding:3px 5px;border:1px solid #394750;border-radius:2px;background:#172027;color:#c8d4dc;cursor:pointer;white-space:nowrap;list-style:none}
 .rotation-tool__settings>summary::-webkit-details-marker,.rotation-tool__rows-disclosure>summary::-webkit-details-marker{display:none}
 .rotation-tool__settings>summary::before{content:'▸';margin-right:4px}.rotation-tool__settings[open]>summary::before{content:'▾'}
-.rotation-tool__settings-panel{position:absolute;top:38px;left:6px;z-index:5;width:min(340px,calc(100vw - 24px));max-height:calc(100% - 44px);overflow:auto;padding:8px;border:1px solid #526674;background:#172027;box-shadow:0 4px 12px #000b}
+.rotation-tool__settings-panel{position:absolute;top:38px;left:6px;z-index:5;box-sizing:border-box;width:min(340px,calc(100vw - 24px),calc(100% - 12px));max-height:calc(100% - 44px);overflow:auto;padding:8px;border:1px solid #526674;background:#172027;box-shadow:0 4px 12px #000b}
 .rotation-tool__settings-panel small{display:block;margin-top:6px;color:#82929d}
 .rotation-tool__controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;align-items:center}
 .rotation-tool__controls label{display:flex;align-items:center;gap:3px;min-width:0;color:#9aabb6}
-.rotation-tool__controls input,.rotation-tool__controls select{box-sizing:border-box;min-width:0;width:78px;max-width:100%;border:1px solid #3a4954;background:#172027;color:#dce6ed;font:inherit;padding:2px 3px}
-.rotation-tool__controls label:first-child{grid-column:1/-1}.rotation-tool__controls label:first-child select{width:150px}.rotation-tool__controls label:nth-child(7) input{width:100px}.rotation-tool__adjusted input{width:auto}
+.rotation-tool__controls input,.rotation-tool__controls select{box-sizing:border-box;min-width:0;width:auto;flex:0 1 78px;max-width:100%;border:1px solid #3a4954;background:#172027;color:#dce6ed;font:inherit;padding:2px 3px}
+.rotation-tool__controls label:first-child{grid-column:1/-1}.rotation-tool__controls label:first-child select{flex-basis:150px}.rotation-tool__controls label:nth-child(7) input{flex-basis:100px}.rotation-tool__adjusted input{flex:0 0 auto}
 .rotation-tool__rows-disclosure{position:static}
 .rotation-tool__rows-disclosure[open]>.rotation-tool__table{position:absolute;z-index:6;right:0;bottom:6px;width:min(100%,900px);height:min(52vh,280px);max-height:calc(100% - 48px);min-height:64px;overflow:auto;border:1px solid #526674;background:#172027;box-shadow:0 4px 14px #000b}
 .rotation-tool__plot-shell{position:relative;flex:1 1 auto;min-height:64px;background:#101419;overflow:hidden}

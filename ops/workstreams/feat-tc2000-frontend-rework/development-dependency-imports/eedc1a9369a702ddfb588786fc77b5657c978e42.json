@@ -1,0 +1,78 @@
+{
+  "at": "2026-11-07T05:37:00.213080+00:00",
+  "authority": "Root coordinates the human-approved common-interface implementation; no staging or deployment acceptance",
+  "source": "eedc1a9369a702ddfb588786fc77b5657c978e42",
+  "base": "139b350238b5e1c8a170dce5af09a805301d857e",
+  "state": "released_for_exact_development_consumption_not_product_acceptance",
+  "files": [
+    {
+      "path": "frontend/src/views/BasketsView.vue",
+      "status_from139": "M",
+      "git_blob": "71b27cafc4019d5004e54e7f2536606c0484756e",
+      "sha256": "eb237b4610cae5c7565bfcacc6bf2718586b89d032885d642f98cc55dcb5b141"
+    },
+    {
+      "path": "frontend/src/views/ETFHoldingsView.vue",
+      "status_from139": "M",
+      "git_blob": "2f4497f047aea843841f601dc4ae5e455f0429d3",
+      "sha256": "069f39fcd8cb2eade1c1fb486e64ef52cd8f6c18e2cb0f458b147c5e1289491b"
+    },
+    {
+      "path": "frontend/tests/e2e/baskets_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "588a96d3982fab696615e6338e76ed53900aaf8b",
+      "sha256": "76d1b9cedef51121c326a72707415d9997568bc824ebb1a2944c006e75625327"
+    },
+    {
+      "path": "frontend/tests/e2e/etf_holdings_preparation.spec.ts",
+      "status_from139": "A",
+      "git_blob": "3aabfab9b40455c89b3c074d44eece7484e3abb9",
+      "sha256": "90dce2364631fdeafa1e096e059ba99e60353b843e2069a3bf283dae56d64181"
+    },
+    {
+      "path": "frontend/tests/e2e/on_demand_acquisition.spec.ts",
+      "status_from139": "M",
+      "git_blob": "8aa8d3acf20b3eeaf89455ee0dd2b53059651253",
+      "sha256": "76d31dc7c7c59284ae5d5db4c2eb46db926bfa85f2557baba56cdbccd9c42f46"
+    },
+    {
+      "path": "frontend/tests/e2e/sp500_analysis_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "6e1ce8ff583c92544aedd25e5afdf07183cca3e2",
+      "sha256": "005bbb95c70963cf795158a5a197fd21a6ccc5e8eba4c0dcb477c8fd2f7cb867"
+    },
+    {
+      "path": "frontend/tests/unit/views/test_baskets_view.test.ts",
+      "status_from139": "M",
+      "git_blob": "0ebf9ba0bce23fcd5dfc5ed5daf8d98e69be9ec7",
+      "sha256": "8439f811cbaf26257f71591786d9b097ac2e92c49438a7f0f99b062d7d16c7cd"
+    },
+    {
+      "path": "frontend/tests/unit/views/test_etf_holdings_view.test.ts",
+      "status_from139": "M",
+      "git_blob": "ae90a782984d09fef3ea38f19aef98ddda4bf168",
+      "sha256": "f9261ffa840c5fc7a68bfef2c9394472d10418090b04b1657416f256dd471e8e"
+    }
+  ],
+  "consumers": [
+    {
+      "consumer": "TC",
+      "import_paths": [
+        "frontend/tests/e2e/on_demand_acquisition.spec.ts"
+      ],
+      "owned_overlap": []
+    }
+  ],
+  "scope": "Same8ETF-domain files; only on_demand acquisition test changes since35fe. Waits actual one-bar local response matching accepted coverage, retaining strict identity/calendar/no-direct-write/no-context-replacement assertions.",
+  "owner_acknowledgement": "Original ETF session current clean committedeedc synchronization successor;4cfee/b0 imports and focused type/discovery checks reported.",
+  "consumer_rule": "TC may import these8 exact paths after freezing its current cached-first checkpoint. Provider/Strategy require Root overlap reconciliation before these paths; no broad whole-branch restore. Hash and blob check every imported file; preserve unrelated changes.",
+  "evidence": "Root exact source4cfee/b0 browser, exacteedc test: uncached Workstation selection passed20.0sec,zero retries; validation-fixture/focused-uncached-r5-receipt.json. All other ETF/Baskets domain bodies and final combined acceptance pending.",
+  "preserve": "No new fixtures, policy/ledger/native request changes, historical rewrite or acceptance implied.",
+  "supersedes_manifest": "etf35fe1722-domain-frontend-development-consumption-contract-v2.json",
+  "metadata_correction": "Retains normalized existing common-interface authority; no validator exception.",
+  "previous_source": "35fe1722848a5538d285b7c82d481acfb8e20b88",
+  "previous_manifest": "etf35fe1722-domain-frontend-development-consumption-contract-v2.json",
+  "changed_paths_since_previous": [
+    "frontend/tests/e2e/on_demand_acquisition.spec.ts"
+  ]
+}

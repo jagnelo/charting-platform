@@ -1,5 +1,5 @@
 import { test, expect } from './helpers'
-import type { Page } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
 
 const retainedStudyStartDate = '2024-01-02'
 const retainedStudyEndDate = '2025-12-29'
@@ -9,6 +9,32 @@ async function activateDockToolTab(page: Page, title: string) {
   await expect(tab).toBeVisible()
   await tab.click()
   await expect(tab).toHaveClass(/lm_active/)
+}
+
+async function expectStudyPlotReadoutContained(chart: Locator, artifact: Locator, nextHeader?: Locator) {
+  const readout = chart.locator('.study-series__legend, .study-bars__legend, .study-histogram__legend, .study-range__legend, .study-scatter__legend')
+  await expect(artifact).toBeVisible()
+  await expect(chart).toBeVisible()
+  await expect(readout).toBeVisible()
+  await expect.poll(async () => {
+    const [chartBox, readoutBox, artifactBox, nextHeaderBox] = await Promise.all([
+      chart.boundingBox(), readout.boundingBox(), artifact.boundingBox(), nextHeader?.boundingBox(),
+    ])
+    return Boolean(chartBox && readoutBox && artifactBox
+      && readoutBox.x >= chartBox.x - 1
+      && readoutBox.x + readoutBox.width <= chartBox.x + chartBox.width + 1
+      && readoutBox.x >= artifactBox.x - 1
+      && readoutBox.x + readoutBox.width <= artifactBox.x + artifactBox.width + 1
+      && chartBox.x >= artifactBox.x - 1
+      && chartBox.x + chartBox.width <= artifactBox.x + artifactBox.width + 1
+      && readoutBox.y >= chartBox.y - 1
+      && readoutBox.y + readoutBox.height <= chartBox.y + chartBox.height + 1
+      && readoutBox.y >= artifactBox.y - 1
+      && readoutBox.y + readoutBox.height <= artifactBox.y + artifactBox.height + 1
+      && chartBox.y >= artifactBox.y - 1
+      && chartBox.y + chartBox.height <= artifactBox.y + artifactBox.height + 1
+      && (!nextHeaderBox || chartBox.y + chartBox.height <= nextHeaderBox.y + 1))
+  }, { timeout: 5_000 }).toBe(true)
 }
 
 async function authenticatedJson(page: Page, path: string) {
@@ -80,17 +106,19 @@ function isStudyHistoryEnsure(
   } catch {
     return false
   }
+  const datasets = body.datasets ?? []
+  const matchesRequestedHistory = datasets.length === 1 && datasets[0] === 'history'
+  const matchesDate = (actual: string | null | undefined, expected: string | null) => expected === null
+    ? actual == null
+    : actual === expected
   return body.target?.kind === 'instrument'
     && typeof body.target.symbol === 'string'
     && symbols.has(body.target.symbol.toUpperCase())
-    && body.datasets?.length === 1
-    && body.datasets[0] === 'history'
+    && matchesRequestedHistory
     && body.timeframe === 'D1'
     && body.adjusted === true
-    && Object.prototype.hasOwnProperty.call(body, 'start_at')
-    && Object.prototype.hasOwnProperty.call(body, 'end_at')
-    && body.start_at === startAt
-    && body.end_at === endAt
+    && matchesDate(body.start_at, startAt)
+    && matchesDate(body.end_at, endAt)
 }
 
 function isWorkspaceSnapshotWithStudyVersion(
@@ -113,6 +141,7 @@ function isWorkspaceSnapshotWithStudyVersion(
 test('Study journey keeps saved identity, refreshes Results, and returns from Python Library on the immutable version', async ({ page, loggedIn, browserDiagnostics }) => {
   test.setTimeout(150_000)
   const studyName = `Study journey ${Date.now()}`
+  const strategyLabV2Writes: string[] = []
   const runRequests: Array<{
     code_version_id?: number
     run_config?: { symbol?: string; start_date?: string; end_date?: string }
@@ -120,8 +149,12 @@ test('Study journey keeps saved identity, refreshes Results, and returns from Py
   }> = []
   let codeAssetCreations = 0
   page.on('request', request => {
+    const url = new URL(request.url())
+    if (url.pathname.startsWith('/api/v1/strategy-lab/v2/') && request.method() !== 'GET') {
+      strategyLabV2Writes.push(`${request.method()} ${url.pathname}`)
+    }
     if (request.method() !== 'POST') return
-    const pathname = new URL(request.url()).pathname
+    const pathname = url.pathname
     if (pathname.endsWith('/research/runs')) runRequests.push(request.postDataJSON() as typeof runRequests[number])
     if (pathname.endsWith('/code/assets')) codeAssetCreations += 1
   })
@@ -129,6 +162,13 @@ test('Study journey keeps saved identity, refreshes Results, and returns from Py
   await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
   await page.getByRole('button', { name: 'Study', exact: true }).click()
 
+  await activateDockToolTab(page, 'Study Lab')
+  const compactStudy = page.locator('.study-lab-tool:visible').last()
+  const compactHeader = compactStudy.locator('.study-lab-tool__header-main')
+  await expect.poll(() => compactHeader.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
+  await expect(compactHeader.getByRole('textbox', { name: 'Study name' })).toBeVisible()
+  await expect(compactHeader.getByRole('textbox', { name: 'Study symbol' })).toBeVisible()
+  await expect(compactHeader.getByRole('combobox', { name: 'Factory study' })).toBeVisible()
   await activateDockToolTab(page, 'Study Results')
   const results = page.locator('.research-results-tool:visible').last()
   await expect(results).toBeVisible({ timeout: 15_000 })
@@ -176,6 +216,13 @@ test('Study journey keeps saved identity, refreshes Results, and returns from Py
   expect(codeAssetCreations).toBe(1)
   await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
 
+  const studyArtifacts = study.locator('.study-lab-tool__run > article')
+  const streakDistributionArtifact = studyArtifacts.filter({ hasText: 'streak_distribution' }).first()
+  await expectStudyPlotReadoutContained(
+    streakDistributionArtifact.locator('.study-histogram'),
+    streakDistributionArtifact,
+  )
+
   const runLabel = await study.locator('.study-lab-tool__run > div > strong').innerText()
   const runId = runLabel.match(/Run #(\d+)/)?.[1]
   expect(runId).toBeTruthy()
@@ -190,6 +237,12 @@ test('Study journey keeps saved identity, refreshes Results, and returns from Py
   const resultDetail = activeResults.locator(`article[aria-label="Research run ${runId} details"]`)
   await expect(resultDetail).toBeVisible()
   await expect(resultDetail.locator('.research-results-tool__artifacts > article')).toHaveCount(8, { timeout: 15_000 })
+  const resultArtifacts = resultDetail.locator('.research-results-tool__artifacts > article')
+  const resultStreakDistribution = resultArtifacts.filter({ hasText: 'streak_distribution' }).first()
+  await expectStudyPlotReadoutContained(
+    resultStreakDistribution.locator('.study-histogram'),
+    resultStreakDistribution,
+  )
 
   await activateDockToolTab(page, 'Study Lab')
   const savedDraft = page.waitForResponse(response => response.request().method() === 'PUT' && new URL(response.url()).pathname.endsWith('/snapshot'))
@@ -233,6 +286,39 @@ test('Study journey keeps saved identity, refreshes Results, and returns from Py
   await restoredRun.click()
   const restoredDetail = restoredResults.locator(`article[aria-label="Research run ${runId} details"]`)
   await expect(restoredDetail.locator('.research-results-tool__artifacts > article')).toHaveCount(8, { timeout: 15_000 })
+
+  const inspectorLink = restoredDetail.getByRole('link', { name: /^Inspect .* immutable Study lineage in Strategy Lab v2$/ }).first()
+  await expect(inspectorLink).toBeVisible()
+  const inspectorHref = await inspectorLink.getAttribute('href')
+  expect(inspectorHref).toMatch(new RegExp(`/legacy/strategy-lab-v2\\?researchRunId=${runId}&artifactId=[1-9][0-9]*`))
+  const inspectorReferenceRead = page.waitForResponse(response => response.request().method() === 'GET'
+    && new URL(response.url()).pathname.match(/^\/api\/v1\/strategy-lab\/v2\/study-artifact-references\/[1-9][0-9]*\/[1-9][0-9]*$/) !== null)
+  await inspectorLink.click()
+  await expect(page.getByRole('heading', { name: 'Strategy Lab v2' })).toBeVisible()
+  const inspectorResponse = await inspectorReferenceRead
+  expect(inspectorResponse.status()).toBe(200)
+  const inspectorPin = await inspectorResponse.json() as { data?: { attributes?: Record<string, unknown> } }
+  const pin = inspectorPin.data?.attributes
+  expect(pin).toMatchObject({ research_run_id: Number(runId), output_contract: 'study' })
+  expect(String(pin?.run_reproducibility_hash)).toMatch(/^[0-9a-f]{64}$/)
+  for (const digest of ['code_version_digest', 'dataset_manifest_digest', 'artifact_content_digest']) {
+    expect(typeof pin?.[digest], `${digest} is part of the immutable Study pin`).toBe('string')
+    expect(String(pin?.[digest])).toMatch(/^sha256:[0-9a-f]{64}$/)
+  }
+  const resolvedPin = page.getByRole('region', { name: 'Resolved Study pin' })
+  await expect(resolvedPin).toContainText(new RegExp(String(Number(runId))))
+  await expect(page.getByRole('region', { name: 'Execution boundary' })).toContainText('does not start a backtest')
+  await expect(page.getByRole('region', { name: 'Execution boundary' })).toContainText('Native, broker and capital actions remain unavailable')
+  for (const [label, endpoint] of [['Trials', '/trials'], ['Artifacts', '/artifacts']] as const) {
+    const collectionRead = page.waitForResponse(response => response.request().method() === 'GET'
+      && new URL(response.url()).pathname === `/api/v1/strategy-lab/v2${endpoint}`)
+    await page.getByRole('button', { name: new RegExp(`^${label}`) }).click()
+    expect((await collectionRead).status()).toBe(200)
+  }
+  const returnLink = page.getByRole('link', { name: 'Back to workstation', exact: true })
+  await returnLink.click()
+  await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
+  expect(strategyLabV2Writes).toEqual([])
 
   await page.getByRole('button', { name: 'Add tool', exact: true }).click()
   await page.getByRole('menu', { name: 'Workstation tools' }).getByRole('menuitem', { name: 'Python Library', exact: true }).click()
@@ -513,51 +599,340 @@ test('Study prepares SPY before validating and completes a configured high-low b
   await browserDiagnostics.expectNoCriticalIssues()
 })
 
+test('legacy Strategy Lab creates, edits, reloads, and safely deletes a supported definition', async ({ page, loggedIn, browserDiagnostics }) => {
+  const name = `Strategy lifecycle ${Date.now()}`
+  const description = 'Ordinary supported local backtest definition lifecycle.'
+  let localRunDispatches = 0
+  page.on('request', request => {
+    if (request.method() === 'POST' && /\/api\/v1\/strategy-lab\/versions\/\d+\/runs$/.test(new URL(request.url()).pathname)) localRunDispatches += 1
+  })
+
+  await page.goto('/chart')
+  await expect(page.locator('.workspace-layout-host')).toBeVisible()
+  await page.goto('/legacy/strategy-lab')
+  await expect(page.locator('.strategy-lab-view')).toBeVisible()
+  await page.getByRole('button', { name: 'Create new strategy', exact: true }).click()
+  await page.getByPlaceholder('Momentum Continuation').fill(name)
+  await page.getByLabel('Universe type').selectOption('symbols')
+  const symbolPicker = page.getByRole('combobox', { name: 'Add symbol (e.g. AAPL)', exact: true })
+  await symbolPicker.fill('SPY')
+  const spyChoice = page.getByRole('listbox', { name: 'Symbol search results' }).getByRole('option', { name: /^SPY\b/ }).first()
+  await expect(spyChoice).toBeVisible({ timeout: 15_000 })
+  await spyChoice.click()
+  const assertSelectedSpy = async () => {
+    const spyChip = page.locator('.symbol-chip').filter({
+      has: page.getByRole('button', { name: 'Remove SPY', exact: true }),
+    })
+    await expect(spyChip).toHaveCount(1)
+    await expect(spyChip).toContainText(/^SPY/)
+    await expect(spyChip.getByRole('button', { name: 'Remove SPY', exact: true })).toBeVisible()
+  }
+  await assertSelectedSpy()
+
+  const createResponsePromise = page.waitForResponse(response => response.request().method() === 'POST'
+    && new URL(response.url()).pathname === '/api/v1/strategy-lab/definitions')
+  await page.getByRole('button', { name: 'Create strategy', exact: true }).click()
+  const createResponse = await createResponsePromise
+  expect(createResponse.status()).toBe(201)
+  expect(createResponse.request().postDataJSON()).toMatchObject({
+    initial_version: { universe_config: { symbols: ['SPY'] } },
+  })
+  const created = await createResponse.json() as { id?: number; name?: string; versions?: Array<{ id?: number; version_number?: number }> }
+  expect(Number.isInteger(created.id)).toBe(true)
+  expect(created.name).toBe(name)
+  expect(created.versions?.length).toBeGreaterThan(0)
+  const strategyTile = page.getByRole('button', { name: `Open strategy ${name}`, exact: true })
+  await expect(strategyTile).toBeVisible()
+  await expect(strategyTile).toContainText('v1')
+
+  await page.getByPlaceholder('What market behaviour is this strategy trying to capture?').fill(description)
+  const profileUpdatePromise = page.waitForResponse(response => response.request().method() === 'PATCH'
+    && new URL(response.url()).pathname === `/api/v1/strategy-lab/definitions/${created.id}`)
+  await page.getByRole('button', { name: 'Save profile', exact: true }).click()
+  const profileUpdate = await profileUpdatePromise
+  expect(profileUpdate.ok()).toBe(true)
+  expect(profileUpdate.request().postDataJSON()).toMatchObject({ name, description })
+
+  const entryLogic = page.locator('.panel').filter({ has: page.getByRole('button', { name: 'Entry logic', exact: true }) }).first()
+  const entryLogicToggle = entryLogic.getByRole('button', { name: 'Entry logic', exact: true })
+  if (await entryLogicToggle.getAttribute('aria-expanded') !== 'true') await entryLogicToggle.click()
+  await entryLogic.getByRole('button', { name: /Add technical condition/ }).click()
+  const rsiCondition = entryLogic.getByRole('group', { name: 'Condition 1 rule', exact: true })
+  const conditionType = rsiCondition.getByRole('combobox', { name: 'Condition type', exact: true })
+  await conditionType.selectOption({ label: 'Indicator vs Value' })
+  await expect(conditionType).toHaveValue('indicator_threshold')
+  const indicator = rsiCondition.getByRole('combobox', { name: 'Indicator', exact: true })
+  await indicator.selectOption({ label: 'RSI - Relative Strength Index' })
+  await expect(indicator).toHaveValue('rsi')
+  const indicatorPeriod = rsiCondition.getByRole('spinbutton', { name: 'Period', exact: true })
+  await indicatorPeriod.fill('14')
+  await expect(indicatorPeriod).toHaveValue('14')
+  const relationship = rsiCondition.getByRole('combobox', { name: 'Relationship', exact: true })
+  await relationship.selectOption({ label: '>' })
+  await expect(relationship).toHaveValue('gt')
+  const thresholdValue = rsiCondition.getByRole('spinbutton', { name: 'Value', exact: true })
+  await thresholdValue.fill('50')
+  await expect(thresholdValue).toHaveValue('50')
+  const revisionNote = entryLogic.getByRole('textbox', { name: 'Revision note', exact: true })
+  await revisionNote.fill('Add a supported RSI entry rule for the retained local history window.')
+  await expect(revisionNote).toHaveValue('Add a supported RSI entry rule for the retained local history window.')
+  const publishRevisionPromise = page.waitForResponse(response => response.request().method() === 'POST'
+    && new URL(response.url()).pathname === `/api/v1/strategy-lab/definitions/${created.id}/versions`)
+  await page.getByRole('button', { name: 'Publish revision', exact: true }).click()
+  const publishedVersionResponse = await publishRevisionPromise
+  expect(publishedVersionResponse.status()).toBe(201)
+  const publishedVersion = await publishedVersionResponse.json() as { id?: number; version_number?: number }
+  expect(Number.isInteger(publishedVersion.id)).toBe(true)
+  expect(publishedVersion.version_number).toBe(2)
+  await expect(page.getByRole('button', { name: `Open strategy ${name}`, exact: true })).toContainText('v2')
+
+  await page.reload()
+  await expect(page.locator('.strategy-lab-view')).toBeVisible()
+  await page.getByRole('button', { name: `Open strategy ${name}`, exact: true }).click()
+  await expect(page.getByPlaceholder('Momentum Continuation')).toHaveValue(name)
+  await expect(page.getByPlaceholder('What market behaviour is this strategy trying to capture?')).toHaveValue(description)
+  await assertSelectedSpy()
+
+  const runHistoryToggle = page.getByRole('button', { name: /^Research runs/ })
+  if (await runHistoryToggle.getAttribute('aria-expanded') !== 'true') await runHistoryToggle.click()
+  await page.getByLabel('Date from').fill('2024-01-01')
+  await page.getByLabel('Date to').fill('2025-12-29')
+  await page.getByLabel('Run timeframe').selectOption('D1')
+  await expect(page.getByRole('button', { name: 'Backtest', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  const runSubmissionPromise = page.waitForResponse(response => response.request().method() === 'POST'
+    && new URL(response.url()).pathname === `/api/v1/strategy-lab/versions/${publishedVersion.id}/runs`)
+  await page.getByRole('button', { name: 'Run backtest', exact: true }).click()
+  const runSubmission = await runSubmissionPromise
+  expect(runSubmission.status()).toBe(201)
+  const submittedRun = await runSubmission.json() as { id?: number; strategy_id?: number; strategy_version_id?: number; test_mode?: string; status?: string }
+  expect(Number.isInteger(submittedRun.id)).toBe(true)
+  expect(submittedRun).toMatchObject({ strategy_id: created.id, strategy_version_id: publishedVersion.id, test_mode: 'backtest' })
+  expect(runSubmission.request().postDataJSON()).toMatchObject({
+    test_mode: 'backtest',
+    timeframe: 'D1',
+    date_from: '2024-01-01T00:00:00Z',
+    date_to: '2025-12-29T23:59:59Z',
+  })
+  expect(localRunDispatches).toBe(1)
+  await expect(page.locator('.run-batch--active .status-chip--completed')).toBeVisible()
+  await expect(page.locator('.panel--results .run-detail')).toBeVisible()
+  const persistedRunRead = await authenticatedJson(page, `/api/v1/strategy-lab/runs/${submittedRun.id}`)
+  expect(persistedRunRead.status).toBe(200)
+  expect(persistedRunRead.body).toMatchObject({
+    id: submittedRun.id,
+    strategy_id: created.id,
+    strategy_version_id: publishedVersion.id,
+    test_mode: 'backtest',
+    status: 'completed',
+  })
+  expect(String(persistedRunRead.body.date_from)).toMatch(/^2024-01-01T00:00:00/)
+  expect(String(persistedRunRead.body.date_to)).toMatch(/^2025-12-29T23:59:59/)
+  const localResult = persistedRunRead.body.result_summary as {
+    result_kind?: string
+    timeframe?: string
+    equity_curve?: Array<{ equity?: unknown }>
+    universe?: { resolved_symbols?: string[] }
+    coverage?: {
+      requested_date_from?: string
+      requested_date_to?: string
+      simulatable_symbols?: string[]
+      simulatable_instrument_count?: number
+      total_bars?: number
+    }
+    performance?: { initial_capital?: number; ending_capital?: number; trade_count?: number }
+  }
+  expect(localResult.result_kind).toBe('rules_backtest')
+  expect(localResult.timeframe).toBe('D1')
+  expect(localResult.universe?.resolved_symbols).toContain('SPY')
+  expect(localResult.coverage?.simulatable_symbols).toContain('SPY')
+  expect(localResult.coverage?.simulatable_instrument_count).toBeGreaterThan(0)
+  expect(localResult.coverage?.total_bars).toBeGreaterThan(0)
+  expect(localResult.coverage?.requested_date_from).toMatch(/^2024-01-01T00:00:00/)
+  expect(localResult.coverage?.requested_date_to).toMatch(/^2025-12-29T23:59:59/)
+  expect(localResult.equity_curve?.length).toBeGreaterThan(1)
+  expect(localResult.equity_curve?.every(point => typeof point.equity === 'number' && Number.isFinite(point.equity))).toBe(true)
+  expect(Number.isFinite(localResult.performance?.initial_capital)).toBe(true)
+  expect(Number.isFinite(localResult.performance?.ending_capital)).toBe(true)
+  expect(Number.isInteger(localResult.performance?.trade_count)).toBe(true)
+  expect(localResult.performance?.trade_count).toBeGreaterThan(0)
+  expect(persistedRunRead.body.artifact_manifest).toMatchObject({ result_kind: 'rules_backtest' })
+
+  const researchRunsPanel = page.locator('.panel').filter({
+    has: page.getByRole('button', { name: 'Research runs', exact: true }),
+  }).first()
+  await expect(researchRunsPanel.getByRole('button', { name: 'Research runs', exact: true }))
+    .toHaveAttribute('aria-expanded', 'true')
+  await expect(researchRunsPanel.getByRole('button', { name: /Run history \d+ batch(?:es)?/ }))
+    .toHaveAttribute('aria-expanded', 'true')
+  await expect(researchRunsPanel.locator('.run-item[aria-pressed="true"]')).toHaveCount(1)
+  const resultsPanel = page.locator('.panel.panel--results')
+  await expect(resultsPanel.getByRole('button', { name: 'Results', exact: true }))
+    .toHaveAttribute('aria-expanded', 'true')
+  await expect(resultsPanel.locator('.run-detail')).toBeVisible()
+  await expect(resultsPanel.getByText('Realized return', { exact: true })).toBeVisible()
+
+  const exportPromise = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Export', exact: true }).click()
+  await page.getByRole('menuitem', { name: 'Export summary', exact: true }).click()
+  const summaryDownload = await exportPromise
+  expect(summaryDownload.suggestedFilename()).toBe(`strategy-run-${submittedRun.id}.json`)
+
+  await page.getByRole('button', { name: 'Delete strategy', exact: true }).click()
+  const deleteDialog = page.getByRole('dialog', { name: 'Delete Strategy' })
+  await expect(deleteDialog).toBeVisible()
+  await deleteDialog.getByRole('button', { name: 'Cancel', exact: true }).click()
+  await expect(deleteDialog).toHaveCount(0)
+  await expect(page.getByRole('button', { name: `Open strategy ${name}`, exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Delete strategy', exact: true }).click()
+  const confirmDialog = page.getByRole('dialog', { name: 'Delete Strategy' })
+  const deleteResponsePromise = page.waitForResponse(response => response.request().method() === 'DELETE'
+    && new URL(response.url()).pathname === `/api/v1/strategy-lab/definitions/${created.id}`)
+  await confirmDialog.getByRole('button', { name: 'Delete', exact: true }).click()
+  expect((await deleteResponsePromise).ok()).toBe(true)
+  await expect(page.getByRole('button', { name: `Open strategy ${name}`, exact: true })).toHaveCount(0)
+  await page.goBack()
+  await expect(page.locator('.workspace-layout-host')).toBeVisible()
+  await browserDiagnostics.expectNoCriticalIssues()
+})
+
+test('Strategy Lab v2 reads a selected owner resource and recovers from a denied reference without writes', async ({ page, loggedIn, browserDiagnostics }) => {
+  test.setTimeout(60_000)
+  const resource = { type: 'strategies', id: 'controlled-owner-resource', attributes: { name: 'Controlled read-only owner resource', status: 'saved' } }
+  const pinAttributes = {
+    research_run_id: 41,
+    code_version_id: 57,
+    artifact_id: 73,
+    artifact_name: 'current_streak',
+    artifact_type: 'scalar',
+    output_contract: 'study',
+    run_reproducibility_hash: 'a'.repeat(64),
+    code_version_digest: `sha256:${'b'.repeat(64)}`,
+    dataset_manifest_digest: `sha256:${'c'.repeat(64)}`,
+    artifact_content_digest: `sha256:${'d'.repeat(64)}`,
+  }
+  const writes: string[] = []
+  let pinAttempts = 0
+  page.on('request', request => {
+    const url = new URL(request.url())
+    if (url.pathname.startsWith('/api/v1/strategy-lab/v2/') && request.method() !== 'GET') writes.push(`${request.method()} ${url.pathname}`)
+  })
+  await page.route(url => url.pathname === '/api/v1/strategy-lab/v2/strategies', async route => {
+    if (route.request().method() !== 'GET') return route.continue()
+    await route.fulfill({ status: 200, json: { data: [resource], links: {} } })
+  })
+  await page.route(url => url.pathname === '/api/v1/strategy-lab/v2/strategies/controlled-owner-resource', async route => {
+    if (route.request().method() !== 'GET') return route.continue()
+    await route.fulfill({ status: 200, json: { data: resource } })
+  })
+  await page.route(url => url.pathname === '/api/v1/strategy-lab/v2/trials', async route => {
+    if (route.request().method() !== 'GET') return route.continue()
+    await route.fulfill({ status: 200, json: { data: [], links: {} } })
+  })
+  await page.route(url => url.pathname === '/api/v1/strategy-lab/v2/artifacts', async route => {
+    if (route.request().method() !== 'GET') return route.continue()
+    await route.fulfill({ status: 200, json: { data: [], links: {} } })
+  })
+  await page.route(url => url.pathname.startsWith('/api/v1/strategy-lab/v2/study-artifact-references/41/'), async route => {
+    if (route.request().method() !== 'GET') return route.continue()
+    pinAttempts += 1
+    if (new URL(route.request().url()).pathname.endsWith('/999')) {
+      await route.fulfill({ status: 404, json: { detail: 'Study artifact reference not found' } })
+      return
+    }
+    await route.fulfill({ status: 200, json: { data: { type: 'study-artifact-references', id: '41:73', attributes: pinAttributes } } })
+  })
+
+  await page.goto('/legacy/strategy-lab-v2')
+  for (const [label, path, empty] of [
+    ['Trials', '/api/v1/strategy-lab/v2/trials', 'No trials are available for this account yet.'],
+    ['Artifacts', '/api/v1/strategy-lab/v2/artifacts', 'No artifacts are available for this account yet.'],
+  ] as const) {
+    const collectionRead = page.waitForResponse(response => response.request().method() === 'GET'
+      && new URL(response.url()).pathname === path)
+    await page.getByRole('button', { name: new RegExp(`^${label}`) }).click()
+    expect((await collectionRead).status()).toBe(200)
+    await expect(page.getByText(empty, { exact: true })).toBeVisible()
+  }
+  await page.getByRole('button', { name: /^Strategies/ }).click()
+  const strategyRow = page.getByRole('button', { name: /Controlled read-only owner resource/ })
+  await expect(strategyRow).toBeVisible()
+  await strategyRow.click()
+  await expect(page.getByRole('article', { name: 'Selected resource detail' })).toContainText('Controlled read-only owner resource')
+  await expect(page.getByText('Persisted attributes')).toBeVisible()
+
+  await page.getByRole('textbox', { name: 'Research run ID' }).fill('41')
+  await page.getByRole('textbox', { name: 'Artifact ID' }).fill('999')
+  await page.getByRole('button', { name: 'Inspect immutable pin', exact: true }).click()
+  await expect(page.getByRole('alert')).toContainText('Study artifact reference not found')
+  await page.getByRole('textbox', { name: 'Artifact ID' }).fill('73')
+  await page.getByRole('button', { name: 'Inspect immutable pin', exact: true }).click()
+  const resolvedPin = page.getByRole('region', { name: 'Resolved Study pin' })
+  await expect(resolvedPin).toContainText('current_streak')
+  await expect(resolvedPin).toContainText('artifact_content_digest')
+  expect(pinAttempts).toBe(2)
+  expect(writes).toEqual([])
+  await page.getByRole('link', { name: 'Back to workstation', exact: true }).click()
+  await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
+  await browserDiagnostics.expectNoCriticalIssues()
+})
+
 test('Study preparation submits every universe member and benchmark while one member is held', async ({ page, loggedIn, browserDiagnostics }) => {
   const submittedTargets: Array<{ kind: string; symbol?: string }> = []
+  const requestedDatasets = new Map<string, string[]>()
   let resolveAllSubmitted!: () => void
   const allSubmitted = new Promise<void>(resolve => { resolveAllSubmitted = resolve })
   let resolveHeldPrimary!: () => void
   const heldPrimary = new Promise<void>(resolve => { resolveHeldPrimary = resolve })
-  const responseFor = (requestId: string, status: 'queued' | 'ready' | 'unavailable', version: number, symbol: string) => ({
-    request_id: requestId,
-    status,
-    has_pending_work: status === 'queued',
-    created_at: '2026-11-06T12:00:00Z',
-    updated_at: '2026-11-06T12:00:01Z',
-    version,
-    target: { kind: 'instrument', symbol },
-    dependencies: [{
-      dependency_id: `${requestId}:history`,
-      depends_on: [],
-      instrument_id: null,
-      symbol,
-      dataset: 'history',
+  const responseFor = (requestId: string, status: 'queued' | 'ready' | 'unavailable', version: number, symbol: string, datasets: readonly string[]) => {
+    const dependencies = datasets.map(dataset => {
+      const dependencyStatus = status === 'unavailable' && dataset === 'history' ? 'unavailable' : status === 'unavailable' ? 'ready' : status
+      return {
+        dependency_id: `${requestId}:${dataset}`,
+        depends_on: [],
+        instrument_id: null,
+        symbol,
+        dataset,
+        status: dependencyStatus,
+        requested_start: null,
+        requested_end: null,
+        covered_start: null,
+        covered_end: null,
+        reason_code: dependencyStatus === 'unavailable' ? 'no_eligible_history_provider' : null,
+        retry_at: null,
+        updated_at: '2026-11-06T12:00:01Z',
+        covered_ranges: [],
+      }
+    })
+    const completed = dependencies.filter(dependency => !['queued', 'running', 'partial'].includes(dependency.status)).length
+    return {
+      request_id: requestId,
       status,
-      requested_start: null,
-      requested_end: null,
-      covered_start: null,
-      covered_end: null,
-      reason_code: status === 'unavailable' ? 'no_eligible_history_provider' : null,
-      retry_at: null,
+      has_pending_work: status === 'queued',
+      created_at: '2026-11-06T12:00:00Z',
       updated_at: '2026-11-06T12:00:01Z',
-      covered_ranges: [],
-    }],
-    completed: status === 'queued' ? 0 : 1,
-    total: 1,
-    last_progress_at: '2026-11-06T12:00:01Z',
-  })
+      version,
+      target: { kind: 'instrument', symbol },
+      dependencies,
+      completed,
+      total: dependencies.length,
+      last_progress_at: '2026-11-06T12:00:01Z',
+    }
+  }
 
   const studySymbols = new Set(['SPY', 'XLK', 'QQQ'])
   await page.route('**/api/v1/data/**', async route => {
     const request = route.request()
     const url = new URL(request.url())
+    // Workstation shell identity/profile/history startup requests pass through;
+    // only Study Lab's history-only fan-out is counted in this held-member fixture.
     if (isStudyHistoryEnsure(request, studySymbols)) {
-      const body = request.postDataJSON() as { target: { kind: string; symbol?: string } }
+      const body = request.postDataJSON() as { target: { kind: string; symbol?: string }; datasets?: string[] }
       submittedTargets.push(body.target)
       if (submittedTargets.length === 3) resolveAllSubmitted()
       const symbol = body.target.symbol ?? `target-${submittedTargets.length}`
-      await route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify(responseFor(`study-${symbol}`, 'queued', 1, symbol)) })
+      const datasets = body.datasets ?? ['history']
+      requestedDatasets.set(`study-${symbol}`, datasets)
+      await route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify(responseFor(`study-${symbol}`, 'queued', 1, symbol, datasets)) })
       return
     }
     const poll = url.pathname.match(/\/api\/v1\/data\/requests\/(study-[^/]+)$/)
@@ -566,7 +941,7 @@ test('Study preparation submits every universe member and benchmark while one me
       const symbol = requestId.replace(/^study-/, '')
       if (symbol === 'SPY') await heldPrimary
       const status = symbol === 'SPY' ? 'unavailable' : 'ready'
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(responseFor(requestId, status, 2, symbol)) })
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(responseFor(requestId, status, 2, symbol, requestedDatasets.get(requestId) ?? ['history'])) })
       return
     }
     await route.continue()

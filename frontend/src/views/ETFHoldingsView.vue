@@ -76,46 +76,14 @@
           </div>
         </div>
 
-        <dl v-if="page" class="snapshot-lineage" data-testid="etf-snapshot-lineage">
-          <div>
-            <dt>Provenance</dt>
-            <dd>{{ formatProvenance(page.snapshot.provenance) }}</dd>
-          </div>
-          <div>
-            <dt>Source provider</dt>
-            <dd data-testid="etf-snapshot-source-provider">{{ page.snapshot.source_provider || 'Not established' }}</dd>
-          </div>
-          <div>
-            <dt>Source identifier</dt>
-            <dd data-testid="etf-snapshot-source-identifier">{{ page.snapshot.source_identifier || 'Not established' }}</dd>
-          </div>
-          <div>
-            <dt>Source document</dt>
-            <dd data-testid="etf-snapshot-source-url">{{ page.snapshot.source_url || 'Not established' }}</dd>
-          </div>
-          <div>
-            <dt>Observed / known at</dt>
-            <dd>
-              <time
-                v-if="page.snapshot.known_at"
-                data-testid="etf-snapshot-known-at"
-                :datetime="page.snapshot.known_at"
-              >{{ formatDateTime(page.snapshot.known_at) }}</time>
-              <span v-else>Unknown</span>
-            </dd>
-          </div>
-          <div>
-            <dt>Source-reported publication</dt>
-            <dd>
-              <time
-                v-if="page.snapshot.published_at"
-                data-testid="etf-snapshot-published-at"
-                :datetime="page.snapshot.published_at"
-              >{{ formatDateTime(page.snapshot.published_at) }}</time>
-              <span v-else>Not established</span>
-            </dd>
-          </div>
-        </dl>
+        <p v-if="page" class="snapshot-source-summary" data-testid="etf-snapshot-lineage">
+          ETF {{ page.snapshot.etf_symbol || page.snapshot.etf_name }} ·
+          Source <strong data-testid="etf-snapshot-source-provider">{{ page.snapshot.source_provider || 'Not established' }}</strong>
+          · {{ formatProvenance(page.snapshot.provenance) }}
+          <template v-if="page.snapshot.known_at">
+            · Observed <time data-testid="etf-snapshot-known-at" :datetime="page.snapshot.known_at">{{ formatDateTime(page.snapshot.known_at) }}</time>
+          </template>
+        </p>
 
         <div v-if="loadError" class="notice notice--error">{{ loadError }}</div>
 
@@ -166,17 +134,19 @@
           role="status"
         >
           <strong>Current holdings are not verified.</strong>
-          {{ selectedCapability.reason }}
+          {{ selectedCapabilityReason }}
           <span v-if="selectedCapability.composition_date">
             Last composition: {{ selectedCapability.composition_date }}.
           </span>
           <span v-if="selectedCapability.failure_class" class="capability-failure-class">
             Last check classification: {{ capabilityFailureLabel(selectedCapability.failure_class) }}.
           </span>
-          <span v-if="selectedCapability.symbol_audit?.next_action" class="capability-next-action">
-            Next source-review action: {{ selectedCapability.symbol_audit.next_action }}
+          <span v-if="page" data-testid="etf-selected-snapshot-currentness">
+            The displayed saved snapshot remains available for historical review and is not verified as current.
           </span>
-          Historical snapshots remain available, but this data must not be treated as current.
+          <span v-else>
+            Historical snapshots remain available, but this data must not be treated as current.
+          </span>
         </div>
 
         <div v-if="selectedProfile" class="toolbar">
@@ -702,6 +672,53 @@
           </div>
         </section>
 
+        <details
+          v-if="page || selectedCapability?.symbol_audit?.next_action"
+          class="snapshot-source-details"
+          data-testid="etf-snapshot-details"
+        >
+          <summary>Source details</summary>
+          <dl class="snapshot-lineage">
+            <template v-if="page">
+              <div>
+                <dt>Provenance</dt>
+                <dd>{{ formatProvenance(page.snapshot.provenance) }}</dd>
+              </div>
+              <div>
+                <dt>Source provider</dt>
+                <dd>{{ page.snapshot.source_provider || 'Not established' }}</dd>
+              </div>
+              <div>
+                <dt>Source identifier</dt>
+                <dd data-testid="etf-snapshot-source-identifier">{{ page.snapshot.source_identifier || 'Not established' }}</dd>
+              </div>
+              <div>
+                <dt>Source document</dt>
+                <dd data-testid="etf-snapshot-source-url">{{ page.snapshot.source_url || 'Not established' }}</dd>
+              </div>
+              <div>
+                <dt>Observed / known at</dt>
+                <dd>{{ page.snapshot.known_at ? formatDateTime(page.snapshot.known_at) : 'Unknown' }}</dd>
+              </div>
+              <div>
+                <dt>Source-reported publication</dt>
+                <dd>
+                  <time
+                    v-if="page.snapshot.published_at"
+                    data-testid="etf-snapshot-published-at"
+                    :datetime="page.snapshot.published_at"
+                  >{{ formatDateTime(page.snapshot.published_at) }}</time>
+                  <span v-else>Not established</span>
+                </dd>
+              </div>
+            </template>
+            <div v-if="selectedCapability?.symbol_audit?.next_action" data-testid="etf-source-review-action">
+              <dt>Source review action</dt>
+              <dd>{{ selectedCapability.symbol_audit.next_action }}</dd>
+            </div>
+          </dl>
+        </details>
+
         <div v-if="!selectedProfile && !pendingFund && !loadError" class="empty-state">
           Select an ETF to inspect its saved holdings or check for an update.
         </div>
@@ -806,6 +823,13 @@ const loadingOverlap = ref(false)
 const loadError = ref('')
 
 const selectedCapability = computed(() => selectedProfile.value?.holdings_capability ?? null)
+const selectedCapabilityReason = computed(() => {
+  const reason = selectedCapability.value?.reason ?? ''
+  if (page.value && /^No holdings snapshot has (?:ever )?been stored for this ETF\.?$/i.test(reason.trim())) {
+    return 'The current-analysis check did not find an eligible snapshot. The selected saved snapshot is available for review.'
+  }
+  return reason
+})
 const currentHoldingsAvailable = computed(() =>
   selectedCapability.value?.usable_for_current_analysis === true
   && selectedCapability.value.availability === 'current'
@@ -814,7 +838,8 @@ const currentHoldingsAvailable = computed(() =>
 const selectedSnapshotKind = computed(() => {
   const snapshot = page.value?.snapshot
   const latestSnapshotId = selectedProfile.value?.latest_snapshot_id
-  if (!snapshot || latestSnapshotId == null) return 'Snapshot status unknown'
+  if (!snapshot) return 'No saved snapshot selected'
+  if (latestSnapshotId == null) return 'Saved snapshot · current status unverified'
   return String(snapshot.id) === String(latestSnapshotId)
     ? 'Latest stored snapshot'
     : 'Historical snapshot'
@@ -1885,6 +1910,27 @@ onBeforeUnmount(() => {
   color: #9ccdf7;
   font-size: 11px;
 }
+.snapshot-source-summary {
+  margin: 0;
+  padding: 6px 9px;
+  border: 1px solid var(--tc-border-strong);
+  border-radius: var(--tc-radius);
+  background: var(--tc-control-bg);
+  color: var(--tc-text-muted);
+  font-size: 11px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.snapshot-source-summary strong {
+  color: var(--tc-text);
+}
+.snapshot-source-details {
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--tc-border-strong);
+  border-radius: var(--tc-radius);
+  background: var(--tc-control-bg);
+}
 .snapshot-lineage div {
   display: flex;
   flex-wrap: wrap;
@@ -2598,10 +2644,6 @@ button.holding-row:hover,
   color: #ffb2b2;
   background: #1b0f0f;
 }
-.notice--capability .capability-next-action {
-  display: block;
-  color: #b9c6d8;
-}
 .notice--capability .capability-failure-class {
   display: block;
   color: #f0c66a;
@@ -2686,15 +2728,34 @@ button.holding-row:hover { background: color-mix(in srgb, var(--tc-accent) 6%, v
 .holdings-view :is(button, input, select, textarea, a):focus-visible { outline: 2px solid var(--tc-accent); outline-offset: 2px; }
 @media (max-width: 1100px) {
   .holdings-view {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
   }
   .holdings-sidebar {
     min-width: 0;
-    max-height: 280px;
-    border-right: 0;
-    border-bottom: 1px solid #171717;
+    max-height: 100%;
+    overflow: auto;
+    border-right: 1px solid #171717;
+    border-bottom: 0;
+    padding: 8px;
+    gap: 8px;
   }
-  .toolbar,
+  .holdings-main {
+    min-width: 0;
+    padding: 8px;
+  }
+  .workspace-panel {
+    gap: 8px;
+    padding: 10px;
+  }
+  .panel-title-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+  .toolbar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
   .holdings-browser {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -2719,10 +2780,12 @@ button.holding-row:hover { background: color-mix(in srgb, var(--tc-accent) 6%, v
     display: none;
   }
   .holding-row {
-    grid-template-columns: 95px minmax(160px, 1fr) 90px;
+    min-width: 760px;
+    grid-template-columns: 100px minmax(180px, 1fr) 90px 110px 100px 100px;
   }
-  .holding-row span:nth-child(n + 4) {
-    display: none;
+  .holdings-table {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
   }
 }
 @media (max-width: 600px) {
@@ -2734,6 +2797,15 @@ button.holding-row:hover { background: color-mix(in srgb, var(--tc-accent) 6%, v
   .holdings-table,
   .holding-detail {
     min-width: 0;
+  }
+  .holdings-view {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .holdings-sidebar {
+    max-height: 180px;
+    overflow: auto;
+    border-right: 0;
+    border-bottom: 1px solid #171717;
   }
   .holdings-main {
     padding: 10px;
@@ -2782,6 +2854,10 @@ button.holding-row:hover { background: color-mix(in srgb, var(--tc-accent) 6%, v
     max-width: 100%;
     overflow-x: auto;
     overscroll-behavior-x: contain;
+  }
+  .holding-row {
+    min-width: 760px;
+    grid-template-columns: 100px minmax(180px, 1fr) 90px 110px 100px 100px;
   }
 }
 </style>

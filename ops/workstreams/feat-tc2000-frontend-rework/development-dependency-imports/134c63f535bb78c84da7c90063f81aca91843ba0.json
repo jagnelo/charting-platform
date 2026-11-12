@@ -1,0 +1,129 @@
+{
+  "at": "2026-11-07T01:48:42.733561+00:00",
+  "authority": "Root coordinates the human-approved common-interface implementation; no staging or deployment acceptance",
+  "source": "134c63f535bb78c84da7c90063f81aca91843ba0",
+  "base": "139b350238b5e1c8a170dce5af09a805301d857e",
+  "state": "released_for_exact_development_consumption_not_product_acceptance",
+  "scope": "Exact seven reserved secondary-Dashboard Product modules and six focused test companions; no Strategy Study/Results/Library or Producer records",
+  "files": [
+    {
+      "path": "frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue",
+      "status_from139": "M",
+      "git_blob": "6c57e773ad803ee2291aa00eef2327a8784bb451",
+      "sha256": "ee6e837832ba4bf2402bba09a025c22630136ecd756de17ad37da9ced70dfc3c"
+    },
+    {
+      "path": "frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue",
+      "status_from139": "M",
+      "git_blob": "c843ff0ee87f1cc2e4b851aa02ee8a63b831ec7f",
+      "sha256": "5bd7c3ae4ba475cdfa015b1a3798588d2c8a05741cc44f7a1566897da1b385a6"
+    },
+    {
+      "path": "frontend/src/components/dashboard/DashboardInstrumentSearch.vue",
+      "status_from139": "M",
+      "git_blob": "0d0b54fbf549412b3033f8eb827b959f48975dd7",
+      "sha256": "f67491e79d3aea40de7ed8ff53247935e798ca987ab6e3c66804e11a9beef313"
+    },
+    {
+      "path": "frontend/src/components/dashboard/DashboardLineChartWidget.vue",
+      "status_from139": "M",
+      "git_blob": "20d503fc7de32dccbd630419312c06bdafc1faab",
+      "sha256": "c20b73354eaaa79cf67ab4bab820bb75ea943f0947c3f4c50ba6480e1a0aa031"
+    },
+    {
+      "path": "frontend/src/components/dashboard/DashboardQuoteWidget.vue",
+      "status_from139": "M",
+      "git_blob": "b73925f93d36da82e27a5cfcc03c67f20b4ed54d",
+      "sha256": "6f3f77a7e4da7c14652d347a08d977192c49668d7e1df8b61b574c10ec590063"
+    },
+    {
+      "path": "frontend/src/stores/dashboard.ts",
+      "status_from139": "M",
+      "git_blob": "147a7b073f15afc5042f28daa338b7306ccaf1eb",
+      "sha256": "d66b2584e1fe955e2322d0dceaa587b5c5ff5d735b6cea72f4091b0e4aa22d6a"
+    },
+    {
+      "path": "frontend/src/views/DashboardView.vue",
+      "status_from139": "M",
+      "git_blob": "19dbfe3b87d1f876420d65e411c85782b0291325",
+      "sha256": "c1c32e353142697c43202fc5ffaba0f54f77b13e789698a39a586d61767c61dc"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts",
+      "status_from139": "M",
+      "git_blob": "e9d1a13f9f962ae3077cf7f73dc03c3ba769ee28",
+      "sha256": "a9e8562d60627a454c12b054705b2de12cd41bc6e329f8e295beeced1965de94"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_dashboard_instrument_search.test.ts",
+      "status_from139": "M",
+      "git_blob": "9e2bb7dda5fa2e8e8dcf1fab587ecc9670f1b30a",
+      "sha256": "0cef06a4848393192bec0f28ecb4d2687400f37078b46abe11fb17d3bd3931e2"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts",
+      "status_from139": "M",
+      "git_blob": "597f0d9e7339bc7593c327e5cb1c9c8d16283148",
+      "sha256": "8c2e07e95c5f4dd8a641219e2c4dcdd3c42d682490ac2ef3384fdc16fe0a6418"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts",
+      "status_from139": "A",
+      "git_blob": "1791aaf22afb8c446884bfc4e71f9994743aeb3e",
+      "sha256": "c37f73a135d008d2d302e6161b3feb9804560af8d4ea372739dd18c3d69f21f7"
+    },
+    {
+      "path": "frontend/tests/unit/stores/test_dashboard_store.test.ts",
+      "status_from139": "M",
+      "git_blob": "e30d5676749a5d53ae3d80ee779b8d277aabcecf",
+      "sha256": "11286f17b314f28de3aed15b235bd0461bbffb9bd5476f61f1ac65bb94099827"
+    },
+    {
+      "path": "frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts",
+      "status_from139": "A",
+      "git_blob": "693e410e21d9a4a102bcd6c832d3c9d9dd8402f1",
+      "sha256": "31c98020d742c988767e12dff8fb89e32f8a095ff29b20bf6c09a8f8aaa2fe49"
+    }
+  ],
+  "changed_paths_since_previous": [
+    "frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue",
+    "frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue",
+    "frontend/src/components/dashboard/DashboardInstrumentSearch.vue",
+    "frontend/src/components/dashboard/DashboardLineChartWidget.vue",
+    "frontend/src/components/dashboard/DashboardQuoteWidget.vue",
+    "frontend/src/stores/dashboard.ts",
+    "frontend/src/views/DashboardView.vue",
+    "frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts",
+    "frontend/tests/unit/components/test_dashboard_instrument_search.test.ts",
+    "frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts",
+    "frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts",
+    "frontend/tests/unit/stores/test_dashboard_store.test.ts",
+    "frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts"
+  ],
+  "consumers": [
+    {
+      "consumer": "TC",
+      "owned_overlap": []
+    }
+  ],
+  "required_shared_frontend_runtime": "d5e8d628eb42318656d8b578a24390db4be17cca or compatible owner descendant",
+  "evidence": {
+    "owner": "23Dashboard focused cases and typecheck at committed slice; later190focused cases plus typecheck reported on same seven Product bytes with D5 imported",
+    "root": "Exact13path precondition, no consumer overlap, unchanged provider-boundary predicate on7frozen runtime files and exact scoped diff check pass",
+    "browser": "not executed; complete combined frontend/backend/visual/genuine/deployed proof remains Root-owned and pending"
+  },
+  "contract": [
+    "Shared-coordinator cached-first independent widget history/profile preparation and stale-context fences",
+    "Uncached/prefix candidate discovery, exact/ambiguous listing resolution and automatic preparation without source-choice buttons",
+    "Transactional symbol/comparison config persistence, explicit failure/retry and drag/resize rollback/recovery"
+  ],
+  "ownership": "Strategy remains the only repair writer for these seven Product paths until Root hands ownership back. TC may import exactly and maintain its global matrix; do not independently modify the same imported Product files.",
+  "excluded": [
+    "Common TC modules and tests released separately",
+    "Study/Results/Library and their specs",
+    "Producer workstream/matrix records",
+    "Backend files released at732v2",
+    "Browser success or actual source acquisition claims"
+  ],
+  "preserve": "Keep all own dirty TC changes and prior roadmap/history. No broad suites, new fixture, native calls, weakened assertion/oracle, closure/integration or deployment authorization implied."
+}

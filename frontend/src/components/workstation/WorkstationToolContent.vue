@@ -276,6 +276,7 @@
     />
     <div
       v-if="selectedConstituentRowKey && isConstituentTool"
+      v-reveal-search-results
       class="constituent-tool__selection"
       data-testid="reported-holding-selection"
     >
@@ -385,7 +386,8 @@
           @custom-date-sort-range="loadCustomDateSortRange"
         />
         <div v-if="chartStore.isLoading" class="tool-state chart-tool__status" role="status" aria-live="polite" aria-atomic="true">Loading {{ activeSymbol }}…</div>
-        <div v-else-if="chartStore.error" class="tool-state tool-state--error chart-tool__status" role="alert" aria-live="assertive" aria-atomic="true">{{ chartStore.error }}</div>
+        <div v-else-if="chartStore.error" class="tool-state tool-state--error chart-tool__status" role="alert" aria-live="assertive" aria-atomic="true">{{ chartErrorForUser }}</div>
+        <div v-else-if="chartHasNoBars" class="tool-state chart-tool__status" role="status" aria-live="polite" aria-atomic="true">No local {{ chartStore.timeframe }} price history is available for {{ activeSymbol }} yet.</div>
         <div v-if="chartStore.isLoadingMore" class="chart-tool__history-boundary" role="status" aria-live="polite">{{ chartStore.historyBoundaryMessage || `Loading older ${chartStore.timeframe} history…` }}</div>
         <div v-else-if="chartStore.historyBoundaryMessage" class="chart-tool__history-boundary" role="status" aria-live="polite">{{ chartStore.historyBoundaryMessage }}</div>
         <div v-if="timeframeHistoryMessage" class="chart-tool__history-boundary" role="status" aria-live="polite">{{ timeframeHistoryMessage }}</div>
@@ -409,7 +411,7 @@
         :aria-label="industryRowLabel(item)"
         @click="emit('selectIndustry', item.industry, industryETFContext)"
       >
-        <strong>{{ item.industry }}</strong><span>{{ item.resolved_count }}/{{ item.constituent_count }}</span>
+        <strong>{{ item.industry }}</strong><span>{{ item.resolved_count }}/{{ item.constituent_count }}</span><span class="industry-list__proxy-count">{{ item.values.proxy_count ?? '—' }}</span>
         <span v-for="column in industryRankingColumns" :key="column.key" class="industry-list__metric" :title="item.warnings[column.key] ?? undefined">{{ displayIndustryValue(item, column.key) }}</span>
         <small
           class="industry-list__classification"
@@ -474,11 +476,14 @@
       </small>
     </div>
     <div v-else-if="isIndustryTool" class="tool-state">
-      <template v-if="!selectedETF">
+      <template v-if="!selectedETF && !industryLoadPending">
         Select a sector to inspect its industries and verified ETF proxies.
       </template>
-      <template v-else-if="workspaceStore.etfIndustryLoading[selectedETF]">
-        Loading dated classifications for {{ selectedETF }} holdings…
+      <template v-else-if="selectedETF && workspaceStore.etfIndustryLoading[selectedETF]">
+        Loading industries for {{ selectedETF }} from its dated classifications…
+      </template>
+      <template v-else-if="!selectedETF">
+        Loading industries…
       </template>
       <template v-else-if="workspaceStore.etfIndustryErrors[selectedETF]">
         {{ workspaceStore.etfIndustryErrors[selectedETF] }}
@@ -494,7 +499,8 @@
     </div>
     <div v-else-if="isConstituentTool" class="constituent-tool">
       <p v-if="!selectedETF || !holdings?.snapshot" class="constituent-tool__empty-context" role="status">
-        Choose an ETF or industry in this workspace to view its reported constituents.
+        <template v-if="selectedETF && holdings === undefined">Loading {{ selectedETF }} holdings…</template>
+        <template v-else>Choose an ETF or industry in this workspace to view its reported constituents.</template>
       </p>
       <VirtualWatchlistTool
         :label="constituentLabel"
@@ -549,6 +555,7 @@
       >{{ constituentExclusionSummary }}</small>
       <div
         v-if="selectedConstituentRowKey && isConstituentTool"
+        v-reveal-search-results
         class="constituent-tool__selection"
         data-testid="reported-holding-selection"
       >
@@ -806,9 +813,11 @@
         </template>
         </template>
         <button type="button" :disabled="breadthWatchlistSourceNotCurrent || (breadthConditionKind === 'python_series' && breadthPythonSeriesCodeVersionId == null) || (breadthComposition === 'tree' && breadthTreePythonSeriesLeaf !== null && pythonLeafAnchorId(breadthTreePythonSeriesLeaf) == null)" @click="runGenericBreadth">Evaluate</button>
-        <span v-if="genericBreadthLoading" role="status" aria-live="polite">Evaluating…</span>
-        <span v-else-if="genericBreadthError" class="breadth-tool__status--error" role="alert">{{ genericBreadthError }}</span>
-        <span v-else-if="genericBreadth" class="breadth-tool__custom-result"><b>{{ genericBreadthPercentage }}</b> · {{ genericBreadth.pass_count }}/{{ genericBreadth.eligible_count }} eligible · {{ genericBreadth.excluded_count }} excluded · {{ genericBreadth.requested_count }} requested · {{ genericBreadthCoverage }} coverage<span v-if="genericBreadth.group_value != null"> · group {{ genericBreadth.group_value.toFixed(4) }}</span></span>
+        <span v-if="genericBreadthEvaluationLoading" role="status" aria-live="polite">Evaluating…</span>
+        <span v-if="genericBreadthHistoryLoading" role="status" aria-live="polite">Updating historical breadth…</span>
+        <span v-if="genericBreadthEvaluationError" class="breadth-tool__status--error" role="alert">{{ genericBreadthEvaluationError }}</span>
+        <span v-if="genericBreadthHistoryError" class="breadth-tool__status--error" role="alert">Historical breadth: {{ genericBreadthHistoryError }}</span>
+        <span v-if="genericBreadth" class="breadth-tool__custom-result"><b>{{ genericBreadthPercentage }}</b> · {{ genericBreadth.pass_count }}/{{ genericBreadth.eligible_count }} eligible · {{ genericBreadth.excluded_count }} excluded · {{ genericBreadth.requested_count }} requested · {{ genericBreadthCoverage }} coverage<span v-if="genericBreadth.group_value != null"> · group {{ genericBreadth.group_value.toFixed(4) }}</span></span>
         <details v-if="genericBreadth" class="breadth-tool__generic-evidence" aria-label="Generic breadth result evidence">
           <summary>Snapshot evidence</summary>
           <dl>
@@ -997,7 +1006,7 @@
         <button v-for="member in genericBreadthMembers.slice(0, 100)" :key="member.instrument_id" type="button" :aria-label="`Select ${member.symbol} ${member.name}`" @click="emit('select', member.symbol, member.instrument_id)"><strong>{{ member.symbol }}</strong><span>{{ member.name }}</span><small v-if="member.metric != null">{{ member.metric.toFixed(3) }}</small><small v-if="member.diagnostics?.length" class="breadth-tool__member-diagnostics" :title="member.diagnostics.map(genericBreadthDiagnosticLabel).join(' · ')">{{ member.diagnostics.map(genericBreadthDiagnosticLabel).join(' · ') }}</small></button>
         <small v-if="!genericBreadthMembers.length">No {{ genericBreadthMemberState === 'pass' ? 'passing' : 'failing' }} members are eligible.</small>
       </div>
-      <GenericBreadthHistoryUPlot :history="genericBreadthHistory ?? undefined" />
+      <GenericBreadthHistoryUPlot v-if="genericBreadthHistory" :history="genericBreadthHistory" />
       <section v-if="genericBreadthHistory" class="breadth-tool__generic-history-events" aria-label="Generic breadth historical occurrences">
         <header>
           <strong>Member state changes</strong>
@@ -1010,7 +1019,7 @@
         </button>
         <small v-if="!genericBreadthHistoryOccurrences.length">No member state changes were recorded for this history.</small>
       </section>
-      <p v-if="breadthBusy" class="breadth-tool__status" role="status" aria-live="polite" aria-atomic="true">Loading breadth analysis…</p>
+      <p v-if="breadthBusy && !breadth" class="breadth-tool__status" role="status" aria-live="polite" aria-atomic="true">Loading breadth analysis…</p>
       <p v-else-if="breadthPreparationStatus" class="breadth-tool__status" role="status" aria-live="polite" aria-atomic="true">{{ breadthPreparationStatus }}</p>
       <p v-else-if="breadthError" class="breadth-tool__status breadth-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">{{ breadthError }}</p>
       <p v-else-if="!breadth" class="breadth-tool__status" role="status" aria-live="polite" aria-atomic="true">Breadth analysis is unavailable.</p>
@@ -1039,10 +1048,10 @@
     <RelativeRotationTool v-else-if="tool.instance_key === 'relative-rotation' || tool.tool_type === 'relative_rotation'" :configuration="tool.configuration" @select="selectRotationSymbol" @configuration="emit('configuration', tool.instance_key, $event)" />
     <MarketMapTool v-else-if="tool.tool_type === 'market_map'" :configuration="tool.configuration" :request-priority="workstationToolVisible ? 'high' : 'low'" @configuration="emit('configuration', tool.instance_key, $event)" @select="(symbol, instrumentId) => selectSymbol(symbol, instrumentId)" @compare="emit('compare', $event)" @ratio="emit('ratio', $event)" @publish-analysis="emit('publishAnalysis', $event)" />
     <div v-else-if="tool.instance_key === 'technical-summary' || tool.tool_type === 'technical_summary'" class="metrics">
-      <span>RSI(14)</span><b>{{ formatNumber(technical?.rsi14) }}</b>
-      <span>20 / 50 / 200 MA</span><b>{{ technicalMAs }}</b>
-      <span>52-week position</span><b>{{ formatPercent(technical?.position_52w) }}</b>
-      <span>Volume ratio (50)</span><b>{{ formatRatio(technical?.volume_ratio_50) }}</b>
+      <span>RSI(14)</span><b>{{ technicalPending ? '…' : formatNumber(technical?.rsi14) }}</b>
+      <span>20 / 50 / 200 MA</span><b>{{ technicalPending ? '…' : technicalMAs }}</b>
+      <span>52-week position</span><b>{{ technicalPending ? '…' : formatPercent(technical?.position_52w) }}</b>
+      <span>Volume ratio (50)</span><b>{{ technicalPending ? '…' : formatRatio(technical?.volume_ratio_50) }}</b>
     </div>
     <CoverageSummaryTool v-else-if="tool.instance_key === 'coverage-summary' || tool.tool_type === 'coverage'" :symbol="activeSymbol" :configuration="tool.configuration" @configuration="emit('configuration', tool.instance_key, $event)" />
     <InstrumentNoteTool v-else-if="tool.tool_type === 'notes'" :instrument-id="toolInstrument?.id ?? chartStore.instrument?.id" :symbol="activeSymbol" :request-priority="workstationToolVisible ? 'high' : 'auto'" />
@@ -1059,6 +1068,27 @@
 
 <script setup lang="ts">
 import { computed, defineAsyncComponent, defineComponent, h, nextTick, onBeforeUnmount, onMounted, provide, ref, watch, type Component, type Ref } from 'vue'
+
+// The selection panel scrolls inside a compact tool body. When a picker's
+// results first appear, bring them into view instead of leaving the
+// candidates clipped below the fold.
+type RevealHost = HTMLElement & { __revealObserver?: MutationObserver }
+const vRevealSearchResults = {
+  mounted(el: RevealHost) {
+    const observer = new MutationObserver(() => {
+      const list = el.querySelector('[role="listbox"]')
+      if (!list) return
+      const panel = el.getBoundingClientRect()
+      const box = list.getBoundingClientRect()
+      if (box.bottom > panel.bottom + 1 || box.top < panel.top - 1) list.scrollIntoView({ block: 'nearest' })
+    })
+    observer.observe(el, { childList: true, subtree: true })
+    el.__revealObserver = observer
+  },
+  unmounted(el: RevealHost) {
+    el.__revealObserver?.disconnect()
+  },
+}
 import { RouterLink } from 'vue-router'
 import { useQueryClient } from '@tanstack/vue-query'
 import { api, setQueuedApiRequestPriority } from '@/lib/api'
@@ -1130,6 +1160,7 @@ import { buildComboWatchlistRows, type ComboListDefinition } from '@/lib/worksta
 import { autoRatioBenchmarks, autoRatioExpression } from '@/lib/workstation/ratioExpression'
 import { indicatorColumnFromPlot, indicatorOutputFromConfig, pythonColumnFromPlot, type ChartAnalysisDragPayload, type ChartPlotDragPayload, type TechnicalConditionDragPayload } from '@/lib/workstation/plotDrag'
 import { formatWorkstationFreshness } from '@/lib/workstation/freshness'
+import { chartErrorPresentation } from '@/lib/workstation/chartErrorPresentation'
 import { benchmarkFamilyConstituentSourceId, benchmarkFamilyHistoryTargets, breadthSnapshotBenchmark } from '@/lib/workstation/benchmarkFamilySources'
 import { buildBreadthStudyAssetPayload, type BreadthDefinition } from '@/lib/workstation/breadthDefinitions'
 import { breadthReferenceTargetEvidence } from '@/lib/workstation/breadthReferenceEvidence'
@@ -2163,6 +2194,9 @@ const chartBarType = computed<ChartBarType>(() => {
     ? requested as ChartBarType
     : 'candles'
 })
+const chartErrorForUser = computed(() => chartErrorPresentation(chartStore.error))
+// An empty bar list after a finished load is an honest "no local history", not a blank canvas.
+const chartHasNoBars = computed(() => !!chartStore.symbol && !chartStore.isLoading && !chartStore.error && chartStore.bars.length === 0)
 const chartTransformParams = computed(() => {
   // Template/settings changes are applied optimistically to the local
   // serialisable configuration before the parent workspace snapshot round-trip
@@ -2486,7 +2520,8 @@ function updateScanPlots(plots: ConfiguredScanPlot[]) {
 
 async function loadPythonPlots() {
   const plots = configuredPythonPlots.value.filter(plot => !plot.hidden)
-  for (const runId of pythonPlotRunIds) void api.post(`/research/runs/${runId}/cancel`, {})
+  // Best-effort: a finished or already-removed run answers 404, which is fine.
+  for (const runId of pythonPlotRunIds) void api.post(`/research/runs/${runId}/cancel`, {}).catch(() => undefined)
   pythonPlotRunIds.clear()
   if (props.tool.tool_type !== 'chart' || !plots.length || !activeSymbol.value) { pythonSeries.value = []; return }
   const sequence = ++pythonPlotRequestSequence
@@ -2498,11 +2533,14 @@ async function loadPythonPlots() {
         timeframe,
         ...(plot.universe_source_id ? { universe_source_id: plot.universe_source_id } : plot.symbols?.length ? { symbols: plot.symbols } : { symbol: activeSymbol.value }),
       }
-      const queued = await api.post<{ id: number }>('/research/runs', { code_version_id: plot.code_version_id, run_config: runConfig, dataset_manifest: { source: 'canonical_database', timeframe } })
+      type PlotRun = { id: number; status: string; artifacts?: Array<{ name: string; artifact_type: string; payload: Record<string, unknown> }> }
+      const queued = await api.post<PlotRun>('/research/runs', { code_version_id: plot.code_version_id, run_config: runConfig, dataset_manifest: { source: 'canonical_database', timeframe } })
       runId = queued.id
-      pythonPlotRunIds.add(queued.id)
+      // A run that is already terminal needs neither polling nor cancellation.
+      const alreadyTerminal = ['completed', 'failed', 'canceled'].includes(queued.status)
+      if (!alreadyTerminal) pythonPlotRunIds.add(queued.id)
       for (let attempt = 0; attempt < 30; attempt += 1) {
-        const result = await queryClient.fetchQuery({
+        const result: PlotRun = alreadyTerminal && attempt === 0 ? queued : await queryClient.fetchQuery({
           queryKey: ['workstation', 'research-run', queued.id],
           queryFn: async () => {
             const refreshed = await api.get<{ status: string; artifacts?: Array<{ name: string; artifact_type: string; payload: Record<string, unknown> }> }>(`/research/runs/${queued.id}`)
@@ -2545,7 +2583,7 @@ async function loadScanPlots() {
   if (sequence === scanPlotRequestSequence) scanSeries.value = loaded.filter(item => item != null) as ChartPythonSeries[]
 }
 
-async function loadComparisonBars() {
+async function loadComparisonBars(options: { foreground?: boolean } = {}) {
   const symbols = comparisonTargets.value.map(target => target.symbol)
   if (!symbols.length || !chartStore.symbol) return
   const sequence = ++comparisonRequestSequence
@@ -2553,7 +2591,18 @@ async function loadComparisonBars() {
   const loaded = await Promise.all(symbols.map(async symbol => {
     try {
       const limit = Math.max(chartStore.bars.length, 500)
-      const raw = await dedupeOhlcvRequest(`raw:local:${symbol.toUpperCase()}:${timeframe}:adjusted:${limit}`, () => api.get<any[]>(`/ohlcv/local/${encodeURIComponent(symbol)}/${timeframe}`, { limit }))
+      const cacheKey = `raw:local:${symbol.toUpperCase()}:${timeframe}:adjusted:${limit}`
+      const queueKey = `workstation:comparison:${symbol.toUpperCase()}:${timeframe}:${limit}`
+      if (options.foreground) setQueuedApiRequestPriority(queueKey, 'high', true)
+      const raw = await dedupeOhlcvRequest(cacheKey, () => api.get<any[]>(
+        `/ohlcv/local/${encodeURIComponent(symbol)}/${timeframe}`,
+        { limit },
+        {
+          priority: options.foreground ? 'high' : 'auto',
+          foreground: options.foreground,
+          queueKey,
+        },
+      ))
       return { symbol, bars: raw.map(bar => ({
         ...bar,
         ts: String(bar.ts ?? bar.timestamp ?? ''),
@@ -2576,11 +2625,15 @@ async function addComparisonSymbol(raw: string) {
     return
   }
   try {
-    const canonical = await ensureKnownInstrumentSymbol(symbol, 'Comparison symbol', { canonicalOnly: true })
+    const canonical = await ensureKnownInstrumentSymbol(symbol, 'Comparison symbol', {
+      canonicalOnly: true,
+      priority: 'high',
+      foreground: true,
+    })
     comparisonTargets.value.push({ symbol: canonical, label: canonical, color: comparisonColors[comparisonTargets.value.length % comparisonColors.length], bars: [] })
     comparisonDraft.value = ''
     persistComparisonSymbols()
-    await loadComparisonBars()
+    await loadComparisonBars({ foreground: true })
   } catch (cause: any) {
     chartStore.error = cause?.message ?? 'Unable to resolve comparison symbol'
   }
@@ -2729,7 +2782,8 @@ onBeforeUnmount(() => {
   comboListLoadSequence += 1
   comboMutationSequence += 1
   personalMutationSequence += 1
-  for (const runId of pythonPlotRunIds) void api.post(`/research/runs/${runId}/cancel`, {})
+  // Best-effort: a finished or already-removed run answers 404, which is fine.
+  for (const runId of pythonPlotRunIds) void api.post(`/research/runs/${runId}/cancel`, {}).catch(() => undefined)
   pythonPlotRunIds.clear()
 })
 
@@ -3532,14 +3586,16 @@ const genericBreadthHistory = computed<GenericBreadthHistoryState | null>(() => 
   }
   return workspaceStore.genericBreadthHistory[genericBreadthKey.value] ?? null
 })
-const genericBreadthLoading = computed(() => breadthUsesPython.value
+const genericBreadthEvaluationLoading = computed(() => breadthUsesPython.value
   ? breadthPythonSeriesLoading.value
-  : workspaceStore.genericBreadthLoading[genericBreadthKey.value] === true || workspaceStore.genericBreadthHistoryLoading[genericBreadthKey.value] === true)
+  : workspaceStore.genericBreadthLoading[genericBreadthKey.value] === true)
+const genericBreadthHistoryLoading = computed(() => !breadthUsesPython.value
+  && workspaceStore.genericBreadthHistoryLoading[genericBreadthKey.value] === true)
 const genericBreadthRunError = ref('')
 watch([breadthCustomUniverseKind, breadthWatchlistSourceId], () => {
   genericBreadthRunError.value = ''
 })
-const genericBreadthError = computed(() => {
+const genericBreadthEvaluationError = computed(() => {
   if (genericBreadthRunError.value) return genericBreadthRunError.value
   if (breadthUsesPython.value) {
     if (breadthPythonSeriesError.value) return breadthPythonSeriesError.value
@@ -3547,8 +3603,11 @@ const genericBreadthError = computed(() => {
     if (breadthPythonSeriesStatus.value === 'canceled') return 'The isolated Python breadth run was canceled.'
     return null
   }
-  return workspaceStore.genericBreadthErrors[genericBreadthKey.value] ?? workspaceStore.genericBreadthHistoryErrors[genericBreadthKey.value] ?? null
+  return workspaceStore.genericBreadthErrors[genericBreadthKey.value] ?? null
 })
+const genericBreadthHistoryError = computed(() => breadthUsesPython.value
+  ? null
+  : workspaceStore.genericBreadthHistoryErrors[genericBreadthKey.value] ?? null)
 const genericBreadthPercentage = computed(() => genericBreadth.value?.percentage == null ? 'Unavailable' : `${(genericBreadth.value.percentage * 100).toFixed(1)}%`)
 const genericBreadthCoverage = computed(() => genericBreadth.value == null ? 'Unavailable' : `${(genericBreadth.value.coverage * 100).toFixed(1)}%`)
 const genericBreadthReferenceTargetEvidence = computed(() => breadthReferenceTargetEvidence(genericBreadth.value?.condition))
@@ -3651,7 +3710,12 @@ async function saveGenericBreadthDefinition() {
   }
 }
 const technical = computed(() => workspaceStore.technicals[activeSymbol.value])
+// The store leaves a symbol's technicals undefined until its request settles (null = settled empty).
+const technicalPending = computed(() => technical.value === undefined)
 const selectedETF = computed(() => workspaceStore.constituentETF ?? '')
+// Holdings hydration can still be binding the ETF while its industry load is
+// already running; show the loading state rather than the "select a sector" prompt.
+const industryLoadPending = computed(() => Object.values(workspaceStore.etfIndustryLoading).some(Boolean))
 const isConstituentTool = computed(() => workspaceToolRole(props.tool) === 'constituent-universe')
 // A persisted generic watchlist flag must not override a factory semantic role.
 // Older or cloned Industry/Constituent windows can carry `personal: true`; keep
@@ -4646,6 +4710,7 @@ function setBreadthGroup(groupKey: string) {
 }
 function setBenchmarkFamily(familyKey: string) {
   const normalized = benchmarkFamilyOptions.value.some(family => family.logicalKey === familyKey) ? familyKey : ''
+  benchmarkFamilyUserSelection = Boolean(normalized)
   benchmarkFamilyKey.value = normalized
   benchmarkFamilyMapRole.value = 'cap_weight'
   emit('configuration', props.tool.instance_key, {
@@ -4657,8 +4722,9 @@ function setBenchmarkFamily(familyKey: string) {
 }
 function setBenchmarkFamilyMapRole(role: string) {
   const normalized = benchmarkFamilyMapRoles.includes(role as BenchmarkFamilyMapRole) ? role as BenchmarkFamilyMapRole : 'cap_weight'
-  const available = benchmarkFamilyMapRoleOptions.value.find(item => item.role === normalized)?.available ?? false
-  if (!available) return
+  // Keep the user's chosen role even while the family overview is still
+  // proving availability; activeBenchmarkMapRole applies it only once the role
+  // is available and otherwise stays on the cap-weight leg.
   benchmarkFamilyMapRole.value = normalized
   emit('configuration', props.tool.instance_key, { ...props.tool.configuration, benchmark_family_map_role: normalized })
 }
@@ -4791,13 +4857,22 @@ async function loadBreadthUniverse(groupKey: string, timeframe = breadthTimefram
   })
 }
 let benchmarkFamilyLoadSequence = 0
+// An explicit family choice is foreground work even before the dock reports
+// this tool visible; its role choices wait on the overview.
+let benchmarkFamilyUserSelection = false
 watch([benchmarkFamilyKey, benchmarkFamilyCapProxy, activeTimeframe], async ([familyKey, _capProxy, timeframe]) => {
   if (disposed || !isBenchmarkUniverse.value) return
+  const overviewPriority = benchmarkFamilyUserSelection || workstationToolVisible.value ? 'high' : 'low'
+  benchmarkFamilyUserSelection = false
   const sequence = ++benchmarkFamilyLoadSequence
   benchmarkFamilyPreparationGeneration += 1
   benchmarkFamilyPreparationAbort?.abort()
   benchmarkFamilyPreparationAbort = null
   benchmarkFamilyPreparationStatus.value = ''
+  // A prior family request may still be in flight when the user switches to
+  // the plain benchmark catalogue. Its finally block is generation-fenced, so
+  // release the foreground busy state for this new context before returning.
+  benchmarkFamilyLoading.value = false
   if (!familyKey) return
   if (!familyAsOf.value) {
     const preparationGeneration = ++benchmarkFamilyPreparationGeneration
@@ -4815,7 +4890,7 @@ watch([benchmarkFamilyKey, benchmarkFamilyCapProxy, activeTimeframe], async ([fa
       await Promise.all([
         workspaceStore.loadMarketGroup(familyKey, { priority: workstationToolVisible.value ? 'high' : 'low' }),
         workspaceStore.loadGroupSnapshot(familyKey, benchmarkFamilyCapProxy.value, { ...(timeframe !== 'D1' ? { timeframe } : {}) }),
-        workspaceStore.loadBenchmarkFamilyOverview(familyKey, { ...(timeframe !== 'D1' ? { timeframe } : {}) }),
+        workspaceStore.loadBenchmarkFamilyOverview(familyKey, { ...(timeframe !== 'D1' ? { timeframe } : {}), priority: overviewPriority }),
       ])
     }
     const targets: DataEnsureRequest['target'][] = benchmarkFamilyHistoryTargets(familyKey, benchmarkFamilyCapProxy.value)
@@ -4854,12 +4929,23 @@ watch([benchmarkFamilyKey, benchmarkFamilyCapProxy, activeTimeframe], async ([fa
       }),
       workspaceStore.loadBenchmarkFamilyOverview(familyKey, {
         ...(timeframe !== 'D1' ? { timeframe } : {}),
+        priority: overviewPriority,
       }),
     ])
   } finally {
     if (!disposed && sequence === benchmarkFamilyLoadSequence) benchmarkFamilyLoading.value = false
   }
 }, { immediate: true })
+// A persisted family can mount while the dock still reports this tool hidden,
+// queueing its overview behind startup fanout. Once visible, the role choices
+// are user-facing; fetch the missing overview as foreground work.
+watch(workstationToolVisible, visible => {
+  if (disposed || !visible || !isBenchmarkUniverse.value || !benchmarkFamilyKey.value || benchmarkFamilyOverview.value) return
+  void workspaceStore.loadBenchmarkFamilyOverview(benchmarkFamilyKey.value, {
+    ...(activeTimeframe.value !== 'D1' ? { timeframe: activeTimeframe.value } : {}),
+    priority: 'high',
+  })
+})
 watch(isBenchmarkUniverse, async isBenchmark => {
   if (disposed || !isBenchmark) return
   const sequence = ++benchmarkFamilyReadinessSequence
@@ -4977,13 +5063,13 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
   .chart-tool__templates { top: 25px; right: 4px; }
 }
 /* A desktop workstation can contain a much narrower chart pane than the
-   viewport. Use the chart container's actual width so comparison chips never
-   cover Plots in dense factory layouts. */
+   viewport. Reserve a separate compact controls row for every chart so Plots
+   and Templates remain distinct, hittable controls with or without comparisons. */
 @container chart-tool (max-width: 560px) {
-  .chart-tool__surface--comparisons { padding-top: 46px; }
+  .chart-tool__surface { padding-top: 46px; }
+  .chart-tool__plots { top: 25px; left: 4px; right: auto; }
+  .chart-tool__templates { top: 25px; right: 4px; }
   .chart-tool__surface--comparisons .chart-tool__compare { top: 3px; left: 4px; right: 4px; max-width: none; }
-  .chart-tool__surface--comparisons .chart-tool__plots { top: 25px; left: 4px; right: auto; }
-  .chart-tool__surface--comparisons .chart-tool__templates { top: 25px; right: 4px; }
 }
 .tool-state { display: grid; place-items: center; height: 100%; padding: 12px; color: #98a7b2; font: 11px "Segoe UI", Arial, sans-serif; text-align: center; }
 .tool-state--error { color: #ec8f8f; }
@@ -5031,13 +5117,15 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 }
 .metrics b { color: #d2dce3; font-weight: 500; text-align: right; }
 .industry-list { height: 100%; overflow: auto; background: #11161b; font: 11px "Segoe UI", Arial, sans-serif; }
-.industry-list__header { display: flex; gap: 8px; min-width: 920px; padding: 5px 7px; border-bottom: 1px solid #34434e; color: #91a6b2; font-size: 10px; font-weight: 600; white-space: nowrap; }
+.industry-list__header { display: flex; gap: 8px; min-width: 980px; padding: 5px 7px; border-bottom: 1px solid #34434e; color: #91a6b2; font-size: 10px; font-weight: 600; white-space: nowrap; }
 .industry-list__header span:first-child { min-width: 120px; flex: 1 1 auto; }
 .industry-list__header span:not(:first-child) { flex: 0 0 52px; text-align: right; }
 .industry-list__header span:nth-child(2) { flex-basis: 78px; }
 .industry-list__header span:nth-child(3) { flex-basis: 58px; }
 .industry-list__row { display: flex; width: 100%; justify-content: space-between; gap: 8px; padding: 7px; border: 0; border-bottom: 1px solid #20282f; background: transparent; color: #c7d0d8; text-align: left; cursor: pointer; }
-.industry-list__row { min-width: 920px; }
+.industry-list__row { min-width: 980px; }
+.industry-list__row > span:nth-child(2) { flex: 0 0 78px; text-align: right; }
+.industry-list__row > .industry-list__proxy-count { flex: 0 0 58px; text-align: right; }
 .industry-list__metric { flex: 0 0 52px; overflow: hidden; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
 .industry-list__row:hover, .industry-list__row--active { background: #1d4057; }
 .industry-list__classification { flex: 0 0 auto; max-width: 120px; overflow: hidden; color: #a9b7bf; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }

@@ -1,0 +1,33 @@
+{
+  "authority": "Root coordinates the human-approved common-interface implementation; no staging or deployment acceptance",
+  "at": "2026-11-08T05:16:51.481985+00:00",
+  "source": "aed0d62c7e93ee6bd320c6b7a22791bb8d3d8b87",
+  "base": "139b350238b5e1c8a170dce5af09a805301d857e",
+  "state": "released_for_exact_development_consumption_not_product_acceptance",
+  "root_release_manifest_path": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider-aed0d62c-operator-test-context-development-consumption-contract.json",
+  "root_release_manifest_sha256": "f90d3067d20e0d7a09d907ef947add918d70c1a758b8097056a4c1bf2f916e7c",
+  "root_release_authority": "Root human-authorized coordination; development-only operator/test context, no external-request allocation",
+  "consumer": "TC",
+  "scope": "Three operator/live-probe inventory files aligned with actual optional adapters. Correct EODHD aggregate count4 and explicitly retain TwelveData earliest-timestamp method as blocked/unqualified. No backend app/runtime byte change; no new HTTP, credential, quota, hold or entitlement authority.",
+  "evidence": "Provider full test_live_provider_runner.py 163/163 passed on aed0d62c; Ruff/workstream/diff clean. Existing real5HTTP qualification receipts retained.",
+  "files": [
+    {
+      "path": "scripts/run-live-provider-probes.py",
+      "status_from139": "M",
+      "git_blob": "cefa13e0e9f8d7deab63a513139d3bfe5a21b8e4",
+      "sha256": "d9b1e07c1b2b16c414c7a1abbc4fb65e556290b430361de381f5cc47da02f00a"
+    },
+    {
+      "path": "backend/tests/live/test_market_data_providers_live.py",
+      "status_from139": "M",
+      "git_blob": "a2097900ddc57bce5e680d3a7ed1fba038406f4f",
+      "sha256": "4b3ee0dc1f8a1ce48c301a1e9b38ac1f53e488e8048f5ca4a704affb756d68b6"
+    },
+    {
+      "path": "backend/tests/unit/test_live_provider_runner.py",
+      "status_from139": "M",
+      "git_blob": "2d8529aa650b5319684bc1dd45d7e6b98f93939f",
+      "sha256": "94e2ca53d23fde880fdb4333952599ec032f768095bd0d2e885421c2d4cdf2a5"
+    }
+  ]
+}
