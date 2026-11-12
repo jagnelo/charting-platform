@@ -1560,8 +1560,11 @@ async function selectSymbol(
   const selectedType = resolvedInstrumentType
   const isETF = sectorSymbols.has(symbol) || isEligibleETFHoldingsInstrumentType(selectedType)
   if (!preserveETFContext) {
-    if (isETF) workspaceStore.setConstituentETF(symbol)
-    else if (workspaceStore.constituentETF !== null) workspaceStore.setConstituentETF(null)
+    // The click boundary already reset ETF context; re-setting the same ETF
+    // here would erase an industry the user picked while this load ran.
+    if (isETF) {
+      if (workspaceStore.constituentETF !== symbol) workspaceStore.setConstituentETF(symbol)
+    } else if (workspaceStore.constituentETF !== null) workspaceStore.setConstituentETF(null)
   } else {
     preserveDrilldownSymbol.value = symbol
   }
