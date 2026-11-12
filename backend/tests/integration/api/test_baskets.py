@@ -163,6 +163,8 @@ async def test_manual_basket_crud_uses_real_async_session(db_engine):
         await session.flush()
         user_id = user.id
         instrument_a_id, instrument_b_id = (item.id for item in instruments)
+        asset_class_id = asset_class.id
+        instrument_type_id = instrument_type.id
 
     app = FastAPI()
     app.include_router(baskets_router.router, prefix="/api/v1")
@@ -232,10 +234,26 @@ async def test_manual_basket_crud_uses_real_async_session(db_engine):
             assert missing.status_code == 404
     finally:
         app.dependency_overrides.clear()
+        # This test commits through its own engine, so the savepoint-based `db`
+        # rollback does not reach these rows. Remove everything it created;
+        # otherwise the active instruments leak into universe-wide tests such as
+        # test_radar, which count every active instrument.
         async with session_factory() as session, session.begin():
             remaining_user = await session.get(User, user_id)
             if remaining_user is not None:
                 await session.delete(remaining_user)
+            await session.flush()
+            for instrument_id in (instrument_a_id, instrument_b_id):
+                leaked = await session.get(Instrument, instrument_id)
+                if leaked is not None:
+                    await session.delete(leaked)
+            await session.flush()
+            leaked_type = await session.get(InstrumentType, instrument_type_id)
+            if leaked_type is not None:
+                await session.delete(leaked_type)
+            leaked_class = await session.get(AssetClass, asset_class_id)
+            if leaked_class is not None:
+                await session.delete(leaked_class)
         await async_engine.dispose()
 
 
