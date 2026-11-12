@@ -2894,9 +2894,23 @@ const benchmarkFamilyMapRoleOptions = computed(() => benchmarkFamilyMapRoles.map
     available: Boolean(mapping?.symbol && mapping.holdings_available && mapping.available !== false),
   }
 }))
+// Roles a family overview has already proven available. A later overview for
+// another timeframe can still be loading; keep the user's proven choice
+// meanwhile instead of silently falling back to the cap-weight leg.
+const confirmedFamilyMapRoles = ref<Record<string, BenchmarkFamilyMapRole[]>>({})
+watch(benchmarkFamilyMapRoleOptions, options => {
+  if (!benchmarkFamilyKey.value || !benchmarkFamilyOverview.value) return
+  confirmedFamilyMapRoles.value = {
+    ...confirmedFamilyMapRoles.value,
+    [benchmarkFamilyKey.value]: options.filter(item => item.available).map(item => item.role),
+  }
+}, { immediate: true })
 const activeBenchmarkMapRole = computed<BenchmarkFamilyMapRole>(() => {
-  const selected = benchmarkFamilyMapRoleOptions.value.find(item => item.role === benchmarkFamilyMapRole.value && item.available)
-  return selected?.role ?? 'cap_weight'
+  const chosen = benchmarkFamilyMapRole.value
+  if (benchmarkFamilyOverview.value) {
+    return benchmarkFamilyMapRoleOptions.value.some(item => item.role === chosen && item.available) ? chosen : 'cap_weight'
+  }
+  return (confirmedFamilyMapRoles.value[benchmarkFamilyKey.value] ?? []).includes(chosen) ? chosen : 'cap_weight'
 })
 const benchmarkFamilyLoading = ref(false)
 const benchmarkFamilyPreparationStatus = ref('')
