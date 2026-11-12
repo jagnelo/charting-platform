@@ -7042,28 +7042,6 @@ development_dependency_import_history:
   - backend/tests/unit/workers/test_arq_worker.py
   state: superseded_development_import
   superseded_by: 3c2962d5679d3b71cdf23d990072a1413d1efaed
-approved_development_dependency_imports:
-- source_sha: d850a1c91f93f509e2b3a2f90c66887537b75362
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/d850a1c91f93f509e2b3a2f90c66887537b75362.json
-  manifest_sha256: 3b6a0c883dee88a64b0fb8fe05521a381b62dd69af2db70509413ad749b21352
-  paths:
-  - frontend/src/components/workstation/InstrumentNoteTool.vue
-  - frontend/src/views/BasketsView.vue
-  - frontend/src/views/ETFHoldingsView.vue
-  - frontend/tests/e2e/baskets_journey.spec.ts
-  - frontend/tests/e2e/etf_holdings_preparation.spec.ts
-  - frontend/tests/e2e/sp500_analysis_journey.spec.ts
-  - frontend/tests/e2e/supporting_features_journey.spec.ts
-  - frontend/tests/unit/components/test_instrument_note_tool.test.ts
-  - frontend/tests/unit/views/test_baskets_view.test.ts
-  - frontend/tests/unit/views/test_etf_holdings_view.test.ts
-- source_sha: aed0d62c7e93ee6bd320c6b7a22791bb8d3d8b87
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/aed0d62c7e93ee6bd320c6b7a22791bb8d3d8b87.json
-  manifest_sha256: 4b93054b8d10072c8c9c431717471f6082810ef87cad75db9eedc75ddbba435d
-  paths:
-  - scripts/run-live-provider-probes.py
-  - backend/tests/live/test_market_data_providers_live.py
-  - backend/tests/unit/test_live_provider_runner.py
 - source_sha: ea3a074d96312f8724a2fb4b955bfdc929cd35ad
   manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/ea3a074d96312f8724a2fb4b955bfdc929cd35ad.json
   manifest_sha256: 9a23d39d5f2a970fab53b1a838f5ec6ec56d1f61767105971098c1eaa94d4e4c
@@ -7102,6 +7080,30 @@ approved_development_dependency_imports:
   - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts
   - frontend/tests/unit/views/test_strategy_lab_view.test.ts
   - frontend/tests/unit/components/test_study_bars_histogram_uplot.test.ts
+  state: superseded_development_import
+  superseded_by: 67a2835aef7485aaa55b16dfc9eb78bf5797b814
+approved_development_dependency_imports:
+- source_sha: d850a1c91f93f509e2b3a2f90c66887537b75362
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/d850a1c91f93f509e2b3a2f90c66887537b75362.json
+  manifest_sha256: 3b6a0c883dee88a64b0fb8fe05521a381b62dd69af2db70509413ad749b21352
+  paths:
+  - frontend/src/components/workstation/InstrumentNoteTool.vue
+  - frontend/src/views/BasketsView.vue
+  - frontend/src/views/ETFHoldingsView.vue
+  - frontend/tests/e2e/baskets_journey.spec.ts
+  - frontend/tests/e2e/etf_holdings_preparation.spec.ts
+  - frontend/tests/e2e/sp500_analysis_journey.spec.ts
+  - frontend/tests/e2e/supporting_features_journey.spec.ts
+  - frontend/tests/unit/components/test_instrument_note_tool.test.ts
+  - frontend/tests/unit/views/test_baskets_view.test.ts
+  - frontend/tests/unit/views/test_etf_holdings_view.test.ts
+- source_sha: aed0d62c7e93ee6bd320c6b7a22791bb8d3d8b87
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/aed0d62c7e93ee6bd320c6b7a22791bb8d3d8b87.json
+  manifest_sha256: 4b93054b8d10072c8c9c431717471f6082810ef87cad75db9eedc75ddbba435d
+  paths:
+  - scripts/run-live-provider-probes.py
+  - backend/tests/live/test_market_data_providers_live.py
+  - backend/tests/unit/test_live_provider_runner.py
 - source_sha: 3c2962d5679d3b71cdf23d990072a1413d1efaed
   manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/3c2962d5679d3b71cdf23d990072a1413d1efaed.json
   manifest_sha256: 43c5eddbdb148b349cc921070ed6b351db437bdbd43b406c06e74085769dc282
@@ -7211,6 +7213,44 @@ approved_development_dependency_imports:
   - backend/tests/unit/tasks/test_native_usage_prerequisite.py
   - backend/tests/unit/test_live_provider_runner.py
   - backend/tests/unit/workers/test_arq_worker.py
+- source_sha: 67a2835aef7485aaa55b16dfc9eb78bf5797b814
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/67a2835aef7485aaa55b16dfc9eb78bf5797b814.json
+  manifest_sha256: cfe4ec5388f701f0d36fcb6359c1df424c0f4b7f81eedb7e31b2dd4e8327ace9
+  paths:
+  - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
+  - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
+  - frontend/src/components/dashboard/DashboardInstrumentSearch.vue
+  - frontend/src/components/dashboard/DashboardLineChartWidget.vue
+  - frontend/src/components/dashboard/DashboardQuoteWidget.vue
+  - frontend/src/components/workstation/CodeLibraryTool.vue
+  - frontend/src/components/workstation/PythonSourceEditor.vue
+  - frontend/src/components/workstation/ResearchResultsTool.vue
+  - frontend/src/components/workstation/StudyBarsUPlot.vue
+  - frontend/src/components/workstation/StudyHistogramUPlot.vue
+  - frontend/src/components/workstation/StudyLabTool.vue
+  - frontend/src/components/workstation/StudyRangeUPlot.vue
+  - frontend/src/components/workstation/StudyScatterUPlot.vue
+  - frontend/src/components/workstation/StudySeriesUPlot.vue
+  - frontend/src/lib/workstation/researchQueryKeys.ts
+  - frontend/src/lib/workstation/researchRunCancellation.ts
+  - frontend/src/stores/dashboard.ts
+  - frontend/src/views/DashboardView.vue
+  - frontend/src/views/StrategyLabView.vue
+  - frontend/tests/e2e/dashboard_usability_journey.spec.ts
+  - frontend/tests/e2e/strategy_study_journey.spec.ts
+  - frontend/tests/e2e/workstation_lifecycle_journey.spec.ts
+  - frontend/tests/unit/components/test_code_library_tool.test.ts
+  - frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts
+  - frontend/tests/unit/components/test_dashboard_instrument_search.test.ts
+  - frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts
+  - frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts
+  - frontend/tests/unit/components/test_python_source_editor.test.ts
+  - frontend/tests/unit/components/test_research_results_tool.test.ts
+  - frontend/tests/unit/components/test_study_lab_tool.test.ts
+  - frontend/tests/unit/stores/test_dashboard_store.test.ts
+  - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts
+  - frontend/tests/unit/views/test_strategy_lab_view.test.ts
+  - frontend/tests/unit/components/test_study_bars_histogram_uplot.test.ts
 rendered_dock_tab_and_plot_bounds_followup_20261108:
   root_review: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/root-dbb-rendered-critical-review-followup.json
   source: dbb0d739834960fef174f86d9679d1800338e79e
