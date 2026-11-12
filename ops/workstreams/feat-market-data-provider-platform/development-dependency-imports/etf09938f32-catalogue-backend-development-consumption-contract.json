@@ -1,0 +1,86 @@
+{
+  "at": "2026-11-08T10:52:53.686815+00:00",
+  "source": "09938f32e97b9c21530b96d055380baccbb88c6c",
+  "previous_source": "b4dfd78953bc926032fbf85af97927549c1ef1e2",
+  "base": "139b350238b5e1c8a170dce5af09a805301d857e",
+  "state": "released_for_exact_development_consumption_not_release_acceptance",
+  "files": [
+    {
+      "path": "backend/app/services/etf_holdings.py",
+      "git_blob": "b1a6a43bd199064a4ee2779052c4a07c9ed763ea",
+      "sha256": "adcc9d5d6ba8df425cb68f10c00aba83fc67a187cf9068a7e3a9b7217d9e342c",
+      "status_from139": "M"
+    },
+    {
+      "path": "backend/tests/unit/services/test_etf_holdings_catalogue.py",
+      "git_blob": "56117949912d03af492455602b9e7201427b22b9",
+      "sha256": "a55c1337fd1a930499b7e6d3e46699e89d55844c44f3427c2c98c3a5145dcce1",
+      "status_from139": "A"
+    }
+  ],
+  "consumers": [
+    {
+      "consumer": "Provider",
+      "import_paths": [
+        "backend/app/services/etf_holdings.py",
+        "backend/tests/unit/services/test_etf_holdings_catalogue.py"
+      ],
+      "old_guards": {
+        "backend/app/services/etf_holdings.py": {
+          "sha256": "f291ea985cf6026770e968f151e38221ac45e8252abbdde04d0ae96fba402b74",
+          "known_absent": false,
+          "known_source": "b4dfd78953bc926032fbf85af97927549c1ef1e2"
+        },
+        "backend/tests/unit/services/test_etf_holdings_catalogue.py": {
+          "sha256": null,
+          "known_absent": true,
+          "known_source": "b4dfd78953bc926032fbf85af97927549c1ef1e2"
+        }
+      },
+      "owned_overlap": []
+    },
+    {
+      "consumer": "TC",
+      "import_paths": [
+        "backend/app/services/etf_holdings.py",
+        "backend/tests/unit/services/test_etf_holdings_catalogue.py"
+      ],
+      "old_guards": {
+        "backend/app/services/etf_holdings.py": {
+          "sha256": "f291ea985cf6026770e968f151e38221ac45e8252abbdde04d0ae96fba402b74",
+          "known_absent": false,
+          "known_source": "b4dfd78953bc926032fbf85af97927549c1ef1e2"
+        },
+        "backend/tests/unit/services/test_etf_holdings_catalogue.py": {
+          "sha256": null,
+          "known_absent": true,
+          "known_source": "b4dfd78953bc926032fbf85af97927549c1ef1e2"
+        }
+      },
+      "owned_overlap": []
+    },
+    {
+      "consumer": "Strategy",
+      "import_paths": [
+        "backend/app/services/etf_holdings.py",
+        "backend/tests/unit/services/test_etf_holdings_catalogue.py"
+      ],
+      "old_guards": {
+        "backend/app/services/etf_holdings.py": {
+          "sha256": "f291ea985cf6026770e968f151e38221ac45e8252abbdde04d0ae96fba402b74",
+          "known_absent": false,
+          "known_source": "b4dfd78953bc926032fbf85af97927549c1ef1e2"
+        },
+        "backend/tests/unit/services/test_etf_holdings_catalogue.py": {
+          "sha256": null,
+          "known_absent": true,
+          "known_source": "b4dfd78953bc926032fbf85af97927549c1ef1e2"
+        }
+      },
+      "owned_overlap": []
+    }
+  ],
+  "scope": "ETF-owned profile-list SQL batching only; no schema/API/provider/native policy change. Latest snapshot/state ordering, visibility, identity, capabilities and outputs retained.",
+  "focused_evidence": "Owner2/2 SQLitequerycount/outputequivalencecases: legacy62/61SELECTs for12profiles, batched3bothvisibilitymodes; exact fullJSONsame; ruff/workstream/diffpassed. No PG/browser/native/CI/productacceptanceyet.",
+  "required": "Providerimports2paths througholdguards, verifyrows andownscope, onecoherentdependencycheckpoint. Do noteditETFsource. Rootthenfreezesnewruntimecontract/build. TCmaybatchwithcurrentfrontrepair; Strategywaitsfinalcoherentcontext. No duplicatedheavyprofile/native/CI."
+}
