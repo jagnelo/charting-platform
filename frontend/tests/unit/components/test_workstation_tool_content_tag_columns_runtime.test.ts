@@ -641,6 +641,43 @@ describe('WorkstationToolContent Tag Column parent mutation path', () => {
     queryClient.clear()
   })
 
+  it('reuses a same-named Boolean screener when a stale list makes condition creation conflict', async () => {
+    let screenerReads = 0
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/screeners') {
+        screenerReads += 1
+        return Promise.resolve(screenerReads === 1 ? [] : [{ id: 41, name: 'RSI above 50 Boolean' }])
+      }
+      return Promise.resolve([])
+    })
+    apiPost.mockImplementation((path: string) => path.startsWith('/screeners/from-condition/')
+      ? Promise.reject(Object.assign(new Error(`API POST ${path} → 409: {"detail":"exists"}`), { status: 409 }))
+      : Promise.resolve({}))
+    const { queryClient, wrapper } = setupParent([watchlist(7, 'Core', [])], [])
+    await flushPromises()
+    const payload = {
+      version: 1, kind: 'technical-condition', condition: { type: 'indicator_value', indicator: 'rsi' },
+      timeframe: 'D1', label: 'RSI above 50', sourceWindowKey: 'easy-scan-1',
+    }
+    const dataTransfer = {
+      types: [CHART_PLOT_DRAG_MIME],
+      getData: (type: string) => type === CHART_PLOT_DRAG_MIME ? JSON.stringify(payload) : '',
+      dropEffect: 'none',
+    }
+
+    await wrapper.get('.watchlist').trigger('drop', { dataTransfer })
+    await flushPromises()
+
+    expect(apiPost).toHaveBeenCalledWith('/screeners/41/run', {})
+    expect(wrapper.find('.watchlist__drop-error').exists()).toBe(false)
+    expect(wrapper.emitted('configuration')?.at(-1)?.[1]).toEqual(expect.objectContaining({
+      condition_columns: [expect.objectContaining({ name: 'RSI above 50', screener_id: 41 })],
+    }))
+
+    wrapper.unmount()
+    queryClient.clear()
+  })
+
   it('adds a dropped Python plot as a visible WatchList column without changing indicator columns', async () => {
     const { queryClient, wrapper } = setupParent([watchlist(7, 'Core', [])], [])
     await flushPromises()
