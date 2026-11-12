@@ -2805,6 +2805,7 @@ watch(() => props.tool.configuration, configuration => {
   } else if (pending) {
     pendingTemplateConfiguration.value = null
   }
+  if (JSON.stringify(liveChartConfiguration.value) === JSON.stringify(configuration)) return
   liveChartConfiguration.value = configuration
 }, { deep: true })
 
