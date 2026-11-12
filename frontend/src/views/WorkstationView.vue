@@ -2431,7 +2431,10 @@ async function openTool(tool: OpenableToolDefinition, configurationOverride: Rec
   // Keep the activation bounded, but give the newly installed component enough
   // time to acquire its real stack/header before treating the open action as
   // complete.
-  for (let attempt = 0; attempt < 160; attempt += 1) {
+  // Bound by elapsed time rather than attempts: on a busy machine the layout
+  // reinstall alone can exceed a fixed attempt budget.
+  const activationDeadline = Date.now() + 15_000
+  while (Date.now() < activationDeadline) {
     if (!componentMounted) return
     const toolRoot = [...document.querySelectorAll<HTMLElement>('[data-tool-key]')]
       .find(candidate => candidate.dataset.toolKey === opened.instance_key)
