@@ -921,6 +921,12 @@ def promote(commit: str, confirm: str) -> None:
     if full_sha(confirm, "CONFIRM") != commit:
         raise SystemExit("CONFIRM must exactly equal COMMIT")
     root_master_ready()
+    # Promotion fast-forwards and pushes the checked-out branch. From the
+    # persistent staging checkout that branch is `staging`, so the merge is a
+    # no-op and `git push origin master` would push the root's stale master,
+    # then record a false master-degraded marker. Require the root master.
+    if ROOT != COMMON_ROOT or git("branch", "--show-current") != "master":
+        raise SystemExit("promote must run from the root master checkout")
     with integration_lock():
         master_start = git("rev-parse", "master")
         staging_sha = ensure_staging(remediate=False)

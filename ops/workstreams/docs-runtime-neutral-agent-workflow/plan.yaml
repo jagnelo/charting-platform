@@ -6,8 +6,8 @@ parent_sha: 139b350238b5e1c8a170dce5af09a805301d857e
 dependency_authorization: "not applicable: independent staging-based topic"
 human_intent_authorization: "Human request 2026-11-09: 'Any repo documentation MUST be updated to now also encompass Claude Code's semantics and environment too, as beforehand this was all done through Codex alone ... I do not want to care too much about whether Codex or Claude Code or something else is being used'; activated 2026-11-10: 'ok handle this ... do whatever you must, i authorize you'. Extended 2026-11-12 (Claude Code Desktop): one orchestration chat at a time with a higher-reasoning model that 'naturally uses subagents (these being lower reasoning, cheaper, models) to tackle the finer-details and achieve parallelization and a divide and conquer approach', progressing several branches/worktrees 'and include their merging, reconciliation and combined testing & verification in that same chat'; a new chat per later context; 'these rules should become part of the repo's own AI-driven development workflow rules & policies'."
 planning_state: ready
-human_closure_authorization: pending
-closure_summary: pending
+human_closure_authorization: '2026-11-13: the human delegated closure to the Desktop orchestrator: "you''re allowed to make decisions that the rules expect the human dev to make. Proceed". The orchestrator reviewed RN1-RN5 and closed this workstream.'
+closure_summary: 'Runtime-neutral orchestrator workflow docs (RN1-RN5) merged with origin/master 7100a276b, plus a fix for scripts/staging.py promote. Promote now refuses any checkout other than the root master. From the persistent staging checkout it used to fast-forward staging, push the stale root master, and record a false master-degraded marker. Regression test tests/workflow/test_staging_workflow.py::test_promote_refuses_the_persistent_staging_checkout; workflow suite 216 passed. integration_capture: exact branch HEAD'
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
 local_validation_profile: unit
@@ -29,6 +29,8 @@ owned_paths:
   - docs/feature-integration-coordination.md
   - scripts/agent-session.py
   - scripts/agent-turn.py
+  - scripts/staging.py
+  - tests/workflow/test_staging_workflow.py
   - .gitignore
   - ops/workstreams/docs-runtime-neutral-agent-workflow/
 dependencies: []
@@ -49,12 +51,12 @@ branch_tests_reason: Focused workflow/session contract tests cover the wording-o
 live_test_impact: none
 migration_impact: none
 deployment_impact: none
-status: ready_for_human_review
+status: ready_for_integration
 remaining_gaps: []
 bootstrap_exception: "Root-authorized 2026-11-05: skip the plan-only commit/push and old plan-ready remote prerequisite (repository mechanism from fix/development-flow-efficiency, applied here under the 2026-11-10 activation and the human's standing no-metadata-only-push preference). Keep this reviewed ready plan local under the exclusive claim; clean synchronized source remains required at normal integration gates."
 progress:
   completed: [RN1, RN2, RN3, RN4, RN5]
   total: 5
-  current_phase: ready_for_human_review
+  current_phase: ready_for_integration
   current_blocker: none
-  next_action: Human review of the runtime-neutral workflow documentation; closure and integration need an explicit human closure statement.
+  next_action: Orchestrator integrates through staging and promotes.
