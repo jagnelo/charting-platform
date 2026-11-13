@@ -3434,9 +3434,14 @@ function handleKeydown(event: KeyboardEvent) {
   }
   if (/^[a-z0-9.=]$/i.test(event.key) && !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey) {
     event.preventDefault()
+    const seed = event.key.toUpperCase()
+    // Write the DOM value synchronously: v-model only patches the input on
+    // the next render, so a fast following keystroke would otherwise be
+    // appended to the previous symbol (for example "SPY" + "p").
+    if (symbolInput.value) symbolInput.value.value = seed
     symbolInput.value?.focus()
     symbolSearchEnabled.value = true
-    symbolDraft.value = event.key.toUpperCase()
+    symbolDraft.value = seed
     return
   }
   if (event.key !== ' ' || event.metaKey || event.altKey) return

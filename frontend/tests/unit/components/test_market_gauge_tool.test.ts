@@ -257,6 +257,39 @@ describe('MarketGaugeTool', () => {
     wrapper.unmount()
   })
 
+  it('re-reads stale history when the gauge snapshot is a newer queued run, then refreshes once it completes', async () => {
+    const base = {
+      matched_count: 0, evaluated_count: 0, universe_count: 0, percentage: null as number | null,
+      run_at: '2026-08-03T10:02:00Z', freshness: 'current', data_provenance: 'canonical_local_database',
+      calculation_version: 'analysis-v1', refreshed_at: '2026-08-03T10:03:00Z',
+      freshness_detail: {}, exclusions: [],
+    }
+    const completedGauge = { ...base, matched_count: 1, evaluated_count: 2, universe_count: 2, percentage: 0.5 }
+    const staleHistory = [{ id: 10, run_at: '2026-08-03T10:00:00Z', matched_ids: [2], result_data: { _status: 'completed', _coverage: { evaluated_count: 2, universe_count: 2, excluded: [] } } }]
+    const collectedHistory = [{ id: 11, run_at: base.run_at, matched_ids: [2], result_data: { _status: 'completed', _coverage: { evaluated_count: 2, universe_count: 2, excluded: [] } } }, ...staleHistory]
+    let collected = false
+    let resultReads = 0
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/screeners') return Promise.resolve([{ id: 7, name: 'Saved weekly scan' }])
+      if (path === '/screeners/7') return Promise.resolve(savedScan())
+      if (path === '/screeners/7/results') {
+        // Only the first read predates the replacement run; later reads collect it.
+        collected = ++resultReads > 1
+        return Promise.resolve(collected ? collectedHistory : staleHistory)
+      }
+      // The gauge endpoint does not collect: it reports the queued 0/0 snapshot until history was read again.
+      if (path === '/analysis/gauges/7') return Promise.resolve(collected ? completedGauge : base)
+      return Promise.resolve([])
+    })
+
+    const wrapper = mountTool()
+    await flushPromises()
+    await wrapper.find('select').setValue('7')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('50.0%'), { timeout: 2_500 })
+    expect(resultReads).toBeGreaterThanOrEqual(2)
+    wrapper.unmount()
+  })
+
   it('drains an older in-flight gauge read before refreshing metrics for the newly completed result', async () => {
     const previousGauge = {
       matched_count: 1, evaluated_count: 2, universe_count: 2, percentage: 0.5,
