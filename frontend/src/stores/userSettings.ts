@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
+import { AuthSessionChangedError } from '@/lib/authSession'
 import { api, setQueuedApiRequestPriority, type ApiRequestPriority } from '@/lib/api'
 import type { ChartBarType } from '@/types'
 
@@ -44,9 +45,17 @@ export const useUserSettingsStore = defineStore('userSettings', () => {
     }
     let request!: Promise<void>
     request = (async () => {
-      const settings = await api.get<UserSettings>('/auth/settings', undefined, {
-        priority, queueKey: 'user-settings:load',
-      })
+      let settings: UserSettings
+      try {
+        settings = await api.get<UserSettings>('/auth/settings', undefined, {
+          priority, queueKey: 'user-settings:load',
+        })
+      } catch (error) {
+        // Logout aborts in-flight private reads. Leave `loaded` false so the
+        // next authenticated session reads its own settings.
+        if (error instanceof AuthSessionChangedError) return
+        throw error
+      }
       showCurrentPriceProjection.value = !!settings.chart?.showCurrentPriceProjection
       showHighLowProjection.value = !!settings.chart?.showHighLowProjection
       showApproxVolumeProfile.value = !!settings.chart?.showApproxVolumeProfile
@@ -107,7 +116,7 @@ export const useUserSettingsStore = defineStore('userSettings', () => {
   watch([showCurrentPriceProjection, showHighLowProjection, showApproxVolumeProfile, chartType, followedSourceIds, pinnedSourceIds], () => {
     if (!loaded.value) return
     if (saveTimer) clearTimeout(saveTimer)
-    saveTimer = setTimeout(() => { saveSettings().catch(console.error) }, 350)
+    saveTimer = setTimeout(() => { saveSettings().catch(error => { if (!(error instanceof AuthSessionChangedError)) console.error(error) }) }, 350)
   })
 
   return {
