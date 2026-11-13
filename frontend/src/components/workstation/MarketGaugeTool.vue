@@ -219,18 +219,31 @@ watch([selectedId, surfaceVisible, documentVisible], ([id, visible, docVisible],
   preparationRefreshQueue = new PreparationProgressRefreshQueue()
   if (visible && docVisible && latestGaugeRefreshPending.value) void requestLatestGaugeRefresh(id)
 })
-// A gauge read can land while a replacement run is queued (the backend then
-// reports 0/0 evaluated) and the history poll may never observe that queued
-// state. Reconcile once per completed result when the snapshot disagrees.
+// The gauge endpoint reports the newest stored result without collecting it,
+// while only the history endpoint collects queued runs. A replacement run
+// (for example an EasyScan preparation re-run started from another panel) can
+// therefore be newer than this panel's cached history: the gauge then reads a
+// queued 0/0 snapshot and nothing here would ever poll. When the snapshot
+// disagrees with the cached latest result, re-read the history first (that
+// collects the run and, if it is still running, starts the poll) and only then
+// refresh the gauge. Keyed on the snapshot so each distinct disagreement is
+// reconciled once without suppressing a later one.
 let reconciledGaugeKey = ''
 watch([latestScanResult, () => gaugeQuery.data.value] as const, ([latest, data]) => {
   if (!latest?.id || !data || latestScanStatus.value !== 'completed') return
   const evaluated = (latest.result_data?._coverage as { evaluated_count?: number } | undefined)?.evaluated_count
-  if (typeof evaluated !== 'number' || data.evaluated_count === evaluated) return
-  const key = `${selectedId.value}:${latest.id}`
+  const countsDisagree = typeof evaluated === 'number' && data.evaluated_count !== evaluated
+  const newerSnapshot = Boolean(latest.run_at && data.run_at && data.run_at !== latest.run_at)
+  if (!countsDisagree && !newerSnapshot) return
+  const key = `${selectedId.value}:${latest.id}:${data.run_at}:${data.evaluated_count}`
   if (reconciledGaugeKey === key) return
   reconciledGaugeKey = key
-  void requestLatestGaugeRefresh()
+  const id = selectedId.value
+  void (async () => {
+    await scanResultsQuery.refetch()
+    if (id !== selectedId.value || scanReplacementPending.value) return
+    await requestLatestGaugeRefresh(id)
+  })()
 })
 watch([selectedId, latestScanStatus], ([id, status], [previousId, previousStatus]) => {
   if (id && id === previousId && ['queued', 'pending', 'running', 'leased'].includes(previousStatus)
