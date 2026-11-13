@@ -2012,7 +2012,11 @@ async def test_local_application_burst_hold_has_known_retry_and_settles_hop_not_
     assert ledger["available"] is True
     assert sum(row["pending_reservations"] for row in ledger["windows"]) == 0
     assert sum(row["uncertain_reservations"] for row in ledger["windows"]) == 0
-    assert sum(row["effective_used_units"] for row in ledger["windows"]) == 1
+    # effective_used_units is a quota-level figure. Rolling windows create one
+    # window row per wall-clock second and every active row repeats that
+    # aggregate, so summing rows double-counts when the two calls straddle a
+    # second boundary. Assert the single per-quota baseline instead.
+    assert [row["effective_used_units"] for row in ledger["baselines"]] == [1]
 
 
 @pytest.mark.asyncio

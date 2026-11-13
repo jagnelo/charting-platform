@@ -34,7 +34,7 @@
     }
   ],
   "active_checkpoint_id": "provider-platform-usability-data-preparation-20261106",
-  "active_session_id": "e205fe91-ee34-42f9-ad72-e23492534013",
+  "active_session_id": "c00776e7-3671-42f6-a1a3-c3e713da8e03",
   "blocker": "Exact closing-tip CI and Root-owned combined staging/master/deployed proof remain mandatory and pending.",
   "branch": "feat/market-data-provider-platform",
   "canonical_bridge_cleanup_receipt": "/tmp/provider-etf-bridge-runtime-20261104/cleanup-and-preservation.json",
@@ -656,7 +656,7 @@
     "root_review": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-314528-manifest-portability-CI-root-review-20261105.json",
     "source_sha": "314528777893f320f6e898085da3180561843f0c"
   },
-  "next_action": "Root reviews the Tiingo storage-authority and config-driven custom-plan checkpoint and the 15c8bf3b4 calendar fix, then decides native replay and deploy-time settings. Provider stays offline: no live HTTP, no quota/policy/hold mutation, no production config change. Tiingo's native-quota/baseline hold stays until a current-window baseline is recorded.",
+  "next_action": "resume from the durable handoff and inspect displaced session state",
   "parent_branch": "staging",
   "pg_profile_result": "/tmp/provider-etv-20261103-r4/artifacts/result.json",
   "pg_profile_result_sha256": "3c98a0a77d8b8f40f923d289a4564645149971929865ae71290eeffb25cc45cc",
@@ -728,7 +728,8 @@
     "b73bc18d-8542-4cdf-9047-80b733013aa3",
     "65775c69-1572-4bee-8caf-0e890a520718",
     "60955b1d-3a9a-4167-a4d6-e0975d9d3fb5",
-    "f093caba-0194-4527-b22b-0bfa26344c34"
+    "f093caba-0194-4527-b22b-0bfa26344c34",
+    "e205fe91-ee34-42f9-ad72-e23492534013"
   ],
   "previously_accepted_cached_search_session_context": {
     "active_checkpoint_id": "provider-on-demand-cached-search-outcome-reuse-20261028",
@@ -1583,6 +1584,12 @@
       "displaced_session_id": "f093caba-0194-4527-b22b-0bfa26344c34",
       "new_session_id": "e205fe91-ee34-42f9-ad72-e23492534013",
       "reason": "Human-authorized 2026-11-09/10 runtime migration: the user moved this workflow from Codex to Claude Code ('do whatever you must, i authorize you'). The Codex session for this branch stopped at its usage limit on 2026-11-09 02:37Z and is retired. A new Claude Code worker session (Haiku 5.5, low effort) with the same chat name continues the same goal from the durable workstream; preserve all source, evidence, roadmap and boundaries."
+    },
+    {
+      "at": "2026-11-12T13:14:34.523391+00:00",
+      "displaced_session_id": "e205fe91-ee34-42f9-ad72-e23492534013",
+      "new_session_id": "c00776e7-3671-42f6-a1a3-c3e713da8e03",
+      "reason": "Human request 2026-11-12 (Claude Code Desktop): import the ongoing VS Code AI-driven work into this single Desktop orchestration chat and 'only start working here and leave VS Code behind'; outgoing Root reported HANDOVER-READY 2026-11-12T13:10Z with all worktrees clean and pushed."
     }
   ],
   "validated_candidate_input_manifest": "/tmp/provider-etv-20261103-r4/prelaunch.json",
