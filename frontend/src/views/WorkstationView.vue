@@ -1157,7 +1157,10 @@ async function refreshMarketData() {
     // Mounting a visible analysis surface is user-visible work. If the shell's
     // interval refresh already queued these same reads, the store promotes the
     // existing requests rather than issuing duplicates.
-    void workspaceStore.refreshMarketAnalysis('high')
+    // The store dedupes concurrent refreshes and promotes queued reads to 'high',
+    // so this single direct call owns the mount-time priority; the Query refetch
+    // below then joins the in-flight promise instead of issuing a second set.
+    await workspaceStore.refreshMarketAnalysis('high')
     await marketAnalysisQuery.refetch()
   } else {
     // Followers still hydrate once when they open. Subsequent periodic refreshes are

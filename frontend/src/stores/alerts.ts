@@ -54,6 +54,16 @@ export const useAlertsStore = defineStore('alerts', () => {
       try {
         alerts.value = await api.get('/alerts/price', params, options)
         indicatorAlerts.value = await api.get('/alerts/indicator', params, indicatorOptions)
+      } catch (error) {
+        // Logout (or an account switch) aborts in-flight private reads by
+        // design. Callers fire-and-forget this load, so letting the typed
+        // cancellation escape surfaces as an unhandled rejection. Forget the
+        // cache marker so the next authenticated session re-fetches.
+        if (error instanceof AuthSessionChangedError) {
+          if (_loadedInstrumentId === instrumentId) _loadedInstrumentId = undefined
+          return
+        }
+        throw error
       } finally {
         if (pendingAlertLoad?.promise === promise) pendingAlertLoad = null
       }

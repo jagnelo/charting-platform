@@ -14,7 +14,7 @@ vi.mock('@/lib/api', () => ({
 
 import { api } from '@/lib/api'
 import { useDrawingsStore } from '@/stores/drawings'
-import { beginAuthSessionBoundary, clearUserScopedPiniaStores } from '@/lib/authSession'
+import { AuthSessionChangedError, beginAuthSessionBoundary, clearUserScopedPiniaStores } from '@/lib/authSession'
 
 describe('useDrawingsStore authentication-boundary handling', () => {
   beforeEach(() => {
@@ -40,6 +40,18 @@ describe('useDrawingsStore authentication-boundary handling', () => {
     ;(api.get as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('Authentication required'))
 
     await store.loadDrawings(7, 'D1')
+
+    expect(consoleError).not.toHaveBeenCalled()
+    consoleError.mockRestore()
+  })
+
+  it('treats a logout abort of an in-flight drawing read as silent', async () => {
+    localStorage.setItem('access_token', 'user-a')
+    const store = useDrawingsStore()
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    ;(api.get as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new AuthSessionChangedError())
+
+    await expect(store.loadDrawings(7, 'D1')).resolves.toBeUndefined()
 
     expect(consoleError).not.toHaveBeenCalled()
     consoleError.mockRestore()

@@ -15,6 +15,7 @@ from app.schemas.basket import (
 )
 from app.schemas.ohlcv import OHLCVBarOut
 from app.services.baskets import (
+    BasketNotFoundError,
     BasketReadOnlyError,
     BasketValidationError,
     basket_snapshot_to_out,
@@ -83,16 +84,20 @@ async def read_basket_synthetic_ohlcv(
         raise HTTPException(404, "Basket not found")
     start = _as_utc(start) if start is not None else None
     end = _as_utc(end) if end is not None else None
-    return await get_basket_synthetic_ohlcv(
-        db,
-        basket_id,
-        current_user.id,
-        timeframe,
-        start=start,
-        end=end,
-        limit=limit,
-        adjusted=adjusted,
-    )
+    try:
+        return await get_basket_synthetic_ohlcv(
+            db,
+            basket_id,
+            current_user.id,
+            timeframe,
+            start=start,
+            end=end,
+            limit=limit,
+            adjusted=adjusted,
+        )
+    except BasketNotFoundError as exc:
+        # The basket can be deleted between the route check and the series read.
+        raise HTTPException(404, str(exc)) from exc
 
 
 @router.get("/{basket_id}/snapshots", response_model=list[BasketSnapshotOut])

@@ -1754,11 +1754,10 @@ async def list_etfs_with_holdings(db: AsyncSession, q: str | None = None) -> lis
     stmt = (
         select(ETFProfile)
         .join(Instrument, Instrument.id == ETFProfile.instrument_id)
-        .options(
-            # Catalogue rows never read listings; keep the batch to its bounded
-            # query count despite the instrument-wide selectin listing load.
-            contains_eager(ETFProfile.instrument).lazyload(Instrument.listings),
-        )
+        # Instrument.listings is lazy="selectin" on staging, which would add one
+        # SELECT per page. The catalogue output reads only the instrument's
+        # symbol and name, so keep the listing relationship out of this batch.
+        .options(contains_eager(ETFProfile.instrument).noload(Instrument.listings))
     )
     if q:
         pattern = f"%{q.strip()}%"

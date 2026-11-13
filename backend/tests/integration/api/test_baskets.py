@@ -6,28 +6,12 @@ from uuid import uuid4
 import httpx
 import pytest
 from fastapi import FastAPI
-from sqlalchemy import update
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
 from app.auth.dependencies import get_current_user
 from app.database import get_db
 from app.routers import baskets as baskets_router
-
-
-def _deactivate_committed_instruments(db_engine, symbols: tuple[str, ...]) -> None:
-    """Retire instruments committed through a separate async engine.
-
-    The per-test savepoint rollback cannot undo commits made on those engines.
-    Active leftovers would join the radar run universe, which counts every
-    active instrument in the database, so the rows are deactivated here.
-    """
-    from app.models.instrument import Instrument
-
-    with db_engine.begin() as conn:
-        conn.execute(
-            update(Instrument).where(Instrument.symbol.in_(symbols)).values(is_active=False)
-        )
 
 
 def test_user_can_create_update_and_delete_manual_basket(
@@ -146,7 +130,6 @@ async def test_manual_basket_crud_uses_real_async_session(db_engine):
     from app.models.user import User
 
     suffix = uuid4().hex[:10]
-    committed_symbols = (f"BA{suffix[:4]}A", f"BA{suffix[:4]}B")
     async_url = db_engine.url.set(drivername="postgresql+asyncpg")
     async_engine = create_async_engine(async_url, poolclass=NullPool)
     session_factory = async_sessionmaker(async_engine, expire_on_commit=False)
@@ -180,6 +163,8 @@ async def test_manual_basket_crud_uses_real_async_session(db_engine):
         await session.flush()
         user_id = user.id
         instrument_a_id, instrument_b_id = (item.id for item in instruments)
+        asset_class_id = asset_class.id
+        instrument_type_id = instrument_type.id
 
     app = FastAPI()
     app.include_router(baskets_router.router, prefix="/api/v1")
@@ -249,12 +234,27 @@ async def test_manual_basket_crud_uses_real_async_session(db_engine):
             assert missing.status_code == 404
     finally:
         app.dependency_overrides.clear()
+        # This test commits through its own engine, so the savepoint-based `db`
+        # rollback does not reach these rows. Remove everything it created;
+        # otherwise the active instruments leak into universe-wide tests such as
+        # test_radar, which count every active instrument.
         async with session_factory() as session, session.begin():
             remaining_user = await session.get(User, user_id)
             if remaining_user is not None:
                 await session.delete(remaining_user)
+            await session.flush()
+            for instrument_id in (instrument_a_id, instrument_b_id):
+                leaked = await session.get(Instrument, instrument_id)
+                if leaked is not None:
+                    await session.delete(leaked)
+            await session.flush()
+            leaked_type = await session.get(InstrumentType, instrument_type_id)
+            if leaked_type is not None:
+                await session.delete(leaked_type)
+            leaked_class = await session.get(AssetClass, asset_class_id)
+            if leaked_class is not None:
+                await session.delete(leaked_class)
         await async_engine.dispose()
-        _deactivate_committed_instruments(db_engine, committed_symbols)
 
 
 @pytest.mark.asyncio
@@ -266,7 +266,6 @@ async def test_etf_basket_materialization_refreshes_expired_members(db_engine):
     from app.services.baskets import materialize_etf_holdings_basket
 
     suffix = uuid4().hex[:10]
-    committed_symbols = (f"E{suffix[:8]}", f"C{suffix[:8]}")
     async_url = db_engine.url.set(drivername="postgresql+asyncpg")
     async_engine = create_async_engine(async_url, poolclass=NullPool)
     session_factory = async_sessionmaker(async_engine, expire_on_commit=False)
@@ -346,7 +345,6 @@ async def test_etf_basket_materialization_refreshes_expired_members(db_engine):
         finally:
             await session.rollback()
             await async_engine.dispose()
-            _deactivate_committed_instruments(db_engine, committed_symbols)
 
 
 def test_custom_basket_rejects_unknown_duplicate_and_unbalanced_members(
