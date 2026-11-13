@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "dependency": "tc-common-runtime-development-consumption",
+  "source_commit": "e902e83597661de1e5a636a2d94902b0fe01b747",
+  "previous_source": "2666aa559afbff7cff8dff6b50ead357ae1f654f",
+  "root_manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-e902e835-common-runtime-development-consumption-contract.json",
+  "root_manifest_sha256": "a87a59f7c1e76e1c8273e2949b67d676d72a43ee2b691463f82482567c71683f",
+  "root_entry": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-e902e835-common-entry-feat-strategy-lab-v2.yaml",
+  "root_entry_sha256": "85df37763874781eb932eafd9019f345a01e4cda917fe5d4007ed858f7384baf",
+  "consumer": "Strategy",
+  "imported_paths": [
+    "frontend/src/components/workstation/EasyScanTool.vue",
+    "frontend/tests/unit/components/test_easy_scan_tool.test.ts"
+  ],
+  "old_guards": {
+    "frontend/src/components/workstation/EasyScanTool.vue": {
+      "sha256": "67a0be16ce05503baa3f7754f8cdc19745a77d1d340170e0663bd84a3f270c3b",
+      "known_source": "2666aa559afbff7cff8dff6b50ead357ae1f654f",
+      "known_absent": false
+    },
+    "frontend/tests/unit/components/test_easy_scan_tool.test.ts": {
+      "sha256": "87cd99172de1e9995405527233f3c4bcf46ad1736b9806dce4aa67d65f3f060d",
+      "known_source": "2666aa559afbff7cff8dff6b50ead357ae1f654f",
+      "known_absent": false
+    }
+  },
+  "verified_source_manifest_rows": 86,
+  "verification": {
+    "sha256": true,
+    "git_blob": true,
+    "status_from139": true,
+    "git_executable_mode": true,
+    "consumer_import_exact": true
+  },
+  "qualification": "Exact development consumption only. Root reports 24 focused EasyScan unit tests, type-check and scope/matrix checks pass; Strategy did not rerun those producer checks. This import is not browser, exact-source CI, integrated or release acceptance."
+}

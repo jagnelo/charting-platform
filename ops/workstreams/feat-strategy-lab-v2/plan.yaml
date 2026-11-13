@@ -1,11 +1,39 @@
 schema: 4
 goal: >-
+  Implement the Strategy-owned Study usability scope from the human-activated platform-usability
+  release: reliable Study editing, validation, ordinary runs, truthful persisted Results, recovery,
+  and immutable promotion bindings. Preserve the complete original Strategy Lab v2 roadmap and all
+  safety holds; this active checkpoint does not qualify native execution or complete the platform.
+previous_checkpoint_goal: >-
   Prepare the next named first-human Strategy Lab v2 source checkpoint: complete the normal-user
   read-only path from a completed Study output into the owner-scoped immutable V2 inspector, close
   the branch-local resolver/payload prerequisites, preserve corrected date-bound and authoritative
   venue/calendar semantics, and verify compatibility with accepted a6b9. Record the delegated source
   acceptance for integration while keeping deployed proof and full-roadmap completion open; do not
   claim native execution.
+current_checkpoint:
+  id: strategy-study-usability-2026-11-06
+  status: in_progress
+  authority: >-
+    Human-activated complete platform-usability plan at
+    /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/APPROVED-PLAN.md
+    and SHARED-CONTRACT.md; Root aligned the existing session-local goal without resetting its
+    objective history, creation time, or accounting.
+  scope: >-
+    Strategy ownership covers Study/Results/Library components and views, Strategy Lab views/store,
+    Study-specific backend modules/tests, and a new Study-only browser journey. Root additionally
+    reserved exactly DashboardView.vue, stores/dashboard.ts, the four assigned Dashboard widgets,
+    DashboardInstrumentSearch.vue, and their focused tests for automatic preparation, transactional
+    edits, recoverable layout persistence, and listing-aware search. TC owns the shared shell,
+    workspace, ToolContent, shared helpers/types/styles and flows.spec.ts. No native, broker, capital,
+    paid/trial, provider-live, or other held scope is activated. Root separately reserved
+    frontend/tests/e2e/dashboard_usability_journey.spec.ts for the seeded Dashboard and controlled
+    recovery/search browser journey; its body remains unexecuted pending Root's combined slot. Root
+    separately reserved frontend/tests/e2e/workstation_lifecycle_journey.spec.ts for Strategy-owned
+    factory-layout/tool-catalogue and workspace lifecycle browser journeys; TC retains the shared
+    workstation product and global journey matrix. Strategy additionally owns the bounded
+    PythonSourceEditor suggestion-overlay placement and its focused test under the R58b causal
+    repair allocation. Those browser bodies are pending Root's combined slot.
 integration_checkpoint:
   id: strategy-lab-v2-first-human-study-inspector-2
   status: ready_for_integration
@@ -22,6 +50,13 @@ integration_checkpoint:
     review; do not reuse the old closure. Keep the existing native goal/history/accounting/model/
     effort intact, preserve the live exact-source CI, and combine these record changes only at a safe
     publication boundary.
+    The binding 2026-10-26 whole-frontend requirement at
+    /home/m920q/charting-platform/.ai/staging-attempts/human-whole-frontend-tc2000-reconciliation-20261026.md
+    extends presentation acceptance across every reachable route. TC2000 is the sole presentation
+    writer for the shared shell, router, theme and all screens, including Study Lab, Research Results,
+    Strategy Lab v1/v2 and their handoffs. Strategy owns the immutable Study/domain contract review
+    only; it will not edit frontend presentation paths or create a parallel theme. The accepted 6d0
+    deployment remains a functional baseline, not whole-frontend acceptance.
   fh5_original_text: >-
     Preserve full_integration/full_stack_browser, existing tests/assertions/tolerances/retry policy,
     and exact-source CI. Do not accept this checkpoint until Root reviews deployed owner-positive and
@@ -61,6 +96,14 @@ integration_checkpoint:
       Full local full_integration/full_stack_browser and exact-source branch CI remain mandatory;
       preserve the existing live CI without rerun/cancellation. Root performs actual deployed
       positive/negative acceptance only after source qualification.
+    - >-
+      Whole-frontend visual consistency is a binding requirement, and accepted staging 02a7bae now
+      carries the TC2000 shared shell/navigation/theme across reachable routes, including Strategy
+      Lab v1/v2 and Study handoffs. TC remains the sole presentation owner. Strategy's review
+      contract covers the normal completed Study-output path, immutable owner-scoped lineage and
+      persisted-result behavior only; it does not qualify native execution. This branch still needs
+      its own exact-source CI after adoption, and Root owns final deployment/target acceptance. Keep
+      the earlier 6d0 deployment distinct from the later accepted whole-frontend source.
   prerequisite_source_commits:
     - sha: 344f87f835f392bd103c20db2044aa0de72148df
       scope: Persisted Study payload and immutable-reference validation shape.
@@ -83,7 +126,45 @@ integration_checkpoint:
     under feature-branch policy. Root accepted this exact tested source for source integration
     under the delegated checkpoint decision. The isolated local profile passed; deployed
     genuine-data owner-positive/negative acceptance remains a separate mandatory target gate after
-    staging/master release gates and separately authorized deployment.
+    staging/master release gates and separately authorized deployment. On 2026-10-25 the owner
+    fast-forwarded this branch from 1d32b1ee8d174c4f43432d6729846c5dbcd3347c to the exact canonical
+    green combined staging source 5b29620741fd82d27db45987afb927bf91396712, receipt
+    /home/m920q/charting-platform/.ai/staging-attempts/20261025T055427Z-5b29620741fd.json,
+    exact staging CI 40161945123. This is baseline adoption, not target deployment or roadmap
+    completion. The accepted Provider P2 reconciliation also updates Strategy Research's direct
+    single-symbol and set-based batch materialization to apply the shared default-series predicate
+    before limits/ranking, with canonical and null-series legacy fallbacks; the staging source
+    contains focused single/batch regressions. No Strategy-specific production adaptation was
+    needed. ETF PIT/admission/quota/identity and TC immutable Study contracts are preserved as
+    imported; their bytes/workstreams were not edited by this owner. On 2026-10-25 this branch also
+    adopted exact synchronized-green ETF checkpoint 3ff96af855a49d42b1dee10cecb43bc6690f4502,
+    released from starting staging 5b29620741fd82d27db45987afb927bf91396712 by canonical receipt
+    /home/m920q/charting-platform/.ai/staging-attempts/20261025T161013Z-3ff96af855a4.json and
+    hosted CI 40202604218. The imported FQ1-FQ8 delta is confined to ETF source/tests and ETF-owned
+    records; no Strategy consumer source overlap or established Strategy frozen-import manifest
+    exists. The exact merge preserves the imported ETF record bytes. SEC acquisition remains
+    coordinator-owned and pending; the consumed 119-request history and all provider/data/quota
+    holds are unchanged.
+    On 2026-10-26 exact staging 02a7bae34c2aed145b9e46137ef3b8f041de4d92 was verified green and
+    adopted as local merge b2fd76cf8aa32a01eae74385112f28d68ed6895c, with first parent
+    e50198fa055cc3a980a491dcd572f6581b8baf13 and second parent 02a7bae. Canonical reconciled-green
+    receipt /home/m920q/charting-platform/.ai/staging-attempts/20261026T172944Z-02a7bae34c2a.json
+    (SHA256 fae0e2ab21f9f986b0f713e6dfad20437436e16d55441c7aa13e9dd075402bde), hosted CI 40351346928.
+    Backend, Frontend, E2E and Exhaustive Integration Gate succeeded; Branch-declared Tests was
+    skipped by feature-branch policy. Direct origin/staging matched 02a7bae. The release delta from
+    common base 6d0 contains 71 paths. The merge had no conflicts. Full tracked-tree comparison
+    against exact 02a7bae found differences only in the four Strategy-owned handoff/plan/session/
+    validation files; imported application/backend/test/configuration and TC-owned records/manifests
+    match staging byte-for-byte. No Strategy-specific frozen import manifest existed or was
+    required because the exact tree comparison is the scope proof; TC-owned manifests/receipts remain
+    as released. The imported App shell, route/navigation, Strategy V1/V2 presentation and workstation
+    components were reviewed; V2 immutable-reference request/domain behavior is unchanged. Relevant
+    route, Study and Results consumers are covered by the exact green staging CI. No local profile or
+    browser rerun occurred. This is an adoption checkpoint, not final target/deployment acceptance or
+    full-roadmap completion; exact Strategy branch CI remains pending.
+    On 2026-10-26 this branch adopted exact green staging 15b5c22f0e689c973ee82d152d4bbad6125bf993 as local merge b3704a96f3c03c91e99fb33ac55480f9497fefe4, using canonical receipt /home/m920q/charting-platform/.ai/staging-attempts/20261025T235546Z-15b5c22f0e68.json and CI 40241357259. The ten ETF delta paths are byte-identical to the 15b tree and contain the accepted retained-IWM percentage, equity/right, and offline append-only reparse correction; no Strategy source consumer changed and no Strategy-specific import manifest exists. Genuine SEC acquisition is not repeated. TC unreleased frontend/tag/date-sort/favorites changes remain outside this release. Root owns the target correction/UI acceptance and independent master gate; push is held until that gate passes. No tests or runtime actions were run.
+    On 2026-10-28 exact synchronized-green staging e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2 was adopted in local merge e5793c38f85f756aa12dac4e4b12ca5e1f8b00c1 with first parent cfcf760d5b76945a13ea72c484fe434607a9139e and second parent e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2. The merge base is 02a7bae34c2aed145b9e46137ef3b8f041de4d92; the merge completed without conflicts. Canonical receipt /home/m920q/charting-platform/.ai/staging-attempts/20261028T100958Z-e3e87183fdf8.json (SHA256 ca854080d05c654845865333175bd5ca8ffd865987624f95cb72e197518a92da) and exact staging CI 40656688915 are terminal green: Backend, Frontend, E2E, and Exhaustive all succeeded; Branch-declared Tests was skipped by feature policy. Direct origin/staging and origin/master both matched e3 at verification; independent master run 40670024330 was still in progress and production had not been upgraded. Exact full tracked-tree comparison of the merge against e3 differs only in the four Strategy-owned handoff/plan/session/validation records; all imported product, backend, test, configuration, Provider/ETF/TC workstream and manifest blobs are byte-identical to accepted staging. The Strategy-specific consumer paths did not change relative to cfcf, so no producer or consumer implementation was duplicated. The TC-owned frozen-import manifest and release receipts remain preserved; this workstream has no separate Strategy frozen-import manifest, so the full tree comparison is its import-scope proof. Staging CI is reused only for those byte-identical imported inputs and does not replace the new exact Strategy branch CI. The imported on-demand software source is not actual provider/issuer/SEC acquisition, account acceptance, or deployment proof. No tests, provider/issuer HTTP, fixtures, builds, target/service/database operations, or cleanup were run. Preserve the accepted FH1-FH5 source checkpoint and closure history, all 18 original criteria and dispositions, the 119-request history, all quota/data/provider holds, and disabled paid/trial/native/broker/capital/unsafe scopes. The original native goal/history was not reset or re-accounted; Root owns genuine data/issuer and deployment proof.
+    On 2026-10-28 exact synchronized-green staging 4bc50a9de9eb2453c75eda047d01466309a3a3da was adopted as merge 85271e50a746c068b0f90d7ad7754341906f7af4, first parent 9fbef09bb1ef1abcefd3b8fc88d18b72a1734678, second parent 4bc50a9de9eb2453c75eda047d01466309a3a3da; merge base was e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2. The canonical reconciled-green receipt is /home/m920q/charting-platform/.ai/staging-attempts/20261028T172241Z-4bc50a9de9eb.json (SHA256 0ec1ecf46e15d90c94192413bab88d329540a3d389e5509f03051ea645437b0d), exact staging CI 40721314996. Backend unit 5569/1 existing skip, integration 553/2 existing skips, frontend 1471, E2E 196 with 110 configured skips and four required on-demand cases/no retries, and Exhaustive 112 unit shards, 553 DB/2 existing skips, 1471 frontend, 199 functional/107 configured skips and 104 strict visual passed with zero retries and unchanged reference/mask/tolerance policy. The earlier 17:01 degraded receipt remains historical and is not treated as green evidence. Root review verifies the backend runtime tree equals its qualified reserved artifact source and frontend runtime tree is unchanged from e3. The e3-to-4bc source delta touches Provider market_data.py and its Provider persistence test plus Provider-owned records; Strategy consumer code is unchanged. Exact full tracked-tree comparison against 4bc differs only in the four Strategy-owned workstream records; imported Provider/ETF/TC files and records match accepted staging. Direct fetch resolved staging to exact 4bc. Master CI 40735299702 was running and production remained on e3; no target/deployment qualification is claimed. No local tests, fixture/build/browser, runtime/database, provider/issuer/SEC request, or cleanup ran. Preserve prior accepted checkpoint archives and all 18 roadmap criteria; no held capability or quota/data boundary changed.
   original_criterion_dispositions:
     - id: AC-DOMAIN
       disposition: partially_delivered
@@ -897,7 +978,7 @@ accepted_integration_1_progress:
   completed: [SLICP1, SLICP2, SLICP3, SLICP4, SLICP5]
   total: 5
   status_at_acceptance: ready_for_integration
-acceptance_criteria:
+previous_checkpoint_acceptance_criteria:
 - id: FH1
   text: >-
     Preserve the accepted strategy-lab-v2-integration-1 source/closure and full original 18
@@ -934,10 +1015,10 @@ acceptance_criteria:
     target before final target acceptance or coordinator-goal completion. This separates ordering
     only: no proof is waived or passed early. Native, full SPA, full-roadmap, forward/broker/capital
     activation remain outside this checkpoint and disabled.
-progress:
+previous_checkpoint_progress:
   completed: [FH1, FH2, FH3, FH4, FH5]
   total: 5
-  current_phase: strategy-lab-v2-first-human-study-inspector-2
+  current_phase: strategy-e750-context-results-library-owner-repair
   active_changeset:
     id: strategy-lab-v2-first-human-study-inspector-2
     scope: >-
@@ -962,49 +1043,10 @@ progress:
       - ops/workstreams/feat-strategy-lab-v2/validation.jsonl
     status: ready_for_integration
   current_blocker: >-
-    Branch-local immutable-reference API/payload and V2 navigation prerequisites are present in this
-    feature history but are absent from deployed a6b9 and cannot be attributed to that release.
-    Source qualification is accepted for integration; Root's actual deployed owner-positive/negative
-    UI/API acceptance remains pending after release gates and authorized deployment. Target SPY/RSP
-    date-only acceptance remains pending authoritative canonical
-    InstrumentListing venue review (observed EquityDetail.exchange_mic is NULL, which is not listing
-    proof); exact-bound run4 succeeded while date-only run3 was deferred.
-    Exact source CI 40041392901 is green on 83e93958921b479ccd122494571d0b9dbb1acc5d. On
-    frozen source 83e93958921b479ccd122494571d0b9dbb1acc5d, Root completed an explicitly resumed
-    same-source backend continuation: the previously verified 213 unit shards (5,320 passed, 1
-    skipped) plus a fresh all-533 integration collection/run (529 passed, 4 skipped, 57 warnings),
-    then the combined coverage report/XML (84%, 153,315 statements, 23,959 missed). Fresh collection
-    was 5,854 tests and integration took 863.13s under the unchanged 900s integration bound. This is
-    qualified split-phase evidence, NOT a literal successful `make test-backend-coverage` or
-    `backend_coverage.py` main invocation; earlier complete backend attempts remain red and
-    preserved. Exact logs and cleanup are recorded in the 2026-10-24 handoff and validation receipt.
-    The canonical migration helper exited 0 with no-change SKIP from base a6b9: models, Alembic,
-    pyproject, uv.lock, and helper input paths are unchanged. No fresh or previous-release schema
-    upgrade, PostgreSQL fixture, or previous-app smoke ran on 83. This is input-equivalence only,
-    not runtime migration proof. Root completed the four source-pinned image builds on 83 with zero
-    exits and restored the assigned builder/private app. Frontend dist and accepted Research runner
-    are reused only under their recorded exact-manifest/input-equivalence guards. Root subsequently
-    ran the unchanged Research sandbox/resource probes successfully (receipt in handoff); caller
-    OOM/PID counters and all global inventory diffs were zero, exact project was removed, and private
-    app/Study 5 was restored. First measured config invocation `4af898ad9b2a445a9b82bced16c3611d`
-    exited 2 below its startup admission before creating a fixture or tests; this is not a product
-    failure. Root's adjusted measured profile completed successfully under invocation
-    `42f31a564d3f43c5837451a46b266fc8`. Root reports the same isolated fixture passed config/up,
-    API smoke, and empty-queue worker DB/Redis before/after-restart checks. The same-fixture
-    functional suite passed 195 with 2 declared live-opt-in skips in 21.3 minutes, and strict visual
-    passed 104/104 in 14.5 minutes, zero failures/retries. Exact cleanup/global diffs and private
-    app/Study/data/holds/request count were independently verified. This is isolated-fixture
-    evidence, not deployed-target proof. The full 18-criterion roadmap remains open.
-    deployed owner-positive/negative acceptance, authoritative SPY/RSP
-    listing-venue review, and the full roadmap remain open.
-  updated_at: "2026-10-24T04:13:05Z"
+    Root R62 is terminal0pass/5fail on its frozen frontend d13958f46bd00170864f0c9e670a86a186b3e7e2 / Provider22c predecessor. Strategy has repaired its three assigned issues in the current candidate: exact local cached selection uses the canonical-only instrument GET and avoids /instruments/acquire for known symbols; the cold Study-to-Library journey compares the returning draft to the exact saved CodeVersion source after the documented saveVersion trim; and the positive offline factory Study submits and checks retained 2024-01-01 through 2025-12-29 bounds. Focused Dashboard search is10/10, type-check and Playwright discovery pass (14 cases). Root must rerun the affected browser journeys; Strategy did not run a browser/native/full suite. TC's Industry Indexes semantic fallback remains TC-owned. Preserve R62 red history, all18 roadmap criteria, and every disabled native, broker, capital, paid/trial, and provider-live hold.
   next_action: >-
-    Root owns guarded integration of exact source 83e93958921b479ccd122494571d0b9dbb1acc5d after
-    this closure is published and final exact-head CI is green. Continue the full 18-criterion
-    roadmap in this branch after coordinator release. Do not claim target acceptance: staging/master
-    gates, separately authorized deployment, and genuine-data owner-positive/negative V2 inspector
-    UI/API proof remain. Keep SPY/RSP date-only venue review and native execution, forward,
-    broker/capital, provider/quota, paid/trial, unknown and unsafe operations open or disabled.
+    Freeze and hand Root this coherent Strategy repair candidate with the exact focused-check receipts. Root owns the next affected browser run and combined qualification; do not run a competing browser, native action, or full suite. Keep the TC-owned Industry fallback distinct and all original roadmap work open.
+
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 parent_branch: staging
@@ -1012,16 +1054,13 @@ parent_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 dependency_authorization: "not applicable: independent staging-based topic"
 human_intent_authorization: "Implement the approved Strategy Lab v2 plan; honor the repository AI-driven workflow rules and active branch boundaries."
 planning_state: ready
-accepted_integration_1_human_closure_authorization: >-
-  Human delegated conditional checkpoint acceptance with the exact answer “Yes—approve that initial
-  scope and handle checkpoint acceptance.” Root exercised that authority and accepted
-  strategy-lab-v2-integration-1 at tested source 197ea15a9a90fbc76089a38fe67013c00a722d91 on
-  2026-10-22, as recorded in
-  /home/m920q/charting-platform/.ai/staging-attempts/strategy-197ea15a-checkpoint-acceptance-20261022.md.
-  This covers only the bounded checkpoint and authorizes the coordinator's guarded staging workflow;
-  it does not complete the 18-criterion roadmap or authorize owner self-integration, deployment,
-  live/native/paid/trial operation, or unsafe scope activation.
-accepted_integration_1_closure_summary: >-
+accepted_integration_1_human_closure_authorization: 'Standing human authority, recorded 2026-10-20 in human-standing-integration-authorization-20261020.md:
+  "I, the human in charge, explicitly authorize any and all actions the AI agent(s) may request in order to progress development,
+  reconciliation and promotion of the four feature branches into staging and production so the product may be deployed and
+  tested in full, by the human." Standing direction there: own ordinary development, reconciliation, acceptance and promotion
+  mechanics without repeated routine permission requests or requiring the human to attend sessions continuously. Root closes
+  this branch for integration under that standing authority; no deployment, target acceptance or roadmap completion is implied.'
+closure_summary: >-
   Accepted checkpoint strategy-lab-v2-integration-1 at tested source
   197ea15a9a90fbc76089a38fe67013c00a722d91 after the exact hosted run 39779005214 passed all required
   feature jobs and the local final app profile passed API/worker DB+Redis restart, functional
@@ -1047,7 +1086,8 @@ human_closure_authorization: >-
   83e93958921b479ccd122494571d0b9dbb1acc5d. It does not accept deployment, final target proof, or
   completion of the full roadmap.
 closure_summary: >-
-  Accepted checkpoint strategy-lab-v2-first-human-study-inspector-2 for source integration at tested
+  integration_capture: exact branch HEAD. Prepared for integration after the staging merge; focused_only validation
+  tier. Accepted checkpoint strategy-lab-v2-first-human-study-inspector-2 for source integration at tested
   implementation 83e93958921b479ccd122494571d0b9dbb1acc5d under the delegated coordinator decision
   recorded in /home/m920q/charting-platform/.ai/staging-attempts/strategy-83e93959-checkpoint-source-acceptance-20261024.md.
   Delivered scope is the normal-user Research Study-output link to the read-only V2 inspector, typed
@@ -1082,7 +1122,7 @@ closure_summary: >-
   original roadmap criteria, including native qualification and disabled forward/broker/capital
   scopes. Do not mark the roadmap complete or imply target acceptance. The required capture is
   integration_capture: exact branch HEAD.
-validation_tier: full_integration
+validation_tier: focused_only
 human_validation_authorization: agent_default_full_integration
 local_validation_profile: full_stack_browser
 local_validation_reason: >-
@@ -1093,6 +1133,142 @@ local_validation_reason: >-
   Docker-backed PostgreSQL/Redis, migration, worker, and backend API gates.
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
+acceptance_criteria:
+- id: SU1
+  text: >-
+    A loaded persisted Study displays dataset and source identity from that saved run's immutable
+    run_config and dataset_manifest, separately from the editable current draft; switching context,
+    restoring a run, and validating a new draft never relabel old outputs.
+- id: SU2
+  text: >-
+    A newly created or completed Study run appears in the adjacent persisted Results list without
+    manual refresh, and its terminal status and artifact count agree across list/detail projections.
+- id: SU3
+  text: >-
+    Code Library validation and save operations are bound to the exact source, output contract and
+    base CodeVersion snapshot that was validated; late responses cannot certify changed drafts.
+- id: SU4
+  text: >-
+    Reload, explicit cancel, snapshot/latest rerun, return and result promotion remain recoverable
+    and operate on the selected persisted run's immutable source/config/manifest, never current draft
+    fallbacks. Closing a view does not cancel a durable run.
+- id: SU5
+  text: >-
+    A Strategy-owned Study-only browser journey covers normal-user validate/run, automatic Results
+    arrival, accurate artifacts, and draft-versus-saved identity; the complete unchanged full local
+    profile and exact-source CI remain required before readiness.
+- id: SU6
+  text: >-
+    Preserve all original 18 roadmap criteria and accepted checkpoint history; retain honest limits
+    and disabled native/forward/broker/capital/provider-live scopes. Full platform profile and any
+    Root-owned genuine target acceptance remain distinct and open.
+- id: SU7
+  text: >-
+    History/profile-backed Dashboard widgets use the shared preparation coordinator before local
+    reads, submit comparison datasets independently, report per-target outcomes, and fence obsolete
+    symbol/timeframe contexts without cancelling durable work.
+- id: SU8
+  text: >-
+    Dashboard search keeps prefix results as identity-bearing candidates; it resolves only a unique
+    exact match from complete discovery or an explicit candidate choice, and failed symbol/comparison
+    saves retain the prior configuration with visible retry feedback.
+- id: SU9
+  text: >-
+    Dashboard layout-save failures restore the saved arrangement, explain the failure, and allow a
+    retry that reconciles the visible layout with the server.
+progress:
+  completed: [SU1, SU2, SU3, SU4]
+  total: 9
+  current_phase: strategy-exposed-legacy-v2-and-catalogue-journeys
+  active_changeset:
+    id: strategy-study-usability-2026-11-06
+    scope: >-
+      Continue the human-activated Study/Results/Library lifecycle repair: preserve editable draft
+      separately from immutable saved runs, keep run-list/detail artifacts consistent, bind library
+      validation and immutable saves to the exact source/base version, and preserve cancel/rerun/
+      return recovery. The full Study-to-Library browser body must witness its exact edited-source
+      POST/response and visible validation state; Root R56 proves only the isolated existing-asset
+      Validate action. Root R58b established the cold-flow click miss: outside-pointer dismissal of
+      the SDK suggestion list reflowed the ordinary Validate target between pointerdown and mouseup.
+      Strategy owns the narrow PythonSourceEditor suggestion placement and focused test; the current
+      popup is placed above the editor component so it cannot cover the next Validate/Save actions.
+      Root browser execution remains pending.
+
+      Keep Dashboard's identity-safe cached exact lookup concurrent with external discovery, preserve
+      ambiguous/provisional candidate selection, cached-first independent widget content and context
+      fencing, transactional edits, and visible layout recovery. The fifth Dashboard journey checks
+      actual cached SPY candles and XLB profile/history while each real preparation is independently
+      held, then released and checked after reload. My Favorites compares configured Last and Chg %
+      with canonical local SPY D1 bars. The factory EasyScan journey accepts only its own completed
+      result with nonzero coverage and matching useful visible counts; TC owns the async polling
+      product repair.
+
+      Root R62 (frontend d13958f46bd00170864f0c9e670a86a186b3e7e2 / Provider22c) is terminal0pass/5fail. Strategy repaired its three assigned issues in this candidate: exact cached symbols now use the existing canonical-only local instrument GET rather than the acquisition helper; the Study-to-Library return checks the exact persisted CodeVersion source and explicitly records the saveVersion trim normalization; and the positive offline factory Study sets and asserts the retained 2024-01-01 through 2025-12-29 range before validating/running. Focused Dashboard search passes10/10, frontend type-check passes, and Playwright discovery lists14 Study/workstation cases. These fixes remain unexecuted in a browser; Root owns rerun. TC's unrelated factory Industry Indexes fallback remains TC-owned.
+
+      Exact current development dependencies are Provider `22c31cd3e7f35e361e286ef40576d379aaf44449`
+      (six guarded Strategy imports; all67 manifest rows verified) and TC common runtime
+      `d954436898a254ba9bb461ebc86a55f248172d5d` (the single declared WorkstationView path; all86
+      rows verified). Preserve earlier dependency receipts as history. Root reports TC's24 EasyScan
+      unit/type/matrix checks green; Strategy did not rerun that producer suite. This is development
+      consumption, not combined browser, exact-source CI, or release acceptance. Focused Search/editor
+      checks pass17/17, type-check passes, and discovery lists five Dashboard plus four workstation
+      journeys. No browser body ran on this source; Root owns the full Study-to-Library and combined
+      profile. Preserve R57 terminal5/4 and the corrected R58b diagnosis, all18 roadmap criteria,
+      immutable Study contracts, and every disabled native, broker, capital, paid/trial, and
+      provider-live hold.
+    owned_paths:
+      - frontend/src/views/DashboardView.vue
+      - frontend/src/stores/dashboard.ts
+      - frontend/src/components/dashboard/DashboardQuoteWidget.vue
+      - frontend/src/components/dashboard/DashboardLineChartWidget.vue
+      - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
+      - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
+      - frontend/src/components/dashboard/DashboardInstrumentSearch.vue
+      - frontend/src/components/workstation/PythonSourceEditor.vue
+      - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts
+      - frontend/tests/unit/stores/test_dashboard_store.test.ts
+      - frontend/tests/unit/components/test_dashboard_instrument_search.test.ts
+      - frontend/tests/unit/components/test_python_source_editor.test.ts
+      - frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts
+      - frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts
+      - frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts
+      - frontend/tests/e2e/dashboard_usability_journey.spec.ts
+      - frontend/tests/e2e/workstation_lifecycle_journey.spec.ts
+      - frontend/src/components/workstation/StudyLabTool.vue
+      - frontend/src/components/workstation/ResearchResultsTool.vue
+      - frontend/src/components/workstation/CodeLibraryTool.vue
+      - frontend/src/lib/workstation/researchQueryKeys.ts
+      - frontend/tests/unit/components/test_study_lab_tool.test.ts
+      - frontend/tests/unit/components/test_research_results_tool.test.ts
+      - frontend/tests/unit/components/test_code_library_tool.test.ts
+      - frontend/tests/e2e/strategy_study_journey.spec.ts
+      - ops/workstreams/feat-strategy-lab-v2/journey-matrix.json
+      - ops/workstreams/feat-strategy-lab-v2/provider-runtime-consumption.json
+      - backend/app/routers/research.py
+      - backend/tests/unit/routers/test_research_router.py
+      - ops/workstreams/feat-strategy-lab-v2/handoff.md
+      - ops/workstreams/feat-strategy-lab-v2/plan.yaml
+      - ops/workstreams/feat-strategy-lab-v2/session.json
+      - ops/workstreams/feat-strategy-lab-v2/validation.jsonl
+    status: in_progress
+  current_blocker: >-
+    The current candidate now covers the advertised legacy Strategy lifecycle with ordinary
+    definition creation/profile save, version publication/reload, one SPY D1 local historical
+    backtest over the retained 2024-01-01 through 2025-12-29 window, persisted result readback,
+    summary export, deletion cancel/confirm, and return. Strategy Lab v2 coverage now selects and
+    reads an owner resource, exercises empty Trials/Artifacts collections, recovers from a denied
+    immutable pin reference, and returns to Workstation without writes or execution. The canonical
+    result schema uses strategy_version_id and UTC timestamp bounds. These browser bodies have not
+    run. Root owns their execution and full combined profile; no API resource execution or native,
+    broker, capital, paid/trial, or provider-live operation is authorized. Preserve all18 roadmap
+    criteria and prior red evidence.
+  next_action: >-
+    Freeze this coherent Strategy candidate with the exact TC f57 foreground-read dependency, the
+    supported legacy local-backtest journey, the controlled V2 owner-resource/pin recovery journey,
+    and the current Breadth/dock/screenshot assertions. Root runs the browser bodies and owns
+    acceptance. Keep results pending until that exact source is exercised; preserve the complete
+    18-criterion roadmap and all disabled operational holds.
+  updated_at: '2026-11-08T17:55:51Z'
 roadmap_goal: >-
   Implement the production-grade, local-first Strategy Lab v2 backend for
   reproducible portfolio backtesting, walk-forward and search experiments, and
@@ -1160,6 +1336,22 @@ owned_paths:
   - backend/app/strategy_lab_v2/tests/
   - backend/tests/integration/strategy_lab_v2/
   - backend/strategy_runtime/
+  - frontend/src/views/DashboardView.vue
+  - frontend/src/stores/dashboard.ts
+  - frontend/src/components/dashboard/DashboardQuoteWidget.vue
+  - frontend/src/components/dashboard/DashboardLineChartWidget.vue
+  - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
+  - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
+  - frontend/src/components/dashboard/DashboardInstrumentSearch.vue
+  - frontend/src/components/workstation/PythonSourceEditor.vue
+  - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts
+  - frontend/tests/unit/stores/test_dashboard_store.test.ts
+  - frontend/tests/unit/components/test_dashboard_instrument_search.test.ts
+  - frontend/tests/unit/components/test_python_source_editor.test.ts
+  - frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts
+  - frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts
+  - frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts
+  - frontend/tests/e2e/dashboard_usability_journey.spec.ts
   - docs/strategy-lab-v2.md
   - ops/workstreams/feat-strategy-lab-v2/
 shared_path_gates:
@@ -1212,8 +1404,21 @@ dependencies:
   - >-
     feat/market-data-provider-platform owns canonical identity, market series,
     capability/entitlement, acquisition, coverage, and repair contracts. Consume
-    only after its reviewed work reaches staging; do not duplicate providers or
-    provider runtime policy.
+    after its reviewed work reaches staging, except for the exact Root-released
+    development dependency `19d34d0b3e875b29b276ee80e471311586e6023f` recorded
+    under `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider19d34d0b-runtime-development-consumption-contract.json`
+    (manifest SHA256 `0d1fa69e0e97f890176f71de1115418af035d8a02933211b8b1de84d98abe294`)
+    and `development-dependency-imports/provider19d34d0b-runtime-development-consumption-contract.json`,
+    with the Strategy import receipt at
+    `development-dependency-imports/19d34d0b3e875b29b276ee80e471311586e6023f-strategy-import-receipt.json`.
+    Strategy imported only its eight declared paths and verified all 79 source rows;
+    this is development context, not full qualification or product acceptance. The
+    prior b192 import and its receipt remain archived. Root owns PostgreSQL/native,
+    combined browser, and exact-source CI qualification. Do not duplicate providers or provider runtime policy. Strategy also consumes the exact scope-compatible
+    ETF catalogue alias from Provider source `fc220242ff9ff8be603c632dc80350a90708bec7` under Root manifest
+    `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providerfc220242-runtime-scope-compatible-development-consumption-contract.json`
+    (SHA256 `b8412e6902c6a1bc343885c4d9200a75a8ea748049b6a61e9fc25688087d59b1`), importing only its two
+    guarded catalogue paths. This is context only, not Provider runtime or release acceptance.
   - >-
     feat/etf-holdings-constituents owns ETF holdings adapters and point-in-time
     holdings history. Consume its staged membership and known-at contracts; do
@@ -1221,8 +1426,34 @@ dependencies:
   - >-
     feat/tc2000-frontend-rework owns the workstation, unified Python/DSL,
     immutable CodeVersion, Study Lab, and current Strategy Lab paths. Consume
-    staged code/output contracts; do not edit its active files before staging or
-    create a parallel editor/research runner.
+    staged code/output contracts; do not create a parallel editor/research runner.
+    This checkpoint first consumed
+    `frontend/src/lib/dataPreparation.ts` from TC commit
+    `877df044d2496c5f1be0e86b4dd49503cc6e55db` (SHA256
+    `c1157a680c5a461647b82b18bd9923c53d36a401dd3397c2361e91b125d43a0d`), preserved as prior
+    shared-client history. The complete TC source `2a8dc9e4c28a9632ffdf8f484ad12a985df70cd3`
+    remains an earlier consumed frontend baseline under
+    `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/frontend2a8dc9e4-complete-development-consumption-contract.json`
+    (manifest SHA256 `46b99b84e501358e1f3c83780c8b72d7e9e41d107aacbb8e5b56c864f924c521`); its 43
+    declared paths and 126-row manifest remain archived. The prior shared-runtime development
+    source is exact TC `8d96cf3bd702459c4eef2ced93ec1dfb8db3dc2f` under
+    `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-8d96cf3b-common-runtime-development-consumption-contract.json`
+    (manifest SHA256 `2959432285dd2d58271261d539b4e30700bb38f2bf4b7b84727887a91078d4a1`). Strategy
+    imported only its 15 declared paths and verified all 95 manifest rows; the exact local manifest
+    and import receipt are `development-dependency-imports/8d96cf3bd702459c4eef2ced93ec1dfb8db3dc2f.json`
+    and `development-dependency-imports/8d96cf3bd702459c4eef2ced93ec1dfb8db3dc2f-strategy-import-receipt.json`.
+    That prior source remains historical. The current complete TC frontend context is exact source
+    `db4b1f55f78b1d907aab9d062da9470b5e3cc109` under the Root full-context manifest
+    `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-db4b1f55-full-frontend-context-development-consumption-contract.json`
+    (SHA256 `af29da7d2aef12e1778bcd14fb219dab0a009739ad41f9e376e8a4531c8a7ba6`). Strategy imported
+    only its 34 declared paths after all 34 old guards passed; all 150 source rows and all 124 foreign
+    paths were verified, while the 26 Strategy-private paths remained excluded and byte-identical. The
+    exact local manifest is `development-dependency-imports/db4b1f55f78b1d907aab9d062da9470b5e3cc109-full-frontend-context.json`;
+    earlier e750, 8d96, 2a8, and shared-client manifests remain archived. This is development context
+    only, not browser, exact-CI, or release acceptance. Root owns combined qualification and release gates.
+    Provider DTOs are at `3d10`; the exact backend preparation runtime is imported under the
+    explicit development releases and local manifests above. Combined end-to-end proof remains
+    Root-owned and pending.
   - >-
     An exact-pinned stable or release-candidate Nautilus v2 build may publish
     local backtests after its four backtest conformance checks pass, and may
@@ -1373,13 +1604,18 @@ branch_tests:
   - cd backend && uv run mypy app/strategy_lab_v2 strategy_runtime
   - git diff --check
   - uv run --project backend python scripts/validate-workstream.py ops/workstreams
+  - cd frontend && npm test -- tests/unit/components/test_study_lab_tool.test.ts tests/unit/components/test_research_results_tool.test.ts tests/unit/components/test_code_library_tool.test.ts tests/unit/router/test_application_routes.test.ts --maxWorkers=1 --minWorkers=1
+  - cd backend && uv run pytest tests/unit/routers/test_research_router.py -q --override-ini addopts=
 branch_tests_reason: >-
   The active provider workstream owns backend/tests, so v2-focused tests stay
   beside the new package and use an explicit pytest path. The executable branch
   checks cover the implemented engine-neutral package and durable workstream
   records; database/migration, PostgreSQL/Redis, isolated runtime, Nautilus,
   worker, API, Compose, and full exact-tip integration commands remain deferred
-  until their shared-path gates are open.
+  until their shared-path gates are open. The appended portable frontend and
+  Research-router unit commands cover the Strategy-owned Study usability
+  changes; Root's combined qualification remains the only full runtime/browser
+  profile and retains all existing assertions and thresholds.
 live_test_impact: >-
   No real broker, broker paper account, or external test service is used. Forward
   validation consumes platform canonical events; activating a long-running
@@ -1963,23 +2199,261 @@ roadmap_progress_history:
       backend, DB, browser, native, provider, target, or fixture gate is claimed.
     status: in_progress
   current_blocker: >-
-    Accepted/deployed a6b9 lacks the Study-reference API and V2 view/App navigation. Exact
-    Strategy-branch prerequisites are 344f87f835f392bd103c20db2044aa0de72148df (persisted Study
-    payload validation), 068d03f1ff55f5b1701d071980b4405d83e65cc6 (typed resolver, API adapter,
-    authenticated GET), 1451b9d0f2f4a468961319eda337f5dcc1e06aa7 (view, route and App navigation),
-    and 4a2c6058d817fbf9c1b2c540cfaa30ed48fd2ee5 (typed pin preview). None is in a6b9. Parent
-    run 39992653172 is terminal green on 64d3b12e only; it does not validate later local changes.
-    Root's source-83 backend result is qualified split-phase evidence: 213 passing unit shards were
-    retained from a clean unit-only checkpoint, all 533 integration cases were freshly collected
-    and run, and combined coverage/XML passed at 84%. It is not a literal successful invocation of
-    the Makefile's authoritative `test-backend-coverage` target. The prepared migration wrapper is
-    pinned to exact source 83e93958921b479ccd122494571d0b9dbb1acc5d and accepted base
-    a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e, but refuses any dirty worktree; this owned receipt is
-    dirty, and committing it would change the pinned HEAD. Resolve that boundary before migration
-    launch. Accepted-target SPY/RSP listing and full local/combined/browser gates remain open.
+    Strategy has consumed the exact Root-released TC9ec4 shared context:12 guarded imports, with the full136-row context verified and26 Strategy-private paths excluded from foreign pinning. Root's current progress record has candidate9ec4 build/handover active; the affected browser journeys, full65 profile, exact CI and release acceptance are not yet complete. The prior 305/9e2 development context and all red browser history remain preserved. No broader Strategy implementation or browser run was performed in this import checkpoint. Keep all18 criteria and native, provider-live, broker, capital, paid/trial holds open.
   next_action: >-
-    Keep source frozen at 83e93958921b479ccd122494571d0b9dbb1acc5d. Resolve the migration wrapper's
-    exact clean-worktree/source-pin conflict with Root before its separately assigned PostgreSQL
-    slot; then continue runtime/worker restart and functional/strict-visual qualification under their
-    assigned slots. Do not infer full checkpoint acceptance from the split backend result. Keep
-    provider, quota, paid/trial, broker/capital, unknown, and unsafe operation boundaries disabled.
+    Freeze this exact shared-context successor for Root's current affected journey/full-profile qualification. Resume Strategy-owned Study/Results/Library repairs only from new exact Root evidence; do not duplicate the active browser/profile, alter shared ownership, or claim acceptance from this import.
+
+
+context_adoption_a9:
+  source_sha: a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7
+  authority: >-
+    Root direct instruction in the original Strategy session on 2026-11-06: bounded context adoption only;
+    no implementation, activation, service action, deployment claim, or roadmap completion.
+  canonical_receipt: /home/m920q/charting-platform/.ai/validation/a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7.json
+  canonical_receipt_sha256: acaba8c8f6e2ddab1e8d68240d3e9e2290c62cb49ea5008a305ab1326ad718b3
+  staging_ci: 42184756530
+  staging_conclusion: success
+  master_provenance_ci: 42194282702
+  master_provenance_conclusion: success
+  validation_mode: same_sha_staging_evidence_reuse
+  merge_commit: 52b7fb8b87d77882ee495d5e965132a2ea92e522
+  first_parent: 1d0d568874219074d690d57af7dd860ee44f5436
+  second_parent: a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7
+  merge_base: 375ce12f85ddb47b5f9fcde21e6e036ea5d80f4d
+  conflicts: none
+  imported_contracts: >-
+    Accepted Provider canonical-series/cache/coverage and quota provenance; ETF issuer/holdings identity and
+    point-in-time contracts; TC2000 whole-frontend/workstation behavior; and Strategy immutable Study lineage.
+    No producer code was duplicated or locally edited.
+  tree_equivalence: backend and frontend trees match a9 exactly; full tracked-tree differences are only the
+    four Strategy-owned workstream records.
+  deployment: Root private backup/cutover in progress; no a9 deployment or new genuine-flow proof claimed here.
+  roadmap: all 18 original criteria and the active full-roadmap goal remain open and unchanged.
+  operation_activation: none
+  local_tests_or_runtime: none
+
+context_adoption_139:
+  source_sha: 139b350238b5e1c8a170dce5af09a805301d857e
+  root_authority: >-
+    Root direct instruction in this original Strategy session on 2026-11-06: context adoption only;
+    Root retains push and final acceptance.
+  canonical_receipt: /home/m920q/charting-platform/.ai/validation/139b350238b5e1c8a170dce5af09a805301d857e.json
+  canonical_receipt_sha256: 3696ca6b1e85d492e08275ceac7b88ade3fe36bc554dbb9c0647721b8f7c51cd
+  staging_ci: 42211787590
+  staging_conclusion: success
+  master_provenance_ci: 42222793213
+  master_provenance_conclusion: success
+  validation_mode: same_sha_staging_evidence_reuse
+  root_reported_staging_scope: 1614 frontend unit; 202 functional; 104 strict visual; exhaustive gate green.
+  merge_commit: f91fe873131c7c2644a8bcfe0377492c8e4ddb5e
+  first_parent: 460521e60209316ab7eee64fa2a9f7e0244ba56b
+  second_parent: 139b350238b5e1c8a170dce5af09a805301d857e
+  merge_base: a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7
+  conflicts: none
+  product_tree_equivalence: backend and frontend match 139 exactly; full tree differs only in the four
+    Strategy-owned workstream records.
+  imported_contracts: >-
+    Provider on-demand history/series and provenance; ETF issuer/holdings identity and point-in-time
+    contracts; TC2000 whole-frontend and same-dashboard handoffs; existing Strategy immutable Study lineage.
+  root_reported_private_verification: >-
+    Business-row/schema/quota preservation; NVDA 498D1/104W1/25MN; XLE own 24 holdings; actual IYF ACGL
+    holding from provisional zero to 498 candles on the same Dashboard with dated IYF provenance.
+  qualification_owner: Root; this Strategy adoption did not repeat those UI or business-row checks.
+  remaining_root_gate: native-wait proof and final guide/completion audit pending.
+  strategy_roadmap: all 18 original criteria and active full-roadmap goal remain open and unchanged.
+  operation_activation: none
+  local_tests_or_runtime: none
+approved_development_dependency_imports:
+- source_sha: b19293006ea624a4f0c05a4fd91152ffd650a426
+  manifest_path: ops/workstreams/feat-strategy-lab-v2/development-dependency-imports/providerb1929300-runtime-development-consumption-contract.json
+  manifest_sha256: 97b429b3d99e4f8da78edcc10ed13178a17b482e31a136941f8acff14290457d
+  paths:
+  - backend/app/config.py
+  - backend/app/main.py
+  - backend/app/providers/alpaca.py
+  - backend/app/providers/massive.py
+  - backend/app/providers/optional_market_data.py
+  - backend/app/routers/analysis.py
+  - backend/app/routers/data_preparation.py
+  - backend/app/routers/instruments.py
+  - backend/app/routers/ohlcv.py
+  - backend/app/routers/providers.py
+  - backend/app/routers/research.py
+  - backend/app/routers/workspaces.py
+  - backend/app/schemas/data_preparation.py
+  - backend/app/services/baskets.py
+  - backend/app/services/bulk_fetch.py
+  - backend/app/services/data_preparation.py
+  - backend/app/services/data_preparation_contracts.py
+  - backend/app/services/derived_timeframes.py
+  - backend/app/services/e2e_seed.py
+  - backend/app/services/etf_holdings_adapters.py
+  - backend/app/services/etf_holdings_preparation.py
+  - backend/app/services/etf_holdings_refresh.py
+  - backend/app/services/evaluator_preflight.py
+  - backend/app/services/exchange_sessions.py
+  - backend/app/services/instrument_events.py
+  - backend/app/services/instrument_mastering.py
+  - backend/app/services/market_data.py
+  - backend/app/services/market_refresh_queue.py
+  - backend/app/services/market_series.py
+  - backend/app/services/ohlcv_coverage.py
+  - backend/app/services/provider_routing.py
+  - backend/app/services/provider_runtime.py
+  - backend/app/services/screener_engine.py
+  - backend/app/services/workstation_tool_catalogue.py
+  - backend/app/tasks/data_tasks.py
+  - backend/app/workers/arq_worker.py
+  - backend/tests/integration/api/test_baskets.py
+  - backend/tests/integration/api/test_workspace_read_consistency_postgres.py
+  - backend/tests/integration/test_data_preparation_queue_postgres.py
+  - backend/tests/unit/conftest.py
+  - backend/tests/unit/providers/test_new_providers.py
+  - backend/tests/unit/providers/test_optional_market_data.py
+  - backend/tests/unit/routers/test_analysis_router.py
+  - backend/tests/unit/routers/test_calendar_router.py
+  - backend/tests/unit/routers/test_data_preparation_router.py
+  - backend/tests/unit/routers/test_instruments_router.py
+  - backend/tests/unit/routers/test_ohlcv_router.py
+  - backend/tests/unit/routers/test_providers_router.py
+  - backend/tests/unit/routers/test_research_router.py
+  - backend/tests/unit/routers/test_workspace_tool_catalogue.py
+  - backend/tests/unit/services/test_data_preparation_contracts.py
+  - backend/tests/unit/services/test_data_preparation_history_planning.py
+  - backend/tests/unit/services/test_data_preparation_service.py
+  - backend/tests/unit/services/test_data_preparation_worker_deeper_default.py
+  - backend/tests/unit/services/test_derived_timeframes.py
+  - backend/tests/unit/services/test_e2e_seed.py
+  - backend/tests/unit/services/test_etf_holdings_adapters.py
+  - backend/tests/unit/services/test_etf_holdings_bootstrap.py
+  - backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py
+  - backend/tests/unit/services/test_etf_holdings_native_qualification.py
+  - backend/tests/unit/services/test_etf_holdings_preparation.py
+  - backend/tests/unit/services/test_etf_holdings_preparation_hook.py
+  - backend/tests/unit/services/test_etf_holdings_provider_bridge.py
+  - backend/tests/unit/services/test_etf_issuer_catalog.py
+  - backend/tests/unit/services/test_evaluator_preflight.py
+  - backend/tests/unit/services/test_exchange_catalog.py
+  - backend/tests/unit/services/test_market_data.py
+  - backend/tests/unit/services/test_market_refresh_queue.py
+  - backend/tests/unit/services/test_market_series_defaults.py
+  - backend/tests/unit/services/test_provider_persistence.py
+  - backend/tests/unit/services/test_provider_quota_contract.py
+  - backend/tests/unit/services/test_provider_quota_coordinator.py
+  - backend/tests/unit/services/test_provider_routing.py
+  - backend/tests/unit/services/test_provider_runtime.py
+  - backend/tests/unit/services/test_workstation_tool_catalogue.py
+  - backend/tests/unit/tasks/test_data_tasks.py
+  - backend/tests/unit/tasks/test_native_usage_prerequisite.py
+  - backend/tests/unit/workers/test_arq_worker.py
+- source_sha: 19d34d0b3e875b29b276ee80e471311586e6023f
+  manifest_path: ops/workstreams/feat-strategy-lab-v2/development-dependency-imports/provider19d34d0b-runtime-development-consumption-contract.json
+  manifest_sha256: 0d1fa69e0e97f890176f71de1115418af035d8a02933211b8b1de84d98abe294
+  paths:
+  - backend/app/services/provider_runtime.py
+  - backend/app/tasks/data_tasks.py
+  - backend/tests/integration/test_provider_runtime_transactions_postgres.py
+  - backend/tests/unit/services/test_data_preparation_worker_deeper_default.py
+  - backend/tests/unit/services/test_provider_runtime.py
+  - backend/tests/unit/tasks/test_data_tasks.py
+  - backend/tests/unit/tasks/test_native_usage_prerequisite.py
+  - backend/tests/unit/workers/test_arq_worker.py
+- source_sha: 9e2de1591cb8fc124839309ff4549808b7632844
+  manifest_path: ops/workstreams/feat-strategy-lab-v2/development-dependency-imports/provider9e2de159-runtime-development-consumption-contract.json
+  manifest_sha256: f8b7724293e20dee3f3dbe739c28a4bd5dc19e6991685c67211f035a8fc23672
+  paths:
+  - backend/app/services/derived_timeframes.py
+  - backend/app/services/market_series.py
+  - backend/app/services/provider_runtime.py
+  - backend/app/tasks/data_tasks.py
+  - backend/tests/integration/test_provider_runtime_transactions_postgres.py
+  - backend/tests/unit/services/test_data_preparation_worker_deeper_default.py
+  - backend/tests/unit/services/test_derived_timeframes.py
+  source_manifest_rows_verified: 79
+  imported_paths_verified: 7
+  old_guards_verified: 7
+  qualification: Root-released Provider backend context overlay for Strategy development only; preserves broad Provider
+    runtime pin and does not qualify runtime/release.
+- source_sha: db4b1f55f78b1d907aab9d062da9470b5e3cc109
+  manifest_path: ops/workstreams/feat-strategy-lab-v2/development-dependency-imports/db4b1f55f78b1d907aab9d062da9470b5e3cc109-full-frontend-context.json
+  manifest_sha256: af29da7d2aef12e1778bcd14fb219dab0a009739ad41f9e376e8a4531c8a7ba6
+  paths:
+  - frontend/src/components/chart/UPlotChart.vue
+  - frontend/src/components/radar/RadarDetailPreviewChart.vue
+  - frontend/src/components/workstation/CoverageSummaryTool.vue
+  - frontend/src/components/workstation/EasyScanTool.vue
+  - frontend/src/components/workstation/RatioUPlot.vue
+  - frontend/src/components/workstation/ToolWindow.vue
+  - frontend/src/components/workstation/WorkspaceLayoutHost.vue
+  - frontend/src/components/workstation/WorkstationToolContent.vue
+  - frontend/src/lib/api.ts
+  - frontend/src/lib/workstation/instrumentCalendar.ts
+  - frontend/src/lib/workstation/instrumentQueries.ts
+  - frontend/src/stores/chart.ts
+  - frontend/src/stores/workspace.ts
+  - frontend/src/views/WatchlistView.vue
+  - frontend/src/views/WorkstationView.vue
+  - frontend/tests/e2e/on_demand_acquisition.spec.ts
+  - frontend/tests/unit/components/test_coverage_summary_tool.test.ts
+  - frontend/tests/unit/components/test_easy_scan_tool.test.ts
+  - frontend/tests/unit/components/test_linked_instrument_tool_races.test.ts
+  - frontend/tests/unit/components/test_ratio_uplot.test.ts
+  - frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts
+  - frontend/tests/unit/lib/test_api_client.test.ts
+  - frontend/tests/unit/lib/test_instrument_calendar.test.ts
+  - frontend/tests/unit/lib/test_instrument_queries.test.ts
+  - frontend/tests/unit/stores/test_stores.test.ts
+  - frontend/tests/unit/stores/test_workspace_store.test.ts
+  - frontend/tests/unit/views/test_watchlist_view_bootstrap.test.ts
+  - frontend/tests/unit/views/test_workstation_popout_bindings.test.ts
+  - frontend/src/components/workstation/InstrumentNoteTool.vue
+  - frontend/src/views/ETFHoldingsView.vue
+  - frontend/tests/e2e/sp500_analysis_journey.spec.ts
+  - frontend/tests/e2e/supporting_features_journey.spec.ts
+  - frontend/tests/unit/components/test_instrument_note_tool.test.ts
+  - frontend/tests/unit/views/test_etf_holdings_view.test.ts
+- source_sha: aed0d62c7e93ee6bd320c6b7a22791bb8d3d8b87
+  manifest_path: ops/workstreams/feat-strategy-lab-v2/development-dependency-imports/provider-aed0d62c-operator-test-context-development-consumption-contract.json
+  manifest_sha256: f90d3067d20e0d7a09d907ef947add918d70c1a758b8097056a4c1bf2f916e7c
+  paths:
+  - scripts/run-live-provider-probes.py
+  - backend/tests/live/test_market_data_providers_live.py
+  - backend/tests/unit/test_live_provider_runner.py
+
+- source_sha: fc220242ff9ff8be603c632dc80350a90708bec7
+  manifest_path: ops/workstreams/feat-strategy-lab-v2/development-dependency-imports/providerfc220242-runtime-scope-compatible-development-consumption-contract.json
+  manifest_sha256: b8412e6902c6a1bc343885c4d9200a75a8ea748049b6a61e9fc25688087d59b1
+  paths:
+  - backend/app/services/etf_holdings.py
+  - backend/tests/unit/services/test_etf_holdings_catalogue.py
+- source_sha: 837c9d81a6f6de0177f153a3caa5ab7cf5d886ee
+  manifest_path: ops/workstreams/feat-strategy-lab-v2/development-dependency-imports/tc-837c9d81-full-frontend-context.json
+  manifest_sha256: e9443c426cce3b905fac1f90f3a6c4a5304711c8f6ce90c9d5cea21e175e3f11
+  paths:
+  - frontend/src/components/workstation/RatioUPlot.vue
+  - frontend/src/components/workstation/RelativeRotationTool.vue
+  - frontend/tests/e2e/auth_session_boundary.spec.ts
+  - frontend/tests/e2e/flows.spec.ts
+  - frontend/tests/e2e/on_demand_acquisition.spec.ts
+  - frontend/tests/unit/components/test_ratio_uplot.test.ts
+  - frontend/tests/unit/components/test_relative_rotation_tool.test.ts
+  - frontend/tests/e2e/sp500_analysis_journey.spec.ts
+  source_manifest_rows_verified: 150
+  foreign_context_paths: 124
+  private_paths_excluded: 26
+  old_guards_verified: 8
+  imported_paths_verified: 8
+  qualification: Root-released TC development context only; no profile, exact CI, integration, deployment, or full-roadmap acceptance.
+- source_sha: f57c45c79b33d3511d1c286000c92fa94249c560
+  manifest_path: ops/workstreams/feat-strategy-lab-v2/development-dependency-imports/tc-f57c45c7-common-runtime-development-consumption-contract.json
+  manifest_sha256: 4ef54ccee53aa44a58694f9abac64dfdf3855f4c401856ce2835d80319c18153
+  paths:
+  - frontend/src/lib/api.ts
+  - frontend/src/views/WorkstationView.vue
+  - frontend/tests/e2e/on_demand_acquisition.spec.ts
+  - frontend/tests/unit/lib/test_api_client.test.ts
+  - frontend/tests/unit/views/test_workstation_popout_bindings.test.ts
+  source_manifest_rows_verified: 114
+  imported_paths_verified: 5
+  old_guards_verified: 5
+  qualification: Root-released TC development dependency only; exact CI, combined browser acceptance, integration, deployment, and full-roadmap completion remain pending.

@@ -1,0 +1,54 @@
+{
+  "schema": 1,
+  "dependency": "provider-runtime-development-consumption",
+  "source_commit": "22c31cd3e7f35e361e286ef40576d379aaf44449",
+  "previous_source": "dd05c5e8318ff59a90f879867cae9664dcc0de4f",
+  "root_manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider22c31cd3-runtime-development-consumption-contract.json",
+  "root_manifest_sha256": "a5079b0eb78a8fd67e48e94a7d749bc171ffa2b21165fc9c59c405501dc2db85",
+  "root_entry": null,
+  "root_entry_sha256": null,
+  "consumer": "Strategy",
+  "imported_paths": [
+    "backend/app/config.py",
+    "backend/app/providers/optional_market_data.py",
+    "backend/app/services/provider_runtime.py",
+    "backend/app/tasks/data_tasks.py",
+    "backend/tests/unit/providers/test_optional_market_data.py",
+    "backend/tests/unit/services/test_data_preparation_history_planning.py"
+  ],
+  "old_guards": {
+    "backend/app/config.py": {
+      "sha256": "94776ac938ee824599e974970271b92c2856e60f598838e200705ccd27bf80e4",
+      "known_source": "dd05c5e8318ff59a90f879867cae9664dcc0de4f"
+    },
+    "backend/app/providers/optional_market_data.py": {
+      "sha256": "976073f7b9e8f8fbd3203d74c44d27239d69b845c1afe3c9b0c4d70ba0e01d15",
+      "known_source": "dd05c5e8318ff59a90f879867cae9664dcc0de4f"
+    },
+    "backend/app/services/provider_runtime.py": {
+      "sha256": "c6d0a47d395e7b9a1807880184a094e43bbd9241222c0afbfcd8d9a06b4a3ec5",
+      "known_source": "dd05c5e8318ff59a90f879867cae9664dcc0de4f"
+    },
+    "backend/app/tasks/data_tasks.py": {
+      "sha256": "35b6eb97d86e7449cfab3226b76052d744eb59f64660898b8a15080b0f20c082",
+      "known_source": "dd05c5e8318ff59a90f879867cae9664dcc0de4f"
+    },
+    "backend/tests/unit/providers/test_optional_market_data.py": {
+      "sha256": "9ca14b5b5868d495f8b862dfc169ca427a5754a7cdc043f8a009b1cf91047276",
+      "known_source": "dd05c5e8318ff59a90f879867cae9664dcc0de4f"
+    },
+    "backend/tests/unit/services/test_data_preparation_history_planning.py": {
+      "sha256": "efe7b2b49be7c60e0e9b837e1b4f715b35030d920ba19d1e50058506ac88dde7",
+      "known_source": "dd05c5e8318ff59a90f879867cae9664dcc0de4f"
+    }
+  },
+  "verified_source_manifest_rows": 67,
+  "verification": {
+    "sha256": true,
+    "git_blob": true,
+    "status_from139": true,
+    "git_executable_mode": true,
+    "consumer_import_exact": true
+  },
+  "qualification": "Exact development consumption only. Focused consumer checks are recorded separately; this is not full browser, exact-source CI, integrated or release acceptance."
+}
