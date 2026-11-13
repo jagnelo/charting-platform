@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { ChartDrawing, DrawingType, Timeframe } from '@/types'
 import type { AnyDrawing } from '@/lib/drawings/types'
+import { AuthSessionChangedError } from '@/lib/authSession'
 import { api, setQueuedApiRequestPriority, type ApiRequestPriority } from '@/lib/api'
 
 export const useDrawingsStore = defineStore('drawings', () => {
@@ -67,6 +68,7 @@ export const useDrawingsStore = defineStore('drawings', () => {
       // Logout can invalidate an in-flight request after the fetch has been
       // issued. That is an expected auth-boundary race, not a drawing failure
       // and must not surface as a console error during redirect.
+      if (e instanceof AuthSessionChangedError) return
       if (e instanceof Error && e.message === 'Authentication required') return
       console.error('Failed to load drawings', e)
     } finally {
