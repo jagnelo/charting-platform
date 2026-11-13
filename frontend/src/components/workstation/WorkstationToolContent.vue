@@ -1,7 +1,8 @@
 <template>
-<ToolWindow :window-key="tool.instance_key" :title="tool.title || tool.tool_type" :symbol="toolHeaderSymbol" :link-group="localLinkGroup" :timeframe-link-group="timeframeLinkGroup" :timeframe="tool.tool_type === 'chart' ? activeTimeframe : ''" :active="isActiveToolWindow" :favorite-available="tool.tool_type === 'chart' && favoriteStore.loaded && chartStore.instrument?.id != null" :favorite-active="favoriteStore.isFavorite(chartStore.instrument?.id)" @toggle-favorite="toggleChartFavorite" @pointerdown.capture="emit('activate')" @float="emit('float', tool.instance_key)" @maximize="emit('maximize', tool.instance_key)" @close="emit('close', tool.instance_key)" @update:link-group="handleLinkGroupChange" @update:timeframe-link-group="setTimeframeLinkGroup" @update:timeframe="setTimeframe">
+<ToolWindow ref="toolWindowRef" :window-key="tool.instance_key" :title="tool.title || tool.tool_type" :symbol="toolHeaderSymbol" :link-group="localLinkGroup" :timeframe-link-group="timeframeLinkGroup" :timeframe="tool.tool_type === 'chart' ? activeTimeframe : ''" :active="isActiveToolWindow" :maximized="maximizedState?.value ?? false" :maximizing="maximizingState?.value ?? false" :scrollable-body="tool.instance_key === 'relative-rotation' || tool.tool_type === 'relative_rotation'" :favorite-available="tool.tool_type === 'chart' && favoriteStore.loaded && chartStore.instrument?.id != null" :favorite-active="favoriteStore.isFavorite(chartStore.instrument?.id)" :favorite-pending="favoriteStore.isPending(chartStore.instrument?.id)" @toggle-favorite="toggleChartFavorite" @pointerdown.capture="emit('activate')" @float="emit('float', tool.instance_key)" @maximize="emit('maximize', tool.instance_key)" @close="emit('close', tool.instance_key)" @update:link-group="handleLinkGroupChange" @update:timeframe-link-group="setTimeframeLinkGroup" @update:timeframe="setTimeframe">
     <span v-if="personalWatchlistError" class="workstation-tool-content__mutation-error" role="alert" aria-live="assertive">{{ personalWatchlistError }}</span>
-    <div v-if="tool.instance_key === 'benchmark-list'" class="benchmark-surface">
+    <small v-if="isIndustryTool && !industries.length && industryProfilePreparation?.message" class="industry-list__load-state" role="status" aria-live="polite">{{ industryProfilePreparation.message }}</small>
+    <div v-if="isBenchmarkUniverse" class="benchmark-surface">
       <div class="benchmark-surface__family-controls" aria-label="Benchmark family selector">
         <label>Family
           <select :value="benchmarkFamilyKey" aria-label="Benchmark family" @change="setBenchmarkFamily(($event.target as HTMLSelectElement).value)">
@@ -22,6 +23,7 @@
         <span v-if="benchmarkFamilyReadiness" class="sr-only" aria-label="Benchmark family universe provenance">{{ benchmarkFamilyUniverseProvenanceLabel(benchmarkFamilyReadiness) }}</span>
         <span v-if="benchmarkFamilyLoading" role="status">Loading family legs…</span>
         <span v-else-if="benchmarkFamilyError" class="benchmark-surface__family-error" role="alert">{{ benchmarkFamilyError }}</span>
+        <span v-if="benchmarkFamilyPreparationStatus" role="status" aria-live="polite" aria-atomic="true">{{ benchmarkFamilyPreparationStatus }}</span>
       </div>
       <div v-if="benchmarkFamilyKey && benchmarkFamilyOverview" class="benchmark-surface__family-roles" aria-label="Selected benchmark family roles">
         <span v-for="mapping in benchmarkFamilyOverview.mappings" :key="mapping.role"><b>{{ familyRoleLabel(mapping.role) }}</b> {{ mapping.symbol ?? mapping.label }} · {{ familyMappingState(mapping) }}</span>
@@ -35,8 +37,9 @@
       :label="activeBenchmarkListLabel"
       :timeframe="activeTimeframe"
       :rows="activeBenchmarkRows"
-      :loading="workspaceStore.marketAnalysisRefreshing || benchmarkFamilyLoading"
-      loading-label="Refreshing benchmark analysis…"
+      :loading="benchmarkFamilyLoading"
+      :refreshing="workspaceStore.marketAnalysisRefreshing"
+      refreshing-label="Refreshing benchmark analysis…"
       :error-message="activeBenchmarkDataError"
       :columns="benchmarkColumns"
       :selected="activeSymbol"
@@ -79,12 +82,12 @@
       />
     </div>
     <VirtualWatchlistTool
-      v-else-if="tool.instance_key === 'sector-list'"
+      v-else-if="isSectorTool"
       label="Relative to SPY"
       :timeframe="activeTimeframe"
       :rows="sectorRows"
-      :loading="workspaceStore.marketAnalysisRefreshing"
-      loading-label="Refreshing sector analysis…"
+      :refreshing="workspaceStore.marketAnalysisRefreshing"
+      refreshing-label="Refreshing sector analysis…"
       :error-message="sectorDataError"
       :selected="activeSymbol"
       :columns="sectorColumns"
@@ -124,7 +127,7 @@
       @plot-drop="addPlotColumn"
       @condition-drop="addConditionColumn"
     />
-    <section v-else-if="tool.tool_type === 'watchlist' && (tool.configuration.personal === true || isFavoritesTool)" class="personal-watchlist-tool" role="region" :aria-label="isFavoritesTool ? 'My Favorites Quick List' : 'Personal watchlists'" :aria-busy="(isFavoritesTool ? favoriteStore.loading : ((watchlistStore.loading && !selectedPersonalWatchlist && !flaggedItemsSelected && !selectedCombo) || personalListBusy || personalWatchlistBusy)) ? 'true' : 'false'">
+    <section v-else-if="isPersonalWatchlistTool" class="personal-watchlist-tool" role="region" :aria-label="isFavoritesTool ? 'My Favorites Quick List' : 'Personal watchlists'" :aria-busy="(isFavoritesTool ? favoriteStore.loading : ((watchlistStore.loading && !selectedPersonalWatchlist && !flaggedItemsSelected && !selectedCombo) || personalListBusy || personalWatchlistBusy)) ? 'true' : 'false'">
       <div v-if="isFavoritesTool" class="personal-watchlist-tool__controls">
         <span>{{ favoriteStore.favorites.length }} symbols · My Favorites</span>
         <span v-if="favoriteStore.error" class="personal-watchlist-tool__error" role="alert">{{ favoriteStore.error }}</span>
@@ -227,12 +230,12 @@
         @condition-drop="addConditionColumn"
       />
     </section>
-    <div v-else-if="tool.tool_type === 'watchlist' && !isIndustryTool" class="constituent-tool constituent-tool--factory">
+    <div v-else-if="tool.tool_type === 'watchlist' && !isIndustryTool && !isConstituentTool" class="constituent-tool constituent-tool--factory">
     <VirtualWatchlistTool
       :label="tool.title || 'WatchList'"
       :timeframe="activeTimeframe"
       :rows="factoryWatchlistRows"
-      :selected="tool.instance_key === 'industries' ? (selectedIndustry ?? '') : activeSymbol"
+      :selected="isIndustryTool ? (selectedIndustry ?? '') : activeSymbol"
       :selected-row-key="selectedConstituentRowKey"
       :columns="factoryWatchlistColumns"
       :visible-column-keys="configuredColumnKeys"
@@ -272,7 +275,8 @@
         @condition-drop="addConditionColumn"
     />
     <div
-      v-if="selectedConstituentRowKey && tool.tool_type === 'watchlist'"
+      v-if="selectedConstituentRowKey && isConstituentTool"
+      v-reveal-search-results
       class="constituent-tool__selection"
       data-testid="reported-holding-selection"
     >
@@ -296,13 +300,14 @@
     </div>
     </div>
     <div v-else-if="tool.instance_key === 'ratio-chart'" class="analysis">
-      <RatioUPlot :symbol="ratioChartExpression?.numerator ?? activeSymbol" :benchmarks="ratioChartExpression ? [ratioChartExpression.denominator] : ratioBenchmarks" editable-benchmarks :timeframe="activeTimeframe" :as-of="typeof tool.configuration.as_of === 'string' ? tool.configuration.as_of : null" :linked-timestamp="workspaceStore.timestampForLinkGroup(localLinkGroup)" @cursor-timestamp="workspaceStore.publishTimestamp($event, localLinkGroup, tool.instance_key)" @configuration="emit('configuration', tool.instance_key, { ...tool.configuration, ...$event, auto_ratio: false })" />
+      <RatioUPlot :symbol="ratioChartExpression?.numerator ?? activeSymbol" :benchmarks="ratioChartExpression ? [ratioChartExpression.denominator] : ratioBenchmarks" editable-benchmarks :timeframe="activeTimeframe" :request-priority="isActiveToolWindow ? 'high' : 'auto'" :as-of="typeof tool.configuration.as_of === 'string' ? tool.configuration.as_of : null" :linked-timestamp="workspaceStore.timestampForLinkGroup(localLinkGroup)" @cursor-timestamp="workspaceStore.publishTimestamp($event, localLinkGroup, tool.instance_key)" @configuration="emit('configuration', tool.instance_key, { ...tool.configuration, ...$event, auto_ratio: false })" />
     </div>
     <div v-else-if="ratioExpression" class="analysis">
-      <RatioUPlot :symbol="ratioExpression.numerator" :benchmarks="[ratioExpression.denominator]" :timeframe="activeTimeframe" :as-of="typeof tool.configuration.as_of === 'string' ? tool.configuration.as_of : null" :linked-timestamp="workspaceStore.timestampForLinkGroup(localLinkGroup)" @cursor-timestamp="workspaceStore.publishTimestamp($event, localLinkGroup, tool.instance_key)" @configuration="emit('configuration', tool.instance_key, { ...tool.configuration, ...$event })" />
+      <RatioUPlot :symbol="ratioExpression.numerator" :benchmarks="[ratioExpression.denominator]" :timeframe="activeTimeframe" :request-priority="isActiveToolWindow ? 'high' : 'auto'" :as-of="typeof tool.configuration.as_of === 'string' ? tool.configuration.as_of : null" :linked-timestamp="workspaceStore.timestampForLinkGroup(localLinkGroup)" @cursor-timestamp="workspaceStore.publishTimestamp($event, localLinkGroup, tool.instance_key)" @configuration="emit('configuration', tool.instance_key, { ...tool.configuration, ...$event })" />
     </div>
     <div v-else-if="tool.tool_type === 'chart' && tool.instance_key !== 'ratio-chart'" class="chart-tool">
-      <DrawingToolbar class="chart-tool__drawing-toolbar" />
+      <DrawingToolbar v-if="isActiveToolWindow" class="chart-tool__drawing-toolbar" />
+      <div v-else class="chart-tool__drawing-toolbar chart-tool__drawing-toolbar--inactive" aria-hidden="true" inert />
         <div class="chart-tool__surface" :class="{ 'chart-tool__surface--comparisons': comparisonLegend.length > 0 }">
           <ChartTemplateControl class="chart-tool__templates" :source-window-key="tool.instance_key" :configuration="chartTemplateConfiguration" :indicator-configs="chartStore.indicators" @apply="applyChartTemplate" />
         <!-- Use the literal kebab-case event contract so the virtual component
@@ -381,7 +386,8 @@
           @custom-date-sort-range="loadCustomDateSortRange"
         />
         <div v-if="chartStore.isLoading" class="tool-state chart-tool__status" role="status" aria-live="polite" aria-atomic="true">Loading {{ activeSymbol }}…</div>
-        <div v-else-if="chartStore.error" class="tool-state tool-state--error chart-tool__status" role="alert" aria-live="assertive" aria-atomic="true">{{ chartStore.error }}</div>
+        <div v-else-if="chartStore.error" class="tool-state tool-state--error chart-tool__status" role="alert" aria-live="assertive" aria-atomic="true">{{ chartErrorForUser }}</div>
+        <div v-else-if="chartHasNoBars" class="tool-state chart-tool__status" role="status" aria-live="polite" aria-atomic="true">No local {{ chartStore.timeframe }} price history is available for {{ activeSymbol }} yet.</div>
         <div v-if="chartStore.isLoadingMore" class="chart-tool__history-boundary" role="status" aria-live="polite">{{ chartStore.historyBoundaryMessage || `Loading older ${chartStore.timeframe} history…` }}</div>
         <div v-else-if="chartStore.historyBoundaryMessage" class="chart-tool__history-boundary" role="status" aria-live="polite">{{ chartStore.historyBoundaryMessage }}</div>
         <div v-if="timeframeHistoryMessage" class="chart-tool__history-boundary" role="status" aria-live="polite">{{ timeframeHistoryMessage }}</div>
@@ -403,7 +409,7 @@
         :aria-label="industryRowLabel(item)"
         @click="emit('selectIndustry', item.industry, industryETFContext)"
       >
-        <strong>{{ item.industry }}</strong><span>{{ item.resolved_count }}/{{ item.constituent_count }}</span>
+        <strong>{{ item.industry }}</strong><span>{{ item.resolved_count }}/{{ item.constituent_count }}</span><span class="industry-list__proxy-count">{{ item.values.proxy_count ?? '—' }}</span>
         <span v-for="column in industryRankingColumns" :key="column.key" class="industry-list__metric" :title="item.warnings[column.key] ?? undefined">{{ displayIndustryValue(item, column.key) }}</span>
         <small
           class="industry-list__classification"
@@ -411,6 +417,10 @@
           :aria-label="`${item.industry} classification provenance`"
         >{{ item.classificationLabel }}</small>
       </button>
+      <!-- Below the rows so a background refresh never shifts a row under the pointer. -->
+      <small v-if="industryProfilePreparation?.message" class="industry-list__load-state" role="status" aria-live="polite">{{ industryProfilePreparation.message }}</small>
+      <small v-if="workspaceStore.etfIndustryLoading[selectedETF]" class="industry-list__load-state" role="status">Refreshing dated classifications for {{ selectedETF }} holdings…</small>
+      <small v-else-if="workspaceStore.etfIndustryErrors[selectedETF]" class="industry-list__load-state" role="status">{{ workspaceStore.etfIndustryErrors[selectedETF] }} Existing classified rows remain visible.</small>
       <div v-if="selectedIndustry" class="industry-list__proxies">
         <small v-if="!industryProxyState">Checking curated ETF proxies…</small>
         <small v-else-if="!industryProxyState.proxies.length">No mapped ETF proxy · holdings/classification evidence required</small>
@@ -468,14 +478,32 @@
       </small>
     </div>
     <div v-else-if="isIndustryTool" class="tool-state">
-      <template v-if="!selectedETF">
+      <template v-if="!selectedETF && !industryLoadPending">
         Select a sector to inspect its industries and verified ETF proxies.
       </template>
+      <template v-else-if="selectedETF && workspaceStore.etfIndustryLoading[selectedETF]">
+        Loading industries for {{ selectedETF }} from its dated classifications…
+      </template>
+      <template v-else-if="!selectedETF">
+        Loading industries…
+      </template>
+      <template v-else-if="workspaceStore.etfIndustryErrors[selectedETF]">
+        {{ workspaceStore.etfIndustryErrors[selectedETF] }}
+      </template>
+      <template v-else-if="industryComposition">
+        No source-classified industries are available for {{ selectedETF }}'s {{ industryComposition.composition_date }} holdings snapshot.
+        <span v-if="industryComposition.exclusions.length">Classification exclusions: {{ industryComposition.exclusions.map(industryExclusionLabel).join('; ') }}.</span>
+        <small class="industry-list__empty-provenance">{{ industryComposition.source_provider }} · {{ industryComposition.provenance }} · {{ ((industryComposition.classification_coverage ?? 0) * 100).toFixed(0) }}% classified</small>
+      </template>
       <template v-else>
-        No mapped ETF proxy for {{ selectedETF }}. Curated industry mappings require holdings and classification evidence.
+        Industry classifications for {{ selectedETF }} have not been loaded. Re-select the instrument to refresh its dated holdings evidence.
       </template>
     </div>
-    <div v-else-if="tool.instance_key === 'constituent-list'" class="constituent-tool">
+    <div v-else-if="isConstituentTool" class="constituent-tool">
+      <p v-if="!selectedETF || !holdings?.snapshot" class="constituent-tool__empty-context" role="status">
+        <template v-if="selectedETF && holdings === undefined">Loading {{ selectedETF }} holdings…</template>
+        <template v-else>Choose an ETF or industry in this workspace to view its reported constituents.</template>
+      </p>
       <VirtualWatchlistTool
         :label="constituentLabel"
         :timeframe="activeTimeframe"
@@ -528,7 +556,8 @@
         :title="constituentExclusionCodes.join(', ')"
       >{{ constituentExclusionSummary }}</small>
       <div
-        v-if="selectedConstituentRowKey && tool.instance_key === 'constituent-list'"
+        v-if="selectedConstituentRowKey && isConstituentTool"
+        v-reveal-search-results
         class="constituent-tool__selection"
         data-testid="reported-holding-selection"
       >
@@ -786,9 +815,11 @@
         </template>
         </template>
         <button type="button" :disabled="breadthWatchlistSourceNotCurrent || (breadthConditionKind === 'python_series' && breadthPythonSeriesCodeVersionId == null) || (breadthComposition === 'tree' && breadthTreePythonSeriesLeaf !== null && pythonLeafAnchorId(breadthTreePythonSeriesLeaf) == null)" @click="runGenericBreadth">Evaluate</button>
-        <span v-if="genericBreadthLoading" role="status" aria-live="polite">Evaluating…</span>
-        <span v-else-if="genericBreadthError" class="breadth-tool__status--error" role="alert">{{ genericBreadthError }}</span>
-        <span v-else-if="genericBreadth" class="breadth-tool__custom-result"><b>{{ genericBreadthPercentage }}</b> · {{ genericBreadth.pass_count }}/{{ genericBreadth.eligible_count }} eligible · {{ genericBreadth.excluded_count }} excluded · {{ genericBreadth.requested_count }} requested · {{ genericBreadthCoverage }} coverage<span v-if="genericBreadth.group_value != null"> · group {{ genericBreadth.group_value.toFixed(4) }}</span></span>
+        <span v-if="genericBreadthEvaluationLoading" role="status" aria-live="polite">Evaluating…</span>
+        <span v-if="genericBreadthHistoryLoading" role="status" aria-live="polite">Updating historical breadth…</span>
+        <span v-if="genericBreadthEvaluationError" class="breadth-tool__status--error" role="alert">{{ genericBreadthEvaluationError }}</span>
+        <span v-if="genericBreadthHistoryError" class="breadth-tool__status--error" role="alert">Historical breadth: {{ genericBreadthHistoryError }}</span>
+        <span v-if="genericBreadth" class="breadth-tool__custom-result"><b>{{ genericBreadthPercentage }}</b> · {{ genericBreadth.pass_count }}/{{ genericBreadth.eligible_count }} eligible · {{ genericBreadth.excluded_count }} excluded · {{ genericBreadth.requested_count }} requested · {{ genericBreadthCoverage }} coverage<span v-if="genericBreadth.group_value != null"> · group {{ genericBreadth.group_value.toFixed(4) }}</span></span>
         <details v-if="genericBreadth" class="breadth-tool__generic-evidence" aria-label="Generic breadth result evidence">
           <summary>Snapshot evidence</summary>
           <dl>
@@ -977,7 +1008,7 @@
         <button v-for="member in genericBreadthMembers.slice(0, 100)" :key="member.instrument_id" type="button" :aria-label="`Select ${member.symbol} ${member.name}`" @click="emit('select', member.symbol, member.instrument_id)"><strong>{{ member.symbol }}</strong><span>{{ member.name }}</span><small v-if="member.metric != null">{{ member.metric.toFixed(3) }}</small><small v-if="member.diagnostics?.length" class="breadth-tool__member-diagnostics" :title="member.diagnostics.map(genericBreadthDiagnosticLabel).join(' · ')">{{ member.diagnostics.map(genericBreadthDiagnosticLabel).join(' · ') }}</small></button>
         <small v-if="!genericBreadthMembers.length">No {{ genericBreadthMemberState === 'pass' ? 'passing' : 'failing' }} members are eligible.</small>
       </div>
-      <GenericBreadthHistoryUPlot :history="genericBreadthHistory ?? undefined" />
+      <GenericBreadthHistoryUPlot v-if="genericBreadthHistory" :history="genericBreadthHistory" />
       <section v-if="genericBreadthHistory" class="breadth-tool__generic-history-events" aria-label="Generic breadth historical occurrences">
         <header>
           <strong>Member state changes</strong>
@@ -990,7 +1021,8 @@
         </button>
         <small v-if="!genericBreadthHistoryOccurrences.length">No member state changes were recorded for this history.</small>
       </section>
-      <p v-if="breadthBusy" class="breadth-tool__status" role="status" aria-live="polite" aria-atomic="true">Loading breadth analysis…</p>
+      <p v-if="breadthBusy && !breadth" class="breadth-tool__status" role="status" aria-live="polite" aria-atomic="true">Loading breadth analysis…</p>
+      <p v-else-if="breadthPreparationStatus" class="breadth-tool__status" role="status" aria-live="polite" aria-atomic="true">{{ breadthPreparationStatus }}</p>
       <p v-else-if="breadthError" class="breadth-tool__status breadth-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">{{ breadthError }}</p>
       <p v-else-if="!breadth" class="breadth-tool__status" role="status" aria-live="polite" aria-atomic="true">Breadth analysis is unavailable.</p>
       <div class="metrics">
@@ -1016,19 +1048,19 @@
       <BreadthHistoryUPlot :history="breadthHistory" />
     </div>
     <RelativeRotationTool v-else-if="tool.instance_key === 'relative-rotation' || tool.tool_type === 'relative_rotation'" :configuration="tool.configuration" @select="selectRotationSymbol" @configuration="emit('configuration', tool.instance_key, $event)" />
-    <MarketMapTool v-else-if="tool.tool_type === 'market_map'" :configuration="tool.configuration" @configuration="emit('configuration', tool.instance_key, $event)" @select="(symbol, instrumentId) => selectSymbol(symbol, instrumentId)" @compare="emit('compare', $event)" @ratio="emit('ratio', $event)" @publish-analysis="emit('publishAnalysis', $event)" />
+    <MarketMapTool v-else-if="tool.tool_type === 'market_map'" :configuration="tool.configuration" :request-priority="workstationToolVisible ? 'high' : 'low'" @configuration="emit('configuration', tool.instance_key, $event)" @select="(symbol, instrumentId) => selectSymbol(symbol, instrumentId)" @compare="emit('compare', $event)" @ratio="emit('ratio', $event)" @publish-analysis="emit('publishAnalysis', $event)" />
     <div v-else-if="tool.instance_key === 'technical-summary' || tool.tool_type === 'technical_summary'" class="metrics">
-      <span>RSI(14)</span><b>{{ formatNumber(technical?.rsi14) }}</b>
-      <span>20 / 50 / 200 MA</span><b>{{ technicalMAs }}</b>
-      <span>52-week position</span><b>{{ formatPercent(technical?.position_52w) }}</b>
-      <span>Volume ratio (50)</span><b>{{ formatRatio(technical?.volume_ratio_50) }}</b>
+      <span>RSI(14)</span><b>{{ technicalPending ? '…' : formatNumber(technical?.rsi14) }}</b>
+      <span>20 / 50 / 200 MA</span><b>{{ technicalPending ? '…' : technicalMAs }}</b>
+      <span>52-week position</span><b>{{ technicalPending ? '…' : formatPercent(technical?.position_52w) }}</b>
+      <span>Volume ratio (50)</span><b>{{ technicalPending ? '…' : formatRatio(technical?.volume_ratio_50) }}</b>
     </div>
     <CoverageSummaryTool v-else-if="tool.instance_key === 'coverage-summary' || tool.tool_type === 'coverage'" :symbol="activeSymbol" :configuration="tool.configuration" @configuration="emit('configuration', tool.instance_key, $event)" />
-    <InstrumentNoteTool v-else-if="tool.tool_type === 'notes'" :instrument-id="toolInstrument?.id ?? chartStore.instrument?.id" :symbol="activeSymbol" />
-    <InstrumentAlertsTool v-else-if="tool.tool_type === 'alerts'" :instrument-id="toolInstrument?.id ?? chartStore.instrument?.id" :symbol="activeSymbol" :timeframe="activeTimeframe" />
+    <InstrumentNoteTool v-else-if="tool.tool_type === 'notes'" :instrument-id="toolInstrument?.id ?? chartStore.instrument?.id" :symbol="activeSymbol" :request-priority="workstationToolVisible ? 'high' : 'auto'" />
+    <InstrumentAlertsTool v-else-if="tool.tool_type === 'alerts'" :instrument-id="toolInstrument?.id ?? chartStore.instrument?.id" :symbol="activeSymbol" :timeframe="activeTimeframe" :request-priority="workstationToolVisible ? 'high' : 'low'" />
     <InstrumentInfoPanel v-else-if="tool.tool_type === 'report'" class="instrument-report" :instrument="toolInstrument ?? chartStore.instrument" :current-price="currentPrice" :session-high="currentSessionHigh" :session-low="currentSessionLow" @select="(symbol, instrumentId) => selectSymbol(symbol, instrumentId)" />
-    <EasyScanTool v-else-if="tool.tool_type === 'scan'" :source-window-key="tool.instance_key" />
-    <MarketGaugeTool v-else-if="tool.tool_type === 'gauge'" />
+    <EasyScanTool v-else-if="tool.tool_type === 'scan'" :source-window-key="tool.instance_key" :request-priority="workstationToolVisible ? 'high' : 'low'" />
+    <MarketGaugeTool v-else-if="tool.tool_type === 'gauge'" :request-priority="workstationToolVisible ? 'high' : 'auto'" />
     <StudyLabTool v-else-if="tool.tool_type === 'study_lab'" :tool-key="tool.instance_key" :active-symbol="activeSymbol" :configuration="tool.configuration" @configuration="emit('configuration', tool.instance_key, $event)" @occurrence="emit('occurrence', $event.symbol, $event.timestamp)" />
     <ResearchResultsTool v-else-if="tool.tool_type === 'research_results'" @occurrence="emit('occurrence', $event.symbol, $event.timestamp, $event.instrument_id)" />
     <CodeLibraryTool v-else-if="tool.tool_type === 'code_library'" @open-study="emit('openStudy', $event)" />
@@ -1037,15 +1069,37 @@
 </template>
 
 <script setup lang="ts">
-import { computed, defineAsyncComponent, defineComponent, h, nextTick, onBeforeUnmount, onMounted, provide, ref, watch, type Component } from 'vue'
+import { computed, defineAsyncComponent, defineComponent, h, nextTick, onBeforeUnmount, onMounted, provide, ref, watch, type Component, type Ref } from 'vue'
+
+// The selection panel scrolls inside a compact tool body. When a picker's
+// results first appear, bring them into view instead of leaving the
+// candidates clipped below the fold.
+type RevealHost = HTMLElement & { __revealObserver?: MutationObserver }
+const vRevealSearchResults = {
+  mounted(el: RevealHost) {
+    const observer = new MutationObserver(() => {
+      const list = el.querySelector('[role="listbox"]')
+      if (!list) return
+      const panel = el.getBoundingClientRect()
+      const box = list.getBoundingClientRect()
+      if (box.bottom > panel.bottom + 1 || box.top < panel.top - 1) list.scrollIntoView({ block: 'nearest' })
+    })
+    observer.observe(el, { childList: true, subtree: true })
+    el.__revealObserver = observer
+  },
+  unmounted(el: RevealHost) {
+    el.__revealObserver?.disconnect()
+  },
+}
 import { RouterLink } from 'vue-router'
 import { useQueryClient } from '@tanstack/vue-query'
-import { api } from '@/lib/api'
+import { api, setQueuedApiRequestPriority } from '@/lib/api'
 import { fetchCanonicalInstrument } from '@/lib/workstation/instrumentQueries'
 import { acquireSelectedHistory, defaultHistoryRange, type SelectedHistoryStage } from '@/lib/onDemandAcquisition'
 import { dedupeOhlcvRequest } from '@/lib/workstation/ohlcvRequests'
 import { calculateCustomDateSortValue, customDateSortListColumn, parseCustomDateSortListColumn, type CustomDateSortListColumn, type CustomDateSortMode, type CustomDateSortPriceRange, type CustomDateSortRange, type CustomDateSortValue } from '@/lib/workstation/customDateSort'
 import { loadCustomDateSortLocalEvidence, loadCustomDateSortLocalListValues } from '@/lib/workstation/customDateSortData'
+import { dataPreparationCoordinator, PreparationProgressRefreshQueue, preparationStatusMessage, shouldRefreshAnalysisProgress, type DataEnsureRequest, type DataEnsureResponse, type PreparationTimeframe } from '@/lib/dataPreparation'
 import UPlotChart from '@/components/chart/UPlotChart.vue'
 import DrawingToolbar from '@/components/chart/DrawingToolbar.vue'
 import HistoryAcquisitionControl from '@/components/chart/HistoryAcquisitionControl.vue'
@@ -1054,7 +1108,7 @@ import ChartPlotLibrary from './ChartPlotLibrary.vue'
 import { refreshMountedWorkstationChartPanels, registerWorkstationPanelChartRefresh, usePanelStore } from '@/stores/chart'
 import { useDrawingsStore } from '@/stores/drawings'
 import { useAlertsStore } from '@/stores/alerts'
-import { OPENABLE_WORKSTATION_TOOLS, useWorkspaceStore, type BenchmarkFamilyCoverageState, type BenchmarkFamilyReadinessState, type GenericBreadthHistoryState, type GenericBreadthState, type GroupSnapshotRow, type LinkGroup, type WorkspaceWindowState } from '@/stores/workspace'
+import { useWorkspaceStore, workspaceToolRole, type BenchmarkFamilyCoverageState, type BenchmarkFamilyReadinessState, type GenericBreadthHistoryState, type GenericBreadthState, type GroupSnapshotRow, type LinkGroup, type WorkspaceWindowState } from '@/stores/workspace'
 import { useWatchlistStore } from '@/stores/watchlist'
 import { useFavoritesStore } from '@/stores/favorites'
 import type { Instrument, Watchlist, WatchlistSource } from '@/types'
@@ -1108,7 +1162,8 @@ import { buildComboWatchlistRows, type ComboListDefinition } from '@/lib/worksta
 import { autoRatioBenchmarks, autoRatioExpression } from '@/lib/workstation/ratioExpression'
 import { indicatorColumnFromPlot, indicatorOutputFromConfig, pythonColumnFromPlot, type ChartAnalysisDragPayload, type ChartPlotDragPayload, type TechnicalConditionDragPayload } from '@/lib/workstation/plotDrag'
 import { formatWorkstationFreshness } from '@/lib/workstation/freshness'
-import { benchmarkFamilyConstituentSourceId } from '@/lib/workstation/benchmarkFamilySources'
+import { chartErrorPresentation } from '@/lib/workstation/chartErrorPresentation'
+import { benchmarkFamilyConstituentSourceId, benchmarkFamilyHistoryTargets, breadthSnapshotBenchmark } from '@/lib/workstation/benchmarkFamilySources'
 import { buildBreadthStudyAssetPayload, type BreadthDefinition } from '@/lib/workstation/breadthDefinitions'
 import { breadthReferenceTargetEvidence } from '@/lib/workstation/breadthReferenceEvidence'
 import { CHART_BAR_TYPES, type ChartBarType, type ChartComparisonSeries, type ChartPythonSeries, type IndicatorConfig, type IndicatorType, type OHLCVBar, type Timeframe } from '@/types'
@@ -1170,6 +1225,8 @@ const props = defineProps<{
   tool: WorkspaceWindowState
   activeWindowKey?: string | null
   factoryLayout?: string | null
+  maximizedState?: Readonly<Ref<boolean>>
+  maximizingState?: Readonly<Ref<boolean>>
 }>()
 // Golden Layout can destroy a virtual tool while its shared column/asset
 // requests are still resolving. Keep response publication scoped to the
@@ -1328,6 +1385,80 @@ const isActiveToolWindow = computed(() => {
 const watchlistStore = useWatchlistStore()
 const favoriteStore = useFavoritesStore()
 const isFavoritesTool = computed(() => props.tool.configuration.favorites === true)
+const toolWindowRef = ref<{ $el?: HTMLElement } | null>(null)
+const workstationToolVisible = ref(false)
+let workstationToolVisibilityObserver: MutationObserver | null = null
+function isWorkstationToolVisible(): boolean {
+  const root = toolWindowRef.value?.$el
+  if (!(root instanceof HTMLElement) || !root.isConnected) return false
+  let current: HTMLElement | null = root
+  while (current) {
+    const style = window.getComputedStyle(current)
+    if (style.display === 'none' || style.visibility === 'hidden' || style.visibility === 'collapse') return false
+    current = current.parentElement
+  }
+  return root.getClientRects().length > 0
+}
+function currentWorkstationWatchlistSymbols(): string[] {
+  const rows = isFavoritesTool.value
+    ? favoriteRows.value
+    : [
+      ...personalWatchlistRows.value,
+      ...flaggedWatchlistRows.value,
+      ...comboWatchlistRows.value,
+      ...activeBenchmarkRows.value,
+      ...sectorRows.value,
+      ...factoryWatchlistRows.value,
+      ...proxyRows.value,
+      ...canonicalConstituentRows.value,
+    ]
+  return [...new Set(rows.map(row => row.symbol).filter(symbol => symbol && !symbol.startsWith('#')))]
+}
+function fetchWorkstationWatchlistPrices(symbols: string[], priority: 'high' | 'low' = workstationToolVisible.value ? 'high' : 'low') {
+  return watchlistStore.fetchPrices(symbols, false, true, priority)
+}
+function syncWorkstationToolVisibility() {
+  const visible = isWorkstationToolVisible()
+  if (visible === workstationToolVisible.value) return
+  workstationToolVisible.value = visible
+  const priority = visible ? 'high' : 'low'
+  if (visible && isBenchmarkUniverse.value) {
+    // The shell starts market analysis in the background. Join that exact
+    // deduplicated universe read when the benchmark list becomes visible so
+    // its queued fetch is promoted into the existing foreground lane.
+    void workspaceStore.loadMarketGroup('us-benchmarks', { useCache: true, priority: 'high' })
+  }
+  if (visible && isPersonalWatchlistTool.value) {
+    setQueuedApiRequestPriority('workstation:combo-lists', 'high')
+  }
+  if (visible && (props.tool.instance_key === 'breadth-summary' || props.tool.tool_type === 'breadth')) {
+    void fetchCodeAssets(queryClient, { priority: 'high' })
+  }
+  if (isFavoritesTool.value && !favoriteStore.loaded) void favoriteStore.load(priority)
+  if ((props.tool.instance_key === 'breadth-summary' || props.tool.tool_type === 'breadth' || props.tool.tool_type === 'study_lab' || props.tool.tool_type === 'market_map')
+    && !watchlistStore.watchlistSources.length) void watchlistStore.loadWatchlistSources(priority)
+  if (isPersonalWatchlistTool.value && !watchlistStore.watchlists.length) void watchlistStore.loadWatchlists(priority)
+  if (!isPersonalWatchlistTool.value) return
+  const symbols = currentWorkstationWatchlistSymbols()
+  if (symbols.length) void fetchWorkstationWatchlistPrices(symbols, visible ? 'high' : 'low')
+}
+function observeWorkstationToolVisibility() {
+  const root = toolWindowRef.value?.$el
+  if (!(root instanceof HTMLElement)) return
+  workstationToolVisibilityObserver?.disconnect()
+  workstationToolVisibilityObserver = new MutationObserver(syncWorkstationToolVisibility)
+  let current: HTMLElement | null = root
+  while (current) {
+    workstationToolVisibilityObserver.observe(current, { attributes: true, attributeFilter: ['class', 'style'] })
+    if (current.classList.contains('workspace-layout-host')) break
+    current = current.parentElement
+  }
+  syncWorkstationToolVisibility()
+}
+onBeforeUnmount(() => {
+  workstationToolVisibilityObserver?.disconnect()
+  workstationToolVisibilityObserver = null
+})
 async function toggleChartFavorite() {
   const instrumentId = chartStore.instrument?.id
   if (props.tool.tool_type === 'chart' && instrumentId != null) await favoriteStore.toggle(instrumentId)
@@ -1348,7 +1479,7 @@ function openCustomDateSortWatchlist() {
     return
   }
   const column = customDateSortListColumn(range, chartStore.timeframe, true)
-  const watchlistDefinition = OPENABLE_WORKSTATION_TOOLS.find(tool => tool.tool_type === 'watchlist' && tool.instance_prefix === 'watchlist')
+  const watchlistDefinition = workspaceStore.toolDefinition('watchlist')
   if (!column || !watchlistDefinition) {
     customDateSortDestinationMessage.value = 'This date range cannot be saved as a WatchList sort column.'
     return
@@ -1580,7 +1711,11 @@ async function loadComboLists() {
   try {
     const lists = await queryClient.fetchQuery<ComboListDefinition[]>({
       queryKey: ['workstation', 'library-items', 'combo_list'],
-      queryFn: async () => (await api.get<ComboListDefinition[]>('/workspaces/library/items', { kind: 'combo_list' })) ?? [],
+      queryFn: async ({ signal }) => (await api.get<ComboListDefinition[]>('/workspaces/library/items', { kind: 'combo_list' }, {
+        signal,
+        priority: workstationToolVisible.value ? 'high' : 'low',
+        queueKey: 'workstation:combo-lists',
+      })) ?? [],
       staleTime: 30_000,
     })
     if (disposed || sequence !== comboListLoadSequence) return
@@ -1870,24 +2005,36 @@ function handlePersonalRowAction(action: 'chart' | 'compare' | 'ratio' | 'note' 
 }
 
 onMounted(async () => {
+  observeWorkstationToolVisibility()
+  const requestPriority = workstationToolVisible.value ? 'high' : 'low'
   void loadBreadthPythonSeriesAssets()
+  if (isBenchmarkUniverse.value && !workspaceStore.marketGroups['us-benchmarks']) {
+    void workspaceStore.loadMarketGroup('us-benchmarks', { useCache: true, priority: requestPriority })
+  }
+  // Sector membership is already a local curated catalogue. Load it directly
+  // for the visible list so a slow snapshot/breadth refresh cannot leave the
+  // ordinary symbol choices empty. The store coalesces this with the shell's
+  // shared refresh when both start together.
+  if (isSectorTool.value && !workspaceStore.marketGroups['sp500-sectors']) {
+    void workspaceStore.loadMarketGroup('sp500-sectors', { useCache: true, priority: requestPriority })
+  }
   if ((props.tool.tool_type === 'chart' || isFavoritesTool.value) && !favoriteStore.loaded && !favoriteStore.loading) {
-    void favoriteStore.load()
+    void favoriteStore.load(requestPriority)
   }
   if ((props.tool.instance_key === 'breadth-summary' || props.tool.tool_type === 'breadth' || props.tool.tool_type === 'study_lab') && !watchlistStore.watchlistSources.length && !watchlistStore.watchlistSourcesLoading) {
-    await watchlistStore.loadWatchlistSources()
+    await watchlistStore.loadWatchlistSources(requestPriority)
     if (disposed) return
   }
   if (!watchlistStore.watchlists.length && !watchlistStore.loading) {
-    await watchlistStore.loadWatchlists()
+    await watchlistStore.loadWatchlists(requestPriority)
     if (disposed) return
   }
-  if (props.tool.tool_type !== 'watchlist' || (props.tool.configuration.personal !== true && !isFavoritesTool.value)) return
+  if (!isPersonalWatchlistTool.value) return
   if (isFavoritesTool.value) {
-    if (!favoriteStore.loaded) await favoriteStore.load()
+    if (!favoriteStore.loaded) await favoriteStore.load(workstationToolVisible.value ? 'high' : 'low')
     if (disposed) return
     const symbols = favoriteRows.value.map(row => row.symbol)
-    if (symbols.length) await watchlistStore.fetchPrices(symbols, false, true)
+    if (symbols.length) await fetchWorkstationWatchlistPrices(symbols)
     if (disposed) return
     void loadIndicatorColumns(favoriteRows.value)
     return
@@ -1903,7 +2050,7 @@ onMounted(async () => {
   }
   const symbols = personalWatchlistRows.value.map(row => row.symbol).filter(symbol => !symbol.startsWith('#'))
   if (symbols.length) {
-    await watchlistStore.fetchPrices(symbols, false, true)
+    await fetchWorkstationWatchlistPrices(symbols)
     if (disposed) return
   }
   void loadIndicatorColumns([
@@ -1955,20 +2102,20 @@ watch(() => props.tool.configuration.watchlist_id, value => {
 
 watch(() => selectedPersonalWatchlist.value?.items.map(item => item.symbol).join(','), value => {
   const symbols = (value ?? '').split(',').filter(Boolean)
-  if (symbols.length) void watchlistStore.fetchPrices(symbols, false, true)
+  if (symbols.length) void fetchWorkstationWatchlistPrices(symbols)
 })
 watch(() => flaggedWatchlistRows.value.map(row => row.symbol).join(','), value => {
   const symbols = (value ?? '').split(',').filter(Boolean)
-  if (symbols.length) void watchlistStore.fetchPrices(symbols, false, true)
+  if (symbols.length) void fetchWorkstationWatchlistPrices(symbols)
 })
 watch(() => comboWatchlistRows.value.map(row => row.symbol).join(','), value => {
   const symbols = (value ?? '').split(',').filter(Boolean)
-  if (symbols.length) void watchlistStore.fetchPrices(symbols, false, true)
+  if (symbols.length) void fetchWorkstationWatchlistPrices(symbols)
 })
 watch(() => favoriteRows.value.map(row => row.symbol).join(','), value => {
   if (!isFavoritesTool.value) return
   const symbols = (value ?? '').split(',').filter(Boolean)
-  if (symbols.length) void watchlistStore.fetchPrices(symbols, false, true)
+  if (symbols.length) void fetchWorkstationWatchlistPrices(symbols)
 })
 // A Golden Layout virtual component is mounted independently from its host render
 // cycle. Keep the latest serializable chart configuration locally so template changes
@@ -1981,10 +2128,13 @@ const chartTemplateConfiguration = computed(() => ({
   ...liveChartConfiguration.value,
   comparison_symbols: optimisticComparisonSymbols.value ?? comparisonTargets.value.map(target => target.symbol),
 }))
-const activeSymbol = computed(() => workspaceStore.symbolForLinkGroup(
-  localLinkGroup.value,
-  typeof props.tool.configuration.symbol === 'string' ? props.tool.configuration.symbol : null,
-))
+const activeSymbol = computed(() => {
+  const linked = workspaceStore.symbolForLinkGroup(
+    localLinkGroup.value,
+    typeof props.tool.configuration.symbol === 'string' ? props.tool.configuration.symbol : null,
+  )
+  return props.tool.tool_type !== 'chart' && /^BASKET:\d+$/i.test(linked) ? '' : linked
+})
 // Non-chart tools have their own panel-scoped chart store and therefore cannot
 // rely on a chart window having loaded the canonical instrument first. Resolve
 // identity directly for notes, alerts, and reports so active-symbol actions work
@@ -2005,17 +2155,8 @@ watch(activeSymbol, async symbol => {
 // Older persisted workspaces used the shorter `industries` instance key. Keep
 // that serialized state behavior-compatible while new factory layouts use the
 // explicit `industry-list` key.
-const isIndustryTool = computed(() => {
-  const instanceKey = props.tool.instance_key.toLowerCase()
-  const title = (props.tool.title ?? '').toLowerCase()
-  const marketGroup = typeof props.tool.configuration.market_group === 'string'
-    ? props.tool.configuration.market_group.toLowerCase()
-    : ''
-  return instanceKey === 'industry-list'
-    || instanceKey === 'industries'
-    || title.includes('industr')
-    || marketGroup === 'selected-sector-industries'
-})
+const isIndustryTool = computed(() => workspaceToolRole(props.tool) === 'industry-universe')
+const isSectorTool = computed(() => workspaceToolRole(props.tool) === 'sector-universe')
 // Resolve isolated Grey timeframes through the live workspace store rather
 // than the detached Golden Layout component-state object. Shared groups are
 // already reactive through the link bus; Grey must track per-tool edits too.
@@ -2055,6 +2196,9 @@ const chartBarType = computed<ChartBarType>(() => {
     ? requested as ChartBarType
     : 'candles'
 })
+const chartErrorForUser = computed(() => chartErrorPresentation(chartStore.error))
+// An empty bar list after a finished load is an honest "no local history", not a blank canvas.
+const chartHasNoBars = computed(() => !!chartStore.symbol && !chartStore.isLoading && !chartStore.error && chartStore.bars.length === 0)
 const chartTransformParams = computed(() => {
   // Template/settings changes are applied optimistically to the local
   // serialisable configuration before the parent workspace snapshot round-trip
@@ -2151,7 +2295,7 @@ function selectSymbol(symbol: string, instrumentId?: number | null) {
   // The shell owns canonical data loading and auto-ratio orchestration. Publish
   // row selections through it as well as the local link-group mutation so every
   // watchlist interaction follows the same top-down path as symbol entry.
-  emit('select', symbol, instrumentId, props.tool.instance_key === 'constituent-list')
+  emit('select', symbol, instrumentId, isConstituentTool.value)
 }
 
 function isReportedETFHoldingRow(row: WatchlistRow) {
@@ -2159,7 +2303,7 @@ function isReportedETFHoldingRow(row: WatchlistRow) {
 }
 
 function selectFactoryWatchlistRow(row: WatchlistRow) {
-  if (props.tool.instance_key === 'industries') {
+  if (isIndustryTool.value) {
     selectedConstituentRowKey.value = null
     emit('selectIndustry', row.symbol, industryETFContext.value)
     return
@@ -2230,7 +2374,11 @@ function selectRotationSymbol(symbol: string, instrumentId?: number | null) {
 function setTimeframe(timeframe: string) {
   timeframeHistoryAbortController?.abort()
   workspaceStore.updateToolTimeframe(props.tool.instance_key, timeframe)
-  if (props.tool.tool_type === 'chart' && ['M1', 'M5', 'M15', 'M30', 'H1', 'H2', 'H4', 'H12', 'D1', 'W1', 'MN'].includes(timeframe)) {
+  // Blue-linked chart periods use the shell's shared preparation lifecycle,
+  // which also covers its primary chart and coalesces the linked windows.
+  // Isolated/non-blue charts retain their own explicit timeframe lifecycle.
+  if (props.tool.tool_type === 'chart' && timeframeLinkGroup.value !== 'blue'
+    && ['M1', 'M5', 'M15', 'M30', 'H1', 'H2', 'H4', 'H12', 'D1', 'W1', 'MN'].includes(timeframe)) {
     void acquireExplicitTimeframeHistory(timeframe as Timeframe)
   }
 }
@@ -2374,7 +2522,8 @@ function updateScanPlots(plots: ConfiguredScanPlot[]) {
 
 async function loadPythonPlots() {
   const plots = configuredPythonPlots.value.filter(plot => !plot.hidden)
-  for (const runId of pythonPlotRunIds) void api.post(`/research/runs/${runId}/cancel`, {})
+  // Best-effort: a finished or already-removed run answers 404, which is fine.
+  for (const runId of pythonPlotRunIds) void api.post(`/research/runs/${runId}/cancel`, {}).catch(() => undefined)
   pythonPlotRunIds.clear()
   if (props.tool.tool_type !== 'chart' || !plots.length || !activeSymbol.value) { pythonSeries.value = []; return }
   const sequence = ++pythonPlotRequestSequence
@@ -2386,11 +2535,14 @@ async function loadPythonPlots() {
         timeframe,
         ...(plot.universe_source_id ? { universe_source_id: plot.universe_source_id } : plot.symbols?.length ? { symbols: plot.symbols } : { symbol: activeSymbol.value }),
       }
-      const queued = await api.post<{ id: number }>('/research/runs', { code_version_id: plot.code_version_id, run_config: runConfig, dataset_manifest: { source: 'canonical_database', timeframe } })
+      type PlotRun = { id: number; status: string; artifacts?: Array<{ name: string; artifact_type: string; payload: Record<string, unknown> }> }
+      const queued = await api.post<PlotRun>('/research/runs', { code_version_id: plot.code_version_id, run_config: runConfig, dataset_manifest: { source: 'canonical_database', timeframe } })
       runId = queued.id
-      pythonPlotRunIds.add(queued.id)
+      // A run that is already terminal needs neither polling nor cancellation.
+      const alreadyTerminal = ['completed', 'failed', 'canceled'].includes(queued.status)
+      if (!alreadyTerminal) pythonPlotRunIds.add(queued.id)
       for (let attempt = 0; attempt < 30; attempt += 1) {
-        const result = await queryClient.fetchQuery({
+        const result: PlotRun = alreadyTerminal && attempt === 0 ? queued : await queryClient.fetchQuery({
           queryKey: ['workstation', 'research-run', queued.id],
           queryFn: async () => {
             const refreshed = await api.get<{ status: string; artifacts?: Array<{ name: string; artifact_type: string; payload: Record<string, unknown> }> }>(`/research/runs/${queued.id}`)
@@ -2433,7 +2585,7 @@ async function loadScanPlots() {
   if (sequence === scanPlotRequestSequence) scanSeries.value = loaded.filter(item => item != null) as ChartPythonSeries[]
 }
 
-async function loadComparisonBars() {
+async function loadComparisonBars(options: { foreground?: boolean } = {}) {
   const symbols = comparisonTargets.value.map(target => target.symbol)
   if (!symbols.length || !chartStore.symbol) return
   const sequence = ++comparisonRequestSequence
@@ -2441,7 +2593,18 @@ async function loadComparisonBars() {
   const loaded = await Promise.all(symbols.map(async symbol => {
     try {
       const limit = Math.max(chartStore.bars.length, 500)
-      const raw = await dedupeOhlcvRequest(`raw:local:${symbol.toUpperCase()}:${timeframe}:adjusted:${limit}`, () => api.get<any[]>(`/ohlcv/local/${encodeURIComponent(symbol)}/${timeframe}`, { limit }))
+      const cacheKey = `raw:local:${symbol.toUpperCase()}:${timeframe}:adjusted:${limit}`
+      const queueKey = `workstation:comparison:${symbol.toUpperCase()}:${timeframe}:${limit}`
+      if (options.foreground) setQueuedApiRequestPriority(queueKey, 'high', true)
+      const raw = await dedupeOhlcvRequest(cacheKey, () => api.get<any[]>(
+        `/ohlcv/local/${encodeURIComponent(symbol)}/${timeframe}`,
+        { limit },
+        {
+          priority: options.foreground ? 'high' : 'auto',
+          foreground: options.foreground,
+          queueKey,
+        },
+      ))
       return { symbol, bars: raw.map(bar => ({
         ...bar,
         ts: String(bar.ts ?? bar.timestamp ?? ''),
@@ -2464,11 +2627,15 @@ async function addComparisonSymbol(raw: string) {
     return
   }
   try {
-    const canonical = await ensureKnownInstrumentSymbol(symbol, 'Comparison symbol', { canonicalOnly: true })
+    const canonical = await ensureKnownInstrumentSymbol(symbol, 'Comparison symbol', {
+      canonicalOnly: true,
+      priority: 'high',
+      foreground: true,
+    })
     comparisonTargets.value.push({ symbol: canonical, label: canonical, color: comparisonColors[comparisonTargets.value.length % comparisonColors.length], bars: [] })
     comparisonDraft.value = ''
     persistComparisonSymbols()
-    await loadComparisonBars()
+    await loadComparisonBars({ foreground: true })
   } catch (cause: any) {
     chartStore.error = cause?.message ?? 'Unable to resolve comparison symbol'
   }
@@ -2585,6 +2752,15 @@ watch([configuredScanPlots, activeTimeframe], () => { void loadScanPlots() }, { 
 onBeforeUnmount(() => {
   timeframeHistoryAbortController?.abort()
   timeframeHistoryAbortController = null
+  breadthPreparationGeneration += 1
+  breadthPreparationAbort?.abort()
+  breadthPreparationAbort = null
+  industryProfilePreparationGeneration += 1
+  industryProfilePreparationAbort?.abort()
+  industryProfilePreparationAbort = null
+  benchmarkFamilyPreparationGeneration += 1
+  benchmarkFamilyPreparationAbort?.abort()
+  benchmarkFamilyPreparationAbort = null
   unregisterWorkstationPanelRefresh?.()
   unregisterWorkstationPanelRefresh = null
   disposed = true
@@ -2608,7 +2784,8 @@ onBeforeUnmount(() => {
   comboListLoadSequence += 1
   comboMutationSequence += 1
   personalMutationSequence += 1
-  for (const runId of pythonPlotRunIds) void api.post(`/research/runs/${runId}/cancel`, {})
+  // Best-effort: a finished or already-removed run answers 404, which is fine.
+  for (const runId of pythonPlotRunIds) void api.post(`/research/runs/${runId}/cancel`, {}).catch(() => undefined)
   pythonPlotRunIds.clear()
 })
 
@@ -2628,6 +2805,7 @@ watch(() => props.tool.configuration, configuration => {
   } else if (pending) {
     pendingTemplateConfiguration.value = null
   }
+  if (JSON.stringify(liveChartConfiguration.value) === JSON.stringify(configuration)) return
   liveChartConfiguration.value = configuration
 }, { deep: true })
 
@@ -2660,10 +2838,11 @@ watch(() => props.tool.configuration.indicators, configured => {
 // workstation chart resolves a canonical instrument. This gives docked/popped-out
 // uPlot charts the same persisted drawing and alert-line mechanics as the legacy
 // chart panel, rather than rendering a cosmetic toolbar with no backing state.
-watch(() => [chartStore.instrument?.id, activeTimeframe.value] as const, ([instrumentId, timeframe]) => {
+watch(() => [chartStore.instrument?.id, activeTimeframe.value, workstationToolVisible.value] as const, ([instrumentId, timeframe, visible]) => {
   if (props.tool.tool_type !== 'chart' || !instrumentId) return
-  void drawingsStore.loadDrawings(instrumentId, timeframe as any)
-  void alertsStore.loadAlerts(instrumentId)
+  const priority = visible ? 'high' : 'auto'
+  void drawingsStore.loadDrawings(instrumentId, timeframe as any, priority)
+  void alertsStore.loadAlerts(instrumentId, priority)
 }, { immediate: true })
 const benchmarks = computed(() => workspaceStore.marketGroups['us-benchmarks']?.members.map(member => member.instrument.symbol) ?? [])
 const sectors = computed(() => workspaceStore.marketGroups['sp500-sectors']?.members.map(member => member.instrument.symbol) ?? [])
@@ -2679,6 +2858,7 @@ const benchmarkFamilyOptions = computed(() => {
   })
 })
 const benchmarkFamilyKey = ref(typeof props.tool.configuration.benchmark_family_key === 'string' ? props.tool.configuration.benchmark_family_key.trim() : '')
+const isBenchmarkUniverse = computed(() => workspaceToolRole(props.tool) === 'benchmark-universe')
 watch(() => props.tool.configuration.benchmark_family_key, value => {
   benchmarkFamilyKey.value = typeof value === 'string' ? value.trim() : ''
 })
@@ -2717,11 +2897,29 @@ const benchmarkFamilyMapRoleOptions = computed(() => benchmarkFamilyMapRoles.map
     available: Boolean(mapping?.symbol && mapping.holdings_available && mapping.available !== false),
   }
 }))
+// Roles a family overview has already proven available. A later overview for
+// another timeframe can still be loading; keep the user's proven choice
+// meanwhile instead of silently falling back to the cap-weight leg.
+const confirmedFamilyMapRoles = ref<Record<string, BenchmarkFamilyMapRole[]>>({})
+watch(benchmarkFamilyMapRoleOptions, options => {
+  if (!benchmarkFamilyKey.value || !benchmarkFamilyOverview.value) return
+  confirmedFamilyMapRoles.value = {
+    ...confirmedFamilyMapRoles.value,
+    [benchmarkFamilyKey.value]: options.filter(item => item.available).map(item => item.role),
+  }
+}, { immediate: true })
 const activeBenchmarkMapRole = computed<BenchmarkFamilyMapRole>(() => {
-  const selected = benchmarkFamilyMapRoleOptions.value.find(item => item.role === benchmarkFamilyMapRole.value && item.available)
-  return selected?.role ?? 'cap_weight'
+  const chosen = benchmarkFamilyMapRole.value
+  if (benchmarkFamilyOverview.value) {
+    return benchmarkFamilyMapRoleOptions.value.some(item => item.role === chosen && item.available) ? chosen : 'cap_weight'
+  }
+  return (confirmedFamilyMapRoles.value[benchmarkFamilyKey.value] ?? []).includes(chosen) ? chosen : 'cap_weight'
 })
 const benchmarkFamilyLoading = ref(false)
+const benchmarkFamilyPreparationStatus = ref('')
+let benchmarkFamilyPreparationGeneration = 0
+let benchmarkFamilyPreparationAbort: AbortController | null = null
+let benchmarkFamilyPreparationQueue = new PreparationProgressRefreshQueue()
 const benchmarkFamilyReadiness = computed(() => workspaceStore.benchmarkFamilyReadiness)
 const benchmarkFamilyReadinessError = computed(() => workspaceStore.benchmarkFamilyReadinessError)
 const benchmarkFamilyReadinessLoading = ref(false)
@@ -2816,6 +3014,10 @@ const breadth = computed(() => workspaceStore.breadth[breadthGroupKey.value])
 const breadthHistory = computed(() => workspaceStore.breadthHistory[breadthGroupKey.value])
 const breadthBusy = computed(() => workspaceStore.breadthLoading[breadthGroupKey.value] === true || workspaceStore.breadthHistoryLoading[breadthGroupKey.value] === true)
 const breadthError = computed(() => workspaceStore.breadthErrors[breadthGroupKey.value] ?? workspaceStore.breadthHistoryErrors[breadthGroupKey.value] ?? null)
+const breadthPreparationStatus = ref('')
+let breadthPreparationGeneration = 0
+let breadthPreparationAbort: AbortController | null = null
+let breadthAnalysisRefreshQueue = new PreparationProgressRefreshQueue()
 const breadthCustomUniverseKind = computed(() => {
   const candidate = breadthConfigurationValue('custom_universe_kind')
   return candidate === 'etf_holdings' || candidate === 'benchmark_family' || candidate === 'watchlist' ? candidate : 'group'
@@ -3401,14 +3603,16 @@ const genericBreadthHistory = computed<GenericBreadthHistoryState | null>(() => 
   }
   return workspaceStore.genericBreadthHistory[genericBreadthKey.value] ?? null
 })
-const genericBreadthLoading = computed(() => breadthUsesPython.value
+const genericBreadthEvaluationLoading = computed(() => breadthUsesPython.value
   ? breadthPythonSeriesLoading.value
-  : workspaceStore.genericBreadthLoading[genericBreadthKey.value] === true || workspaceStore.genericBreadthHistoryLoading[genericBreadthKey.value] === true)
+  : workspaceStore.genericBreadthLoading[genericBreadthKey.value] === true)
+const genericBreadthHistoryLoading = computed(() => !breadthUsesPython.value
+  && workspaceStore.genericBreadthHistoryLoading[genericBreadthKey.value] === true)
 const genericBreadthRunError = ref('')
 watch([breadthCustomUniverseKind, breadthWatchlistSourceId], () => {
   genericBreadthRunError.value = ''
 })
-const genericBreadthError = computed(() => {
+const genericBreadthEvaluationError = computed(() => {
   if (genericBreadthRunError.value) return genericBreadthRunError.value
   if (breadthUsesPython.value) {
     if (breadthPythonSeriesError.value) return breadthPythonSeriesError.value
@@ -3416,8 +3620,11 @@ const genericBreadthError = computed(() => {
     if (breadthPythonSeriesStatus.value === 'canceled') return 'The isolated Python breadth run was canceled.'
     return null
   }
-  return workspaceStore.genericBreadthErrors[genericBreadthKey.value] ?? workspaceStore.genericBreadthHistoryErrors[genericBreadthKey.value] ?? null
+  return workspaceStore.genericBreadthErrors[genericBreadthKey.value] ?? null
 })
+const genericBreadthHistoryError = computed(() => breadthUsesPython.value
+  ? null
+  : workspaceStore.genericBreadthHistoryErrors[genericBreadthKey.value] ?? null)
 const genericBreadthPercentage = computed(() => genericBreadth.value?.percentage == null ? 'Unavailable' : `${(genericBreadth.value.percentage * 100).toFixed(1)}%`)
 const genericBreadthCoverage = computed(() => genericBreadth.value == null ? 'Unavailable' : `${(genericBreadth.value.coverage * 100).toFixed(1)}%`)
 const genericBreadthReferenceTargetEvidence = computed(() => breadthReferenceTargetEvidence(genericBreadth.value?.condition))
@@ -3520,9 +3727,20 @@ async function saveGenericBreadthDefinition() {
   }
 }
 const technical = computed(() => workspaceStore.technicals[activeSymbol.value])
+// The store leaves a symbol's technicals undefined until its request settles (null = settled empty).
+const technicalPending = computed(() => technical.value === undefined)
 const selectedETF = computed(() => workspaceStore.constituentETF ?? '')
-const isConstituentTool = computed(() => props.tool.instance_key === 'constituent-list'
-  || (props.tool.title ?? '').toLowerCase().includes('constituent'))
+// Holdings hydration can still be binding the ETF while its industry load is
+// already running; show the loading state rather than the "select a sector" prompt.
+const industryLoadPending = computed(() => Object.values(workspaceStore.etfIndustryLoading).some(Boolean))
+const isConstituentTool = computed(() => workspaceToolRole(props.tool) === 'constituent-universe')
+// A persisted generic watchlist flag must not override a factory semantic role.
+// Older or cloned Industry/Constituent windows can carry `personal: true`; keep
+// rendering their dated domain surface even when its source rows are empty.
+const isPersonalWatchlistTool = computed(() => props.tool.tool_type === 'watchlist'
+  && !isIndustryTool.value
+  && !isConstituentTool.value
+  && (props.tool.configuration.personal === true || isFavoritesTool.value))
 const showsETFCompositionContext = computed(() => isConstituentTool.value || isIndustryTool.value)
 const toolHeaderSymbol = computed(() => showsETFCompositionContext.value && selectedETF.value
   ? selectedETF.value
@@ -3579,6 +3797,118 @@ const industries = computed(() => industryComposition.value?.industries ?? [])
 const industrySnapshot = computed(() => selectedETF.value ? workspaceStore.industrySnapshots[selectedETF.value] : null)
 const selectedIndustry = computed(() => workspaceStore.selectedIndustry)
 const selectedIndustryProxy = computed(() => workspaceStore.selectedIndustryProxy)
+const industryProfilePreparation = ref<{ pending: number; total: number; message: string | null } | null>(null)
+let industryProfilePreparationGeneration = 0
+let industryProfilePreparationAbort: AbortController | null = null
+let industryCompositionRefreshQueue = new PreparationProgressRefreshQueue()
+const industryHistoricalAsOf = computed(() => {
+  const configuration = props.tool.configuration as Record<string, unknown>
+  const value = configuration.as_of ?? configuration.as_of_date ?? configuration.historical_as_of
+  return typeof value === 'string' && value.trim() ? value.trim() : null
+})
+watch(
+  [isIndustryTool, isActiveToolWindow, selectedETF, () => holdings.value?.snapshot.id, () => holdings.value?.holdings.map(row => `${row.snapshot_id}:${row.id}:${row.constituent_instrument_id ?? ''}:${row.is_resolved}`).join(',') ?? '', industryHistoricalAsOf],
+  ([isIndustry, isActive, etf, snapshotId, _rowsRevision, historicalAsOf]) => {
+    const generation = ++industryProfilePreparationGeneration
+    industryProfilePreparationAbort?.abort()
+    industryProfilePreparationAbort = null
+    industryCompositionRefreshQueue = new PreparationProgressRefreshQueue()
+    industryProfilePreparation.value = null
+    if (!isIndustry || !isActive || !etf || !snapshotId || historicalAsOf) return
+
+    const page = holdings.value
+    if (!page || page.snapshot.id !== snapshotId) return
+    const instrumentIds: number[] = [...new Set(page.holdings
+      .filter(row => row.snapshot_id === snapshotId && isResolvedCanonicalEquityHolding(row))
+      .map(row => row.constituent_instrument_id)
+      .filter((id): id is number => Number.isSafeInteger(id) && Number(id) > 0))]
+    if (!instrumentIds.length) return
+
+    const controller = new AbortController()
+    industryProfilePreparationAbort = controller
+    industryProfilePreparation.value = {
+      pending: instrumentIds.length,
+      total: instrumentIds.length,
+      message: `Preparing source industry classifications for ${instrumentIds.length} resolved holdings…`,
+    }
+    const unavailableInstruments = new Set<number>()
+    const isCurrent = () => !disposed
+      && generation === industryProfilePreparationGeneration
+      && !controller.signal.aborted
+      && isIndustryTool.value
+      && isActiveToolWindow.value
+      && selectedETF.value === etf
+      && holdings.value?.snapshot.id === snapshotId
+      && !industryHistoricalAsOf.value
+    const refreshComposition = (response: DataEnsureResponse) => {
+      if (!isCurrent()) return
+      // Re-read the ordinary dated composition endpoint so source labels and
+      // row provenance remain authoritative. The shared progress queue
+      // coalesces overlapping profile completions without waiting on held IDs.
+      void industryCompositionRefreshQueue.request(response, async () => {
+        if (isCurrent()) await workspaceStore.loadETFIndustries(etf)
+      })
+    }
+    const profileFieldReady = (response: DataEnsureResponse) => response.dependencies.some(dependency =>
+      dependency.dataset === 'profile' && dependency.status === 'ready')
+    const hasUnavailableProfile = (response: DataEnsureResponse) => response.dependencies.some(dependency =>
+      dependency.dataset === 'profile' && ['waiting', 'unavailable', 'failed'].includes(dependency.status))
+    const requests = instrumentIds.map(instrumentId => dataPreparationCoordinator.ensure({
+      target: { kind: 'instrument', instrument_id: instrumentId },
+      datasets: ['profile'],
+      required_profile_fields: ['industry'],
+    }, {
+      signal: controller.signal,
+      onProgress: ({ response }) => {
+        if (!isCurrent()) return
+        if (profileFieldReady(response)) refreshComposition(response)
+        else if ((response.status === 'waiting' || hasUnavailableProfile(response)) && industryProfilePreparation.value) {
+          industryProfilePreparation.value = {
+            ...industryProfilePreparation.value,
+            message: preparationStatusMessage(response),
+          }
+        }
+      },
+    }).then(response => {
+      if (!isCurrent()) return
+      if (profileFieldReady(response) || response.status === 'ready') refreshComposition(response)
+      else if (['waiting', 'unavailable', 'failed'].includes(response.status) || hasUnavailableProfile(response)) {
+        unavailableInstruments.add(instrumentId)
+        if (industryProfilePreparation.value) {
+          industryProfilePreparation.value = {
+            ...industryProfilePreparation.value,
+            message: preparationStatusMessage(response),
+          }
+        }
+      } else if (industryProfilePreparation.value) {
+        industryProfilePreparation.value = {
+          ...industryProfilePreparation.value,
+          message: preparationStatusMessage(response),
+        }
+      }
+    }).catch(() => {
+      // Preserve cached composition and other members' progress when one
+      // profile cannot be prepared. The composition response owns exclusions.
+      if (isCurrent()) unavailableInstruments.add(instrumentId)
+    }).finally(() => {
+      if (!isCurrent() || !industryProfilePreparation.value) return
+      const pending = Math.max(0, industryProfilePreparation.value.pending - 1)
+      industryProfilePreparation.value = {
+        ...industryProfilePreparation.value,
+        pending,
+        message: pending
+          ? `Preparing source industry classifications · ${instrumentIds.length - pending}/${instrumentIds.length} holdings checked…`
+          : unavailableInstruments.size
+            ? `${unavailableInstruments.size} constituent profile${unavailableInstruments.size === 1 ? '' : 's'} remain unavailable; dated source classifications stay visible.`
+            : null,
+      }
+    }))
+    // ensure() is called for every member synchronously above before awaiting
+    // any response, so a slow or held member cannot serialize the other work.
+    void Promise.allSettled(requests)
+  },
+  { immediate: true, flush: 'post' },
+)
 watch([() => selectedETF.value, () => holdings.value?.snapshot.id, () => selectedIndustry.value], () => {
   selectedConstituentRowKey.value = null
 })
@@ -3713,6 +4043,17 @@ function classificationLabel(systems?: string[]) {
 function classificationDetail(systems?: string[]) {
   const values = [...new Set((systems ?? []).filter(Boolean))]
   return values.length ? `Classification source: ${values.join(', ')}` : 'No source-labelled classification evidence'
+}
+function industryExclusionLabel(code: string) {
+  const labels: Record<string, string> = {
+    cash_holding: 'cash holdings',
+    derivative_holding: 'derivative holdings',
+    unresolved_holding: 'holdings without a canonical identity',
+    non_equity_holding: 'non-equity holdings',
+    classification_not_known_at_as_of: 'classifications not known by the selected date',
+    unclassified_constituent: 'constituents without source classification',
+  }
+  return labels[code] ?? 'rows excluded from the dated classification view'
 }
 const industryClassificationSummary = computed(() => {
   const composition = industryComposition.value
@@ -3863,29 +4204,29 @@ const sectorByYearYears = computed(() => {
   return calendarYearKeys(workspaceStore.groupSnapshots['sp500-sectors']?.rows ?? [])
 })
 const factoryWatchlistRows = computed(() => {
-  const title = (props.tool.title ?? '').toLowerCase()
+  const role = workspaceToolRole(props.tool)
   const factoryLayout = typeof props.tool.configuration.factory_layout === 'string' ? props.tool.configuration.factory_layout : ''
-  if (props.factoryLayout === 'sector-by-year' || factoryLayout === 'sector-by-year' || title.includes('sector by year')) return sectorRows.value
-  if (title.includes('sector')) return sectorRows.value
-  if (title.includes('industry') || title.includes('industries')) return industryRows.value
-  if (title.includes('component') || title.includes('constituent')) return constituentRows.value
+  if (props.factoryLayout === 'sector-by-year' || factoryLayout === 'sector-by-year') return sectorRows.value
+  if (role === 'sector-universe') return sectorRows.value
+  if (role === 'industry-universe') return industryRows.value
+  if (role === 'constituent-universe') return constituentRows.value
   return benchmarkRows.value
 })
 const factoryWatchlistSourceId = computed(() => {
-  const title = (props.tool.title ?? '').toLowerCase()
+  const role = workspaceToolRole(props.tool)
   const factoryLayout = typeof props.tool.configuration.factory_layout === 'string' ? props.tool.configuration.factory_layout : ''
-  if (props.factoryLayout === 'sector-by-year' || factoryLayout === 'sector-by-year' || title.includes('sector')) return 'market-group:sp500-sectors'
-  if (title.includes('industry') || title.includes('industries')) return null
-  if (title.includes('component') || title.includes('constituent')) return constituentMarketMapSourceId.value
+  if (props.factoryLayout === 'sector-by-year' || factoryLayout === 'sector-by-year' || role === 'sector-universe') return 'market-group:sp500-sectors'
+  if (role === 'industry-universe') return null
+  if (role === 'constituent-universe') return constituentMarketMapSourceId.value
   return 'market-group:us-benchmarks'
 })
 const factoryWatchlistColumns = computed<WatchlistColumn[]>(() => {
-  const title = (props.tool.title ?? '').toLowerCase()
+  const role = workspaceToolRole(props.tool)
   const factoryLayout = typeof props.tool.configuration.factory_layout === 'string' ? props.tool.configuration.factory_layout : ''
-  if (props.factoryLayout === 'sector-by-year' || factoryLayout === 'sector-by-year' || title.includes('sector by year')) return sectorByYearColumns.value
-  if (title.includes('sector')) return sectorColumns
-  if (title.includes('industry') || title.includes('industries')) return industryColumns
-  if (title.includes('component') || title.includes('constituent')) return constituentColumns
+  if (props.factoryLayout === 'sector-by-year' || factoryLayout === 'sector-by-year') return sectorByYearColumns.value
+  if (role === 'sector-universe') return sectorColumns
+  if (role === 'industry-universe') return industryColumns
+  if (role === 'constituent-universe') return constituentColumns
   return benchmarkColumns
 })
 const latestChartBar = computed(() => chartStore.bars.length ? chartStore.bars[chartStore.bars.length - 1] : null)
@@ -4213,9 +4554,19 @@ async function addConditionColumn(payload: TechnicalConditionDragPayload) {
     })
     let scan: { id: number } = existing.find(item => item.name.toLowerCase() === screenerName.toLowerCase()) ?? { id: 0 }
     if (!scan.id) {
-      scan = await api.post<{ id: number }>(`/screeners/from-condition/${encodeURIComponent(stableKey)}`, {
-        name: screenerName, universe_type: 'all', timeframe: payload.timeframe,
-      })
+      try {
+        scan = await api.post<{ id: number }>(`/screeners/from-condition/${encodeURIComponent(stableKey)}`, {
+          name: screenerName, universe_type: 'all', timeframe: payload.timeframe,
+        })
+      } catch (cause: any) {
+        // The cached list can predate a same-named screener created by an
+        // earlier drop or another surface; reuse it instead of failing.
+        if (cause?.status !== 409 && !String(cause?.message ?? '').includes(' 409:')) throw cause
+        const fresh = (await api.get<Array<{ id: number; name: string }>>('/screeners')) ?? []
+        const reused = fresh.find(item => item.name.toLowerCase() === screenerName.toLowerCase())
+        if (!reused) throw cause
+        scan = reused
+      }
     }
     await api.post(`/screeners/${scan.id}/run`, {})
     await queryClient.invalidateQueries({ queryKey: ['workstation', 'screeners'] })
@@ -4348,7 +4699,7 @@ const technicalMAs = computed(() => [technical.value?.sma20, technical.value?.sm
   .map(value => formatNumber(value)).join(' / '))
 function breadthMetric(key: string) {
   const value = key.startsWith('ma')
-    ? breadth.value?.above_ma[key]
+    ? breadth.value?.above_ma?.[key]
     : key === 'near_52w_high' ? breadth.value?.near_52w?.high
       : key === 'near_52w_low' ? breadth.value?.near_52w?.low
         : key === 'new_high' ? breadth.value?.new_highs?.lookback
@@ -4386,18 +4737,21 @@ function setBreadthGroup(groupKey: string) {
 }
 function setBenchmarkFamily(familyKey: string) {
   const normalized = benchmarkFamilyOptions.value.some(family => family.logicalKey === familyKey) ? familyKey : ''
+  benchmarkFamilyUserSelection = Boolean(normalized)
   benchmarkFamilyKey.value = normalized
   benchmarkFamilyMapRole.value = 'cap_weight'
   emit('configuration', props.tool.instance_key, {
     ...props.tool.configuration,
+    workspace_role: 'benchmark-universe',
     benchmark_family_key: normalized || null,
     benchmark_family_map_role: normalized ? 'cap_weight' : null,
   })
 }
 function setBenchmarkFamilyMapRole(role: string) {
   const normalized = benchmarkFamilyMapRoles.includes(role as BenchmarkFamilyMapRole) ? role as BenchmarkFamilyMapRole : 'cap_weight'
-  const available = benchmarkFamilyMapRoleOptions.value.find(item => item.role === normalized)?.available ?? false
-  if (!available) return
+  // Keep the user's chosen role even while the family overview is still
+  // proving availability; activeBenchmarkMapRole applies it only once the role
+  // is available and otherwise stays on the cap-weight leg.
   benchmarkFamilyMapRole.value = normalized
   emit('configuration', props.tool.instance_key, { ...props.tool.configuration, benchmark_family_map_role: normalized })
 }
@@ -4441,7 +4795,7 @@ async function loadBreadthPythonSeriesAssets() {
   if (props.tool.instance_key !== 'breadth-summary' && props.tool.tool_type !== 'breadth') return
   breadthPythonSeriesAssetsLoading.value = true
   try {
-    const assets = await fetchCodeAssets(queryClient)
+    const assets = await fetchCodeAssets(queryClient, { priority: workstationToolVisible.value ? 'high' : 'low' })
     if (disposed) return
     breadthPythonSeriesAssets.value = assets
       .filter((asset: CodeAssetSummary) => asset.kind === 'condition')
@@ -4458,48 +4812,185 @@ async function loadBreadthPythonSeriesAssets() {
   }
 }
 async function loadBreadthUniverse(groupKey: string, timeframe = breadthTimeframe.value, adjusted = breadthAdjusted.value, lookback = breadthLookback.value) {
+  const generation = ++breadthPreparationGeneration
+  breadthPreparationAbort?.abort()
+  breadthPreparationAbort = null
+  breadthAnalysisRefreshQueue = new PreparationProgressRefreshQueue()
+  breadthPreparationStatus.value = ''
+  if (disposed || !groupKey) return
+  const controller = new AbortController()
+  breadthPreparationAbort = controller
+  const isCurrent = () => !disposed
+    && generation === breadthPreparationGeneration
+    && !controller.signal.aborted
+    && breadthGroupKey.value === groupKey
+    && breadthTimeframe.value === timeframe
+    && breadthAdjusted.value === adjusted
+    && breadthLookback.value === lookback
   const options = { ...(timeframe !== 'D1' ? { timeframe } : {}), ...(adjusted !== true ? { adjusted } : {}), ...(lookback !== 20 ? { new_high_lookback: lookback } : {}), ...(familyAsOf.value ? { as_of: familyAsOf.value } : {}) }
   const registry = workspaceStore.marketGroups['us-benchmarks']?.provenance?.benchmark_families
   const familyRecord = Array.isArray(registry)
     ? registry.find(item => item && typeof item === 'object' && (item as Record<string, unknown>).logical_key === groupKey) as Record<string, unknown> | undefined
     : undefined
   const capMapping = familyRecord?.cap_weight && typeof familyRecord.cap_weight === 'object' ? familyRecord.cap_weight as Record<string, unknown> : null
-  const familyBenchmark = typeof capMapping?.symbol === 'string' && capMapping.symbol.trim() ? capMapping.symbol.trim().toUpperCase() : undefined
   // Family roots must never borrow SPY when their own cap mapping is absent. The
   // generic sector/benchmark groups retain their established SPY comparison.
-  const snapshotBenchmark = familyRecord ? familyBenchmark : 'SPY'
-  await Promise.all([
-    workspaceStore.loadMarketGroup(groupKey),
-    workspaceStore.loadGroupSnapshot(groupKey, snapshotBenchmark, options),
-    workspaceStore.loadBreadth(groupKey, options),
-    workspaceStore.loadBreadthHistory(groupKey, options),
-  ])
+  const familyBenchmark = typeof capMapping?.symbol === 'string' && capMapping.symbol.trim() ? capMapping.symbol.trim().toUpperCase() : undefined
+  const snapshotBenchmark = breadthSnapshotBenchmark(familyRecord ?? null, familyBenchmark)
+  const refreshAnalysis = async () => {
+    if (!isCurrent()) return
+    await Promise.all([
+      workspaceStore.loadMarketGroup(groupKey, { priority: workstationToolVisible.value ? 'high' : 'low' }),
+      workspaceStore.loadGroupSnapshot(groupKey, snapshotBenchmark, options),
+      workspaceStore.loadBreadth(groupKey, options),
+      workspaceStore.loadBreadthHistory(groupKey, options),
+    ])
+  }
+  // Read available local results immediately while durable preparation starts
+  // independently; neither a slow nor failed analysis read should delay the
+  // governed worker request for this exact current group.
+  void refreshAnalysis().catch(() => undefined)
+  if (!isCurrent() || familyAsOf.value) return
+  breadthPreparationStatus.value = `Preparing ${groupKey} history for ${timeframe} breadth…`
+  const targets: DataEnsureRequest['target'][] = [isBenchmarkFamily.value
+    ? { kind: 'family', family_key: groupKey }
+    : { kind: 'market_group', group_key: groupKey }]
+  // The snapshot request consumes its configured comparison leg independently
+  // of the universe. Family roots only use their own explicit cap mapping;
+  // they never inherit the generic sector group's SPY default.
+  if (snapshotBenchmark) targets.push({ kind: 'instrument', symbol: snapshotBenchmark })
+  void Promise.all(targets.map(target => dataPreparationCoordinator.ensure({
+    target,
+    datasets: ['history'],
+    timeframe: timeframe as PreparationTimeframe,
+    adjusted,
+  }, {
+    signal: controller.signal,
+    onProgress: ({ response }) => {
+      if (!isCurrent()) return
+      breadthPreparationStatus.value = preparationStatusMessage(response)
+      if (shouldRefreshAnalysisProgress(response)) {
+        void breadthAnalysisRefreshQueue.request(response, refreshAnalysis).catch(() => undefined)
+      }
+    },
+  }))).then(async responses => {
+    if (!isCurrent()) return
+    const pending = responses.find(response => response.status !== 'ready')
+    breadthPreparationStatus.value = pending ? preparationStatusMessage(pending) : ''
+    await Promise.all(responses.filter(shouldRefreshAnalysisProgress).map(response => breadthAnalysisRefreshQueue.request(response, refreshAnalysis)))
+  }).catch(cause => {
+    if (!isCurrent() || (cause instanceof DOMException && cause.name === 'AbortError')) return
+    breadthPreparationStatus.value = 'Market data preparation is unavailable; showing any saved breadth results.'
+  })
 }
 let benchmarkFamilyLoadSequence = 0
+// An explicit family choice is foreground work even before the dock reports
+// this tool visible; its role choices wait on the overview.
+let benchmarkFamilyUserSelection = false
 watch([benchmarkFamilyKey, benchmarkFamilyCapProxy, activeTimeframe], async ([familyKey, _capProxy, timeframe]) => {
-  if (disposed || props.tool.instance_key !== 'benchmark-list' || !familyKey) return
+  if (disposed || !isBenchmarkUniverse.value) return
+  const overviewPriority = benchmarkFamilyUserSelection || workstationToolVisible.value ? 'high' : 'low'
+  benchmarkFamilyUserSelection = false
   const sequence = ++benchmarkFamilyLoadSequence
+  benchmarkFamilyPreparationGeneration += 1
+  benchmarkFamilyPreparationAbort?.abort()
+  benchmarkFamilyPreparationAbort = null
+  benchmarkFamilyPreparationStatus.value = ''
+  // A prior family request may still be in flight when the user switches to
+  // the plain benchmark catalogue. Its finally block is generation-fenced, so
+  // release the foreground busy state for this new context before returning.
+  benchmarkFamilyLoading.value = false
+  if (!familyKey) return
+  if (!familyAsOf.value) {
+    const preparationGeneration = ++benchmarkFamilyPreparationGeneration
+    const controller = new AbortController()
+    benchmarkFamilyPreparationAbort = controller
+    benchmarkFamilyPreparationQueue = new PreparationProgressRefreshQueue()
+    const isCurrentPreparation = () => !disposed
+      && sequence === benchmarkFamilyLoadSequence
+      && preparationGeneration === benchmarkFamilyPreparationGeneration
+      && !controller.signal.aborted
+      && benchmarkFamilyKey.value === familyKey
+      && activeTimeframe.value === timeframe
+    const refreshFamily = async () => {
+      if (!isCurrentPreparation()) return
+      await Promise.all([
+        workspaceStore.loadMarketGroup(familyKey, { priority: workstationToolVisible.value ? 'high' : 'low' }),
+        workspaceStore.loadGroupSnapshot(familyKey, benchmarkFamilyCapProxy.value, { ...(timeframe !== 'D1' ? { timeframe } : {}) }),
+        workspaceStore.loadBenchmarkFamilyOverview(familyKey, { ...(timeframe !== 'D1' ? { timeframe } : {}), priority: overviewPriority }),
+      ])
+    }
+    const targets: DataEnsureRequest['target'][] = benchmarkFamilyHistoryTargets(familyKey, benchmarkFamilyCapProxy.value)
+    benchmarkFamilyPreparationStatus.value = benchmarkFamilyCapProxy.value
+      ? 'Preparing family history and its configured benchmark…'
+      : 'Preparing family history; no cap-weight comparison proxy is mapped for this family.'
+    void Promise.all(targets.map(target => dataPreparationCoordinator.ensure({
+      target, datasets: ['history'], timeframe: timeframe as PreparationTimeframe, adjusted: true,
+    }, {
+      signal: controller.signal,
+      onProgress: ({ response }) => {
+        if (!isCurrentPreparation()) return
+        benchmarkFamilyPreparationStatus.value = preparationStatusMessage(response)
+        if (shouldRefreshAnalysisProgress(response) && !(response.status === 'ready' && response.version <= 1)) {
+          void benchmarkFamilyPreparationQueue.request(response, refreshFamily).catch(() => undefined)
+        }
+      },
+    }))).then(async responses => {
+      if (!isCurrentPreparation()) return
+      const pending = responses.find(response => response.status !== 'ready')
+      benchmarkFamilyPreparationStatus.value = pending ? preparationStatusMessage(pending) : ''
+      await Promise.all(responses.filter(response => shouldRefreshAnalysisProgress(response) && !(response.status === 'ready' && response.version <= 1)).map(response => benchmarkFamilyPreparationQueue.request(response, refreshFamily)))
+    }).catch(cause => {
+      if (!isCurrentPreparation() || (cause instanceof DOMException && cause.name === 'AbortError')) return
+      benchmarkFamilyPreparationStatus.value = 'Family data preparation is unavailable; showing any saved results.'
+    })
+  } else {
+    benchmarkFamilyPreparationStatus.value = 'Historical family context is preserved; current data preparation is not applied to dated membership.'
+  }
   benchmarkFamilyLoading.value = true
   try {
     await Promise.all([
-      workspaceStore.loadMarketGroup(familyKey),
+      workspaceStore.loadMarketGroup(familyKey, { priority: workstationToolVisible.value ? 'high' : 'low' }),
       workspaceStore.loadGroupSnapshot(familyKey, benchmarkFamilyCapProxy.value, {
         ...(timeframe !== 'D1' ? { timeframe } : {}),
       }),
       workspaceStore.loadBenchmarkFamilyOverview(familyKey, {
         ...(timeframe !== 'D1' ? { timeframe } : {}),
+        priority: overviewPriority,
       }),
     ])
   } finally {
     if (!disposed && sequence === benchmarkFamilyLoadSequence) benchmarkFamilyLoading.value = false
   }
 }, { immediate: true })
-watch(() => props.tool.instance_key, async instanceKey => {
-  if (disposed || instanceKey !== 'benchmark-list') return
+// A persisted family can mount while the dock still reports this tool hidden,
+// queueing its overview behind startup fanout. Once visible, the role choices
+// are user-facing; fetch the missing overview as foreground work.
+watch(workstationToolVisible, visible => {
+  if (disposed || !visible || !isBenchmarkUniverse.value || !benchmarkFamilyKey.value || benchmarkFamilyOverview.value) return
+  void workspaceStore.loadBenchmarkFamilyOverview(benchmarkFamilyKey.value, {
+    ...(activeTimeframe.value !== 'D1' ? { timeframe: activeTimeframe.value } : {}),
+    priority: 'high',
+  })
+})
+watch(isBenchmarkUniverse, async isBenchmark => {
+  if (disposed || !isBenchmark) return
   const sequence = ++benchmarkFamilyReadinessSequence
   benchmarkFamilyReadinessLoading.value = true
   try {
-    await workspaceStore.loadBenchmarkFamilyReadiness()
+    await queryClient.fetchQuery<BenchmarkFamilyReadinessState>({
+      queryKey: ['workstation', 'benchmark-family-readiness', 'latest', 256],
+      queryFn: async () => {
+        const result = await workspaceStore.loadBenchmarkFamilyReadiness()
+        if (!result) throw new Error('Benchmark family readiness is unavailable.')
+        return result
+      },
+      staleTime: 60_000,
+    })
+  } catch {
+    // The store exposes its typed request error and keeps the previous local
+    // readiness result. Failed reads are not cached by Vue Query, so a later
+    // remount can recover without a special retry loop.
   } finally {
     if (!disposed && sequence === benchmarkFamilyReadinessSequence) benchmarkFamilyReadinessLoading.value = false
   }
@@ -4568,6 +5059,7 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 <style scoped>
 .chart-tool { display: flex; height: 100%; min-height: 0; background: #101419; container-type: inline-size; container-name: chart-tool; }
 .chart-tool__drawing-toolbar { flex: 0 0 40px; max-height: 100%; box-sizing: border-box; overflow-x: hidden; overflow-y: auto; }
+.chart-tool__drawing-toolbar--inactive { pointer-events: none; }
 .chart-tool__surface { position: relative; z-index: 2; min-width: 0; min-height: 0; flex: 1 1 auto; padding-top: 24px; box-sizing: border-box; }
 .chart-tool__status { position: absolute; inset: 24px 0 0; z-index: 4; background: rgba(7, 12, 16, 0.72); pointer-events: none; }
 .chart-tool__history-acquisition { position: absolute; z-index: 11; top: 50%; left: 50%; display: grid; justify-items: center; gap: 8px; width: max-content; max-width: calc(100% - 24px); box-sizing: border-box; transform: translate(-50%, -50%); padding: 10px 12px; color: var(--tc-text, #d5dde4); background: var(--tc-surface, #20282e); border: 1px solid var(--tc-border, #38444c); border-radius: 6px; box-shadow: 0 6px 18px #0008; text-align: center; }
@@ -4598,13 +5090,13 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
   .chart-tool__templates { top: 25px; right: 4px; }
 }
 /* A desktop workstation can contain a much narrower chart pane than the
-   viewport. Use the chart container's actual width so comparison chips never
-   cover Plots in dense factory layouts. */
+   viewport. Reserve a separate compact controls row for every chart so Plots
+   and Templates remain distinct, hittable controls with or without comparisons. */
 @container chart-tool (max-width: 560px) {
-  .chart-tool__surface--comparisons { padding-top: 46px; }
+  .chart-tool__surface { padding-top: 46px; }
+  .chart-tool__plots { top: 25px; left: 4px; right: auto; }
+  .chart-tool__templates { top: 25px; right: 4px; }
   .chart-tool__surface--comparisons .chart-tool__compare { top: 3px; left: 4px; right: 4px; max-width: none; }
-  .chart-tool__surface--comparisons .chart-tool__plots { top: 25px; left: 4px; right: auto; }
-  .chart-tool__surface--comparisons .chart-tool__templates { top: 25px; right: 4px; }
 }
 .tool-state { display: grid; place-items: center; height: 100%; padding: 12px; color: #98a7b2; font: 11px "Segoe UI", Arial, sans-serif; text-align: center; }
 .tool-state--error { color: #ec8f8f; }
@@ -4640,6 +5132,7 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 .breadth-tool__family-coverage { display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; padding:4px 7px; border-top:1px solid #2b3841; color:#9aabb6; }.breadth-tool__family-coverage > span { color:#778994; }.breadth-tool__family-coverage-roles { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); flex:1 0 100%; gap:3px; }.breadth-tool__family-coverage-roles span { min-width:0; padding:3px 4px; border:1px solid #2b3841; color:#8497a4; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }.breadth-tool__family-coverage-roles b { color:#cad4db; }.analysis { height: 100%; min-height: 0; }
 .breadth-tool { display:flex; flex-direction:column; height:100%; min-height:0; overflow:auto; container-type:inline-size; }.breadth-tool__universe { display:flex; flex-wrap:wrap; gap:5px; align-items:center; padding:5px 7px 0; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; min-width:0; }.breadth-tool__universe span { flex:0 0 auto; }.breadth-tool__universe select,.breadth-tool__universe input { border:1px solid #34434e; background:#172027; color:#d2dce3; font:inherit; min-width:0; max-width:100%; }.breadth-tool__universe select { flex:1 1 100px; }.breadth-tool__universe input { width:42px; flex:0 1 42px; }.breadth-tool__universe label { display:flex; flex:0 0 auto; align-items:center; gap:3px; white-space:nowrap; }.breadth-tool__custom { display:flex; flex-wrap:wrap; align-items:center; gap:4px; padding:5px 7px; border-top:1px solid #2b3841; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__custom select,.breadth-tool__custom input,.breadth-tool__custom button { border:1px solid #34434e; background:#172027; color:#d2dce3; font:inherit; min-width:0; }.breadth-tool__custom input { width:44px; }.breadth-tool__custom label { display:flex; align-items:center; gap:3px; }.breadth-tool__custom button { padding:2px 6px; cursor:pointer; }.breadth-tool__custom-result { color:#c3d2dc; white-space:nowrap; }.breadth-tool__composition-note { color:#74858f; }.breadth-tool__family-ratios { display:flex; flex-wrap:wrap; align-items:center; gap:4px; padding:5px 7px; border-top:1px solid #2b3841; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__family-ratios select,.breadth-tool__family-ratios input { border:1px solid #34434e; background:#172027; color:#d2dce3; font:inherit; min-width:0; }.breadth-tool__family-ratios input { width:44px; }.breadth-tool__family-ratio { display:inline-flex; align-items:center; gap:4px; padding-left:4px; border-left:1px solid #34434e; }.breadth-tool__family-ratio b { color:#d7e8f0; }.breadth-tool__family-ratio small { color:#778994; }.breadth-tool__family-overview { min-height:0; max-height:230px; overflow:auto; border-top:1px solid #2b3841; border-bottom:1px solid #2b3841; background:#131a20; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__family-overview-header,.breadth-tool__family-constituents-header { display:flex; justify-content:space-between; gap:8px; align-items:center; padding:4px 7px; position:sticky; top:0; z-index:1; background:#20282f; }.breadth-tool__family-overview-header span,.breadth-tool__family-constituents-header span { color:#778994; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }.breadth-tool__family-legs { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:3px; padding:4px 6px; }.breadth-tool__family-leg { min-width:0; padding:4px; border:1px solid #2b3841; background:#172027; }.breadth-tool__family-leg--selected { border-color:#5d9ab6; background:#1b3340; }.breadth-tool__family-leg div { display:flex; justify-content:space-between; gap:4px; }.breadth-tool__family-leg div span,.breadth-tool__family-leg small { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#778994; }.breadth-tool__family-leg button { margin-top:3px; padding:1px 4px; border:1px solid #34434e; background:#11181d; color:#c7d6df; font:inherit; cursor:pointer; }.breadth-tool__family-leg button:disabled { cursor:not-allowed; opacity:.55; }.breadth-tool__family-constituents { border-top:1px solid #2b3841; }.breadth-tool__family-constituents > button { display:flex; gap:8px; width:100%; border:0; border-bottom:1px solid #20282f; background:transparent; color:#cad4db; padding:3px 7px; text-align:left; cursor:pointer; }.breadth-tool__family-constituents > button:hover { background:#1d4057; }.breadth-tool__family-constituents > button span { color:#81929e; }.breadth-tool__family-constituents > button small { margin-left:auto; color:#9bb6c3; }.breadth-tool__status { margin:0; padding:5px 7px; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__status--error { color:#ff9b8a; }.metrics { display: grid; grid-template-columns: 1fr auto; gap: 5px 10px; padding: 9px; color: #99aabb; font: 10px "Segoe UI", Arial, sans-serif; }.breadth-tool__coverage-detail { padding:0 7px 4px; color:#778994; font:9px "Segoe UI",Arial,sans-serif; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }.breadth-tool__actions { display:flex; gap:3px; justify-content:flex-end; }.breadth-tool__actions button,.breadth-tool__drilldown header button,.breadth-tool__generic-drilldown header button { border:1px solid #34434e; background:#172027; color:#b9c8d1; font:inherit; padding:1px 4px; cursor:pointer; }.breadth-tool__actions button:hover,.breadth-tool__action--active { background:#1d4057; color:#e5f1f7; }.breadth-tool__drilldown,.breadth-tool__generic-drilldown { min-height:0; max-height:150px; overflow:auto; border-top:1px solid #2b3841; border-bottom:1px solid #2b3841; background:#131a20; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__drilldown header,.breadth-tool__generic-drilldown header,.breadth-tool__generic-history-events header { display:flex; justify-content:space-between; align-items:center; padding:4px 7px; color:#9aabb6; position:sticky; top:0; background:#20282f; }.breadth-tool__drilldown > button,.breadth-tool__generic-drilldown > button,.breadth-tool__generic-history-events > button { display:flex; gap:8px; width:100%; border:0; border-bottom:1px solid #20282f; background:transparent; color:#cad4db; padding:4px 7px; text-align:left; cursor:pointer; }.breadth-tool__drilldown > button:hover,.breadth-tool__generic-drilldown > button:hover,.breadth-tool__generic-history-events > button:hover { background:#1d4057; }.breadth-tool__drilldown > button span,.breadth-tool__generic-drilldown > button span,.breadth-tool__generic-history-events > button span { color:#81929e; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }.breadth-tool__generic-drilldown > button small,.breadth-tool__generic-history-events > button small { margin-left:auto; color:#9bb6c3; }.breadth-tool__drilldown > small,.breadth-tool__generic-drilldown > small,.breadth-tool__generic-history-events > small { display:block; padding:7px; color:#8497a4; }.breadth-tool__generic-history-events { min-height:0; max-height:150px; overflow:auto; border-top:1px solid #2b3841; border-bottom:1px solid #2b3841; background:#131a20; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__generic-history-events header span { color:#778994; }
 .breadth-tool__generic-history-events { position: relative; z-index: 2; }
+.breadth-tool__generic-drilldown { flex: 0 0 auto; }
 .breadth-tool__member-diagnostics { flex:1 1 100%; margin-left:0 !important; color:#d0a66a !important; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .breadth-tool__generic-diagnostics { max-height:110px; overflow:auto; border-top:1px solid #2b3841; border-bottom:1px solid #2b3841; background:#131a20; color:#d0a66a; font:9px "Segoe UI",Arial,sans-serif; }.breadth-tool__generic-diagnostics header { display:flex; justify-content:space-between; padding:4px 7px; position:sticky; top:0; background:#20282f; color:#9aabb6; }.breadth-tool__generic-diagnostics header span { color:#778994; }.breadth-tool__generic-diagnostics > div:not(header) { padding:2px 7px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .breadth-tool__generic-evidence { padding:2px 7px 4px; border-top:1px solid #2b3841; color:#8497a4; font:9px "Segoe UI",Arial,sans-serif; }.breadth-tool__generic-evidence summary { width:max-content; color:#9aabb6; cursor:pointer; }.breadth-tool__generic-evidence dl { display:grid; grid-template-columns:max-content minmax(0,1fr); gap:2px 8px; margin:5px 0; }.breadth-tool__generic-evidence dl > div { display:contents; }.breadth-tool__generic-evidence dt { color:#778994; }.breadth-tool__generic-evidence dd { min-width:0; margin:0; color:#b9c8d1; overflow-wrap:anywhere; }.breadth-tool__generic-evidence code { color:#9bb6c3; overflow-wrap:anywhere; }.breadth-tool__generic-evidence section > strong { color:#9aabb6; }.breadth-tool__generic-evidence ul { margin:3px 0 0; padding-left:18px; }.breadth-tool__generic-evidence li { margin-top:2px; }
@@ -4651,30 +5144,36 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 }
 .metrics b { color: #d2dce3; font-weight: 500; text-align: right; }
 .industry-list { height: 100%; overflow: auto; background: #11161b; font: 11px "Segoe UI", Arial, sans-serif; }
-.industry-list__header { display: flex; gap: 8px; min-width: 920px; padding: 5px 7px; border-bottom: 1px solid #34434e; color: #91a6b2; font-size: 10px; font-weight: 600; white-space: nowrap; }
+.industry-list__header { display: flex; gap: 8px; min-width: 980px; padding: 5px 7px; border-bottom: 1px solid #34434e; color: #91a6b2; font-size: 10px; font-weight: 600; white-space: nowrap; }
 .industry-list__header span:first-child { min-width: 120px; flex: 1 1 auto; }
 .industry-list__header span:not(:first-child) { flex: 0 0 52px; text-align: right; }
 .industry-list__header span:nth-child(2) { flex-basis: 78px; }
 .industry-list__header span:nth-child(3) { flex-basis: 58px; }
 .industry-list__row { display: flex; width: 100%; justify-content: space-between; gap: 8px; padding: 7px; border: 0; border-bottom: 1px solid #20282f; background: transparent; color: #c7d0d8; text-align: left; cursor: pointer; }
-.industry-list__row { min-width: 920px; }
+.industry-list__row { min-width: 980px; }
+.industry-list__row > span:nth-child(2) { flex: 0 0 78px; text-align: right; }
+.industry-list__row > .industry-list__proxy-count { flex: 0 0 58px; text-align: right; }
 .industry-list__metric { flex: 0 0 52px; overflow: hidden; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
 .industry-list__row:hover, .industry-list__row--active { background: #1d4057; }
 .industry-list__classification { flex: 0 0 auto; max-width: 120px; overflow: hidden; color: #a9b7bf; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .industry-list__proxies { display: grid; gap: 3px; padding: 6px 7px; border-bottom: 1px solid #20282f; color: #8998a3; }
 .industry-list__proxy-table { height: 170px; border: 1px solid #34434e; }
-.constituent-tool { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto auto; width: 100%; min-width: 0; max-width: 100%; height: 100%; min-height: 0; overflow: hidden; background: #11161b; }
-.constituent-tool--factory { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
-.constituent-tool :deep(.watchlist) { width: 100%; min-width: 0; max-width: 100%; }
-.constituent-tool__selection { box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%; max-height: 75%; overflow: auto; padding: 4px 6px; border-top: 1px solid #28343c; background: #11161b; }
+.constituent-tool { display: flex; flex-direction: column; align-items: stretch; box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%; height: 100%; min-height: 0; overflow: auto; background: #11161b; }
+.constituent-tool:not(.constituent-tool--factory) { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(80px, 1fr) auto auto; align-content: start; }
+.constituent-tool--factory { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+.constituent-tool:not(.constituent-tool--factory) :deep(.watchlist) { grid-row: 2; width: 100%; min-width: 0; max-width: 100%; height: 100%; min-height: 80px; }
+.constituent-tool__provenance { grid-row: 3; }
+.constituent-tool__selection { grid-row: 4; box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%; min-height: 0; overflow: auto; padding: 4px 6px; border-top: 1px solid #28343c; background: #11161b; }
 .constituent-tool__selection :deep(.search-bar) { width: 100%; }
 .constituent-tool__selection :deep(.search-results) { position: static; max-height: 96px; }
 .constituent-tool__provenance { display: block; overflow: hidden; padding: 3px 7px; border-top: 1px solid #28343c; background: #121920; color: #d5ae72; font: 9px "Segoe UI", Arial, sans-serif; text-overflow: ellipsis; white-space: nowrap; }
+.constituent-tool__empty-context { grid-row: 1; box-sizing: border-box; min-width: 0; margin: 0; padding: 6px 8px; color: #9fb0bb; font: 11px/1.35 "Segoe UI", Arial, sans-serif; }
 .constituent-tool__selection-state { display: flex; flex-wrap: wrap; gap: 4px 8px; margin: 0; padding: 6px 8px; border-top: 1px solid #28343c; color: #b8c5cf; font: 11px "Segoe UI", Arial, sans-serif; }
 .instrument-report { height: 100%; overflow: auto; background: #11161b; }
 .industry-list__row strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .industry-list__row span, .industry-list small { color: #7d9db0; }
 .industry-list small { display: block; padding: 7px; line-height: 1.3; }
+.industry-list__empty-provenance { display: block; margin-top: 6px; color: #8799a4; }
 .industry-list__provenance { border-top: 1px solid #20282f; color: #8ea4b0; }
 .breadth-tool__family-technicals { display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; padding:5px 7px; border-top:1px solid #2b3841; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__family-technical { padding-left:5px; border-left:1px solid #34434e; color:#8497a4; }.breadth-tool__family-technical b { color:#cad4db; }
 .breadth-tool__family-breadth { display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; padding:5px 7px; border-top:1px solid #2b3841; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__family-breadth-role { padding-left:5px; border-left:1px solid #34434e; color:#8497a4; }.breadth-tool__family-breadth-role b { color:#cad4db; }

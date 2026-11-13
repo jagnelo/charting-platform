@@ -2,32 +2,9 @@
   <div class="settings-view">
     <h2 class="page-title">Settings</h2>
 
-    <section class="settings-section">
-      <h3>OneSignal Push Notifications</h3>
-      <p class="hint">
-        To receive push notifications when alerts trigger, you need a free OneSignal account.
-        Enter your App ID below — the browser will ask for notification permission.
-      </p>
-      <div class="form-row">
-        <label>OneSignal App ID</label>
-        <input v-model="oneSignalAppId" type="text" class="settings-input" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
-      </div>
-      <button class="settings-btn" @click="initOneSignal">Enable Push Notifications</button>
-      <div v-if="pushStatus" class="push-status" :class="pushStatus.ok ? 'ok' : 'err'">{{ pushStatus.msg }}</div>
-    </section>
-
-    <section class="settings-section">
-      <h3>Backend Connection</h3>
-      <div class="form-row">
-        <label>API Base URL</label>
-        <input v-model="apiBase" type="text" class="settings-input" placeholder="http://your-nas-ip:8000" />
-      </div>
-      <button class="settings-btn" @click="testConnection">Test Connection</button>
-      <div v-if="connStatus" class="push-status" :class="connStatus.ok ? 'ok' : 'err'">{{ connStatus.msg }}</div>
-    </section>
-
-    <section class="settings-section">
-      <h3>Indicator Presets</h3>
+    <section class="settings-section" aria-labelledby="settings-preferences-title">
+      <h3 id="settings-preferences-title">Chart preferences</h3>
+      <p class="hint">Choose the indicator setup used for new charts.</p>
       <div v-for="preset in presetsStore.presets" :key="preset.id" class="preset-row">
         <span class="preset-name">{{ preset.name }}</span>
         <span class="preset-default" v-if="preset.is_default">★ default</span>
@@ -39,8 +16,42 @@
     </section>
 
     <section class="settings-section">
-      <h3>Providers</h3>
-      <p class="hint">Capability routing, fallback health, and observed provider usage over time.</p>
+      <h3>Browser notifications</h3>
+      <p class="hint">
+        Turn on browser notifications for alerts. Notification application setup is stored in this browser.
+      </p>
+      <details class="settings-advanced">
+        <summary>
+          <span class="settings-advanced__title">Notification setup</span>
+          <span class="settings-advanced__description">{{ oneSignalAppId ? 'Configured for this browser' : 'Not configured for this browser' }}</span>
+        </summary>
+        <div class="form-row">
+          <label for="onesignal-app-id">Notification application ID</label>
+          <input id="onesignal-app-id" v-model="oneSignalAppId" type="text" class="settings-input" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+        </div>
+      </details>
+      <button class="settings-btn" @click="initOneSignal">Enable Push Notifications</button>
+      <div v-if="pushStatus" class="push-status" :class="pushStatus.ok ? 'ok' : 'err'">{{ pushStatus.msg }}</div>
+    </section>
+
+    <section v-if="authStore.user?.is_admin" class="settings-section" aria-labelledby="settings-connection-title">
+      <h3 id="settings-connection-title">Administrator connection settings</h3>
+      <p class="hint">Technical connection controls for this browser. Changes here do not alter your saved workspaces.</p>
+      <div class="form-row">
+        <label for="api-base-url">API Base URL</label>
+        <input id="api-base-url" v-model="apiBase" type="text" class="settings-input" placeholder="http://your-nas-ip:8000" />
+      </div>
+      <button class="settings-btn" @click="testConnection">Test Connection</button>
+      <div v-if="connStatus" class="push-status" :class="connStatus.ok ? 'ok' : 'err'">{{ connStatus.msg }}</div>
+    </section>
+
+    <section class="settings-section">
+      <details class="settings-advanced">
+      <summary>
+        <span class="settings-advanced__title">Data provider diagnostics</span>
+        <span class="settings-advanced__description">Availability, usage and administrator routing controls</span>
+      </summary>
+      <p class="hint">Technical capability routing, fallback health, and observed provider usage over time.</p>
       <div v-if="availabilityRows.length" class="availability-list" aria-label="Provider availability">
         <div class="availability-head"><strong>Latest availability probes</strong><span>Daily core / weekly supported sweep</span></div>
         <div v-for="row in availabilityRows" :key="`${row.provider}:${row.capability}`" class="availability-row">
@@ -266,6 +277,7 @@
           </div>
         </div>
       </div>
+      </details>
     </section>
 
     <section v-if="authStore.user?.is_admin" class="settings-section reconciliation-section">
@@ -591,17 +603,17 @@ function checkboxValue(event: Event) {
   return (event.target as HTMLInputElement).checked
 }
 
-async function loadProviderPolicies(generation = lifecycleGeneration) {
+async function loadProviderPolicies(generation = lifecycleGeneration, priority: 'auto' | 'high' = 'auto') {
   if (!isCurrentLifecycle(generation)) return
   const sequence = ++providerLoadSequence
   providersLoading.value = true
   providerError.value = null
   try {
     const [policies, usage, availability, runs] = await Promise.all([
-      api.get<ProviderPolicyStatus[]>('/providers/policies'),
-      api.get<ProviderUsageSummary[]>('/providers/usage'),
-      api.get<typeof availabilityRows.value>('/providers/availability'),
-      api.get<typeof availabilityRuns.value>('/providers/availability/runs?limit=8'),
+      api.get<ProviderPolicyStatus[]>('/providers/policies', undefined, { priority, queueKey: 'settings:provider-policies' }),
+      api.get<ProviderUsageSummary[]>('/providers/usage', undefined, { priority, queueKey: 'settings:provider-usage' }),
+      api.get<typeof availabilityRows.value>('/providers/availability', undefined, { priority, queueKey: 'settings:provider-availability' }),
+      api.get<typeof availabilityRuns.value>('/providers/availability/runs?limit=8', undefined, { priority, queueKey: 'settings:provider-availability-runs' }),
     ])
     if (!isCurrentLifecycle(generation) || sequence !== providerLoadSequence) return
     providerPolicies.value = policies
@@ -628,14 +640,16 @@ async function patchPolicy(policy: ProviderPolicyStatus, patch: Record<string, u
   }
 }
 
-async function loadReconciliationIssues(generation = lifecycleGeneration) {
+async function loadReconciliationIssues(generation = lifecycleGeneration, priority: 'auto' | 'high' = 'auto') {
   if (!isCurrentLifecycle(generation)) return
   if (!authStore.user?.is_admin) return
   const sequence = ++reconciliationLoadSequence
   reconciliationLoading.value = true
   reconciliationError.value = null
   try {
-    const rows = await api.get<ReconciliationIssue[]>('/providers/reconciliation/issues?status=open&limit=200')
+    const rows = await api.get<ReconciliationIssue[]>('/providers/reconciliation/issues?status=open&limit=200', undefined, {
+      priority, queueKey: 'settings:reconciliation-issues',
+    })
     if (!isCurrentLifecycle(generation) || sequence !== reconciliationLoadSequence) return
     reconciliationIssues.value = rows.map((row) => ({
       ...row,
@@ -666,9 +680,9 @@ async function reviewIssue(issue: ReconciliationIssue, status: 'resolved' | 'ign
 }
 
 onMounted(async () => {
-  presetsStore.loadPresets()
+  presetsStore.loadPresets('high')
   const generation = lifecycleGeneration
-  await Promise.all([loadProviderPolicies(generation), loadReconciliationIssues(generation)])
+  await Promise.all([loadProviderPolicies(generation, 'high'), loadReconciliationIssues(generation, 'high')])
 })
 
 onUnmounted(() => {
@@ -684,6 +698,11 @@ onUnmounted(() => {
 
 .settings-section { margin-bottom: 32px; }
 .settings-section h3 { color: #eee; font-size: 14px; margin-bottom: 12px; border-bottom: 1px solid #222; padding-bottom: 6px; }
+.settings-advanced { border: 1px solid var(--tc-border); border-radius: var(--tc-radius); background: var(--tc-surface); padding: 12px; }
+.settings-advanced > summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; cursor: pointer; color: var(--tc-text); }
+.settings-advanced__title { font-size: 14px; font-weight: 600; }
+.settings-advanced__description { color: var(--tc-text-muted); font-size: 12px; }
+.settings-advanced[open] > summary { margin-bottom: 14px; }
 
 .hint { font-size: 12px; color: #666; margin-bottom: 12px; line-height: 1.5; }
 

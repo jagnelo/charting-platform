@@ -1,0 +1,630 @@
+{
+  "authority": "Root coordinates the human-approved common-interface implementation; no staging or deployment acceptance",
+  "at": "2026-11-08T03:06:23.479068+00:00",
+  "source": "9e2de1591cb8fc124839309ff4549808b7632844",
+  "base": "139b350238b5e1c8a170dce5af09a805301d857e",
+  "previous_source": "fcfe217bc80638f6fb994d360073d0a328ae166a",
+  "state": "released_for_exact_development_consumption_not_product_acceptance",
+  "files": [
+    {
+      "path": "backend/app/config.py",
+      "status_from139": "M",
+      "git_blob": "e2d3a89159937a56c59a856f9a34c1f8b82ea698",
+      "sha256": "334fc1f98f623569bf74e5b4d20fba9e8527f6de3b987fdf9073fa114887355a"
+    },
+    {
+      "path": "backend/app/main.py",
+      "status_from139": "M",
+      "git_blob": "bcdb5e07415c1fd84504adec4f835d824d24b8ff",
+      "sha256": "12df279e453e6c8fcf7e05ede9208af027fa27645eb927cd4e84fa4dc742f4ca"
+    },
+    {
+      "path": "backend/app/providers/alpaca.py",
+      "status_from139": "M",
+      "git_blob": "f04bb5b13374dfe4c5683acd70250d921bfbf5f5",
+      "sha256": "65cf8bf722a580c8c74d5562f73e57bc495196544590be8d71a1538b0182b3e6"
+    },
+    {
+      "path": "backend/app/providers/massive.py",
+      "status_from139": "M",
+      "git_blob": "de2e2cd5aca749b19b1d61ef17c6063f5056ee68",
+      "sha256": "d51d4f35defed8825937c91027e6059767b0519413209824e303d87b1b52c456"
+    },
+    {
+      "path": "backend/app/providers/optional_market_data.py",
+      "status_from139": "M",
+      "git_blob": "99e35cc266b1c01bed858ddf69284bec9a11b2d8",
+      "sha256": "def4f1ac99b1b228e67dbc194bca83f151a1e28e29c6a7da6071e069a85d575f"
+    },
+    {
+      "path": "backend/app/routers/analysis.py",
+      "status_from139": "M",
+      "git_blob": "2d39d0e2626fa64269020b18bad4eff0a124f4ba",
+      "sha256": "469c4ccd2262dad39cc824756167adae9c6f6f6d5e80643034b48ff8f65915d7"
+    },
+    {
+      "path": "backend/app/routers/data_preparation.py",
+      "status_from139": "A",
+      "git_blob": "27107e027c9e39f477a73fa9f58442342849e5ec",
+      "sha256": "1b48668eca087b4a0c221f0a534aa2a1f612f296a78298bdaf45815a32c72bd4"
+    },
+    {
+      "path": "backend/app/routers/instruments.py",
+      "status_from139": "M",
+      "git_blob": "2434236f6c9987ffaca94d2c27ec4449377dc3db",
+      "sha256": "e08b199789e986d811bf0638e0b08881d03c650f0686a2f061beac5b2fa2ae48"
+    },
+    {
+      "path": "backend/app/routers/ohlcv.py",
+      "status_from139": "M",
+      "git_blob": "222cdcf8f496d2aff6e6cc81f12827ce023cdbc2",
+      "sha256": "f0a67ac5ba9d3c568099f9a8ce52396295e4fec0356bf16ecd5c76070abfd031"
+    },
+    {
+      "path": "backend/app/routers/providers.py",
+      "status_from139": "M",
+      "git_blob": "652d49c14a389a1f16ec7f45a7ece5dbf43bc60a",
+      "sha256": "96e7c9e956049c75660943cc5fae30cd249fc8a3eedc7968c5074664160c8864"
+    },
+    {
+      "path": "backend/app/routers/research.py",
+      "status_from139": "M",
+      "git_blob": "0c273ed12ad83bfe09ff6677321a906d3fcf1751",
+      "sha256": "ad99feb6bb7f858ccf2898df1c81a52ca2cca485966f94b9d628b226387f1a10"
+    },
+    {
+      "path": "backend/app/routers/workspaces.py",
+      "status_from139": "M",
+      "git_blob": "21be8a9c50bf6fd97564ed44b315b848244fbaf9",
+      "sha256": "8133960c0dc164425734a5a1428e36d2041d2627d673342b838ea7cb56c6111b"
+    },
+    {
+      "path": "backend/app/schemas/data_preparation.py",
+      "status_from139": "A",
+      "git_blob": "a0cdd05f40398618c654062bfcf3976628b9fb89",
+      "sha256": "0b28c5249ba29ca523a49405d8bce1248bd32e07a90639674666449f5822f280"
+    },
+    {
+      "path": "backend/app/services/baskets.py",
+      "status_from139": "M",
+      "git_blob": "88ea39ba873e7b515c02b6a8c9f0685fb92dd51e",
+      "sha256": "d4d2bc5f247d31fe1e382b1708861c545e4ad7e982fea9f1acc03a1d696207bc"
+    },
+    {
+      "path": "backend/app/services/bulk_fetch.py",
+      "status_from139": "M",
+      "git_blob": "2ccd5aa9d04e2dc1b9e6bbabc45dfed96f68cf0b",
+      "sha256": "91c9d3312d0b6265622b1a025135edab6dbd281a4b5bd5164eb9ff43b8ebbbd5"
+    },
+    {
+      "path": "backend/app/services/data_preparation.py",
+      "status_from139": "A",
+      "git_blob": "15a0bf1016c20783902e2d9d8ce5baae400c1061",
+      "sha256": "00f7453c10dcf3928ea9b0815d04fc10dc0db57346ed22ea802d29c47087ca93"
+    },
+    {
+      "path": "backend/app/services/data_preparation_contracts.py",
+      "status_from139": "A",
+      "git_blob": "c49bc33100b252eb4f523755223e0acbb43e5805",
+      "sha256": "03cdee95aa09144365115a3c0f005feb8863ff464bf463be551e8bdc0edb2298"
+    },
+    {
+      "path": "backend/app/services/derived_timeframes.py",
+      "status_from139": "M",
+      "git_blob": "3dbef7b9fa7f3acd44a43ce011202656dcb2bdd9",
+      "sha256": "524b2b063c0833e4492875676259231998082e0f4088f6c620c604ec0d8b7ae4"
+    },
+    {
+      "path": "backend/app/services/e2e_seed.py",
+      "status_from139": "M",
+      "git_blob": "99c99a9f95e6d9626bae52cfa8683c6e8d091186",
+      "sha256": "b5f0de5424f36ee5b08ee7b201c08903e798a7b807394dca67ae8d024e41c317"
+    },
+    {
+      "path": "backend/app/services/etf_holdings_adapters.py",
+      "status_from139": "M",
+      "git_blob": "3499b76989dc0b5162dfc5effe7d434aa12c97b9",
+      "sha256": "a1da7a2a021af51e5bace6a4904906f0115d01fe5bf19f9df4d17ca8ae588c36"
+    },
+    {
+      "path": "backend/app/services/etf_holdings_preparation.py",
+      "status_from139": "A",
+      "git_blob": "f4470a83a237dc38e42680b3a45948e71dbe28b8",
+      "sha256": "30a9b581609d2ee584d81667afa388df62e5a9133895cc98a841015cd6eb7df1"
+    },
+    {
+      "path": "backend/app/services/etf_holdings_refresh.py",
+      "status_from139": "M",
+      "git_blob": "c2f0051c4a54f52d4c03a3424a58e662a41a6ec6",
+      "sha256": "c64d737b9f5ca0af7c7b960afe3bea9fc03c2ccc0e7e6b0c97dd29b563e0d4bf"
+    },
+    {
+      "path": "backend/app/services/evaluator_preflight.py",
+      "status_from139": "M",
+      "git_blob": "9c8ee222980a5ef5780fc7a94f7ac326269c21d4",
+      "sha256": "bc526d2c0f94a52386d6049fd2ffb82ad695606b1c5a301c2b2b8fb580510474"
+    },
+    {
+      "path": "backend/app/services/exchange_sessions.py",
+      "status_from139": "M",
+      "git_blob": "4a837ac351802a986e073becfd7b8f898ba81b10",
+      "sha256": "a07e0b9165f18da5314a8ab587cdbe7e0a5b44650a657876f8d24cd3ab155831"
+    },
+    {
+      "path": "backend/app/services/instrument_events.py",
+      "status_from139": "M",
+      "git_blob": "94d3758d98586cc9f618c146c98287412c1e1fad",
+      "sha256": "7dd565787ebcbce82c6f6e361ed3729b276ab2a8744ffdfc1b0c27a604ed09f8"
+    },
+    {
+      "path": "backend/app/services/instrument_mastering.py",
+      "status_from139": "M",
+      "git_blob": "8a7743ff85414800b5ecd6c0d2a770bf2cfe8e8b",
+      "sha256": "a27cdf821d0c41ed2e21f0f3d32eed7d05582ae81ce7becec5485e5f05fb5d4e"
+    },
+    {
+      "path": "backend/app/services/market_data.py",
+      "status_from139": "M",
+      "git_blob": "ef2a9f4ccba75b0cd1af671dd14bfc7fb90fbdaa",
+      "sha256": "184d79f28a6293372d700e94a9eba986fcfa3133b07c668f6736d14eccf53ca1"
+    },
+    {
+      "path": "backend/app/services/market_refresh_queue.py",
+      "status_from139": "M",
+      "git_blob": "6ffae2c69dc32b008d1442cd7969bf5970008142",
+      "sha256": "0a51f75b81f5e936098477217a6f3862e4f25bb416f060015d0a595b25a610d7"
+    },
+    {
+      "path": "backend/app/services/market_series.py",
+      "status_from139": "M",
+      "git_blob": "5cb14b05a8ce10334d475abb080f71504be46290",
+      "sha256": "334f18aa804e7e3df29940e0b84311d89ad4058769893d0d42e2a42a33f27659"
+    },
+    {
+      "path": "backend/app/services/ohlcv_coverage.py",
+      "status_from139": "M",
+      "git_blob": "46a9426f986fe88e1942593aa6d8e23217404466",
+      "sha256": "483b7a7b862a3dd1ea0b9f8afdb45fdab9ad6ad8d08b266a1ece93177b154918"
+    },
+    {
+      "path": "backend/app/services/provider_routing.py",
+      "status_from139": "M",
+      "git_blob": "29d03b051ea31d649573d6d668ff1880fcfca4b9",
+      "sha256": "bad892f272b3fabac8c5bc84f8057b9c1b81b4ff309e36b1cdacc389e9806e88"
+    },
+    {
+      "path": "backend/app/services/provider_runtime.py",
+      "status_from139": "M",
+      "git_blob": "b03efff19d7f273fb2722c023cca51edfffb0932",
+      "sha256": "8aa6d66ee94bdea8b2a82489c096c61133719b43300170b968aef73e145b6654"
+    },
+    {
+      "path": "backend/app/services/screener_engine.py",
+      "status_from139": "M",
+      "git_blob": "86bb2b5b7b840d2f8dd07ab943c61c4dfbf997e6",
+      "sha256": "a9ff0585f89ceb0b94fd46b8cc763ec56d03c84c64c277ceac12adb4897f402b"
+    },
+    {
+      "path": "backend/app/services/workstation_tool_catalogue.py",
+      "status_from139": "A",
+      "git_blob": "279a44ecea8ab0901741da0efaff3d06773d729d",
+      "sha256": "7a111059b60764c3f44ce01e562f4e4030447a0afa7e4673c237d44ba76e396f"
+    },
+    {
+      "path": "backend/app/tasks/data_tasks.py",
+      "status_from139": "M",
+      "git_blob": "0a26b25961a5b685e995410064f85f08cb6ccccd",
+      "sha256": "8225c8baee8383b7a2e8f189c74b5c6b38e4dc9466d5a2732211a94113815540"
+    },
+    {
+      "path": "backend/app/workers/arq_worker.py",
+      "status_from139": "M",
+      "git_blob": "c0b2db3782e57c34ae9828745855115ffc1b3075",
+      "sha256": "0d50a45e610af624c3ae831bff730faffc3c5738e364fb49d352d41cea434371"
+    },
+    {
+      "path": "backend/tests/integration/api/test_baskets.py",
+      "status_from139": "M",
+      "git_blob": "47bafba3d2ce7d7fbb78c0234785cda41f9614ec",
+      "sha256": "5ede032abeb7eb5c44effff911e1c2586f116122e6b0fcfc3a1bb8d0b3d81555"
+    },
+    {
+      "path": "backend/tests/integration/api/test_workspace_read_consistency_postgres.py",
+      "status_from139": "A",
+      "git_blob": "f20b0fb86acaa147b47a3471e82b185aedda81c4",
+      "sha256": "8c189d9cba94ece6e2bfcc4b5f2ba1d9af311626b0f872632b719bd60ca32fc8"
+    },
+    {
+      "path": "backend/tests/integration/test_data_preparation_queue_postgres.py",
+      "status_from139": "A",
+      "git_blob": "2d9a5e7e87c2d9f990e7c4e320bf2c8c77a2ff2b",
+      "sha256": "5192f20ebbdd9e6bcdd98db56e513e8fb07d682651eae8abad5e4b20e11521c7"
+    },
+    {
+      "path": "backend/tests/integration/test_provider_runtime_transactions_postgres.py",
+      "status_from139": "A",
+      "git_blob": "e4019976c5b0ecca3a578bc114e881b9c637c163",
+      "sha256": "05c492d7172ca2348b00197d76ec6115da48002e3d8d107f1731a02921dbf1e4"
+    },
+    {
+      "path": "backend/tests/unit/conftest.py",
+      "status_from139": "M",
+      "git_blob": "1b5404373d3151543f1f333b21b99810acacd779",
+      "sha256": "fb75aa61429d56112299a610148ff843a5518f9d00d0d45f48ad973e0778d0c5"
+    },
+    {
+      "path": "backend/tests/unit/providers/test_new_providers.py",
+      "status_from139": "M",
+      "git_blob": "e2296f53ddabd131288de8c061f1a1b0239cb263",
+      "sha256": "cdd9b24b4c9c25e2a19c7d6120101ee07c88eef69eca7dcab99ab3a4c0768474"
+    },
+    {
+      "path": "backend/tests/unit/providers/test_optional_market_data.py",
+      "status_from139": "M",
+      "git_blob": "471da0b4aafdce79322c747665a1dc3f5ac96c33",
+      "sha256": "07d076179a1ef356a6743a90ddc69228eb4f64808c75e450979801a2162182ae"
+    },
+    {
+      "path": "backend/tests/unit/routers/test_analysis_router.py",
+      "status_from139": "M",
+      "git_blob": "05e71082ebdac1d15986363c39b52ea67dc07831",
+      "sha256": "72b11ab035acd8d6e93d65f254d45039102b874d72c20d014094a4a7bec1a17d"
+    },
+    {
+      "path": "backend/tests/unit/routers/test_calendar_router.py",
+      "status_from139": "M",
+      "git_blob": "48043ca1f24121f7e89cc70b60d1d37869c7768b",
+      "sha256": "5456df79bee745f195b9ee321be780b0bbebdc105f0cfaf9b83066643a4c4aa3"
+    },
+    {
+      "path": "backend/tests/unit/routers/test_data_preparation_router.py",
+      "status_from139": "A",
+      "git_blob": "6c0c17d8b7cb73a1e30feaeb03f2aee3b37ea20a",
+      "sha256": "fad059d6ff0588fb321911ea556687473c182e9bb21ed75c65dc70ea6430f6e8"
+    },
+    {
+      "path": "backend/tests/unit/routers/test_instruments_router.py",
+      "status_from139": "M",
+      "git_blob": "eab5324cd22325422004c1dfd1f965d295c3d0b5",
+      "sha256": "ca89ffd85dde2907a776756c88e29a5a6bead9690e584268cb49c42ed7cf7541"
+    },
+    {
+      "path": "backend/tests/unit/routers/test_ohlcv_router.py",
+      "status_from139": "M",
+      "git_blob": "57f979e2ee98d590f28e97c52db81cb7bb99f911",
+      "sha256": "ae31cbea7df63155fabf35d4e9ff620a5d94aac8f0034eb44f75a4681b120642"
+    },
+    {
+      "path": "backend/tests/unit/routers/test_providers_router.py",
+      "status_from139": "M",
+      "git_blob": "44de29959d57603b741d2b5c6aaad0325d5d8944",
+      "sha256": "e51e1ddc645fe9547ef78bf25e8e0c421912a2a336c28e919b4f5b08030e2aba"
+    },
+    {
+      "path": "backend/tests/unit/routers/test_research_router.py",
+      "status_from139": "M",
+      "git_blob": "39674ab3db4bc9516f1d0945beadb2770fc56480",
+      "sha256": "f79e9c8851e746486caf5b7d7c9de6490b401397da4252cd9b7ef8364290aca3"
+    },
+    {
+      "path": "backend/tests/unit/routers/test_workspace_tool_catalogue.py",
+      "status_from139": "A",
+      "git_blob": "25d184d89c7ec5206962aa982e51fbd53a422c91",
+      "sha256": "eab99dea4ad2af764775c312c1ff1caf08863f6607a170a408cd0282463b2873"
+    },
+    {
+      "path": "backend/tests/unit/services/test_data_preparation_contracts.py",
+      "status_from139": "A",
+      "git_blob": "7cfbc2ddb24bbfc45e85331d44f8dc01b3210e48",
+      "sha256": "3fb29e9d3c47a73b4ba57e4be0a494ec2413927beb2afc4b572f96d76b0aca7c"
+    },
+    {
+      "path": "backend/tests/unit/services/test_data_preparation_history_planning.py",
+      "status_from139": "A",
+      "git_blob": "c0838112598e277e6bd88e89325cedea94e600fa",
+      "sha256": "b9cc3600cacaad9adcafde1eed4d55e2d09b408b356d9e73f46bdc6e40d10bae"
+    },
+    {
+      "path": "backend/tests/unit/services/test_data_preparation_service.py",
+      "status_from139": "A",
+      "git_blob": "6378c6ee5c280ac02499186b32dbb980562d0d7b",
+      "sha256": "bd9cc6dc43e975a3d62c91e99c70f4e6d8f9a84178dee4b6fa6281c4b41363c1"
+    },
+    {
+      "path": "backend/tests/unit/services/test_data_preparation_worker_deeper_default.py",
+      "status_from139": "A",
+      "git_blob": "cbd26e816b326383d0660bb5479bdcd3ac2074d1",
+      "sha256": "6e1842ffa8114d26355f64607e8f35ea13ca23fd9f88066226f4286d1cae57c3"
+    },
+    {
+      "path": "backend/tests/unit/services/test_derived_timeframes.py",
+      "status_from139": "M",
+      "git_blob": "49ae76422131bc3fc4572426be79ae6eb655dbfd",
+      "sha256": "4b0b23e3103af56bbd6a2c2fc64c72e71f5504370fc1570da0ef3d1acfdeee82"
+    },
+    {
+      "path": "backend/tests/unit/services/test_e2e_seed.py",
+      "status_from139": "M",
+      "git_blob": "51b42af9cc004f4bebd2909a099ec43e043fdbd9",
+      "sha256": "f8f348e6ade63a14ed542e597d7cb6490fba6327939e37284c572d1131d4b55b"
+    },
+    {
+      "path": "backend/tests/unit/services/test_etf_holdings_adapters.py",
+      "status_from139": "M",
+      "git_blob": "b92a703639113398ef2b753f0927425ad6d5ed1b",
+      "sha256": "3cdbcb0d10e2367b9cedc11d097950d8fbbdfb8ff3852af1bd9c34bf0d52e330"
+    },
+    {
+      "path": "backend/tests/unit/services/test_etf_holdings_bootstrap.py",
+      "status_from139": "M",
+      "git_blob": "867986a09f6534c706ea8bbbf588ea66aa29ea65",
+      "sha256": "2e5726a5c855c16c67b1352e5d4285140a7bd82afdc570b12d99fd4968898c5a"
+    },
+    {
+      "path": "backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py",
+      "status_from139": "M",
+      "git_blob": "dba534c2d3c34e2374498e2c732f82e353e91589",
+      "sha256": "389c1ebd1608fb5fdd46d4bec85f4bd8c791d508485d322720671e308194ae09"
+    },
+    {
+      "path": "backend/tests/unit/services/test_etf_holdings_native_qualification.py",
+      "status_from139": "M",
+      "git_blob": "02ef9f4756ed5476b3aefa403558d2bc94d07670",
+      "sha256": "b36a518ca161671be17a77f7a12bdcec46b638c5837b4a634ce57b5c4afa1c33"
+    },
+    {
+      "path": "backend/tests/unit/services/test_etf_holdings_preparation.py",
+      "status_from139": "A",
+      "git_blob": "8f0a484f033fc3a9c7700a7c96d99aa4469eb8e4",
+      "sha256": "2d44f15dfeb27e00cb0799ab4b1ce4b61d35ff3288c9757d6e6f9638fc7ae939"
+    },
+    {
+      "path": "backend/tests/unit/services/test_etf_holdings_preparation_hook.py",
+      "status_from139": "A",
+      "git_blob": "4b48c647a0a13891f9f55bd3aafb16232792164e",
+      "sha256": "d50b231ee6aa2b5f7f471f114cf5620622890ebaae8df4e57c90671a1cc44f47"
+    },
+    {
+      "path": "backend/tests/unit/services/test_etf_holdings_provider_bridge.py",
+      "status_from139": "M",
+      "git_blob": "964045c9cc1832e56fa40abd64c7a670f02c117d",
+      "sha256": "3cc309c786b952827a44b20591020fc20fac0e64bcd1b077436d1bdddebe1e73"
+    },
+    {
+      "path": "backend/tests/unit/services/test_etf_issuer_catalog.py",
+      "status_from139": "M",
+      "git_blob": "96ac5766f0d89ab9904f39e9911950cd3fc50c87",
+      "sha256": "c7a852ca382d9cc8ecb5d8a4e1118e5fa252f3b7baa4d8744023805cef9e3071"
+    },
+    {
+      "path": "backend/tests/unit/services/test_evaluator_preflight.py",
+      "status_from139": "M",
+      "git_blob": "6a4ca60bf54b507f0c4eefc36acc5eba61db4472",
+      "sha256": "8b8c8d5bb5183a6cdb2b1805fbcc895a22d4adc13f169c4cec57cb02be2de3dc"
+    },
+    {
+      "path": "backend/tests/unit/services/test_exchange_catalog.py",
+      "status_from139": "M",
+      "git_blob": "e1582802f27f9edd0b84c33218137278efce471e",
+      "sha256": "0db64ad27be70bec384b4fce55300fda243687f8411eee5adadb00a43879da91"
+    },
+    {
+      "path": "backend/tests/unit/services/test_market_data.py",
+      "status_from139": "M",
+      "git_blob": "28b1913a88a5fcd26cadc17216565ca3199f8232",
+      "sha256": "a6942812281b4af644430fbc31ccd07a8637ae78d1961f627093ed8282890e01"
+    },
+    {
+      "path": "backend/tests/unit/services/test_market_refresh_queue.py",
+      "status_from139": "M",
+      "git_blob": "9bb8ab769738423af573af5426c0ce6d7928d12b",
+      "sha256": "7b679ab3e5299d9ccb2a72c8c8801a299daea765712b6cac782669e088ef9ca9"
+    },
+    {
+      "path": "backend/tests/unit/services/test_market_series_defaults.py",
+      "status_from139": "M",
+      "git_blob": "f4a80f5eb1d75d96886a2a0c271fd119d4827990",
+      "sha256": "abc510d61a90844d31437210234c35b37db2318aca76506024b5645ad4597095"
+    },
+    {
+      "path": "backend/tests/unit/services/test_provider_persistence.py",
+      "status_from139": "M",
+      "git_blob": "fee3034c57324fd576b91e957beb9a3a293e9437",
+      "sha256": "e8137a532cdfe01d13bb6cfabaf8045c73d7a67e0ccc9d7353bc66928d5d10be"
+    },
+    {
+      "path": "backend/tests/unit/services/test_provider_quota_contract.py",
+      "status_from139": "M",
+      "git_blob": "650b49d95cd38b5240a0935036bd408f2887c165",
+      "sha256": "73607ea8eb483b41b216a7cf818494e1a25e7dc44d61619d19d25e8f09bbdb53"
+    },
+    {
+      "path": "backend/tests/unit/services/test_provider_quota_coordinator.py",
+      "status_from139": "M",
+      "git_blob": "c44d687dd37c158ec4851b692127c0c7bd729470",
+      "sha256": "0974174e83d813ebb4169842d7ed167c53f78026c64cad7a9cf8bd6d2bfe320b"
+    },
+    {
+      "path": "backend/tests/unit/services/test_provider_routing.py",
+      "status_from139": "M",
+      "git_blob": "722ebd9303e39651ad2621ca53cc197b4e4f6abe",
+      "sha256": "cc9accb4b30f7875bd7384088af2ddd5fab52d332145bb3b583e93478067716b"
+    },
+    {
+      "path": "backend/tests/unit/services/test_provider_runtime.py",
+      "status_from139": "M",
+      "git_blob": "428e4c75b1d418bd83f08527240c4a9bd643c948",
+      "sha256": "260dcfffc5fd616abfda9065e285cd3a68a0dcf177b66ec1a86d5ce51c7f9c1f"
+    },
+    {
+      "path": "backend/tests/unit/services/test_workstation_tool_catalogue.py",
+      "status_from139": "A",
+      "git_blob": "bcbeff75f63564353e86b447fb5d7be2f5911c13",
+      "sha256": "9ada1348e3136e707de13eec5699d2ffdb9dc217d15f3ccb6b7da6f1bf1d845a"
+    },
+    {
+      "path": "backend/tests/unit/tasks/test_data_tasks.py",
+      "status_from139": "M",
+      "git_blob": "7f04fa9097ac425548c0f6656ed83c7e147b773d",
+      "sha256": "8f0b0ef72d96ae03ca9245315f7c788ca16fa033d2e79a5ee662a9924bb460db"
+    },
+    {
+      "path": "backend/tests/unit/tasks/test_native_usage_prerequisite.py",
+      "status_from139": "A",
+      "git_blob": "8a0e662160c6f3958a38f0f7f4438855c78f3c45",
+      "sha256": "6338a9d8c60dda142c72ee3f2788408aaf88ede323a8fc823c98755e3ceec039"
+    },
+    {
+      "path": "backend/tests/unit/workers/test_arq_worker.py",
+      "status_from139": "M",
+      "git_blob": "242a42418cd2cdf5bea230d93e5bc5d0a160f736",
+      "sha256": "638f4b56bfa53eb7bcefd96e3c412897c9864b9fa88bec41bd9bdd797933800a"
+    }
+  ],
+  "changed_paths_since_previous": [
+    "backend/app/services/derived_timeframes.py",
+    "backend/app/services/market_series.py",
+    "backend/app/tasks/data_tasks.py",
+    "backend/tests/unit/services/test_data_preparation_worker_deeper_default.py",
+    "backend/tests/unit/services/test_derived_timeframes.py"
+  ],
+  "consumers": [
+    {
+      "consumer": "TC",
+      "dirty_overlap": [],
+      "import_paths": [
+        "backend/app/services/derived_timeframes.py",
+        "backend/app/services/market_series.py",
+        "backend/app/services/provider_runtime.py",
+        "backend/app/tasks/data_tasks.py",
+        "backend/tests/integration/test_provider_runtime_transactions_postgres.py",
+        "backend/tests/unit/services/test_data_preparation_worker_deeper_default.py",
+        "backend/tests/unit/services/test_derived_timeframes.py"
+      ],
+      "old_guards": {
+        "backend/app/services/derived_timeframes.py": {
+          "sha256": "12eb40ee648befa0c8d1ad7e11741fb16204f05c5584056aba33702eb9af98e2",
+          "known_source": "fcfe217bc80638f6fb994d360073d0a328ae166a"
+        },
+        "backend/app/services/market_series.py": {
+          "sha256": "d4cc4ea17b07b3aa89661c0760dc7bdc1149f2a37f5d60af0320d0400434409b",
+          "known_source": "fcfe217bc80638f6fb994d360073d0a328ae166a"
+        },
+        "backend/app/services/provider_runtime.py": {
+          "sha256": "71d4e2ed522ebc5d001ed1c7aa980a4af7f0dee7fdc7577969a1b1f7e55e8d17",
+          "known_source": "19d34d0b3e875b29b276ee80e471311586e6023f"
+        },
+        "backend/app/tasks/data_tasks.py": {
+          "sha256": "6bb288018c4a36352f4487492f3e82139f177b3ea0e7ac3f4db96879e508e061",
+          "known_source": "fcfe217bc80638f6fb994d360073d0a328ae166a"
+        },
+        "backend/tests/integration/test_provider_runtime_transactions_postgres.py": {
+          "sha256": "26cb4ac1db958db355b8263c17bac47107afd7b5cb86030f500478e58219fbbf",
+          "known_source": "19d34d0b3e875b29b276ee80e471311586e6023f"
+        },
+        "backend/tests/unit/services/test_data_preparation_worker_deeper_default.py": {
+          "sha256": "df601efb8642e86b76f6570b801d55a8a232c1e57bd6d0fa8fca8040560f2a3e",
+          "known_source": "fcfe217bc80638f6fb994d360073d0a328ae166a"
+        },
+        "backend/tests/unit/services/test_derived_timeframes.py": {
+          "sha256": "536576495edb6084e0464d3ab2934c09356392a1b02379bed85adecf49126cd6",
+          "known_source": "fcfe217bc80638f6fb994d360073d0a328ae166a"
+        }
+      }
+    },
+    {
+      "consumer": "ETF",
+      "dirty_overlap": [],
+      "import_paths": [
+        "backend/app/services/derived_timeframes.py",
+        "backend/app/services/market_series.py",
+        "backend/app/services/provider_runtime.py",
+        "backend/app/tasks/data_tasks.py",
+        "backend/tests/integration/test_provider_runtime_transactions_postgres.py",
+        "backend/tests/unit/services/test_data_preparation_worker_deeper_default.py",
+        "backend/tests/unit/services/test_derived_timeframes.py"
+      ],
+      "old_guards": {
+        "backend/app/services/derived_timeframes.py": {
+          "sha256": "12eb40ee648befa0c8d1ad7e11741fb16204f05c5584056aba33702eb9af98e2",
+          "known_source": "fcfe217bc80638f6fb994d360073d0a328ae166a"
+        },
+        "backend/app/services/market_series.py": {
+          "sha256": "d4cc4ea17b07b3aa89661c0760dc7bdc1149f2a37f5d60af0320d0400434409b",
+          "known_source": "fcfe217bc80638f6fb994d360073d0a328ae166a"
+        },
+        "backend/app/services/provider_runtime.py": {
+          "sha256": "71d4e2ed522ebc5d001ed1c7aa980a4af7f0dee7fdc7577969a1b1f7e55e8d17",
+          "known_source": "19d34d0b3e875b29b276ee80e471311586e6023f"
+        },
+        "backend/app/tasks/data_tasks.py": {
+          "sha256": "6bb288018c4a36352f4487492f3e82139f177b3ea0e7ac3f4db96879e508e061",
+          "known_source": "fcfe217bc80638f6fb994d360073d0a328ae166a"
+        },
+        "backend/tests/integration/test_provider_runtime_transactions_postgres.py": {
+          "sha256": "26cb4ac1db958db355b8263c17bac47107afd7b5cb86030f500478e58219fbbf",
+          "known_source": "19d34d0b3e875b29b276ee80e471311586e6023f"
+        },
+        "backend/tests/unit/services/test_data_preparation_worker_deeper_default.py": {
+          "sha256": "df601efb8642e86b76f6570b801d55a8a232c1e57bd6d0fa8fca8040560f2a3e",
+          "known_source": "fcfe217bc80638f6fb994d360073d0a328ae166a"
+        },
+        "backend/tests/unit/services/test_derived_timeframes.py": {
+          "sha256": "536576495edb6084e0464d3ab2934c09356392a1b02379bed85adecf49126cd6",
+          "known_source": "fcfe217bc80638f6fb994d360073d0a328ae166a"
+        }
+      }
+    },
+    {
+      "consumer": "Strategy",
+      "dirty_overlap": [],
+      "import_paths": [
+        "backend/app/services/derived_timeframes.py",
+        "backend/app/services/market_series.py",
+        "backend/app/services/provider_runtime.py",
+        "backend/app/tasks/data_tasks.py",
+        "backend/tests/integration/test_provider_runtime_transactions_postgres.py",
+        "backend/tests/unit/services/test_data_preparation_worker_deeper_default.py",
+        "backend/tests/unit/services/test_derived_timeframes.py"
+      ],
+      "old_guards": {
+        "backend/app/services/derived_timeframes.py": {
+          "sha256": "12eb40ee648befa0c8d1ad7e11741fb16204f05c5584056aba33702eb9af98e2",
+          "known_source": "fcfe217bc80638f6fb994d360073d0a328ae166a"
+        },
+        "backend/app/services/market_series.py": {
+          "sha256": "d4cc4ea17b07b3aa89661c0760dc7bdc1149f2a37f5d60af0320d0400434409b",
+          "known_source": "fcfe217bc80638f6fb994d360073d0a328ae166a"
+        },
+        "backend/app/services/provider_runtime.py": {
+          "sha256": "71d4e2ed522ebc5d001ed1c7aa980a4af7f0dee7fdc7577969a1b1f7e55e8d17",
+          "known_source": "19d34d0b3e875b29b276ee80e471311586e6023f"
+        },
+        "backend/app/tasks/data_tasks.py": {
+          "sha256": "6bb288018c4a36352f4487492f3e82139f177b3ea0e7ac3f4db96879e508e061",
+          "known_source": "fcfe217bc80638f6fb994d360073d0a328ae166a"
+        },
+        "backend/tests/integration/test_provider_runtime_transactions_postgres.py": {
+          "sha256": "26cb4ac1db958db355b8263c17bac47107afd7b5cb86030f500478e58219fbbf",
+          "known_source": "19d34d0b3e875b29b276ee80e471311586e6023f"
+        },
+        "backend/tests/unit/services/test_data_preparation_worker_deeper_default.py": {
+          "sha256": "df601efb8642e86b76f6570b801d55a8a232c1e57bd6d0fa8fca8040560f2a3e",
+          "known_source": "fcfe217bc80638f6fb994d360073d0a328ae166a"
+        },
+        "backend/tests/unit/services/test_derived_timeframes.py": {
+          "sha256": "536576495edb6084e0464d3ab2934c09356392a1b02379bed85adecf49126cd6",
+          "known_source": "fcfe217bc80638f6fb994d360073d0a328ae166a"
+        }
+      }
+    }
+  ],
+  "scope": "Recover native identity persistence and rollback-safe worker retry; preserve historical identifier values without repeated suffix growth. Retain first-series, partial coverage, deeper coherent defaults and known local refill repairs. Recover completed negative holdings children through normal bounded deduplicated requests; flush derived W1/MN before state projection, inherit source freshness and preserve adjustment lineage, and recover existing pending/null-signature caches through ordinary reads. All prior source fallback, canonical identity, quotas, source lineage, independent datasets and background preparation retained. Preserve all native quotas, prior held outcomes, provider eligibility, compatible series and all earlier shared backend contracts. Actual native, combined, exact CI and release proof remains pending.",
+  "evidence": {
+    "owner": "See exact Provider handoff and validation records for focused proof; Root does not substitute this style export for functional, CI, real-source or browser proof",
+    "root_exact_export": "provider9e2de159-exact-development-review.json",
+    "full_release": "pending"
+  },
+  "supersedes_manifest": "provider0a1cda84-runtime-development-consumption-contract.json",
+  "preserve": "Keep complete roadmap and previous manifests as immutable history; preserve domain frontend/parser edits. Root owns combined qualification and release."
+}

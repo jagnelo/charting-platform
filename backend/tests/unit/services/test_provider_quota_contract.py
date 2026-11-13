@@ -246,6 +246,26 @@ def test_every_native_usage_bootstrap_seed_maps_finite_provider_pools():
         assert account_usage_reconciled_dimensions(policy), provider_name
 
 
+def test_usage_reconciliation_mapping_can_be_read_for_normally_admitted_operation():
+    contract = provider_rate_limit_seed("alpaca")["quota_contract"]
+    disabled_bootstrap_contract = {
+        **contract,
+        "account_usage_bootstrap": {
+            **contract["account_usage_bootstrap"],
+            "enabled": False,
+        },
+    }
+    policy = SimpleNamespace(
+        quota_contract=disabled_bootstrap_contract,
+        quota_scope="account",
+    )
+
+    assert account_usage_reconciled_dimensions(policy) == set()
+    assert account_usage_reconciled_dimensions(policy, require_bootstrap=False) == {
+        "market_data_requests_per_minute"
+    }
+
+
 def test_alpaca_native_minute_pool_uses_rolling_safety_envelope(monkeypatch):
     # Provider-specific local account overrides must not make this default
     # contract test depend on the developer's private environment file.

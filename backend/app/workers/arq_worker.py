@@ -8,6 +8,7 @@ in separate worker processes, keeping the FastAPI server non-blocking.
 """
 
 import logging
+from dataclasses import replace
 from datetime import UTC, datetime
 
 from arq import cron
@@ -319,28 +320,17 @@ async def task_refresh_instrument_data(ctx: dict, instrument_id: int, timeframe:
 
 
 async def task_bootstrap_core_workstation(ctx: dict):
-    """Hydrate the immutable US Top Down universe on a fresh deployment."""
+    """Queue fresh default/saved workstation inputs through durable preparation."""
 
-    from app.database import AsyncSessionLocal
-    from app.services.workstation_bootstrap import bootstrap_core_workstation_data
+    from app.tasks.data_tasks import enqueue_workstation_maintenance
 
-    async with AsyncSessionLocal() as db:
-        result = await bootstrap_core_workstation_data(db, redis=ctx.get("redis"))
-        logger.info(
-            "Core workstation bootstrap complete: history=%d holdings=%d skipped=%s",
-            sum(
-                1
-                for item in (result.get("history") or {}).values()
-                if item.get("status") in {"loaded", "ready"}
-            ),
-            sum(
-                1
-                for item in (result.get("holdings") or {}).values()
-                if item.get("status") in {"loaded", "ready"}
-            ),
-            result.get("skipped", False),
-        )
-        return result
+    result = await enqueue_workstation_maintenance(ctx, include_discovered=False)
+    logger.info(
+        "Core workstation preparation queued: default=%d background=%d",
+        result.get("default", 0),
+        result.get("background", 0),
+    )
+    return result
 
 
 # ── Scheduled tasks (cron) ───────────────────────────────────────────────────
@@ -397,11 +387,24 @@ async def scheduled_daily_history_refresh(ctx: dict):
 
 
 async def scheduled_refresh_queue_process(ctx: dict):
-    """Process a bounded batch of leased core refresh jobs."""
+    """Re-evaluate due defaults, then process a bounded leased refresh batch."""
 
     if not settings.MARKET_DATA_REFRESH_SCHEDULE_ENABLED:
         logger.info("Market-data refresh schedule disabled; skipping queue process")
         return {"skipped": True, "reason": "schedule disabled"}
+    from app.tasks.data_tasks import enqueue_core_refresh_jobs, process_refresh_jobs
+
+    # Re-running the existing planner here lets saved/default inputs discover
+    # later publications without an open browser. Its parent key shares the
+    # same observation bucket as history child dedupe, and normal coverage
+    # assessment avoids provider calls for already complete closed sessions.
+    await enqueue_core_refresh_jobs(ctx)
+    return await process_refresh_jobs(ctx)
+
+
+async def task_process_refresh_jobs(ctx: dict):
+    """Process a bounded durable batch for prompt user-driven preparation."""
+
     from app.tasks.data_tasks import process_refresh_jobs
 
     return await process_refresh_jobs(ctx)
@@ -592,8 +595,8 @@ async def worker_startup(ctx: dict):
     job = await redis.enqueue_job(
         "task_bootstrap_core_workstation",
         # Bump this id when bootstrap semantics change so a completed result
-        # from an older deployment cannot suppress the corrected sweep.
-        _job_id="core-workstation-bootstrap-startup-v4",
+        # from an older deployment cannot suppress the corrected planner pass.
+        _job_id="core-workstation-bootstrap-startup-v5",
         _expires=3600,
     )
     logger.info("Queued core workstation bootstrap at worker startup: job=%s", job)
@@ -603,7 +606,11 @@ async def worker_startup(ctx: dict):
 
 
 class WorkerSettings:
-    redis_settings = RedisSettings.from_dsn(settings.REDIS_URL)
+    # The installed ARQ/redis defaults use a one-second connect timeout. The
+    # retained native validation worker has observed transient Redis connect
+    # timeouts during otherwise healthy periods; allow a short bounded delay while
+    # retaining ARQ's existing finite retry count and delay.
+    redis_settings = replace(RedisSettings.from_dsn(settings.REDIS_URL), conn_timeout=5)
     functions = [
         task_bulk_fetch_instrument,
         task_refresh_benchmark_family_history,
@@ -611,6 +618,7 @@ class WorkerSettings:
         task_refresh_scheduled_benchmark_family_holdings_unit,
         task_run_screener,
         task_refresh_instrument_data,
+        task_process_refresh_jobs,
         task_bootstrap_core_workstation,
         scheduled_weekly_seed,
         scheduled_daily_metadata_sync,

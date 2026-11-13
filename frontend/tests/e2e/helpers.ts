@@ -15,6 +15,7 @@ const PASS  = process.env.TEST_PASS  ?? 'E2ePassword123!'
 // produce that response. Do not treat arbitrary 409s (workspace/watchlist
 // conflicts, malformed requests, or admin refresh conflicts) as expected.
 const EXPECTED_CURRENT_ANALYSIS_CONFLICT_PATH = /^\/api\/v1\/(?:analysis\/(?:benchmark-families\/[^/]+\/breadth(?:\/history)?|breadth(?:\/history)?|etf\/[^/]+\/(?:industries\/snapshot|constituents\/snapshot))|market-groups\/etf\/[^/]+\/industries|etf-holdings\/[^/]+\/basket)$/
+const EXPECTED_MISSING_STUDY_ARTIFACT_REFERENCE_PATH = /^\/api\/v1\/strategy-lab\/v2\/study-artifact-references\/[1-9]\d*\/[1-9]\d*$/
 
 export { expect }
 
@@ -73,6 +74,8 @@ export class BrowserDiagnostics {
   // documented auth-boundary responses are expected during the redirect only.
   expectedUnauthorizedResponses = 0
   expectedAuthenticationPageErrors = 0
+  private expectedAuthSessionChangedAbortErrors = 0
+  private classifiedAuthSessionChangedAbortErrorIndexes = new Set<number>()
   // A source snapshot clone may intentionally exercise the recoverable
   // duplicate/conflict path. The store keeps the failed canonical ID visible
   // for retry, while Chromium reports the handled 409 as a console error.
@@ -85,10 +88,13 @@ export class BrowserDiagnostics {
   private controlledApiFault: {
     url: string
     requestId: string
+    method: string
+    responseId: string | null
     status: number
     responseObserved: boolean
     consoleStartIndex: number
     consoleErrorIndex: number | null
+    missingResponseReported: boolean
   } | null = null
 
   allowExpectedControlledApiFault(url: string, requestId: string, status: number) {
@@ -97,10 +103,31 @@ export class BrowserDiagnostics {
     this.controlledApiFault = {
       url,
       requestId,
+      method: 'POST',
+      responseId: null,
       status,
       responseObserved: false,
       consoleStartIndex: this.consoleErrors.length,
       consoleErrorIndex: null,
+      missingResponseReported: false,
+    }
+  }
+
+  allowExpectedControlledApiResponseFault(url: string, method: 'GET' | 'POST', responseId: string, status = 503) {
+    if (this.controlledApiFault) throw new Error('Only one controlled API fault may be armed per test')
+    if (!url || !['GET', 'POST'].includes(method) || !responseId || status !== 503) {
+      throw new Error('Controlled response fault requires an exact URL, GET/POST method, response ID, and 503 status')
+    }
+    this.controlledApiFault = {
+      url,
+      requestId: '',
+      method,
+      responseId,
+      status,
+      responseObserved: false,
+      consoleStartIndex: this.consoleErrors.length,
+      consoleErrorIndex: null,
+      missingResponseReported: false,
     }
   }
 
@@ -115,6 +142,11 @@ export class BrowserDiagnostics {
     // diagnostic allowance separate from the response budget so one expected
     // page error cannot mask unrelated auth failures.
     this.expectedAuthenticationPageErrors += 1
+  }
+
+  allowExpectedAuthSessionChangedAbortErrors(count = 1) {
+    if (!Number.isSafeInteger(count) || count < 1) throw new Error('Expected auth-session cancellation count must be positive')
+    this.expectedAuthSessionChangedAbortErrors += count
   }
 
   attach(page: Page) {
@@ -148,13 +180,20 @@ export class BrowserDiagnostics {
       const fault = this.controlledApiFault
       if (response.status() === 503) {
         let requestId: string | undefined
+        let responseId: string | undefined
         try {
-          requestId = (response.request().postDataJSON() as { request_id?: string } | null)?.request_id
+          if (fault?.responseId !== null && fault?.responseId !== undefined) {
+            responseId = response.headers()['x-controlled-response-id']
+          } else {
+            requestId = (response.request().postDataJSON() as { request_id?: string } | null)?.request_id
+          }
         } catch {
           requestId = undefined
+          responseId = undefined
         }
         if (fault && !fault.responseObserved && response.url() === fault.url
-          && response.request().method() === 'POST' && requestId === fault.requestId) {
+          && response.request().method() === fault.method
+          && (fault.responseId === null ? requestId === fault.requestId : responseId === fault.responseId)) {
           fault.responseObserved = true
           const matchingConsoleIndex = this.consoleErrors.findIndex((error, index) =>
             index >= fault.consoleStartIndex
@@ -162,7 +201,13 @@ export class BrowserDiagnostics {
             && this.consoleErrorLocations[index] === fault.url)
           if (matchingConsoleIndex >= 0) fault.consoleErrorIndex = matchingConsoleIndex
         } else {
-          this.unexpectedApi503s.push(`${response.request().method()} ${response.url()} request_id=${requestId ?? 'unavailable'}`)
+          const request = response.request()
+          const location = `${request.method()} ${response.url()}`
+          if (fault?.responseId !== null && fault?.responseId !== undefined) {
+            this.unexpectedApi503s.push(`${location} response_id=${responseId ?? 'unavailable'}`)
+          } else {
+            this.unexpectedApi503s.push(`${location} request_id=${requestId ?? 'unavailable'}`)
+          }
         }
       }
       if (response.status() === 409) {
@@ -178,6 +223,10 @@ export class BrowserDiagnostics {
       }
       if (response.status() !== 404) return
       const path = new URL(response.url()).pathname
+      if (response.request().method() === 'GET' && EXPECTED_MISSING_STUDY_ARTIFACT_REFERENCE_PATH.test(path)) {
+        this.expectedUnavailableApi404s += 1
+        return
+      }
       if (/^\/api\/v1\/(?:analysis\/(?:relative-strength|groups\/[^/]+\/(?:snapshot|relative-rotation)|instruments\/[^/]+\/technical|etf\/[^/]+\/constituents\/snapshot)|coverage\/instruments\/[^/]+|etf-holdings\/[^/]+\/(?:holdings|latest)|market-groups\/etf\/[^/]+\/industries|instruments\/[^/]+|ohlcv(?:\/local)?\/[^/]+\/[^/]+|watchlists(?:\/.*)?)$/.test(path)) {
         this.expectedUnavailableApi404s += 1
         if (path === '/api/v1/watchlists') this.expectedWatchlistLoadErrors += 1
@@ -224,6 +273,12 @@ export class BrowserDiagnostics {
     // workstation canvas becomes visible. Let the response classifier observe
     // those responses before asserting that no unhandled browser errors exist.
     await this.page?.waitForTimeout(250)
+    const controlledFault = this.controlledApiFault
+    if (controlledFault?.responseId !== null && controlledFault?.responseId !== undefined
+      && !controlledFault.responseObserved && !controlledFault.missingResponseReported) {
+      this.unexpectedApi503s.push(`Expected controlled 503 was not observed: ${controlledFault.method} ${controlledFault.url} response_id=${controlledFault.responseId}`)
+      controlledFault.missingResponseReported = true
+    }
     const unexpectedConsoleErrors = this.filterExpectedConsoleErrors()
     const unexpectedPageErrors = this.filterExpectedPageErrors()
     expect(
@@ -263,6 +318,13 @@ export class BrowserDiagnostics {
     let expectedCurrentAnalysisConflictResponses = this.expectedCurrentAnalysisConflictResponses
     let expectedWatchlistLoadErrors = this.expectedWatchlistLoadErrors
     return this.consoleErrors.filter((error, index) => {
+      if (this.classifiedAuthSessionChangedAbortErrorIndexes.has(index)) return false
+      if (error.startsWith('AbortError: The authenticated session changed while this request was in flight.')
+        && this.expectedAuthSessionChangedAbortErrors > 0) {
+        this.expectedAuthSessionChangedAbortErrors -= 1
+        this.classifiedAuthSessionChangedAbortErrorIndexes.add(index)
+        return false
+      }
       if (this.controlledApiFault?.responseObserved
         && this.controlledApiFault.consoleErrorIndex === index
         && this.consoleErrorLocations[index] === this.controlledApiFault.url) return false

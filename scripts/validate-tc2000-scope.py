@@ -657,6 +657,8 @@ def authorized(path: str, plan: dict[str, Any]) -> tuple[bool, str]:
         for item in plan.get("approved_frontend_consumer_adaptations", [])
     ):
         return True, "exact source-pinned frontend consumer adaptation"
+    if path in development_dependency_import_paths(plan):
+        return True, "exact Root-released development dependency import"
     if any(matches(path, str(item)) for item in plan.get("excluded_paths", [])):
         return False, "excluded upstream or adjacent ownership"
     exceptions = {
@@ -669,6 +671,216 @@ def authorized(path: str, plan: dict[str, Any]) -> tuple[bool, str]:
     if any(matches(path, str(item)) for item in plan.get("owned_paths", [])):
         return True, "TC-owned path"
     return False, "not in the TC owned_paths allowlist or shared-path exceptions"
+
+
+def development_dependency_import_paths(plan: dict[str, Any]) -> set[str]:
+    """Return exact paths in the explicitly declared development import pins."""
+    paths: set[str] = set()
+    entries = plan.get("approved_development_dependency_imports", [])
+    if not isinstance(entries, list):
+        return paths
+    for entry in entries:
+        if not isinstance(entry, dict) or not isinstance(entry.get("paths"), list):
+            continue
+        for value in entry["paths"]:
+            try:
+                paths.add(exact_repo_path(value, label="development dependency import path"))
+            except ValueError:
+                continue
+    return paths
+
+
+def validate_development_dependency_imports(
+    plan: dict[str, Any], *, root: Path = ROOT
+) -> dict[str, str]:
+    """Verify exact Root-released development imports without calling them green staging."""
+    entries = plan.get("approved_development_dependency_imports", [])
+    if not isinstance(entries, list):
+        raise ValueError("approved_development_dependency_imports must be a list")
+    imported: dict[str, str] = {}
+    expected_keys = {"source_sha", "manifest_path", "manifest_sha256", "paths"}
+    manifest_prefix = "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/"
+    for entry in entries:
+        if not isinstance(entry, dict) or set(entry) != expected_keys:
+            raise ValueError("development dependency import entries must use the exact schema")
+        source = str(entry["source_sha"])
+        if not HEX40.fullmatch(source):
+            raise ValueError("development dependency source SHA is malformed")
+        manifest_ref = exact_repo_path(entry["manifest_path"], label="development dependency manifest")
+        if not manifest_ref.startswith(manifest_prefix) or not manifest_ref.endswith(f"/{source}.json"):
+            raise ValueError("development dependency manifest must be exact and source-named")
+        manifest_file = root / manifest_ref
+        if manifest_file.is_symlink() or not manifest_file.is_file():
+            raise ValueError(f"development dependency manifest is missing: {manifest_ref}")
+        manifest_bytes = manifest_file.read_bytes()
+        if hashlib.sha256(manifest_bytes).hexdigest() != entry["manifest_sha256"]:
+            raise ValueError(f"development dependency manifest hash drifted: {manifest_ref}")
+        try:
+            manifest = json.loads(manifest_bytes)
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise ValueError("development dependency manifest is not valid JSON") from exc
+        if (
+            not isinstance(manifest, dict)
+            or manifest.get("source") != source
+            or manifest.get("state") != "released_for_exact_development_consumption_not_product_acceptance"
+            or manifest.get("authority") != "Root coordinates the human-approved common-interface implementation; no staging or deployment acceptance"
+        ):
+            raise ValueError("development dependency manifest lacks its exact non-acceptance release state")
+        git_at(root, "cat-file", "-e", f"{source}^{{commit}}")
+        file_entries = manifest.get("files")
+        declared = entry["paths"]
+        if not isinstance(file_entries, list) or not isinstance(declared, list) or not file_entries:
+            raise ValueError("development dependency manifest must bind an explicit path list")
+        normalized_declared = [exact_repo_path(value, label="development dependency path") for value in declared]
+        manifest_paths = [str(item.get("path", "")) for item in file_entries if isinstance(item, dict)]
+        if (
+            len(normalized_declared) != len(set(normalized_declared))
+            or len(manifest_paths) != len(file_entries)
+            or set(normalized_declared) != set(manifest_paths)
+        ):
+            raise ValueError("development dependency plan paths differ from its exact release manifest")
+        for file_entry in file_entries:
+            if not isinstance(file_entry, dict) or set(file_entry) != {"path", "status_from139", "git_blob", "sha256"}:
+                raise ValueError("development dependency file entry is malformed")
+            path = exact_repo_path(file_entry["path"], label="development dependency path")
+            blob = str(file_entry["git_blob"])
+            digest = str(file_entry["sha256"])
+            if not HEX40.fullmatch(blob) or not HEX64.fullmatch(digest):
+                raise ValueError(f"development dependency blob/hash is malformed: {path}")
+            source_entry = tree_entry(root, source, path)
+            target = root / path
+            if source_entry is None or source_entry[1] != blob:
+                raise ValueError(f"development dependency blob differs from released source: {path}")
+            if target.is_symlink() or not target.is_file() or hashlib.sha256(target.read_bytes()).hexdigest() != digest:
+                raise ValueError(f"development dependency worktree bytes differ from release: {path}")
+            worktree_blob = git_at(root, "hash-object", "--no-filters", "--", path)
+            worktree_mode = "100755" if target.stat().st_mode & 0o111 else "100644"
+            if (worktree_mode, worktree_blob) != source_entry:
+                raise ValueError(f"development dependency worktree blob or mode differs from release: {path}")
+            staged_entry = index_entry(root, path)
+            if staged_entry != source_entry:
+                raise ValueError(f"development dependency import is not staged at its exact released blob: {path}")
+            imported[path] = f"exact Root-released development dependency from {source} (not release-qualified)"
+    return imported
+
+
+def _development_dependency_import_self_test() -> dict[str, bool]:
+    """Exercise the import pin against a disposable, portable Git repository."""
+    path = "backend/app/services/preparation.py"
+    neighbor = "backend/app/services/preparation_neighbor.py"
+    manifest_directory = (
+        "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports"
+    )
+    source_bytes = b"released development dependency\n"
+    result: dict[str, bool] = {}
+    with tempfile.TemporaryDirectory(prefix="tc-development-import-guard-") as name:
+        root = Path(name)
+
+        def run_git(*args: str) -> str:
+            return git_at(root, *args)
+
+        run_git("init", "--quiet")
+        run_git("config", "user.name", "Scope guard self-test")
+        run_git("config", "user.email", "scope-guard@example.invalid")
+        target = root / path
+        target.parent.mkdir(parents=True)
+        target.write_bytes(source_bytes)
+        run_git("add", "--", path)
+        run_git("commit", "--quiet", "-m", "released dependency source")
+        source = run_git("rev-parse", "HEAD")
+        source_entry = tree_entry(root, source, path)
+        assert source_entry is not None
+        manifest_ref = f"{manifest_directory}/{source}.json"
+        manifest_file = root / manifest_ref
+        manifest_file.parent.mkdir(parents=True)
+        manifest = {
+            "source": source,
+            "state": "released_for_exact_development_consumption_not_product_acceptance",
+            "authority": "Root coordinates the human-approved common-interface implementation; no staging or deployment acceptance",
+            "files": [
+                {
+                    "path": path,
+                    "status_from139": "modified",
+                    "git_blob": source_entry[1],
+                    "sha256": hashlib.sha256(source_bytes).hexdigest(),
+                }
+            ],
+        }
+        manifest_bytes = json.dumps(manifest, sort_keys=True).encode()
+        manifest_file.write_bytes(manifest_bytes)
+        pin = {
+            "source_sha": source,
+            "manifest_path": manifest_ref,
+            "manifest_sha256": hashlib.sha256(manifest_bytes).hexdigest(),
+            "paths": [path],
+        }
+        plan = {"approved_development_dependency_imports": [pin]}
+
+        result["valid exact import passes"] = (
+            validate_development_dependency_imports(plan, root=root) == {
+                path: f"exact Root-released development dependency from {source} (not release-qualified)"
+            }
+        )
+        result["unlisted neighbor remains outside the allowance"] = not authorized(
+            neighbor, plan
+        )[0]
+
+        invalid_source = {
+            "approved_development_dependency_imports": [
+                {**pin, "source_sha": "not-a-commit"}
+            ]
+        }
+        try:
+            validate_development_dependency_imports(invalid_source, root=root)
+            result["invalid source SHA fails closed"] = False
+        except ValueError:
+            result["invalid source SHA fails closed"] = True
+
+        unresolved_sha = "0" * 40
+        unresolved_manifest = {**manifest, "source": unresolved_sha}
+        unresolved_bytes = json.dumps(unresolved_manifest, sort_keys=True).encode()
+        unresolved_ref = f"{manifest_directory}/{unresolved_sha}.json"
+        unresolved_file = root / unresolved_ref
+        unresolved_file.write_bytes(unresolved_bytes)
+        unresolved_source = {"approved_development_dependency_imports": [{
+            **pin,
+            "source_sha": unresolved_sha,
+            "manifest_path": unresolved_ref,
+            "manifest_sha256": hashlib.sha256(unresolved_bytes).hexdigest(),
+        }]}
+        try:
+            validate_development_dependency_imports(unresolved_source, root=root)
+            result["unresolved source commit fails closed"] = False
+        except (RuntimeError, ValueError):
+            result["unresolved source commit fails closed"] = True
+
+        bad_manifest_hash = {
+            "approved_development_dependency_imports": [
+                {**pin, "manifest_sha256": "0" * 64}
+            ]
+        }
+        try:
+            validate_development_dependency_imports(bad_manifest_hash, root=root)
+            result["manifest hash mismatch fails closed"] = False
+        except ValueError:
+            result["manifest hash mismatch fails closed"] = True
+
+        target.write_bytes(b"different worktree bytes\n")
+        try:
+            validate_development_dependency_imports(plan, root=root)
+            result["actual worktree drift fails closed"] = False
+        except ValueError:
+            result["actual worktree drift fails closed"] = True
+
+        target.write_bytes(b"different staged bytes\n")
+        run_git("add", "--", path)
+        target.write_bytes(source_bytes)
+        try:
+            validate_development_dependency_imports(plan, root=root)
+            result["index drift fails closed"] = False
+        except ValueError:
+            result["index drift fails closed"] = True
+    return result
 
 
 def changed_paths(baseline: str) -> set[str]:
@@ -740,7 +952,16 @@ def self_test() -> int:
             "docs/project-todos.md", plan
         )[0],
         "unknown path fails closed": not authorized("backend/app/providers/new.py", plan)[0],
+        "development import exception binds one exact file": authorized(
+            "backend/app/providers/massive.py",
+            {"approved_development_dependency_imports": [{"paths": ["backend/app/providers/massive.py"]}]},
+        )[0],
+        "development import exception rejects unlisted neighbor": not authorized(
+            "backend/app/providers/other.py",
+            {"approved_development_dependency_imports": [{"paths": ["backend/app/providers/massive.py"]}]},
+        )[0],
     }
+    checks.update(_development_dependency_import_self_test())
     presentation_path = "frontend/src/components/etf/ETFHoldingsPanel.vue"
     exact_presentation_plan = {
         "owned_paths": [],
@@ -1436,6 +1657,7 @@ def main() -> int:
         contract_adaptations = validate_provider_contract_adaptations(
             plan, frozen=frozen_imports
         )
+        development_imports = validate_development_dependency_imports(plan)
         paths = sorted(changed_paths(baseline))
         rejected: list[tuple[str, str]] = []
         for path in paths:
@@ -1444,6 +1666,8 @@ def main() -> int:
                 allowed, reason = True, frozen_imports[path]
             if not allowed and path in contract_adaptations:
                 allowed, reason = True, contract_adaptations[path]
+            if not allowed and path in development_imports:
+                allowed, reason = True, development_imports[path]
             if not allowed:
                 rejected.append((path, reason))
         if rejected:
@@ -1456,6 +1680,7 @@ def main() -> int:
             f"all are TC-owned, documented shared seams, or one of "
             f"{len(frozen_imports)} byte-verified immutable imports and "
             f"{len(contract_adaptations)} exact approved Provider contract adaptations and "
+            f"{len(development_imports)} exact Root-released development imports and "
             f"{len(presentation_adaptations)} exact approved presentation paths and "
             f"{len(consumer_adaptations)} exact approved frontend consumer adaptations."
         )

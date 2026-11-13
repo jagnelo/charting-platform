@@ -17,7 +17,8 @@
             type="button"
             class="basket-card"
             :class="{ 'basket-card--active': selectedBasket?.id === basket.id }"
-            @click="selectBasket(basket)"
+            :disabled="loading || saving || deleting"
+            @click="requestSelectBasket(basket)"
           >
             <span class="basket-card__top">
               <span class="basket-card__name">{{ basket.name }}</span>
@@ -31,12 +32,12 @@
           </button>
         </template>
 
-        <button type="button" class="basket-new" @click="startNew">+ New</button>
+        <button type="button" class="basket-new" :disabled="loading || saving || deleting" @click="startNew">+ New</button>
       </div>
     </aside>
 
     <main class="basket-main">
-      <section class="basket-panel">
+      <section class="basket-panel" :class="{ 'basket-panel--readonly': isReadOnly }">
         <div class="panel-title-row">
           <div>
             <h2>{{ isEditingExisting ? draft.name || 'Basket' : 'New basket' }}</h2>
@@ -52,23 +53,40 @@
               v-if="selectedBasket"
               type="button"
               class="btn btn-secondary"
+              data-testid="basket-open-chart"
+              :disabled="loading || saving || deleting || isDirty || !selectedBasket.members.length"
               @click="openBasketChart"
             >
               Open chart
             </button>
             <button
-              v-if="isEditingExisting && !selectedBasket?.is_read_only"
+              v-if="isEditingExisting && !isReadOnly"
               type="button"
               class="btn btn-danger"
+              :disabled="loading || saving || deleting"
               @click="showDelete = true"
             >
               Delete
             </button>
-            <button type="button" class="btn btn-secondary" @click="handleReload">Refresh</button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              :disabled="loading || isDirty || saving || deleting || showDelete"
+              title="Discard or save your edits before refreshing saved baskets."
+              @click="handleReload"
+            >Refresh</button>
+            <button
+              v-if="isDirty"
+              type="button"
+              class="btn btn-secondary"
+              data-testid="basket-discard-edits"
+              :disabled="saving"
+              @click="discardCurrentEdits"
+            >Discard edits</button>
             <button
               type="button"
               class="btn btn-primary"
-              :disabled="!canSave"
+              :disabled="!canSave || loading || saving || deleting"
               @click="saveBasket"
             >
               {{ isEditingExisting ? 'Save' : 'Create' }}
@@ -79,6 +97,26 @@
         <div v-if="loadError" class="notice notice--error">{{ loadError }}</div>
         <div v-if="saveError" class="notice notice--error">{{ saveError }}</div>
         <div v-if="savedMessage" class="notice notice--success">{{ savedMessage }}</div>
+        <p v-if="!draft.name.trim()" class="field-hint" role="status">Enter a name to save this basket.</p>
+        <p v-else-if="!draft.members.length" class="field-hint" role="status">Choose at least one resolved instrument to save this basket.</p>
+        <p v-else-if="draft.weighting_scheme === 'custom' && Math.abs(remainingAllocation) > 0.01" class="field-hint" role="status">
+          Custom weights must total 100%. {{ remainingAllocationLabel }}.
+        </p>
+
+        <section
+          v-if="selectedBasket?.is_system_managed"
+          class="basket-source-summary"
+          data-testid="basket-source-summary"
+          aria-label="Issuer snapshot summary"
+        >
+          <p>
+            <strong>{{ selectedBasket.metadata?.etf_symbol || 'ETF' }}</strong>
+            · {{ selectedBasket.metadata?.source_provider || 'Source not established' }}
+            · As of {{ selectedBasket.metadata?.as_of_date || selectedBasket.composition_date || 'date unknown' }}
+            · {{ sourceSnapshotFreshness }}
+          </p>
+          <p>Current eligibility is assessed separately in ETF Holdings; this basket retains a dated composition.</p>
+        </section>
 
         <div class="form-grid">
           <label class="field">
@@ -86,13 +124,13 @@
             <input
               v-model="draft.name"
               class="form-input"
-              :disabled="isReadOnly"
+              :disabled="isReadOnly || loading || saving"
               placeholder="Basket name"
             />
           </label>
           <label class="field">
             <span class="field-label">Weighting</span>
-            <select v-model="draft.weighting_scheme" class="form-select" :disabled="isReadOnly">
+            <select v-model="draft.weighting_scheme" class="form-select" :disabled="isReadOnly || loading || saving">
               <option value="equal">Equal weight</option>
               <option value="custom">Custom weights</option>
             </select>
@@ -102,7 +140,7 @@
             <textarea
               v-model="draft.description"
               class="form-textarea"
-              :disabled="isReadOnly"
+              :disabled="isReadOnly || loading || saving"
               placeholder="What does this basket represent?"
             />
           </label>
@@ -128,6 +166,8 @@
               fluid
               :show-recent="false"
               :show-screener-link="false"
+              :allow-expressions="false"
+              :readonly="loading || saving"
               @select="addMember"
             />
           </div>
@@ -156,7 +196,7 @@
                 min="0"
                 max="100"
                 step="0.01"
-                :disabled="isReadOnly"
+                :disabled="isReadOnly || loading || saving"
               />
             </label>
             <button
@@ -164,6 +204,7 @@
               type="button"
               class="remove-btn"
               :aria-label="`Remove ${member.symbol}`"
+              :disabled="loading || saving"
               @click="removeMember(member.key)"
             >
               ×
@@ -174,17 +215,66 @@
             Add at least one resolved instrument to create a basket.
           </div>
         </div>
+
+        <details
+          v-if="selectedBasket?.is_system_managed"
+          class="basket-provenance"
+          data-testid="basket-source-provenance"
+        >
+          <summary>Source details</summary>
+          <section aria-label="Issuer snapshot provenance">
+            <dl>
+              <div><dt>ETF</dt><dd>{{ selectedBasket.metadata?.etf_symbol || 'Unknown' }}</dd></div>
+              <div><dt>Composition date</dt><dd>{{ selectedBasket.composition_date || 'Unknown' }}</dd></div>
+              <div><dt>Source provider</dt><dd>{{ selectedBasket.metadata?.source_provider || 'Unknown' }}</dd></div>
+              <div><dt>Provenance</dt><dd>{{ selectedBasket.metadata?.provenance || 'Unknown' }}</dd></div>
+              <div><dt>Source quality</dt><dd>{{ selectedBasket.metadata?.source_quality || 'Unknown' }}</dd></div>
+              <div><dt>Completeness</dt><dd>{{ selectedBasket.metadata?.completeness_status || 'Unknown' }}</dd></div>
+              <div><dt>Snapshot ID</dt><dd>{{ selectedBasket.source_snapshot_id ?? 'Unknown' }}</dd></div>
+              <div><dt>Known at</dt><dd>{{ selectedBasket.metadata?.known_at || 'Unknown' }}</dd></div>
+              <div v-if="selectedBasket.metadata?.as_of_date"><dt>As of</dt><dd>{{ selectedBasket.metadata.as_of_date }}</dd></div>
+              <div v-if="selectedBasket.metadata?.source_identifier"><dt>Source identifier</dt><dd>{{ selectedBasket.metadata.source_identifier }}</dd></div>
+              <div v-if="selectedBasket.metadata?.source_url"><dt>Source URL</dt><dd class="basket-provenance__url">{{ selectedBasket.metadata.source_url }}</dd></div>
+              <div v-if="selectedBasket.metadata?.snapshot_hash"><dt>Snapshot SHA256</dt><dd>{{ selectedBasket.metadata.snapshot_hash }}</dd></div>
+              <div v-if="selectedBasket.metadata?.source_artifact_id"><dt>Raw artifact ID</dt><dd>{{ selectedBasket.metadata.source_artifact_id }}</dd></div>
+              <div v-if="selectedBasket.metadata?.source_artifact_hash"><dt>Raw artifact SHA256</dt><dd>{{ selectedBasket.metadata.source_artifact_hash }}</dd></div>
+            </dl>
+            <p v-if="snapshotLineageError" role="status" class="basket-list__state">{{ snapshotLineageError }}</p>
+            <ul v-else class="basket-snapshot-history" data-testid="basket-snapshot-history">
+              <li v-for="snapshot in selectedSnapshots" :key="snapshot.id">
+                <span>{{ snapshot.composition_date }} · {{ snapshot.member_count }} members</span>
+                <small>
+                  {{ snapshot.metadata?.source_provider || snapshot.source_type }} · {{ snapshot.metadata?.provenance || 'provenance unavailable' }}
+                  · known at {{ snapshot.known_at || 'unknown' }} · source snapshot {{ snapshot.source_snapshot_id ?? 'unknown' }}
+                </small>
+              </li>
+            </ul>
+          </section>
+        </details>
       </section>
     </main>
 
     <Teleport to="body">
       <div v-if="showDelete" class="modal-overlay" @click.self="showDelete = false">
-        <div class="modal">
-          <h3>Delete basket?</h3>
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="basket-delete-title">
+          <h3 id="basket-delete-title">Delete basket?</h3>
           <p>This removes "{{ selectedBasket?.name }}" from reusable universes.</p>
           <div class="modal-actions">
-            <button type="button" class="btn btn-secondary" @click="showDelete = false">Cancel</button>
-            <button type="button" class="btn btn-danger" @click="deleteSelected">Delete</button>
+            <button type="button" class="btn btn-secondary" :disabled="deleting" @click="showDelete = false">Cancel</button>
+            <button type="button" class="btn btn-danger" :disabled="loading || deleting" @click="deleteSelected">{{ deleting ? 'Deleting…' : 'Delete' }}</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
+      <div v-if="showDiscard" class="modal-overlay" @click.self="cancelDiscard">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="basket-discard-title">
+          <h3 id="basket-discard-title">Discard unsaved changes?</h3>
+          <p>Your basket edits have not been saved.</p>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" @click="cancelDiscard">Keep editing</button>
+            <button type="button" class="btn btn-danger" data-testid="basket-confirm-discard" @click="confirmDiscard">Discard changes</button>
           </div>
         </div>
       </div>
@@ -214,6 +304,24 @@ interface BasketDraft {
   members: BasketMemberDraft[]
 }
 
+interface BasketPickerResult {
+  instrument_id?: number | null
+  name?: string | null
+  symbol?: string
+}
+
+interface BasketSnapshotLineage {
+  id: number
+  composition_date: string
+  known_at?: string | null
+  source_type: string
+  source_snapshot_id?: number | null
+  member_count: number
+  metadata?: { source_provider?: string | null; provenance?: string | null } | null
+}
+
+type PendingDiscardAction = { kind: 'basket'; basket: Basket } | { kind: 'new' } | null
+
 const router = useRouter()
 const baskets = ref<Basket[]>([])
 const selectedBasket = ref<Basket | null>(null)
@@ -223,8 +331,15 @@ const saveError = ref('')
 const savedMessage = ref('')
 const memberSearch = ref('')
 const showDelete = ref(false)
+const showDiscard = ref(false)
+const pendingDiscardAction = ref<PendingDiscardAction>(null)
+const selectedSnapshots = ref<BasketSnapshotLineage[]>([])
+const snapshotLineageError = ref('')
+const saving = ref(false)
+const deleting = ref(false)
 let lifecycleGeneration = 0
 let reloadSequence = 0
+let selectionGeneration = 0
 
 function isCurrentLifecycle(generation: number) {
   return generation === lifecycleGeneration
@@ -238,7 +353,9 @@ const draft = reactive<BasketDraft>({
 })
 
 const isEditingExisting = computed(() => selectedBasket.value != null)
-const isReadOnly = computed(() => Boolean(selectedBasket.value?.is_read_only))
+const isReadOnly = computed(() => Boolean(
+  selectedBasket.value?.is_read_only || selectedBasket.value?.is_system_managed,
+))
 const customWeightTotal = computed(() =>
   draft.members.reduce((sum, member) => sum + numericWeight(member.weight_pct), 0)
 )
@@ -262,6 +379,17 @@ const canSave = computed(() => {
       && Math.abs(remainingAllocation.value) <= 0.01
   }
   return true
+})
+
+const isDirty = computed(() =>
+  draftSignature(draft) !== draftSignature(selectedBasket.value ? draftFromBasket(selectedBasket.value) : emptyDraft()),
+)
+const sourceSnapshotFreshness = computed(() => {
+  const basket = selectedBasket.value
+  if (!basket?.composition_date) return 'Snapshot date unavailable'
+  if (basket.latest_snapshot_date === basket.composition_date) return 'Latest stored snapshot'
+  if (basket.latest_snapshot_date) return `Historical snapshot · latest stored ${basket.latest_snapshot_date}`
+  return 'Dated snapshot · latest stored date unavailable'
 })
 
 onMounted(() => reload())
@@ -297,23 +425,51 @@ async function reload(generation = lifecycleGeneration) {
 }
 
 function selectBasket(basket: Basket) {
+  if (selectedBasket.value?.id === basket.id && !isDirty.value) {
+    selectedBasket.value = basket
+    draft.name = basket.name
+    draft.description = basket.description ?? ''
+    draft.weighting_scheme = basket.weighting_scheme === 'custom' ? 'custom' : 'equal'
+    draft.members = draftFromBasket(basket).members
+    refreshBasketLineage(basket, ++selectionGeneration)
+    return
+  }
+  selectionGeneration += 1
   selectedBasket.value = basket
   savedMessage.value = ''
   saveError.value = ''
   draft.name = basket.name
   draft.description = basket.description ?? ''
   draft.weighting_scheme = basket.weighting_scheme === 'custom' ? 'custom' : 'equal'
-  draft.members = basket.members.map(member => ({
-    key: String(member.id),
-    instrument_id: member.instrument_id,
-    symbol: String(member.symbol ?? member.label ?? member.instrument_id).toUpperCase(),
-    name: member.name,
-    weight_pct: member.weight == null ? '' : formatInputWeight(Number(member.weight) * 100),
-  }))
+  draft.members = draftFromBasket(basket).members
+  void refreshBasketLineage(basket, selectionGeneration)
+}
+
+function requestSelectBasket(basket: Basket) {
+  if (saving.value || deleting.value || selectedBasket.value?.id === basket.id) return
+  if (isDirty.value) {
+    pendingDiscardAction.value = { kind: 'basket', basket }
+    showDiscard.value = true
+    return
+  }
+  selectBasket(basket)
 }
 
 function startNew() {
+  if (saving.value || deleting.value) return
+  if (isDirty.value) {
+    pendingDiscardAction.value = { kind: 'new' }
+    showDiscard.value = true
+    return
+  }
+  resetNewDraft()
+}
+
+function resetNewDraft() {
+  selectionGeneration += 1
   selectedBasket.value = null
+  selectedSnapshots.value = []
+  snapshotLineageError.value = ''
   savedMessage.value = ''
   saveError.value = ''
   draft.name = ''
@@ -322,19 +478,46 @@ function startNew() {
   draft.members = []
 }
 
-function addMember(symbol: string) {
-  const normalized = symbol.trim().toUpperCase()
+function discardCurrentEdits() {
+  if (selectedBasket.value) selectBasket(selectedBasket.value)
+  else resetNewDraft()
+}
+
+function cancelDiscard() {
+  showDiscard.value = false
+  pendingDiscardAction.value = null
+}
+
+function confirmDiscard() {
+  const action = pendingDiscardAction.value
+  showDiscard.value = false
+  pendingDiscardAction.value = null
+  if (action?.kind === 'basket') selectBasket(action.basket)
+  else if (action?.kind === 'new') resetNewDraft()
+}
+
+function addMember(symbol: string, result?: BasketPickerResult) {
+  const normalized = String(result?.symbol || symbol).trim().toUpperCase()
   if (!normalized) return
-  if (draft.members.some(member => member.symbol === normalized)) {
+  const instrumentId = Number(result?.instrument_id)
+  if (!Number.isSafeInteger(instrumentId) || instrumentId <= 0) {
+    saveError.value = 'Choose a resolved instrument from the search results before adding it.'
+    memberSearch.value = ''
+    return
+  }
+  if (draft.members.some(member => member.instrument_id === instrumentId)) {
+    saveError.value = `${normalized} is already in this basket.`
     memberSearch.value = ''
     return
   }
   draft.members.push({
     key: `${normalized}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    ...(Number.isSafeInteger(instrumentId) && instrumentId > 0 ? { instrument_id: instrumentId } : {}),
     symbol: normalized,
-    name: null,
+    name: result?.name ?? null,
     weight_pct: draft.weighting_scheme === 'custom' ? suggestedNewWeight() : '',
   })
+  saveError.value = ''
   memberSearch.value = ''
 }
 
@@ -348,10 +531,13 @@ function suggestedNewWeight() {
 }
 
 async function saveBasket() {
-  if (!canSave.value) return
+  if (!canSave.value || saving.value) return
   const generation = lifecycleGeneration
+  const selection = selectionGeneration
+  const selectedId = selectedBasket.value?.id ?? null
   saveError.value = ''
   savedMessage.value = ''
+  saving.value = true
   const body = {
     name: draft.name.trim(),
     description: draft.description.trim() || null,
@@ -367,31 +553,53 @@ async function saveBasket() {
     const saved = selectedBasket.value
       ? await api.patch<Basket>(`/baskets/${selectedBasket.value.id}`, body)
       : await api.post<Basket>('/baskets', body)
-    if (!isCurrentLifecycle(generation)) return
-    await reload(generation)
-    if (!isCurrentLifecycle(generation)) return
-    const refreshed = baskets.value.find(basket => basket.id === saved.id) ?? saved
-    selectBasket(refreshed)
+    if (!isCurrentLifecycle(generation) || selection !== selectionGeneration
+      || selectedId !== (selectedBasket.value?.id ?? null)) return
+    const index = baskets.value.findIndex(basket => basket.id === saved.id)
+    if (index >= 0) baskets.value.splice(index, 1, saved)
+    else baskets.value = [saved, ...baskets.value]
+    selectBasket(saved)
     savedMessage.value = 'Basket saved.'
   } catch (err: any) {
-    saveError.value = err?.message ?? 'Failed to save basket'
+    if (isCurrentLifecycle(generation) && selection === selectionGeneration) {
+      saveError.value = err?.message ?? 'Failed to save basket'
+    }
+  } finally {
+    if (isCurrentLifecycle(generation)) saving.value = false
   }
 }
 
 async function deleteSelected() {
-  if (!selectedBasket.value || selectedBasket.value.is_read_only) return
+  if (!selectedBasket.value || isReadOnly.value || deleting.value) return
   const generation = lifecycleGeneration
+  const selection = selectionGeneration
   const id = selectedBasket.value.id
-  showDelete.value = false
-  await api.delete(`/baskets/${id}`)
-  if (!isCurrentLifecycle(generation)) return
-  selectedBasket.value = null
-  await reload(generation)
+  deleting.value = true
+  saveError.value = ''
+  try {
+    await api.delete(`/baskets/${id}`)
+    if (!isCurrentLifecycle(generation) || selection !== selectionGeneration) return
+    showDelete.value = false
+    baskets.value = baskets.value.filter(basket => basket.id !== id)
+    selectedBasket.value = null
+    const next = baskets.value[0]
+    if (next) selectBasket(next)
+    else resetNewDraft()
+    savedMessage.value = 'Basket deleted.'
+  } catch (err: any) {
+    if (isCurrentLifecycle(generation) && selection === selectionGeneration) {
+      showDelete.value = false
+      saveError.value = err?.message ?? 'Failed to delete basket'
+    }
+  } finally {
+    if (isCurrentLifecycle(generation)) deleting.value = false
+  }
 }
 
 onUnmounted(() => {
   lifecycleGeneration += 1
   reloadSequence += 1
+  selectionGeneration += 1
 })
 
 function openChart(symbol: string) {
@@ -401,7 +609,63 @@ function openChart(symbol: string) {
 
 function openBasketChart() {
   if (!selectedBasket.value) return
-  router.push(`/chart/${encodeURIComponent(`BASKET:${selectedBasket.value.id}`)}`)
+  routeToBasketChart()
+}
+
+function routeToBasketChart() {
+  const basketId = selectedBasket.value?.id
+  if (!basketId) return
+  void router.push(`/chart/${encodeURIComponent(`BASKET:${basketId}`)}`)
+}
+
+async function refreshBasketLineage(basket: Basket, generation: number) {
+  const lifecycle = lifecycleGeneration
+  selectedSnapshots.value = []
+  snapshotLineageError.value = ''
+  if (!basket.is_system_managed) return
+  try {
+    const snapshots = await api.get<BasketSnapshotLineage[]>(`/baskets/${basket.id}/snapshots`)
+    if (!isCurrentLifecycle(lifecycle) || generation !== selectionGeneration
+      || selectedBasket.value?.id !== basket.id) return
+    selectedSnapshots.value = snapshots
+  } catch {
+    if (isCurrentLifecycle(lifecycle) && generation === selectionGeneration && selectedBasket.value?.id === basket.id) {
+      snapshotLineageError.value = 'Snapshot history is temporarily unavailable; the selected source and composition date remain shown.'
+    }
+  }
+}
+
+function draftFromBasket(basket: Basket): BasketDraft {
+  return {
+    name: basket.name,
+    description: basket.description ?? '',
+    weighting_scheme: basket.weighting_scheme === 'custom' ? 'custom' : 'equal',
+    members: basket.members.map(member => ({
+      key: String(member.id),
+      instrument_id: member.instrument_id,
+      symbol: String(member.symbol ?? member.label ?? member.instrument_id).toUpperCase(),
+      name: member.name,
+      weight_pct: member.weight == null ? '' : formatInputWeight(Number(member.weight) * 100),
+    })),
+  }
+}
+
+function emptyDraft(): BasketDraft {
+  return { name: '', description: '', weighting_scheme: 'equal', members: [] }
+}
+
+function draftSignature(value: BasketDraft) {
+  return JSON.stringify({
+    name: value.name,
+    description: value.description,
+    weighting_scheme: value.weighting_scheme,
+    members: value.members.map(member => ({
+      instrument_id: member.instrument_id ?? null,
+      symbol: member.symbol,
+      name: member.name ?? null,
+      weight_pct: member.weight_pct,
+    })),
+  })
 }
 
 function numericWeight(value: string) {
@@ -691,6 +955,102 @@ function humanize(value: string) {
   background: #08170d;
 }
 
+.field-hint {
+  margin: 10px 0 0;
+  color: var(--tc-text-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.basket-provenance {
+  margin-top: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--tc-border);
+  border-radius: var(--tc-radius);
+  background: var(--tc-window-bg);
+}
+
+.basket-source-summary {
+  display: grid;
+  gap: 3px;
+  padding: 7px 10px;
+  border: 1px solid var(--tc-border);
+  border-radius: var(--tc-radius);
+  background: var(--tc-window-bg);
+  font-size: 11px;
+}
+
+.basket-source-summary p {
+  margin: 0;
+  color: var(--tc-text-muted);
+}
+
+.basket-source-summary strong {
+  color: var(--tc-text);
+}
+
+.basket-provenance > summary,
+.snapshot-source-details > summary {
+  color: var(--tc-accent-soft);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+  outline-offset: 3px;
+}
+
+.basket-provenance[open] > summary,
+.snapshot-source-details[open] > summary {
+  margin-bottom: 10px;
+}
+
+.basket-provenance dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px 16px;
+  margin: 0;
+}
+
+.basket-provenance dl > div {
+  min-width: 0;
+}
+
+.basket-provenance dt {
+  color: var(--tc-text-muted);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.basket-provenance dd {
+  margin: 3px 0 0;
+  color: var(--tc-text);
+  overflow-wrap: anywhere;
+}
+
+.basket-provenance__url {
+  font-family: var(--tc-font-mono);
+  font-size: 10px;
+}
+
+.basket-snapshot-history {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.basket-snapshot-history li {
+  display: grid;
+  gap: 3px;
+  padding-top: 8px;
+  border-top: 1px solid var(--tc-border);
+  color: var(--tc-text);
+}
+
+.basket-snapshot-history small {
+  color: var(--tc-text-muted);
+}
+
 .allocation-strip {
   display: grid;
   grid-template-columns: 180px minmax(0, 1fr);
@@ -839,14 +1199,22 @@ function humanize(value: string) {
   margin-top: 16px;
 }
 
-@media (max-width: 920px) {
+@media (max-width: 1100px) {
   .basket-view {
     flex-direction: column;
   }
 
+  .basket-main {
+    order: 0;
+    min-height: 0;
+  }
+
   .basket-sidebar {
+    order: 1;
     width: 100%;
-    max-height: 280px;
+    max-height: 180px;
+    flex: 0 0 auto;
+    overflow: auto;
     border-right: 0;
     border-bottom: 1px solid #1a1a1a;
   }
@@ -854,6 +1222,19 @@ function humanize(value: string) {
   .basket-main {
     padding: 14px;
   }
+
+  .basket-panel--readonly {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .basket-panel--readonly .panel-title-row { order: 0; }
+  .basket-panel--readonly .basket-source-summary { order: 1; }
+  .basket-panel--readonly .member-toolbar { order: 2; }
+  .basket-panel--readonly .member-table { order: 3; }
+  .basket-panel--readonly .form-grid { order: 4; }
+  .basket-panel--readonly .allocation-strip { order: 5; }
+  .basket-panel--readonly .basket-provenance { order: 6; }
 
   .form-grid,
   .member-row {

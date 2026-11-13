@@ -16,7 +16,7 @@ from app.lib.time_utils import wire_datetime
 from app.models.instrument import Instrument
 from app.models.listing import InstrumentListing
 from app.models.ohlcv import OHLCVBar, Timeframe
-from app.models.research import CodeAsset, CodeVersion, ResearchRun
+from app.models.research import CodeAsset, CodeVersion, ResearchArtifact, ResearchRun
 from app.models.screener import ScreenerDefinition
 from app.models.strategy import StrategyDefinition, StrategyVersion
 from app.models.user import User
@@ -60,6 +60,14 @@ def _wire_timestamps(values: list[datetime]) -> list[str]:
     """Serialize a returned dataset timeline on the canonical UTC wire format."""
 
     return [wire_datetime(value) or "" for value in values]
+
+
+def _bounded_series_history_limit(options: dict, *, lookback: int | None, fallback: int) -> int:
+    """Keep a bounded user-requested interval intact while retaining the global row cap."""
+
+    if lookback is None or options.get("start") is not None or options.get("end") is not None:
+        return MAX_HISTORY_LIMIT
+    return fallback
 
 
 class ResearchEventSignalPromotionRequest(BaseModel):
@@ -607,8 +615,12 @@ async def _materialize_declared_dataset(
     history_limit = max(
         BATCH_HISTORY_LIMIT, (lookback + 1) if lookback is not None else BATCH_HISTORY_LIMIT
     )
-    benchmark_history_limit = max(
-        MAX_HISTORY_LIMIT if lookback is None else history_limit, history_limit
+    # A code lookback is an evaluator requirement, not permission to truncate a
+    # user's bounded date interval. Keep bounded single/reference series under
+    # the existing per-dataset safety cap; set-based batch members retain their
+    # smaller BATCH_HISTORY_LIMIT row budget below.
+    benchmark_history_limit = _bounded_series_history_limit(
+        options, lookback=lookback, fallback=history_limit
     )
     benchmark_dataset = await _materialize_benchmark_dataset(
         db, options, history_limit=benchmark_history_limit
@@ -943,10 +955,18 @@ async def list_runs(
             detail="before_created_at and before_id must be provided together",
         )
     bounded_limit = max(1, min(limit, 100))
+    artifact_loader = selectinload(ResearchRun.artifacts)
+    if not include_artifacts:
+        # The ordinary Results list needs the artifact count, while opening a
+        # run detail is the explicit path for reading payloads. Loading JSON
+        # series/tables for every row in the list adds substantial I/O without
+        # changing the list response. Keep artifact IDs available so recovering
+        # a just-finished result can append its rows and report the exact count.
+        artifact_loader = artifact_loader.load_only(ResearchArtifact.id, raiseload=True)
     statement = (
         select(ResearchRun)
         .options(
-            selectinload(ResearchRun.artifacts),
+            artifact_loader,
             selectinload(ResearchRun.code_version),
         )
         .where(ResearchRun.user_id == current_user.id)
@@ -1019,6 +1039,9 @@ async def get_run(
     # offer only adapters that the source can execute safely.
     if run.code_version is not None:
         setattr(run, "output_contract", run.code_version.output_contract)
+    # The ORM row does not store this projection field. Keep the detail response
+    # consistent with /runs, which derives it from the persisted artifacts.
+    setattr(run, "artifact_count", len(run.artifacts))
     await db.flush()
     return run
 

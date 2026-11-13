@@ -1,0 +1,49 @@
+{
+  "at": "2026-11-07T10:11:25.141035+00:00",
+  "authority": "Root coordinates the human-approved common-interface implementation; no staging or deployment acceptance",
+  "state": "released_for_exact_development_consumption_not_product_acceptance",
+  "source": "f6521237fc3656c4630ee40e8043be17c63f7405",
+  "base": "139b350238b5e1c8a170dce5af09a805301d857e",
+  "previous_source": "f2f6d37a3384ff7e6f3d8d425bad3b39cc5a23ba",
+  "files": [
+    {
+      "path": "backend/app/routers/research.py",
+      "status_from139": "M",
+      "git_blob": "0c273ed12ad83bfe09ff6677321a906d3fcf1751",
+      "sha256": "ad99feb6bb7f858ccf2898df1c81a52ca2cca485966f94b9d628b226387f1a10"
+    },
+    {
+      "path": "backend/tests/unit/routers/test_research_router.py",
+      "status_from139": "M",
+      "git_blob": "39674ab3db4bc9516f1d0945beadb2770fc56480",
+      "sha256": "f79e9c8851e746486caf5b7d7c9de6490b401397da4252cd9b7ef8364290aca3"
+    }
+  ],
+  "consumers": [
+    {
+      "consumer": "Provider",
+      "import_paths": [
+        "backend/app/routers/research.py",
+        "backend/tests/unit/routers/test_research_router.py"
+      ],
+      "old_guards": {
+        "backend/app/routers/research.py": {
+          "sha256": "079422246df8f5c29eae7916fafa98a740c6b6f4402998f1d6befb17daaeee6b",
+          "known_source": "f2f6d37a3384ff7e6f3d8d425bad3b39cc5a23ba"
+        },
+        "backend/tests/unit/routers/test_research_router.py": {
+          "sha256": "d3e6bf58eafa545b518fb7dc15c0fb448f2bab5f60c825ef938634ab54df684c",
+          "known_source": "f2f6d37a3384ff7e6f3d8d425bad3b39cc5a23ba"
+        }
+      },
+      "owned_overlap": []
+    }
+  ],
+  "scope": "Research Results count-only list loads artifact IDs without JSON payloads; run detail/include_artifacts retain full payloads. Prior bounded520 materialization preserved. Root has reviewed exact2-path change, actual runtime behavior pending.",
+  "evidence": {
+    "owner": "Frozen f652 handoff: Research router15/15, pinned Ruff check/format and workstream guards passed.",
+    "root": "Exact product/test delta reviewed; Provider old/new bytes and Git100644 verified.",
+    "release": "Not accepted; exact-source CI, real API/browser and final combined proof pending."
+  },
+  "preserve": "No feature closure, staging/deployment acceptance, metadata-only commit or native/policy changes. Provider composes these2paths into next complete backend manifest; TC/ETF consume only that composite, no overlapping pins."
+}

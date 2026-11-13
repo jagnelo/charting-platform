@@ -56,7 +56,11 @@ from app.providers.crypto_market_data import (
     estimate_kraken_latest_ohlcv_request_count,
     estimate_kraken_ohlcv_request_count,
 )
-from app.providers.errors import ProviderRateLimitError, bounded_redact_provider_message
+from app.providers.errors import (
+    ProviderNotConfiguredError,
+    ProviderRateLimitError,
+    bounded_redact_provider_message,
+)
 from app.providers.ibkr import (
     estimate_ibkr_current_price_request_count,
     estimate_ibkr_latest_ohlcv_request_count,
@@ -83,8 +87,16 @@ from app.services.distributed_locks import (
     shared_redis_lock_client,
 )
 from app.services.instrument_mastering import ingest_provider_profile, reconcile_instrument_profile
-from app.services.market_series import SeriesScope, get_or_create_series
-from app.services.ohlcv_coverage import assess_ohlcv_coverage, missing_range_slices
+from app.services.market_series import (
+    SeriesScope,
+    adjustment_scope_predicate,
+    get_or_create_series,
+)
+from app.services.ohlcv_coverage import (
+    assess_ohlcv_coverage,
+    coverage_calendar_for_instrument,
+    missing_range_slices,
+)
 from app.services.provider_observations import (
     store_latest_price_snapshot,
     store_search_snapshot,
@@ -117,8 +129,12 @@ _OHLCV_CONFLICT_COLUMNS = [
 # background refresh jobs provide cross-worker coalescing; this map prevents
 # concurrent requests handled by one process from independently spending the
 # same provider quota before the first transaction commits its bars.
-_OHLCV_REFRESH_LOCKS: dict[tuple[int, str, datetime, datetime | None, bool], asyncio.Lock] = {}
-_OHLCV_REFRESH_LOCK_USERS: dict[tuple[int, str, datetime, datetime | None, bool], int] = {}
+_OHLCV_REFRESH_LOCKS: dict[
+    tuple[int, str, datetime, datetime | None, bool, str | None], asyncio.Lock
+] = {}
+_OHLCV_REFRESH_LOCK_USERS: dict[
+    tuple[int, str, datetime, datetime | None, bool, str | None], int
+] = {}
 _LATEST_PRICE_REFRESH_LOCKS: dict[int, asyncio.Lock] = {}
 _LATEST_PRICE_REFRESH_LOCK_USERS: dict[int, int] = {}
 
@@ -129,19 +145,21 @@ def _ohlcv_refresh_lock_key(
     start: datetime,
     end: datetime | None,
     adjusted: bool,
-) -> tuple[int, str, datetime, datetime | None, bool]:
+    source_provider: str | None = None,
+) -> tuple[int, str, datetime, datetime | None, bool, str | None]:
     return (
         instrument.id,
         timeframe.value,
         _as_utc(start),
         _as_utc(end) if end is not None else None,
         adjusted,
+        source_provider.strip().lower() if source_provider else None,
     )
 
 
 async def _acquire_database_refresh_lock(
     db: AsyncSession,
-    lock_key: tuple[int, str, datetime, datetime | None, bool],
+    lock_key: tuple[int, str, datetime, datetime | None, bool, str | None],
 ) -> None:
     """Serialize an exact refresh key across PostgreSQL workers/hosts.
 
@@ -191,6 +209,7 @@ def _default_series_bar_condition(
     contract to a set-based multi-instrument query without an N+1 lookup.
     """
 
+    adjustment_predicate = adjustment_scope_predicate(adjusted)
     mapping = select(MarketSeriesDefault.market_series_id).where(
         MarketSeriesDefault.instrument_id == instrument_id,
         MarketSeriesDefault.timeframe == timeframe.value,
@@ -210,13 +229,9 @@ def _default_series_bar_condition(
             mapped_bar.instrument_id == instrument_id,
             mapped_bar.timeframe == timeframe,
             mapped_bar.is_adjusted == adjusted,
+            adjustment_predicate,
         )
         .exists()
-    )
-    adjustment_predicate = (
-        MarketSeries.adjustment_basis != AdjustmentBasis.RAW
-        if adjusted
-        else MarketSeries.adjustment_basis == AdjustmentBasis.RAW
     )
     canonical = (
         select(MarketSeries.id)
@@ -263,8 +278,8 @@ def _seeded_market_data() -> bool:
 
 
 def _coverage_calendar(instrument: Instrument) -> str | None:
-    """Use the local XNYS calendar only for explicitly USD instruments."""
-    return "XNYS" if (instrument.currency or "").upper() == "USD" else None
+    """Use XNYS only when the instrument has a recognized US equity MIC."""
+    return coverage_calendar_for_instrument(instrument)
 
 
 async def _get_or_create_datasource(db: AsyncSession) -> DataSource:
@@ -384,7 +399,7 @@ async def _fresh_search_from_cache(
 ) -> list[dict] | None:
     now = datetime.now(UTC)
     merged: list[dict] = []
-    seen: set[str] = set()
+    seen: set[tuple[str, ...]] = set()
     for resolved in await resolve_provider_chain(
         db,
         ProviderCapability.INSTRUMENT_SEARCH,
@@ -422,9 +437,26 @@ async def _fresh_search_from_cache(
             )
         for item in provider_rows:
             symbol = item.get("symbol", "")
-            if not symbol or symbol in seen:
+            if not symbol:
                 continue
-            seen.add(symbol)
+            # Keep exact ticker hits provider-qualified. Acquisition needs to
+            # compare each admitted source's own listing/profile authority;
+            # collapsing them by symbol makes whichever cache is visited
+            # first the only candidate. Fuzzy rows remain merged by symbol so
+            # the bounded result page does not fill with duplicate guesses.
+            dedupe_key = (
+                (
+                    "exact",
+                    str(item.get("provider") or "").strip().lower(),
+                    symbol,
+                    str(item.get("exchange") or "").strip().upper(),
+                )
+                if symbol.strip().upper() == query.strip().upper()
+                else ("symbol", symbol)
+            )
+            if dedupe_key in seen:
+                continue
+            seen.add(dedupe_key)
             merged.append(item)
     return merged
 
@@ -445,6 +477,7 @@ async def _fresh_profile_from_cache(
     *,
     instrument_id: int | None = None,
     provider_symbol: str | None = None,
+    provider_name: str | None = None,
 ) -> InstrumentProfile | None:
     instrument = None
     if instrument_id is not None:
@@ -471,6 +504,7 @@ async def _fresh_profile_from_cache(
             instrument_id=instrument_id,
             provider_symbol=provider_symbol,
         )
+        if provider_name is None or resolved.provider_name == provider_name
     }
     snapshots = (
         (
@@ -829,6 +863,7 @@ async def fetch_ohlcv(
     *,
     allow_provider_fetch: bool = True,
     redis: Any = None,
+    source_provider: str | None = None,
 ) -> list[OHLCVBar]:
     """Read/refresh OHLCV with identical in-process requests coalesced.
 
@@ -849,6 +884,7 @@ async def fetch_ohlcv(
         adjusted,
         allow_provider_fetch=allow_provider_fetch,
         redis=redis,
+        source_provider=source_provider,
         operation=lambda: _fetch_ohlcv_impl(
             db,
             instrument,
@@ -857,6 +893,7 @@ async def fetch_ohlcv(
             end,
             adjusted,
             allow_provider_fetch=allow_provider_fetch,
+            source_provider=source_provider,
         ),
     )
 
@@ -870,6 +907,7 @@ async def _with_ohlcv_refresh_gate(
     *,
     allow_provider_fetch: bool,
     redis: Any = None,
+    source_provider: str | None = None,
     operation: Callable[[], Awaitable[_T]],
 ) -> _T:
     """Coalesce one provider-capable OHLCV operation in this process.
@@ -884,7 +922,9 @@ async def _with_ohlcv_refresh_gate(
     if not allow_provider_fetch or instrument.is_synthetic:
         return await operation()
 
-    lock_key = _ohlcv_refresh_lock_key(instrument, timeframe, start, end, adjusted)
+    lock_key = _ohlcv_refresh_lock_key(
+        instrument, timeframe, start, end, adjusted, source_provider=source_provider
+    )
     lock = _OHLCV_REFRESH_LOCKS.setdefault(lock_key, asyncio.Lock())
     _OHLCV_REFRESH_LOCK_USERS[lock_key] = _OHLCV_REFRESH_LOCK_USERS.get(lock_key, 0) + 1
     try:
@@ -966,6 +1006,7 @@ async def _fetch_ohlcv_impl(
     adjusted: bool = True,
     *,
     allow_provider_fetch: bool = True,
+    source_provider: str | None = None,
 ) -> list[OHLCVBar]:
     # Synthetic instruments use computed OHLCV, not an external provider.
     if instrument.is_synthetic:
@@ -976,7 +1017,9 @@ async def _fetch_ohlcv_impl(
 
     await _acquire_database_refresh_lock(
         db,
-        _ohlcv_refresh_lock_key(instrument, timeframe, start, end, adjusted),
+        _ohlcv_refresh_lock_key(
+            instrument, timeframe, start, end, adjusted, source_provider=source_provider
+        ),
     )
 
     if end is None:
@@ -988,8 +1031,55 @@ async def _fetch_ohlcv_impl(
         OHLCVBar.ts >= start,
         OHLCVBar.ts <= end,
         OHLCVBar.is_adjusted == adjusted,
-        _default_series_bar_condition(instrument.id, timeframe, adjusted),
     ]
+    base_predicates = list(predicates)
+    source_id = None
+    selected_series_id = None
+    source_predicates = []
+    if source_provider:
+        source_id = (
+            await db.execute(
+                select(DataSource.id).where(
+                    func.lower(DataSource.name) == source_provider.strip().lower()
+                )
+            )
+        ).scalar_one_or_none()
+        if source_id is None:
+            raise ProviderNoDataError("selected history provider is not registered")
+        selected_series_id = (
+            await db.execute(
+                select(MarketSeries.id)
+                .where(
+                    MarketSeries.data_source_id == source_id,
+                    MarketSeries.instrument_id == instrument.id,
+                    MarketSeries.timeframe == timeframe.value,
+                    MarketSeries.is_active.is_(True),
+                    MarketSeries.is_canonical.is_(True),
+                    adjustment_scope_predicate(adjusted),
+                )
+                .order_by(MarketSeries.created_at.desc(), MarketSeries.id.desc())
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+        source_predicates = [
+            OHLCVBar.data_source_id == source_id,
+            OHLCVBar.market_series_id == MarketSeries.id,
+            OHLCVBar.is_derived.is_(False),
+        ]
+        if selected_series_id is None:
+            # The fetch path will create this provider's first scoped series;
+            # on the next read it becomes the exact cache identity.
+            selected_series_predicate = MarketSeries.id.is_(None)
+        else:
+            selected_series_predicate = MarketSeries.id == selected_series_id
+        predicates.extend(
+            [
+                *source_predicates,
+                selected_series_predicate,
+            ]
+        )
+    else:
+        predicates.append(_default_series_bar_condition(instrument.id, timeframe, adjusted))
     if _seeded_market_data():
         predicates.append(_e2e_fixture_bar_condition())
     stmt = select(OHLCVBar).where(and_(*predicates)).order_by(OHLCVBar.ts)
@@ -1020,7 +1110,13 @@ async def _fetch_ohlcv_impl(
             try:
                 new_bars.extend(
                     await _fetch_provider(
-                        db, instrument, timeframe, repair_start, repair_end, adjusted
+                        db,
+                        instrument,
+                        timeframe,
+                        repair_start,
+                        repair_end,
+                        adjusted,
+                        provider_name=source_provider,
                     )
                 )
             except Exception as exc:
@@ -1045,7 +1141,27 @@ async def _fetch_ohlcv_impl(
                 await db.rollback()
                 logger.error(f"Failed to save bars: {e}")
 
-        # Re-query after insert so cached reflects actual DB state with valid ORM objects
+        # Re-query after insert so cached reflects actual DB state with valid ORM objects.
+        # When the request created a provider's first series, the initial cache
+        # statement intentionally matched no series. Rebuild that source filter
+        # from the series attached to the persisted response instead of reusing
+        # the pre-transport ``MarketSeries.id IS NULL`` predicate.
+        if source_provider and selected_series_id is None and new_bars:
+            created_series_ids = {
+                int(bar.market_series_id) for bar in new_bars if bar.market_series_id is not None
+            }
+            if len(created_series_ids) == 1:
+                created_series_id = next(iter(created_series_ids))
+                refreshed_stmt = select(OHLCVBar).where(
+                    and_(
+                        *base_predicates,
+                        *source_predicates,
+                        MarketSeries.id == created_series_id,
+                    )
+                )
+                if _seeded_market_data():
+                    refreshed_stmt = refreshed_stmt.where(_e2e_fixture_bar_condition())
+                stmt = refreshed_stmt.order_by(OHLCVBar.ts)
         cached = list((await db.execute(stmt)).scalars().all())
 
     cached.sort(key=lambda b: b.ts)
@@ -1123,6 +1239,8 @@ async def _fetch_provider(
     start: datetime,
     end: datetime,
     adjusted: bool,
+    *,
+    provider_name: str | None = None,
 ) -> list[OHLCVBar]:
     operation_cost_overrides = ohlcv_operation_cost_overrides(timeframe, start, end)
     execution = await execute_provider_call(
@@ -1135,6 +1253,7 @@ async def _fetch_provider(
             instrument, provider_name
         ),
         operation_cost_overrides=operation_cost_overrides or None,
+        provider_name=provider_name,
         adjusted=adjusted,
         history_start=start,
         invoke=lambda provider, _provider_symbol: provider.fetch_ohlcv(
@@ -1810,9 +1929,14 @@ async def search_provider_instruments_async(
         ProviderCapability.INSTRUMENT_SEARCH,
         operation="search_instruments",
         provider_symbol=query,
+        # Provider runtime policies are seeded at application start and by the
+        # operator API. A request-time whole-registry reconciliation here and
+        # again for every candidate made a cold discovery wait on unrelated
+        # provider rows before its first request-log entry.
+        read_only=True,
     )
     merged: list[dict] = []
-    seen: set[str] = set()
+    seen: set[tuple[str, ...]] = set()
     for resolved in chain:
         try:
             execution = await execute_provider_call(
@@ -1822,6 +1946,7 @@ async def search_provider_instruments_async(
                 provider_symbol=query,
                 usage_identity=query,
                 provider_name=resolved.provider_name,
+                seed_runtime=False,
                 invoke=lambda provider, _provider_symbol: provider.search_instruments(
                     query, limit=10
                 ),
@@ -1882,14 +2007,26 @@ async def search_provider_instruments_async(
             provider_name=execution.provider_name,
         ):
             symbol = item.get("symbol", "")
-            if not symbol or symbol in seen:
+            if not symbol:
                 continue
-            seen.add(symbol)
+            dedupe_key = (
+                (
+                    "exact",
+                    str(item.get("provider") or "").strip().lower(),
+                    symbol,
+                    str(item.get("exchange") or "").strip().upper(),
+                )
+                if symbol.strip().upper() == query.strip().upper()
+                else ("symbol", symbol)
+            )
+            if dedupe_key in seen:
+                continue
+            seen.add(dedupe_key)
             merged.append(item)
+        provider_results = [
+            item for item in merged if item.get("provider") == execution.provider_name
+        ]
         if source_outcomes is not None:
-            provider_results = [
-                item for item in merged if item.get("provider") == execution.provider_name
-            ]
             source_outcomes.append(
                 {
                     "provider": execution.provider_name,
@@ -1917,14 +2054,110 @@ async def get_provider_profile_async(
     provider_name: str | None = None,
     persist: bool = True,
     raise_provider_errors: bool = False,
+    required_profile_fields: tuple[str, ...] | list[str] = (),
 ):
     cached = await _fresh_profile_from_cache(
         db,
         instrument_id=instrument_id,
         provider_symbol=provider_symbol,
+        provider_name=provider_name,
     )
-    if cached is not None:
+    required_fields = tuple(
+        dict.fromkeys(str(field).strip().lower() for field in required_profile_fields)
+    )
+
+    def profile_has_required_fields(profile: InstrumentProfile | None) -> bool:
+        if profile is None:
+            return False
+        extra = profile.extra if isinstance(profile.extra, dict) else {}
+        for field in required_fields:
+            value = extra.get(field)
+            if isinstance(value, str) and value.strip():
+                continue
+            sic_code = extra.get("sic_code")
+            if (
+                field == "industry"
+                and profile.provider.strip().lower() == "massive"
+                and isinstance(sic_code, str | int)
+                and not isinstance(sic_code, bool)
+                and str(sic_code).strip()
+                and str(extra.get("sic_description") or "").strip()
+            ):
+                continue
+            return False
+        return True
+
+    if cached is not None and profile_has_required_fields(cached):
         return cached
+
+    if required_fields:
+        # A fresh generic profile is not evidence for a field-specific request.
+        # Walk only the normally admitted metadata chain, one provider at a
+        # time, and stop at the first source that supplies the requested field.
+        chain = await resolve_provider_chain(
+            db,
+            ProviderCapability.INSTRUMENT_METADATA,
+            operation="get_instrument_profile",
+            instrument_id=instrument_id,
+            provider_symbol=provider_symbol,
+        )
+        providers = [
+            item.provider_name
+            for item in chain
+            if provider_name is None or item.provider_name == provider_name
+        ]
+        if provider_name is not None and provider_name not in providers:
+            providers = []
+        last_profile = cached
+        last_expected_error: Exception | None = None
+        for candidate in providers:
+            try:
+                execution = await execute_provider_call(
+                    db,
+                    ProviderCapability.INSTRUMENT_METADATA,
+                    "get_instrument_profile",
+                    instrument_id=instrument_id,
+                    provider_symbol=provider_symbol,
+                    usage_identity=provider_symbol,
+                    provider_name=candidate,
+                    invoke=lambda provider, actual_symbol: provider.get_instrument_profile(
+                        actual_symbol or provider_symbol
+                    ),
+                    response_items=lambda result: 1 if result is not None else 0,
+                    treat_empty_as_failure=True,
+                )
+            except Exception as exc:
+                from app.services.provider_quota_coordinator import (
+                    ProviderQuotaAdmissionError,
+                    ProviderQuotaCoordinatorError,
+                )
+                from app.services.provider_runtime import ProviderNoDataError
+
+                if not isinstance(
+                    exc,
+                    ProviderNoDataError
+                    | ProviderRateLimitError
+                    | ProviderQuotaAdmissionError
+                    | ProviderQuotaCoordinatorError
+                    | ProviderNotConfiguredError,
+                ):
+                    raise
+                last_expected_error = exc
+                continue
+            profile = execution.result
+            if profile is None:
+                continue
+            last_profile = profile
+            if persist:
+                instrument = await db.get(Instrument, instrument_id) if instrument_id else None
+                await ingest_provider_profile(db, profile, instrument=instrument)
+            if profile_has_required_fields(profile):
+                return profile
+        if last_profile is not None:
+            return last_profile
+        if raise_provider_errors and last_expected_error is not None:
+            raise last_expected_error
+        return None
     try:
         execution = await execute_provider_call(
             db,

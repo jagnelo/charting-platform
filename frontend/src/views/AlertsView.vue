@@ -13,6 +13,10 @@
 
     <!-- ── Definitions tab ───────────────────────────────────────────────────── -->
     <template v-if="activeTab === 'alerts'">
+      <div v-if="!alertsStore.alerts.length && !alertsStore.indicatorAlerts.length && !screenerAlertsStore.alerts.length" class="alerts-create-path" role="note">
+        <span>No alert definitions yet. Create price or indicator alerts from the chart workspace.</span>
+        <router-link to="/chart">Open chart workspace</router-link>
+      </div>
       <div class="filter-bar">
         <select v-model="statusFilter" class="filter-select">
           <option value="">All statuses</option>
@@ -51,7 +55,7 @@
               <td class="td-mono">{{ a.last_known_price != null ? formatMoney(Number(a.last_known_price), a.instrument_currency) : '—' }}</td>
               <td><span :class="`status-badge status-badge--${a.status}`">{{ a.status }}</span></td>
               <td>
-                <button class="inline-toggle" @click="alertsStore.updateAlert(a.id, { repeat: !a.repeat })"
+                <button class="inline-toggle" :aria-label="a.repeat ? 'Disable repeat' : 'Enable repeat'" @click="alertsStore.updateAlert(a.id, { repeat: !a.repeat })"
                         :title="a.repeat ? 'Click to disable repeat' : 'Click to enable repeat'">
                   {{ a.repeat ? '↺' : '—' }}
                 </button>
@@ -62,10 +66,10 @@
                        @change="alertsStore.updateAlert(a.id, { notes: ($event.target as HTMLInputElement).value })" />
               </td>
               <td class="td-actions">
-                <button v-if="a.status === 'triggered'" @click="alertsStore.rearmAlert(a.id)" title="Rearm">⟳</button>
-                <button v-if="a.status === 'active'" @click="alertsStore.updateAlert(a.id, { status: 'paused' })" title="Pause">⏸</button>
-                <button v-if="a.status === 'paused'" @click="alertsStore.updateAlert(a.id, { status: 'active' })" title="Resume">▶</button>
-                <button @click="alertsStore.deleteAlert(a.id)" title="Delete" class="btn-danger">✕</button>
+                <button v-if="a.status === 'triggered'" @click="alertsStore.rearmAlert(a.id)" title="Rearm" aria-label="Rearm">⟳</button>
+                <button v-if="a.status === 'active'" @click="alertsStore.updateAlert(a.id, { status: 'paused' })" title="Pause" aria-label="Pause">⏸</button>
+                <button v-if="a.status === 'paused'" @click="alertsStore.updateAlert(a.id, { status: 'active' })" title="Resume" aria-label="Resume">▶</button>
+                <button @click="alertsStore.deleteAlert(a.id)" title="Delete" aria-label="Delete" class="btn-danger">✕</button>
               </td>
             </tr>
             <tr v-if="!filteredPrice.length">
@@ -104,7 +108,7 @@
               <td class="td-mono">{{ fmtIndValue(a.last_value_b, a.indicator_b_type, a.instrument_currency) }}</td>
               <td><span :class="`status-badge status-badge--${a.status}`">{{ a.status }}</span></td>
               <td>
-                <button class="inline-toggle" @click="alertsStore.updateIndicatorAlert(a.id, { repeat: !a.repeat })"
+                <button class="inline-toggle" :aria-label="a.repeat ? 'Disable repeat' : 'Enable repeat'" @click="alertsStore.updateIndicatorAlert(a.id, { repeat: !a.repeat })"
                         :title="a.repeat ? 'Click to disable repeat' : 'Click to enable repeat'">
                   {{ a.repeat ? '↺' : '—' }}
                 </button>
@@ -115,10 +119,10 @@
                        @change="alertsStore.updateIndicatorAlert(a.id, { notes: ($event.target as HTMLInputElement).value })" />
               </td>
               <td class="td-actions">
-                <button v-if="a.status === 'triggered'" @click="alertsStore.rearmIndicatorAlert(a.id)" title="Rearm">⟳</button>
-                <button v-if="a.status === 'active'" @click="alertsStore.updateIndicatorAlert(a.id, { status: 'paused' })" title="Pause">⏸</button>
-                <button v-if="a.status === 'paused'" @click="alertsStore.updateIndicatorAlert(a.id, { status: 'active' })" title="Resume">▶</button>
-                <button @click="alertsStore.deleteIndicatorAlert(a.id)" title="Delete" class="btn-danger">✕</button>
+                <button v-if="a.status === 'triggered'" @click="alertsStore.rearmIndicatorAlert(a.id)" title="Rearm" aria-label="Rearm">⟳</button>
+                <button v-if="a.status === 'active'" @click="alertsStore.updateIndicatorAlert(a.id, { status: 'paused' })" title="Pause" aria-label="Pause">⏸</button>
+                <button v-if="a.status === 'paused'" @click="alertsStore.updateIndicatorAlert(a.id, { status: 'active' })" title="Resume" aria-label="Resume">▶</button>
+                <button @click="alertsStore.deleteIndicatorAlert(a.id)" title="Delete" aria-label="Delete" class="btn-danger">✕</button>
               </td>
             </tr>
             <tr v-if="!filteredIndicator.length">
@@ -151,7 +155,7 @@
               <td>{{ a.trigger_type.replace(/_/g, ' ') }}</td>
               <td><span :class="`status-badge status-badge--${a.status}`">{{ a.status }}</span></td>
               <td>
-                <button class="inline-toggle" @click="screenerAlertsStore.updateAlert(a.id, { repeat: !a.repeat })"
+                <button class="inline-toggle" :aria-label="a.repeat ? 'Disable repeat' : 'Enable repeat'" @click="screenerAlertsStore.updateAlert(a.id, { repeat: !a.repeat })"
                         :title="a.repeat ? 'Click to disable repeat' : 'Click to enable repeat'">
                   {{ a.repeat ? '↺' : '—' }}
                 </button>
@@ -162,10 +166,10 @@
                        @change="screenerAlertsStore.updateAlert(a.id, { notes: ($event.target as HTMLInputElement).value })" />
               </td>
               <td class="td-actions">
-                <button v-if="a.status === 'triggered'" @click="screenerAlertsStore.rearmAlert(a.id)" title="Rearm">⟳</button>
-                <button v-if="a.status === 'active'" @click="screenerAlertsStore.updateAlert(a.id, { status: 'paused' })" title="Pause">⏸</button>
-                <button v-if="a.status === 'paused'" @click="screenerAlertsStore.updateAlert(a.id, { status: 'active' })" title="Resume">▶</button>
-                <button @click="screenerAlertsStore.deleteAlert(a.id)" title="Delete" class="btn-danger">✕</button>
+                <button v-if="a.status === 'triggered'" @click="screenerAlertsStore.rearmAlert(a.id)" title="Rearm" aria-label="Rearm">⟳</button>
+                <button v-if="a.status === 'active'" @click="screenerAlertsStore.updateAlert(a.id, { status: 'paused' })" title="Pause" aria-label="Pause">⏸</button>
+                <button v-if="a.status === 'paused'" @click="screenerAlertsStore.updateAlert(a.id, { status: 'active' })" title="Resume" aria-label="Resume">▶</button>
+                <button @click="screenerAlertsStore.deleteAlert(a.id)" title="Delete" aria-label="Delete" class="btn-danger">✕</button>
               </td>
             </tr>
             <tr v-if="!filteredScreener.length">
@@ -224,8 +228,8 @@
               <td class="td-mono td-snapshot">{{ fmtSnapshot(e.condition_snapshot) }}</td>
               <td class="td-mono">{{ e.trigger_value != null ? Number(e.trigger_value).toPrecision(6) : '—' }}</td>
               <td class="td-actions" @click.stop>
-                <button v-if="!e.is_viewed" @click="alertsStore.markViewed(e.id)" title="Mark as read">✓</button>
-                <button @click="alertsStore.deleteFiringEvent(e.id)" title="Delete" class="btn-danger">✕</button>
+                <button v-if="!e.is_viewed" @click="alertsStore.markViewed(e.id)" title="Mark as read" aria-label="Mark as read">✓</button>
+                <button @click="alertsStore.deleteFiringEvent(e.id)" title="Delete" aria-label="Delete" class="btn-danger">✕</button>
               </td>
             </tr>
             <tr v-if="!alertsStore.firingHistory.length">
@@ -317,9 +321,9 @@ function indAlertExpr(a: IndicatorAlert): string {
 
 onMounted(async () => {
   await Promise.all([
-    alertsStore.loadAlerts(),
-    screenerAlertsStore.loadAlerts(),
-    alertsStore.loadHistory(),
+    alertsStore.loadAlerts(undefined, 'high'),
+    screenerAlertsStore.loadAlerts('high'),
+    alertsStore.loadHistory({ priority: 'high' }),
   ])
 })
 </script>
@@ -347,6 +351,8 @@ onMounted(async () => {
 }
 
 .filter-bar  { margin-bottom: 12px; }
+.alerts-create-path { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 0 14px; padding: 10px 12px; border: 1px solid var(--tc-border); border-radius: var(--tc-radius); background: var(--tc-panel-bg); color: var(--tc-text-muted); }
+.alerts-create-path a { color: var(--tc-accent-soft); text-decoration: underline; text-underline-offset: 2px; }
 .filter-select { background: #1a1a1a; border: 1px solid #333; color: #aaa; padding: 4px 8px; border-radius: 3px; }
 
 .section-title { color: #888; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }

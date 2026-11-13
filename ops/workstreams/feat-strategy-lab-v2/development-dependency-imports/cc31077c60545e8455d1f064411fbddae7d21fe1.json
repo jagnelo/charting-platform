@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "dependency": "provider-runtime-development-consumption",
+  "source_commit": "cc31077c60545e8455d1f064411fbddae7d21fe1",
+  "previous_source": "9b196304b573e323fb349fe4d7badfe2d8208f95",
+  "previous_consumer_pin": "9b196304b573e323fb349fe4d7badfe2d8208f95",
+  "root_manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providercc31077c-runtime-development-consumption-contract.json",
+  "root_manifest_sha256": "ef257b2871ebfe5fafb9b3bd2ee6994e9c9c3faea9ba9aaa7d295facae2a0574",
+  "root_entry": null,
+  "root_entry_sha256": null,
+  "consumer": "Strategy",
+  "imported_paths": [
+    "backend/app/tasks/data_tasks.py",
+    "backend/tests/unit/tasks/test_data_tasks.py"
+  ],
+  "old_guards": {
+    "backend/app/tasks/data_tasks.py": {
+      "sha256": "4efe3de859ef6c2411d768bbf970cd5a344dab64899f24e1229ac6e641b76fe7",
+      "known_source": "9b196304b573e323fb349fe4d7badfe2d8208f95"
+    },
+    "backend/tests/unit/tasks/test_data_tasks.py": {
+      "sha256": "0eb8ec2416869744bfbf3876e1a2e77e6714c151a881859c391a5325b8cb83dc",
+      "known_source": "9b196304b573e323fb349fe4d7badfe2d8208f95"
+    }
+  },
+  "verified_source_manifest_rows": 76,
+  "verification": {
+    "sha256": true,
+    "git_blob": true,
+    "status_from139": true,
+    "git_executable_mode": true,
+    "consumer_import_exact": true
+  },
+  "qualification": "Exact development import only. Root exact style review providercc31077c-exact-development-review.json (SHA256 d075a6912f671143a2b5f2f5557421f7fc99e4f137e8c7ab7add28ae29dec8ee) reports pinned Ruff 0.4.7 check and format pass on two files. Root reports the candidate image is building and native worker-restart proof is next; neither is complete evidence yet. Strategy did not rerun Provider tests or native/runtime/browser checks. Exact CI, combined acceptance, staging, deployment and release remain pending."
+}

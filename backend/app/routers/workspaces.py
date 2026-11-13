@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import joinedload, selectinload
 
 from app.auth.dependencies import get_current_user
 from app.database import get_db
@@ -24,6 +24,11 @@ from app.schemas.workstation import (
     WorkspaceUpdate,
 )
 from app.services.python_conditions import VisualConditionCompileError, compile_visual_condition
+from app.services.workstation_tool_catalogue import (
+    WorkstationToolCatalogue,
+    factory_tool_configuration,
+    tool_catalogue,
+)
 
 router = APIRouter(prefix="/workspaces", tags=["workspaces"])
 FACTORY_WORKSPACE_VERSION = 8
@@ -241,7 +246,7 @@ def _factory_tabs() -> list[WorkspaceTab]:
                 tool_type=tool_type,
                 title=title,
                 link_group="blue",
-                configuration=configuration,
+                configuration=factory_tool_configuration(instance_key, tool_type, configuration),
                 style={},
                 position=position,
             )
@@ -372,7 +377,9 @@ def _factory_tabs() -> list[WorkspaceTab]:
                     tool_type=tool_type,
                     title=title,
                     link_group="blue",
-                    configuration=configuration,
+                    configuration=factory_tool_configuration(
+                        instance_key, tool_type, configuration
+                    ),
                     style={},
                     position=window_position,
                 )
@@ -382,19 +389,31 @@ def _factory_tabs() -> list[WorkspaceTab]:
 
 
 def _workspace_query():
+    """Load a complete workspace graph from one database snapshot.
+
+    Snapshot writes replace tabs and windows in one transaction.  Separate
+    ``selectinload`` statements at READ COMMITTED could read the old tab rows,
+    then observe their deletion when loading windows, returning a valid parent
+    revision with empty child collections.  Joined eager loading keeps the
+    response graph within one statement-level MVCC snapshot.
+    """
+    return select(Workspace).options(joinedload(Workspace.tabs).joinedload(WorkspaceTab.windows))
+
+
+def _locked_workspace_query():
+    """Load child rows separately while holding the parent lock for writers."""
     return select(Workspace).options(
         selectinload(Workspace.tabs).selectinload(WorkspaceTab.windows)
     )
 
 
 async def _load_workspace(db: AsyncSession, workspace_id: int, user_id: int) -> Workspace:
-    workspace = (
-        await db.execute(
-            _workspace_query()
-            .where(Workspace.id == workspace_id, Workspace.user_id == user_id)
-            .execution_options(populate_existing=True)
-        )
-    ).scalar_one_or_none()
+    result = await db.execute(
+        _workspace_query()
+        .where(Workspace.id == workspace_id, Workspace.user_id == user_id)
+        .execution_options(populate_existing=True)
+    )
+    workspace = result.unique().scalar_one_or_none()
     if workspace is None:
         raise HTTPException(status_code=404, detail="Workspace not found")
     return workspace
@@ -424,11 +443,10 @@ async def _ensure_default_workspace(db: AsyncSession, user: User) -> Workspace:
             await db.flush()
         return existing
 
-    existing = (
-        await db.execute(
-            _workspace_query().where(Workspace.user_id == user.id).order_by(Workspace.position)
-        )
-    ).scalar_one_or_none()
+    result = await db.execute(
+        _workspace_query().where(Workspace.user_id == user.id).order_by(Workspace.position)
+    )
+    existing = result.unique().scalar_one_or_none()
     if existing is not None:
         existing.is_default = True
         await db.flush()
@@ -490,6 +508,16 @@ async def list_workspaces(
         _workspace_query().where(Workspace.user_id == current_user.id).order_by(Workspace.position)
     )
     return result.scalars().unique().all()
+
+
+@router.get("/tool-catalogue", response_model=WorkstationToolCatalogue)
+async def get_workspace_tool_catalogue(
+    current_user: User = Depends(get_current_user),
+):
+    """Return canonical serializable tools for authenticated workspace consumers."""
+
+    del current_user  # Authentication is the access boundary; catalogue is shared.
+    return tool_catalogue()
 
 
 @router.get("/default", response_model=WorkspaceOut)
@@ -575,7 +603,7 @@ async def save_workspace_snapshot(
     # turning a normal 409 conflict into a PostgreSQL unique-key 500.
     workspace = (
         await db.execute(
-            _workspace_query()
+            _locked_workspace_query()
             .where(Workspace.id == workspace_id, Workspace.user_id == current_user.id)
             .with_for_update()
         )
@@ -651,7 +679,7 @@ async def reset_factory_workspace(
     # so a closing browser cannot race the factory rebuild into duplicate keys.
     workspace = (
         await db.execute(
-            _workspace_query()
+            _locked_workspace_query()
             .where(Workspace.id == workspace_id, Workspace.user_id == current_user.id)
             .with_for_update()
         )

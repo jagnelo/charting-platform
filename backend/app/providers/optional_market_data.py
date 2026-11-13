@@ -1412,6 +1412,81 @@ class TwelveDataProvider(_RESTProvider):
         Timeframe.MN: "1month",
     }
 
+    def get_earliest_timestamp(
+        self,
+        symbol: str,
+        timeframe: Timeframe,
+        *,
+        mic_code: str,
+        exchange_timezone: str,
+    ) -> datetime:
+        """Return this symbol/MIC/interval's documented earliest observation.
+
+        The endpoint is explicitly instrument and venue scoped.  Do not call it
+        without an unambiguous MIC and timezone from the canonical listing.
+        The returned epoch is the source timestamp; ``datetime`` is checked
+        against the exchange-local date for daily and coarser intervals.
+        """
+
+        interval = self._INTERVAL.get(timeframe)
+        mic = str(mic_code or "").strip().upper()
+        if not interval or len(mic) != 4:
+            raise ProviderResponseError(
+                self.name, "earliest timestamp requires a supported timeframe and listing MIC"
+            )
+        try:
+            zone = ZoneInfo(exchange_timezone)
+        except (ZoneInfoNotFoundError, TypeError) as exc:
+            raise ProviderResponseError(
+                self.name, "earliest timestamp listing timezone is unavailable"
+            ) from exc
+        payload = self._get(
+            "earliest_timestamp",
+            {"symbol": symbol.upper(), "interval": interval, "mic_code": mic},
+        )
+        if not isinstance(payload, dict):
+            raise ProviderResponseError(self.name, "earliest timestamp response is not an object")
+        raw_epoch = payload.get("unix_time")
+        if isinstance(raw_epoch, bool) or not str(raw_epoch or "").strip().isdigit():
+            raise ProviderResponseError(
+                self.name, "earliest timestamp response has invalid unix_time"
+            )
+        try:
+            earliest = datetime.fromtimestamp(int(raw_epoch), UTC)
+        except (OverflowError, OSError, ValueError) as exc:
+            raise ProviderResponseError(
+                self.name, "earliest timestamp unix_time is invalid"
+            ) from exc
+        raw_datetime = payload.get("datetime")
+        if not isinstance(raw_datetime, str) or not raw_datetime.strip():
+            raise ProviderResponseError(self.name, "earliest timestamp response omitted datetime")
+        try:
+            local = earliest.astimezone(zone)
+            parsed_date = date.fromisoformat(raw_datetime.strip()[:10])
+        except (TypeError, ValueError) as exc:
+            raise ProviderResponseError(
+                self.name, "earliest timestamp datetime is invalid"
+            ) from exc
+        if timeframe in {Timeframe.D1, Timeframe.W1, Timeframe.MN}:
+            if parsed_date != local.date():
+                raise ProviderResponseError(
+                    self.name, "earliest timestamp datetime does not match exchange-local unix_time"
+                )
+        else:
+            try:
+                parsed_datetime = datetime.fromisoformat(raw_datetime.strip())
+            except ValueError as exc:
+                raise ProviderResponseError(
+                    self.name, "earliest timestamp datetime is invalid"
+                ) from exc
+            if parsed_datetime.tzinfo is None:
+                parsed_datetime = parsed_datetime.replace(tzinfo=zone)
+            if abs((parsed_datetime.astimezone(UTC) - earliest).total_seconds()) > 1:
+                raise ProviderResponseError(
+                    self.name, "earliest timestamp datetime conflicts with unix_time"
+                )
+        return earliest
+
     @staticmethod
     def _usage_header_integer(headers: dict[str, str], name: str) -> int | None:
         raw = headers.get(name) or headers.get(name.title())

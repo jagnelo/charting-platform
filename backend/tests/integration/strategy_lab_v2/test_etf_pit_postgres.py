@@ -17,6 +17,7 @@ from app.database import Base
 from app.models.asset_class import AssetClass, InstrumentType
 from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
 from app.models.instrument import Instrument
+from app.models.listing import InstrumentListing
 from app.strategy_lab_v2.contracts import (
     DataSnapshot,
     ETFMembershipReference,
@@ -38,6 +39,7 @@ from app.strategy_lab_v2.trial_hydration import (
 _READER_TABLES = (
     InstrumentType.__table__,
     Instrument.__table__,
+    InstrumentListing.__table__,
     ETFProfile.__table__,
     ETFHoldingsSnapshot.__table__,
     ETFHolding.__table__,
@@ -47,6 +49,8 @@ _EXPECTED_FK_CLOSURE = {
     "asset_class",
     "data_source",
     "etf_holding",
+    "exchange",
+    "instrument_listing",
     "etf_holdings_raw_artifact",
     "etf_holdings_snapshot",
     "etf_profile",

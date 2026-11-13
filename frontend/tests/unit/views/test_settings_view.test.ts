@@ -152,8 +152,12 @@ describe('SettingsView', () => {
   })
 
   it('loads the OneSignal SDK only after a configured user requests notifications', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const auth = useAuthStore()
+    auth.user = { id: 7, username: 'admin', email: 'admin@example.com', is_admin: true }
     const wrapper = mount(SettingsView, {
-      global: { plugins: [createPinia()] },
+      global: { plugins: [pinia] },
     })
     await flushPromises()
 
@@ -165,6 +169,7 @@ describe('SettingsView', () => {
     expect(wrapper.text()).toContain('Please enter an App ID')
     expect(document.querySelector('script[data-onesignal-sdk]')).toBeNull()
 
+    await wrapper.findAll('details')[0].get('summary').trigger('click')
     await wrapper.get('input[placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"]').setValue('test-app-id')
     await enableButton!.trigger('click')
 
@@ -183,6 +188,40 @@ describe('SettingsView', () => {
     expect(init).toHaveBeenCalledWith({ appId: 'test-app-id', notifyButton: { enable: false } })
     expect(requestPermission).toHaveBeenCalledOnce()
     expect(wrapper.text()).toContain('Push notifications enabled!')
+  })
+
+  it('leads with user preferences and keeps connection controls administrator-only', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const auth = useAuthStore()
+    auth.user = { id: 8, username: 'member', email: 'member@example.com', is_admin: false }
+    const wrapper = mount(SettingsView, { global: { plugins: [pinia] } })
+    await flushPromises()
+
+    const headings = wrapper.findAll('.settings-section h3').map(heading => heading.text())
+    expect(headings[0]).toBe('Chart preferences')
+    expect(headings[1]).toBe('Browser notifications')
+    expect(wrapper.find('#api-base-url').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('Administrator connection settings')
+    expect(wrapper.findAll('.settings-advanced')[0].attributes('open')).toBeUndefined()
+    expect(wrapper.text()).not.toContain('Show config')
+    expect(wrapper.text()).toContain('Not configured for this browser')
+    expect(wrapper.get('#onesignal-app-id').exists()).toBe(true)
+    wrapper.unmount()
+  })
+
+  it('keeps technical connection controls available to administrators', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const auth = useAuthStore()
+    auth.user = { id: 7, username: 'admin', email: 'admin@example.com', is_admin: true }
+    const wrapper = mount(SettingsView, { global: { plugins: [pinia] } })
+    await flushPromises()
+
+    expect(wrapper.get('#api-base-url').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Administrator connection settings')
+    expect(wrapper.get('#onesignal-app-id').exists()).toBe(true)
+    wrapper.unmount()
   })
 
   it('keeps usage details collapsed by default and removes duplicate request units', async () => {

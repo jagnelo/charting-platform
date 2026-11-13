@@ -72,13 +72,15 @@ describe('application route contract', () => {
     expect(usesSharedAppShell('/popout/window-1')).toBe(false)
     expect(usesSharedAppShell('/login')).toBe(false)
     expect(sharedShellNavigation.map(({ path }) => path)).toEqual([
-      '/legacy/dashboard', '/legacy/chart', '/legacy/watchlist', '/legacy/screener',
+      '/legacy/dashboard', '/chart', '/legacy/watchlist', '/legacy/screener',
       '/legacy/radar', '/legacy/alerts', '/legacy/baskets', '/legacy/etf-holdings',
       '/legacy/strategy-lab', '/legacy/strategy-lab-v2', '/legacy/settings',
     ])
-    expect(isSharedNavigationItemActive('/legacy/chart/QQQ', '/legacy/chart')).toBe(true)
-    expect(isSharedNavigationItemActive('/legacy/chart', '/legacy/chart')).toBe(true)
-    expect(isSharedNavigationItemActive('/legacy/charting', '/legacy/chart')).toBe(false)
+    expect(isSharedNavigationItemActive('/legacy/chart/QQQ', '/chart')).toBe(true)
+    expect(isSharedNavigationItemActive('/legacy/chart', '/chart')).toBe(true)
+    expect(isSharedNavigationItemActive('/legacy/charting', '/chart')).toBe(false)
+    expect(isSharedNavigationItemActive('/chart/QQQ', '/chart')).toBe(true)
+    expect(sharedShellNavigation.find(item => item.key === 'chart')?.path).toBe('/chart')
   })
 
   it('keeps every shared navigation destination backed by one concrete application route', () => {
@@ -90,5 +92,11 @@ describe('application route contract', () => {
     }
     expect(sharedShellNavigation.find(item => item.key === 'etf')?.path).toBe('/legacy/etf-holdings')
     expect(sharedShellNavigation.find(item => item.key === 'strategy-v2')?.path).toBe('/legacy/strategy-lab-v2')
+  })
+
+  it('preloads primary menu destinations so cold lazy chunks cannot stall ordinary navigation', () => {
+    for (const path of ['/legacy/watchlist', '/legacy/alerts', '/legacy/settings']) {
+      expect(route(path)?.component, `${path} is available with the authenticated shell`).not.toBeTypeOf('function')
+    }
   })
 })

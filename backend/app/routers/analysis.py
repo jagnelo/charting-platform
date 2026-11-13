@@ -2,20 +2,23 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import math
 from collections import defaultdict
 from collections.abc import Mapping
 from datetime import UTC, datetime
+from types import SimpleNamespace
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, or_, select
+from sqlalchemy import and_, exists, func, or_, select, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.auth.dependencies import get_current_user
+from app.config import settings
 from app.database import get_db
 from app.models.data_source import DataSource
 from app.models.etf_holdings import (
@@ -26,6 +29,7 @@ from app.models.etf_holdings import (
 )
 from app.models.instrument import Instrument
 from app.models.instrument_event import InstrumentEvent, InstrumentEventFetchState
+from app.models.market_data_foundation import MarketSeries, MarketSeriesDefault
 from app.models.market_map import MarketMapSnapshot
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_observation import (
@@ -147,6 +151,7 @@ from app.services.breadth import (
     evaluate_breadth,
     evaluate_breadth_history,
 )
+from app.services.derived_timeframes import refresh_derived_timeframe_if_needed
 from app.services.etf_consumer_types import (
     is_equity_holding_type,
     is_placeholder_symbol,
@@ -166,6 +171,7 @@ from app.services.indicators import (
     required_bars_for_indicator,
 )
 from app.services.market_map import build_market_map, read_market_map_cache
+from app.services.market_series import adjustment_scope_predicate
 from app.services.ohlcv_coverage import (
     bar_visible_through as _bar_visible_through,
 )
@@ -685,6 +691,53 @@ async def _family_member_metadata_readiness(
         else "pending"
     )
     return member_count, weighted_count, weights_status, classified_count, classification_status
+
+
+_FAMILY_COVERAGE_PROVIDER_METADATA_CACHE_KEY = "analysis.family_coverage.provider_metadata.v1"
+
+
+async def _family_coverage_provider_metadata(
+    db: AsyncSession,
+) -> tuple[
+    dict[int, DataSource],
+    dict[str, DataSource],
+    dict[tuple[int, ProviderCapability], ProviderEntitlement],
+]:
+    """Load immutable request-scoped provider lookups once for family readiness.
+
+    The readiness endpoint composes one coverage report per curated family on
+    the same read-only session. These two tables are shared across all reports;
+    repeating their full scans for every family only adds serial round trips.
+    Session-local caching cannot leak across requests or outlive the database
+    snapshot used to build the response.
+    """
+
+    cached = db.info.get(_FAMILY_COVERAGE_PROVIDER_METADATA_CACHE_KEY)
+    if cached is not None:
+        return cached
+
+    source_rows = (await db.execute(select(DataSource))).scalars().all()
+    sources = {source.id: source for source in source_rows}
+    sources_by_name = {
+        source.name.strip().lower(): source
+        for source in source_rows
+        if source.name and source.name.strip()
+    }
+    entitlements = {
+        (entitlement.data_source_id, entitlement.capability): entitlement
+        for entitlement in (
+            await db.execute(
+                select(ProviderEntitlement).where(
+                    ProviderEntitlement.capability.in_(
+                        (ProviderCapability.UNIVERSE_DISCOVERY, ProviderCapability.PRICE_HISTORY)
+                    )
+                )
+            )
+        ).scalars()
+    }
+    result = (sources, sources_by_name, entitlements)
+    db.info[_FAMILY_COVERAGE_PROVIDER_METADATA_CACHE_KEY] = result
+    return result
 
 
 def _as_utc(value: datetime) -> datetime:
@@ -1763,18 +1816,159 @@ async def _instrument(db: AsyncSession, symbol: str) -> Instrument:
     return instrument
 
 
+# Fields read by breadth evaluation, preflight and derived-visibility checks.
+_BREADTH_BAR_COLUMNS = (
+    OHLCVBar.instrument_id,
+    OHLCVBar.ts,
+    OHLCVBar.open,
+    OHLCVBar.high,
+    OHLCVBar.low,
+    OHLCVBar.close,
+    OHLCVBar.volume,
+    OHLCVBar.is_adjusted,
+    OHLCVBar.is_derived,
+    OHLCVBar.source_end,
+)
+
+
 async def _bars_by_instrument(
-    db: AsyncSession, instrument_ids: list[int], timeframe: Timeframe, adjusted: bool
-) -> dict[int, list[OHLCVBar]]:
+    db: AsyncSession,
+    instrument_ids: list[int],
+    timeframe: Timeframe,
+    adjusted: bool,
+    *,
+    refresh_coarse_cache: bool = False,
+    as_columns: bool = False,
+) -> dict[int, list]:
+    """Load selected-series bars per instrument.
+
+    ``as_columns`` returns lightweight rows carrying only the fields breadth
+    evaluation and visibility checks read, instead of one ORM entity per bar.
+    """
     if not instrument_ids:
         return {}
+
+    # Resolve the user's selected series once per instrument, rather than
+    # running the full default/canonical/legacy EXISTS predicate for every
+    # returned bar. On broad D1 groups that predicate caused PostgreSQL to
+    # repeat an indexed existence lookup tens of thousands of times.
+    ordered_ids = list(dict.fromkeys(int(instrument_id) for instrument_id in instrument_ids))
+    if (
+        refresh_coarse_cache
+        and not settings.E2E_SEED_MARKET_DATA
+        and timeframe in (Timeframe.W1, Timeframe.MN)
+    ):
+        refreshed = False
+        for instrument_id in ordered_ids:
+            refreshed = (
+                await refresh_derived_timeframe_if_needed(
+                    db, instrument_id, timeframe, adjusted=adjusted
+                )
+            ) or refreshed
+        if refreshed:
+            await db.commit()
+    adjustment_predicate = adjustment_scope_predicate(adjusted)
+    mapped_has_bars = exists(
+        select(OHLCVBar.id).where(
+            OHLCVBar.market_series_id == MarketSeries.id,
+            OHLCVBar.instrument_id == MarketSeriesDefault.instrument_id,
+            OHLCVBar.timeframe == timeframe,
+            OHLCVBar.is_adjusted.is_(adjusted),
+        )
+    )
+    mapped_rows = (
+        await db.execute(
+            select(MarketSeriesDefault.instrument_id, MarketSeriesDefault.market_series_id)
+            .join(MarketSeries, MarketSeries.id == MarketSeriesDefault.market_series_id)
+            .where(
+                MarketSeriesDefault.instrument_id.in_(ordered_ids),
+                MarketSeriesDefault.timeframe == timeframe.value,
+                MarketSeriesDefault.is_adjusted.is_(adjusted),
+                MarketSeries.is_active.is_(True),
+                adjustment_predicate,
+                mapped_has_bars,
+            )
+        )
+    ).all()
+    selected_series_by_id: dict[int, int] = {}
+    for instrument_id, series_id in mapped_rows:
+        selected_series_by_id.setdefault(int(instrument_id), int(series_id))
+
+    canonical_ids = [
+        instrument_id for instrument_id in ordered_ids if instrument_id not in selected_series_by_id
+    ]
+    if canonical_ids:
+        canonical_has_bars = exists(
+            select(OHLCVBar.id).where(
+                OHLCVBar.market_series_id == MarketSeries.id,
+                OHLCVBar.instrument_id == MarketSeries.instrument_id,
+                OHLCVBar.timeframe == timeframe,
+                OHLCVBar.is_adjusted.is_(adjusted),
+            )
+        )
+        canonical_rows = (
+            await db.execute(
+                select(MarketSeries.instrument_id, MarketSeries.id)
+                .where(
+                    MarketSeries.instrument_id.in_(canonical_ids),
+                    MarketSeries.timeframe == timeframe.value,
+                    MarketSeries.is_canonical.is_(True),
+                    MarketSeries.is_active.is_(True),
+                    adjustment_predicate,
+                    canonical_has_bars,
+                )
+                .order_by(MarketSeries.instrument_id, MarketSeries.id)
+            )
+        ).all()
+        for instrument_id, series_id in canonical_rows:
+            selected_series_by_id.setdefault(int(instrument_id), int(series_id))
+
+    legacy_ids = [
+        instrument_id for instrument_id in ordered_ids if instrument_id not in selected_series_by_id
+    ]
+    series_filters = []
+    if selected_series_by_id:
+        series_filters.append(
+            tuple_(OHLCVBar.instrument_id, OHLCVBar.market_series_id).in_(
+                list(selected_series_by_id.items())
+            )
+        )
+    if legacy_ids:
+        series_filters.append(
+            and_(
+                OHLCVBar.instrument_id.in_(legacy_ids),
+                OHLCVBar.market_series_id.is_(None),
+            )
+        )
+    if not series_filters:
+        return {}
+
+    if as_columns:
+        column_rows = (
+            await db.execute(
+                select(*_BREADTH_BAR_COLUMNS)
+                .where(
+                    OHLCVBar.instrument_id.in_(ordered_ids),
+                    OHLCVBar.timeframe == timeframe,
+                    OHLCVBar.is_adjusted.is_(adjusted),
+                    or_(*series_filters),
+                )
+                .order_by(OHLCVBar.instrument_id, OHLCVBar.ts)
+            )
+        ).all()
+        column_result: dict[int, list] = defaultdict(list)
+        for row in column_rows:
+            values = row._mapping
+            column_result[int(values["instrument_id"])].append(SimpleNamespace(**values))
+        return column_result
     bars = (
         await db.execute(
             select(OHLCVBar)
             .where(
-                OHLCVBar.instrument_id.in_(instrument_ids),
+                OHLCVBar.instrument_id.in_(ordered_ids),
                 OHLCVBar.timeframe == timeframe,
                 OHLCVBar.is_adjusted.is_(adjusted),
+                or_(*series_filters),
             )
             .order_by(OHLCVBar.instrument_id, OHLCVBar.ts)
         )
@@ -2348,7 +2542,14 @@ async def benchmark_family_relative_rotation(
             )
     instrument_ids = [instrument.id for instrument in role_instruments.values()]
     bars_by_id = _truncate_bars_at(
-        await _bars_by_instrument(db, instrument_ids, timeframe, adjusted), as_of
+        await _bars_by_instrument(
+            db,
+            instrument_ids,
+            timeframe,
+            adjusted,
+            refresh_coarse_cache=as_of is None,
+        ),
+        as_of,
     )
     stale_ids = (
         set()
@@ -2546,7 +2747,11 @@ async def group_relative_rotation(
         ).scalars()
     }
     bars_by_id = await _bars_by_instrument(
-        db, [*instrument_ids, benchmark_instrument.id], timeframe, adjusted
+        db,
+        [*instrument_ids, benchmark_instrument.id],
+        timeframe,
+        adjusted,
+        refresh_coarse_cache=as_of is None,
     )
     bars_by_id = _truncate_bars_at(bars_by_id, as_of)
     rotation_ids = [*instrument_ids, benchmark_instrument.id]
@@ -4214,7 +4419,11 @@ async def benchmark_family_ratios(
     """Return aligned family-leg ratios without substituting unavailable mappings."""
 
     group = (
-        await db.execute(select(MarketGroup).where(MarketGroup.stable_key == family_key))
+        await db.execute(
+            select(MarketGroup)
+            .options(selectinload(MarketGroup.members))
+            .where(MarketGroup.stable_key == family_key)
+        )
     ).scalar_one_or_none()
     if group is None or group.group_type != "benchmark_family":
         raise HTTPException(
@@ -4614,25 +4823,7 @@ async def benchmark_family_coverage(
             )
         ).scalars()
     }
-    source_rows = (await db.execute(select(DataSource))).scalars().all()
-    sources = {source.id: source for source in source_rows}
-    sources_by_name = {
-        source.name.strip().lower(): source
-        for source in source_rows
-        if source.name and source.name.strip()
-    }
-    entitlements = {
-        (entitlement.data_source_id, entitlement.capability): entitlement
-        for entitlement in (
-            await db.execute(
-                select(ProviderEntitlement).where(
-                    ProviderEntitlement.capability.in_(
-                        (ProviderCapability.UNIVERSE_DISCOVERY, ProviderCapability.PRICE_HISTORY)
-                    )
-                )
-            )
-        ).scalars()
-    }
+    sources, sources_by_name, entitlements = await _family_coverage_provider_metadata(db)
     adapter_states = {}
     profile_ids = [profile.id for profile in profiles.values()]
     if profile_ids:
@@ -5156,6 +5347,10 @@ async def benchmark_family_readiness(
     family when a registry group has not yet been materialised.
     """
 
+    # ``get_db`` supplies a request-scoped session in production. Clear this
+    # key explicitly as well so test/session adapters that reuse one session
+    # across requests still observe current source and entitlement rows.
+    db.info.pop(_FAMILY_COVERAGE_PROVIDER_METADATA_CACHE_KEY, None)
     families: list[BenchmarkFamilyCoverageOut] = []
     missing_families: list[str] = []
     for metadata in benchmark_family_registry():
@@ -5543,7 +5738,11 @@ async def benchmark_family_technicals(
     """
 
     group = (
-        await db.execute(select(MarketGroup).where(MarketGroup.stable_key == family_key))
+        await db.execute(
+            select(MarketGroup)
+            .options(selectinload(MarketGroup.members))
+            .where(MarketGroup.stable_key == family_key)
+        )
     ).scalar_one_or_none()
     if group is None or group.group_type != "benchmark_family":
         raise HTTPException(
@@ -5703,7 +5902,11 @@ async def benchmark_family_breadth(
     """
 
     family = (
-        await db.execute(select(MarketGroup).where(MarketGroup.stable_key == family_key))
+        await db.execute(
+            select(MarketGroup)
+            .options(selectinload(MarketGroup.members))
+            .where(MarketGroup.stable_key == family_key)
+        )
     ).scalar_one_or_none()
     if family is None or family.group_type != "benchmark_family":
         raise HTTPException(
@@ -5899,7 +6102,8 @@ async def benchmark_family_breadth(
                 )
                 for instrument_id in instrument_ids
             }
-            results, aggregate = evaluate_breadth(
+            results, aggregate = await asyncio.to_thread(
+                evaluate_breadth,
                 members,
                 condition_bars_by_id,
                 condition,
@@ -6131,7 +6335,8 @@ async def benchmark_family_breadth_history(
         by_timestamp: dict[datetime, dict[str, tuple[float | None, float]]] = {}
         role_exclusions = list(universe_warnings)
         for period in (20, 50, 200):
-            raw_points = evaluate_breadth_history(
+            raw_points = await asyncio.to_thread(
+                evaluate_breadth_history,
                 members,
                 bars_by_id,
                 {"kind": "above_moving_average", "params": {"period": period}},
@@ -6981,7 +7186,7 @@ async def group_snapshot(
         dict.fromkeys(instrument_ids + ([benchmark_instrument.id] if benchmark_instrument else []))
     )
     bars_by_id = _truncate_bars_at(
-        await _bars_by_instrument(db, all_ids, timeframe, adjusted), as_of
+        await _bars_by_instrument(db, all_ids, timeframe, adjusted, as_columns=True), as_of
     )
     stale_ids = (
         set()
@@ -7197,7 +7402,7 @@ async def group_breadth(
     members = _group_members_at(group, requested_as_of)
     member_ids = [member.instrument_id for member in members]
     bars_by_id = _truncate_bars_at(
-        await _bars_by_instrument(db, member_ids, timeframe, adjusted),
+        await _bars_by_instrument(db, member_ids, timeframe, adjusted, as_columns=True),
         requested_as_of,
     )
     # Current breadth must not treat expired provider-backed bars as current
@@ -7423,7 +7628,11 @@ async def group_breadth_history(
     exclusions: list[AnalysisWarning] = []
     bars_by_id = _truncate_bars_at(
         await _bars_by_instrument(
-            db, [member.instrument_id for member in members], timeframe, adjusted
+            db,
+            [member.instrument_id for member in members],
+            timeframe,
+            adjusted,
+            as_columns=True,
         ),
         as_of,
     )
@@ -9158,7 +9367,7 @@ async def get_python_breadth_result(
                 },
                 requested_count,
             )
-    occurrences = _python_breadth_occurrences(points)
+    occurrences = await asyncio.to_thread(_python_breadth_occurrences, points)
     manifest_warnings = _manifest_exclusion_warnings(
         run.dataset_manifest if isinstance(run.dataset_manifest, dict) else {}
     )
@@ -10469,7 +10678,8 @@ async def evaluate_generic_breadth(
         condition["reference_target"] = reference_provenance
     if event_provenance:
         condition["event_target"] = event_provenance
-    results, aggregate = evaluate_breadth(
+    results, aggregate = await asyncio.to_thread(
+        evaluate_breadth,
         members,
         bars_by_id,
         condition,
@@ -10581,7 +10791,9 @@ async def evaluate_generic_breadth_history(
         universe_provenance,
         membership_payload,
     ) = await _resolve_generic_breadth_universe(definition, db, current_user.id)
-    bars_by_id = await _bars_by_instrument(db, member_ids, timeframe, definition.adjusted)
+    bars_by_id = await _bars_by_instrument(
+        db, member_ids, timeframe, definition.adjusted, as_columns=True
+    )
     bars_by_id = _truncate_bars_at(bars_by_id, definition.as_of)
     coverage_preflight = await preflight_ohlcv(
         db,
@@ -10627,7 +10839,9 @@ async def evaluate_generic_breadth_history(
                 raise HTTPException(422, detail={"code": "benchmark_required"})
             benchmark = await _instrument(db, definition.benchmark)
             benchmark_bars = _truncate_bars_at(
-                await _bars_by_instrument(db, [benchmark.id], timeframe, definition.adjusted),
+                await _bars_by_instrument(
+                    db, [benchmark.id], timeframe, definition.adjusted, as_columns=True
+                ),
                 definition.as_of,
             ).get(benchmark.id, [])
     elif definition.reference_universe is not None:
@@ -10651,7 +10865,8 @@ async def evaluate_generic_breadth_history(
         condition["reference_target"] = reference_provenance
     if event_provenance:
         condition["event_target"] = event_provenance
-    raw_points = evaluate_breadth_history(
+    raw_points = await asyncio.to_thread(
+        evaluate_breadth_history,
         members,
         bars_by_id,
         condition,
@@ -10659,7 +10874,7 @@ async def evaluate_generic_breadth_history(
         benchmark_bars=benchmark_bars,
         events_by_instrument=events_by_id,
     )
-    occurrence_rows = detect_breadth_occurrences(raw_points)
+    occurrence_rows = await asyncio.to_thread(detect_breadth_occurrences, raw_points)
     warnings = [*universe_warnings, *reference_warnings]
     points: list[BreadthDefinitionHistoryPointOut] = []
     for raw_point in raw_points:

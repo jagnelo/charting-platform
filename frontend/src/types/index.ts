@@ -107,6 +107,7 @@ export interface Instrument {
   id: number
   symbol: string
   name: string
+  instrument_type?: string | null
   description?: string
   currency?: string
   is_active: boolean

@@ -18,6 +18,7 @@ from app.routers import (
     code,
     coverage,
     dashboards,
+    data_preparation,
     drawings,
     etf_holdings,
     favorites,
@@ -41,6 +42,7 @@ from app.routers import (
     workspaces,
 )
 from app.services.alert_engine import run_alert_check
+from app.services.arq_pool import close_shared_arq_pool
 from app.services.distributed_locks import close_shared_redis_lock_client
 from app.services.e2e_seed import seed_e2e_instruments, seed_e2e_market_data
 from app.services.provider_runtime import seed_provider_runtime
@@ -116,6 +118,7 @@ async def lifespan(app: FastAPI):
     yield
     scheduler.shutdown(wait=False)
     await close_shared_redis_lock_client()
+    await close_shared_arq_pool()
 
 
 app = FastAPI(
@@ -141,6 +144,7 @@ app.include_router(options_exposure.router, prefix=PREFIX)
 app.include_router(baskets.router, prefix=PREFIX)
 app.include_router(etf_holdings.router, prefix=PREFIX)
 app.include_router(instruments.router, prefix=PREFIX)
+app.include_router(data_preparation.router, prefix=PREFIX)
 app.include_router(providers.router, prefix=PREFIX)
 app.include_router(ohlcv.router, prefix=PREFIX)
 app.include_router(dashboards.router, prefix=PREFIX)

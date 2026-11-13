@@ -31,18 +31,27 @@
           <button
             class="wl-star"
             :class="{ active: showWlMenu }"
-            title="Add to watchlist"
+            :aria-label="showWlMenu ? 'Close watchlist menu' : `Add ${activeSymbol} to a watchlist`"
+            :aria-expanded="showWlMenu"
+            :aria-controls="watchlistMenuId"
+            :title="showWlMenu ? 'Close watchlist menu' : 'Add to watchlist'"
             @click="showWlMenu = !showWlMenu"
           >★</button>
-          <div v-if="showWlMenu" class="wl-quick-menu">
+          <div v-if="showWlMenu" :id="watchlistMenuId" class="wl-quick-menu" role="group" aria-label="Add active symbol to watchlist">
             <div class="wqm-title">Add to watchlist</div>
-            <div
+            <button
               v-for="wl in addableWatchlists"
               :key="wl.id"
+              type="button"
               class="wqm-item"
+              :aria-label="`Add ${activeSymbol} to ${wl.name}`"
               @click="addToWatchlist(wl.id)"
-            >{{ wl.name }}</div>
-            <div class="wqm-item wqm-new" @click="createAndAddToWatchlist">+ New watchlist</div>
+            >{{ wl.name }}</button>
+            <button
+              type="button"
+              class="wqm-item wqm-new"
+              @click="createAndAddToWatchlist"
+            >+ New watchlist</button>
           </div>
         </div>
         <div v-if="layoutStore.layout === '1' && chartStore.symbol" class="compare-wrap">
@@ -229,7 +238,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, useId } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useChartStore, usePanelStore } from '@/stores/chart'
 import { useLayoutStore }    from '@/stores/layout'
@@ -243,7 +252,16 @@ import { usePresetsStore }  from '@/stores/presets'
 import { useOptionsExposureStore } from '@/stores/optionsExposure'
 import { useRadarStore } from '@/stores/radar'
 import { api } from '@/lib/api'
-import { acquireSelectedHistory, defaultHistoryRange, type InstrumentAcquireResponse, type SelectedHistoryStage } from '@/lib/onDemandAcquisition'
+import { type InstrumentAcquireResponse } from '@/lib/onDemandAcquisition'
+import {
+  dataPreparationCoordinator,
+  instrumentHistoryPreparationRequest,
+  PreparationProgressRefreshQueue,
+  preparationStatusMessage,
+  type DataEnsureResponse,
+  type PreparationInstrument,
+  type PreparationTimeframe,
+} from '@/lib/dataPreparation'
 import { isConfirmedETFHoldingIdentity, isSameETFHoldingDrilldownContext } from '@/lib/etfHoldingDrilldown'
 import { dedupeOhlcvRequest } from '@/lib/workstation/ohlcvRequests'
 import ResizeHandle         from '@/components/common/ResizeHandle.vue'
@@ -351,6 +369,7 @@ const router = useRouter()
 
 const currentTf     = ref<Timeframe>('D1')
 const showWlMenu    = ref(false)
+const watchlistMenuId = `${useId()}-chart-watchlist-menu`
 const showCreateWatchlistModal = ref(false)
 const optionsTab    = ref<'chain' | 'exposure'>('chain')
 const optionsPanelHeight = ref(340)
@@ -368,6 +387,8 @@ let comparisonSeq = 0
 let selectionGeneration = 0
 let lifecycleGeneration = 0
 let selectedHistoryAbortController: AbortController | null = null
+let selectedHistoryAcquisitionEnabled = false
+let selectedHistoryConfirmedIdentity: InstrumentAcquireResponse | undefined
 let selectedHistoryScopeTimeframe: Timeframe | null = null
 const selectedHistoryProgress = ref('')
 const selectedHistoryError = ref('')
@@ -583,6 +604,8 @@ async function selectChartSymbol(
   const selectionIndicatorEdit = chartStore.indicatorEditGeneration
   const isCurrentSelection = () => isCurrentLifecycle(generation) && selection === selectionGeneration
   const selectedChartStore = activePanelStore.value
+  selectedHistoryAcquisitionEnabled = acquireHistory
+  selectedHistoryConfirmedIdentity = acquireHistory ? confirmedIdentity : undefined
   selectedHistoryProgress.value = ''
   selectedHistoryError.value = ''
   if (chartStore.symbol !== symbol) {
@@ -604,9 +627,12 @@ async function selectChartSymbol(
   }
   if (layoutStore.layout === '1') {
     // Single panel: load into the global chart store
-    await chartStore.loadBars(symbol, currentTf.value, chartStore.barType, true)
-    if (!isCurrentSelection()) return
+    const localLoad = chartStore.loadBars(symbol, currentTf.value, chartStore.barType, true)
+    // Submit shared preparation as soon as the local read is underway. A slow
+    // local request must not postpone durable preparation for this visible chart.
     if (acquireHistory) void acquireSelectedChartHistory(symbol, selectedChartStore, isCurrentSelection, confirmedIdentity, historyController.signal)
+    await localLoad
+    if (!isCurrentSelection()) return
     const inst = chartStore.instrument
     if (inst) {
       await drawStore.loadDrawings(inst.id, currentTf.value)
@@ -625,15 +651,23 @@ async function selectChartSymbol(
   } else {
     // Multi-panel: broadcast symbol to panels in the same colour link group.
     const targetIds = panelLinksStore.linkedPanelIds(layoutStore.activePanelId, layoutStore.panels.map(p => p.id))
+    let preparationStarted = false
     for (const panelId of targetIds) {
       const p = layoutStore.panels.find(item => item.id === panelId)
       if (!p) continue
       const pStore = usePanelStore(p.id)
       layoutStore.updatePanel(p.id, { symbol })
-      await pStore.loadBars(symbol, p.timeframe, pStore.barType, true)
+      const localLoad = pStore.loadBars(symbol, p.timeframe, pStore.barType, true)
+      if (pStore === selectedChartStore && acquireHistory) {
+        preparationStarted = true
+        void acquireSelectedChartHistory(symbol, selectedChartStore, isCurrentSelection, confirmedIdentity, historyController.signal)
+      }
+      await localLoad
       if (!isCurrentSelection()) return
     }
-    if (acquireHistory) void acquireSelectedChartHistory(symbol, selectedChartStore, isCurrentSelection, confirmedIdentity, historyController.signal)
+    if (acquireHistory && !preparationStarted) {
+      void acquireSelectedChartHistory(symbol, selectedChartStore, isCurrentSelection, confirmedIdentity, historyController.signal)
+    }
     const activeStore = usePanelStore(layoutStore.activePanelId)
     const activeInst = activeStore.instrument
     if (activeInst) {
@@ -654,76 +688,80 @@ async function acquireSelectedChartHistory(
   signal?: AbortSignal,
 ) {
   const timeframe = selectedChartStore.timeframe
+  const preparationTimeframe = timeframe as PreparationTimeframe
+  const normalizedSymbol = symbol.trim().toUpperCase()
   const isCurrentChartScope = () => isCurrentSelection()
     && !signal?.aborted
-    && selectedChartStore.symbol.trim().toUpperCase() === symbol.trim().toUpperCase()
+    && selectedChartStore.symbol.trim().toUpperCase() === normalizedSymbol
     && selectedChartStore.timeframe === timeframe
     && (layoutStore.layout === '1' ? selectedChartStore === chartStore : activePanelStore.value === selectedChartStore)
-  const range = defaultHistoryRange(timeframe)
-  const setStage = (stage: SelectedHistoryStage, retryAt?: string) => {
-    if (!isCurrentChartScope()) return
-    selectedHistoryProgress.value = stage === 'waiting'
-      ? `Waiting to retry ${timeframe} history for ${symbol} after ${new Date(retryAt!).toLocaleTimeString()}…`
-      : stage === 'coverage'
-        ? `Checking local ${timeframe} history for ${symbol}…`
-        : stage === 'identity'
-          ? `Confirming ${symbol}…`
-          : `Loading missing ${timeframe} history for ${symbol}…`
+  if (isCurrentChartScope()) {
+    selectedHistoryProgress.value = `Preparing admitted ${timeframe} history for ${symbol}…`
+    selectedHistoryError.value = ''
   }
+  const confirmedId = confirmedIdentity?.status === 'resolved'
+    && confirmedIdentity.instrument?.symbol.trim().toUpperCase() === normalizedSymbol
+    && Number.isSafeInteger(confirmedIdentity.instrument.instrument_id)
+    && Number(confirmedIdentity.instrument.instrument_id) > 0
+    ? Number(confirmedIdentity.instrument.instrument_id)
+    : null
+  const storedId = selectedChartStore.instrument?.symbol.trim().toUpperCase() === normalizedSymbol
+    && Number.isSafeInteger(selectedChartStore.instrument.id)
+    && selectedChartStore.instrument.id > 0
+    ? selectedChartStore.instrument.id
+    : null
+  const target: PreparationInstrument = confirmedId !== null || storedId !== null
+    ? { kind: 'instrument', instrument_id: confirmedId ?? storedId! }
+    : { kind: 'instrument', symbol: normalizedSymbol }
+  const refreshQueue = new PreparationProgressRefreshQueue()
+  const refreshCurrentChart = async () => {
+    if (!isCurrentChartScope()) return
+    const chartStores = layoutStore.layout === '1'
+      ? [chartStore]
+      : layoutStore.panels
+        .filter(panel => panel.symbol.trim().toUpperCase() === normalizedSymbol && panel.timeframe === timeframe)
+        .map(panel => usePanelStore(panel.id))
+    await Promise.allSettled(chartStores.map(store => store.refreshLocalBars()))
+  }
+  const refreshForProgress = (response: DataEnsureResponse) => refreshQueue.request(response, refreshCurrentChart)
+  const hasUsableHistory = (response: DataEnsureResponse) => response.dependencies.some(dependency =>
+    dependency.dataset === 'history'
+    && (dependency.covered_ranges.length > 0 || (dependency.covered_start !== null && dependency.covered_end !== null)),
+  )
+  const preparation = dataPreparationCoordinator.ensure(
+    instrumentHistoryPreparationRequest(target, preparationTimeframe, true),
+    {
+      signal,
+      onProgress: ({ response, completed, total }) => {
+        if (!isCurrentChartScope()) return
+        selectedHistoryProgress.value = response.status === 'ready'
+          ? `Refreshing available ${timeframe} history for ${symbol}…`
+          : response.status === 'partial' && response.has_pending_work === false
+            ? preparationStatusMessage(response)
+            : `Preparing admitted ${timeframe} history for ${symbol} (${completed}/${total})…`
+        if (hasUsableHistory(response)) {
+          void refreshForProgress(response).catch(() => {
+            if (isCurrentChartScope()) {
+              selectedHistoryError.value = `Available ${timeframe} history for ${symbol} could not be refreshed; saved bars remain visible.`
+            }
+          })
+        }
+      },
+    },
+  )
   try {
-    const outcome = await acquireSelectedHistory(
-      symbol,
-      timeframe,
-      true,
-      { timeframe, adjusted: true, start: range.start, end: range.end },
-      setStage,
-      isCurrentChartScope,
-      confirmedIdentity ? Promise.resolve(confirmedIdentity) : undefined,
-      { signal },
-    )
-    if (!isCurrentChartScope() || outcome.kind === 'superseded') return
-    if (outcome.kind === 'already-covered') {
-      selectedHistoryProgress.value = `Local ${timeframe} history is available for ${symbol}.`
-      return
+    const result = await preparation
+    if (!isCurrentChartScope()) return
+    selectedHistoryProgress.value = result.status === 'ready'
+      ? `The admitted ${timeframe} history for ${symbol} is available locally.`
+      : preparationStatusMessage(result)
+    if (hasUsableHistory(result)) {
+      await refreshForProgress(result)
     }
-    if (outcome.kind === 'identity-unavailable') {
-      selectedHistoryProgress.value = outcome.status === 'held'
-        ? `History for ${symbol} is currently unavailable; saved chart data remains visible.`
-        : `The canonical identity for ${symbol} could not be confirmed; no history was requested.`
-      return
+  } catch (error: any) {
+    if (isCurrentChartScope() && error?.name !== 'AbortError') {
+      selectedHistoryError.value = `History for ${symbol} could not be prepared; saved chart data remains visible.`
     }
-    if (outcome.kind === 'admission-held') {
-      selectedHistoryProgress.value = `History for ${symbol} is temporarily held; saved chart data remains visible.`
-      return
-    }
-    if (outcome.kind === 'admission-unavailable') {
-      selectedHistoryProgress.value = `The allowed history window for ${symbol} could not be confirmed; saved chart data remains visible.`
-      return
-    }
-    if (outcome.kind === 'coverage-unavailable') {
-      selectedHistoryProgress.value = `Saved history coverage for ${symbol} could not be confirmed; saved chart data remains visible.`
-      return
-    }
-    if (outcome.kind === 'at-earliest-bound') {
-      selectedHistoryProgress.value = `The available ${timeframe} history for ${symbol} begins ${new Date(outcome.earliestStart).toLocaleDateString()}.`
-      return
-    }
-    const result = outcome.result
-    selectedHistoryProgress.value = result.status === 'complete'
-      ? `Loaded ${result.coverage.bar_count} local ${timeframe} bars for ${symbol}.`
-      : result.status === 'partial'
-        ? `Some ${timeframe} history for ${symbol} loaded; the rest remains unavailable.`
-        : result.status === 'held'
-          ? `History for ${symbol} is currently unavailable; saved chart data remains visible.`
-          : result.status === 'no_data'
-            ? `No ${timeframe} history is available for ${symbol}; saved chart data remains visible.`
-            : `History for ${symbol} could not be loaded; saved chart data remains visible.`
-    if ((result.status === 'complete' || result.status === 'partial')
-      && isCurrentChartScope()) {
-      await selectedChartStore.refreshLocalBars()
-    }
-  } catch {
-    if (isCurrentChartScope()) selectedHistoryError.value = `History for ${symbol} could not be checked or loaded; saved chart data remains visible.`
   }
 }
 
@@ -762,9 +800,24 @@ watch(currentTf, async (tf) => {
   }
   const generation = lifecycleGeneration
   if (!chartStore.symbol) return
+  selectedHistoryProgress.value = ''
+  selectedHistoryError.value = ''
   lastClose.value = currentPrice.value
   await chartStore.loadBars(chartStore.symbol, tf, chartStore.barType, true)
   if (!isCurrentLifecycle(generation)) return
+  const selection = selectionGeneration
+  if (selectedHistoryAcquisitionEnabled) {
+    const controller = new AbortController()
+    selectedHistoryAbortController = controller
+    selectedHistoryScopeTimeframe = tf
+    void acquireSelectedChartHistory(
+      chartStore.symbol,
+      activePanelStore.value,
+      () => isCurrentLifecycle(generation) && selection === selectionGeneration,
+      selectedHistoryConfirmedIdentity,
+      controller.signal,
+    )
+  }
   const inst = chartStore.instrument
   if (inst) {
     await drawStore.loadDrawings(inst.id, tf)
@@ -883,7 +936,7 @@ onMounted(async () => {
       sym,
       selectedHoldingContext ?? undefined,
       preserveHydratedHoldingContext,
-      selectedHoldingContext !== null && holdingHandoff.selected,
+      !isBasketSymbol(sym),
       holdingHandoff.confirmedIdentity,
     )
     const bootstrapSelection = selectionGeneration
@@ -1069,8 +1122,14 @@ onUnmounted(() => {
   border-bottom: 1px solid #222;
 }
 .wqm-item {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
   padding: 7px 10px;
   font-size: 12px;
+  font-family: inherit;
   color: #aaa;
   cursor: pointer;
   transition: background 0.1s;
@@ -1079,7 +1138,8 @@ onUnmounted(() => {
 .wqm-new { color: #64b5f6; border-top: 1px solid #222; margin-top: 2px; }
 
 .sym      { font-size: 16px; font-weight: 700; color: #fff; }
-.sym-name { font-size: 11px; color: #666; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Fixed width: the active panel's name loads lazily, and a width change here re-wraps the header and shifts panels mid-click. */
+.sym-name { display: inline-block; width: 160px; font-size: 11px; color: #666; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sym-price { font-size: 14px; font-weight: 600; }
 .price-up   { color: #26a69a; }
 .price-down { color: #ef5350; }

@@ -1,0 +1,121 @@
+{
+  "at": "2026-11-08T18:42:35.094168+00:00",
+  "authority": "Root coordinates the human-approved common-interface implementation; no staging or deployment acceptance",
+  "state": "released_for_exact_development_consumption_not_product_acceptance",
+  "source": "2bf4dad5bf9495af0b646238ee531e168f0d173a",
+  "base": "139b350238b5e1c8a170dce5af09a805301d857e",
+  "previous_sources": [
+    "aae3665b6a8512ea9c5d53d9d6397da7407005ee"
+  ],
+  "previous_manifests": [
+    "etfaae3665b-domain-frontend-development-consumption-contract.json"
+  ],
+  "files": [
+    {
+      "path": "frontend/src/components/workstation/InstrumentNoteTool.vue",
+      "status_from139": "M",
+      "git_blob": "e3dee9a9c968a2e1f6f65a33af8a33b5823735cc",
+      "sha256": "e4fc90fc10c81b8087465d60923e203e4acaa8de9cd102a5968615957250a15a"
+    },
+    {
+      "path": "frontend/src/views/BasketsView.vue",
+      "status_from139": "M",
+      "git_blob": "e11cbf88a44758c2cc8a0393657f411f9cbbf206",
+      "sha256": "763ac56473d9b52661d807a732cdc5216bbd4345d256eda0cb08b38cb09d9aa4"
+    },
+    {
+      "path": "frontend/src/views/ETFHoldingsView.vue",
+      "status_from139": "M",
+      "git_blob": "0a3d572f59c97659cdf146143bcf97314ecc31b8",
+      "sha256": "3e4ebaf96e5f9fa538aaf31f5d267c2fddae37f3ec80471d788e88aa433004a3"
+    },
+    {
+      "path": "frontend/tests/e2e/baskets_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "066453fafee590a9c63ab6371489711a111e3a1c",
+      "sha256": "40f86276ea399bfa5f1387dd5d9fd33454f1a0f3abfba00da9a91f7195c8e019"
+    },
+    {
+      "path": "frontend/tests/e2e/etf_holdings_preparation.spec.ts",
+      "status_from139": "A",
+      "git_blob": "ec2912fc59244a9c02280d345ff47a2e0a09487d",
+      "sha256": "c0ba9783b10a38ab8c9ac3e8dbe1018ccf17c308c0a089e05a9e2bdf2e848597"
+    },
+    {
+      "path": "frontend/tests/e2e/sp500_analysis_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "abeff4e1bdb273a67731cb31df227eb91fb092c4",
+      "sha256": "add422ecebe07a1dd1a0480f3b1b682a6ae4b29bb07f440c7a51554d0d4a553e"
+    },
+    {
+      "path": "frontend/tests/e2e/supporting_features_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "2aea73ea7c12c2718965e2d378227ce55cafc9eb",
+      "sha256": "68db2c02810e7fd105b97a0e0542d8dbac34d0b646a541bdd5d539f9a3c9dea1"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_instrument_note_tool.test.ts",
+      "status_from139": "A",
+      "git_blob": "2febf61a7e0684c9234eb797df40253b8460c147",
+      "sha256": "0ef83d02c33b27989e82a3f82db9844b553f63aa4ef6be00975dc6ec2d66e153"
+    },
+    {
+      "path": "frontend/tests/unit/views/test_baskets_view.test.ts",
+      "status_from139": "M",
+      "git_blob": "21979f8ac253e77c203d80e27f9492d3e8edaf47",
+      "sha256": "688b75b3bf53013ed2ae32ab16655b677d899d70afe81e0284a565783e307fac"
+    },
+    {
+      "path": "frontend/tests/unit/views/test_etf_holdings_view.test.ts",
+      "status_from139": "M",
+      "git_blob": "4be6a1e4ed669525f57b59593f24655c13b10b71",
+      "sha256": "c1c3f8ff7744927ebab87729bef10ef6585328bbc883cb8d7e82e1ce0fa2b0bd"
+    }
+  ],
+  "changed_paths_since_previous": [
+    "frontend/src/views/BasketsView.vue",
+    "frontend/src/views/ETFHoldingsView.vue",
+    "frontend/tests/unit/views/test_baskets_view.test.ts",
+    "frontend/tests/unit/views/test_etf_holdings_view.test.ts"
+  ],
+  "consumers": [
+    {
+      "consumer": "TC",
+      "import_paths": [
+        "frontend/src/views/BasketsView.vue",
+        "frontend/src/views/ETFHoldingsView.vue",
+        "frontend/tests/unit/views/test_baskets_view.test.ts",
+        "frontend/tests/unit/views/test_etf_holdings_view.test.ts"
+      ],
+      "old_guards": {
+        "frontend/src/views/BasketsView.vue": {
+          "sha256": "5cc51e921085e771249241c1b18a5fcffa508bad350cc0c2a88d9494fd2cea27",
+          "known_sources": [
+            "aae3665b6a8512ea9c5d53d9d6397da7407005ee"
+          ]
+        },
+        "frontend/src/views/ETFHoldingsView.vue": {
+          "sha256": "ae599ab2b8cf4b2cef171a53af621768b6108b60aaa5f94dac0a7ef9c3af3ca2",
+          "known_sources": [
+            "aae3665b6a8512ea9c5d53d9d6397da7407005ee"
+          ]
+        },
+        "frontend/tests/unit/views/test_baskets_view.test.ts": {
+          "sha256": "f920b1134d299e078bf2b2cabfdd01d8457c1de801a5aa3bea18709a4c3cd7c4",
+          "known_sources": [
+            "aae3665b6a8512ea9c5d53d9d6397da7407005ee"
+          ]
+        },
+        "frontend/tests/unit/views/test_etf_holdings_view.test.ts": {
+          "sha256": "e36acb3123d1b0909273143b520d8b9a2d2b886b74ad2e932c89565effa098af",
+          "known_sources": [
+            "aae3665b6a8512ea9c5d53d9d6397da7407005ee"
+          ]
+        }
+      },
+      "owned_overlap": []
+    }
+  ],
+  "scope": "ETF-owned frontend domain and strict alpha-aware final-canvas S&P journey; numerical/marker/tail/raster minima remain, actual corrected-fixture execution pending.",
+  "preserve": "Full roadmap/history, native holds/quotas, genuine datasets, ordinary async failures, reviewed references and tolerances. No amend, overlapping writer, staging, deployment or product acceptance."
+}

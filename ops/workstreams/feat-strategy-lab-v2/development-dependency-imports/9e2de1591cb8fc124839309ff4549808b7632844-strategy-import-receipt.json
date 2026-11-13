@@ -1,0 +1,107 @@
+{
+  "authority": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/Strategy-coherent305-context-reconciliation-assignment.json",
+  "authority_scope": "Reconcile own featurecontext toexactcoherent135frontend snapshot305 andcurrentProvider9e2, preserving ownprivateimplementation andallroadmaps",
+  "changed_worktree_paths": [
+    "backend/app/services/derived_timeframes.py",
+    "backend/app/services/market_series.py",
+    "backend/app/services/provider_runtime.py",
+    "backend/app/tasks/data_tasks.py",
+    "backend/tests/integration/test_provider_runtime_transactions_postgres.py",
+    "backend/tests/unit/services/test_data_preparation_worker_deeper_default.py",
+    "backend/tests/unit/services/test_derived_timeframes.py"
+  ],
+  "consumer": "Strategy",
+  "dependency": "provider-9e2de159-backend-context-overlay",
+  "import_paths": [
+    "backend/app/services/derived_timeframes.py",
+    "backend/app/services/market_series.py",
+    "backend/app/services/provider_runtime.py",
+    "backend/app/tasks/data_tasks.py",
+    "backend/tests/integration/test_provider_runtime_transactions_postgres.py",
+    "backend/tests/unit/services/test_data_preparation_worker_deeper_default.py",
+    "backend/tests/unit/services/test_derived_timeframes.py"
+  ],
+  "imported_paths_verified": [
+    {
+      "git_blob": "3dbef7b9fa7f3acd44a43ce011202656dcb2bdd9",
+      "git_mode": "100644",
+      "known_absent": false,
+      "known_source": "fcfe217bc80638f6fb994d360073d0a328ae166a",
+      "old_guard_sha256": "12eb40ee648befa0c8d1ad7e11741fb16204f05c5584056aba33702eb9af98e2",
+      "path": "backend/app/services/derived_timeframes.py",
+      "sha256": "524b2b063c0833e4492875676259231998082e0f4088f6c620c604ec0d8b7ae4"
+    },
+    {
+      "git_blob": "5cb14b05a8ce10334d475abb080f71504be46290",
+      "git_mode": "100644",
+      "known_absent": false,
+      "known_source": "fcfe217bc80638f6fb994d360073d0a328ae166a",
+      "old_guard_sha256": "d4cc4ea17b07b3aa89661c0760dc7bdc1149f2a37f5d60af0320d0400434409b",
+      "path": "backend/app/services/market_series.py",
+      "sha256": "334f18aa804e7e3df29940e0b84311d89ad4058769893d0d42e2a42a33f27659"
+    },
+    {
+      "git_blob": "b03efff19d7f273fb2722c023cca51edfffb0932",
+      "git_mode": "100644",
+      "known_absent": false,
+      "known_source": "19d34d0b3e875b29b276ee80e471311586e6023f",
+      "old_guard_sha256": "71d4e2ed522ebc5d001ed1c7aa980a4af7f0dee7fdc7577969a1b1f7e55e8d17",
+      "path": "backend/app/services/provider_runtime.py",
+      "sha256": "8aa6d66ee94bdea8b2a82489c096c61133719b43300170b968aef73e145b6654"
+    },
+    {
+      "git_blob": "0a26b25961a5b685e995410064f85f08cb6ccccd",
+      "git_mode": "100644",
+      "known_absent": false,
+      "known_source": "fcfe217bc80638f6fb994d360073d0a328ae166a",
+      "old_guard_sha256": "6bb288018c4a36352f4487492f3e82139f177b3ea0e7ac3f4db96879e508e061",
+      "path": "backend/app/tasks/data_tasks.py",
+      "sha256": "8225c8baee8383b7a2e8f189c74b5c6b38e4dc9466d5a2732211a94113815540"
+    },
+    {
+      "git_blob": "e4019976c5b0ecca3a578bc114e881b9c637c163",
+      "git_mode": "100644",
+      "known_absent": false,
+      "known_source": "19d34d0b3e875b29b276ee80e471311586e6023f",
+      "old_guard_sha256": "26cb4ac1db958db355b8263c17bac47107afd7b5cb86030f500478e58219fbbf",
+      "path": "backend/tests/integration/test_provider_runtime_transactions_postgres.py",
+      "sha256": "05c492d7172ca2348b00197d76ec6115da48002e3d8d107f1731a02921dbf1e4"
+    },
+    {
+      "git_blob": "cbd26e816b326383d0660bb5479bdcd3ac2074d1",
+      "git_mode": "100644",
+      "known_absent": false,
+      "known_source": "fcfe217bc80638f6fb994d360073d0a328ae166a",
+      "old_guard_sha256": "df601efb8642e86b76f6570b801d55a8a232c1e57bd6d0fa8fca8040560f2a3e",
+      "path": "backend/tests/unit/services/test_data_preparation_worker_deeper_default.py",
+      "sha256": "6e1842ffa8114d26355f64607e8f35ea13ca23fd9f88066226f4286d1cae57c3"
+    },
+    {
+      "git_blob": "49ae76422131bc3fc4572426be79ae6eb655dbfd",
+      "git_mode": "100644",
+      "known_absent": false,
+      "known_source": "fcfe217bc80638f6fb994d360073d0a328ae166a",
+      "old_guard_sha256": "536576495edb6084e0464d3ab2934c09356392a1b02379bed85adecf49126cd6",
+      "path": "backend/tests/unit/services/test_derived_timeframes.py",
+      "sha256": "4b0b23e3103af56bbd6a2c2fc64c72e71f5504370fc1570da0ef3d1acfdeee82"
+    }
+  ],
+  "local_manifest": "ops/workstreams/feat-strategy-lab-v2/development-dependency-imports/provider9e2de159-runtime-development-consumption-contract.json",
+  "manifest_rows_verified": 79,
+  "old_guards_verified": 7,
+  "owned_private_paths_excluded": [],
+  "qualification": "Development context only; no product acceptance, browser, runtime, full suite, exact CI, staging, master, or deployment claim.",
+  "recorded_at": "2026-11-08T04:39:30.852982+00:00",
+  "root_manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider9e2de159-runtime-development-consumption-contract.json",
+  "root_manifest_sha256": "f8b7724293e20dee3f3dbe739c28a4bd5dc19e6991685c67211f035a8fc23672",
+  "schema": 1,
+  "source_commit": "9e2de1591cb8fc124839309ff4549808b7632844",
+  "verification": {
+    "consumer_old_guards": true,
+    "git_blob": true,
+    "git_executable_mode": true,
+    "owned_private_exclusions_unchanged": true,
+    "sha256": true,
+    "status_from139": true
+  }
+}

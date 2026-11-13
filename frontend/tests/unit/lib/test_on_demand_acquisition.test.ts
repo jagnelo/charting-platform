@@ -16,6 +16,7 @@ import {
   historyRangeIsAllowed,
   isEligibleETFHoldingsInstrumentType,
   isCurrentETFHoldingsCapability,
+  isConfirmedInstrumentSelection,
   makeAcquisitionRequestId,
   olderHistoryRange,
   requestedHistoryBarSlots,
@@ -29,6 +30,30 @@ const candidate: InstrumentDiscoveryCandidate = {
   symbol: 'OIH', name: 'Oil Services ETF', exchange: 'NYSE Arca', type: 'ETF',
   provider: 'free-source', instrument_id: null, identity_status: 'provider_candidate',
 }
+
+describe('confirmed instrument selection', () => {
+  const resolved = {
+    request_id: 'resolved',
+    status: 'resolved' as const,
+    instrument: { instrument_id: 44, symbol: 'TCNEW', identity_status: 'verified' },
+    source_outcomes: [],
+  }
+
+  it('trusts the exact resolved identity without another canonical lookup', () => {
+    expect(isConfirmedInstrumentSelection(resolved, 'tcnew')).toBe(true)
+    expect(isConfirmedInstrumentSelection(resolved, 'TCNEW', 44)).toBe(true)
+  })
+
+  it.each([
+    ['different symbol', { ...resolved, instrument: { ...resolved.instrument, symbol: 'OTHER' } }, 'TCNEW', 44],
+    ['conflicting supplied id', resolved, 'TCNEW', 45],
+    ['non-resolved acquisition', { ...resolved, status: 'held' as const }, 'TCNEW', 44],
+    ['unverified identity', { ...resolved, instrument: { ...resolved.instrument, identity_status: 'provider_candidate' } }, 'TCNEW', 44],
+    ['invalid canonical id', { ...resolved, instrument: { ...resolved.instrument, instrument_id: 0 } }, 'TCNEW', 0],
+  ])('rejects %s', (_label, response, symbol, id) => {
+    expect(isConfirmedInstrumentSelection(response as typeof resolved, symbol, id)).toBe(false)
+  })
+})
 
 beforeEach(() => {
   vi.resetAllMocks()
@@ -248,7 +273,7 @@ describe('explicit acquisition API contracts', () => {
     await discoverInstruments(' OIH ', ['ETF'], 100)
     expect(api.post).toHaveBeenCalledWith('/instruments/discover', {
       query: 'OIH', types: ['ETF'], limit: 10, request_id: 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d',
-    })
+    }, expect.objectContaining({ priority: 'high' }))
   })
 
   it('resolves a selected candidate without treating its nullable ID as canonical', async () => {
@@ -257,7 +282,7 @@ describe('explicit acquisition API contracts', () => {
     expect(api.post).toHaveBeenCalledWith('/instruments/acquire', {
       symbol: 'OIH', provider_candidate: { provider: 'free-source', symbol: 'OIH', exchange: 'NYSE Arca' },
       request_id: 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d',
-    })
+    }, expect.objectContaining({ priority: 'high' }))
   })
 
   it('requests one canonical instrument and finite UTC history range', async () => {

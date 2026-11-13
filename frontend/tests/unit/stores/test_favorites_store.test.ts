@@ -1,12 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
+const setQueuedApiRequestPriority = vi.hoisted(() => vi.fn())
 vi.mock('@/lib/api', () => ({
   api: {
     get: vi.fn(),
     put: vi.fn(),
     delete: vi.fn(),
   },
+  setQueuedApiRequestPriority,
 }))
 
 import { api } from '@/lib/api'
@@ -38,7 +40,23 @@ describe('useFavoritesStore', () => {
 
     expect(store.favorites.map(item => item.instrument_id)).toEqual([17, 18])
     expect(store.isFavorite(17)).toBe(true)
-    expect(api.get).toHaveBeenCalledWith('/favorites')
+    expect(api.get).toHaveBeenCalledWith('/favorites', undefined, { priority: 'auto', queueKey: 'favorites:list' })
+  })
+
+  it('promotes queued visible favorites without adding a duplicate list request', async () => {
+    let resolveFavorites!: (value: typeof favorite[]) => void
+    ;(api.get as ReturnType<typeof vi.fn>).mockReturnValueOnce(new Promise(resolve => { resolveFavorites = resolve }))
+    const store = useFavoritesStore()
+
+    const backgroundRead = store.load('low')
+    const foregroundRead = store.load('high')
+
+    expect(api.get).toHaveBeenCalledTimes(1)
+    expect(api.get).toHaveBeenCalledWith('/favorites', undefined, { priority: 'low', queueKey: 'favorites:list' })
+    expect(setQueuedApiRequestPriority).toHaveBeenCalledWith('favorites:list', 'high')
+    resolveFavorites([favorite])
+    await Promise.all([backgroundRead, foregroundRead])
+    expect(store.favorites).toEqual([favorite])
   })
 
   it('adds idempotently and removes only the requested instrument', async () => {
@@ -52,7 +70,7 @@ describe('useFavoritesStore', () => {
     expect(api.put).toHaveBeenCalledTimes(1)
     await expect(store.remove(17)).resolves.toBe(true)
     expect(store.favorites).toEqual([])
-    expect(api.delete).toHaveBeenCalledWith('/favorites/instruments/17')
+    expect(api.delete).toHaveBeenCalledWith('/favorites/instruments/17', { priority: 'high' })
   })
 
   it('preserves two chart-toggle intents while the first mutation is pending', async () => {
@@ -68,15 +86,19 @@ describe('useFavoritesStore', () => {
     const secondToggle = store.toggle(17)
 
     await vi.waitFor(() => expect(api.put).toHaveBeenCalledTimes(1))
+    expect(store.isPending(17)).toBe(true)
+    expect(store.isFavorite(17)).toBe(false)
     expect(api.put).toHaveBeenCalledTimes(1)
+    expect(api.put).toHaveBeenCalledWith('/favorites/instruments/17', {}, { priority: 'high' })
     expect(api.delete).not.toHaveBeenCalled()
     resolveAdd(favorite)
 
     await expect(firstToggle).resolves.toBe(true)
     await expect(secondToggle).resolves.toBe(true)
     expect(api.put).toHaveBeenCalledTimes(1)
-    expect(api.delete).toHaveBeenCalledWith('/favorites/instruments/17')
+    expect(api.delete).toHaveBeenCalledWith('/favorites/instruments/17', { priority: 'high' })
     expect(store.isFavorite(17)).toBe(false)
+    expect(store.isPending(17)).toBe(false)
   })
 
   it('keeps pending chart toggles independent across instruments', async () => {

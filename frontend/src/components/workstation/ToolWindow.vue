@@ -1,11 +1,11 @@
 <template>
-  <section class="tool-window" role="group" :data-window-key="windowKey" :data-tool-key="windowKey" :class="{ 'tool-window--active': active }" :aria-labelledby="titleId" @keydown.escape="closeMenuToTrigger">
+  <section ref="toolRoot" class="tool-window" role="group" :data-window-key="windowKey" :data-tool-key="windowKey" :class="{ 'tool-window--active': active, 'tool-window--scrollable-body': scrollableBody }" :aria-labelledby="titleId" @keydown.escape="closeMenuToTrigger">
     <header class="tool-window__header">
       <span class="tool-window__drag-handle" draggable="true" aria-label="Drag tool" title="Drag tool" @dragstart="emit('dragstart', $event)"><span class="tool-window__drag-glyph" aria-hidden="true" /></span>
       <strong :id="titleId" class="tool-window__title">{{ title }}</strong>
       <span v-if="symbol" class="tool-window__symbol">{{ symbol }}</span>
       <div class="tool-window__actions">
-        <button v-if="favoriteAvailable" type="button" :aria-label="favoriteActive ? `Remove ${symbol} from My Favorites` : `Add ${symbol} to My Favorites`" :aria-pressed="favoriteActive" :title="favoriteActive ? 'Remove from My Favorites' : 'Add to My Favorites'" @click.stop="emit('toggleFavorite')">{{ favoriteActive ? '★' : '☆' }}</button>
+        <button v-if="favoriteAvailable" type="button" :disabled="favoritePending" :aria-busy="favoritePending ? 'true' : undefined" :aria-label="favoritePending ? `${favoriteActive ? 'Removing' : 'Adding'} ${symbol} ${favoriteActive ? 'from' : 'to'} My Favorites` : favoriteActive ? `Remove ${symbol} from My Favorites` : `Add ${symbol} to My Favorites`" :aria-pressed="favoriteActive" :title="favoritePending ? `${favoriteActive ? 'Removing' : 'Adding'} ${symbol} ${favoriteActive ? 'from' : 'to'} My Favorites…` : favoriteActive ? 'Remove from My Favorites' : 'Add to My Favorites'" @click.stop="emit('toggleFavorite')">{{ favoritePending ? '…' : favoriteActive ? '★' : '☆' }}</button>
         <span v-if="timeframe" class="tool-window__link-swatch" :style="{ background: dashboardLinkGroupColor(timeframeLinkGroup) }" :title="`${dashboardLinkGroupLabel(timeframeLinkGroup)} timeframe link`" aria-hidden="true" />
         <select v-if="timeframe" :value="timeframeLinkGroup" class="tool-window__timeframe-link" :aria-label="title + ' timeframe link group'" @change="emit('update:timeframeLinkGroup', ($event.target as HTMLSelectElement).value as LinkGroup)">
           <option v-for="group in groups" :key="group" :value="group">{{ dashboardLinkGroupLabel(group) }}</option>
@@ -25,7 +25,7 @@
         <div ref="menuRoot" class="tool-window__menu-wrap">
           <button ref="menuTrigger" type="button" title="Tool menu" aria-label="Open tool menu" aria-haspopup="menu" :aria-expanded="menuOpen" :aria-controls="menuId" @click.stop="toggleMenu" @keydown="handleMenuTriggerKeydown"><span class="tool-window__menu-glyph" aria-hidden="true" /></button>
         </div>
-        <button type="button" title="Maximize" aria-label="Maximize tool" @click="emit('maximize')"><span class="tool-window__maximize-glyph" aria-hidden="true" /></button>
+        <button type="button" :aria-busy="maximizing" :title="maximizing ? 'Saving layout' : maximized ? 'Restore' : 'Maximize'" :aria-label="maximized ? 'Restore tool' : 'Maximize tool'" @click="emit('maximize')"><span class="tool-window__maximize-glyph" aria-hidden="true" /></button>
         <button type="button" title="Float" aria-label="Float tool" @click="emit('float')"><span class="tool-window__float-glyph" aria-hidden="true" /></button>
         <button type="button" title="Close" aria-label="Close tool" @click="emit('close')"><span class="tool-window__close-glyph" aria-hidden="true" /></button>
       </div>
@@ -35,7 +35,7 @@
     </div>
     <Teleport to="body">
       <div v-if="menuOpen" :id="menuId" ref="menuElement" class="tool-window__menu" role="menu" :aria-label="`${title} tool menu`" :style="menuStyle" @click.stop @keydown="handleMenuKeydown">
-        <button type="button" role="menuitem" tabindex="-1" @click="runMenuAction('maximize')">Maximize</button>
+        <button type="button" role="menuitem" tabindex="-1" @click="runMenuAction('maximize')">{{ maximized ? 'Restore' : 'Maximize' }}</button>
         <button type="button" role="menuitem" tabindex="-1" @click="runMenuAction('float')">Float</button>
         <button type="button" role="menuitem" tabindex="-1" @click="runMenuAction('close')">Close</button>
       </div>
@@ -44,11 +44,11 @@
 </template>
 
 <script setup lang="ts">
-import { getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { LinkGroup } from '@/stores/workspace'
 import { dashboardLinkGroupColor, dashboardLinkGroupLabel, WORKSTATION_LINK_GROUPS } from '@/stores/dashboardLinks'
 
-withDefaults(defineProps<{
+const props = withDefaults(defineProps<{
   windowKey?: string
   title: string
   symbol?: string
@@ -56,16 +56,24 @@ withDefaults(defineProps<{
   timeframeLinkGroup?: LinkGroup
   timeframe?: string
   active?: boolean
+  maximized?: boolean
+  maximizing?: boolean
   favoriteAvailable?: boolean
   favoriteActive?: boolean
+  favoritePending?: boolean
+  scrollableBody?: boolean
 }>(), {
   symbol: '',
   linkGroup: 'blue',
   timeframeLinkGroup: 'blue',
   timeframe: '',
   active: false,
+  maximized: false,
+  maximizing: false,
   favoriteAvailable: false,
   favoriteActive: false,
+  favoritePending: false,
+  scrollableBody: false,
 })
 
 const emit = defineEmits<{
@@ -87,10 +95,15 @@ const emit = defineEmits<{
 const titleId = `tool-window-title-${getCurrentInstance()?.uid ?? 0}`
 const menuId = `${titleId}-menu`
 const menuOpen = ref(false)
+const toolRoot = ref<HTMLElement | null>(null)
 const menuRoot = ref<HTMLElement | null>(null)
 const menuElement = ref<HTMLElement | null>(null)
 const menuTrigger = ref<HTMLButtonElement | null>(null)
 const menuStyle = ref<Record<string, string>>({})
+
+watch(() => props.active, active => {
+  if (!active) setMenuOpen(false)
+}, { flush: 'sync' })
 
 function menuItems() {
   return Array.from(menuElement.value?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? [])
@@ -207,7 +220,7 @@ const groups: LinkGroup[] = WORKSTATION_LINK_GROUPS.map(group => group.id)
 </script>
 
 <style scoped>
-.tool-window { position: relative; width: 100%; height: 100%; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--tc-border, #30363c); background: var(--tc-window, #15191e); box-shadow: inset 0 1px rgba(255, 255, 255, 0.035); }
+.tool-window { position: relative; container: tool-window / inline-size; width: 100%; height: 100%; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--tc-border, #30363c); background: var(--tc-window, #15191e); box-shadow: inset 0 1px rgba(255, 255, 255, 0.035); }
 .tool-window--active { border-color: #607486; }
 .tool-window__header { height: var(--tc-window-header-height); min-width: 0; display: flex; align-items: center; gap: 5px; padding: 0 4px; background: linear-gradient(var(--tc-header-top), var(--tc-header-bottom)); border-bottom: 1px solid #0d0f11; color: var(--tc-text); font: 600 11px/1 var(--tc-font-family); user-select: none; }
 .tool-window__drag-handle { display: inline-flex; width: 12px; flex: 0 0 12px; align-items: center; justify-content: center; color: #748793; font-size: 11px; letter-spacing: -2px; cursor: grab; }
@@ -232,16 +245,39 @@ const groups: LinkGroup[] = WORKSTATION_LINK_GROUPS.map(group => group.id)
 .tool-window__menu button:hover, .tool-window__menu button:focus-visible { border-color: var(--tc-border); background: var(--tc-control-bg); color: var(--tc-text); outline: none; }
 .tool-window__link { width: 54px; height: 18px; flex: 0 1 54px; min-width: 28px; color: var(--tc-text); border: 1px solid var(--tc-border-strong); background: var(--tc-input-bg); font: 10px var(--tc-font-family); }
 .tool-window__link-swatch { width: 8px; height: 8px; flex: 0 0 8px; border: 1px solid #0b0f12; border-radius: 50%; box-shadow: 0 0 0 1px #65737d; }
-.tool-window__timeframe { width: 27px; flex: 0 1 27px; min-width: 24px; height: 18px; color: var(--tc-text); border: 1px solid var(--tc-border-strong); background: var(--tc-input-bg); font: 10px var(--tc-font-family); }
+.tool-window__timeframe { width: 40px; flex: 0 0 40px; min-width: 40px; height: 18px; color: var(--tc-text); border: 1px solid var(--tc-border-strong); background: var(--tc-input-bg); font: 10px var(--tc-font-family); }
 .tool-window__timeframe-link { width: 54px; flex: 0 1 54px; min-width: 28px; height: 18px; color: var(--tc-text); border: 1px solid var(--tc-border-strong); background: var(--tc-input-bg); font: 10px var(--tc-font-family); }
 .tool-window__body { min-width: 0; min-height: 0; flex: 1; overflow: hidden; }
+.tool-window--scrollable-body > .tool-window__body { overflow: auto; overscroll-behavior: contain; }
 @media (max-width: 420px) {
   .tool-window__header { gap: 2px; padding: 0 2px; }
   .tool-window__symbol { max-width: 18%; }
   .tool-window__actions { gap: 1px; }
   .tool-window__actions .tool-window__link-swatch { display: none; }
   .tool-window__link, .tool-window__timeframe-link { width: 32px; min-width: 24px; }
-  .tool-window__timeframe { width: 24px; min-width: 22px; }
+  .tool-window__timeframe { width: 40px; min-width: 40px; }
   .tool-window__actions button { min-width: 16px; padding: 0 1px; }
+}
+@container tool-window (max-width: 560px) {
+  .tool-window__header {
+    display: grid;
+    grid-template-columns: 12px minmax(0, 1fr) auto;
+    grid-template-rows: minmax(var(--tc-window-header-height), auto) auto;
+    height: auto;
+    min-height: var(--tc-window-header-height);
+    gap: 2px 4px;
+    padding: 2px 4px 3px;
+  }
+  .tool-window__drag-handle { grid-area: 1 / 1; }
+  .tool-window__title { grid-area: 1 / 2; }
+  .tool-window__symbol { grid-area: 1 / 3; max-width: 32vw; }
+  .tool-window__actions {
+    grid-area: 2 / 1 / 3 / 4;
+    width: 100%;
+    margin-left: 0;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 1px 3px;
+  }
 }
 </style>

@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest'
-import { buildMarketMapHitTestIndex, findMarketMapCell, layoutMarketMapCells, layoutMarketMapGroups } from '@/lib/workstation/marketMap'
+import { QueryClient } from '@tanstack/vue-query'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { buildMarketMapHitTestIndex, fetchBenchmarkFamilyCoverageShared, fetchWatchlistSourceHistoryStatusShared, findMarketMapCell, layoutMarketMapCells, layoutMarketMapGroups, type BenchmarkFamilyCoverage, type WatchlistSourceHistoryStatus } from '@/lib/workstation/marketMap'
 
 describe('market map layout', () => {
   it('fills a deterministic rectangle and preserves area ordering', () => {
@@ -119,5 +120,39 @@ describe('market map layout', () => {
     // Shared edges retain the original first-match ordering.
     expect(findMarketMapCell(index, 50, 50.5)).toBe(cells[5049])
     expect(findMarketMapCell(index, -0.1, 50.5)).toBeNull()
+  })
+})
+
+describe('Market Map readiness request sharing', () => {
+  let queryClient: QueryClient | null = null
+
+  afterEach(() => {
+    queryClient?.clear()
+    queryClient = null
+  })
+
+  it('shares concurrent family readiness reads for the same family and point-in-time context', async () => {
+    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    let resolve!: (value: BenchmarkFamilyCoverage) => void
+    const load = vi.fn(() => new Promise<BenchmarkFamilyCoverage>(done => { resolve = done }))
+    const asOf = '2025-06-30T23:59:59Z'
+
+    const first = fetchBenchmarkFamilyCoverageShared(queryClient, 'SP500', asOf, 256, load)
+    const second = fetchBenchmarkFamilyCoverageShared(queryClient, 'sp500', asOf, 256, load)
+    expect(load).toHaveBeenCalledTimes(1)
+    const response = { family_key: 'sp500' } as unknown as BenchmarkFamilyCoverage
+    resolve(response)
+    await expect(Promise.all([first, second])).resolves.toEqual([response, response])
+  })
+
+  it('keeps source history readiness isolated by source, timeframe, and as-of date', async () => {
+    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const load = vi.fn(async () => ({ source_id: 'market-group:technology', status: 'ready' }) as unknown as WatchlistSourceHistoryStatus)
+
+    await fetchWatchlistSourceHistoryStatusShared(queryClient, 'market-group:technology', ['W1', 'D1'], 5000, null, load)
+    await fetchWatchlistSourceHistoryStatusShared(queryClient, 'market-group:technology', ['D1', 'W1'], 5000, null, load)
+    await fetchWatchlistSourceHistoryStatusShared(queryClient, 'market-group:healthcare', ['D1', 'W1'], 5000, null, load)
+    await fetchWatchlistSourceHistoryStatusShared(queryClient, 'market-group:technology', ['D1', 'W1'], 5000, '2025-06-30T23:59:59Z', load)
+    expect(load).toHaveBeenCalledTimes(3)
   })
 })

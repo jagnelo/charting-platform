@@ -1,0 +1,60 @@
+{
+  "schema": 1,
+  "dependency": "tc-common-runtime-development-consumption",
+  "source_commit": "2666aa559afbff7cff8dff6b50ead357ae1f654f",
+  "previous_source": "c9fc3bbbfa9cc92ad037040fa3e610dd95bbf0ec",
+  "root_manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-2666aa55-common-runtime-development-consumption-contract.json",
+  "root_manifest_sha256": "f0784a8337d3d53add381b0f06f9fd37e7e27fa861bca70d97e78ba341f3a10a",
+  "root_entry": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-2666aa55-common-entry-feat-strategy-lab-v2.yaml",
+  "root_entry_sha256": "ded53a0729ee044406678bd8ebdb20749c0700c0efbc07bdbe89fd051f71eb65",
+  "consumer": "Strategy",
+  "imported_paths": [
+    "frontend/src/components/chart/HistoryAcquisitionControl.vue",
+    "frontend/src/components/workstation/RelativeRotationTool.vue",
+    "frontend/tests/e2e/tc_secondary_routes_journey.spec.ts",
+    "frontend/tests/unit/components/test_compact_status_notice.test.ts",
+    "frontend/tests/unit/components/test_history_acquisition_control.test.ts",
+    "frontend/tests/unit/components/test_relative_rotation_tool.test.ts"
+  ],
+  "old_guards": {
+    "frontend/src/components/chart/HistoryAcquisitionControl.vue": {
+      "sha256": "032e53a7b7c2cc22a8e520011f2d6a61bfc54151f8bf53486fd056bc93550a07",
+      "known_source": "c9fc3bbbfa9cc92ad037040fa3e610dd95bbf0ec",
+      "known_absent": false
+    },
+    "frontend/src/components/workstation/RelativeRotationTool.vue": {
+      "sha256": "54b90dad58337caea5798fe4260a845a11addd8b29a0eb7324c906caae184979",
+      "known_source": "c9fc3bbbfa9cc92ad037040fa3e610dd95bbf0ec",
+      "known_absent": false
+    },
+    "frontend/tests/e2e/tc_secondary_routes_journey.spec.ts": {
+      "sha256": null,
+      "known_source": "c9fc3bbbfa9cc92ad037040fa3e610dd95bbf0ec",
+      "known_absent": true
+    },
+    "frontend/tests/unit/components/test_compact_status_notice.test.ts": {
+      "sha256": "9fef6c2e658cc45b8380025d9cc66204a2b4014f180345210e3ccabe26959eec",
+      "known_source": "c9fc3bbbfa9cc92ad037040fa3e610dd95bbf0ec",
+      "known_absent": false
+    },
+    "frontend/tests/unit/components/test_history_acquisition_control.test.ts": {
+      "sha256": "af71d7dae2fd039dd20c6859259b5b8b41b6f8a4d4281340511eca06394fa1d6",
+      "known_source": "c9fc3bbbfa9cc92ad037040fa3e610dd95bbf0ec",
+      "known_absent": false
+    },
+    "frontend/tests/unit/components/test_relative_rotation_tool.test.ts": {
+      "sha256": "77fd192e431e44eded7f5eb2b286063a3ddcaa96c816ae4557bda615626c76d2",
+      "known_source": "c9fc3bbbfa9cc92ad037040fa3e610dd95bbf0ec",
+      "known_absent": false
+    }
+  },
+  "verified_source_manifest_rows": 86,
+  "verification": {
+    "sha256": true,
+    "git_blob": true,
+    "status_from139": true,
+    "git_executable_mode": true,
+    "consumer_import_exact": true
+  },
+  "qualification": "Exact development consumption only. Focused consumer checks are recorded separately; this is not full browser, exact-source CI, integrated or release acceptance."
+}

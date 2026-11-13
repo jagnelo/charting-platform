@@ -1,0 +1,79 @@
+{
+  "at": "2026-11-08T21:59:17.770220+00:00",
+  "authority": "Root coordinates the human-approved common-interface implementation; no staging or deployment acceptance",
+  "state": "released_for_exact_development_consumption_not_product_acceptance",
+  "source": "bd50269c862e577a48063b084ce2ba8d13aaef76",
+  "base": "139b350238b5e1c8a170dce5af09a805301d857e",
+  "files": [
+    {
+      "path": "backend/app/services/strategy_lab_nautilus.py",
+      "status_from139": "M",
+      "git_blob": "1395e113583634f94c39f4113e468c48e53d8be7",
+      "sha256": "29072bc56378eb52a43efd194111aa171c10a2e1ebc394c93b12e20eb055f5bc"
+    },
+    {
+      "path": "backend/tests/unit/services/test_strategy_lab_nautilus.py",
+      "status_from139": "M",
+      "git_blob": "539beae6f9b5e9419617be62f2848df7a1f5815b",
+      "sha256": "63d2fae5955989a387e7c2485495c703cf47223239821bf9b61f55c07c884da7"
+    }
+  ],
+  "consumers": [
+    {
+      "consumer": "Provider",
+      "import_paths": [
+        "backend/app/services/strategy_lab_nautilus.py",
+        "backend/tests/unit/services/test_strategy_lab_nautilus.py"
+      ],
+      "old_guards": {
+        "backend/app/services/strategy_lab_nautilus.py": {
+          "sha256": "5f0c171d647d07a981394162f6795a9d4e3438417b3ca0013105fd574c62215e",
+          "known_source": "0875336efeafd2339ed609e7bb1ec781fd5682d5"
+        },
+        "backend/tests/unit/services/test_strategy_lab_nautilus.py": {
+          "sha256": "c3a13ca26c955a6d2e68a944b4bbcc1119d7da72b348be8b89b18822be425f25",
+          "known_source": "0875336efeafd2339ed609e7bb1ec781fd5682d5"
+        }
+      },
+      "dirty_overlap": []
+    },
+    {
+      "consumer": "TC",
+      "import_paths": [
+        "backend/app/services/strategy_lab_nautilus.py",
+        "backend/tests/unit/services/test_strategy_lab_nautilus.py"
+      ],
+      "old_guards": {
+        "backend/app/services/strategy_lab_nautilus.py": {
+          "sha256": "0a5a99d65bde5c40a6b22de91cf695d098836375ce0531f4850353c16985acc3",
+          "known_source": "139b350238b5e1c8a170dce5af09a805301d857e"
+        },
+        "backend/tests/unit/services/test_strategy_lab_nautilus.py": {
+          "sha256": "7f73bc929ea2998f8dd8a9ab177cb70a705bb07bf414dcf608c61afc8c60e424",
+          "known_source": "139b350238b5e1c8a170dce5af09a805301d857e"
+        }
+      },
+      "dirty_overlap": []
+    },
+    {
+      "consumer": "ETF",
+      "import_paths": [
+        "backend/app/services/strategy_lab_nautilus.py",
+        "backend/tests/unit/services/test_strategy_lab_nautilus.py"
+      ],
+      "old_guards": {
+        "backend/app/services/strategy_lab_nautilus.py": {
+          "sha256": "0a5a99d65bde5c40a6b22de91cf695d098836375ce0531f4850353c16985acc3",
+          "known_source": "139b350238b5e1c8a170dce5af09a805301d857e"
+        },
+        "backend/tests/unit/services/test_strategy_lab_nautilus.py": {
+          "sha256": "7f73bc929ea2998f8dd8a9ab177cb70a705bb07bf414dcf608c61afc8c60e424",
+          "known_source": "139b350238b5e1c8a170dce5af09a805301d857e"
+        }
+      },
+      "dirty_overlap": []
+    }
+  ],
+  "scope": "Exactly2Strategy-ownedNautiluslifecycle/result source+unit paths; preserveclosedcycles,per-cycleplans,once-per-barage anddocumentedriskexecution. Development-only exact import; no nativeHTTP/DB/runtime/CI/release acceptance.",
+  "required": "Canonical full source SHA.json manifest in consumer ownworkstream; exactoldguards/Gitblobs/modes; preserveSourcehistory andall existing Provider54cf coverage/runtime paths outside these exact two overrides. No stale strategy_lab.py import. Root builds exact Provider successor and owns combined gates."
+}

@@ -5,6 +5,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.lib.time_utils import wire_datetime
 from app.models.basket import Basket, BasketMember, BasketSnapshot, BasketSnapshotMember
 from app.models.etf_holdings import (
     ETFHolding,
@@ -23,6 +24,7 @@ from app.schemas.basket import (
     BasketUpdateRequest,
 )
 from app.services.etf_holdings_capability import ETFHoldingsCapability, evaluate_capability
+from app.services.market_data import _default_series_bar_condition
 
 VALID_USER_WEIGHTING_SCHEMES = {"equal", "custom"}
 WEIGHT_TOLERANCE = Decimal("0.0001")
@@ -30,6 +32,10 @@ WEIGHT_TOLERANCE = Decimal("0.0001")
 
 class BasketValidationError(ValueError):
     """Raised when a user-owned basket payload is not valid."""
+
+
+class BasketNotFoundError(BasketValidationError):
+    """Raised when a user-owned basket does not exist for the requesting user."""
 
 
 class BasketReadOnlyError(PermissionError):
@@ -69,6 +75,10 @@ async def create_basket(
         metadata_=payload.metadata,
         is_system_managed=False,
         is_read_only=False,
+        # The collection must be initialized before flush: appending to an
+        # unloaded relationship on this newly persistent AsyncSession object
+        # would trigger implicit async I/O outside an awaitable context.
+        members=[],
     )
     db.add(basket)
     await db.flush()
@@ -205,6 +215,9 @@ async def materialize_etf_holdings_basket(
         source_snapshot_id=snapshot.id,
         is_system_managed=True,
         is_read_only=True,
+        # Initialize the collection before flush so clear()/append() below
+        # cannot trigger implicit async lazy loading on a new basket.
+        members=[],
     )
     basket.name = f"{etf_instrument.symbol} holdings {snapshot.composition_date.isoformat()}"
     basket.description = (
@@ -216,8 +229,22 @@ async def materialize_etf_holdings_basket(
         "etf_symbol": etf_instrument.symbol,
         "etf_name": etf_instrument.name,
         "snapshot_id": snapshot.id,
+        "snapshot_hash": snapshot.snapshot_hash,
         "provenance": snapshot.provenance,
         "source_provider": snapshot.source_provider,
+        "source_identifier": snapshot.source_identifier
+        or (snapshot.source_artifact.source_identifier if snapshot.source_artifact else None),
+        "source_url": snapshot.source_url
+        or (snapshot.source_artifact.source_url if snapshot.source_artifact else None),
+        "source_artifact_id": snapshot.source_artifact_id,
+        "source_artifact_hash": (
+            snapshot.source_artifact.content_hash if snapshot.source_artifact else None
+        ),
+        "composition_date": snapshot.composition_date.isoformat(),
+        "as_of_date": snapshot.as_of_date.isoformat() if snapshot.as_of_date else None,
+        "known_at": wire_datetime(snapshot.known_at),
+        "published_at": wire_datetime(snapshot.published_at),
+        "parser_version": snapshot.parser_version,
         "source_quality": snapshot.source_quality,
         "completeness_status": snapshot.completeness_status,
         "resolved_count": snapshot.resolved_count,
@@ -226,6 +253,11 @@ async def materialize_etf_holdings_basket(
     if existing is None:
         db.add(basket)
         await db.flush()
+
+    # Explicitly load the relationship in async context before mutating it.
+    # This covers both a new basket after flush and an existing identity-map
+    # object whose collection may have expired during earlier request work.
+    await db.refresh(basket, attribute_names=["members"])
 
     basket.members.clear()
     await db.flush()
@@ -264,6 +296,7 @@ async def materialize_etf_holdings_basket(
         known_at=snapshot.known_at,
         source_type="etf_holdings",
         source_snapshot_id=snapshot.id,
+        source_metadata=basket.metadata_,
     )
     return await _load_basket_with_members(db, basket.id)
 
@@ -272,7 +305,10 @@ async def get_basket(db: AsyncSession, basket_id: int, user_id: int) -> Basket |
     return (
         await db.execute(
             select(Basket)
-            .options(selectinload(Basket.members).selectinload(BasketMember.instrument))
+            .options(
+                selectinload(Basket.members).selectinload(BasketMember.instrument),
+                selectinload(Basket.snapshots),
+            )
             .where(
                 Basket.id == basket_id,
                 (Basket.user_id == user_id) | (Basket.is_system_managed.is_(True)),
@@ -300,7 +336,7 @@ async def get_basket_synthetic_ohlcv(
 
     basket = await get_basket(db, basket_id, user_id)
     if basket is None:
-        raise BasketValidationError("Basket not found.")
+        raise BasketNotFoundError("Basket not found.")
     if not basket.members:
         return []
 
@@ -312,6 +348,7 @@ async def get_basket_synthetic_ohlcv(
             OHLCVBar.instrument_id.in_(member_ids),
             OHLCVBar.timeframe == timeframe,
             OHLCVBar.is_adjusted.is_(adjusted),
+            _default_series_bar_condition(OHLCVBar.instrument_id, timeframe, adjusted),
         )
         .order_by(OHLCVBar.ts.asc(), OHLCVBar.instrument_id.asc())
     )
@@ -477,7 +514,7 @@ async def list_basket_snapshots(
 ) -> list[BasketSnapshot]:
     basket = await get_basket(db, basket_id, user_id)
     if basket is None:
-        raise BasketValidationError("Basket not found.")
+        raise BasketNotFoundError("Basket not found.")
     return list(
         (
             await db.execute(
@@ -514,6 +551,7 @@ async def _record_basket_snapshot(
     known_at: datetime | None,
     source_type: str,
     source_snapshot_id: int | None = None,
+    source_metadata: dict | None = None,
 ) -> BasketSnapshot:
     existing = None
     if source_snapshot_id is not None:
@@ -531,6 +569,7 @@ async def _record_basket_snapshot(
         basket_id=basket.id,
         composition_date=composition_date,
         source_type=source_type,
+        members=[],
     )
     snapshot.known_at = known_at
     snapshot.source_snapshot_id = source_snapshot_id
@@ -540,6 +579,7 @@ async def _record_basket_snapshot(
         "basket_source_type": basket.source_type,
         "weighting_scheme": basket.weighting_scheme,
         "source_etf_profile_id": basket.source_etf_profile_id,
+        **(source_metadata or {}),
     }
     if existing is None:
         db.add(snapshot)
@@ -728,7 +768,8 @@ async def _load_etf_snapshot(
     stmt = (
         select(ETFHoldingsSnapshot)
         .options(
-            selectinload(ETFHoldingsSnapshot.rows).selectinload(ETFHolding.constituent_instrument)
+            selectinload(ETFHoldingsSnapshot.rows).selectinload(ETFHolding.constituent_instrument),
+            selectinload(ETFHoldingsSnapshot.source_artifact),
         )
         .where(ETFHoldingsSnapshot.etf_profile_id == profile.id)
     )

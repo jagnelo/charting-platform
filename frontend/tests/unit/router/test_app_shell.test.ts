@@ -24,6 +24,7 @@ vi.mock('@/stores/alerts', () => ({ useAlertsStore: () => stores.alerts }))
 import App from '@/App.vue'
 
 const appSource = readFileSync(resolve(process.cwd(), 'src/App.vue'), 'utf8')
+const workstationSource = readFileSync(resolve(process.cwd(), 'src/views/WorkstationView.vue'), 'utf8')
 const appStyles = appSource.match(/<style>\s*([\s\S]*?)<\/style>/)?.[1] ?? ''
 const workstationTokens = readFileSync(resolve(process.cwd(), 'src/styles/workstation-tokens.css'), 'utf8')
 const componentStyles = (path: string) => {
@@ -58,6 +59,16 @@ async function mountAt(path: string) {
 }
 
 describe('application shell', () => {
+  it('keeps public application links mounted until router navigation commits', () => {
+    const applicationMenuLink = workstationSource.match(/<router-link[\s\S]*?:data-navigation-key="item\.key"[\s\S]*?<\/router-link>/)?.[0]
+    expect(applicationMenuLink).toContain(':to="item.path"')
+    expect(applicationMenuLink).not.toMatch(/@click="closeShellMenus\(\)"/)
+    expect(workstationSource).toMatch(/watch\(\(\) => route\.fullPath, \(\) => closeShellMenus\(\)\)/)
+    for (const path of ['/legacy/watchlist', '/legacy/alerts', '/legacy/settings']) {
+      expect(sharedShellNavigation.some(item => item.path === path)).toBe(true)
+    }
+  })
+
   it('keeps shell theme selectors aligned with actual routed view roots and preserves workstation reset', () => {
     const routedViews = [
       'DashboardView.vue', 'ChartView.vue', 'AlertsView.vue', 'SettingsView.vue',
@@ -252,7 +263,7 @@ describe('application shell', () => {
     expect(wrapper.classes()).toContain('tc-legacy-app')
     expect(wrapper.get('nav[aria-label="Main navigation"]').text()).toContain('ETF Holdings')
     expect(wrapper.get('nav[aria-label="Main navigation"]').text()).toContain('Strategy Lab v2')
-    expect(wrapper.get('a[href="/legacy/chart"]').attributes('aria-current')).toBe('page')
+    expect(wrapper.get('a[href="/chart"]').attributes('aria-current')).toBe('page')
     expect(wrapper.text()).toContain('99+')
     expect(wrapper.get('.tc-app-account-name').text()).toBe('analyst')
     expect(wrapper.get('.tc-app-signout').attributes('aria-label')).toBe('Sign out analyst')

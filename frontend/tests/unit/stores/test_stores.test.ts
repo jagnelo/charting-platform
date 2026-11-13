@@ -3,12 +3,31 @@
  * Each test creates a fresh Pinia instance and mocks all API calls.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { setActivePinia, createPinia } from 'pinia'
+import { setActivePinia, createPinia, defineStore } from 'pinia'
+import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useChartStore } from '@/stores/chart'
 import { clearOhlcvRequestCache } from '@/lib/workstation/ohlcvRequests'
 import { useAlertsStore } from '@/stores/alerts'
 import { router } from '@/router'
+import { AuthSessionChangedError, captureAuthSession, currentAuthSessionEpoch } from '@/lib/authSession'
+
+function preparationReady(instrumentId: number, symbol: string, timeframe = 'D1') {
+  const timestamp = '2026-11-06T12:00:00Z'
+  const dependency = (dataset: 'identity' | 'profile' | 'history') => ({
+    dependency_id: `${dataset}:${instrumentId}:${timeframe}`,
+    depends_on: dataset === 'identity' ? [] : [`identity:${instrumentId}`],
+    instrument_id: instrumentId, symbol, dataset, status: 'ready',
+    requested_start: null, requested_end: null, covered_start: null, covered_end: null,
+    reason_code: null, retry_at: null, updated_at: timestamp, covered_ranges: [],
+  })
+  return {
+    request_id: `prepare-${instrumentId}-${timeframe}`, status: 'ready', created_at: timestamp, updated_at: timestamp,
+    version: 1, target: { kind: 'instrument', instrument_id: instrumentId },
+    dependencies: [dependency('identity'), dependency('profile'), dependency('history')],
+    completed: 3, total: 3, last_progress_at: timestamp, has_pending_work: false,
+  }
+}
 
 vi.mock('@/lib/api', () => ({
   api: {
@@ -91,6 +110,100 @@ describe('useAuthStore', () => {
     await vi.waitFor(() => expect(router.currentRoute.value.path).toBe('/login'))
   })
 
+  it('changes authenticated subjects when another window signs in directly from /login', async () => {
+    const accessToken = (subject: number, marker: string) => {
+      const payload = btoa(JSON.stringify({ sub: String(subject), marker }))
+        .replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')
+      return `header.${payload}.signature`
+    }
+    const tokenA = accessToken(101, 'a')
+    const tokenB = accessToken(202, 'b')
+    localStorage.setItem('access_token', tokenA)
+    localStorage.setItem('refresh_token', 'refresh-a')
+    const store = useAuthStore()
+    const userA = { id: 101, username: 'user-a', email: 'a@example.test', is_admin: false }
+    const userB = { id: 202, username: 'user-b', email: 'b@example.test', is_admin: false }
+    store.user = userA
+    const priorEpoch = currentAuthSessionEpoch()
+    const priorSession = captureAuthSession()
+    localStorage.setItem('access_token', tokenB)
+    localStorage.setItem('refresh_token', 'refresh-b')
+    ;(api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce(userB)
+
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: 'access_token', oldValue: tokenA, newValue: tokenB,
+    }))
+
+    expect(currentAuthSessionEpoch()).toBeGreaterThan(priorEpoch)
+    expect(priorSession.signal.aborted).toBe(true)
+    expect(store.user).toBeNull()
+    expect(store.accessToken).toBe(tokenB)
+    await vi.waitFor(() => expect(store.user).toEqual(userB))
+    expect(store.isAuthenticated).toBe(true)
+  })
+
+  it('keeps private context when a same-user access token is refreshed in another window', () => {
+    const accessToken = (marker: string) => {
+      const payload = btoa(JSON.stringify({ sub: '101', marker })).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')
+      return `header.${payload}.signature`
+    }
+    const tokenA = accessToken('old')
+    const tokenA2 = accessToken('refreshed')
+    localStorage.setItem('access_token', tokenA)
+    localStorage.setItem('refresh_token', 'refresh-a')
+    const store = useAuthStore()
+    const userA = { id: 101, username: 'user-a', email: 'a@example.test', is_admin: false }
+    store.user = userA
+    const useDraftStore = defineStore('session-draft-probe', () => ({ draft: ref('unsaved note for user A') }))
+    const draftStore = useDraftStore()
+    const priorEpoch = currentAuthSessionEpoch()
+    localStorage.setItem('access_token', tokenA2)
+    localStorage.setItem('refresh_token', 'refresh-a2')
+
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: 'access_token', oldValue: tokenA, newValue: tokenA2,
+    }))
+
+    expect(currentAuthSessionEpoch()).toBe(priorEpoch)
+    expect(store.accessToken).toBe(tokenA2)
+    expect(store.refreshToken).toBe('refresh-a2')
+    expect(store.user).toEqual(userA)
+    expect(draftStore.draft).toBe('unsaved note for user A')
+  })
+
+  it('does not reconnect an alert socket after a session-boundary logout', () => {
+    vi.useFakeTimers()
+    localStorage.setItem('access_token', 'user-a-access')
+    const sockets: Array<{ readyState: number; onclose: (() => void) | null; close: ReturnType<typeof vi.fn> }> = []
+    class FakeWebSocket {
+      static CONNECTING = 0
+      static OPEN = 1
+      static CLOSED = 3
+      readyState = FakeWebSocket.CONNECTING
+      onopen: (() => void) | null = null
+      onclose: (() => void) | null = null
+      onmessage: ((event: { data: string }) => void) | null = null
+      onerror: (() => void) | null = null
+      close = vi.fn(() => { this.readyState = FakeWebSocket.CLOSED; this.onclose?.() })
+      send = vi.fn()
+      constructor() { sockets.push(this) }
+    }
+    vi.stubGlobal('WebSocket', FakeWebSocket)
+    const store = useAlertsStore()
+    store.connectWebSocket()
+    expect(sockets).toHaveLength(1)
+
+    // An unexpected close schedules the normal reconnect. Logging out before
+    // that due time must cancel it, including when close itself dispatches onclose.
+    sockets[0].onclose?.()
+    store.resetForAuthSessionBoundary()
+    vi.advanceTimersByTime(5_000)
+    expect(sockets).toHaveLength(1)
+    expect(store.wsConnected).toBe(false)
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
+  })
+
   it('loadMe sets user from /auth/me', async () => {
     const mockUser = { id: 2, username: 'bob', email: 'b@t.com', is_admin: false }
     ;(api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce(mockUser)
@@ -165,6 +278,120 @@ describe('useChartStore', () => {
     )
   })
 
+  it('renders cached basket bars before independent member preparation finishes', async () => {
+    const cached = [{ ts: '2026-11-05T00:00:00Z', open: 100, high: 102, low: 99, close: 101, volume: 1000 }]
+    const memberIds = [11, 12, 13]
+    const basket = { id: 7, members: memberIds.map((instrument_id, position) => ({
+      id: position + 1, instrument_id, symbol: `M${position + 1}`, position,
+    })) }
+    let resolveFirst: ((value: unknown) => void) | null = null
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/baskets/7/ohlcv/D1') return Promise.resolve(cached) as any
+      if (path === '/baskets/7') return Promise.resolve(basket) as any
+      return Promise.resolve([]) as any
+    })
+    ;(api.post as ReturnType<typeof vi.fn>).mockImplementation((path: string, body: Record<string, any>) => {
+      if (path !== '/data/ensure') return Promise.resolve({}) as any
+      expect(body).not.toHaveProperty('start_at')
+      if (body.target.instrument_id === 11) return new Promise(resolve => { resolveFirst = resolve }) as any
+      return Promise.resolve(preparationReady(body.target.instrument_id, `M${body.target.instrument_id - 10}`)) as any
+    })
+
+    const store = useChartStore()
+    await store.loadBars('BASKET:7', 'D1', 'candles', true)
+    expect(store.bars).toEqual(cached)
+    await vi.waitFor(() => expect(api.post).toHaveBeenCalledTimes(3))
+    expect(api.post.mock.calls.map(([path, body]) => [path, body.target.instrument_id])).toEqual([
+      ['/data/ensure', 11], ['/data/ensure', 12], ['/data/ensure', 13],
+    ])
+
+    // A route change cancels only this UI observer; accepted server work is durable.
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/instruments/SPY') return Promise.resolve({ id: 99, symbol: 'SPY', stats: {} }) as any
+      if (path === '/instrument-indicators/99') return Promise.resolve({ indicators: [] }) as any
+      if (path === '/ohlcv/local/SPY/D1') return Promise.resolve([]) as any
+      return Promise.resolve([]) as any
+    })
+    await store.loadBars('SPY', 'D1', 'candles', true)
+    resolveFirst?.(preparationReady(11, 'M1'))
+    await Promise.resolve()
+    expect(store.symbol).toBe('SPY')
+    expect(store.bars).toEqual([])
+  })
+
+  it('submits basket member preparation while the synthetic chart read is still pending', async () => {
+    const timestamp = '2026-11-07T12:00:00Z'
+    const basket = { id: 9, members: [
+      { id: 1, instrument_id: 21, symbol: 'AAPL', position: 0 },
+      { id: 2, instrument_id: 35, symbol: 'MSFT', position: 1 },
+    ] }
+    let resolveBars!: (value: unknown) => void
+    const pendingBars = new Promise(resolve => { resolveBars = resolve })
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/baskets/9/ohlcv/D1') return pendingBars as any
+      if (path === '/baskets/9') return Promise.resolve(basket) as any
+      return Promise.resolve([]) as any
+    })
+    ;(api.post as ReturnType<typeof vi.fn>).mockImplementation((path: string, body: Record<string, any>) => {
+      if (path !== '/data/ensure') return Promise.resolve({}) as any
+      const instrumentId = body.target.instrument_id
+      const symbol = instrumentId === 21 ? 'AAPL' : 'MSFT'
+      const dependency = (dataset: 'identity' | 'profile' | 'history') => ({
+        dependency_id: `${dataset}:${instrumentId}:D1`, depends_on: [], instrument_id: instrumentId, symbol,
+        dataset, status: 'ready', requested_start: null, requested_end: null, covered_start: null,
+        covered_end: null, reason_code: null, retry_at: null, updated_at: timestamp, covered_ranges: [],
+      })
+      return Promise.resolve({
+        request_id: `basket-${instrumentId}`, status: 'ready', created_at: timestamp, updated_at: timestamp,
+        version: 1, target: body.target, dependencies: ['identity', 'profile', 'history'].map(dataset => dependency(dataset as 'identity' | 'profile' | 'history')),
+        completed: 3, total: 3, last_progress_at: timestamp, has_pending_work: false,
+      }) as any
+    })
+
+    const store = useChartStore()
+    const chartRead = store.loadBars('BASKET:9', 'D1', 'candles', true)
+    await vi.waitFor(() => expect(api.get).toHaveBeenCalledWith('/baskets/9', undefined, expect.objectContaining({
+      priority: 'high', signal: expect.any(AbortSignal),
+    })))
+    await vi.waitFor(() => expect(api.post.mock.calls.filter(([path]) => path === '/data/ensure')).toHaveLength(2))
+    expect(store.loading).toBe(true)
+    expect(api.get).toHaveBeenCalledWith('/baskets/9/ohlcv/D1', expect.any(Object), expect.objectContaining({ priority: 'high' }))
+
+    resolveBars([{ ts: '2026-11-06T00:00:00Z', open: 100, high: 102, low: 99, close: 101, volume: 1000 }])
+    await chartRead
+    expect(store.bars).toHaveLength(1)
+    expect(api.post.mock.calls.filter(([path]) => path === '/data/ensure').map(([, body]) => body.target.instrument_id)).toEqual([21, 35])
+  })
+
+  it('submits every basket member even when the first member is held', async () => {
+    const timestamp = '2026-11-06T12:00:00Z'
+    const waiting = {
+      request_id: 'member-11', status: 'waiting', created_at: timestamp, updated_at: timestamp, version: 1,
+      target: { kind: 'instrument', instrument_id: 11 }, completed: 0, total: 1, last_progress_at: timestamp,
+      has_pending_work: false,
+      dependencies: [{ dependency_id: 'history:11:D1', depends_on: [], instrument_id: 11, symbol: 'M1', dataset: 'history', status: 'waiting',
+        requested_start: null, requested_end: null, covered_start: null, covered_end: null, reason_code: 'provider_quota_admission_denied',
+        retry_at: null, updated_at: timestamp, covered_ranges: [] }],
+    }
+    const basket = { id: 8, members: [11, 12, 13].map((instrument_id, position) => ({ id: position + 1, instrument_id, symbol: `M${position + 1}`, position })) }
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => path === '/baskets/8'
+      ? Promise.resolve(basket) as any
+      : path === '/baskets/8/ohlcv/D1' ? Promise.resolve([]) as any : Promise.resolve([]) as any)
+    ;(api.post as ReturnType<typeof vi.fn>).mockImplementation((path: string, body: Record<string, any>) => {
+      if (path !== '/data/ensure') return Promise.resolve({}) as any
+      if (body.target.instrument_id === 11) return Promise.resolve(waiting) as any
+      return Promise.resolve(preparationReady(body.target.instrument_id, `M${body.target.instrument_id - 10}`)) as any
+    })
+
+    const store = useChartStore()
+    await store.loadBars('BASKET:8', 'D1', 'candles', true)
+    await vi.waitFor(() => expect(api.post.mock.calls.filter(([path]) => path === '/data/ensure')).toHaveLength(3))
+    expect(api.post.mock.calls.filter(([path]) => path === '/data/ensure').map(([, body]) => body.target.instrument_id)).toEqual([11, 12, 13])
+    await vi.waitFor(() => expect(store.historyBoundaryMessage).toContain('complete basket chart'))
+    expect(store.historyBoundaryMessage).toContain('M1:')
+    expect(store.historyBoundaryMessage).not.toContain('provider_quota_admission_denied')
+  })
+
   it('filters malformed OHLC fields before they reach uPlot data', async () => {
     ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
       if (path === '/instruments/SPY') return Promise.resolve({ id: 42, symbol: 'SPY', stats: { week52_high: 1 } }) as any
@@ -206,8 +433,42 @@ describe('useChartStore', () => {
     expect(api.get).toHaveBeenCalledWith('/ohlcv/local/SPY/D1', expect.objectContaining({
       before: '2026-01-02T00:00:00Z',
       limit: 500,
-    }))
+    }), expect.objectContaining({ priority: 'high' }))
     expect(api.get).not.toHaveBeenCalledWith('/ohlcv/SPY/D1', expect.anything())
+  })
+
+  it('retains the loaded older range when a latest-page refresh returns overlap updates', async () => {
+    const older = [
+      { ts: '2026-01-01T00:00:00Z', open: 1, high: 2, low: 1, close: 1.5, volume: 10 },
+      { ts: '2026-01-02T00:00:00Z', open: 2, high: 3, low: 2, close: 2.5, volume: 20 },
+    ]
+    const initialLatest = { ts: '2026-01-03T00:00:00Z', open: 3, high: 4, low: 3, close: 3.5, volume: 30 }
+    let latestReads = 0
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string, params?: Record<string, unknown>) => {
+      if (path === '/instruments/RANGE-REFRESH') return Promise.resolve({ id: 77, symbol: 'RANGE-REFRESH', stats: { week52_high: 5 } }) as any
+      if (path === '/instrument-indicators/77') return Promise.resolve({ indicators: [] }) as any
+      if (path === '/ohlcv/local/RANGE-REFRESH/D1') {
+        if (params?.before) return Promise.resolve(older) as any
+        latestReads += 1
+        return Promise.resolve(latestReads === 1 ? [initialLatest] : [
+          { ...older[1], close: 2.75 },
+          { ...initialLatest, close: 3.75 },
+        ]) as any
+      }
+      return Promise.resolve([]) as any
+    })
+
+    const store = useChartStore()
+    await store.loadBars('RANGE-REFRESH', 'D1', 'candles', true)
+    await store.loadMoreBars()
+    expect(store.bars.map(bar => bar.ts)).toEqual(older.map(bar => bar.ts).concat(initialLatest.ts))
+
+    await store.refreshLocalBars()
+
+    expect(store.bars.map(bar => bar.ts)).toEqual(older.map(bar => bar.ts).concat(initialLatest.ts))
+    expect(store.bars.map(bar => bar.close)).toEqual([1.5, 2.75, 3.75])
+    expect(store.hasReachedStart).toBe(false)
+    expect(store.uplotData[0]).toHaveLength(3)
   })
 
   it('fills older missing daily history from a short local cache in one bounded admitted request', async () => {
@@ -438,12 +699,39 @@ describe('useChartStore', () => {
     const loading = store.loadBars('XLB', 'D1', 'candles', true)
 
     await vi.waitFor(() => expect(localBarsRequested).toBe(true))
+    await vi.waitFor(() => {
+      expect(store.bars).toHaveLength(1)
+      expect(store.loading).toBe(false)
+    })
+    expect(store.instrument).toBeNull()
+    expect(store.uplotData[0]).toHaveLength(1)
     expect(api.get).not.toHaveBeenCalledWith('/instrument-indicators/42')
     releaseInstrument({ id: 42, symbol: 'XLB', stats: { week52_high: 1 } })
     await loading
 
     expect(store.bars).toHaveLength(1)
-    expect(api.get).toHaveBeenCalledWith('/instrument-indicators/42')
+    expect(api.get).toHaveBeenCalledWith('/instrument-indicators/42', undefined, { priority: 'high' })
+  })
+
+  it('keeps a valid cached chart visible when instrument metadata fails', async () => {
+    const localBars = [
+      { ts: '2026-01-02T00:00:00Z', open: 2, high: 3, low: 1, close: 2, volume: 10 },
+    ]
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/instruments/XLB') return Promise.reject(new Error('metadata temporarily unavailable')) as any
+      if (path === '/ohlcv/local/XLB/D1') return Promise.resolve(localBars) as any
+      return Promise.resolve([]) as any
+    })
+
+    const store = useChartStore()
+    await store.loadBars('XLB', 'D1', 'candles', true)
+
+    expect(store.bars).toEqual(localBars)
+    expect(store.uplotData[0]).toHaveLength(1)
+    expect(store.instrument).toBeNull()
+    expect(store.loading).toBe(false)
+    expect(store.error).toBeNull()
+    expect(store.historyBoundaryMessage).toBe('Instrument details are unavailable; cached local chart bars remain visible.')
   })
 
   it('publishes workstation bars before slow indicator hydration completes', async () => {
@@ -530,19 +818,24 @@ describe('useChartStore', () => {
     expect((api.get as ReturnType<typeof vi.fn>).mock.calls.filter(call => call[0] === '/instrument-indicators/42')).toHaveLength(2)
   })
 
-  it('queues a fresh local read after an in-flight initial load when history was acquired', async () => {
+  it('reads acquired local bars without waiting on initial indicators or optional instrument stats', async () => {
     let localBarsRequests = 0
     let indicatorRequests = 0
+    let instrumentRequests = 0
     let finishInitialIndicators!: (value: { indicators: any[] }) => void
+    let finishOptionalStats!: (value: { id: number; symbol: string; stats: { week52_high: number } }) => void
     ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
       if (path === '/instruments/ACQUIRED-RACE') {
-        return Promise.resolve({ id: 42, symbol: 'ACQUIRED-RACE', stats: { week52_high: 1 } }) as any
+        instrumentRequests += 1
+        if (instrumentRequests === 1) return Promise.resolve({ id: 42, symbol: 'ACQUIRED-RACE', stats: {} }) as any
+        return new Promise(resolve => { finishOptionalStats = resolve }) as any
       }
       if (path === '/ohlcv/local/ACQUIRED-RACE/M1') {
         localBarsRequests += 1
-        return Promise.resolve(localBarsRequests === 1 ? [] : [
-          { ts: '2026-10-27T12:34:00Z', open: 2, high: 3, low: 1, close: 2.5, volume: 10 },
-        ]) as any
+        return Promise.resolve(localBarsRequests === 1 ? [] : [{
+          ts: '2026-10-27T12:34:00Z', open: 2, high: 3, low: 1,
+          close: localBarsRequests === 2 ? 2.5 : 3.5, volume: 10,
+        }]) as any
       }
       if (path === '/instrument-indicators/42') {
         indicatorRequests += 1
@@ -559,20 +852,141 @@ describe('useChartStore', () => {
     await vi.waitFor(() => expect(store.loading).toBe(false))
     expect(localBarsRequests).toBe(1)
 
-    const refreshed = store.refreshLocalBars()
-    await Promise.resolve()
-    expect(localBarsRequests).toBe(1)
+    const indicatorIndependentRefresh = store.refreshLocalBars()
+    await vi.waitFor(() => expect(store.bars).toMatchObject([{ ts: '2026-10-27T12:34:00Z', close: 2.5 }]))
+    expect(localBarsRequests).toBe(2)
+    expect(indicatorRequests).toBe(1)
 
     finishInitialIndicators({ indicators: [] })
-    await Promise.all([initialHydration, refreshed])
+    await vi.waitFor(() => expect(finishOptionalStats).toBeTypeOf('function'))
 
-    expect(localBarsRequests).toBe(2)
-    expect(store.bars).toMatchObject([{ ts: '2026-10-27T12:34:00Z', close: 2.5 }])
+    const statsIndependentRefresh = store.refreshLocalBars()
+    await vi.waitFor(() => expect(store.bars).toMatchObject([{ ts: '2026-10-27T12:34:00Z', close: 3.5 }]))
+    expect(localBarsRequests).toBe(3)
+    expect(instrumentRequests).toBe(2)
+
+    finishOptionalStats({ id: 42, symbol: 'ACQUIRED-RACE', stats: { week52_high: 4 } })
+    await Promise.all([initialHydration, indicatorIndependentRefresh, statsIndependentRefresh])
+
+    expect(store.bars).toMatchObject([{ ts: '2026-10-27T12:34:00Z', close: 3.5 }])
     expect(store.loading).toBe(false)
-    expect((api.get as ReturnType<typeof vi.fn>).mock.calls.filter(call => call[0] === '/ohlcv/local/ACQUIRED-RACE/M1')).toHaveLength(2)
+    expect((api.get as ReturnType<typeof vi.fn>).mock.calls.filter(call => call[0] === '/ohlcv/local/ACQUIRED-RACE/M1')).toHaveLength(3)
   })
 
-  it('refreshes a settled identical selection without replacing its rendered state', async () => {
+  it('does not publish a delayed local-history refresh after the chart changes symbol', async () => {
+    let oldLocalReads = 0
+    let finishOldRefresh!: (value: any[]) => void
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/instruments/OLD-REFRESH') return Promise.resolve({ id: 41, symbol: 'OLD-REFRESH', stats: { week52_high: 1 } }) as any
+      if (path === '/instruments/NEW-CONTEXT') return Promise.resolve({ id: 42, symbol: 'NEW-CONTEXT', stats: { week52_high: 1 } }) as any
+      if (path === '/ohlcv/local/OLD-REFRESH/D1') {
+        oldLocalReads += 1
+        if (oldLocalReads === 1) return Promise.resolve([
+          { ts: '2026-01-01T00:00:00Z', open: 1, high: 2, low: 1, close: 1.5, volume: 10 },
+        ]) as any
+        return new Promise(resolve => { finishOldRefresh = resolve }) as any
+      }
+      if (path === '/ohlcv/local/NEW-CONTEXT/D1') return Promise.resolve([
+        { ts: '2026-01-02T00:00:00Z', open: 2, high: 3, low: 2, close: 2.5, volume: 20 },
+      ]) as any
+      if (path === '/instrument-indicators/41' || path === '/instrument-indicators/42') return Promise.resolve({ indicators: [] }) as any
+      return Promise.resolve([]) as any
+    })
+
+    const store = useChartStore()
+    await store.loadBars('OLD-REFRESH', 'D1', 'candles', true)
+    const staleRefresh = store.refreshLocalBars()
+    await vi.waitFor(() => expect(finishOldRefresh).toBeTypeOf('function'))
+
+    await store.loadBars('NEW-CONTEXT', 'D1', 'candles', true)
+    expect(store.symbol).toBe('NEW-CONTEXT')
+    expect(store.bars).toMatchObject([{ ts: '2026-01-02T00:00:00Z', close: 2.5 }])
+
+    finishOldRefresh([{ ts: '2026-01-03T00:00:00Z', open: 9, high: 10, low: 9, close: 9.5, volume: 90 }])
+    await staleRefresh
+
+    expect(store.symbol).toBe('NEW-CONTEXT')
+    expect(store.bars).toMatchObject([{ ts: '2026-01-02T00:00:00Z', close: 2.5 }])
+  })
+
+  it('keeps matching bars through empty and positive refreshes without leaking them to a new timeframe', async () => {
+    let dailyReads = 0
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/instruments/REFRESH-EMPTY') return Promise.resolve({ id: 51, symbol: 'REFRESH-EMPTY', stats: { week52_high: 1 } }) as any
+      if (path === '/instrument-indicators/51') return Promise.resolve({ indicators: [] }) as any
+      if (path === '/ohlcv/local/REFRESH-EMPTY/D1') {
+        dailyReads += 1
+        if (dailyReads === 2) return Promise.resolve([]) as any
+        return Promise.resolve([{
+          ts: `2026-01-0${dailyReads}T00:00:00Z`, open: dailyReads, high: dailyReads + 1,
+          low: dailyReads, close: dailyReads + 0.5, volume: dailyReads * 10,
+        }]) as any
+      }
+      if (path === '/ohlcv/local/REFRESH-EMPTY/M1') return Promise.resolve([]) as any
+      return Promise.resolve([]) as any
+    })
+
+    const store = useChartStore()
+    await store.loadBars('REFRESH-EMPTY', 'D1', 'candles', true)
+    const originalBars = store.bars
+    expect(originalBars).toMatchObject([{ ts: '2026-01-01T00:00:00Z', close: 1.5 }])
+
+    await store.refreshLocalBars()
+    expect(store.bars).toBe(originalBars)
+    expect(store.bars).toMatchObject([{ ts: '2026-01-01T00:00:00Z', close: 1.5 }])
+    expect(store.hasReachedStart).toBe(false)
+
+    await store.refreshLocalBars()
+    expect(store.bars).toMatchObject([
+      { ts: '2026-01-01T00:00:00Z', close: 1.5 },
+      { ts: '2026-01-03T00:00:00Z', close: 3.5 },
+    ])
+    expect(store.hasReachedStart).toBe(false)
+
+    await store.loadBars('REFRESH-EMPTY', 'M1', 'candles', true)
+    expect(store.timeframe).toBe('M1')
+    expect(store.bars).toEqual([])
+    expect(store.hasReachedStart).toBe(true)
+  })
+
+  it('publishes newly cached local bars without restarting instrument metadata hydration', async () => {
+    let barsRequest = 0
+    let instrumentRequest = 0
+    const cachedBars = [
+      { ts: '2026-11-06T00:00:00Z', open: 20, high: 22, low: 19, close: 21, volume: 100 },
+      { ts: '2026-11-07T00:00:00Z', open: 21, high: 23, low: 20, close: 22, volume: 120 },
+    ]
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/instruments/COLD-CACHE') {
+        instrumentRequest += 1
+        return Promise.resolve({ id: 904, symbol: 'COLD-CACHE', stats: { week52_high: 30 } }) as any
+      }
+      if (path === '/ohlcv/local/COLD-CACHE/D1') {
+        barsRequest += 1
+        return Promise.resolve(barsRequest === 1 ? [] : cachedBars) as any
+      }
+      if (path === '/instrument-indicators/904') return Promise.resolve({ indicators: [] }) as any
+      return Promise.resolve([]) as any
+    })
+
+    const store = useChartStore()
+    await store.loadBars('COLD-CACHE', 'D1', 'candles', true)
+    expect(store.bars).toEqual([])
+
+    const refresh = store.refreshLocalBars()
+    await vi.waitFor(() => expect(store.bars).toEqual(cachedBars))
+    expect(barsRequest).toBe(2)
+    expect(instrumentRequest).toBe(1)
+
+    expect(store.loading).toBe(false)
+    expect(store.uplotData[0]).toEqual([0, 1])
+
+    await refresh
+    expect(store.bars).toEqual(cachedBars)
+    expect(barsRequest).toBe(2)
+  })
+
+  it('publishes refreshed OHLCV before indicator hydration and preserves the current indicator stack', async () => {
     let barsRequest = 0
     let indicatorRequest = 0
     let releaseRefreshedIndicators!: (value: { indicators: any[] }) => void
@@ -607,7 +1021,8 @@ describe('useChartStore', () => {
     await vi.waitFor(() => expect(releaseRefreshedIndicators).toBeTypeOf('function'))
 
     expect(store.loading).toBe(false)
-    expect(store.bars).toBe(renderedBars)
+    expect(store.bars).not.toBe(renderedBars)
+    expect(store.bars[0].close).toBe(2.5)
     expect(store.indicators).toBe(renderedIndicators)
 
     releaseRefreshedIndicators({ indicators: [{ ...indicator, params: { ...indicator.params }, style: { ...indicator.style } }] })
@@ -886,11 +1301,11 @@ describe('useChartStore', () => {
     await store.loadBars('SPY', 'D1', 'renko', true, { brick_size: 4 })
     expect(api.get).toHaveBeenCalledWith('/ohlcv/SPY/D1/transformed', expect.objectContaining({
       bar_type: 'renko', brick_size: 4, local_only: true,
-    }))
+    }), expect.objectContaining({ priority: 'high' }))
     await store.loadBars('SPY', 'D1', 'renko', true, { brick_size: 8 })
     expect(api.get).toHaveBeenCalledWith('/ohlcv/SPY/D1/transformed', expect.objectContaining({
       bar_type: 'renko', brick_size: 8, local_only: true,
-    }))
+    }), expect.objectContaining({ priority: 'high' }))
   })
 
   it('late indicator hydration cannot replace a user plot added during loading', async () => {
@@ -1050,6 +1465,41 @@ describe('useAlertsStore', () => {
     const store = useAlertsStore()
     expect(store.alerts).toEqual([])
     expect(store.wsConnected).toBe(false)
+  })
+
+  it('suppresses only typed auth-boundary cancellation from socket history refresh', async () => {
+    localStorage.setItem('access_token', 'user-a-access')
+    const sockets: Array<{ readyState: number; onopen: (() => void) | null }> = []
+    class FakeWebSocket {
+      static CONNECTING = 0
+      static OPEN = 1
+      static CLOSED = 3
+      readyState = FakeWebSocket.CONNECTING
+      onopen: (() => void) | null = null
+      onclose: (() => void) | null = null
+      onmessage: ((event: { data: string }) => void) | null = null
+      onerror: (() => void) | null = null
+      close = vi.fn()
+      send = vi.fn()
+      constructor() { sockets.push(this) }
+    }
+    vi.stubGlobal('WebSocket', FakeWebSocket)
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const store = useAlertsStore()
+    ;(api.get as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new AuthSessionChangedError())
+    store.connectWebSocket()
+    sockets[0].onopen?.()
+    await vi.waitFor(() => expect(api.get).toHaveBeenCalledTimes(1))
+    await Promise.resolve()
+    expect(log).not.toHaveBeenCalled()
+
+    const programmingFailure = new Error('unexpected socket history failure')
+    ;(api.get as ReturnType<typeof vi.fn>).mockRejectedValueOnce(programmingFailure)
+    sockets[0].onopen?.()
+    await vi.waitFor(() => expect(log).toHaveBeenCalledWith(programmingFailure))
+    expect(api.get).toHaveBeenCalledTimes(2)
+    log.mockRestore()
+    vi.unstubAllGlobals()
   })
 
   it('loadAlerts populates alerts', async () => {

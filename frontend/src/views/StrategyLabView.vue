@@ -19,6 +19,7 @@
             class="definition-item definition-item--new sidebar-new-btn"
             aria-label="Create new strategy"
             @click="startNew"
+            :disabled="profileSaveInProgress"
           >
             + New
           </button>
@@ -31,6 +32,7 @@
             :aria-pressed="strategyLab.selectedDefinitionId === definition.id ? 'true' : 'false'"
             :aria-label="`Open strategy ${definition.name}`"
             @click="selectDefinition(definition.id)"
+            :disabled="profileSaveInProgress"
           >
             <div class="definition-tile definition-tile--dense">
               <span class="state-dot definition-state-dot" :class="{ inactive: !definition.is_active }" />
@@ -58,6 +60,7 @@
             class="definition-item definition-item--new sidebar-new-btn"
             aria-label="Create new strategy"
             @click="startNew"
+            :disabled="profileSaveInProgress"
           >
             + New
           </button>
@@ -100,7 +103,7 @@
             title="Refresh"
             aria-label="Refresh"
             @click="reload"
-            :disabled="strategyLab.isLoading"
+            :disabled="strategyLab.isLoading || profileSaveInProgress"
           >
             <svg viewBox="0 0 16 16" aria-hidden="true">
               <path d="M13.5 3.5v3h-3" />
@@ -114,7 +117,7 @@
             title="Save profile"
             aria-label="Save profile"
             @click="saveProfileOnly"
-            :disabled="strategyLab.isSaving"
+            :disabled="strategyLab.isSaving || profileSaveInProgress"
           >
             <svg viewBox="0 0 16 16" aria-hidden="true">
               <path d="M3 2.5h8l2 2V13.5H3z" />
@@ -129,7 +132,7 @@
             title="Delete strategy"
             aria-label="Delete strategy"
             @click="showDeleteModal = true"
-            :disabled="strategyLab.isSaving"
+            :disabled="strategyLab.isSaving || profileSaveInProgress"
           >
             <svg viewBox="0 0 16 16" aria-hidden="true">
               <path d="M3.5 4.5h9" />
@@ -144,14 +147,17 @@
             class="btn-primary"
             type="button"
             @click="publishStrategy"
-            :disabled="strategyLab.isSaving || !canPublish"
+            :disabled="strategyLab.isSaving || profileSaveInProgress || !canPublish"
           >
-            {{ strategyLab.isSaving ? 'Saving…' : isNew ? 'Create strategy' : 'Publish revision' }}
+            {{ strategyLab.isSaving || profileSaveInProgress ? 'Saving…' : isNew ? 'Create strategy' : 'Publish revision' }}
           </button>
         </div>
+        <span v-if="profileSaveInProgress" class="profile-save-status" role="status" aria-live="polite">
+          {{ isPythonSignal ? 'Saving Strategy profile…' : 'Saving profile and revision…' }}
+        </span>
       </div>
 
-      <div class="detail-columns">
+      <div class="detail-columns" :inert="profileSaveInProgress ? 'true' : undefined" :aria-busy="profileSaveInProgress ? 'true' : 'false'">
           <div class="panel">
             <div class="panel-head">
               <div class="panel-head-title">
@@ -1224,6 +1230,9 @@
                   <b>{{ performance.closed_trade_count ?? performance.trade_count ?? 0 }} closed · {{ performance.open_position_count ?? 0 }} open</b>
                 </small>
               </div>
+              <small class="summary-basis-note" role="note">
+                Marked total uses the latest raw market price. Open P&amp;L estimates closing costs and slippage, so the figures can differ.
+              </small>
             </div>
             <div class="summary-card">
               <span class="summary-label">Win rate</span>
@@ -1254,6 +1263,10 @@
               </small>
             </div>
           </div>
+
+          <p v-if="noPositionRejectionNotice" class="run-rejection-notice" role="status">
+            {{ noPositionRejectionNotice }}
+          </p>
 
           <div class="coverage-detail-panel">
             <div class="subsection-head">
@@ -1759,6 +1772,7 @@ const STRATEGY_SIDEBAR_MAX_WIDTH = 420
 const STRATEGY_SIDEBAR_DEFAULT_WIDTH = 308
 const STRATEGY_SIDEBAR_COLLAPSED_WIDTH = 16
 const STRATEGY_SECTION_STORAGE_KEY = 'strategyLab.sections.v1'
+const NEW_STRATEGY_DEFAULT_RISK_PER_TRADE_PCT = 0.5
 const PYTHON_SIGNAL_REVISION_GUIDANCE = 'Python signal code and version lineage are immutable in Strategy Lab. Make signal changes in Study Lab and promote a new signal.'
 const initialSidebarState = loadStrategySidebarState()
 const initialSectionStates = loadStrategySectionStates()
@@ -1825,6 +1839,7 @@ const executionLogColumns: Array<{ key: ExecutionLogColumnKey; label: string }> 
 ]
 const isNew = ref(false)
 const versionNotes = ref('')
+const profileSaveInProgress = ref(false)
 const symbolInput = ref('')
 const sourceType = ref<'custom' | 'radar'>('custom')
 const universeMode = ref<StrategyUniverseMode>('symbols')
@@ -1952,7 +1967,7 @@ const runDraft = reactive({
   date_from: '',
   date_to: '',
   initial_capital: 100000,
-  risk_per_trade_pct: 1,
+  risk_per_trade_pct: NEW_STRATEGY_DEFAULT_RISK_PER_TRADE_PCT,
   slippage_bps: 5 as OptionalNumberInput,
   commission_model: 'fixed_round_trip' as 'fixed_round_trip' | 'fixed_per_order' | 'percent_of_notional',
   commission_value: '' as OptionalNumberInput,
@@ -2252,6 +2267,63 @@ const paperForwardCurve = computed<any[]>(() =>
 const performance = computed<Record<string, number | null>>(() =>
   selectedRunDetail.value?.result_summary?.performance ?? {}
 )
+
+const noPositionRejectionNotice = computed(() => {
+  const run = selectedRunDetail.value
+  if (!run || run.status !== 'completed') return null
+
+  const summary = run.result_summary ?? {}
+  const runPerformance = summary.performance ?? {}
+  const closedTrades = Number(runPerformance.closed_trade_count ?? runPerformance.trade_count ?? 0)
+  const openPositions = Number(runPerformance.open_position_count ?? 0)
+  if (closedTrades > 0 || openPositions > 0) return null
+
+  const rejectedRows = Array.isArray(summary.rejected_trades) ? summary.rejected_trades : []
+  const rejectionBreakdown = summary.portfolio?.rejection_breakdown ?? {}
+  const rejectionCounts = Object.values(rejectionBreakdown)
+    .map((count: any) => Number(count))
+    .filter((count: number) => Number.isFinite(count) && count > 0)
+  const allocationRows = rejectedRows.filter((row: any) => row.reason === 'max_symbol_allocation_pct')
+  const rejectedCount = Math.max(
+    Number(summary.portfolio?.rejected_trade_count ?? 0) || 0,
+    rejectionCounts.reduce((total, count) => total + count, 0),
+    rejectedRows.length,
+  )
+  if (rejectedCount <= 0) return null
+
+  const allocationRejectedCount = Number(rejectionBreakdown.max_symbol_allocation_pct ?? 0) || allocationRows.length
+  if (allocationRejectedCount > 0) {
+    const allocationLimit = Number(
+      summary.execution_assumptions?.max_symbol_allocation_pct
+        ?? run.execution_assumptions?.max_symbol_allocation_pct,
+    )
+    const allocationDetails = allocationRows
+      .slice(0, 3)
+      .map((row: any) => {
+        const symbol = String(row.instrument_symbol ?? row.symbol ?? '').trim()
+        const allocation = Number(row.allocation_pct)
+        if (!symbol || !Number.isFinite(allocation) || !Number.isFinite(allocationLimit)) return null
+        return `${symbol} required ${allocation.toFixed(1)}% of capital against a ${allocationLimit.toFixed(1)}% per-symbol limit`
+      })
+      .filter((detail: string | null): detail is string => Boolean(detail))
+    const countLabel = `${allocationRejectedCount} ${allocationRejectedCount === 1 ? 'candidate was' : 'candidates were'}`
+    const detail = allocationDetails.length ? ` ${allocationDetails.join('; ')}.` : ''
+    const otherRejectedCount = Math.max(0, rejectedCount - allocationRejectedCount)
+    const otherReasons = otherRejectedCount > 0
+      ? ` ${otherRejectedCount} other ${otherRejectedCount === 1 ? 'candidate was' : 'candidates were'} also rejected; see the execution log for details.`
+      : ''
+    return `No positions were opened. ${countLabel} rejected by the per-symbol allocation cap.${detail}${otherReasons} Review risk per trade, stop distance, and the allocation limit.`
+  }
+
+  const reasonNames = Object.keys(rejectionBreakdown).filter(reason => Number(rejectionBreakdown[reason]) > 0)
+  if (!reasonNames.length) {
+    reasonNames.push(...new Set(rejectedRows.map((row: any) => String(row.reason ?? '')).filter(Boolean)))
+  }
+  const reasons = reasonNames.length
+    ? reasonNames.map(reason => humanizeToken(reason).toLowerCase()).join(', ')
+    : 'portfolio controls'
+  return `No positions were opened. ${rejectedCount} ${rejectedCount === 1 ? 'candidate was' : 'candidates were'} rejected by ${reasons}. Review the execution log for details.`
+})
 
 const initialCapital = computed(() => {
   const value = Number(performance.value.initial_capital)
@@ -3313,10 +3385,14 @@ watch(coveragePreviewSignature, () => {
   scheduleCoveragePreview()
 }, { immediate: true })
 
-watch(() => strategyLab.selectedDefinition, value => {
-  hydrateFromSelection(value)
-  exportMenuOpen.value = false
-})
+watch(
+  [() => strategyLab.selectedDefinitionId, () => currentVersion.value?.id],
+  ([definitionId, versionId], [previousDefinitionId, previousVersionId]) => {
+    if (definitionId === previousDefinitionId && versionId === previousVersionId) return
+    hydrateFromSelection(strategyLab.selectedDefinition)
+    exportMenuOpen.value = false
+  },
+)
 
 function scheduleCoveragePreview() {
   void fetchCoveragePreview()
@@ -3472,7 +3548,7 @@ function startNew() {
   runDraft.date_from = ''
   runDraft.date_to = ''
   runDraft.initial_capital = 100000
-  runDraft.risk_per_trade_pct = 1
+  runDraft.risk_per_trade_pct = NEW_STRATEGY_DEFAULT_RISK_PER_TRADE_PCT
   runDraft.slippage_bps = 5
   runDraft.commission_model = 'fixed_round_trip'
   runDraft.commission_value = ''
@@ -4237,47 +4313,55 @@ function compileCondition(condition: BuilderConditionNode) {
 }
 
 async function saveProfileOnly() {
-  if (!strategyLab.selectedDefinition || !currentVersion.value) return
-  if (isPythonSignal.value) {
-    const runInputs = {
-      universeMode: universeMode.value,
-      symbols: [...logicDraft.symbols],
-      selectedWatchlistId: selectedWatchlistId.value,
-      selectedScreenerId: selectedScreenerId.value,
-      selectedBasketId: selectedBasketId.value,
-      selectedBasketSnapshotMode: selectedBasketSnapshotMode.value,
-      selectedEtfHoldingSymbol: selectedEtfHoldingSymbol.value,
-      selectedEtfHoldingSnapshotMode: selectedEtfHoldingSnapshotMode.value,
-      selectedEtfHoldingSnapshotDate: selectedEtfHoldingSnapshotDate.value,
-      runDraft: { ...runDraft, overrideSymbols: [...runDraft.overrideSymbols] },
+  const selectedDefinition = strategyLab.selectedDefinition
+  const version = currentVersion.value
+  if (!selectedDefinition || !version || profileSaveInProgress.value) return
+
+  profileSaveInProgress.value = true
+  try {
+    if (isPythonSignal.value) {
+      const runInputs = {
+        universeMode: universeMode.value,
+        symbols: [...logicDraft.symbols],
+        selectedWatchlistId: selectedWatchlistId.value,
+        selectedScreenerId: selectedScreenerId.value,
+        selectedBasketId: selectedBasketId.value,
+        selectedBasketSnapshotMode: selectedBasketSnapshotMode.value,
+        selectedEtfHoldingSymbol: selectedEtfHoldingSymbol.value,
+        selectedEtfHoldingSnapshotMode: selectedEtfHoldingSnapshotMode.value,
+        selectedEtfHoldingSnapshotDate: selectedEtfHoldingSnapshotDate.value,
+        runDraft: { ...runDraft, overrideSymbols: [...runDraft.overrideSymbols] },
+      }
+      await strategyLab.updateDefinition(selectedDefinition.id, {
+        name: draft.name.trim(),
+        description: draft.description.trim() || null,
+        is_active: draft.is_active,
+        tags: normalizeTags(draft.tags),
+      })
+      const refreshed = await strategyLab.refreshDefinition(selectedDefinition.id)
+      if (strategyLab.selectedDefinitionId === selectedDefinition.id) hydrateFromSelection(refreshed)
+      await nextTick()
+      universeMode.value = runInputs.universeMode
+      logicDraft.symbols = runInputs.symbols
+      selectedWatchlistId.value = runInputs.selectedWatchlistId
+      selectedScreenerId.value = runInputs.selectedScreenerId
+      selectedBasketId.value = runInputs.selectedBasketId
+      selectedBasketSnapshotMode.value = runInputs.selectedBasketSnapshotMode
+      selectedEtfHoldingSymbol.value = runInputs.selectedEtfHoldingSymbol
+      selectedEtfHoldingSnapshotMode.value = runInputs.selectedEtfHoldingSnapshotMode
+      selectedEtfHoldingSnapshotDate.value = runInputs.selectedEtfHoldingSnapshotDate
+      Object.assign(runDraft, runInputs.runDraft)
+      return
     }
-    await strategyLab.updateDefinition(strategyLab.selectedDefinition.id, {
-      name: draft.name.trim(),
-      description: draft.description.trim() || null,
-      is_active: draft.is_active,
-      tags: normalizeTags(draft.tags),
-    })
-    const refreshed = await strategyLab.refreshDefinition(strategyLab.selectedDefinition.id)
-    hydrateFromSelection(refreshed)
-    await nextTick()
-    universeMode.value = runInputs.universeMode
-    logicDraft.symbols = runInputs.symbols
-    selectedWatchlistId.value = runInputs.selectedWatchlistId
-    selectedScreenerId.value = runInputs.selectedScreenerId
-    selectedBasketId.value = runInputs.selectedBasketId
-    selectedBasketSnapshotMode.value = runInputs.selectedBasketSnapshotMode
-    selectedEtfHoldingSymbol.value = runInputs.selectedEtfHoldingSymbol
-    selectedEtfHoldingSnapshotMode.value = runInputs.selectedEtfHoldingSnapshotMode
-    selectedEtfHoldingSnapshotDate.value = runInputs.selectedEtfHoldingSnapshotDate
-    Object.assign(runDraft, runInputs.runDraft)
-    return
+    const definitionPayload = buildDefinitionPayload()
+    const versionPayload = buildVersionPayload()
+    await strategyLab.updateDefinition(selectedDefinition.id, definitionPayload)
+    await strategyLab.updateVersion(version.id, selectedDefinition.id, versionPayload)
+    const refreshed = await strategyLab.refreshDefinition(selectedDefinition.id)
+    if (strategyLab.selectedDefinitionId === selectedDefinition.id) hydrateFromSelection(refreshed)
+  } finally {
+    profileSaveInProgress.value = false
   }
-  const definitionPayload = buildDefinitionPayload()
-  const versionPayload = buildVersionPayload()
-  await strategyLab.updateDefinition(strategyLab.selectedDefinition.id, definitionPayload)
-  await strategyLab.updateVersion(currentVersion.value.id, strategyLab.selectedDefinition.id, versionPayload)
-  const refreshed = await strategyLab.refreshDefinition(strategyLab.selectedDefinition.id)
-  hydrateFromSelection(refreshed)
 }
 
 async function deleteCurrentStrategy() {
@@ -4319,6 +4403,12 @@ async function publishStrategy() {
 async function runCurrentVersion() {
   if (!currentVersion.value) return
   if (isPythonSignal.value && !pythonSignalRunReady.value) return
+  sectionExpanded.value = {
+    ...sectionExpanded.value,
+    runs: true,
+    results: true,
+  }
+  runHistoryExpanded.value = true
   const slippageBps = optionalNumberValue(runDraft.slippage_bps)
   const commissionValue = optionalNumberValue(runDraft.commission_value)
   const submitted = await strategyLab.runVersion(currentVersion.value.id, {
@@ -5328,6 +5418,16 @@ function humanizeBarSpan(barCount: number, timeframe: string | null | undefined)
   gap: 16px;
 }
 
+.detail-columns[inert] {
+  opacity: 0.62;
+}
+
+.profile-save-status {
+  align-self: center;
+  color: var(--tc-text-muted, #9aa4ad);
+  font-size: 12px;
+}
+
 .panel,
 .condition-card,
 .equity-panel,
@@ -6045,6 +6145,17 @@ function humanizeBarSpan(barCount: number, timeframe: string | null | undefined)
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
+}
+
+.run-rejection-notice {
+  margin: 12px 0;
+  padding: 10px 12px;
+  border: 1px solid #8b6b35;
+  border-radius: 4px;
+  background: #241c10;
+  color: #f2d49a;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .summary-card {

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
+const setQueuedApiRequestPriority = vi.hoisted(() => vi.fn())
 vi.mock('@/lib/api', () => ({
   api: {
     get: vi.fn(),
@@ -8,10 +9,12 @@ vi.mock('@/lib/api', () => ({
     patch: vi.fn(),
     delete: vi.fn(),
   },
+  setQueuedApiRequestPriority,
 }))
 
 import { api } from '@/lib/api'
 import { useDrawingsStore } from '@/stores/drawings'
+import { AuthSessionChangedError, beginAuthSessionBoundary, clearUserScopedPiniaStores } from '@/lib/authSession'
 
 describe('useDrawingsStore authentication-boundary handling', () => {
   beforeEach(() => {
@@ -40,5 +43,55 @@ describe('useDrawingsStore authentication-boundary handling', () => {
 
     expect(consoleError).not.toHaveBeenCalled()
     consoleError.mockRestore()
+  })
+
+  it('treats a logout abort of an in-flight drawing read as silent', async () => {
+    localStorage.setItem('access_token', 'user-a')
+    const store = useDrawingsStore()
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    ;(api.get as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new AuthSessionChangedError())
+
+    await expect(store.loadDrawings(7, 'D1')).resolves.toBeUndefined()
+
+    expect(consoleError).not.toHaveBeenCalled()
+    consoleError.mockRestore()
+  })
+
+  it('promotes a drawing read when its tool becomes foreground', async () => {
+    localStorage.setItem('access_token', 'user-a')
+    let resolveDrawings!: (value: any[]) => void
+    ;(api.get as ReturnType<typeof vi.fn>).mockReturnValueOnce(new Promise(resolve => { resolveDrawings = resolve }))
+    const store = useDrawingsStore()
+
+    const backgroundRead = store.loadDrawings(7, 'D1', 'low')
+    const foregroundRead = store.loadDrawings(7, 'D1', 'high')
+
+    expect(api.get).toHaveBeenCalledTimes(1)
+    expect(api.get).toHaveBeenCalledWith('/drawings', { instrument_id: 7 }, { priority: 'low', queueKey: 'drawings:7' })
+    expect(setQueuedApiRequestPriority).toHaveBeenCalledWith('drawings:7', 'high')
+    resolveDrawings([])
+    await Promise.all([backgroundRead, foregroundRead])
+  })
+
+  it('reloads the same instrument after a user boundary instead of reusing the previous owner cache', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    localStorage.setItem('access_token', 'user-a')
+    const first = useDrawingsStore()
+    ;(api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce([{ id: 11, label: 'drawing-a' }])
+    await first.loadDrawings(7, 'D1')
+    expect(first.drawings).toEqual([{ id: 11, label: 'drawing-a' }])
+
+    localStorage.removeItem('access_token')
+    beginAuthSessionBoundary()
+    clearUserScopedPiniaStores(pinia)
+    localStorage.setItem('access_token', 'user-b')
+    const second = useDrawingsStore()
+    ;(api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce([{ id: 22, label: 'drawing-b' }])
+    await second.loadDrawings(7, 'D1')
+
+    expect(api.get).toHaveBeenCalledTimes(2)
+    expect(second.drawings).toEqual([{ id: 22, label: 'drawing-b' }])
+    expect(second.drawings).not.toContainEqual(expect.objectContaining({ label: 'drawing-a' }))
   })
 })

@@ -1,3 +1,47 @@
+# Bridge runtime integration clock — 2026-11-10
+
+Pinned one fixed clock (2026-11-03 12:00 UTC) in `tests/integration/test_etf_holdings_provider_bridge_runtime.py` across composition freshness, capability staleness, bridge deadline and evidence. The pinned datetime answers isinstance checks, and the shared unit adapter-context helper follows the same clock. The SPDR qualification and retained SPDR/iShares continuation tests pass; the full file passes 112/112 with testcontainers.
+
+---
+
+# Basket synthetic history not-found → 404 — 2026-11-10
+
+After DELETE /api/v1/baskets/30, a late GET /ohlcv/D1 could pass the route check and then raise an unmapped `BasketValidationError` in the series read, returning 500. Added `BasketNotFoundError` (subclass) in `app/services/baskets.py`, raised for missing baskets in the synthetic series and snapshot reads. The ohlcv route maps it to 404 with "Basket not found.". The other basket routes already return 404 for a missing basket. Test: `backend/tests/unit/services/test_basket_not_found.py`.
+
+---
+
+# Native composition freshness clock (test-only) — 2026-11-10
+
+16 native qualification tests failed on every branch because the refresh freshness check read the real date against fixtures dated Oct 30–Nov 2, 2026. Added an autouse fixture in `backend/tests/unit/services/test_etf_holdings_native_qualification.py` that pins only `etf_holdings_refresh.datetime` to 2026-11-03. Target files: 107 passed. All ETF/basket unit files: 1360 passed, 1 failed on a record-text assertion that also fails on HEAD and is not date-dependent.
+
+---
+
+# Release candidate freeze — 2026-11-10
+
+Release candidate `d850a1c91f93f509e2b3a2f90c66887537b75362` frozen for publication; Root publishes and runs exact-source CI. Root is running the combined functional journey profile; no product or test changes until Root releases the freeze. ETF manifest `etfd850a1c9` (10 files) is already in Root's combined fixture.
+
+---
+
+# ETF Notes foreground intent — 2026-11-09
+
+Consumed the Root-released TC common source `a10b07353246ecd1251c25742bb070803fbc02d5` (manifest SHA256 `7de1325559bfa69b56742a7a4a99377fc25b98159c03bc51e67e1987fed0ea4b`): all116 source rows were checked against the source Git tree/blob/SHA256, and all32 declared ETF imports passed old guards and match exact bytes/modes. The canonical full-SHA manifest is stored under `development-dependency-imports/`; the active approved import list now contains the exact released entry and nonempty prior path remainders, while the prior list is preserved under `historical_approved_development_dependency_imports`.
+
+Visible Notes now sends foreground intent for canonical identity and note reads. If visibility changes while canonical identity is still pending, the component rejoins the exact deduplicated canonical query with foreground intent; if identity is known, it promotes the pending note request. Hidden Notes remains background. Focused Notes unit module passed10/10; frontend type-check and workstream validation passed. The first focused run exposed three stale expected canonical queue-key options; assertions were updated to the released helper contract. Root owns actual J12 browser acceptance and all combined/release gates; no browser, native/provider, Docker or CI run was performed here.
+
+---
+
+# Current R37 follow-up — stored ETF selection and async preset delete — 2026-11-07
+
+Selection coverage now distinguishes both supported cache paths: an exact-symbol stored-profile query can resolve XLB while the broad startup catalogue remains pending, and an ordinary symbol search can select a cached XLB already present in the loaded profile list without `explicitlyResolved`. Both keep cached dated rows visible while ensure is pending/unavailable and send only the symbol when no verified ID exists. The two focused selection regressions passed; full ETF view module and Root browser requalification remain separate gates.
+
+After a successful symbol-bound ensure, the follow-up exact-symbol profile read now fails closed when it returns multiple matching listings without a verified listing ID. A single unique match is selected; an explicit verified ID narrows candidates before uniqueness is checked. The regression simulates no prior stored profile, ready preparation, then two same-symbol listings and confirms neither is opened. `test_etf_holdings_view.test.ts` now passes 28/28 and frontend type-check passes.
+
+Root R37 (`focused-etf-tests-r37`, frontend `7c2f4238`, backend `23b6aba9`, spec source `295cad86`) passed the complete basket journey but exposed two owned test/selection issues. The XLB screenshot showed the picker value changing while DIA remained the active fund; the browser trace had no XLB holdings read. Startup `loadProfiles()` could auto-select its first row after a newer search event, and a stored profile not present in the already-loaded list was treated like an uncached fund. `ETFHoldingsView` now fences startup auto-selection by the user-selection generation and immediately queries the exact selected symbol for a stored profile, without waiting for the unrelated startup catalogue. It verifies any explicitly resolved canonical instrument ID, but a locally retained profile ID alone remains insufficient authority for native preparation; without verified identity, the normal ensure request remains symbol-bound. Its historical snapshot stays visible while capability/preparation is held, and late responses remain generation-fenced. The focused unit regression selects XLB without an explicitly resolved ID while the broad startup list is still pending, holds the symbol-based preparation request while snapshot 16/LIN remain visible, then resolves the late DIA list and an unavailable preparation response; XLB remains active. It explicitly verifies the exact profile read precedes `/data/ensure`; the targeted rerun passed. The API-backed XLB E2E no longer assumes database ID 17; its selected profile ID and snapshot bindings remain checked.
+
+The Settings E2E now waits for the exact preset DELETE response and asserts its 204 result and UI row removal before checking persisted state. R37's immediate-read timing failure is preserved as history. Validation: `test_etf_holdings_view.test.ts` 26/26 passed; the new delayed-startup regression also passed independently; `npm run type-check` passed; Playwright discovery listed all 9 cases in the two affected E2E specs; `git diff --check` passed. No browser body, source request, fixture, or data mutation was run here. Root owns the next combined frontend execution; R37 is not green and these changes are not yet browser-qualified.
+
+Root R39's separate RRG data/paint diagnostic is recorded in the owner matrix as a failed prerequisite, not an RRG result. After the diagnostic reloaded, the screenshot showed Missing persisted tool placeholders across the workspace, including Relative Rotation; its response waiter timed out before payload/paint assertions. This points to shared workspace restore ownership, and the ETF owner did not edit that runtime or rerun the browser.
+
 # SPDR sector route composition — 2026-11-06
 
 Root authorized the bounded repair after genuine XLE selection returned typed unavailable before any source request. The sector-family metadata initializer used whole-record `setdefault`; XLE already had compatible State Street issuer and SEC identifier metadata but no SPDR adapter aliases, so the initializer left it unroutable. The existing route is now composed additively only when issuer and any existing adapter/source aliases agree. XLE SEC identifiers remain intact; conflicts are left unchanged. The existing symbol-derived workbook URL and exact workbook fund-ticker identity check are unchanged.
@@ -18221,3 +18265,967 @@ This is a test-only checkpoint. Exact-source CI is pending under Root coordinati
 ## SPDR sector route composition — Root-accepted checkpoint — 2026-11-06 10:36 UTC
 
 Root accepted implementation `ec861fdd9d7d22df8882c67271a2d07e6f877229` under standing human-delegated checkpoint authority. Five focused route tests and the recorded lint, workstream/record and scope guards passed. The fix composes existing SPDR aliases into compatible same-issuer metadata without changing identifiers or conflicting records; workbook URL, parsing/fund identity, native contracts and quotas are unchanged. No migration, product configuration, policy/quota mutation or external source call occurred. Exact implementation CI `42199229443` is still running; Root will push this records-only closure only after that exact CI is terminal green. Combined staging/master gates and genuine deployed XLE proof remain mandatory. AC1-AC14, 15 Tier-0/156 Tier-1, holds and historical evidence remain open and preserved.
+
+## Green release context adoption — 2026-11-06
+
+Adopted exact synchronized staging/master source `139b350238b5e1c8a170dce5af09a805301d857e` by normal non-fast-forward merge `b09448d88af51f9daa28f214bf5754685959622c` in this existing ETF branch. Staging CI `42211787590` (including Exhaustive) and master provenance CI `42222793213` are terminal green. Backend tree `2dd5046fbc3edf9fe5d69659ae2dc2b1035177fc` and frontend tree `9df32b87de20826dbe0e32c739d2cbf0d9e1a634` match the released source exactly. Root reports private deployment with business-row/schema/quota preservation and genuine UI results: NVDA 498 D1 / 104 W1 / 25 MN, XLE 24 own holdings, and an IYF ACGL holding moving from provisional zero to 498 candles on the same Dashboard with dated IYF provenance. Root is finishing native-wait proof and the final guide. The adoption is context-only; AC1-AC14, Tier-0/Tier-1 roadmap, holds and historical work remain open. No source calls, data/policy/quota changes, or sibling/staging writes were made here.
+
+## Human-activated platform-usability checkpoint — ETF assignment — 2026-11-06
+
+The human activated the complete platform-usability release plan; this checkpoint covers only ETF-owned automatic issuer-holdings preparation, ETFHoldingsView and a new ETF-only journey spec. Exact baseline `139b350238b5e1c8a170dce5af09a805301d857e` is adopted normally; backend/frontend trees match the release. The prior SPDR route-composition checkpoint, all earlier accepted checkpoints, the full ETF roadmap and the existing continuation-goal accounting are preserved.
+
+Provider published the exact hook types in source `3d10c4c4662249b53a6e3fc497f1d260b59b2079`. Under Root's exact-blob authorization, ETF imported `backend/app/schemas/data_preparation.py` (blob `dfef0eca2393c6a32c16767c231dd4e4288b6801`) and `backend/app/services/data_preparation_contracts.py` (blob `5c39b34a8b8a4ad310d2d5bb6023de2d0b5bd351`) unchanged. The signature is `async prepare_etf_holdings(db: AsyncSession, instrument: Instrument, *, context: DatasetPreparationContext) -> DatasetPreparationResult`. The context carries request/dependency IDs, dataset, timeframe/adjustment/range, priority and deadline; the result carries status, covered bounds, reason code, known retry time and acquired version. Holdings coverage records the issuer composition day, not a price-history interval. ETF uses these shared types directly and has not added a duplicate DTO.
+
+The existing `acquire_etf_holdings_profile` service owns canonical ID verification, exact issuer route/profile creation, Provider admission and persisted outcomes. The hook checks for a same-instrument profile/snapshot cache first; reuse requires the visible ORM snapshot, matching selected instrument/profile IDs, and the service capability's current, identity-verified, usable result. Otherwise it delegates acquisition to the existing service, then reloads and evaluates the persisted snapshot before reporting ready. It never duplicates Provider request context or bypasses native route, quota or hold checks. Typed `ProviderQuotaAdmissionError` and `ProviderRateLimitError` outcomes remain waiting and preserve only their actual timezone-aware `retry_at`; a generic route hold has no invented timer, and route-identity/configuration failures remain unavailable. Focused service tests cover cache binding, persisted read-back, known quota retry versus unknown hold, and composition-date coverage. The legacy view also rejects an acquire response whose nested profile is bound to another selected ETF.
+
+ETF will not edit shared Provider runtime/queue/config/worker or TC shared coordinator/client/types/helpers/flows. Existing manual refresh actions remain optional; the shared durable request path must provide first availability without requiring another Fetch/Refresh click and keep the request alive after browser close.
+
+No external source request, real-quota or production mutation, Docker/profile operation, or sibling/staging write is part of current work. Root owns later DB/browser/live allocations and the single combined release.
+
+## Root-allocated basket AsyncSession CRUD repair — 2026-11-06
+
+The first real PostgreSQL `AsyncSession` API test reproduced `MissingGreenlet` on both new basket member insertion and new basket snapshot member initialization. After initializing both new relationship collections before flush, the same flow progressed through create and update but exposed a read serializer lazy-load of `Basket.snapshots`; `get_basket` now eagerly loads that relation. The regression covers POST create, PATCH update, GET read, snapshot listing, DELETE, and subsequent 404 using PostgreSQL-backed async sessions. Final run passed 1/1 in 9.73s on working source based at `d0da4c270c0fa6b906aabf22c1008a3cdebc8a02`; exact receipt is `/tmp/etf-platform-usability-basket-pg-20261106/attempt004/receipt.json` (SHA256 `d609da5161910f4a271aef1d8c3204ea98518b7725694722f4966968e6827311`). The test container used 1 GiB, 1 effective CPU, 128 PIDs, and was removed with its private volume; pre/post container, image, network, and volume inventories matched. Earlier setup and two genuine failing test attempts remain in their separate attempt directories and validation history. Ruff check/format pass. No provider request, real quota ledger, Redis, production, or sibling service was used. The broader platform-usability and ETF roadmaps remain open; this bounded implementation is pending Root review.
+
+
+## ETFHoldingsView shared holdings preparation handoff — 2026-11-06
+
+Root released TC client consumption from `877df044d2496c5f1be0e86b4dd49503cc6e55db`. ETF imported only the exact `frontend/src/lib/dataPreparation.ts` blob (Git blob `71fd0bd48d4fb1b1a8e21b90b39fd549367e91d6`, SHA256 `c1157a680c5a461647b82b18bd9923c53d36a401dd3397c2361e91b125d43a0d`) and left it unchanged. `ETFHoldingsView` now submits a shared `holdings` preparation request automatically when a user deliberately selects a new fund or a profile has no current usable snapshot. Existing snapshots remain visible while the coordinator reports queued/waiting/unavailable/failed state. After a ready result, the view reloads a profile only for the exact selected symbol (and matches an explicitly confirmed instrument ID when present), then reloads that profile's dated snapshot/provenance. Rapid selection aborts only the old UI subscription and retains generation fences; manual check/refresh buttons are not needed for the normal flow and are disabled while preparation is active.
+
+Focused view tests passed 23/23, frontend `vue-tsc --noEmit` passed, and Playwright discovery listed the two new ETF-only cases. The new browser spec covers generic uncached selection without clicking refresh, returned snapshot date/known-at/provenance, and a waiting first fund followed by an independent second selection. It was not executed in a browser; Root owns the single combined profile. No source request, Docker/profile run, provider runtime edit, or production/ledger/policy/data mutation occurred.
+
+One TC-owned compatibility handoff remains: `frontend/tests/e2e/on_demand_acquisition.spec.ts:1051` currently waits for the legacy automatic `/api/v1/etf-holdings/IWM/acquire` after selecting a stale profile. This view now uses `/api/v1/data/ensure` for automatic selected-fund preparation. I did not edit that shared existing-flow test; TC/Root should update its route and expectations before the combined profile.
+
+## Root-allocated Baskets lifecycle — 2026-11-06
+
+Root assigned Baskets lifecycle work to this existing ETF owner under the approved platform-usability plan. The exact partition is recorded in `basket-ui-ownership-partition.json`: this worktree owns `BasketsView.vue`, its unit spec, and the new `baskets_journey.spec.ts`; TC retains shared shell/API/types/stores/styles/Workstation/workspace/coordinator paths. No other worktree was edited.
+
+The basket view now creates equal/custom baskets only from resolved picker IDs, explains incomplete allocation, protects system-managed/read-only issuer baskets, tracks dirty edits across selection/reload, supports explicit discard and delete confirmation, and fences late save/delete/snapshot-lineage/chart-preparation responses. Issuer materialization records source identifier/URL, provider, composition and known-at dates, source artifact and snapshot hashes, provenance and completeness in basket snapshot history without changing the ETF snapshot itself. Open chart uses the current Workstation basket route and first calls the shared preparation coordinator for each exact member's adjusted D1 history; held or failed history is reported and is not presented as ready.
+
+Focused evidence on the current worktree: BasketsView unit tests 16/16; frontend type-check passed; backend ETF basket consumer regression 6/6; Ruff check/format passed; the new actual-API browser spec lists two tests and was not executed. Unit coverage also verifies that late snapshot history from the previously selected basket cannot overwrite the new selection, and refresh cannot invalidate an active chart-preparation generation. The browser journey covers equal/custom creation, edit/add/remove, dirty-switch cancel/discard, persistence/reload, delete cancel/confirm, exact history preparation and nonempty synthetic basket bars, plus a read-only issuer snapshot provenance path with direct API edit/delete rejection and unchanged readback. The existing real PostgreSQL basket CRUD case passed 1/1 in prior attempt004; it predates the new lineage-only extension and is not claimed as validation of that extension. No browser, Docker, provider/source HTTP, quota/ledger, production or sibling operation occurred. Root owns the combined profile; the complete platform and ETF roadmaps remain open.
+
+Root released Provider source `55b956f40615f1623a0f7d084b9fc0a355727053` for exact development consumption. I imported only the 30 paths listed in `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider-runtime-development-consumption-contract.json` after checking the release manifest against the Git tree and confirming no dirty-path overlap. All 30 imported blobs and file SHA-256 values match the contract; its SHA-256 is `b23c835ede9b509a7063e6f971e543eca28e77d669b5234e64fb17286704e901`. Existing ETF preparation files already matched the released blobs; the Provider release is recorded as a dependency, not as accepted/integrated/deployed. Producer full release gates and Root's combined qualification remain pending.
+
+After import, the focused ETF preparation/hook modules passed 31/31, the basket consumer lineage regression passed 6/6, and Ruff checks passed. This verifies the ETF hook against the released local runtime, not the full Provider or platform release gates.
+
+## Basket load-state interaction guard — 2026-11-06
+
+While the initial basket list or an explicit refresh is pending, basket selection, new-basket creation, editor fields, member picker/removal, save/delete actions and chart opening are disabled. Refresh is also disabled while the delete confirmation is open. The focused BasketsView unit file passes 17/17 and frontend `vue-tsc --noEmit` passes. This prevents a late list response from replacing edits or changing the selected basket during another action. The actual-API browser journey and Root-owned combined profile remain pending; no browser, Docker, source HTTP, quota or production operation occurred.
+
+
+## Provider runtime successor consumption — 2026-11-06
+
+Root released Provider source `17d628296e5a0f3bc1dac1abd564619ac62a0298` as a development-only successor to `55b956f40615f1623a0f7d084b9fc0a355727053`. I imported only its 15 `changed_paths_since_previous` with `git restore` into this worktree. The complete 31-file export matches the release manifest, exact source Git blobs and SHA-256 values; the unchanged files remain identical to the prior 55b dependency. The manifest SHA256 is `6a7d7cd4ecb3ef779a11bc53671e16c225a658e40324e392372f313776dabdee`. The earlier 55b manifest, import receipt and consumer validation remain preserved as historical evidence. Focused ETF preparation/hook tests passed 31/31; two directly affected lock-order and retry-wait unit cases passed; ETFHoldingsView passed 23/23, BasketsView passed 17/17, and frontend type-check passed. The Provider source fixes lock-order and retry propagation, but its full release qualification and Root-owned combined profile remain pending. No Provider files were edited; no browser, database, source HTTP, quota or production operation occurred in this import.
+
+## Current ETF views and shared basket-chart handoff — 2026-11-06
+
+`BasketsView.openBasketChart()` now routes immediately to `/chart/BASKET%3A{id}` for the current selected basket. It no longer owns a preparation queue or waits for constituent history before navigation; the dirty-edit and read-only guards remain. Its focused tests verify immediate routing, the latest selected basket, and that unresolved source rows are not removed before handoff. TC owns the shared chart/basket-load path. The current consumer entrypoint is `frontend/src/stores/chart.ts::chartStore.loadBars()` for `BASKET:<id>`; independent member submissions, cached-first rendering, current-context refresh, and unavailable-member explanation remain pending TC/Root combined qualification.
+
+Added `journey-matrix.json` as the ETF-owned action-level input for `ETFHoldingsView` and `BasketsView`. It maps all exposed owned controls/routes to the approved J01/J02/J06/J07/J08/J12 journeys, exact view tests and API paths, plus real-browser evidence status. ETF Playwright cases are controlled route mocks, not backend acceptance. Basket Playwright cases call actual APIs but their browser bodies have not been run by this owner; the prior real-AsyncSession backend CRUD test is backend-only. Both are marked pending Root's combined profile. The matrix names BWET, XHB, IGV, SPY, RSP, QQQ, all 11 SPDR sector presets, and an unfamiliar supported ETF as Root-owned genuine normal-flow cases. Root's `named-etf-primary-source-review.json` is only a public-source/identity witness, not app ingestion or qualification.
+
+That source review also confirmed BWET contains freight-futures exposure. The existing generic Amplify selected-account CSV route already filters by requested account and records its account/date/raw source fields; its row classifier already recognizes source-described futures, but the parser was still copying the contract code into the canonical symbol field. The parser now leaves non-equity/future symbols unset while retaining the original CSV ticker, account, signed quantities/weights/values, source date, and other raw row fields. A deterministic offline CSV regression verifies future and cash rows remain non-chartable/non-equity and preserve signed values; it does not claim to be a captured BWET response or native application proof. No adapter was added and no source request was made.
+
+Current focused checks: ETFHoldingsView+BasketsView Vitest 41/41; Amplify account/filter plus derivative-row pytest cases 2/2; Ruff check/format and frontend type-check pass. The Playwright specs and Root combined browser profile remain pending; no browser, Docker, provider request, quota/ledger or production operation was performed here. Wider platform/ETF roadmaps and prior evidence remain open and unchanged.
+
+
+Basket member chart action coverage was extended in the same owned browser journey: after saving and reloading the edited manual basket, the test clicks its persisted MSFT member, checks `/chart/MSFT` and the visible workspace, returns to Baskets, and then continues the basket-token route. Playwright discovery still lists two basket journeys. Their browser bodies remain unrun here; this is spec coverage, not runtime evidence.
+
+
+## Provider 99 v2 development dependency pin — 2026-11-06
+
+Root corrected the 99 manifest schema. The active dependency now points to source `99ce73bbc67689aef5fc4fcffa76bcfebfa736da` via v2 manifest SHA256 `5b26b7fcca8b131d7f38daa192006b7e07bf26da6d757e866c9b816d96e88a52`; v2 includes required `status_from139` on all 35 file records. Source, eight changed paths, and all 35 product blob/hash entries are identical to superseded v1. The prior 17d pin and original v1 manifest remain archived as history. This import is development-only; Producer full release and Root combined qualification remain pending. No tests, source requests, fixtures, or runtime operations were repeated for this metadata correction. Continue the owned ETF and basket journey work in the existing scope.
+
+
+## BWET reported-row browser journey — 2026-11-06
+
+Added an ETF-only controlled-route browser story for deliberate BWET selection. It asserts automatic holdings preparation, exact selected-fund snapshot lineage, visible reported C5TCM freight-futures and USD cash rows, preserved negative/positive weights, reference classification, and disabled history for the derivative row. This is a UI presentation contract using controlled responses; it is not captured-provider, backend-parser, or live qualification evidence. `npm run type-check` passed, and Playwright discovery lists all three ETF journey cases. Browser bodies remain pending Root’s single combined profile.
+
+
+## ETF historical-snapshot browser journey — 2026-11-06
+
+Added a controlled-route Playwright journey for selecting an older IGV snapshot. It asserts the exact `snapshot_id`, historical label, composition date, known-at time, published time, source identifier, and row from that selected snapshot. This covers browser context/provenance behavior only; it does not establish real historical backend retrieval. Frontend type-check and Playwright discovery pass; browser bodies remain pending Root’s combined profile.
+
+
+## Snapshot source provenance visibility — 2026-11-06
+
+A review of the historical-snapshot browser story exposed that the view showed provenance and timestamps but omitted the selected snapshot’s source provider, source identifier, and source URL. `ETFHoldingsView` now renders those three persisted fields as escaped text with explicit “Not established” fallbacks; URLs are not clickable. Unit assertions cover exact values. Current and historical controlled-route browser stories check that each selected snapshot displays its own source metadata. The ETF view suite passed 24/24, type-check passed, and Playwright discovery lists four ETF journeys; no browser body was run. Real backend history and combined visual qualification remain Root-owned.
+
+
+## Basket held-first-member chart journey and UX-016 dependency trace — 2026-11-06
+
+Strengthened the existing authenticated API basket browser story: it now holds the first accepted member `/data/ensure` response, requires the other resolved member preparations to be submitted before releasing that response, and checks that nonempty finite basket bars render while the first response is still held. This is a response-delay contract over actual APIs, not a browser result; Root's combined profile owns execution. `npm run type-check` passed and Playwright discovery lists both basket journeys. The authored browser body remains pending.
+
+Read-only UX-016 trace found no constituent-profile preparation when the Industries request opens. `frontend/src/stores/workspace.ts::loadETFIndustries` calls only the read endpoint; `backend/app/routers/market_groups.py::etf_industry_composition` joins existing resolved holdings to `EquityDetail` and reports exclusions without scheduling profiles. The current `profile` dataset is already supported by the shared planner; `fundamentals` remains unavailable. ETF has no authorized ownership of the frontend store or shared planner. The exact TC/shared contract need is to submit existing `profile` preparation for each exact resolved eligible equity member when current Industries opens, independently through the shared coordinator, then refresh only the still-current ETF/snapshot as results settle. Do not backfill current profiles for a historical `as_of`; existing source/provenance and no-lookahead rules remain. The critical-review screenshot does not contain row-level XLB exclusions or profile/provider responses, so it does not prove whether the 27 holdings resolve or whether their providers expose industry metadata. No source calls or code changes were made for UX-016, and no external limitation is established.
+
+Added focused BasketsView coverage for cancelling a dirty transition from a saved basket to `+ New`, retaining the edit on cancel, then clearing the old member/context only after confirmed discard. The first two targeted test attempts were red from test selectors that incorrectly searched the wrapper for a teleported dialog and then selected the table header instead of a member row; selectors now use the teleported `document.body` dialog and the member-symbol button. The final exact test passed 1/1. The broader basket action matrix now includes this new-draft recovery path.
+
+Added an API-failure recovery case for manual basket deletion: a failed DELETE leaves the selected basket/member available with the error shown, and a subsequent confirmed retry succeeds. The complete focused BasketsView unit file passed 19/19 after both recovery additions. No browser body or backend profile was run in this step.
+
+Added the matching create-retry case: a failed POST leaves the new basket name and canonical picker member intact, and retry succeeds without rebuilding the draft. The focused BasketsView file now passes 20/20. These component tests mock API responses; actual basket persistence remains covered separately by the previously recorded real-PostgreSQL CRUD test, and the browser bodies remain Root-owned.
+
+
+## Provider 074 development dependency consumption — 2026-11-07
+
+Root released Provider source `07490844c39d56e7023294f5e8798e4da2acdce0` for exact development consumption. Imported only its 11 `changed_paths_since_previous` product paths over the active 99 source into this clean ETF worktree. All 38 manifest path/Git-blob/SHA256/`status_from139` entries match the exact released source. The source-to-source diff contains three additional Provider-owned workstream record paths; those were explicitly excluded and not imported. Contract manifest SHA256 is `f01f558d28fe6dc5864a4c46187de3fac0906b536d72dec1ed6cb92c8fdf3cfc`. The 99 v2, 17d and 55 dependency evidence remain preserved as history; 074 is the current development pin only. Provider's reported 82 maintenance units/3 PostgreSQL cases and 7 fixture cases are Producer evidence, not independently rerun here or final release acceptance. No provider/source HTTP, database/profile, quota, policy, production, sibling or staging operation occurred. Root owns Provider exact CI/release and combined browser qualification.
+
+
+## UX-016 shared profile-field readiness trace — 2026-11-07
+
+After consuming the exact 074 successor, traced the planner end-to-end. A resolved holding can be submitted through the existing `profile` dataset; if no fresh generic profile exists, the planner enqueues the shared `instrument_metadata` identity/profile child and the worker invokes `get_provider_profile_async` under normal provider acquisition/admission, persisting returned profile metadata. `ingest_provider_profile` writes `EquityDetail.industry` and field-level classification/source provenance only when the provider profile contains `extra.industry`. The current Industries GET does none of this automatically.
+
+The existing shared request is not field-sensitive: `_profile_is_fresh` returns true for any fresh profile snapshot from an enabled `INSTRUMENT_METADATA` policy, without checking for `extra.industry` or classification provenance. `DataEnsureRequest` has `datasets: profile` but no industry-field requirement/refresh intent. Thus TC calling `ensure(profile)` is sufficient for a missing/stale profile, but it cannot obtain classification if a generic profile is already fresh and omitted industry. A no-source/held result must stay visibly unavailable; the UI cannot call that dependency ready merely because other metadata is fresh. Root/Provider needs to decide whether the shared planner should express a narrow source-labelled industry-field dependency using existing metadata acquisition, or report the field as unavailable when the selected provider supplies none.
+
+The proxy gap is separate: `/market-groups/etf/{symbol}/industries` groups current holdings by source-labelled `EquityDetail.industry`, while the proxy endpoint consults a curated candidate registry and returns `no_curated_proxy_candidate` when no exact mapping exists. A missing curated proxy is not evidence that composition classification or issuer rows are unavailable. The composition response exposes aggregated exclusion reason strings and coverage, not row identities; the UI must join its selected snapshot’s holdings to identify eligible canonical constituents for preparation. Current `as_of=None` accepts current source-labelled values; historical requests use only profile snapshots whose observed/fetched timestamp is no later than the cutoff. These rules remain unchanged.
+
+Source capability is provider-dependent, and enabled policy is not established by this read-only trace. EDGAR explicitly emits `industry` with classification system `SEC_SIC`. Massive profile preserves `sic_description` in `extra`, but `ingest_provider_profile` consumes `extra.industry`, so that field alone does not populate current industry classification. No actual XLB row-level response/profile/policy state was provided; neither unresolved identity nor a genuine source restriction is proven. Next diagnostic should inspect XLB’s 27 exact rows, existing profile snapshots/field provenance and current authorized provider routes read-only; do not infer GICS or alter historical eligibility.
+
+
+## TC aea shared-library consumption and XLB row correction — 2026-11-07
+
+Root released `aea0be57abd036dd308a18f9dd07b976767cb8a9` for exact development consumption. Imported only the three manifest-listed shared frontend modules (`api.ts`, `authSession.ts`, `dataPreparation.ts`) and verified each Git blob and SHA256. The active client pin is aea0; the earlier 877 dataPreparation-only pin remains under historical dependency metadata. No TC application/store/shared-shell files or workstream records were imported or edited.
+
+Updated ETF-owned controlled `/data/ensure` fixture bodies to carry the released response's dependency `symbol`, `covered_ranges`, resolved instrument ID where known, and `has_pending_work` semantics. `ETFHoldingsView` unit tests passed 24/24; `npm run type-check` passed; the strict frontend-provider boundary guard passed 1/1; Playwright discovery listed four ETF tests and ran no browser bodies. In the combined Vitest invocation, the TC-owned API-client suite had 12 passes and one failure: its old test asserts that `fetch` receives the exact caller `AbortSignal` object, while the released API client uses an internal signal so caller abort and auth-session boundary can both cancel. No TC test was edited; this assertion needs TC-owner reconciliation. The initial backend-guard invocation used a path relative to the wrong working directory and collected no tests; the corrected invocation passed.
+
+Read the Root-provided XLB snapshot export: snapshot 19 is SPDR-native, complete, composition 2026-11-04 / known_at 2026-11-06, with 27 rows. It contains 26 holding rows linked to equity/security instruments and one explicitly unresolved cash row; none of the linked rows has a saved profile or industry field. Massive is the only enabled metadata policy. This confirms the missing field-specific profile preparation dependency, not a proven external classification limitation. The source-labelled/current and historical cutoff rules remain unchanged.
+
+The row-level evidence also shows an ETF parser anomaly: position 27 is reported as `US DOLLAR` with no ticker, but is stored as equity/security linked to a synthetic `HOLDING-…` instrument using sentinel-like CUSIP `999USDZ92`. SPDR `_classify_row` did not recognize the `US DOLLAR` name. Added the generic cash-name marker and extended the controlled workbook test; the exact SPDR workbook parser test passed 1/1, and Ruff check/format passed for the touched adapter/test files. This does not rewrite the retained production snapshot. The separate `IXDZ6` / `XAB MATERIALS DEC26` row has no reported source asset-type field in the supplied export; no derivative classification was inferred or changed.
+
+No Source HTTP, production DB/ledger, provider policy/quota, Docker/browser fixture, or sibling-worktree operation occurred. Root owns Provider's industry-field planner work, TC owns Industries request/store wiring and the stale API-client test, and Root owns combined browser/native qualification.
+
+
+## Canonical ETF constituent dashboard route — 2026-11-07
+
+Changed ETF-owned selected-row navigation from `/legacy/chart/{symbol}` to `/chart/{symbol}` without changing `holdingDrilldownRouteQuery` or `holdingDrilldownRouteState`. Unit assertions cover resolved holdings, stale-parent history, and exact confirmed unresolved-row resolution; all 24 ETF view tests pass. The ETF browser story now clicks View history and checks the dashboard route and exact snapshot/date/known-at/source/instrument/row query. Type-check passes and Playwright discovery lists four tests, but no browser body was run here. Journey matrix reflects the canonical route. TC owns startup consumption of the handoff; Root owns combined qualification.
+
+
+## Provider 732 exact development dependency — 2026-11-07
+
+Root released `732da0f9f84ee495ee58ca3b9f8311839291ff59` under the corrected current manifest `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider732da0f9-runtime-development-consumption-contract-v2.json` (SHA256 `d6508b43f603ef2d92d6dc00b63d53a4b9248b53ede7ad643eda8eab3ad00123`, authority: `Root coordinates the human-approved common-interface implementation; no staging or deployment acceptance`). The original v1 manifest `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider732da0f9-runtime-development-consumption-contract.json` (SHA256 `96e2c7d0844a859be271b56e94bfc79e9eb8d3a683e41a8e8bd5d0ad6c98e8cf`) is retained as invalid metadata history because it omitted the required authority field. Imported only the 13 declared changed product paths over Provider074; all43 manifest entries match current file Git blobs and SHA256, including `status_from139`. Provider workstream records were excluded. This is a development dependency, not Producer acceptance or release qualification; Producer-reported32 focused cases were not rerun here. No live source, production, policy, quota or ledger operation occurred. Focused ETF consumer checks remain pending, as does the separate TC frontend companion. Root owns full CI and combined qualification.
+
+
+### Provider732 ETF consumer check — 2026-11-07
+
+After the exact import, `tests/unit/services/test_etf_holdings_preparation.py`, `test_etf_holdings_preparation_hook.py`, and `test_etf_holdings_checkpoint_consumers.py` passed 46/46 (five upstream deprecation warnings). This is the ETF-owned consumer slice only; no Provider suite, Docker/PostgreSQL fixture, browser, source HTTP, or production/ledger operation was run. The separate TC frontend companion and Root combined profile remain pending.
+
+
+## TC D5 common-runtime development import and S&P 500 acceptance spec — 2026-11-07
+
+Root released TC source `d5e8d628eb42318656d8b578a24390db4be17cca` for exact development consumption under `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-d5e8-common-runtime-development-consumption-contract.json` (SHA256 `8e407fd646dd011ae07ed74c33ff8bb1edf236fdb372f4e2856f1d237873ce24`). Imported only the manifest's 47 declared delta paths over the prior AEA three-library pin; the current 49-file manifest now binds the matching runtime and tests. All 49 entries were checked against the source Git blob, SHA256, executable mode, and `status_from139`. The previous AEA pin remains historical; no ETF/Study/Results/Library/Baskets/secondary-Dashboard/new-spec or Producer workstream paths were imported. This is development source, not final release qualification.
+
+Added the reserved `frontend/tests/e2e/sp500_analysis_journey.spec.ts` acceptance spec. Its authenticated seeded-backend cases cover SPY plus all eleven sector charts, both orientations of every sector/SPY ratio against independently aligned raw close data, and actual D1/W1/MN RRG responses with finite rows/tails, rendered chart palette/quadrant label evidence, pointer/keyboard linked-chart selection, resize, maximize/restore, layout copy and tab restoration. `npm run type-check` passed; Playwright discovery lists 2 tests. Browser bodies were not run and remain pending Root's combined profile. No successful route mocks, data/seed/math/tolerance changes, provider/source requests, production mutations, or new fixture were made.
+
+The complete ETF/platform roadmaps, all prior checkpoints and failures, and the existing unbudgeted goal/accounting remain unchanged. Root owns combined browser execution and final release gates.
+
+
+## Provider464 development import and reviewed S&P journey corrections — 2026-11-07
+
+Consumed only the four declared Provider delta paths over 732 and verified all45 current manifest records against source46462f5531d689acf4c8004517dc4fb345d822ba (manifest SHA256 `3600f958dd684d72bf0ed95425c4e52792566d6136c57d676c67f4f107e5301d`). The two ETF clock-test paths already matched the released source; the other two declared paths were imported into this worktree. Provider CI42328517364 is still in progress; this is development consumption only.
+
+Updated `frontend/tests/e2e/sp500_analysis_journey.spec.ts` to address Root's four review findings: price-renderer paint and bar-matched pointer OHLC, both visible ratio directions, point/tail-specific RRG paint evidence, and assertions made with each timeframe active; actual RRG pointer selection is covered. Current spec SHA256 is `25ccf27f34b56aac0f29507b5cc631d1495230c102f450d5621f1d51d2726f1b`. `npm run type-check` passed and Playwright discovery lists2 cases. Browser bodies remain unrun and Root-owned. No fixture, Docker, source request or data/policy/ledger operation occurred.
+
+
+## Focused ETF context and S&P journey follow-up — 2026-11-07
+
+The focused ETFHoldingsView+BasketsView suites pass44/44; the ETF preparation/hook/checkpoint consumer modules pass46/46 against the Provider464 import. The first view-suite observation found a stale test expectation: the released TC route contract includes parent `etfSymbol`; the fixture now asserts that exact parent context, and the corrected full view modules pass.
+
+The S&P spec now targets the single chart-root for pointer mode, requires restoration of the persisted maximized RRG before linked-chart visibility, and chooses a marker from the most recent complete draw. It uses the required accessible `Duplicate layout` control name. Type-check passes and discovery lists2 tests. No browser body was run; the compatible TC runtime containing that label and Root's combined profile remain pending.
+
+
+## Basket equal-weight API journey and S&P canvas audit correction — 2026-11-07
+
+The authenticated basket browser journey creates custom AAPL/MSFT and two-member equal-weight NVDA/AMZN baskets from resolved search results, checks returned scheme/member IDs/null explicit weights, then exercises edit/reload/member chart and deletion. Basket story SHA256: `a7cc1efcb5030b4ee82247356a817b19e0b0eda24b63aa07645ca44f24341370`.
+
+The S&P spec preserves native zero-argument `CanvasRenderingContext2D.stroke` with `Reflect.apply`, uses the actual chart-root and latest complete marker draw, and restores the persisted maximized RRG before visible linked-chart checks. It selects the accessible `Duplicate layout` control. S&P spec SHA256: `ae24c47d76de378d8374d55247c903ecea8646853d2f810a3fb511d707b56bfb`. Type-check passed; Playwright discovery lists4 cases. Browser bodies remain unrun pending the next compatible TC runtime and Root combined profile.
+
+
+## TC5a exact common-runtime development import — 2026-11-07
+
+Imported only the ten `changed_paths_since_previous` from Root-released source `5a783e745b211cfe8b3dd20cb77d275149f15de2`. All53 current manifest records matched source status, Git blob, SHA256 and mode; the Radar preview and Settings test files were new relative to D5 and absent locally before import. Manifest SHA256 `4e7919990af84e733c0e7ef9d5c2cd5593cc961d3f08a0af6ec2bbcf80bdb290`. The exact source supplies the accessible `Duplicate layout` and `Rename layout` labels used by the owned S&P journey.
+
+The five affected TC unit modules passed207/207 and frontend type-check passed. Playwright discovery lists four ETF-owned basket/S&P tests; browser bodies remain unrun pending Root's combined profile. TC5a is development-only, not release/staging/deployment acceptance; previous D5 evidence remains archived.
+
+
+## Basket cached-chart visible-data witness — 2026-11-07
+
+The authenticated basket lifecycle story now verifies the selected cached basket series in the visible shared chart while the first accepted member preparation remains held: it checks real finite basket bars, the visible primary renderer, and an ordinary OHLC/date tooltip matching those backend bars. Basket spec SHA256 `76d1b9cedef51121c326a72707415d9997568bc824ebb1a2944c006e75625327`. Type-check passed and Playwright discovery lists4 owned tests; no browser body was run. Root owns the combined profile and runtime acceptance.
+## Exact SearchBar preparation and stable S&P tab-copy checkpoint — 2026-11-07
+
+Root's assigned SearchBar behavior is implemented in the two owned paths. A uniquely resolved exact canonical local ticker starts shared-coordinator preparation without selecting or navigating. When exact local search misses, a unique exact provider candidate is resolved and prefetched only when the returned canonical symbol still equals the requested ticker. Prefixes, multiple local/provider listings, mismatched resolved symbols and stale prior-query responses do not start preparation. Duplicate local listings in chart and picker mode require an ordinary click or explicit keyboard navigation before Enter selects one. SearchBar unit tests pass 39/39; frontend type-check passes.
+
+The owned S&P journey's layout-copy case now captures the factory workspace's initial tab count and selected stable key, requires exactly one added tab after Duplicate layout, locates the copy by its new `data-tab-key`, and switches between original and copy by key. The S&P spec hash is `005bbb95c70963cf795158a5a197fd21a6ccc5e8eba4c0dcb477c8fd2f7cb867`; Playwright discovery lists its two tests. No browser body was run.
+
+Root's follow-up SearchBar review closed three additional branches. Enter pressed during exact provider discovery now selects the revalidated canonical result with its actual returned instrument type and acquire response, and submits preparation for that canonical ID. A uniquely identified provisional local result starts shared identity/profile/history preparation; explicit identity-conflict, mismatch and ambiguous states remain nonpositive. The strict reported-holding symbol is enforced for automatic preparation, local click, recent selection and final commit. Focused SearchBar tests now pass42/42 and the frontend type-check passes. Current SearchBar hashes: source `5a5a3e119c403276f0859eeb71b634869f8bbb8fdc6bd8c12b63be7fa6006aaf`, tests `b090aac0a9d7e321718d297ad30fa0bc730c9c848d3f97d5e192500fe352a942`.
+
+Provider's exact development-only test delta `b1a94d9854e06f8235074141bf56d333f6350057` is imported and all 45 manifest path/status/Git-blob/SHA records match the released manifest (`cfb5962a13bc2cf4121e06235df14767c341d6073f9d236f582c588f22470244`). Provider exact CI `42332618010` remains pending; this dependency is not release acceptance. No Source HTTP, Docker, database fixture, policy/quota/ledger operation, or production mutation occurred. Root owns the combined profile and release gates.
+
+
+## Provider dffcf, TC ce2262ab, and Workstation acquisition-fixture repair — 2026-11-07
+
+Consumed Root-released Provider source `dffcf2e2cda4a3046b5e224fb4c7607574156797` from `providerdffcf2e2-runtime-development-consumption-contract.json` (SHA256 `e6894199dbc54abc0c4f25b6f6dd24e871091f5a9d2d6ccbcc3243bb324dc5e0`). Imported only its eight declared delta paths over b1 and verified all47 manifest paths against `status_from139`, Git blob, SHA256, and executable-bit semantics. The ETF preparation and hook consumer modules pass31/31 against the imported Provider source.
+
+Consumed TC source `ce2262ab2d47fc1ccda96f0c2aa7c8839e4e03f9` from `tc-ce2262ab-common-runtime-development-consumption-contract.json` (SHA256 `b2a41e1bb3734b2a48d8bf828e55dacb1aac8b9d8d44bd7bd6484467b0e6be2c`). Imported only the19 ETF consumer paths and verified all66 manifest paths by SHA256, Git blob and executable-bit semantics; POSIX mode0664 is preserved as Git100644. The5a783e74 pin and all earlier dependency records remain historical.
+
+For the assigned `frontend/tests/e2e/on_demand_acquisition.spec.ts` Workstation case, Provider b1 CI `42332618010` was cancelled at the E2E limit and reported no after-acquisition M1 bar readback. The fixture still waited on the obsolete per-instrument `/history-acquisitions` endpoint, while current Workstation selection submits `POST /data/ensure` and refreshes `/ohlcv/local` from covered-range progress. The controlled fixture now returns an M1 partial-history response for the exact selected instrument ID, verifies one adjusted M1 ensure and one local bar, fails if the legacy endpoint is called, and asserts no direct OHLCV write. This is a fixture contract correction; the browser body has not been run.
+
+Validation: frontend type-check passed; SearchBar and Workstation history-acquisition unit modules passed56/56; Playwright discovery lists7 cases in `on_demand_acquisition.spec.ts`; `git diff --check` passed. No browser body, fixture, Docker, Source HTTP, provider quota, production or ledger operation occurred. Root owns combined browser execution and final release qualification; the platform roadmap remains open.
+
+## Workstation covered-bar response synchronization — 2026-11-07
+
+Root reviewed the assigned Workstation case against its retained r3 trace. The accepted `POST /data/ensure` response reported exact TCNEW/M1 covered history; the initial local read was empty and the later local-only response returned the matching bar. The test now waits for that exact successful local response and compares timestamp and close with the covered bar, preserving canonical instrument ID, M1, calendar, unresolved-listing/context, no-direct-write, and no-legacy-acquisition checks. No runtime behavior was changed for the observed 5.28-second delay.
+
+Consumed only Root-declared Provider b0 delta paths and TC 4cfee delta paths. Their current manifests verify 47/47 and 66/66 records respectively; the four TC imports are exactly `WorkstationView.vue`, `flows.spec.ts`, `tc2000_chart_template_hotkeys.spec.ts`, and `test_workstation_popout_bindings.test.ts`. Frontend type-check exited0 and Playwright discovery listed all7 `on_demand_acquisition.spec.ts` cases. The corrected browser body is pending Root's approved single-case run in the existing fixture; no browser, new fixture, provider/source HTTP, quota, ledger or production operation was run here.
+
+## Provider 21be calendar/event latency development import — 2026-11-07
+
+Imported only the two declared delta paths over Provider `b0eae5974801e320b3da858d7e1a33829b206430`: `backend/app/services/instrument_events.py` and `backend/tests/unit/routers/test_calendar_router.py`. All 49 records in `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider21be2915-runtime-development-consumption-contract.json` match the released Git blobs, SHA256 values, and executable-bit semantics. Manifest SHA256 is `ebab538d0daa266ba40c07a38bc39f474bee332bd3a28e9fb03f04eedc37a1f5`. This is exact development consumption only; no Provider tests were rerun and no Provider workstream files were imported. Root owns the running family-latency isolation case and combined qualification. No fixture, browser, source HTTP, policy, quota, ledger, or production operation was performed by this owner.
+
+## S&P adjusted-ratio basis and ordinary RRG tab activation — 2026-11-07
+
+Root's exact EED run showed the seeded fixture contains adjusted daily bars only; raw-mode relative-strength requests correctly returned no aligned bars. The owned S&P journey now reads split-adjusted relative-strength and OHLCV data for all 11 sectors and both directions, asserts `is_adjusted=true` and `adjustment=split_adjusted`, independently recomputes each aligned ratio from the returned adjusted closes, and applies the same arithmetic to the UI-triggered ratio responses before checking their visible traces. The test does not describe those closes as raw or allow empty results. Its RRG story activates the ordinary visible Golden Layout `Relative Rotation` tab before maximizing, and again after restoring the persisted layout on reload, rather than assuming the default Technicals dock tab is active.
+
+Frontend `npm run type-check` passed; Playwright discovery lists both S&P journeys; `git diff --check` passed. S&P spec SHA256: `0a5ec5bc7aa0dd8a4b02851af55836fe8d152c54a0d3288ac8601a14617a6423`. No browser body was run by this owner; Root owns the existing-fixture S&P/RRG execution. Provider21be imports and their49-record pin are included in the same uncommitted checkpoint.
+
+## Root r7 pre-fix S&P ratio failure retained — 2026-11-07
+
+Root's receipt `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/validation-fixture/focused-sp500-ratios-r7-receipt.json` records a single no-retry run on frontend `4cfee476` and backend `21be2915`, but its spec input was prior EED source `eedc1a9369a702ddfb588786fc77b5657c978e42` / spec SHA256 `005bbb95c70963cf795158a5a197fd21a6ccc5e8eba4c0dcb477c8fd2f7cb867`. It failed before UI interaction because that old spec requested unadjusted ratio points from a fixture seeded only with adjusted bars. This failure is preserved and does not qualify or reject the corrected current spec at SHA256 `0a5ec5bc7aa0dd8a4b02851af55836fe8d152c54a0d3288ac8601a14617a6423`, whose API/close arithmetic, `is_adjusted` assertion, ratio response basis, and UI checks now use split-adjusted data. Root owns execution of the corrected S&P/RRG bodies in the existing fixture; this owner did not rerun a browser.
+
+## Provider 580571e4 readiness metadata reuse development import — 2026-11-07
+
+Imported only `backend/app/routers/analysis.py` and `backend/tests/unit/routers/test_analysis_router.py` from Root-released Provider source `580571e41b9797589bf205b61d337f8c92ec04c6` over `21be29150de8298e15d34bb9eed8207b92917a34`. All 51 current manifest records match their source Git blobs, SHA256 values, and executable-bit semantics; manifest SHA256 is `4eda89809b752114c73c95083a260672d0fe0f02f5921cc9b29535dc02ca11c7`. This development delta reuses metadata within a single readiness request and adds a query-count regression; it does not add cross-request caching or change analysis math, API, or policy. Root owns rebuild/fixture qualification; no Provider suite was rerun here. No source HTTP, fixture, policy, quota, ledger, or production operation was performed by this owner.
+
+
+## Provider33e1fd44 exact runtime development import — 2026-11-07
+
+Consumed only Root-declared `changed_paths_since_previous` from `33e1fd44829daee4b0f604b5507261bb10b7a711` over Provider `580571e41b9797589bf205b61d337f8c92ec04c6`. The exact nine paths were `backend/app/routers/research.py`, `backend/app/services/baskets.py`, `backend/app/services/e2e_seed.py`, `backend/app/services/etf_holdings_adapters.py`, `backend/tests/integration/api/test_baskets.py`, `backend/tests/unit/routers/test_research_router.py`, `backend/tests/unit/services/test_e2e_seed.py`, `backend/tests/unit/services/test_etf_holdings_adapters.py`, and `backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py`. Four prior-source files were replaced; the other five declared deltas already matched the released blobs. All 58 manifest paths match the source Git blob, SHA256, `status_from139`, and executable-bit semantics. Manifest SHA256: `5393e80826da6ed01fd689f602444f438ec24d723c2b43a0e4a41b5bbcdae273`. No Provider workstream records or undeclared paths were imported.
+
+The ETF holdings browser mocks now consume the shared `DataEnsureRequest` target union, resolve only explicit fixture IDs, delegate unrelated market-group/instrument preparations to the backend, and assert the observed BWET ID-based shared requests plus symbol-based holdings request. Frontend type-check and Playwright discovery (4 tests) passed; no browser body or backend test was run by this owner. Root owns the existing-fixture backend rebuild/replay and all combined qualification/release gates. No Source HTTP, ledger, policy, production, or sibling operation occurred.
+
+
+## R14 ETF basket, preparation-mock, and RRG contract repairs — 2026-11-07
+
+Root’s R14 trace showed: (a) basket chart navigation preserves both saved members, so the test now checks the unchanged full membership; (b) new system basket materialization reached `basket.members.clear()` on an unloaded async relationship and raised `MissingGreenlet`. `materialize_etf_holdings_basket` now initializes `members=[]` when creating the Basket, and `backend/tests/integration/api/test_baskets.py` adds a normal ingest → explicit retained snapshot materialization → repeat-read regression for lineage, read-only state, members, and idempotence. Existing-basket eager loading remains unchanged. The new HTTP regression was not run locally; Root owns actual fixture proof.
+
+R14 also confirmed ETF preparation requests may target a canonical listing by `symbol` or `instrument_id`. The owned browser fixtures now import the shared `DataEnsureRequest`, map only the explicit fixture IDs, normalize the target to its exact intended ticker while preserving exact dataset/timeframe/adjusted fields and request counts, and continue unrelated market-group/instrument preparation to the backend. Strict snapshot/context/stale-switch and derivative/cash assertions remain. The S&P direct group-RRG reference now sends required `benchmark=SPY`; the R14 422 was caused by the test omitting that API query parameter.
+
+Focused evidence: frontend type-check passed; 8 cases discovered across the three owned journey specs; Ruff check and format passed on the basket service/integration test; 5 existing historical-basket unit cases passed (10 deselected); `git diff --check` passed. No browser or DB integration was run locally. R14’s two passes/five failures remain preserved as historical evidence; this candidate has not been replayed or release-qualified. Provider33e1fd44 is the active exact development dependency (58/58 manifest records verified); no Provider-owned seed/runtime path or workstream file was edited/imported. Root owns the existing-fixture HTTP/browser replay and all release gates.
+
+
+## R14 basket materialization AsyncSession regression — 2026-11-07
+
+Commit `93be1696d546751bcde759452b9436df05407d5f` began the explicit async member refresh; its first version refreshed only existing baskets. The Root R14 traceback identifies the first materialization call, so the current successor refreshes `members` after either creating or loading the basket and before clearing/replacing the collection. Added `test_etf_basket_materialization_refreshes_expired_members`, which uses the existing PostgreSQL integration fixture and a real `AsyncSession` to cover first materialization and repeat materialization after expiring the member collection. Ruff check/format and `git diff --check` pass; pytest collection found the one intended regression test. The test body was not run locally because Root owns the active fixture and shared runtime proof. The earlier R14 red remains historical; no post-fix DB/browser acceptance is claimed. No Source HTTP, policy/quota/ledger operation, or production mutation occurred.
+
+
+## R16 basket, holdings locator, and RRG response-body corrections — 2026-11-07
+
+Root’s R16 traces showed the ordinary basket test installed its `/data/ensure` interceptor after constituent selection had already submitted member preparations. The test now resolves AAPL through the normal canonical search API, installs the route before typing/selecting it, holds the first matching accepted request, and verifies every selected member has an accepted D1 history preparation while the first response is still held. It still opens the real basket chart and checks its returned bars/visible tooltip. The basket AsyncSession materialization fix now refreshes `members` after both new-basket flush and existing-basket lookup, before clearing the collection. The materialized basket E2E fixture is explicitly labeled controlled provenance (`e2e_reference` / `controlled_fixture` / `controlled://e2e`) and asserts its source artifact hash is absent; it does not claim issuer raw-artifact proof.
+
+ETF fund-heading checks now use exact accessible names so QQQ does not collide with the `QQQ1` holding heading (same for RACE, BWET, IGV). In the S&P RRG story, the reloaded D1 response body is parsed immediately on response arrival, before the next navigation can invalidate Playwright’s response-body handle. The test continues to require every sector option; Root’s reported missing XLB option at `frontend/tests/e2e/sp500_analysis_journey.spec.ts` remains a TC-owned product issue, not waived in this spec.
+
+Focused evidence: frontend `npm run type-check` passed; Playwright discovery listed 8 cases across the 3 owned journey specs (no browser body run); basket service/integration Ruff check and format passed; the exact AsyncSession regression collected (not executed); `git diff --check` and workstream validation passed. No browser, DB fixture, provider/source HTTP, ledger, policy, or production operation was run by this owner. Root owns replay in the existing fixture and all combined release gates.
+
+
+## R16 basket delayed-preparation isolation and Provider f84 seed dependency — 2026-11-07
+
+Root review of `7ea97d7` found the basket test held AAPL during the earlier member-search prefetch and had duplicate ensure observers, so its held flags could predate the chart action. The CRUD journey is now separate from a focused ordinary basket-chart journey. The latter resolves AAPL/MSFT through the normal authenticated search API, creates a basket through the normal API, selects it in Baskets, and arms one `/data/ensure` route observer only immediately before the visible Open chart action. That route delegates each request to the real server, holds the first accepted D1 history request, and checks the current chart action submits each canonical basket member independently with no duplicate identical request. While the first response remains held, the test requires a successful basket OHLC response and a visible chart tooltip matching the returned bar. No extra request is injected by the test.
+
+Consumed only Provider's released `f84c7020932558ecfc52a355c24ef360ff71386c` delta: `backend/app/services/e2e_seed.py` and `backend/tests/unit/services/test_e2e_seed.py`. Manifest SHA256 is `d0476cba8b9973081ffcfac3cf090c271aafd0b0567e2fc3819a6e79fe3b90b7`; all 58 manifest source blobs/hashes/executable-bit entries were verified. Both delta paths were exact at `abedafbf` before import and now match `f84c7020`. The worktree matches 56/58 pins; the two preserved ETF-owned newer overlays are `backend/app/services/baskets.py` and `backend/tests/integration/api/test_baskets.py`. Provider’s seven focused tests and two-file Ruff check/format are Root-reported evidence; this owner did not replay them.
+
+Frontend type-check passed; Playwright discovery lists 9 cases across the owned basket, ETF holdings, and S&P journey specs (no browser bodies run). The workstream validator and `git diff --check` pass. Root owns running the compatible source in the existing fixture; no new browser/DB fixture, Source HTTP, policy, ledger, or production operation was performed.
+
+
+## Provider 8c264 development import and R20 basket follow-up — 2026-11-07 08:04Z
+
+Consumed Root-released Provider source `8c26477498b1963231b0770e30e1ab8087d023a9` from `provider8c264774-runtime-development-consumption-contract.json` (SHA256 `e4422b07e2758de6e3c872b0e7de001b6782d7d487b4df6210bceb6087d39449`). The release contains 59 manifest paths and five declared deltas over F84. Only three paths differed locally and were imported (`data_preparation.py`, `ohlcv_coverage.py`, and `test_data_preparation_service.py`); the two ETF basket service/test paths already matched exact d731 blobs and were preserved. All 59 status-from-139, Git-blob, SHA256, and executable-bit records were verified. Provider's 79 focused tests and five-file Ruff check/format are Root-reported evidence, not replayed here.
+
+Root R20 ran four affected journeys on frontend e8/backend F84/test source `41a300bb4b8360bbefe8cb8583675b77c0c34e76`: ordinary basket CRUD/member-chart/cancel/delete and uncached ETF preparation passed; delayed basket preparation and the prior read-only 403 expectation failed. The exact basket test now requires the ownership-scoped `404 {"detail":"Basket not found"}` for both PATCH and DELETE and verifies the shared system basket remains readable with unchanged name, read-only flags, snapshot provenance and members. Type-check, basket E2E discovery (3 cases), diff check, and workstream validation pass after that correction; its browser body has not been rerun.
+
+The R20 trace contains a successful `GET /api/v1/baskets/10/ohlcv/D1` (`200`, empty array), followed by three unresolved `GET /api/v1/baskets/10` membership reads (`status -1`) and no member-ID ensure calls. The normal route reaches Workstation with `localOnly=true`; `chartStore.loadBars()` calls `startBasketMemberPreparation()` after the basket OHLCV read and that helper awaits the membership GET before submitting the independent ensure requests. The trace therefore shows the basket preparation path was entered but did not reach member dispatch; it does not establish a generation/remount cause. This unresolved shared chart/API interaction is TC-owned. No shared frontend source was changed, no new fixture was launched, and no source HTTP, policy, quota, ledger, or production mutation occurred.
+
+## Provider 2ce29c30 retained-coverage projection development import — 2026-11-07 08:13Z
+
+Consumed only Provider's released three-path delta over8c264: `backend/app/services/data_preparation.py`, `backend/tests/unit/routers/test_data_preparation_router.py`, and `backend/tests/unit/services/test_data_preparation_service.py`. The exact manifest is `provider2ce29c30-runtime-development-consumption-contract.json` (SHA256 `9f7d5b4c54a0d0bad9bf564d0c57b2554d891a13bde5a2dc33a018ef1fac2712`); all59 status-from-139, Git-blob, SHA256, and executable-bit entries match. Persisted request status now reconciles retained compatible coverage without a replacement request, while partial and held states remain intact. Provider focused tests and Ruff checks are Root-reported; ETF did not replay unchanged suites. Root normal-API proof remains pending. R20 basket member dispatch remains TC-owned; the exact404 shared-basket mutation correction has not yet had its corrected browser body rerun.
+
+## Root R22 retained-coverage API proof — 2026-11-07 08:20Z
+
+Root’s focused normal-API proof at `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/validation-fixture/source-ce2262ab/frontend/output/root-r22-cache-first-proof.json` (SHA256 `6b46fb38f279227cb3d322c8db40ae34af998df5ca1efe2b91bf5f754cc999fc`) passed against backend `2ce29c3031ee4a5011f80927dacd984d4f3d166a`. The previously waiting persisted request now reports ready; idempotent short-range replay remains ready; the deep selected-series request reports ready with no pending work; normal local-only retrieval returned1824 finite, positive, adjusted bars from2019-01-02 through2025-12-29. Provider egress was denied and production was unchanged. This proves the focused persisted-cache projection path only, not combined UI, native acquisition, exact-source CI, or release acceptance. R20’s basket-member dispatch finding remains TC-owned; the corrected ETF 404 browser assertion remains pending.
+
+## Root R23 shared basket member-preparation result — 2026-11-07 08:24Z
+
+Root’s R23 run on frontend `77190340` and Provider backend `2ce29c30` started18 cases with one browser worker and zero retries. The first owned basket member-preparation case failed because `firstEnsureWasHeld` remained false after5 seconds; the remaining cases were still running at receipt time. This corroborates R20’s missing member-ID ensure evidence but does not identify the shared-runtime cause. ETF-owned `BasketsView.openBasketChart()` immediately calls `routeToBasketChart()` and owns no preparation barrier; the existing component tests cover this behavior. TC owns the membership loading/member dispatch diagnosis; no TC source was changed here. The corrected ETF read-only basket404 browser assertion and combined profile remain pending Root. Source receipt: `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-r23-basket-current-candidate-failure.json`.
+
+## TC771 and Provider dcd3 development imports — 2026-11-07 08:45Z
+
+Imported only the ETF consumer's21 declared TC771 paths into this worktree from exact source `77190340a4a2335e8f7f9a30ee32ded599a714ef`; all77 manifest Git blobs/SHA256 records were verified and the ETF paths passed old/new-byte and executable-bit guards. The manifest SHA256 is `bb02e23726e7c419c54d35bbd6bfc41ed2e4cf40bf5747f7a5b531753cd7c6fd`. Frontend type-check exited0 after this import. The R23 browser remains known-failing: captured group/snapshot payloads contain all11 sectors including XLB, while the rendered sector list has zero rows; TC owns the shared client diagnosis.
+
+Imported only the four ETF-declared Provider dcd3 paths from exact source `dcd3c823f9f76ed65b65d8b6c3628e1bc02a222e`; all61 manifest Git blobs/SHA256 records and the four working paths were verified. Manifest SHA256 is `723300fa7f2119d3e1856710904f0abe743288cee7f1ab52a685bbb0d2f4d5b3`. Provider's focused tests and style checks are Root-reported and were not replayed. These are development imports only. No browser/DB fixture, Source HTTP, quota, ledger, policy, production, sibling, staging, or deployment operation occurred. Root owns the shared runtime repair and combined qualification.
+
+## R28 raster-oracle repair and TC45 development import — 2026-11-07
+
+Root’s retained R28 screenshot shows XLK’s blue improving tail visibly rendered. The renderer draws its 1px path at globalAlpha0.72 over `.rotation-tool__plot-shell` background `#101419`; near-tail screenshot pixel `(547,272)` is `(70,117,144)`, which projects to effective opacity0.581 along the exact XLK color `(109,187,230)` vector, with residual0.05 and raw-source RGB distance117.55. The previous midpoint predicate compared unblended RGB with an 88 cutoff, so antialiased blended tail pixels failed despite the visible path. The owned audit now models transparent-canvas alpha or opaque-background color projection, rejects opaque markers/labels, and keeps the existing five-segment minimum. Palette literals match the current TC palette. This is a test-oracle correction only; no browser body was run and R28 remains red evidence, not graph acceptance.
+
+Consumed only the ten ETF-declared TC45 paths from exact source `45ea51bfa78b6ae167462b518358164a5a3e29f4`; all77 source SHA/Git blob/executable-bit records verify, with all ten old guards matched before import. The contract manifest is `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-45ea51bf-common-runtime-development-consumption-contract.json` (SHA256 `126b87449853c3e9b52aff4a19d0efd786ad833d16d52b2b76f28914f8dde6c`). Frontend type-check exited0; the owned S&P spec lists2 tests and the supporting-features spec lists4. No browser body, fixture, provider request, or production mutation occurred. Root owns combined browser, exact CI, and release qualification.
+
+## R28/R29 S&P raster and RRG status — 2026-11-07
+
+R28 is not accepted. The owned raster audit now accounts for alpha compositing of the unchanged TC palette over the actual plot background while preserving all marker/tail counts and thresholds. Root R29 ended0 passed/3 failed in138.2s: all11 sector choices rendered, but the XLB price renderer did not mount; the basket member hold was not observed within5s; and the shared maximize diagnostic had no Restore control. These are not a completed S&P/RRG journey, and shared-runtime failures remain with their respective owners. Root's full qualification is pending.
+
+## R30 supporting-feature results and owned note-draft repair — 2026-11-07
+
+Root R30's first four supporting-feature cases ended0 passed/4 failed in77.27s. Alert creation reached the normal API and returned exact HTTP201; the owned assertion now requires201. Notes revealed that a pending550ms save was canceled during symbol change or panel unmount. `InstrumentNoteTool.vue` now flushes that draft at either boundary, keeps unacknowledged content marked pending in the existing query cache, serializes writes per instrument, and lets only the latest revision acknowledgement clear pending state or report Saved. The new focused note lifecycle module passed3/3, and frontend type-check passed. Watchlist and Settings route-script readiness failures remain TC/Provider-owned; the browser journey remains pending Root and is not claimed green. No Source HTTP, database/fixture, production, quota, or provider operation occurred.
+
+## Provider dd70319e exact development import — 2026-11-07
+
+Imported only the four ETF-declared paths from Provider source `dd70319eb725dc6b5c1b4feb0ba5a5ba060efd04` over `dcd3c823f9f76ed65b65d8b6c3628e1bc02a222e`: `backend/app/routers/analysis.py`, `backend/app/routers/research.py`, `backend/tests/unit/routers/test_analysis_router.py`, and `backend/tests/unit/routers/test_research_router.py`. All61 current manifest Git blobs, SHA256 values, and executable-bit semantics verify; the four changed paths matched their old guards before import. Manifest `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providerdd70319e-runtime-development-consumption-contract.json` SHA256 `e6894199dbc54abc0c4f25b6f6dd24e871091f5a9d2d6ccbcc3243bb324dc5e0`. Root reports pinned Ruff check/format passed on all four delta files. This is development context only; Root's backend rebuild, exact CI, browser, and full release gates remain pending. No Provider suite, new fixture, Source HTTP, quota, ledger, or production operation was run here.
+
+## Root R32 S&P status assertion correction — 2026-11-07
+
+Root's focused R32 on frontend `45ea51bf`/backend `dd70319e` ended0/3. The retained XLB/SPY response is canonical-local, current and complete:1824 aligned points, coverage1.0, no warnings, both instruments ready over2019-01-02 through2025-12-29. The separate preparation hold currently replaces the visible ratio's `local adjusted` status; the owned assertion remains strict and TC owns that status-composition defect. A brief permissive status edit was rejected and is no longer in the spec. R32's AAPL/MSFT basket response was200 empty because both had zero common retained candles, so the fixture premise was invalid. The basket journey now pre-verifies cached adjusted SPY/QQQ history and checks the synthetic weighted closes against every shared timestamp. The selected-series basket backend fix and exact PG evidence are recorded below.
+
+## R33 RRG reload response fence — 2026-11-07
+
+Root R33 ended0/4. The S&P case's response waiter could capture a matching pre-reload request and then lose its response body on navigation. The owner spec now tracks main-frame navigation, accepts only the rotation request started after that navigation, consumes its JSON body immediately and checks the response status. It also checks the actual ratio response's canonical-local lineage, freshness, full coverage preflight and exact date bounds. Type-check and two-case discovery pass; no current browser body was run. Root's shared ratio-status composition remains an open TC finding; no unavailable status is treated as equivalent to cached local analysis.
+
+## Selected-series basket aggregation repair — 2026-11-07
+
+Added the existing per-instrument `_default_series_bar_condition` to `get_basket_synthetic_ohlcv`, so alternate feeds cannot add dates or overwrite the selected series during synthetic aggregation. The new integration regression gives both members selected split-adjusted bars plus an alternate-feed-only common timestamp and verifies the ordinary basket contains exactly the selected-series weighted result. The two Root-leased PostgreSQL nodes passed2/2 on the unique empty database and Redis DB15, using provider routing/live flags off and a private quota path; no new containers were created. Root's cleanup review confirms the leased database was dropped with zero active connections, all178 retained public tables stayed unchanged, and Redis DB15 is empty without a flush. Review `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/root-etf-selected-series-pg-cleanup-review.json` SHA256 `8b31d719954b586b6d73ab282092589a6ec862989f430565c8ef95846c0adb46`. Ruff check/format passed both changed Python files. The browser journey now verifies cached adjusted SPY/QQQ local bars and compares every returned basket close with the independently calculated equal-weight rebase. Its browser body is pending Root's combined fixture.
+
+## TC1fd and Provider dd703 development context — 2026-11-07
+
+Imported exactly five ETF-declared TC paths from `1fdc92f1a1628d191ad1d5b2f0ba071a80df5052`: `ToolWindow.vue`, `WorkspaceLayoutHost.vue`, `stores/chart.ts`, and the two matching unit files. All77 current manifest records match SHA256/Git blob/executable-bit semantics; all five old guards passed. Manifest `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-1fdc92f1-common-runtime-development-consumption-contract.json` SHA256 `fddaab9536bb885b9656e861ece0df60481466e365e2b04612c953404f57b70d`. Provider `dd70319e` remains the exact active backend pin; all61 manifest entries and its four ETF deltas verify. These are development dependencies, not browser or release acceptance.
+
+## Note draft auth-session fence — 2026-11-07
+
+Each note draft captures the current auth-session epoch. Queued PUTs assert that epoch immediately before request dispatch and after acknowledgement, so an old user's queued draft cannot be sent with a new session or repopulate the cleared query cache. The existing per-instrument serialization and switch/unmount flush behavior remain. The focused note module passed4/4, including first-save-in-flight, newer queued draft, session boundary, no second request and no cache repopulation. No browser or production/session mutation occurred.
+
+## API-backed ETF controlled snapshot journey — 2026-11-07
+
+Added one no-route-mock browser case to `frontend/tests/e2e/etf_holdings_preparation.spec.ts`. It reads the existing opt-in XLB controlled E2E profile, latest snapshot and rows through authenticated application APIs, then selects XLB through the ordinary picker and requires the exact canonical instrument ID in an automatic holdings-only `/data/ensure` request. The rendered table and lineage must match the API snapshot, including source/date/known-at and LIN/APD rows. Type-check passed and Playwright discovery lists five ETF preparation cases; this browser body has not run. This proves only the controlled seeded application journey, not issuer qualification or genuine-source acceptance. Root owns the combined browser run.
+
+
+## R40 watchlist journey selectors and cached ETF profile selection — 2026-11-07
+
+The owned supporting-feature browser spec now uses the accessible rename textbox name for invalid and valid watchlist renames, anchors the conflict message to the row containing that editor, and addresses the Symbol… picker by its actual combobox role. Playwright discovery lists all four supporting journeys. An initial malformed `npm exec` discovery command invoked the tests and all four stopped in login setup with `Invalid URL` before browser navigation; this is setup failure history, not product or browser evidence. The existing focused XLB selection regression covers an ordinary search without `explicitlyResolved`, an exact stored-profile query while the broad startup catalogue remains pending, cached dated rows visible before startup settles, and a late DIA response that cannot replace XLB. Two targeted selection tests passed and frontend type-check passed. No browser body, Source HTTP, production or quota operation was performed; Root owns the combined browser rerun.
+
+## R40 Watchlist and RRG raster diagnostic — 2026-11-07
+
+The corrected Watchlist browser journey passed1/1 in13.1s on the existing leased fixture with zero retries. The accessible `Symbol search results` listbox scope resolves the SPY option reliably; rename conflict/cancel, valid rename, reload, membership and confirmed deletion assertions remain. Root marked the browser lease `released_terminal`; no further browser invocation was made.
+
+The one RRG diagnostic ended with D1's11markers/11tails audited, then the strict XLK center-pixel assertion failed; W1/MN were not reached. Saved RGBA evidence shows the XLK center covered by the renderer's opaque dark label rectangle, with exact expected-color marker pixels nearby. Initial RRG canvas bounds also show clipping below the viewport. This supports the existing TC product repair (`c49ed47903c7c8ebc611f02ee96545914870a42f`) that draws markers after labels and makes the RRG scrollable; no raster oracle, count, tolerance or reference was relaxed. Root must run the full original RRG journey against that product source before any acceptance claim.
+
+Receipt: `/tmp/etf-r43-rrg-raster-detail/browser-slot-receipt.json` (SHA256 `bf8f2d5275335800ed0141db043c213be3380241af400795dbe70263937ca83b`). Full pixel detail: `/tmp/etf-r43-rrg-raster-detail/rrg-raster-d1.json` (SHA256 `140204f97eacc8414923d41c0de39d2658693a7822c5bfab4a38741861bafa7a`); trace remains in the existing validation-fixture output. The focused run did not touch production, provider transport, data, quota, or shared services.
+
+## R45 pre-marker raster diagnostic preparation — 2026-11-07
+
+R44 saved geometry shows coincident same-color path segments: XLK/XLY overlap 2x, while XLI/XLP/XLB overlap 3x. With alpha0.72, ideal source-over opacity is0.9216 and0.978048, which can exceed the final-canvas oracle's0.75 ceiling. Every weakening segment is shorter than4px and radius-2 markers are painted afterward, so final pixels cannot identify the stroke layer independently. The test audit now records 3x3 RGBA neighborhoods immediately before and after each actual tail stroke, before labels and markers; original marker/tail assertions, minimums, RGB/residual tolerances, references and product code are unchanged. R45's first diagnostic attempt exited during workspace bootstrap before the RRG body; Root repaired only the existing idle browser's PID reaping and ran R46 shared-state cases, which ended1/4. No new RRG lease was released at this handoff. Focused TypeScript checking passed with a temporary `/tmp/etf-process-shim.d.ts`; Playwright discovery listed both S&P cases and `git diff --check` passed. No browser body or product/runtime/fixture/provider operation was run for this diagnostic edit. Root owns the next RRG browser slot and will use the pre-marker evidence to decide whether a source-over oracle correction is warranted.
+
+## R47 alpha-aware RRG and current shared-runtime context — 2026-11-07
+
+Imported exactly the22 ETF-declared TC paths from `a2e222251d4ea796d0d4bfb6b0e8705f503c1e4d` and9 ETF-declared Provider paths from `182173f346d4a27694a46beba057102a5b7449e6`, after old/new byte guards. Full manifest validation passed83/83 TC rows and62/62 Provider rows for `status_from139`, SHA256, Git blob, and executable-bit semantics. The a2e manifest copy and entry are recorded under `development-dependency-imports/`; prior 1fdc and dd703 pins remain historical.
+
+The R47 predecessor browser body remains failed: all11 markers passed, then XLK failed the old raster oracle; Root adopted the one raw-pixel receipt at `validation-fixture/etf-r47-rrg-tail-terminal-receipt.json`. Root's measured sample shows raw alpha182->217 and source #e7bc68 with2.51 RGB residual, demonstrating source-over rendering rather than an opaque RGB pixel. The current oracle requires per-segment before/after source-over agreement (individual contribution0.2..0.75, RGB residual<=8, positive CSS-composited contribution) and an actual final-canvas source-colored pixel outside marker interiors. The cumulative final-canvas opacity may reach1.0 for overlapping strokes; no other raster count/minimum/color/residual/math/reference was relaxed.
+
+Focused evidence on current source: `npm run type-check` passed; `test_relative_rotation_tool.test.ts` passed19/19; Playwright discovery listed both S&P cases. No browser body ran in this checkpoint. Provider owns the E2E-only sector fixture update because XLC's10-point D1 tail spans only0.000014px, making five visible segments impossible. Strategy owns the remaining Results restoration behavior. Root owns the corrected-fixture full RRG/Results combined browser check and release qualification.
+
+Automatic `make agent-context` classified this as the assigned ETF implementation worktree using an isolated UV cache. `make agent-session-start BRANCH=feat/etf-holdings-constituents` could not finish because the shared registry lock `/home/m920q/charting-platform/.ai/runtime/allocations.lock` is read-only in this sandbox; the existing claim/workstream were preserved and no runtime allocation was changed.
+
+
+## R52 D1 raster sampling and current shared dependencies — 2026-11-07
+
+The owned S&P spec now samples five interior positions on each of the nine RRG tail segments. A segment counts only when a measured before/after source-over pixel also remains visible in the final canvas outside marker interiors. Existing per-stroke alpha contribution, residual, color, math, 11-marker, 10-point, and five-segment requirements remain unchanged. Geometry now checks at least100 CSS pixels of canvas height and full viewport/overflow-ancestor containment; width and painted-pixel checks remain unchanged.
+
+Root’s exact R52 event receipt is `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/validation-fixture/etf-r52-d1-original-terminal-event.json`. The single D1-only diagnostic passed1/1 in27.2s on TC `c9fc3bbb` and Provider `dd05c5e8`, one worker and zero retries. All11 marker assertions and all11 tail assertions passed; XLI met the retained minimum with exactly5 segments. The browser was independently idle and the lease was closed by Root. `ETF_RRG_D1_DIAGNOSTIC=1` returns after D1 only and is not full D1/W1/MN or layout-lifecycle qualification.
+
+Current development dependencies are TC `c9fc3bbb` (exact10 ETF imports,85/85 manifest records verified; manifest SHA256 `762e04066871d894e6da4bcc863f3cb8558d6473793eada942195f95a91275f6`) and Provider `dd05c5e8` (exact6 ETF imports,64/64 records verified; manifest SHA256 `0be00f63f7c9c77b2f4c41696657e122bd54265ff68b614f6e9d958b074493e9`). Prior a2e22225/182173f3 imports remain preserved as historical records.
+
+Read-only Strategy review of `workstation_lifecycle_journey.spec.ts:149-205`: `readRrgMarkerAudit` checks one rounded center pixel for exact expected RGB and alpha255. The R51 raster is 696x136 at DPR1 with11 latest markers; the minimum exact opaque state-color count in a3x3 center neighborhood is4, while XLC’s exact center is `[230,180,107,255]` vs expected `[231,188,104]`. A bounded marker-interior neighborhood check requiring at least one exact opaque state-color pixel would avoid this single-pixel false negative while preserving latest-frame, marker-count, and clipping assertions. No Strategy files were edited.
+
+Root still owns the normal full RRG D1/W1/MN and layout lifecycle replay, Results acceptance, exact CI, and all release gates. This checkpoint makes no full-journey or release-acceptance claim.
+
+
+## TC 2666 common-runtime dependency — 2026-11-07
+
+Consumed the six ETF-declared paths from TC source `2666aa559afbff7cff8dff6b50ead357ae1f654f` under the released old-byte guards; the remaining TC/ETF/Strategy files and producer records were not imported. The current manifest copy is `ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/2666aa559afbff7cff8dff6b50ead357ae1f654f.json` (SHA256 `f0784a8337d3d53add381b0f06f9fd37e7e27fa861bca70d97e78ba341f3a10a`); all86 source status/SHA256/Git blob/executable-bit records and all six consumer paths verify exactly.
+
+TC's generic draw-order fix paints every latest RRG marker after historical circles, addressing the real R53 layering failure. The strict ETF 3x3 latest-center oracle is unchanged. Root reports21 focused RRG regressions green; no test or browser body was run here. R52 remains a D1-only pass on predecessor c9/Provider dd05, while normal full D1/W1/MN, layout lifecycle, Results, exact CI, and release qualification remain Root-owned and pending. Prior failure receipts, roadmaps, and the Strategy read-only finding remain preserved; no sibling files changed.
+
+
+## Provider 22c31 source-specific history planning dependency — 2026-11-07
+
+Consumed exactly the six ETF-declared Provider paths from `22c31cd3e7f35e361e286ef40576d379aaf44449` after each dd05 old-byte guard passed. The local manifest copy is `ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/22c31cd3e7f35e361e286ef40576d379aaf44449.json` (SHA256 `a5079b0eb78a8fd67e48e94a7d749bc171ffa2b21165fc9c59c405501dc2db85`); all67 source status/SHA256/Git blob/executable-bit rows and all six imports verify. The source-specific unknown-depth plan and earliest-history witness preserve independent eligible alternatives for explicitly bounded requests. Provider handoff reports54 focused tests, with Ruff/format/compile/diff checks; no account-specific Twelve Data permission is asserted, and there were no live requests or quota/policy/production operations here.
+
+Local focused check: the two imported unit modules collected178 tests;177 passed, and one mocked admission case failed only with `PROVIDER_ROUTING_ENABLED=0`. That same node passed when logical routing was enabled and outbound HTTP was directed to a dead proxy; it asserted no provider request log. No quota ledger file was created. TC 2666 remains the active common frontend dependency; its strict latest-marker oracle is unchanged. Root owns full RRG/browser, native-use review and final release gates.
+
+
+## ETF acquisition controls and TC EasyScan dependency — 2026-11-07
+
+Root visual review R60 found the selected ETF acquisition actions adjacent and visually unstyled. `ETFHoldingsView.vue` now gives the scoped Check saved holdings / Load or Refresh holdings controls TC-token borders, spacing, wrapping, hover, focus-visible, and disabled states; automatic preparation, identity, provenance, and action handlers are unchanged.
+
+Consumed only the two ETF-declared EasyScan paths from TC `e902e83597661de1e5a636a2d94902b0fe01b747`. Both old guards passed before import; the full86-row source manifest and local copy SHA256 `a87a59f7c1e76e1c8273e2949b67d676d72a43ee2b691463f82482567c71683f` verify. No other TC files were copied. Focused ETF view unit tests passed29/29 and frontend type-check passed. Root owns selected-ETF visual inspection and all combined browser/release gates; no browser, provider request, or data operation was run here.
+
+
+## TC d954 narrow-header context — 2026-11-07
+
+Consumed the sole ETF-declared path `frontend/src/views/WorkstationView.vue` from TC `d954436898a254ba9bb461ebc86a55f248172d5d` after its e902 byte guard passed. All86 source manifest Git blob/SHA256 rows verify; local manifest copy SHA256 is `40d280acde2d67ee082998c63f5ee8c3941219080de67dfb9a6a3a190f6e2ddc`. The change is responsive header layout only. Root owns the 1024px visual inspection, combined browser qualification, and release gates.
+
+
+## Native cold-symbol discovery correction — 2026-11-07
+
+The unseeded BWET journey no longer assumes its first canonical `/instruments/search` returns a listing. It follows Workstation's empty-local-result path, waits for the visible unique exact provider-discovery choice, selects it through the UI, and takes the canonical instrument ID and identity status from the normal `/instruments/acquire` response before checking the automatically submitted `/data/ensure` request. Ensure must target that exact canonical ID; ambiguous local or discovered exact listings fail closed. Known IGV reselect remains on local search. Discovery/acquisition retry timestamps and statuses are retained in sanitized test attachments; discovery/acquisition waits are bounded at120s within the480s journey timeout. Existing BWET futures/cash provenance, chart bars/tooltip, IGV resolved-equity drilldown, context clearing and reload assertions remain unchanged.
+
+Playwright discovery listed the single native selection journey and `git diff --check` passed. No browser body, native request, database or production operation was run. Root owns genuine-source execution and acceptance.
+
+
+## Native ETF discovery listing choice — 2026-11-07
+
+Updated only `native-selected-etf-journey.spec.ts` for Root review `root-native-fc4d-ETF-listing-proof-contract-review.json`. Cold BWET discovery may contain a weak EDGAR hint and a real ARCX exchange listing; the spec now ignores candidates without an exchange, requires exactly one exact-symbol ARCX candidate with a supported ETF/ETV/ETP type, selects its exact visible accessible choice, and binds acquisition to that candidate's provider and exchange. The resolved canonical instrument must report the same primary listing MIC. Duplicate ARCX candidates fail closed. Existing bars, chart paint/tooltip, holdings rows/provenance, XHB/IGV flows and drilldown assertions are unchanged. Playwright discovery listed the single journey and `git diff --check` passed; no browser body, Source HTTP, runtime or data operation ran. Root owns execution against the genuine fixture. Spec SHA256 `3df9ef6bdaf4dfb3261ba21ef30cf733654ca917a0efa5a40bc48825f30eaabe`.
+
+
+## Provider e08b development import and native held-result review — 2026-11-07
+
+Imported only the four declared Provider deltas from `e08bdf4aac086845603091cd0638903a47136d3b` after their old-byte guards passed. The local manifest copy is `ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/e08bdf4aac086845603091cd0638903a47136d3b.json` (SHA256 `fc219d0fd8c46e82c6d660c966ca68b5374b78497c0b26b0996ab62d363969ec`). All73 released manifest rows match the source Git tree/blob/SHA256; the four imported working files also match exact source bytes and executable-bit semantics. Other listed consumer paths were not overwritten. This is a development dependency only; no provider suite or browser was rerun.
+
+Read-only review of `root-native-e08b-holdings-negative-recovery-review.json`: ETF `prepare_etf_holdings` passes the shared `context.request_id` to `acquire_etf_holdings_profile`. The refresh path binds the exact issuer request and uses that request ID for request-scoped rejection evidence; the ETF acquisition/bridge path has no held-result memoization/cache. The reused negative is in Provider's durable child coalescing: `data_preparation._enqueue_etf_holdings_job` derives `request_key` from `prep-holdings`, instrument ID, and hourly freshness scope before `enqueue_refresh_job` reuses the child. Provider owns reevaluating a completed negative child after policy eligibility changes while preserving the original job and concurrent deduplication. No job reset, source query/request, native replay, browser/runtime operation, or ETF source edit occurred.
+
+The existing Notes lifecycle implementation/checkpoint remains unchanged; the prior genuine-flow profile still has shared shell navigation failures for Watchlist, Alerts, and Settings, already assigned to TC. No Notes or shared-menu changes were made in this dependency checkpoint. Root retains exact CI, combined browser, native recovery, and release gates.
+
+
+## Native BWET future-date disposition and XHB admission handoff — 2026-11-07
+
+Root's read-only native receipt `root-native591-BWET-future-composition-review.json` and captured SPDR evidence were reviewed without printing private payloads. The retained Amplify CSV response was received at `2026-11-07T21:23:31Z`, 277366 bytes, SHA256 `2573415fe01da396a777b76d7f18b8c4515f2ed4555e96806b4e2b192fccee8c`; its only composition field is `Date`, and all12 selected BWET rows agree on `2026-11-09`. The parser correctly records `selected_account_rows.date`; the future-date guard remains unchanged. Failed child1298 created no snapshot. The acquisition layer now preserves `future_dated_source` from the existing failure classifier, and the preparation hook returns `failed` with the same typed reason while retaining the previous stale snapshot only as dated evidence. Focused acquisition/preparation regressions passed4/4; Ruff check/format and diff check passed. No Source HTTP, replay, policy, runtime, or database mutation occurred.
+
+Read-only XHB follow-up links child2827 (`waiting/provider_quota_admission_held`, retry unknown) to the ETF request flow. XHB SPDR request-log1606 is attached to rejected artifact70; its failure is `ProviderQuotaAdmissionError` for the shared SPDR holdings operation. The adapter makes one logical workbook request with redirects enabled, while the shared bridge admits each physical redirect hop; evidence is consistent with Provider denying a follow-up hop before transport. The exact status/redirect target are not retained. The current reviewed application scope reports4 effective uses against recorded18, no active/pending/uncertain reservations, but current limit status unknown; do not infer vendor exhaustion. This is Provider-owned admission diagnosis; no ETF bridge/planner change or request was made here. Root's separate XHB/IGV genuine proof remains pending.
+
+## Provider ad114 development import — 2026-11-07
+
+Consumed exactly the22 ETF-declared paths from Provider source `ad114d20eff04992f384b5a57bb3999e3da6d6f7` after all old-byte guards passed. Manifest `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providerad114d20-runtime-development-consumption-contract.json` SHA256 `1854e1e23b605629b7772111426d91b6ba36c0758ea4a41efcda31fe35329f02`; local copy is `ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/ad114d20eff04992f384b5a57bb3999e3da6d6f7.json`. All74 manifest records match the exact release tree, including path status, Git blob, SHA256, and executable-bit semantics. All22 declared local imports match the released bytes. The manifest's `backend/tests/unit/services/test_etf_holdings_preparation_hook.py` row is not an ETF import path and its newer local regression test from `3969a80a` remains unchanged. Four focused offline tests passed: held-child recovery/coalescing, typed known/unknown retry handling, and the retained future-source failure disposition. No Source HTTP, provider runtime, quota, policy, database, browser, production, or sibling operation occurred. Provider owns the XHB redirect-admission diagnosis; Root owns genuine/native and combined release qualification.
+
+
+## BWET future-dated issuer boundary journey — 2026-11-07
+
+Added a separate offline-authored native boundary case at `ops/workstreams/feat-etf-holdings-constituents/native-bwet-future-source-boundary-journey.spec.ts` (SHA256 `08530d20fa378ae7136e1ea5b603281676a8573a3ffa1f6fc55fac7e5938a59f`). It follows the ordinary Workstation BWET search and selection, observes the UI-issued history and holdings preparation requests, reads their normal status endpoint, and requires the holdings dependency to remain `failed/future_dated_source` while history has real coverage and persisted D1 bars render with a matching OHLC/date tooltip. It separately requires current BWET holdings to remain HTTP 404, no constituent rows or holding lineage to leak into the selected context, and reload to retain BWET history plus the typed future-date disposition. The price-canvas/tooltip witness is copied from the frozen strict native proof; that proof file is unchanged at SHA256 `3df9ef6bdaf4dfb3261ba21ef30cf733654ca917a0efa5a40bc48825f30eaabe`.
+
+The source boundary remains held: Root's retained evidence confirms composition date 2026-11-09 versus the 2026-11-07 review date. This test does not accept the future composition as current and does not replace the original BWET current-holdings assertions. Playwright discovery listed exactly one case; the browser body remains Root-owned and pending. No mocks, API prewarm, Source HTTP, DB writes, or runtime changes were used. An initial discovery attempt used a mistyped temporary-config path and found no tests; the corrected discovery command passed and the temporary config was removed.
+
+
+## BWET future-source UX oracle correction — 2026-11-07
+
+Root review of checkpoint `815bf46dbe4796b660daf71bbad2ee0fcf3a6069` identified a stale generic reason assertion. Read the frozen TC14f source only (manifest `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-14f335e2-common-runtime-development-consumption-contract.json`, SHA256 `98b65e2cd6271f4b78e216b2b47783e75fb82530f66a3429beabb9868220d7ff`; source `14f335e28a352b508b8b7f6710937c3e2bd7b874`; `frontend/src/lib/dataPreparation.ts` Git blob `f293a907009583c77d84c18d76a34912383dd80d`). Its holdings-specific `future_dated_source` message is now asserted exactly, including that the current price view remains usable. The no-leak check now selects only constituent rows in the actual `.watchlist__scroll[role=listbox]`, excluding hidden filter `<option>` elements. No TC file was imported or edited.
+
+The separate BWET case is the only changed test; Playwright discovery lists exactly one test. Browser execution remains Root-owned and pending. Original strict three-ETF native proof remains unchanged at SHA256 `3df9ef6bdaf4dfb3261ba21ef30cf733654ca917a0efa5a40bc48825f30eaabe`. Updated spec SHA256 `3d4bb78fbbb369a9707db4bc1c21dc0b7d172e3871f1da38453392780b5dbe46`.
+
+
+## Native XHB current rows proof successor — 2026-11-07
+
+Root review `root-native-XHB-current-rows-proof-contract-review.json` confirmed
+the genuine XHB snapshot and its 36 reported rows, including a cash row with an
+em-dash symbol and authoritative reported name. Added
+`native-selected-etf-journey-successor.spec.ts` as a separate successor; the
+original strict `native-selected-etf-journey.spec.ts` remains byte-identical.
+The row helper scopes checks to the actual constituent watchlist listbox, binds
+rendered DOM IDs to the selected ETF, snapshot ID and holding ID, and checks
+each rendered row's reported symbol/name and row/holding type. Missing symbols
+are matched as the UI's em dash without inventing an identity. The resolved
+equity drilldown selects only an actual listbox row by its stable source-bound
+ID. Current snapshot, provenance, paint/tooltip, lineage, reload and strict
+BWET assertions are preserved. Playwright discovery listed one case; the
+workstream validator and `git diff --check` passed. No browser body, Source
+HTTP, runtime, database or production operation ran. Root owns XHB/IGV variant
+derivation and browser execution. Successor SHA256
+`b0a48ae2d5e2c0f91ae531d908aa0f15de947f80e4f663a8217e4cb4a707b81d`.
+
+
+## Provider 9b runtime import and native tooltip date binding — 2026-11-07
+
+Consumed only the17 ETF-declared paths from Provider source
+`9b196304b573e323fb349fe4d7badfe2d8208f95`; the previous ad114 pin remains in
+the historical plan/session records. The exact manifest copy is
+`development-dependency-imports/9b196304b573e323fb349fe4d7badfe2d8208f95.json`
+(SHA256 `fc1cbb7bd2fa5f5d0dcaf30177270ebab81f0572c2b50b1d381086441e32b353`).
+All76 manifest status/blob/SHA rows were checked against source; all17 ETF
+paths passed their old-byte/executable-bit guards and match the released source.
+An initial preflight incorrectly compared the scoped76-row manifest to all175
+commit paths; it made no writes, and the corrected per-row check passed.
+Focused preparation-contract/service and ETF bootstrap/bridge tests passed
+166/166; deeper-default worker and refresh-queue tests passed13/13 (179 total).
+These are focused local unit checks, not Provider release or native acceptance.
+
+Root review `root-native-XHB-tooltip-price-collision-review.json` identified
+two XHB bars with the same close on different dates. The successor no longer
+uses close as a bar key: it matches the chart tooltip's displayed D1 date to
+the browser-formatted API timestamps, requires one matching persisted bar, and
+compares tooltip O/H/L/C with that bar at the chart's four-decimal display
+precision. Price paint and all selected-fund, snapshot, provenance, row,
+drilldown and reload assertions remain. Playwright discovery lists one test;
+no browser body or Source HTTP was run. Original strict proof SHA256 remains
+`3df9ef6bdaf4dfb3261ba21ef30cf733654ca917a0efa5a40bc48825f30eaabe`; current
+successor SHA256 is `52d122de949d0f88228f86dc304d6a50d630439f3a47cd5d875bc1f0d0f94bb6`.
+Root owns the native browser execution and all release gates.
+
+## Provider cc31077 native-prerequisite rollback import — 2026-11-07
+
+Imported only the two ETF-declared paths from Provider source
+`cc31077c60545e8455d1f064411fbddae7d21fe1`: `backend/app/tasks/data_tasks.py`
+and `backend/tests/unit/tasks/test_data_tasks.py`. The Root manifest
+`providercc31077c-runtime-development-consumption-contract.json` has SHA256
+`ef257b2871ebfe5fafb9b3bd2ee6994e9c9c3faea9ba9aaa7d295facae2a0574` and its
+local copy is under `development-dependency-imports/`. All76 manifest rows
+match source blobs and SHA256; both imported paths matched their9b old guards
+before copying and now match the new source. Existing file modes were retained.
+
+Root reports the focused rollback repair preserves the native prerequisite
+queue graph across validated-lease row-lock/DB-failure rollback; the pinned
+style checks are green and the image build is underway. ETF did not rerun the
+Provider/backend suites. Root's prior XHB/IGV browser attempt used predecessor
+test source `bd3a2e477` and failed at the duplicate-close tooltip-date check;
+source `74fa44175` now matches by tooltip date and verifies OHLC. Root's
+browser-closed MSFT attempt remains a failed unattended acquisition: the
+receipt shows no bars and deferred price jobs. Root owns the durable-job worker
+restart proof. No native retry, Source HTTP, quota/ledger, production, database,
+or runtime mutation was performed by ETF. This is a development import only;
+all combined, native and release gates remain pending.
+
+
+## TC 2a8 and Provider b192 development dependency coalescing — 2026-11-08
+
+Root released exact TC source `2a8dc9e4c28a9632ffdf8f484ad12a985df70cd3` and Provider source `b19293006ea624a4f0c05a4fd91152ffd650a426` for development consumption only. ETF imported only the58 and15 paths in their respective consumer `import_paths`, after all old guards passed; equal-byte files were left untouched. Full source contracts are preserved under `development-dependency-imports/`: TC2a8 manifest SHA256 `46b99b84e501358e1f3c83780c8b72d7e9e41d107aacbb8e5b56c864f924c521`, Provider b192 manifest SHA256 `97b429b3d99e4f8da78edcc10ed13178a17b482e31a136941f8acff14290457d`. All126 TC and78 Provider source rows passed Git blob/SHA256 verification; all73 resulting ETF imports match exact source bytes and executable-bit semantics. The previous active TC2666 and Provider cc310 pins are archived in session history. No producer suite, ETF test suite, browser, fixture, Source HTTP, native request, quota/production operation, staging change, or push was performed. Root owns final combined qualification and release.
+
+
+## Provider 19d34d0b development dependency — 2026-11-08
+
+Root released Provider source `19d34d0b3e875b29b276ee80e471311586e6023f` for exact ETF development consumption. The local exact manifest copy is `ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/19d34d0b3e875b29b276ee80e471311586e6023f.json` (SHA256 `0d1fa69e0e97f890176f71de1115418af035d8a02933211b8b1de84d98abe294`); all79 source rows match Git blob/SHA256 records. ETF imported only the8 declared `import_paths` after every b192 old guard passed; imported file modes preserve Git executable-bit semantics. Prior active Provider b192 is archived in `session.json` and retained in the plan history. Provider reports five real PostgreSQL cases and89 focused unit cases; ETF did not rerun those tests or access the assigned DB. No Source HTTP, native/provider request, quota/policy/ledger, production, browser, fixture, or staging operation occurred. Root owns combined/native/exact-CI qualification and release.
+
+
+## TC 8d96 common-runtime development dependency — 2026-11-08
+
+Root released TC source `8d96cf3bd702459c4eef2ced93ec1dfb8db3dc2f` for exact development consumption. The local manifest is `ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/8d96cf3bd702459c4eef2ced93ec1dfb8db3dc2f.json` (SHA256 `2959432285dd2d58271261d539b4e30700bb38f2bf4b7b84727887a91078d4a1`). All95 source rows were verified; only the15 ETF-declared paths were imported after every7ac old guard passed, and destinations match released bytes and Git executable-bit semantics. The prior2a8 current pin is preserved as historical. This release transfers `on_demand_acquisition.spec.ts` to TC ownership; private ETF-domain and basket paths were untouched. Root's four-case combined result remains red and under TC diagnosis; this import is not product or browser acceptance. No tests, browser, fixture, Source HTTP, DB, quota, policy, ledger, or production operation was run. Root owns the corrected combined profile, exact CI and release acceptance.
+
+## Native per-fund chart proof successor — 2026-11-08
+
+Root assigned a test-only strengthening through
+`ETF-native-per-fund-proof-preparation-assignment.json`. In
+`native-selected-etf-journey-successor.spec.ts`, the helper now observes the
+page-originated selected-symbol D1 response before selection, validates its
+symbol/timeframe/status and finite bars, cross-checks every returned OHLC row
+against the authenticated persisted read, and binds the rendered chart to the
+single active visible chart tool at D1. Price-canvas paint and the tooltip's
+date-bound OHLC checks now use that actual page response. Existing bounds,
+source/provenance and exact-value assertions remain unchanged.
+
+The former serial BWET/XHB/IGV flow is split into independent XHB and IGV test
+cases, so an XHB chart failure cannot suppress IGV's current-snapshot and
+drilldown evidence. The IGV case retains source-bound holding selection,
+lineage, constituent chart, return-to-IGV and reload/snapshot assertions. The
+separate genuine BWET future-source boundary spec and the original strict proof
+are unchanged. Correct focused Playwright discovery lists two cases. An
+initial discovery attempt against `frontend/playwright.config.ts` correctly
+found no tests because the assigned spec is outside that config's testDir; the
+focused ops-directory config then discovered both cases. No browser body,
+source HTTP, fixture, runtime, shared product, database, policy, quota, ledger,
+production or sibling-worktree operation ran. Root owns IHI/IYW/IGV derivation
+and actual native execution. Successor spec SHA256
+`fbbde53011b6ba9c7e9339924dce6277eeb31ca3578841a3fcb96bf383ec469b`.
+
+## Cold native primary-chart response binding — 2026-11-08
+
+Root review `root-ETF2124-cold-page-observer-review.json` showed that the
+earliest same-path D1 response can be an empty `limit=31` Watchlist read or an
+empty `limit=500` response before cold history arrives. The ETF successor
+observer now ignores those responses and resolves only for a successful exact
+selected-symbol D1 `limit=500` response in the default-adjusted/explicit-true
+scope whose body has multiple finite OHLC bars. The observer remains installed
+before selection; no API prewarm, retry, timeout increase, or mocked response
+was added. The accepted page payload is consumed before the existing persisted
+history comparison, then the same visible active-chart, canvas paint,
+date-bound tooltip and exact OHLC assertions run.
+
+Updated successor SHA256 is
+`f77d9706ab92d236f765fe8ba451207551c82aaaf97f6597ae1572671294ed48`. The
+original strict proof and separate BWET future-source proof remain unchanged.
+Root owns IHI/IYW/IGV derivation and actual native browser execution; no browser
+body, source HTTP, fixture, runtime, database, quota, production, or shared
+product operation was run.
+
+## TC a49a5e05 common-runtime development import — 2026-11-08
+
+Root released source `a49a5e05825b28bf5dbbe5de34e7419133c44f49` under
+`tc-a49a5e05-common-runtime-development-consumption-contract.json` (SHA256
+`2064477a8ad40e41749b66f435ea9007c135b3892dc33acc0d327562d87b90fa`). The
+exact local manifest copy is
+`development-dependency-imports/a49a5e05825b28bf5dbbe5de34e7419133c44f49.json`.
+All99 source rows were verified against Git status, blob and SHA256; all15
+ETF-declared paths passed their old guards and now match source bytes and Git
+executable-bit semantics. The prior8d96 pointer is preserved as history. This
+is shared-runtime development context only; TC retains ownership of the
+transferred on-demand acquisition spec. The native cold-page observer is
+unchanged at SHA256
+`f77d9706ab92d236f765fe8ba451207551c82aaaf97f6597ae1572671294ed48`.
+Root owns the compatible native browser and combined ETF/basket qualification;
+no tests, browser, Source HTTP, fixture, DB, quota, policy, production or
+deployment operation ran during this import.
+
+## Cold-page chart and persisted-series version binding — 2026-11-08
+
+Root review `root-ETF2124-cold-page-observer-review.json` confirms the observer
+must ignore empty same-path responses and Watchlist `limit=31` reads. The
+successor filters for the actual selected-symbol D1 `limit=500` chart request,
+default-adjusted or explicit adjusted data, and multiple finite bars. This
+follow-up also handles a cold source upgrade between that page response and
+the authenticated persisted read: every page bar must match the current
+persisted OHLC at the same timestamp. If the stored default has advanced, the
+test observes the next ordinary populated primary-chart response and compares
+that version instead, within the existing 90-second persistence bound. It
+preserves the visible chart, paint, tooltip-date and exact OHLC assertions; no
+prewarm, mocked response, retry policy or timeout increase was added.
+
+Focused Playwright discovery lists the same two independent XHB and IGV cases;
+`git diff --check` passes. No browser body, native/source HTTP, fixture,
+runtime, database, quota, production or shared-product operation ran. The
+separate strict proof and BWET future-source boundary remain unchanged. Root
+owns actual native browser qualification. Current successor SHA256
+`850904227597b32ceeb6423bd84f56a868124f645d9a3a2d3f4c29977fa2a8c7`.
+
+
+## ETF view preparation-subscriber cancellation regressions — 2026-11-08
+
+The focused ETF holdings view tests now observe the signal passed by
+`ETFHoldingsView` to `dataPreparationCoordinator.ensure`. They assert that the
+view subscriber is aborted on unmount or fund switch and that a late result
+cannot refresh or replace the newly selected fund. They do not require the
+coordinator's shared transport signal to abort synchronously while a request
+may still have other subscribers. The ETF holdings view module passes29/29 and
+the existing frontend type-check passes. No browser, backend, Source, quota,
+or production operation ran. Test file SHA256
+`abbf877da26e1547e4b0ab8c0304706effa2b24fd1caad7a29e3125d698cf84e`.
+
+
+## Provider9e2 exact backend context import and native proof selector — 2026-11-08
+
+Root released Provider source `9e2de1591cb8fc124839309ff4549808b7632844` under
+`provider9e2de159-runtime-development-consumption-contract.json` (SHA256
+`f8b7724293e20dee3f3dbe739c28a4bd5dc19e6991685c67211f035a8fc23672`). All79
+manifest rows match the source Git blobs, SHA256 values and base statuses. The
+seven ETF-declared paths passed their exact per-path old guards and now match
+the released source; the prior19d pin and manifest remain archived. The
+release provides shared derived-coarse-cache behavior; this is development
+context only. ETF did not rerun Provider suites or the assigned PostgreSQL DB.
+
+Root review `root-native9e2-IHI-visible-chart-focus-oracle-review.json` showed
+that the real IHI candles rendered while focus remained in the symbol input, so
+`.tool-window--active:visible` was not a valid primary-chart locator. The
+private proof now selects the one visible primary chart tool containing the
+exact selected symbol, independent of keyboard focus. D1, canvas paint,
+date-bound tooltip OHLC and holdings/provenance checks remain unchanged.
+Playwright discovery lists the same two XHB and IGV cases. No browser body,
+native request, fixture, runtime, DB, quota or production operation ran.
+Updated private proof SHA256
+`68437e4f6810be657a723061cbb3ba9ee9c95e6c64cacb227b7ee5adedb27da2`. Root
+continues the three-case native proof and owns final qualification.
+
+## TC305 full frontend context reconciliation — 2026-11-08
+
+Root released TC source `3055946ceabbfd51e51281f06c3f98f766f0d019` for
+development context under
+`tc-3055946c-full-frontend-context-development-consumption-contract.json`
+(SHA256 `35a5a9b010db149ba72d3b2ec01afbdcf1f0b48d11585bc432d6ca4dabb10246`).
+The exact 135-row manifest was verified for source Git blobs, SHA256, base
+status, and executable-bit semantics. All 16 ETF-declared import paths passed
+their pre-import guards and now match source. The ETF-only foreign context pin
+contains 125 paths; ten owned private paths were already byte-identical and
+were neither imported nor included in that pin. The prior TC a49 pin and receipt
+remain archived; Provider 9e2 remains the current backend dependency.
+
+Root reports three native ETF cases passed in 133.93 seconds on the reported
+35d9 source. That result is external development evidence, not acceptance of
+this 305 context or the complete release. Two TC priority-coupling defects,
+combined qualification, exact CI, and final release gates remain open. This
+context import ran no browser, test suite, source request, fixture, Docker,
+quota, or production operation.
+
+
+## Notes foreground-priority repair and exact shared contexts — 2026-11-08
+
+Root assigned the ETF-owned `InstrumentNoteTool.vue` repair from the saved TC foreground proposal. The component accepts an optional shared request-priority prop, sends its authenticated note read with the query abort signal and stable `instrument-note:<id>` queue key, and promotes that queued read when the surface becomes high priority. Existing debounced save, auth-epoch, context-generation, late-acknowledgement, and cache guards were preserved. The existing Notes unit module keeps its autosave/auth/context regressions and now mocks the shared queue-promotion export required by the component.
+
+Focused validation passed: `frontend/tests/unit/components/test_instrument_note_tool.test.ts` **4/4**, and `npm run type-check` passed against the exact TC9ec context. No browser, database, provider/native HTTP, full suite, or production operation ran. Component SHA256 `4e099ff611a9e7609ae59a6c2cc9452a5fd71028e9b012398de967acf01f50b4`; Notes test SHA256 `57b51b7bdd1327bceff2e692bb4967c8eedae9e31eea86178211986bf32d6506`.
+
+Consumed Root-released TC source `9ec4d7833c45cd2fc51916a2378445f7761b425e` using exactly12 ETF-declared old-guarded imports. Its complete136-row manifest verifies; the active foreign pin is126 paths and excludes all10 ETF-private paths. The previous305 dependency is retained as historical. Separately consumed exactly3 old-guarded Provider operator-test paths from `aed0d62c7e93ee6bd320c6b7a22791bb8d3d8b87`; the current Provider runtime pin9e2 (79 rows) was not changed. Exact manifest copies and current plan pins are recorded.
+
+Remaining integration requirement: the imported shared `WorkstationToolContent.vue` still renders `InstrumentNoteTool` without binding `requestPriority`; it must pass the actual foreground/visibility priority for the component's high-priority path to activate in the live caller. That shared caller remains TC-owned and was not edited. Root owns the combined browser profile, exact CI, publication, and release gates; no browser acceptance is claimed. The complete ETF roadmap and all prior evidence remain open/preserved.
+
+### Visible Notes shared-query priority join — 2026-11-08
+
+Root's `ETF-visible-Notes-shared-query-join-repair.json` identified that a
+visible high-priority Notes panel can join a pending hidden Notes read under
+the same TanStack Query key. Since the pending query function is reused, the
+new fetch options alone cannot promote its already-queued HTTP request. The
+ETF-owned `InstrumentNoteTool.vue` now promotes `instrument-note:<id>` when a
+high-priority load begins, including initial high-priority mount and instrument
+changes; the existing watcher still handles later priority changes. One shared
+QueryClient regression verifies the visible join promotes the request without
+issuing a duplicate read. Existing draft, autosave, auth, and late-acknowledgment
+guards remain in place.
+
+The Notes unit module passed 5/5 and frontend type-check completed without
+diagnostics. `git diff --check` passed. No browser, full suite, provider/native
+HTTP, database, quota, or production operation ran. TC's shared caller remains
+the owner of passing foreground priority into the component; that caller was
+not changed here. Root retains the combined browser and final release gates.
+
+### Read-only source basket chart entry — 2026-11-08
+
+The owned source-basket E2E already verifies dated lineage and rejects edit or
+delete attempts, but stopped before its ordinary chart action. It now clicks
+`Open chart`, requires the canonical `/chart/BASKET%3A{id}` route, and verifies
+the primary dashboard chart is visible. This complements the existing manual
+basket CRUD/chart browser journey and the source-member retention unit case;
+it does not claim the shared TC loader's member preparation passed in a browser.
+Playwright discovery listed all three basket cases and `git diff --check`
+passed. The browser body remains pending Root's combined fixture.
+
+### Settings Indicators expansion race correction — 2026-11-08
+
+Root's `root-fac-seven-terminal-three-failures-owner-review.json` and its
+`fac5c2b0` trace show the Settings journey navigated to `/legacy/chart/SPY`,
+waited only for the chart shell, then clicked the Indicators disclosure while
+the chart instrument was still loading. The click occurred once; the visible
+`InstrumentInfoPanel` for SPY appeared only after it. `IndicatorPanel` resets
+its section state when `chartStore.instrument.id` changes, so that later
+initialization legitimately collapsed the section after the premature click.
+The owned E2E now waits for the exact `SPY instrument report` region before the
+existing ordinary panel/Indicators clicks and assertions. No shared UI source,
+assertion, or existing timeout was changed. Playwright discovery lists all four
+supporting-feature cases; the actual browser body remains Root-owned.
+
+
+## TC e750 full frontend context adoption — 2026-11-08
+
+Root released TC source `e7500fb2905ed217c96d3ac8b32a19d719ee9564` with manifest SHA256 `25c3af6616112f4f9f3fdff6de06fbd7cda7abe0adfd7a74cb8e95eb11d3af7e`. Verified all145 manifest records and imported only the51 ETF-declared paths after their exact old guards; all10 ETF-private paths were preserved. The current foreign-context pin now has135 paths, and prior9ec context is retained under `historical_tc_common_runtime_dependency_9ec4d783`. The Provider9e2 runtime (79 rows) and Provider-aed0 operator files (3 rows) already matched exactly and were not rewritten.
+
+Root reports the complete ETF browser body passed with zero retries on this candidate; its complete mapped profile remains in progress. This is development context, not final acceptance. No tests, browser body, Docker, provider/native HTTP, quota, production, CI, push, or promotion ran in this adoption.
+
+## e750 Notes canonical-read synchronization — 2026-11-08
+
+Root's full66 failure batch identifies one ETF-owned Notes journey failure. Its
+retained trace shows ordinary `GET /instruments/QQQ` returned instrument id4
+with `identity_status=provisional`; the separate UI lookup
+`GET /instruments/QQQ?canonical_only=true` had no response before teardown, and
+no QQQ Notes GET was issued. The Notes panel therefore displayed its null-id
+state (`No canonical instrument`) before the shared canonical lookup settled.
+This does not establish that QQQ is absent or that a note leaked across
+symbols. The former test asserted `No note` after only the ordinary instrument
+read; it now waits for the UI's canonical-only response, then the Notes GET for
+that returned id, and asserts both successful responses and an empty QQQ note.
+The existing SPY save/edit/reload/return assertions remain unchanged. A missing
+or failed canonical response still fails the test; no timeout was extended.
+
+The retained trace points to a shared TC-owned readiness/priority seam:
+`WorkstationToolContent.vue` clears `toolInstrument` while its active-symbol
+watcher calls `fetchCanonicalInstrument`, and
+`lib/workstation/instrumentQueries.ts` does not accept/pass request priority.
+The Notes component consequently cannot distinguish a pending identity lookup
+from a terminal missing identity. No shared file was changed here. The exact
+e750 imports remain in the already committed context adoption; this correction
+is a descendant and does not rewrite those imported files. Playwright discovery
+lists all four supporting-feature cases; no browser or full profile was run.
+
+## Notes pending canonical-identity state — 2026-11-08
+
+After the full66 trace review, the owned `InstrumentNoteTool` now joins the
+existing `fetchCanonicalInstrument` QueryClient request when the parent has not
+yet supplied an instrument id. It displays `Resolving canonical instrument…`
+and keeps editing disabled while that lookup is pending; only an actual 404
+shows `No canonical instrument`, while other failures remain explicit errors.
+The resolved response is bound to the requested symbol and current auth/load
+generation before the note read is allowed. The resolved id also drives note
+editing/saving, and late identity results cannot replace a newer symbol's note
+context. Existing draft, autosave, auth-epoch, and late-acknowledgement guards
+remain intact. The shared helper's foreground-priority plumbing remains a
+TC-owned follow-up; this component joins the deduplicated query but does not
+change that helper.
+
+The focused Notes unit module passes **8/8**, including pending identity,
+terminal 404, resolved-id save, and late symbol-switch regressions. Frontend
+type-check and the workstream guard pass. No browser, full profile, provider or
+native HTTP, database, Docker, CI, or production operation ran.
+
+## ETF profile catalogue batched reads — 2026-11-08
+
+Root's passive Workstation trace reproduced the five-second ETF profile wait;
+the isolated API read returned 46 profiles including SPY in 235 ms. The owned
+list service also serialized every matching profile through separate latest
+snapshot and adapter-state reads while preloading all historical snapshots.
+It now selects each profile's latest visible snapshot and latest adapter state
+in two ranked batch queries, then builds the same `ETFProfileOut` values as the
+single-profile serializer. Symbol/name filtering, symbol ordering, the 100-row
+limit, fixture visibility, snapshot date/known-at/id ordering, adapter-state
+checked-at/id ordering, capability evaluation, and output shape are preserved.
+
+The focused SQLite regression compares the complete batched output to the
+legacy list-plus-single-profile serializer in normal and E2E fixture-visibility
+modes, and measures **62/61 SELECTs before versus 3 after** for 12 profiles.
+It also checks latest snapshot/state selection and the filtered symbol order.
+The two cases pass; Ruff check and format pass. This proves removal of the
+serializer's per-profile query growth, not that it was the only latency source
+in Root's loaded Workstation run. No browser, native/source HTTP, database
+container, quota, fixture, or production action ran; Root owns real loaded-UI
+confirmation and exact-source qualification.
+
+
+## ETF catalogue readiness independent from default selection — 2026-11-08
+
+Root's real b011/fc220 Workstation case returned `GET /api/v1/etf-holdings` with 200 in about 167 ms, but the ETF pane still showed `Loading ETFs...` and no profile cards while default DIA snapshot work was in progress. The view assigned the catalogue response, then awaited `selectProfile()` before its `finally` cleared the same loading flag that hides the entire profile list. Catalogue readiness is now cleared immediately after the list is assigned; auto-selection and its snapshot/holdings requests continue independently.
+
+A focused unit regression holds the default SPY snapshot-date request open and verifies that the ETF card and selected symbol are already visible. The ETF holdings view module passes **31/31**, and frontend type-check passes. This isolates the consumer-side loading gate from the separately fixed catalogue query growth. Root still owns the real loaded-UI rerun and combined release qualification; this work did not run a browser, database fixture, or source request.
+
+
+## ETF catalogue/default-detail independence follow-up — 2026-11-08
+
+Root's passive b011/fc220 trace confirmed the list response completed in 213 ms while `loadProfiles()` still awaited the default DIA detail path. The initial catalogue fix exposed cards immediately; this follow-up now launches default detail loading independently of the catalogue promise and binds any detail rejection to the still-selected default profile. A slow or failed detail request cannot hold or clear the available catalogue. Existing sequence and fund-generation checks continue to fence late DIA responses.
+
+Focused regressions keep the DIA dates request pending while selecting SPY, then release DIA and verify SPY's selected snapshot/holdings remain visible; a separate rejected-DIA-dates case verifies the catalogue stays visible beside the detail-specific error. ETFHoldingsView unit tests pass **33/33** and frontend type-check passes. Root owns the real-browser rerun and combined qualification; no browser, database, provider, or production operation ran in this checkpoint. Root assignment SHA256: 2a33bb181664d0a9b5f2459b5385e7ad4fc681a340ee2be387a8f1c323500f4a .
+
+
+## Notes canonical-lookup request priority contract — 2026-11-08
+
+Root's complete frontend unit run on source `52de7718fd367c192780fbe7016514c785928478` found two owned assertion failures in `test_instrument_note_tool.test.ts`. The exact shared `fetchCanonicalInstrument` implementation at that source sends canonical instrument GETs with the third options argument `{ priority: 'high' }`; the two QQQ-success and UNKNOWN-not-found expectations now assert that exact request. Existing identity-pending, not-found, disabled-editor, and note lifecycle assertions are unchanged.
+
+The local ETF worktree intentionally does not import that newer shared helper. Its current helper is still the older two-argument implementation, so the focused local module reports 6 passed / 2 failed exactly at the newly corrected options expectations. This is source skew, not a widened test allowance: Root's 52de runtime has the required third argument and owns validation on the composed source. No shared source or product component was edited here.
+
+
+## S&P directed-ratio journey request reuse — 2026-11-08
+
+Root's retained 52de full-profile trace showed the S&P first journey consuming its 180-second test budget before the inverse-ratio loop completed. The spec first fetched all 22 directed ratio pairs serially, then fetched those same 22 pairs again through the actual sector and comparison controls. It now retains each real UI response and uses that complete set for the independent split-adjusted bar-intersection arithmetic. The test still requires all 11 sector chart selections, all 22 directed API responses, visible ratio lines, exact timestamp/value matching, and actual adjusted bars; it no longer repeats the first 22 requests.
+
+Playwright discovery lists both S&P cases and `git diff --check` passes. No browser body was run; Root owns the retained combined fixture and must rerun this exact source before treating the timeout as resolved. No product source, fixture, API, or chart assertion was changed.
+
+
+## S&P idempotent comparison response reconciliation — 2026-11-08
+
+Root confirmed that the first-direction UI pass can already create the inverse comparison leg. The second pass now inspects the public Remove control: if that exact leg exists, it requires a previously observed successful page response for that pair, performs the ordinary Add action, and asserts exactly one chip plus the visible ratio canvas line. If no leg exists, it arms a pair-specific page-response waiter before Add and requires the new successful response. All 22 directed UI pair payloads remain the arithmetic inputs; no ratio request is mocked or fabricated.
+
+The page response listener is installed before reload/selection to retain actual earlier pair responses. Playwright discovery lists both S&P cases, the workstream validator passes, and `git diff --check` passes. No browser body ran. Root's published-prior guard for the new test path must remain exact; if the TC consumer has proposed bytes newer than that prior, Root must reconcile that conflict rather than weakening the guard.
+
+
+## DB4 shared frontend context and compact RRG navigation — 2026-11-08
+
+Consumed only the31 ETF-declared imports from TC source `db4b1f55f78b1d907aab9d062da9470b5e3cc109` under the exact old-byte guards. The local receipt records all150 released manifest rows; the active foreign context contains140 paths and explicitly excludes all10 ETF-private paths. The prior e750 pin and its evidence remain archived. This frontend development context does not change the already-current Provider `fc220` dependency and does not constitute release acceptance.
+
+The owned S&P RRG journey now activates Relative Rotation through its ordinary named Golden Layout tab. When compact layout places the tab in the overflow menu, the test derives that tab's own header, clicks its visible dropdown, selects the visible named overflow item, and checks the named tab's active state after Golden Layout reparents it. The same helper is used before initial graph assertions and after reload. Existing data, canvas, marker/tail, geometry, math, layout, and lifecycle assertions are unchanged. Playwright discovery lists both S&P cases; no browser body was run here. Root reports the DB4 full frontend unit run green (1953/1953); compact RRG browser rerun and combined release gates remain Root-owned and pending.
+
+
+## S&P RRG backing-pixel audit correction — 2026-11-08
+
+Root/TC reviewed the owned DPR audit and confirmed a test-oracle coordinate
+error. In the pinned uPlot source, `valToPos(..., true)` selects backing plot
+dimensions and backing offsets; `RelativeRotationTool` passes those values
+directly to the canvas context. uPlot sizes the canvas backing store to
+`CSS size * pixelRatio`, and the context has no additional transform. The audit
+therefore sampled recorded tail coordinates after multiplying by the
+CSS-to-backing ratio a second time. The owned S&P spec now interpolates and
+samples the recorded backing coordinates directly. Paired pre/post source-over
+pixels, final visible pixels, segment counts, markers, tails, numerical
+assertions, colors, tolerances, viewport, and timeouts are unchanged.
+
+Read-only diagnosis of the 8a retained browser failures was delivered to TC.
+The public-navigation test opens the application menu immediately after
+`page.goto('/chart')`; Workstation's initial active-symbol synchronization then
+replaces the route with `/chart/SPY`, and its route watcher closes the menu
+before the visibility assertion. The minimal test correction is to wait for
+the stable `/chart/SPY` route before opening the menu. In the no-snapshot
+holding chart test, the controlled M1 route is gated by the broader D1-success
+flag and consequently serves the D1 bar on the first M1 read. The later M1
+acquisition read serves a different timestamp; the chart's same-selection
+progress refresh merges both rows. Gate that fixture on the M1-specific success
+flag so pre-acquisition M1 reads remain empty. These findings require no ETF
+product change; the relevant flows test is TC-owned.
+
+The coordinate-only S&P correction is committed at `bd5129cea81774a5799768e4027e3118a9255d45`
+(`frontend/tests/e2e/sp500_analysis_journey.spec.ts` SHA256
+`add422ecebe07a1dd1a0480f3b1b682a6ae4b29bb07f440c7a51554d0d4a553e`).
+Playwright discovery lists both S&P journeys and `git diff --check` passes. No
+browser was run; Root owns exact-source RRG and combined browser qualification.
+The full ETF/platform roadmap remains open.
+
+## Visible data before technical provenance — 2026-11-08
+
+Root assignment `root-837-visible-data-before-technical-provenance-ETF-assignment.json`
+is addressed in the two ETF-owned views. Baskets now keeps a compact ETF/source,
+as-of, stored-snapshot freshness, and separate current-eligibility note visible;
+membership and editing controls precede a native, keyboard-accessible collapsed
+Source details disclosure containing every prior lineage field and snapshot
+history entry. ETF Holdings keeps fund/source/provenance/observed-at summary,
+composition date, latest-vs-historical state, source quality, row count, and
+current eligibility visible with the controls and rows; complete identifiers,
+document URL, and publication metadata remain in a collapsed Source details
+disclosure after holdings, history, turnover, and overlap content. No API, data,
+provider, or S&P DPR changes were made. Focused view units, type-check, and
+Playwright discovery pass; browser execution and final combined qualification
+remain Root-owned.
+
+## Compact content readiness and capability wording — 2026-11-08
+
+Root's `root-ETF-compact-content-readiness-repair-assignment.json` exposed a
+1024x640 CSS layout where the stacked ETF selector pushed the holdings table
+below the visible area. At tablet widths above600px through1100px the ETF page keeps the
+selector in a scrollable side column, compacts the toolbar, and keeps all six
+holding fields in a horizontally scrollable table; none are hidden. Baskets
+uses a compact data-first stack so selected members precede the basket selector.
+
+When a saved snapshot is actually displayed but the current-analysis capability
+returns the generic no-snapshot reason, the view now explains that the check
+found no eligible snapshot while the selected saved snapshot remains available
+for historical review. The current-unverified warning, capability state,
+composition date, source, known-at, and full lineage remain intact. If latest
+snapshot identity is absent, the UI labels the displayed snapshot as saved with
+current status unverified instead of “Snapshot status unknown.”
+
+Focused ETF Holdings and Baskets view tests passed54/54; `npm run type-check`
+and `git diff --check` passed. Root owns the rendered 1024x640 DPR1.25
+recheck; no browser, API, native source, fixture, or data operation was run by
+ETF. The full roadmap and all previous acceptance evidence remain open/intact.
+
+## Compact readonly basket members and capability review details — 2026-11-08
+
+Root's f9 actual compact review confirmed Holdings now passes the first-row
+viewport check, but a readonly system basket's disabled Name/Weighting/Description
+fields pushed the first member out of the 1024x640 CSS DPR1.25 viewport. At the
+compact breakpoint only, readonly basket panels now visually order the dated
+source summary and member toolbar/table before those still-present fields. The
+main panel and selector remain separate in normal flow; the main panel scrolls,
+and manual baskets keep their original editable form order. Snapshot provenance
+and history remain in the existing keyboard-accessible Source details disclosure.
+
+The ETF capability warning continues to show current eligibility, failure
+classification, and the honest current-analysis reason. The administrative
+`symbol_audit.next_action` is now in the existing collapsed Source details,
+including when no snapshot page is available; it is not presented as an action
+for ordinary users. A focused unit regression verifies that it is absent from
+the warning and preserved in Source details alongside the displayed snapshot.
+
+ETF Holdings and Baskets view modules passed54/54 and frontend type-check passed.
+Root owns the next rendered compact-basket check; no browser, fixture, provider,
+or data operation was run by ETF. Prior validation journal rows and full
+roadmap remain intact.
+
+## Historical snapshot lineage assertion correction — 2026-11-08
+
+Root's exact 3413 full-profile failure showed the historical snapshot's date,
+known-at and publication time were correct; its source identifier and URL are
+retained in the already-open Source details disclosure. The E2E assertion had
+looked for the source identifier in the compact summary. It now asserts the
+exact `etf-snapshot-source-identifier` field while retaining the selected
+snapshot, known-at, published-at, exact source URL and ACME member checks.
+Playwright discovery lists all5 ETF preparation cases and `git diff --check`
+passes. ETF did not run a browser; Root owns the active full-profile result.
+
+## Notes request-priority after canonical fallback — 2026-11-09
+
+Root's J12 trace showed the selected Notes request could remain queued after
+symbol fallback resolved a canonical instrument and the pane became visible.
+The priority watcher now observes both `requestPriority` and
+`activeInstrumentId`, promoting only the resolved instrument's
+`instrument-note:<id>` request when it is high priority. The owned regression
+holds identity and note reads, verifies the auto-priority queued read, then
+raises pane priority and confirms the existing request is promoted without a
+duplicate. Source and unit blobs match Root's reviewed proposal. The Notes
+unit module passes9/9, type-check and workstream validation pass; browser/J12
+replay and final private10 qualification remain Root-owned.

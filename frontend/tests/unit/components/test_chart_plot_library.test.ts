@@ -486,21 +486,31 @@ describe('ChartPlotLibrary', () => {
     expect(chart.indicators).toHaveLength(1)
   })
 
-  it('waits for the instrument indicator save before closing after insertion', async () => {
+  it('closes immediately during a slow indicator save and exposes a retryable failure', async () => {
     const chart = usePanelStore('plot-library-await-save-test')
     chart.instrument = { id: 42 } as any
-    let release!: () => void
-    apiMock.put.mockImplementationOnce(() => new Promise(resolve => { release = () => resolve({}) }))
+    let fail!: (error: Error) => void
+    apiMock.put.mockImplementationOnce(() => new Promise((_resolve, reject) => { fail = reject }))
     const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-library-await-save-test' } } })
     await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
-    const insertion = wrapper.get('[aria-label="Add indicator plot"]').setValue('rsi')
-    await Promise.resolve()
-    expect(wrapper.find('[role="dialog"]').exists()).toBe(true)
-    release()
-    await insertion
+    await wrapper.get('[aria-label="Add indicator plot"]').setValue('rsi')
+    await flushPromises()
+    expect(chart.indicators).toHaveLength(1)
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+    expect(wrapper.get('[role="status"]').text()).toContain('Saving')
+
+    fail(new Error('controlled save failure'))
     await flushPromises()
     expect(apiMock.put).toHaveBeenCalledWith('/instrument-indicators/42', { indicators: chart.indicators })
     expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+    expect(wrapper.get('[role="status"]').text()).toMatch(/added locally, but the save failed/)
+    expect(wrapper.findAll('button').some(button => button.text() === 'Retry save')).toBe(true)
+
+    await wrapper.findAll('button').find(button => button.text() === 'Retry save')!.trigger('click')
+    await flushPromises()
+    expect(apiMock.put).toHaveBeenCalledTimes(2)
+    expect(wrapper.get('[role="status"]').text()).toContain('saved')
+    wrapper.unmount()
   })
 
   it('loads and adds a typed Python plot asset without executing frontend code', async () => {
@@ -514,7 +524,9 @@ describe('ChartPlotLibrary', () => {
     expect(wrapper.get('button[aria-label="Add selected Python plot"]').exists()).toBe(true)
     await wrapper.get('button[aria-label="Add selected Python plot"]').trigger('click')
     expect(wrapper.emitted('update:python-plots')?.at(-1)).toEqual([[{ code_version_id: 91, name: 'Breadth plot v2', color: '#ffb74d', timeframe: chart.timeframe, instance_key: expect.any(String) }]])
-    expect(apiMock.get).toHaveBeenCalledWith('/code/assets')
+    expect(apiMock.get).toHaveBeenCalledWith('/code/assets', undefined, expect.objectContaining({
+      queueKey: 'workstation:code-assets', signal: expect.any(AbortSignal),
+    }))
   })
 
   it('retains aggregate breadth universe lineage when adding a promoted plot', async () => {
@@ -975,7 +987,9 @@ describe('ChartPlotLibrary', () => {
     await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
     await wrapper.findAll('button').find(button => button.text() === 'Load Python plots')!.trigger('click')
     await Promise.resolve()
-    expect(apiMock.get).toHaveBeenCalledWith('/code/assets')
+    expect(apiMock.get).toHaveBeenCalledWith('/code/assets', undefined, expect.objectContaining({
+      queueKey: 'workstation:code-assets', signal: expect.any(AbortSignal),
+    }))
 
     wrapper.unmount()
     resolveAssets([{ kind: 'plot', name: 'Late plot', versions: [{ id: 91, version_number: 1 }] }])

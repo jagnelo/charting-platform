@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Literal
 from urllib.parse import urlsplit
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -49,6 +50,7 @@ from app.services.provider_quota_coordinator import (
     account_scope_for_provider,
 )
 from app.services.provider_runtime import (
+    bind_explicit_provider_acquisition,
     list_provider_status,
     provider_contract_operation_cost_known,
     quota_contract_missing_dimensions,
@@ -1155,8 +1157,24 @@ async def refresh_provider_account_usage_endpoint(
     current_user: User = Depends(require_admin),
 ):
     """Explicitly poll one reviewed provider account-usage endpoint."""
+    normalized_provider = str(provider or "").strip().lower() or None
+    with bind_explicit_provider_acquisition(
+        request_id=f"admin-native-usage-refresh:{uuid4().hex}",
+        operations=frozenset({(ProviderCapability.ACCOUNT_USAGE, "fetch_account_usage")}),
+        provider_names=(frozenset({normalized_provider}) if normalized_provider else None),
+    ):
+        result = await refresh_provider_account_usage(db, provider_name=normalized_provider)
+    resumed = 0
+    if result.get("status") == "refreshed":
+        from app.tasks.data_tasks import resume_native_usage_held_identity_jobs
 
-    return await refresh_provider_account_usage(db, provider_name=provider)
+        for provider_name in dict.fromkeys(result.get("providers") or []):
+            resumed += await resume_native_usage_held_identity_jobs(db, provider_name=provider_name)
+        if resumed:
+            await db.commit()
+    if resumed:
+        return {**result, "resumed_preparation_jobs": resumed}
+    return result
 
 
 @router.get("/availability")

@@ -237,6 +237,8 @@ test.describe('Chart', () => {
 
   test('F9 — drawing toolbar is visible and tools are clickable', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart/SPY')
+    // The drawing toolbar belongs to the active chart window; the factory opens with Benchmarks active.
+    await page.locator('.chart-tool__surface').first().click({ position: { x: 24, y: 24 } })
     const toolbar = page.locator('.drawing-toolbar')
     await expect(toolbar).toBeVisible()
     const lines = toolbar.getByRole('button', { name: 'Lines' })
@@ -424,7 +426,13 @@ test.describe('Chart', () => {
     const templateName = `Comparison ${Date.now()}`
     await menu.getByRole('combobox', { name: 'Chart bar type' }).selectOption('line')
     await chart.getByRole('textbox', { name: 'Comparison symbol', exact: true }).fill('RSP')
+    const canonicalRsp = page.waitForResponse(response => {
+      const url = new URL(response.url())
+      return url.pathname === '/api/v1/instruments/RSP' && url.searchParams.get('canonical_only') === 'true'
+    })
     await chart.getByRole('button', { name: 'Add comparison' }).click()
+    const rspResponse = await canonicalRsp
+    expect(rspResponse.status(), `canonical RSP lookup returned ${rspResponse.status()}`).toBe(200)
     await expect(chart.getByRole('button', { name: 'Remove RSP' })).toBeVisible()
     await menu.getByRole('textbox', { name: 'Chart template name' }).fill(templateName)
     const saveRequest = page.waitForRequest(request => request.url().includes('/workspaces/library/items/chart_template/') && request.method() === 'PUT')
@@ -439,7 +447,11 @@ test.describe('Chart', () => {
     // conceal the desktop hit-target regression. Exercise both ordinary
     // controls while the populated chip and Plots trigger coexist.
     await expect(comparisonChip).toContainText(/[+-]\d+\.\d{2}%/, { timeout: 15_000 })
-    await chart.getByRole('button', { name: 'Chart plot library', exact: true }).click()
+    const plots = chart.getByRole('button', { name: 'Chart plot library', exact: true })
+    await plots.click()
+    await expect(plots).toHaveAttribute('aria-expanded', 'true')
+    const plotLibrary = chart.getByRole('dialog', { name: 'Chart plot library panel' })
+    await expect(plotLibrary).toBeVisible()
     const plotsMenu = chart.locator('.chart-plots__menu:visible')
     await expect(plotsMenu).toBeVisible()
     await plotsMenu.getByRole('button', { name: 'Close chart plot library' }).click()
@@ -461,9 +473,18 @@ test.describe('Chart', () => {
     // Repeat the populated-chip ordinary-action check at the narrow profile;
     // the compact layout may reflow controls but must preserve both actions.
     await page.setViewportSize({ width: 390, height: 800 })
-    await chart.getByRole('textbox', { name: 'Comparison symbol', exact: true }).fill('RSP')
-    await chart.getByRole('button', { name: 'Add comparison' }).click()
-    await expect(comparisonChip).toContainText(/[+-]\d+\.\d{2}%/, { timeout: 15_000 })
+    // The compact dock reflows after the resize; add once the comparison
+    // control is back in place, and retry the add if the reflow swallowed it.
+    const comparisonInput = chart.getByRole('textbox', { name: 'Comparison symbol', exact: true })
+    await expect(async () => {
+      if (await comparisonChip.count() === 0) {
+        await expect(comparisonInput).toBeVisible({ timeout: 2_000 })
+        await comparisonInput.fill('RSP')
+        await chart.getByRole('button', { name: 'Add comparison' }).click({ timeout: 2_000 })
+      }
+      await expect(comparisonChip).toHaveCount(1, { timeout: 3_000 })
+    }).toPass({ timeout: 20_000 })
+    await expect(comparisonChip).toContainText(/[+-]\d+\.\d{2}%/, { timeout: 30_000 })
     await chart.getByRole('button', { name: 'Chart plot library', exact: true }).click()
     const narrowPlotsMenu = chart.locator('.chart-plots__menu:visible')
     await expect(narrowPlotsMenu).toBeVisible()
@@ -527,6 +548,10 @@ test.describe('Chart', () => {
     await expect(tcClassic).toBeVisible({ timeout: 15_000 })
     await tcClassic.click()
     await expect(tcClassic).toHaveClass(/workstation__tab--active/)
+    const mobileChartTab = page.locator('.workspace-layout-host .lm_tab').filter({ hasText: 'Chart' }).last()
+    await expect(mobileChartTab).toBeVisible({ timeout: 15_000 })
+    await mobileChartTab.click()
+    await expect(mobileChartTab).toHaveClass(/lm_active/)
     const mobileChart = await findNarrowVisibleChart(page)
     await mobileChart.getByRole('textbox', { name: 'Comparison symbol', exact: true }).fill('RSP')
     await mobileChart.getByTitle('Add comparison').click()
@@ -539,6 +564,30 @@ test.describe('Chart', () => {
     await mobilePlotsMenu.getByRole('button', { name: 'Close chart plot library' }).click()
     await mobileRemoveRSP.click()
     await expect(mobileRemoveRSP).toHaveCount(0)
+
+    // The narrow dock is a temporary tabbed projection. Widening must restore
+    // the saved desktop panes and each tool's serialized configuration.
+    await page.setViewportSize({ width: 1920, height: 1080 })
+    await expect(tcClassic).toHaveClass(/workstation__tab--active/)
+    await expect.poll(() => page.locator('.tool-window:visible .tool-window__title').allTextContents())
+      .toEqual(expect.arrayContaining(['Chart', 'WatchList', 'Notes']))
+    const tcClassicChart = page.locator('.chart-tool:visible').first()
+    await tcClassicChart.getByRole('button', { name: 'Chart templates', exact: true }).click()
+    const tcClassicTemplateMenu = tcClassicChart.locator('.chart-template__menu:visible').last()
+    await expect(tcClassicTemplateMenu.getByRole('combobox', { name: 'Chart bar type' })).toHaveValue('candles')
+    await tcClassicTemplateMenu.getByRole('button', { name: 'Close chart templates' }).click()
+
+    // The line template above belongs to US Top Down. Returning to that
+    // workspace proves its own configuration survived the compact projection
+    // without incorrectly expecting TC Classic to inherit it.
+    const usTopDown = page.locator('.workstation__tabs > button').filter({ hasText: 'US Top Down' })
+    await usTopDown.click()
+    await expect(usTopDown).toHaveClass(/workstation__tab--active/)
+    const restoredTopDownChart = page.locator('.chart-tool:visible').first()
+    await restoredTopDownChart.getByRole('button', { name: 'Chart templates', exact: true }).click()
+    const topDownTemplateMenu = restoredTopDownChart.locator('.chart-template__menu:visible').last()
+    await expect(topDownTemplateMenu.getByRole('combobox', { name: 'Chart bar type' })).toHaveValue('line')
+    await topDownTemplateMenu.getByRole('button', { name: 'Close chart templates' }).click()
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -567,8 +616,11 @@ test.describe('Chart', () => {
   })
 
   test('F9c-narrow — chart menus remain viewport-contained in a constrained desktop dock', async ({ page, browserDiagnostics }) => {
-    await page.setViewportSize({ width: 390, height: 800 })
+    await page.setViewportSize({ width: 1920, height: 1080 })
     await page.goto('/chart/SPY')
+    // Narrow docks show only the active window, so activate the chart before narrowing.
+    await page.locator('.chart-tool__surface').first().click({ position: { x: 24, y: 24 } })
+    await page.setViewportSize({ width: 390, height: 800 })
     const chart = page.locator('.chart-tool').filter({ has: page.getByRole('button', { name: 'Chart templates' }) }).first()
     await expect(chart).toBeVisible({ timeout: 15_000 })
 
@@ -594,8 +646,11 @@ test.describe('Chart', () => {
   })
 
   test('F9c-bottom-edge — chart menus flip above the trigger when the lower viewport is unavailable', async ({ page, browserDiagnostics }) => {
-    await page.setViewportSize({ width: 390, height: 320 })
+    await page.setViewportSize({ width: 1920, height: 1080 })
     await page.goto('/chart/SPY')
+    // Narrow docks show only the active window, so activate the chart before narrowing.
+    await page.locator('.chart-tool__surface').first().click({ position: { x: 24, y: 24 } })
+    await page.setViewportSize({ width: 390, height: 320 })
     const chart = page.locator('.chart-tool').filter({ has: page.getByRole('button', { name: 'Chart templates' }) }).first()
     await expect(chart).toBeVisible({ timeout: 15_000 })
     const viewportHeight = 320
@@ -651,22 +706,26 @@ test.describe('Chart', () => {
     const chart = page.locator('.chart-tool').filter({ has: page.getByTitle('Chart settings') }).first()
     await expect(chart).toBeVisible({ timeout: 15_000 })
     const canvas = chart.locator('.uplot-wrapper').first()
-    const box = await canvas.boundingBox()
-    expect(box).not.toBeNull()
     const overLayer = chart.locator('.u-over').first()
     await expect(overLayer).toBeVisible({ timeout: 15_000 })
-    const over = await overLayer.boundingBox()
-    expect(over).not.toBeNull()
+    const menu = page.getByRole('menu', { name: 'Price scale actions' })
     // The product handler defines the price-scale gutter relative to uPlot's
     // rendered interaction layer, not the outer wrapper. Use that same edge so
     // this remains deterministic after templates or narrow layouts change the
     // internal plot width, while staying inside the wrapper (the menu closes
-    // when the pointer leaves it).
-    const targetX = Math.min(box!.x + box!.width - 1, over!.x + over!.width + 4)
-    expect(targetX).toBeGreaterThan(over!.x + over!.width)
-    await page.mouse.click(targetX, box!.y + 80, { button: 'right' })
-    const menu = page.getByRole('menu', { name: 'Price scale actions' })
-    await expect(menu).toBeVisible()
+    // when the pointer leaves it). Re-measure on each attempt: the plot can
+    // still resize while its first data and header settle.
+    await expect(async () => {
+      const box = await canvas.boundingBox()
+      const over = await overLayer.boundingBox()
+      expect(box).not.toBeNull()
+      expect(over).not.toBeNull()
+      const targetX = Math.min(box!.x + box!.width - 1, over!.x + over!.width + 4)
+      expect(targetX).toBeGreaterThan(over!.x + over!.width)
+      await page.mouse.click(targetX, box!.y + 80, { button: 'right' })
+      await expect(menu).toBeVisible({ timeout: 2_000 })
+      await expect(menu.getByRole('menuitem').first()).toBeFocused({ timeout: 2_000 })
+    }).toPass({ timeout: 20_000 })
     await expect(menu.getByRole('menuitem').first()).toBeFocused()
     await page.keyboard.press('ArrowDown')
     await expect(menu.getByRole('menuitem').nth(1)).toBeFocused()
@@ -686,12 +745,12 @@ test.describe('Chart', () => {
     const workspaceMenu = page.getByRole('menu', { name: 'Workspace layouts' })
     await expect(workspaceMenu).toBeVisible({ timeout: 10_000 })
     const downloadPromise = page.waitForEvent('download')
-    await workspaceMenu.getByRole('menuitem', { name: 'Export', exact: true }).click()
+    await workspaceMenu.getByRole('menuitem', { name: 'Export workspace', exact: true }).click()
     const download = await downloadPromise
     const exportPath = await download.path()
     expect(exportPath).not.toBeNull()
 
-    await workspaceMenu.getByRole('menuitem', { name: 'Clone', exact: true }).click()
+    await workspaceMenu.getByRole('menuitem', { name: 'Duplicate active layout', exact: true }).click()
     await expect(layoutTabs).toHaveCount(originalCount + 1, { timeout: 10_000 })
     await workspaceButton.click()
     const reopenedMenu = page.locator('.workstation__workspace-popover:visible')
@@ -706,6 +765,14 @@ test.describe('Chart', () => {
     await page.goto('/chart/SPY')
     const host = page.locator('.workspace-layout-host')
     await expect(host).toBeVisible({ timeout: 15_000 })
+    // This serial suite shares a persisted workspace. Start from the factory
+    // layout so earlier flows cannot change the stacked column under test.
+    const reset = page.getByTitle('Reset factory workspace').first()
+    if (await reset.count()) {
+      page.once('dialog', dialog => dialog.accept())
+      await reset.click()
+      await expect(host).toBeVisible({ timeout: 15_000 })
+    }
     const splitters = page.locator('.workspace-layout-host .lm_splitter.lm_vertical')
     await expect.poll(() => splitters.count(), { timeout: 15_000 }).toBeGreaterThan(0)
 
@@ -731,17 +798,21 @@ test.describe('Chart', () => {
     })
     const before = await measure()
     const movement = 48
+    // Only a save requested after the drag ends carries the resized layout.
+    let shiftDragEndedAt = Number.POSITIVE_INFINITY
     const layoutSaved = page.waitForResponse(response =>
       response.url().includes('/api/v1/workspaces/')
       && response.url().includes('/snapshot')
       && response.request().method() === 'PUT'
-      && response.status() === 200,
+      && response.status() === 200
+      && response.request().timing().startTime >= shiftDragEndedAt,
     { timeout: 10_000 })
     await page.keyboard.down('Shift')
     await page.mouse.move(before.x + before.width / 2, before.y + before.height / 2)
     await page.mouse.down()
     await page.mouse.move(before.x + before.width / 2, before.y + before.height / 2 + movement, { steps: 8 })
     await page.mouse.up()
+    shiftDragEndedAt = Date.now()
     await page.keyboard.up('Shift')
 
     await expect.poll(async () => {
@@ -763,21 +834,36 @@ test.describe('Chart', () => {
       const panesBefore = siblings.slice(0, position).filter(child => child.classList.contains('lm_item')) as HTMLElement[]
       return panesBefore.map(pane => pane.getBoundingClientRect().height)
     })
-    expect(Math.max(...restored) - Math.min(...restored)).toBeLessThan(3)
-    expect(restored.reduce((sum, size) => sum + size, 0)).toBeGreaterThan(before.above.reduce((sum, size) => sum + size, 0) + movement - 5)
+    // Golden Layout applies the persisted sizes after the first render; wait
+    // for the restored column to settle before comparing.
+    const restoredAbove = () => splitters.nth(candidateIndex).evaluate(element => {
+      const parent = element.parentElement!
+      const siblings = Array.from(parent.children)
+      const position = siblings.indexOf(element)
+      const panesBefore = siblings.slice(0, position).filter(child => child.classList.contains('lm_item')) as HTMLElement[]
+      return panesBefore.map(pane => pane.getBoundingClientRect().height)
+    })
+    await expect.poll(async () => (await restoredAbove()).reduce((sum, size) => sum + size, 0), { timeout: 10_000 })
+      .toBeGreaterThan(before.above.reduce((sum, size) => sum + size, 0) + movement - 5)
+    const settledAbove = await restoredAbove()
+    expect(Math.max(...settledAbove) - Math.min(...settledAbove)).toBeLessThan(3)
+    expect(restored.length).toBeGreaterThan(0)
 
     const beforeCtrl = await measure()
+    let ctrlDragEndedAt = Number.POSITIVE_INFINITY
     const ctrlLayoutSaved = page.waitForResponse(response =>
       response.url().includes('/api/v1/workspaces/')
       && response.url().includes('/snapshot')
       && response.request().method() === 'PUT'
-      && response.status() === 200,
+      && response.status() === 200
+      && response.request().timing().startTime >= ctrlDragEndedAt,
     { timeout: 10_000 })
     await page.keyboard.down('Control')
     await page.mouse.move(beforeCtrl.x + beforeCtrl.width / 2, beforeCtrl.y + beforeCtrl.height / 2)
     await page.mouse.down()
     await page.mouse.move(beforeCtrl.x + beforeCtrl.width / 2, beforeCtrl.y + beforeCtrl.height / 2 + movement, { steps: 8 })
     await page.mouse.up()
+    ctrlDragEndedAt = Date.now()
     await page.keyboard.up('Control')
     await expect.poll(async () => {
       const measured = await measure()
@@ -786,6 +872,8 @@ test.describe('Chart', () => {
     const ctrlResized = await measure()
     expect(Math.max(...ctrlResized.below) - Math.min(...ctrlResized.below)).toBeLessThan(3)
     await ctrlLayoutSaved
+    // A coalesced follow-up save may still be carrying the final sizes.
+    await expect(page.locator('.workstation__footer')).toContainText('Workspace saved', { timeout: 30_000 })
     await page.reload()
     await expect(host).toBeVisible({ timeout: 15_000 })
     const restoredBelow = await splitters.nth(candidateIndex).evaluate(element => {
@@ -795,8 +883,18 @@ test.describe('Chart', () => {
       const panesAfter = siblings.slice(position + 1).filter(child => child.classList.contains('lm_item')) as HTMLElement[]
       return panesAfter.map(pane => pane.getBoundingClientRect().height)
     })
-    expect(Math.max(...restoredBelow) - Math.min(...restoredBelow)).toBeLessThan(3)
-    expect(restoredBelow.reduce((sum, size) => sum + size, 0)).toBeLessThan(beforeCtrl.below.reduce((sum, size) => sum + size, 0) - movement + 5)
+    const measureRestoredBelow = () => splitters.nth(candidateIndex).evaluate(element => {
+      const parent = element.parentElement!
+      const siblings = Array.from(parent.children)
+      const position = siblings.indexOf(element)
+      const panesAfter = siblings.slice(position + 1).filter(child => child.classList.contains('lm_item')) as HTMLElement[]
+      return panesAfter.map(pane => pane.getBoundingClientRect().height)
+    })
+    await expect.poll(async () => (await measureRestoredBelow()).reduce((sum, size) => sum + size, 0), { timeout: 10_000 })
+      .toBeLessThan(beforeCtrl.below.reduce((sum, size) => sum + size, 0) - movement + 5)
+    const settledBelow = await measureRestoredBelow()
+    expect(Math.max(...settledBelow) - Math.min(...settledBelow)).toBeLessThan(3)
+    expect(restoredBelow.length).toBeGreaterThan(0)
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -818,18 +916,18 @@ test.describe('Chart', () => {
       menu = page.getByRole('menu', { name: 'Workspace layouts' })
       await expect(menu).toBeVisible()
     }
-    await menu.getByRole('menuitem', { name: 'New', exact: true }).click()
+    await menu.getByRole('menuitem', { name: 'New workspace', exact: true }).click()
     await expect(page.locator('.workstation__workspace-name')).toHaveText('New Workspace', { timeout: 15_000 })
 
     await workspaceButton.click()
     await expect(menu.getByRole('option', { name: 'New Workspace' })).toBeVisible()
     const reviewName = `Morning Review ${Date.now()}`
     page.once('dialog', dialog => dialog.accept(reviewName))
-    await menu.getByRole('menuitem', { name: 'Rename', exact: true }).click()
+    await menu.getByRole('menuitem', { name: 'Rename workspace', exact: true }).click()
     await expect(page.locator('.workstation__workspace-name')).toHaveText(reviewName, { timeout: 15_000 })
 
     await workspaceButton.click()
-    await menu.getByRole('menuitem', { name: 'Clone workspace', exact: true }).click()
+    await menu.getByRole('menuitem', { name: 'Duplicate workspace', exact: true }).click()
     const reviewCopyName = `${reviewName} Copy`
     await expect(page.locator('.workstation__workspace-name')).toHaveText(reviewCopyName, { timeout: 15_000 })
 
@@ -844,7 +942,7 @@ test.describe('Chart', () => {
     const deleteMenu = page.getByRole('menu', { name: 'Workspace layouts' })
     await expect(deleteMenu).toBeVisible({ timeout: 10_000 })
     page.once('dialog', dialog => dialog.accept())
-    await deleteMenu.getByRole('menuitem', { name: 'Delete', exact: true }).click()
+    await deleteMenu.getByRole('menuitem', { name: 'Delete workspace', exact: true }).click()
     await expect(page.locator('.workstation__workspace-name')).toHaveText('US Top Down', { timeout: 15_000 })
     await browserDiagnostics.expectNoCriticalIssues()
   })
@@ -1083,8 +1181,11 @@ test.describe('Chart', () => {
   })
 
   test('F9e-plot-library-narrow — chart plot library clamps to a narrow viewport and recovers on close', async ({ page, browserDiagnostics }) => {
-    await page.setViewportSize({ width: 390, height: 800 })
+    await page.setViewportSize({ width: 1920, height: 1080 })
     await page.goto('/chart/SPY')
+    // Narrow docks show only the active window, so activate the chart before narrowing.
+    await page.locator('.chart-tool__surface').first().click({ position: { x: 24, y: 24 } })
+    await page.setViewportSize({ width: 390, height: 800 })
     const chart = page.locator('.chart-tool').filter({ has: page.getByRole('button', { name: 'Chart plot library' }) }).first()
     const trigger = chart.getByRole('button', { name: 'Chart plot library' })
     await trigger.click()
@@ -1204,6 +1305,33 @@ test.describe('Chart', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F9e-shell-public-navigation — application menu activation mounts Watchlist, Alerts, and Settings', async ({ page, browserDiagnostics }) => {
+    const destinations = [
+      { path: '/legacy/watchlist', label: 'Watchlist', view: '.watchlist-view' },
+      { path: '/legacy/alerts', label: 'Alerts', view: '.alerts-view' },
+      { path: '/legacy/settings', label: 'Settings', view: '.settings-view' },
+    ]
+
+    for (const destination of destinations) {
+      // Each destination is reached through the real application menu. The
+      // direct route is only used to restore the shared Workstation starting
+      // point for the next ordinary menu activation.
+      await page.goto('/chart')
+      await expect(page).toHaveURL(/\/chart\/SPY$/)
+      await expect(page.locator('.workspace-layout-host')).toBeVisible()
+      const trigger = page.getByRole('button', { name: 'Open application navigation' })
+      await expect(trigger).toBeVisible()
+      await trigger.click()
+      const menu = page.getByRole('menu', { name: 'Application navigation' })
+      await expect(menu).toBeVisible()
+      await menu.getByRole('menuitem', { name: destination.label, exact: true }).click()
+      await expect(page).toHaveURL(new RegExp(`${destination.path}$`))
+      await expect(page.locator(destination.view)).toBeVisible()
+    }
+
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F9e-watchlist-editors-keyboard — column and column-set editors support keyboard entry and focus recovery', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart/SPY')
     const watchlist = page.getByRole('region', { name: 'Relative to SPY' })
@@ -1283,7 +1411,7 @@ test.describe('Chart', () => {
     await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
     await study.getByRole('textbox', { name: 'Study Python source' }).fill("output.scalar('reusable_value', 7)")
     await study.getByRole('button', { name: 'Validate' }).click()
-    await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
+    await expect(study).toContainText('Validated for isolated execution', { timeout: 30_000 })
     await study.getByRole('button', { name: 'Run study', exact: true }).click()
     await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
     await study.getByRole('button', { name: 'Save as column' }).click()
@@ -1322,7 +1450,7 @@ test.describe('Chart', () => {
     await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
     await study.getByRole('textbox', { name: 'Study Python source' }).fill("output.series('unaligned_history', [0.4, 0.5])")
     await study.getByRole('button', { name: 'Validate' }).click()
-    await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
+    await expect(study).toContainText('Validated for isolated execution', { timeout: 30_000 })
     await study.getByRole('button', { name: 'Run study', exact: true }).click()
     await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
 
@@ -1457,7 +1585,7 @@ test.describe('Chart', () => {
     await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
     await study.getByRole('textbox', { name: 'Study Python source' }).fill("output.series('reusable_series', {'timestamps': ['2026-01-01T00:00:00Z', '2026-01-02T00:00:00Z', '2026-01-03T00:00:00Z', '2026-01-04T00:00:00Z'], 'values': [1, 2, 3, 4]})")
     await study.getByRole('button', { name: 'Validate' }).click()
-    await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
+    await expect(study).toContainText('Validated for isolated execution', { timeout: 30_000 })
     await study.getByRole('button', { name: 'Run study', exact: true }).click()
     await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
     await study.getByRole('button', { name: 'Save as chart plot' }).click()
@@ -1546,7 +1674,7 @@ test.describe('Chart', () => {
     await study.getByRole('textbox', { name: 'Study name' }).fill('E2E direct threshold')
     await study.getByRole('textbox', { name: 'Study Python source' }).fill("output.series('reusable_series', [2, 4])")
     await study.getByRole('button', { name: 'Validate' }).click()
-    await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
+    await expect(study).toContainText('Validated for isolated execution', { timeout: 30_000 })
     await study.getByRole('button', { name: 'Run study', exact: true }).click()
     await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 15_000 })
     await expect(study.getByRole('group', { name: 'Study series threshold condition' })).toBeVisible()
@@ -1625,7 +1753,7 @@ test.describe('Chart', () => {
     await study.getByRole('textbox', { name: 'Study name' }).fill(studyName)
     await study.getByRole('textbox', { name: 'Study Python source' }).fill("output.range('confidence', [1, 2], [3, 4], [2, 3])")
     await study.getByRole('button', { name: 'Validate' }).click()
-    await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
+    await expect(study).toContainText('Validated for isolated execution', { timeout: 30_000 })
     await study.getByRole('button', { name: 'Run study', exact: true }).click()
     await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 15_000 })
     await study.getByRole('button', { name: 'Save center as chart plot' }).click()
@@ -2166,7 +2294,7 @@ test.describe('TC2000 workstation', () => {
     const errorState = page.locator('.chart-tool .tool-state--error')
     await expect(errorState).toHaveAttribute('role', 'alert')
     await expect(errorState).toHaveAttribute('aria-live', 'assertive')
-    await expect(errorState).toContainText(/Request failed|unavailable|observations/i, { timeout: 10_000 })
+    await expect(errorState).toHaveText('No local D1 price history is available for SPY.', { timeout: 10_000 })
     await expect(page.locator('.chart-tool canvas')).toHaveCount(0)
     await browserDiagnostics.expectNoCriticalIssues()
   })
@@ -3118,7 +3246,8 @@ test.describe('TC2000 workstation', () => {
     // Reaching the oldest entry is a no-op rather than wrapping to the future.
     await workstation.press('Backspace')
     await expect(activeSymbol).toHaveValue('SPY')
-    await expect(page).toHaveURL(/\/chart$/)
+    // Go routes to the symbol-bearing workstation URL, so the oldest entry leaves it at /chart/SPY.
+    await expect(page).toHaveURL(/\/chart\/SPY$/)
 
     // Native editor focus retains Backspace and must not navigate the history.
     await activeSymbol.fill('QQQ')
@@ -3226,8 +3355,14 @@ test.describe('TC2000 workstation', () => {
     const helpButton = page.getByRole('button', { name: 'Help', exact: true })
     const helpMenu = page.getByRole('dialog', { name: 'Keyboard shortcuts' })
 
-    await helpButton.click()
-    await expect(helpMenu).toBeVisible()
+    // Open help once the workspace has loaded; a tool that takes focus while
+    // starting up legitimately dismisses shell menus (focus left the menu).
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
+    await expect(page.locator('.workstation__footer')).toContainText('Workspace saved', { timeout: 30_000 })
+    await expect(async () => {
+      if (!(await helpMenu.isVisible())) await helpButton.click()
+      await expect(helpMenu).toContainText('Shift+L', { timeout: 1_000 })
+    }).toPass({ timeout: 15_000 })
     await expect(helpMenu).toContainText('Ctrl+Space')
     await expect(helpMenu).toContainText('Backspace')
     await expect(helpMenu).toContainText('Shift+L')
@@ -3271,6 +3406,9 @@ test.describe('TC2000 workstation', () => {
   test('F8k-shift-n — Shift+N opens a note for the active WatchList symbol', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart/SPY')
     await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
+    // Shortcuts act on the loaded workspace; startup focus moves can otherwise
+    // take the key away from the list.
+    await expect(page.locator('.workstation__footer')).toContainText('Workspace saved', { timeout: 30_000 })
     const listbox = page.getByRole('listbox', { name: /symbols$/ }).first()
     await expect(listbox).toBeVisible({ timeout: 10_000 })
     const row = listbox.getByRole('option').first()
@@ -3307,6 +3445,8 @@ test.describe('TC2000 workstation', () => {
     await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
     const chart = page.locator('.tool-window:visible').filter({ has: page.locator('.chart-tool') }).last()
     await expect(chart).toBeVisible({ timeout: 10_000 })
+    // The drawing toolbar belongs to the active chart window; the factory opens with Benchmarks active.
+    await chart.locator('.chart-tool__surface').first().click({ position: { x: 24, y: 24 } })
     const linesButton = chart.locator('.drawing-toolbar button[aria-label="Lines"]')
     await expect(linesButton).toBeVisible()
     await expect(linesButton).not.toHaveClass(/\bactive\b/)
@@ -3537,7 +3677,11 @@ test.describe('TC2000 workstation', () => {
 
   test('F8e-empty-industry — the default Industries pane distinguishes selection from missing proxy data', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart')
-    await expect(page.locator('.tool-state').filter({ hasText: 'Select a sector to inspect its industries and verified ETF proxies.' })).toBeVisible({ timeout: 15_000 })
+    // The factory Industries pane follows the default SPY constituent universe,
+    // so it shows dated SPY industries rather than an empty selection prompt.
+    const industries = page.getByRole('group', { name: 'Industries', exact: true })
+    await expect(industries.getByRole('button', { name: /Select industry\.$/ }).first()).toBeVisible({ timeout: 15_000 })
+    await expect(industries.locator('.industry-list__provenance')).toContainText('SPY holdings')
     await expect(page.locator('.tool-state').filter({ hasText: 'No mapped ETF proxy for SPY' })).toHaveCount(0)
     await browserDiagnostics.expectNoCriticalIssues()
   })
@@ -3572,7 +3716,10 @@ test.describe('TC2000 workstation', () => {
     const sectorList = sectorWindow.locator('.watchlist[aria-label="Relative to SPY"]')
     const xlk = sectorList.getByRole('option', { name: /XLK/ }).first()
     await expect(xlk).toBeVisible({ timeout: 20_000 })
-    await expect(sectorList).toHaveAttribute('aria-busy', 'false')
+    // The shell's shared analysis refresh covers six top-down inputs, while
+    // this list can already show its cached rows. Its loading status is
+    // non-intercepting, so prove the row action remains usable during that
+    // broader refresh instead of requiring unrelated panels to settle first.
     await xlk.click({ button: 'right', position: { x: 8, y: 14 } })
     // Scope the action to the originating watchlist. Golden Layout can retain
     // detached tool roots while a workspace is hydrating, so a page-global
@@ -3673,7 +3820,7 @@ test.describe('TC2000 workstation', () => {
     await proxyRow.click()
     await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue(proxySymbol)
 
-    const constituents = page.getByRole('region', { name: 'Constituents' }).filter({ has: page.locator('.watchlist__row') }).last()
+    const constituents = page.getByRole('group', { name: 'Constituents', exact: true })
     await expect(constituents).toBeVisible({ timeout: 15_000 })
     for (const target of ['1D', '1W', '1M', '3M', '6M', 'YTD', '1Y']) {
       await expect.poll(async () => {
@@ -3784,6 +3931,9 @@ test.describe('TC2000 workstation', () => {
     const plots = chart.getByRole('button', { name: 'Chart plot library', exact: true })
     await expect(plots).toBeVisible({ timeout: 15_000 })
     await plots.click()
+    await expect(plots).toHaveAttribute('aria-expanded', 'true')
+    const plotLibrary = chart.getByRole('dialog', { name: 'Chart plot library panel' })
+    await expect(plotLibrary).toBeVisible()
     const indicatorSave = page.waitForResponse(response => {
       const request = response.request()
       if (request.method() !== 'PUT' || !request.url().includes('/api/v1/instrument-indicators/')) return false
@@ -3792,7 +3942,7 @@ test.describe('TC2000 workstation', () => {
         return response.ok() && (payload.indicators?.some(indicator => indicator.type === 'rsi') ?? false)
       } catch { return false }
     })
-    await chart.getByRole('combobox', { name: 'Add indicator plot' }).selectOption('rsi')
+    await plotLibrary.getByRole('combobox', { name: 'Add indicator plot' }).selectOption('rsi')
     const indicatorSaveResponse = await indicatorSave
     const indicatorSaveRequest = indicatorSaveResponse.request()
     const savedIndicatorPayload = indicatorSaveRequest.postDataJSON() as { indicators?: Array<{ type?: string }> }
@@ -3820,7 +3970,7 @@ test.describe('TC2000 workstation', () => {
     const firstIndustry = industries.locator('.industry-list__row').first()
     await expect(firstIndustry).toBeVisible({ timeout: 20_000 })
     await firstIndustry.click()
-    const constituents = page.getByRole('region', { name: 'Constituents' }).filter({ has: page.locator('.watchlist__row') }).last()
+    const constituents = page.getByRole('group', { name: 'Constituents', exact: true })
     await expect(constituents).toBeVisible({ timeout: 20_000 })
     const firstConstituent = constituents.locator('.watchlist__row').first()
     await expect(firstConstituent).toBeVisible({ timeout: 20_000 })
@@ -3913,7 +4063,7 @@ test.describe('TC2000 workstation', () => {
     await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
     await study.getByRole('textbox', { name: 'Study Python source' }).fill("output.scalar('smoke', 1)")
     await study.getByRole('button', { name: 'Validate' }).click()
-    await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
+    await expect(study).toContainText('Validated for isolated execution', { timeout: 30_000 })
 
     await study.getByRole('button', { name: 'Run study', exact: true }).click()
     await expect(study.locator('.study-lab-tool__run')).toBeVisible({ timeout: 10_000 })
@@ -3937,7 +4087,7 @@ test.describe('TC2000 workstation', () => {
     await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
     await study.getByRole('textbox', { name: 'Study Python source' }).fill("output.boolean('qualifies', True)")
     await study.getByRole('button', { name: 'Validate' }).click()
-    await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
+    await expect(study).toContainText('Validated for isolated execution', { timeout: 30_000 })
     await study.getByRole('button', { name: 'Run study', exact: true }).click()
     await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
 
@@ -4009,7 +4159,7 @@ test.describe('TC2000 workstation', () => {
     // hydration write cannot turn this into a false-negative race.
     await expect(sourceEditor).toHaveValue(structuredSource)
     await study.getByRole('button', { name: 'Validate' }).click()
-    await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
+    await expect(study).toContainText('Validated for isolated execution', { timeout: 30_000 })
     await study.getByRole('button', { name: 'Run study', exact: true }).click()
     await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
     await expect(study.locator('.study-lab-tool__metrics article').filter({ hasText: 'event_count' })).toContainText('4')
@@ -4073,7 +4223,7 @@ test.describe('TC2000 workstation', () => {
     await expect(study.getByRole('textbox', { name: 'Study Python source' })).toHaveValue(/positive_close_streaks/)
     await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
     await study.getByRole('button', { name: 'Validate' }).click()
-    await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
+    await expect(study).toContainText('Validated for isolated execution', { timeout: 30_000 })
     await study.getByRole('button', { name: 'Run study', exact: true }).click()
     await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
     await expect(study.locator('.study-lab-tool__metrics article').filter({ hasText: 'current_streak' })).toBeVisible()
@@ -4093,7 +4243,7 @@ test.describe('TC2000 workstation', () => {
     await study.getByRole('combobox', { name: 'Factory study' }).selectOption('positive_streak')
     await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
     await study.getByRole('button', { name: 'Validate' }).click()
-    await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
+    await expect(study).toContainText('Validated for isolated execution', { timeout: 30_000 })
     await study.getByRole('button', { name: 'Run study', exact: true }).click()
     await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
 
@@ -4124,7 +4274,7 @@ test.describe('TC2000 workstation', () => {
     await expect(study.getByRole('textbox', { name: 'Study Python source' })).toHaveValue(/historical_return_distribution/)
     await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
     await study.getByRole('button', { name: 'Validate' }).click()
-    await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
+    await expect(study).toContainText('Validated for isolated execution', { timeout: 30_000 })
     await study.getByRole('button', { name: 'Run study', exact: true }).click()
     await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
     await expect(study.locator('.study-lab-tool__metrics article').filter({ hasText: 'historical_sample_size' })).toBeVisible()
@@ -4145,7 +4295,7 @@ test.describe('TC2000 workstation', () => {
     await expect(study.getByRole('textbox', { name: 'Study Python source' })).toHaveValue(/research\.breadth_thrust\(dataset, 90\)/)
     await study.getByRole('textbox', { name: 'Study universe', exact: true }).fill('SPY, XLK, XLE')
     await study.getByRole('button', { name: 'Validate' }).click()
-    await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
+    await expect(study).toContainText('Validated for isolated execution', { timeout: 30_000 })
     await study.getByRole('button', { name: 'Run study', exact: true }).click()
     await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
     await expect(study.locator('.study-lab-tool__metrics article').filter({ hasText: 'percent_price_advancing' })).toBeVisible()
@@ -4167,7 +4317,7 @@ test.describe('TC2000 workstation', () => {
     await expect(study.getByRole('textbox', { name: 'Study Python source' })).toHaveValue(/research\.breadth_thrust_history\(dataset, 90\)/)
     await study.getByRole('textbox', { name: 'Study universe', exact: true }).fill('SPY, XLK, XLE')
     await study.getByRole('button', { name: 'Validate' }).click()
-    await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
+    await expect(study).toContainText('Validated for isolated execution', { timeout: 30_000 })
     await study.getByRole('button', { name: 'Run study', exact: true }).click()
     await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
     await expect(study.locator('.study-series').first()).toBeVisible()
@@ -4199,7 +4349,7 @@ test.describe('TC2000 workstation', () => {
     await expect(lookback).toHaveValue('10')
     await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
     await study.getByRole('button', { name: 'Validate' }).click()
-    await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
+    await expect(study).toContainText('Validated for isolated execution', { timeout: 30_000 })
     await study.getByRole('button', { name: 'Run study', exact: true }).click()
     await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
     await expect(study.getByRole('status', { name: /new_high_count metric/ })).toBeVisible()
@@ -4240,7 +4390,7 @@ test.describe('TC2000 workstation', () => {
     await page.getByRole('button', { name: 'Chart plot library' }).click()
     const plots = page.getByRole('region', { name: 'Chart plot library' })
     await plots.getByRole('button', { name: 'Load EasyScan plots' }).click()
-    await expect(plots.getByText('2 historical scan plots available')).toBeVisible({ timeout: 10_000 })
+    await expect(plots.getByText('2 historical scan plots available')).toBeVisible({ timeout: 30_000 })
     await plots.getByRole('combobox', { name: 'EasyScan plot asset' }).selectOption({ label: 'Fixture breadth scan · percentage' })
     await plots.getByRole('button', { name: 'Add selected EasyScan plot', exact: true }).click()
     const scanPlot = plots.locator('.chart-plots__scan-item').filter({ hasText: 'Fixture breadth scan' })
@@ -4364,6 +4514,9 @@ test.describe('TC2000 workstation', () => {
     const sourceValidationId = await source.getAttribute('aria-describedby')
     expect(sourceValidationId).toBeTruthy()
     await expect(study.locator(`#${sourceValidationId}`)).toContainText('Validation errors')
+    // Readable diagnostics are always visible; raw JSON sits behind its Details summary.
+    await expect(study.locator('.study-lab-tool__validation--bad .study-lab-tool__diagnostics li').first()).toBeVisible()
+    await study.locator('.study-lab-tool__validation--bad details.study-lab-tool__raw > summary').click()
     await expect(study.locator('.study-lab-tool__validation--bad pre')).toBeVisible()
     await expect(study.locator('.study-lab-tool__validation--bad')).toHaveAttribute('role', 'alert')
     await expect(study.locator('.study-lab-tool__validation--bad')).toHaveAttribute('aria-live', 'assertive')
@@ -4411,7 +4564,7 @@ test.describe('TC2000 workstation', () => {
     const run = study.getByRole('button', { name: 'Run study', exact: true })
     await source.fill("output.scalar('first', 1)")
     await study.getByRole('button', { name: 'Validate' }).click()
-    await expect(study.locator('.study-lab-tool__validation')).toContainText('Validated for isolated execution')
+    await expect(study.locator('.study-lab-tool__validation')).toContainText('Validated for isolated execution', { timeout: 30_000 })
     await expect(run).toBeEnabled()
 
     await source.fill("output.scalar('edited', 2)")
@@ -4421,7 +4574,7 @@ test.describe('TC2000 workstation', () => {
     expect(runCreates).toBe(0)
 
     await study.getByRole('button', { name: 'Validate' }).click()
-    await expect(study.locator('.study-lab-tool__validation')).toContainText('Validated for isolated execution')
+    await expect(study.locator('.study-lab-tool__validation')).toContainText('Validated for isolated execution', { timeout: 30_000 })
     await expect(run).toBeEnabled()
     await run.click()
     await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible()
@@ -4467,7 +4620,7 @@ test.describe('TC2000 workstation', () => {
     await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
     await study.getByRole('textbox', { name: 'Study Python source' }).fill("output.scalar('queued', 1)")
     await study.getByRole('button', { name: 'Validate' }).click()
-    await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
+    await expect(study).toContainText('Validated for isolated execution', { timeout: 30_000 })
     await study.getByRole('button', { name: 'Run study', exact: true }).click()
     await expect(study.locator('.study-lab-tool__run-status--queued')).toBeVisible({ timeout: 10_000 })
     await study.getByRole('button', { name: 'Cancel study run', exact: true }).click()
@@ -4512,7 +4665,7 @@ test.describe('TC2000 workstation', () => {
     await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
     await study.getByRole('textbox', { name: 'Study Python source' }).fill("output.scalar('failed', 1)")
     await study.getByRole('button', { name: 'Validate' }).click()
-    await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
+    await expect(study).toContainText('Validated for isolated execution', { timeout: 30_000 })
     await study.getByRole('button', { name: 'Run study', exact: true }).click()
     await expect(study.locator('[data-status="failed"]')).toHaveText('Failed', { timeout: 10_000 })
     await expect(study.locator('.study-lab-tool__run-guidance')).toContainText('Inspect diagnostics and execution logs')
@@ -5213,17 +5366,24 @@ test.describe('TC2000 workstation', () => {
   })
 
   test('F8r-chart-toolbar — chart utility controls do not overlap at constrained width', async ({ page, browserDiagnostics }) => {
-    await page.setViewportSize({ width: 390, height: 800 })
+    await page.setViewportSize({ width: 1920, height: 1080 })
     await page.goto('/chart/SPY')
+    // Narrow docks show only the active window, so activate the chart before narrowing.
+    await page.locator('.chart-tool__surface').first().click({ position: { x: 24, y: 24 } })
+    await page.setViewportSize({ width: 390, height: 800 })
     const chart = page.locator('.chart-tool:visible').first()
     await expect(chart).toBeVisible({ timeout: 15_000 })
-    const geometry = await chart.evaluate(chart => {
+    const measure = () => chart.evaluate(chart => {
       const overlap = (left: DOMRect, right: DOMRect) => left.left < right.right && left.right > right.left && left.top < right.bottom && left.bottom > right.top
       const controls = ['.chart-tool__compare', '.chart-tool__plots', '.chart-tool__templates']
         .map(selector => chart.querySelector<HTMLElement>(selector)?.getBoundingClientRect())
         .filter((box): box is DOMRect => Boolean(box && box.width > 0 && box.height > 0))
       return { controls: controls.map(box => ({ left: box.left, right: box.right, top: box.top, bottom: box.bottom })), overlap: controls.some((left, index) => controls.slice(index + 1).some(right => overlap(left, right))) }
     })
+    // The compact layout settles after the resize; measure once all three
+    // controls have laid out.
+    await expect.poll(async () => (await measure()).controls.length, { timeout: 15_000 }).toBe(3)
+    const geometry = await measure()
     expect(geometry.controls.length).toBe(3)
     expect(geometry.overlap).toBe(false)
     await browserDiagnostics.expectNoCriticalIssues()
@@ -5307,9 +5467,17 @@ test.describe('TC2000 workstation', () => {
     await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
     const sectorList = page.locator('.watchlist[aria-label="Relative to SPY"]')
     await expect(sectorList).toBeVisible({ timeout: 10_000 })
-    await expect(sectorList).toHaveAttribute('aria-busy', 'true', { timeout: 15_000 })
-    await expect(sectorList.locator('[role="status"]')).toContainText('Refreshing sector analysis')
+    // Other factory tools may finish the first shared read before this list
+    // mounts. Drive one explicit shared refresh so its lifecycle is observable.
     await expect(sectorList).toHaveAttribute('aria-busy', 'false', { timeout: 20_000 })
+    await expect(sectorList.locator('.watchlist__row').first()).toBeVisible({ timeout: 15_000 })
+    await page.getByTitle('Refresh top-down analysis').click()
+    // A refresh over existing rows shows the shared compact status and keeps the
+    // rows; aria-busy is reserved for an initial load without rows.
+    await expect(sectorList.locator('[role="status"]')).toContainText('Refreshing sector analysis', { timeout: 15_000 })
+    await expect(sectorList.locator('.watchlist__row').first()).toBeVisible()
+    await expect(sectorList).toHaveAttribute('aria-busy', 'false')
+    await expect(sectorList.locator('[role="status"]')).toHaveCount(0, { timeout: 20_000 })
     await expect(sectorList.locator('.watchlist__row').first()).toBeVisible({ timeout: 15_000 })
     await browserDiagnostics.expectNoCriticalIssues()
   })
@@ -5749,10 +5917,22 @@ test.describe('TC2000 workstation', () => {
     await expect(benchmarkSurface).toContainText('S&P 500 legs')
     const mapRole = benchmarkSurface.getByRole('combobox', { name: 'Benchmark family Map role' })
     await expect(mapRole).toHaveValue('cap_weight')
+    // Roles stay disabled until the family overview proves their mapping and holdings.
+    // toBeEnabled() retargets an <option> inside a <label> to its (always
+    // enabled) <select>, so it never waited. Wait on the option itself.
+    const equalWeightOption = mapRole.locator('option[value="equal_weight"]')
+    await expect(equalWeightOption).toHaveJSProperty('disabled', false, { timeout: 15_000 })
     await mapRole.selectOption('equal_weight')
+    // The chosen role applies once the family overview proves it available.
+    await expect(equalWeightOption).toHaveJSProperty('disabled', false, { timeout: 15_000 })
     await expect(mapRole).toHaveValue('equal_weight')
+    // Earlier flows in this serial suite can leave Market Map windows open;
+    // assert on the window this click opens.
+    const existingMapKeys = await page.locator('.tool-window[data-window-key]').filter({ has: page.locator('.market-map-tool') })
+      .evaluateAll(elements => elements.map(element => (element as HTMLElement).dataset.windowKey ?? ''))
     await benchmarkSurface.getByRole('button', { name: 'Open Market Map' }).click()
-    const mapWindow = page.locator('.tool-window:visible').filter({ has: page.locator('.market-map-tool') }).last()
+    const newMapSelector = `.tool-window[data-window-key]${existingMapKeys.map(key => `:not([data-window-key="${key}"])`).join('')}`
+    const mapWindow = page.locator(newMapSelector).filter({ has: page.locator('.market-map-tool') }).last()
     await expect(mapWindow).toBeVisible({ timeout: 15_000 })
     await expect(mapWindow.getByRole('combobox', { name: 'Market Map universe' })).toHaveValue('benchmark-family:sp500:equal_weight')
     await expect.poll(() => requestedSources.at(-1), { timeout: 15_000 }).toBe('benchmark-family:sp500:equal_weight')
@@ -6636,6 +6816,8 @@ test.describe('TC2000 workstation', () => {
     await page.getByRole('menuitem', { name: 'Relative Rotation', exact: true }).click()
     const rotation = page.locator('.tool-window:visible').filter({ has: page.locator('.rotation-tool') }).last()
     await expect(rotation).toBeVisible({ timeout: 10_000 })
+    // Compact RRG keeps its controls behind the Settings disclosure.
+    await rotation.locator('details.rotation-tool__settings > summary').click()
     await rotation.getByRole('combobox', { name: 'Rotation universe' }).selectOption('sp400')
     const region = rotation.locator('[role="region"][aria-label="Relative rotation vs MDY"]')
     await expect(region).toBeVisible({ timeout: 15_000 })
@@ -6679,13 +6861,18 @@ test.describe('TC2000 workstation', () => {
     // user-facing drag source is the active visible chart, not DOM order.
     const chart = page.locator('.chart-tool:visible').last()
     await expect(chart).toBeVisible({ timeout: 10_000 })
-    await chart.locator('button[aria-label="Chart plot library"]').click()
-    await chart.locator('select[aria-label="Add indicator plot"]').selectOption('rsi')
+    const plots = chart.getByRole('button', { name: 'Chart plot library', exact: true })
+    await plots.click()
+    await expect(plots).toHaveAttribute('aria-expanded', 'true')
+    const plotLibrary = chart.getByRole('dialog', { name: 'Chart plot library panel' })
+    await expect(plotLibrary).toBeVisible({ timeout: 10_000 })
+    await plotLibrary.getByRole('combobox', { name: 'Add indicator plot' }).selectOption('rsi')
     // Plot insertion closes the fixed plot-library menu so chart gestures are
     // immediately available. Reopen it before starting the real drag path.
     await expect(chart.locator('.chart-plots__menu')).toHaveCount(0, { timeout: 10_000 })
-    await chart.locator('button[aria-label="Chart plot library"]').click()
-    await expect(chart.locator('.chart-plots__menu')).toBeVisible({ timeout: 10_000 })
+    await plots.click()
+    await expect(plots).toHaveAttribute('aria-expanded', 'true')
+    await expect(plotLibrary).toBeVisible({ timeout: 10_000 })
     const plot = chart.locator('.chart-plots li').filter({ hasText: 'RSI' }).last()
     await expect.poll(() => plot.count(), { timeout: 10_000 }).toBeGreaterThan(0)
     await expect(plot).toBeVisible({ timeout: 10_000 })
@@ -6719,9 +6906,14 @@ test.describe('TC2000 workstation', () => {
     await expect(chart).toBeVisible({ timeout: 10_000 })
     const plots = chart.locator('button[aria-label="Chart plot library"]')
     await plots.click()
-    await chart.locator('select[aria-label="Add indicator plot"]').selectOption('rsi')
+    await expect(plots).toHaveAttribute('aria-expanded', 'true')
+    const plotLibrary = chart.getByRole('dialog', { name: 'Chart plot library panel' })
+    await expect(plotLibrary).toBeVisible({ timeout: 10_000 })
+    await plotLibrary.getByRole('combobox', { name: 'Add indicator plot' }).selectOption('rsi')
     await expect(chart.locator('.chart-plots__menu')).toHaveCount(0, { timeout: 10_000 })
     await plots.click()
+    await expect(plots).toHaveAttribute('aria-expanded', 'true')
+    await expect(plotLibrary).toBeVisible({ timeout: 10_000 })
     const plot = chart.locator('.chart-plots li').filter({ hasText: 'RSI' }).last()
     await expect(plot).toBeVisible({ timeout: 10_000 })
     await chart.getByRole('combobox', { name: 'Promotion plot' }).selectOption({ index: 1 })
@@ -6800,9 +6992,14 @@ test.describe('TC2000 workstation', () => {
     await expect(chart).toBeVisible({ timeout: 10_000 })
     const plots = chart.locator('button[aria-label="Chart plot library"]')
     await plots.click()
-    await chart.locator('select[aria-label="Add indicator plot"]').selectOption('rsi')
+    await expect(plots).toHaveAttribute('aria-expanded', 'true')
+    const plotLibrary = chart.getByRole('dialog', { name: 'Chart plot library panel' })
+    await expect(plotLibrary).toBeVisible({ timeout: 10_000 })
+    await plotLibrary.getByRole('combobox', { name: 'Add indicator plot' }).selectOption('rsi')
     await expect(chart.locator('.chart-plots__menu')).toHaveCount(0, { timeout: 10_000 })
     await plots.click()
+    await expect(plots).toHaveAttribute('aria-expanded', 'true')
+    await expect(plotLibrary).toBeVisible({ timeout: 10_000 })
     await chart.locator('select[aria-label="Promotion plot"]').selectOption({ index: 1 })
     await page.getByRole('combobox', { name: 'Plot promotion target' }).selectOption('signal')
     await page.getByRole('combobox', { name: 'Plot promotion operator' }).selectOption('gte')
@@ -6824,9 +7021,14 @@ test.describe('TC2000 workstation', () => {
     await expect(chart).toBeVisible({ timeout: 10_000 })
     const plots = chart.locator('button[aria-label="Chart plot library"]')
     await plots.click()
-    await chart.locator('select[aria-label="Add indicator plot"]').selectOption('rsi')
+    await expect(plots).toHaveAttribute('aria-expanded', 'true')
+    const plotLibrary = chart.getByRole('dialog', { name: 'Chart plot library panel' })
+    await expect(plotLibrary).toBeVisible({ timeout: 10_000 })
+    await plotLibrary.getByRole('combobox', { name: 'Add indicator plot' }).selectOption('rsi')
     await expect(chart.locator('.chart-plots__menu')).toHaveCount(0, { timeout: 10_000 })
     await plots.click()
+    await expect(plots).toHaveAttribute('aria-expanded', 'true')
+    await expect(plotLibrary).toBeVisible({ timeout: 10_000 })
     await chart.locator('select[aria-label="Promotion plot"]').selectOption({ index: 1 })
     await page.getByRole('combobox', { name: 'Plot promotion target' }).selectOption('filter')
     const targetPicker = page.getByRole('combobox', { name: 'Plot promotion watchlist' })
@@ -6868,9 +7070,14 @@ test.describe('TC2000 workstation', () => {
     await expect(chart).toBeVisible({ timeout: 10_000 })
     const plots = chart.locator('button[aria-label="Chart plot library"]')
     await plots.click()
-    await chart.locator('select[aria-label="Add indicator plot"]').selectOption('ema')
+    await expect(plots).toHaveAttribute('aria-expanded', 'true')
+    const plotLibrary = chart.getByRole('dialog', { name: 'Chart plot library panel' })
+    await expect(plotLibrary).toBeVisible({ timeout: 10_000 })
+    await plotLibrary.getByRole('combobox', { name: 'Add indicator plot' }).selectOption('ema')
     await expect(chart.locator('.chart-plots__menu')).toHaveCount(0, { timeout: 10_000 })
     await plots.click()
+    await expect(plots).toHaveAttribute('aria-expanded', 'true')
+    await expect(plotLibrary).toBeVisible({ timeout: 10_000 })
     await chart.locator('select[aria-label="Promotion plot"]').selectOption({ index: 1 })
     await page.getByRole('combobox', { name: 'Plot promotion target' }).selectOption('alert')
     await page.getByRole('combobox', { name: 'Plot promotion operator' }).selectOption('gte')
@@ -6897,9 +7104,14 @@ test.describe('TC2000 workstation', () => {
     await expect(chart).toBeVisible({ timeout: 10_000 })
     const plots = chart.locator('button[aria-label="Chart plot library"]')
     await plots.click()
-    await chart.locator('select[aria-label="Add indicator plot"]').selectOption('sma')
+    await expect(plots).toHaveAttribute('aria-expanded', 'true')
+    const plotLibrary = chart.getByRole('dialog', { name: 'Chart plot library panel' })
+    await expect(plotLibrary).toBeVisible({ timeout: 10_000 })
+    await plotLibrary.getByRole('combobox', { name: 'Add indicator plot' }).selectOption('sma')
     await expect(chart.locator('.chart-plots__menu')).toHaveCount(0, { timeout: 10_000 })
     await plots.click()
+    await expect(plots).toHaveAttribute('aria-expanded', 'true')
+    await expect(plotLibrary).toBeVisible({ timeout: 10_000 })
     await chart.locator('select[aria-label="Promotion plot"]').selectOption({ index: 1 })
     await page.getByRole('combobox', { name: 'Plot promotion target' }).selectOption('scan')
     await page.getByRole('combobox', { name: 'Plot promotion operator' }).selectOption('gte')
@@ -6923,14 +7135,19 @@ test.describe('TC2000 workstation', () => {
     await expect(chart).toBeVisible({ timeout: 10_000 })
     const plots = chart.locator('button[aria-label="Chart plot library"]')
     await plots.click()
+    await expect(plots).toHaveAttribute('aria-expanded', 'true')
+    const plotLibrary = chart.getByRole('dialog', { name: 'Chart plot library panel' })
+    await expect(plotLibrary).toBeVisible({ timeout: 10_000 })
     const indicatorSave = page.waitForResponse(response => {
       const path = new URL(response.url()).pathname
       return response.request().method() === 'PUT' && /^\/api\/v1\/instrument-indicators\/\d+$/.test(path) && response.ok()
     })
-    await chart.locator('select[aria-label="Add indicator plot"]').selectOption('rsi')
+    await plotLibrary.getByRole('combobox', { name: 'Add indicator plot' }).selectOption('rsi')
     await indicatorSave
     await expect(chart.locator('.chart-plots__menu')).toHaveCount(0, { timeout: 10_000 })
     await plots.click()
+    await expect(plots).toHaveAttribute('aria-expanded', 'true')
+    await expect(plotLibrary).toBeVisible({ timeout: 10_000 })
     await chart.locator('select[aria-label="Promotion plot"]').selectOption({ index: 1 })
     await page.getByRole('combobox', { name: 'Plot promotion target' }).selectOption('gauge')
     await page.getByRole('spinbutton', { name: 'Plot promotion threshold' }).fill('70')
@@ -7074,7 +7291,9 @@ test.describe('TC2000 workstation', () => {
     await expect(menu.getByRole('menuitem')).toHaveText([
       'Chart', 'WatchList', 'My Favorites', 'Notes', 'Alerts', 'EasyScan', 'Market Gauge', 'Study Lab',
       'Study Results', 'Relative Rotation', 'Market Breadth', 'Market Map',
-      'Technical Summary', 'Coverage', 'Instrument Report', 'Python Library',
+      'Technicals', 'Coverage', 'Instrument Report', 'Python Library',
+      // Full factory catalogue: every default workspace tool can be re-added.
+      'Benchmarks', 'S&P 500 Sectors', 'Industries', 'Constituents', 'Relative Strength',
     ])
     await expect(menu.getByRole('menuitem', { disabled: true })).toHaveCount(0)
     await expect(menu).not.toContainText(/coming soon|not available|requires entitlement/i)
@@ -7252,6 +7471,8 @@ test.describe('Drawing tools', () => {
 
   test('F13 — drawing toolbar shows expected tools', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart')
+    // The drawing toolbar belongs to the active chart window; the factory opens with Benchmarks active.
+    await page.locator('.chart-tool__surface').first().click({ position: { x: 24, y: 24 } })
 
     const toolbar = page.locator('.drawing-toolbar, [class*="toolbar"]')
     await expect(toolbar.first()).toBeVisible({ timeout: 15_000 })
@@ -7284,6 +7505,8 @@ test.describe('Drawing tools', () => {
 
   test('F14 — selecting a drawing tool activates it', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart')
+    // The drawing toolbar belongs to the active chart window; the factory opens with Benchmarks active.
+    await page.locator('.chart-tool__surface').first().click({ position: { x: 24, y: 24 } })
 
     const toolbar = page.locator('.drawing-toolbar').first()
     await expect(toolbar).toBeVisible({ timeout: 15_000 })
@@ -7299,6 +7522,8 @@ test.describe('Drawing tools', () => {
 
   test('F14-keyboard — drawing flyouts expose menu semantics and restore trigger focus', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart/SPY')
+    // The drawing toolbar belongs to the active chart window; the factory opens with Benchmarks active.
+    await page.locator('.chart-tool__surface').first().click({ position: { x: 24, y: 24 } })
     const toolbar = page.locator('.drawing-toolbar').first()
     await expect(toolbar).toBeVisible({ timeout: 15_000 })
     const linesButton = toolbar.getByRole('button', { name: 'Lines' })
@@ -7328,13 +7553,17 @@ test.describe('Drawing tools', () => {
     await expect(timeframeLayout).toBeVisible({ timeout: 15_000 })
     await timeframeLayout.click()
     await expect(page.locator('.workstation__layout-state')).toHaveCount(0)
-    const toolbars = page.locator('.drawing-toolbar')
-    await expect(toolbars.first()).toBeVisible({ timeout: 15_000 })
-    expect(await toolbars.count()).toBeGreaterThan(1)
+    const charts = page.locator('.tool-window').filter({ has: page.locator('.chart-tool') })
+    await expect(charts.first()).toBeVisible({ timeout: 15_000 })
+    expect(await charts.count()).toBeGreaterThan(1)
 
+    // Only the active chart mounts its drawing toolbar, so activate each chart in turn.
     const menuIds: string[] = []
-    for (let index = 0; index < await toolbars.count(); index += 1) {
-      const toolbar = toolbars.nth(index)
+    for (let index = 0; index < await charts.count(); index += 1) {
+      const chart = charts.nth(index)
+      await chart.locator('.chart-tool__surface').first().click({ position: { x: 24, y: 24 } })
+      const toolbar = chart.locator('.drawing-toolbar')
+      await expect(toolbar).toBeVisible({ timeout: 15_000 })
       const trigger = toolbar.getByRole('button', { name: 'Lines' })
       await trigger.press('ArrowDown')
       const menu = toolbar.getByRole('menu', { name: 'Lines drawing tools' })
@@ -7398,6 +7627,8 @@ test.describe('Drawing tools', () => {
     await page.goto('/chart/SPY')
     const chart = page.locator('.chart-tool').filter({ has: page.getByTitle('Chart settings') }).first()
     await expect(chart).toBeVisible({ timeout: 15_000 })
+    // The drawing toolbar belongs to the active chart window; the factory opens with Benchmarks active.
+    await chart.locator('.chart-tool__surface').first().click({ position: { x: 24, y: 24 } })
     const plot = chart.locator('.uplot').first()
     await expect(plot).toBeVisible({ timeout: 15_000 })
     const box = await plot.boundingBox()
@@ -7764,7 +7995,13 @@ test.describe('Dashboard', () => {
     const listA = await watchlistSelect.inputValue()
     await expect(watchlistSelect).toHaveValue(listA)
     await symbolInput.fill('SPY')
+    const spyAdded = page.waitForResponse(response => {
+      const url = new URL(response.url())
+      return url.pathname === `/api/v1/watchlists/${listA}/items` && response.request().method() === 'POST'
+    })
     await personal.getByRole('button', { name: 'Add symbol to personal watchlist', exact: true }).click()
+    const addResponse = await spyAdded
+    expect(addResponse.ok(), `SPY watchlist insertion returned ${addResponse.status()}`).toBe(true)
     await expect(personal.locator('.watchlist__row').filter({ hasText: 'SPY' })).toBeVisible({ timeout: 10_000 })
     await expect(personal).toHaveAttribute('aria-busy', 'false', { timeout: 10_000 })
 

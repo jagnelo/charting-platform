@@ -2,6 +2,7 @@ import base64
 import hashlib
 import inspect
 import json
+import sys
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from types import SimpleNamespace
@@ -13,6 +14,7 @@ from app.models.etf_holdings import ETFHoldingsBackfillJob, ETFHoldingsRawArtifa
 from app.models.instrument import Instrument
 from app.models.provider_runtime import ProviderCapability
 from app.services import etf_holdings_adapters as adapters_module
+from app.services import etf_holdings_refresh as refresh_module
 from app.services.etf_holdings import _hash_payload
 from app.services.etf_holdings_adapters import (
     ETFNativeSourceEvidenceError,
@@ -52,6 +54,45 @@ from app.services.etf_issuer_catalog import (
     ISHARES_US_CATALOG_URL,
     parse_ishares_us_product_catalog,
 )
+
+
+def _freeze_native_fixture_clock(monkeypatch):
+    """Keep fixed Oct-30 source fixtures within the reviewed test-time window."""
+
+    frozen_now = datetime(2026, 11, 1, 12, tzinfo=UTC)
+    real_datetime = datetime
+
+    class FixtureDateTime(real_datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return frozen_now.replace(tzinfo=None) if tz is None else frozen_now.astimezone(tz)
+
+        @classmethod
+        def today(cls):
+            return frozen_now.date()
+
+    monkeypatch.setattr(sys.modules[__name__], "datetime", FixtureDateTime)
+    monkeypatch.setattr(refresh_module, "datetime", FixtureDateTime)
+
+
+@pytest.fixture(autouse=True)
+def _native_composition_freshness_clock(monkeypatch):
+    """Judge the fixed Oct 30-Nov 2, 2026 source compositions at a fixed date.
+
+    Only the refresh module's freshness check is pinned; lease and expiry
+    arithmetic in these tests keeps using the real clock.
+    """
+    frozen_now = datetime(2026, 11, 3, 12, tzinfo=UTC)
+    real_datetime = refresh_module.datetime
+
+    class FreshnessDateTime(real_datetime):
+        @classmethod
+        def now(cls, tz=None):
+            if tz is None:
+                return frozen_now.replace(tzinfo=None)
+            return frozen_now.astimezone(tz)
+
+    monkeypatch.setattr(refresh_module, "datetime", FreshnessDateTime)
 
 
 def _native_fetch_fixture(*, raw_text=None, raw_json=None, metadata=None, symbol="TST"):
@@ -441,7 +482,8 @@ def test_native_postfetch_review_must_match_current_rows_before_positive_update(
         assert not evaluate(changed_state), changed_state
 
 
-def test_native_evidence_rejects_unknown_publisher_completeness_contract():
+def test_native_evidence_rejects_unknown_publisher_completeness_contract(monkeypatch):
+    _freeze_native_fixture_clock(monkeypatch)
     profile, adapter, fetch_result = _native_fetch_fixture(
         raw_text=(
             "Fund Ticker,TST\n"
@@ -493,7 +535,8 @@ def test_native_evidence_rejects_wrong_fund_or_missing_reported_date(raw_text, m
         _native_initial_qualification_fetch_evidence(profile, adapter, fetch_result)
 
 
-def test_native_evidence_does_not_treat_adapter_identity_as_completeness_proof():
+def test_native_evidence_does_not_treat_adapter_identity_as_completeness_proof(monkeypatch):
+    _freeze_native_fixture_clock(monkeypatch)
     profile, adapter, fetch_result = _native_fetch_fixture(
         raw_json={"holdings": [{"ticker": "ABC", "weight": 1.0}]},
         metadata={
@@ -2069,7 +2112,8 @@ def _ishares_catalog_evidence_fixture(*, cache_hit=False, cached_request_symbol=
     return profile, adapter, fetch_result, source, job, _ReadOnlyDB(), cache, product_log
 
 
-def test_native_evidence_accepts_exact_complete_ishares_catalog_identity():
+def test_native_evidence_accepts_exact_complete_ishares_catalog_identity(monkeypatch):
+    _freeze_native_fixture_clock(monkeypatch)
     profile, adapter, fetch_result, *_ = _ishares_catalog_evidence_fixture()
 
     evidence = _native_initial_qualification_fetch_evidence(profile, adapter, fetch_result)

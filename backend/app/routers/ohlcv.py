@@ -4,12 +4,14 @@ from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.auth.dependencies import get_current_user
 from app.config import settings
 from app.database import get_db
 from app.models.data_source import DataSource
 from app.models.instrument import Instrument
+from app.models.listing import InstrumentListing
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.user import User
 from app.schemas.ohlcv import LocalSplitMaterializationOut, OHLCVBarOut
@@ -18,12 +20,14 @@ from app.services.adjustment_factors import (
     materialize_local_split_adjusted_view,
 )
 from app.services.bar_transforms import TRANSFORM_REGISTRY, apply_transform
-from app.services.derived_timeframes import (
-    derived_timeframe_needs_refresh,
-    materialize_derived_timeframes,
-)
+from app.services.derived_timeframes import refresh_derived_timeframe_if_needed
 from app.services.distributed_locks import DistributedLockError
-from app.services.market_data import fetch_ohlcv, fetch_ohlcv_latest, fetch_ohlcv_page_before
+from app.services.market_data import (
+    _default_series_bar_condition,
+    fetch_ohlcv,
+    fetch_ohlcv_latest,
+    fetch_ohlcv_page_before,
+)
 from app.services.ohlcv_coverage import _as_utc
 from app.services.provider_runtime import ProviderNoDataError, ProviderRateLimitError
 
@@ -143,6 +147,25 @@ async def materialize_local_provider(
     return result
 
 
+_LOCAL_BAR_COLUMNS = (
+    OHLCVBar.ts,
+    OHLCVBar.open,
+    OHLCVBar.high,
+    OHLCVBar.low,
+    OHLCVBar.close,
+    OHLCVBar.volume,
+    OHLCVBar.vwap,
+    OHLCVBar.is_adjusted,
+    OHLCVBar.is_derived,
+    OHLCVBar.source_timeframe,
+    OHLCVBar.derivation_method,
+    OHLCVBar.derived_at,
+    OHLCVBar.source_bar_count,
+    OHLCVBar.source_start,
+    OHLCVBar.source_end,
+)
+
+
 @router.get("/local/{symbol:path}/{timeframe}", response_model=list[OHLCVBarOut])
 async def get_local_ohlcv(
     symbol: str,
@@ -167,6 +190,10 @@ async def get_local_ohlcv(
         OHLCVBar.timeframe == timeframe,
         OHLCVBar.is_adjusted.is_(adjusted),
     ]
+    # The default view is one coherent selected series. Explicit provider and
+    # derived views remain lineage views across every retained series.
+    if view == "canonical":
+        predicates.append(_default_series_bar_condition(instrument.id, timeframe, adjusted))
     before = _as_utc(before) if before is not None else None
     if before is not None:
         predicates.append(OHLCVBar.ts < before)
@@ -179,13 +206,18 @@ async def get_local_ohlcv(
             OHLCVBar.data_source_id
             == select(DataSource.id).where(DataSource.name == "e2e_reference").scalar_subquery()
         )
+    # Only the response fields are read, so select them directly instead of
+    # materializing one ORM entity per bar on every page request.
     bars = (
         (
             await db.execute(
-                select(OHLCVBar).where(*predicates).order_by(OHLCVBar.ts.desc()).limit(limit)
+                select(*_LOCAL_BAR_COLUMNS)
+                .where(*predicates)
+                .order_by(OHLCVBar.ts.desc())
+                .limit(limit)
             )
         )
-        .scalars()
+        .mappings()
         .all()
     )
     if (
@@ -193,22 +225,23 @@ async def get_local_ohlcv(
         and not settings.E2E_SEED_MARKET_DATA
         and timeframe in (Timeframe.W1, Timeframe.MN)
     ):
-        if await derived_timeframe_needs_refresh(db, instrument.id, timeframe, adjusted=adjusted):
-            await materialize_derived_timeframes(db, instrument.id, adjusted=adjusted)
+        if await refresh_derived_timeframe_if_needed(
+            db, instrument.id, timeframe, adjusted=adjusted
+        ):
             await db.commit()
             bars = (
                 (
                     await db.execute(
-                        select(OHLCVBar)
+                        select(*_LOCAL_BAR_COLUMNS)
                         .where(*predicates)
                         .order_by(OHLCVBar.ts.desc())
                         .limit(limit)
                     )
                 )
-                .scalars()
+                .mappings()
                 .all()
             )
-    return list(reversed(bars))
+    return [dict(bar) for bar in reversed(bars)]
 
 
 @router.get("/{symbol:path}/{timeframe}/transformed", response_model=list[OHLCVBarOut])
@@ -251,12 +284,29 @@ async def get_ohlcv_transformed(
             400, f"Unknown bar_type '{bar_type}'. Valid: {list(TRANSFORM_REGISTRY)}"
         )
 
-    result = await db.execute(select(Instrument).where(Instrument.symbol == symbol.upper()))
+    result = await db.execute(
+        select(Instrument)
+        .options(selectinload(Instrument.listings).selectinload(InstrumentListing.exchange))
+        .where(Instrument.symbol == symbol.upper())
+    )
     instrument = result.scalar_one_or_none()
     if instrument is None:
         raise HTTPException(404, f"Instrument '{symbol}' not found.")
 
     await db.refresh(instrument, ["listings"])
+
+    # Request-driven and explicit local-only reads stay provider-free, while
+    # sharing the same W1/MN freshness repair as the canonical local endpoint.
+    if (
+        local_only
+        and view in {"canonical", "derived"}
+        and not settings.E2E_SEED_MARKET_DATA
+        and timeframe in (Timeframe.W1, Timeframe.MN)
+        and await refresh_derived_timeframe_if_needed(
+            db, instrument.id, timeframe, adjusted=adjusted
+        )
+    ):
+        await db.commit()
 
     # Fetch enough raw bars to feed the transform (transforms may collapse bars)
     fetch_limit = PAGE_SIZE * 3
@@ -361,7 +411,11 @@ async def get_ohlcv(
     current_user: User = Depends(get_current_user),
 ):
     local_only = local_only or settings.PROVIDER_REQUEST_DRIVEN_ONLY
-    result = await db.execute(select(Instrument).where(Instrument.symbol == symbol.upper()))
+    result = await db.execute(
+        select(Instrument)
+        .options(selectinload(Instrument.listings).selectinload(InstrumentListing.exchange))
+        .where(Instrument.symbol == symbol.upper())
+    )
     instrument = result.scalar_one_or_none()
     if instrument is None:
         raise HTTPException(
@@ -369,6 +423,19 @@ async def get_ohlcv(
         )
 
     await db.refresh(instrument, ["listings"])
+
+    # Request-driven and explicit local-only reads stay provider-free, while
+    # repairing stale coarse coverage before the shared fetch/cache selector.
+    if (
+        local_only
+        and view in {"canonical", "derived"}
+        and not settings.E2E_SEED_MARKET_DATA
+        and timeframe in (Timeframe.W1, Timeframe.MN)
+        and await refresh_derived_timeframe_if_needed(
+            db, instrument.id, timeframe, adjusted=adjusted
+        )
+    ):
+        await db.commit()
 
     if before is not None:
         # Paginated: return the PAGE_SIZE bars immediately before `before`

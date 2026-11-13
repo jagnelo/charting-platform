@@ -730,3 +730,123 @@ def test_mixed_scope_history_preserves_current_bar_exclusions():
     assert by_symbol["A"].value is True
     assert by_symbol["B"].value is None
     assert by_symbol["B"].exclusion_code == "missing_bar_at_timestamp"
+
+
+_EQUIVALENCE_CONDITIONS = [
+    {"kind": "above_moving_average", "params": {"period": 3}},
+    {
+        "kind": "prior_high_low",
+        "params": {"lookback": 3, "direction": "high", "operator": "gte", "threshold": 0.0},
+    },
+    {"kind": "comparison", "params": {"field": "return", "operator": ">", "threshold": 0}},
+    {
+        "kind": "percentile",
+        "target_scope": "cross_sectional",
+        "params": {"field": "close", "percentile": 0.5, "operator": "gte"},
+    },
+    {
+        "kind": "all",
+        "params": {
+            "conditions": [
+                {"kind": "above_moving_average", "params": {"period": 2}},
+                {
+                    "kind": "comparison",
+                    "params": {"field": "return", "operator": ">", "threshold": 0},
+                },
+            ]
+        },
+    },
+]
+
+
+def _random_breadth_inputs(rng):
+    from app.services.breadth import BreadthMember
+
+    base = datetime(2025, 1, 1, tzinfo=UTC)
+    member_count = rng.randint(1, 6)
+    members = [BreadthMember(index + 1, f"S{index}", f"S{index}") for index in range(member_count)]
+    bars_by_instrument = {}
+    for member in members:
+        if rng.random() < 0.1:
+            bars_by_instrument[member.instrument_id] = []
+            continue
+        day_count = rng.randint(1, 40)
+        series = []
+        for day in range(day_count):
+            if rng.random() < 0.15:
+                continue  # a gap: no bar at this timestamp
+            close = float("nan") if rng.random() < 0.03 else 50 + rng.random() * 50
+            series.append(
+                SimpleNamespace(
+                    close=close,
+                    volume=100,
+                    ts=base + timedelta(days=day, hours=rng.choice([0, 0, 13])),
+                )
+            )
+        if rng.random() < 0.1:
+            rng.shuffle(series)  # unsorted input keeps the original path
+        if series and rng.random() < 0.05:
+            series.append(series[-1])  # duplicate timestamp keeps the original path
+        bars_by_instrument[member.instrument_id] = series
+    benchmark = None
+    if rng.random() < 0.4:
+        benchmark = [
+            SimpleNamespace(close=60 + rng.random(), volume=100, ts=base + timedelta(days=day))
+            for day in range(rng.randint(1, 40))
+            if rng.random() < 0.9
+        ]
+    return members, bars_by_instrument, benchmark
+
+
+def test_optimised_breadth_history_is_byte_identical_to_reference_on_random_inputs():
+    import random
+
+    from app.services.breadth import evaluate_breadth_history
+    from tests.unit.services.breadth_reference_oracle import reference_evaluate_breadth_history
+
+    rng = random.Random(20261110)
+    checked = 0
+    for _ in range(250):
+        members, bars_by_instrument, benchmark = _random_breadth_inputs(rng)
+        condition = rng.choice(_EQUIVALENCE_CONDITIONS)
+        limit = rng.choice([1, 3, 10, 500])
+        kwargs = {"limit": limit, "benchmark_bars": benchmark}
+        expected = reference_evaluate_breadth_history(
+            members, bars_by_instrument, condition, **kwargs
+        )
+        actual = evaluate_breadth_history(members, bars_by_instrument, condition, **kwargs)
+        assert repr(actual) == repr(expected)
+        checked += 1
+    assert checked == 250
+
+
+def test_breadth_history_perf_guard_fifty_members_two_thousand_bars():
+    """A realistic universe-size history must stay well under the old O(T*M*N) cost."""
+    import time
+
+    from app.services.breadth import BreadthMember, evaluate_breadth_history
+
+    base = datetime(2018, 1, 1, tzinfo=UTC)
+    members = [BreadthMember(index + 1, f"M{index}", f"M{index}") for index in range(50)]
+    bars_by_instrument = {
+        member.instrument_id: [
+            SimpleNamespace(
+                close=100 + ((day * (member.instrument_id + 3)) % 17) - 8,
+                volume=100,
+                ts=base + timedelta(days=day),
+            )
+            for day in range(2000)
+        ]
+        for member in members
+    }
+    started = time.perf_counter()
+    points = evaluate_breadth_history(
+        members,
+        bars_by_instrument,
+        {"kind": "above_moving_average", "params": {"period": 20}},
+        limit=500,
+    )
+    elapsed = time.perf_counter() - started
+
+    assert len(points) == 500
+    assert elapsed < 2.0, f"breadth history took {elapsed:.2f}s"

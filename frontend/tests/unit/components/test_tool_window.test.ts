@@ -4,6 +4,65 @@ import { describe, expect, it, vi } from 'vitest'
 import ToolWindow from '@/components/workstation/ToolWindow.vue'
 
 describe('ToolWindow', () => {
+  it('keeps favorite state server-confirmed while exposing an in-flight toggle', async () => {
+    const wrapper = mount(ToolWindow, {
+      props: { title: 'Chart', symbol: 'SPY', favoriteAvailable: true, favoriteActive: false, favoritePending: true },
+    })
+    const favorite = wrapper.get('button[aria-busy="true"]')
+
+    expect(favorite.attributes('disabled')).toBeDefined()
+    expect(favorite.attributes('aria-pressed')).toBe('false')
+    expect(favorite.attributes('aria-label')).toBe('Adding SPY to My Favorites')
+    expect(favorite.attributes('title')).toBe('Adding SPY to My Favorites…')
+
+    await wrapper.setProps({ favoritePending: false, favoriteActive: true })
+    expect(wrapper.get('button[aria-pressed="true"]').attributes('aria-label')).toBe('Remove SPY from My Favorites')
+    wrapper.unmount()
+  })
+
+  it('uses the host supplied maximize state for virtual tools and closes menus when inactive', async () => {
+    const wrapper = mount(ToolWindow, { props: { title: 'Relative Rotation', active: true, maximized: false } })
+    const toggle = wrapper.get('button[aria-label="Maximize tool"]')
+    expect(toggle.attributes('title')).toBe('Maximize')
+
+    await wrapper.setProps({ maximized: true })
+    await vi.waitFor(() => expect(wrapper.find('button[aria-label="Restore tool"]').exists()).toBe(true))
+    expect(wrapper.get('button[aria-label="Restore tool"]').attributes('title')).toBe('Restore')
+    await wrapper.get('[aria-label="Open tool menu"]').trigger('click')
+    expect(document.getElementById(wrapper.get('[aria-label="Open tool menu"]').attributes('aria-controls'))?.querySelector('[role="menuitem"]')?.textContent).toBe('Restore')
+    await wrapper.get('[aria-label="Open tool menu"]').trigger('click')
+    await wrapper.setProps({ maximized: false })
+    await vi.waitFor(() => expect(wrapper.find('button[aria-label="Maximize tool"]').exists()).toBe(true))
+
+    await wrapper.get('[aria-label="Open tool menu"]').trigger('click')
+    expect(document.getElementById(wrapper.get('[aria-label="Open tool menu"]').attributes('aria-controls'))).not.toBeNull()
+    await wrapper.setProps({ active: false })
+    expect(wrapper.get('.tool-window').classes()).not.toContain('tool-window--active')
+    expect(document.getElementById(wrapper.get('[aria-label="Open tool menu"]').attributes('aria-controls'))).toBeNull()
+
+    wrapper.unmount()
+  })
+
+  it('keeps maximize controls in sync without requiring a Golden Layout DOM ancestor', async () => {
+    const wrapper = mount(ToolWindow, { props: { title: 'Industries', maximized: false } })
+    expect(wrapper.get('[aria-label="Maximize tool"]').exists()).toBe(true)
+    await wrapper.setProps({ maximized: true })
+    expect(wrapper.get('[aria-label="Restore tool"]').exists()).toBe(true)
+    await wrapper.get('[aria-label="Open tool menu"]').trigger('click')
+    const menuId = wrapper.get('[aria-label="Open tool menu"]').attributes('aria-controls')
+    expect(document.getElementById(menuId)?.querySelector('[role="menuitem"]')?.textContent).toBe('Restore')
+    wrapper.unmount()
+  })
+
+  it('gives the Relative Rotation body its own scrollable viewport without changing other tool defaults', () => {
+    const rotation = mount(ToolWindow, { props: { title: 'Relative Rotation', scrollableBody: true } })
+    const chart = mount(ToolWindow, { props: { title: 'Chart' } })
+    expect(rotation.find('.tool-window').classes()).toContain('tool-window--scrollable-body')
+    expect(chart.find('.tool-window').classes()).not.toContain('tool-window--scrollable-body')
+    rotation.unmount()
+    chart.unmount()
+  })
+
   it('exposes the instance key used by workstation tool activation readiness', () => {
     const wrapper = mount(ToolWindow, { props: { windowKey: 'breadth-instance-1', title: 'Market Breadth' } })
 

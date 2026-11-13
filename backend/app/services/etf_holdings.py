@@ -11,7 +11,7 @@ from urllib.parse import urlsplit
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import contains_eager, selectinload
 
 from app.config import settings
 from app.models.etf_holdings import (
@@ -1754,13 +1754,30 @@ async def list_etfs_with_holdings(db: AsyncSession, q: str | None = None) -> lis
     stmt = (
         select(ETFProfile)
         .join(Instrument, Instrument.id == ETFProfile.instrument_id)
-        .options(selectinload(ETFProfile.instrument), selectinload(ETFProfile.snapshots))
+        # Instrument.listings is lazy="selectin" on staging, which would add one
+        # SELECT per page. The catalogue output reads only the instrument's
+        # symbol and name, so keep the listing relationship out of this batch.
+        .options(contains_eager(ETFProfile.instrument).noload(Instrument.listings))
     )
     if q:
         pattern = f"%{q.strip()}%"
         stmt = stmt.where(or_(Instrument.symbol.ilike(pattern), Instrument.name.ilike(pattern)))
     rows = (await db.execute(stmt.order_by(Instrument.symbol.asc()).limit(100))).scalars().all()
-    return [await profile_to_out(db, row) for row in rows]
+    if not rows:
+        return []
+
+    profile_ids = [row.id for row in rows]
+    snapshots = await _latest_snapshots_for_profiles(db, profile_ids)
+    states = await _latest_adapter_states_for_profiles(db, profile_ids)
+    return [
+        _profile_to_out(
+            row,
+            snapshots.get(row.id),
+            states.get(row.id),
+            row.instrument,
+        )
+        for row in rows
+    ]
 
 
 async def profile_to_out(db: AsyncSession, profile: ETFProfile) -> ETFProfileOut:
@@ -1777,6 +1794,15 @@ async def profile_to_out(db: AsyncSession, profile: ETFProfile) -> ETFProfileOut
         )
     ).scalar_one_or_none()
     instrument = profile.instrument or await db.get(Instrument, profile.instrument_id)
+    return _profile_to_out(profile, latest, state, instrument)
+
+
+def _profile_to_out(
+    profile: ETFProfile,
+    latest: ETFHoldingsSnapshot | None,
+    state: ETFHoldingsAdapterState | None,
+    instrument: Instrument | None,
+) -> ETFProfileOut:
     capability = evaluate_capability(profile, latest, state).as_dict()
     return ETFProfileOut(
         id=profile.id,
@@ -1802,6 +1828,63 @@ async def profile_to_out(db: AsyncSession, profile: ETFProfile) -> ETFProfileOut
         unresolved_count=latest.unresolved_count if latest else 0,
         holdings_capability=capability,
     )
+
+
+async def _latest_snapshots_for_profiles(
+    db: AsyncSession,
+    profile_ids: list[int],
+) -> dict[int, ETFHoldingsSnapshot]:
+    ranked_snapshots = _apply_snapshot_visibility(
+        select(
+            ETFHoldingsSnapshot.id.label("snapshot_id"),
+            func.row_number()
+            .over(
+                partition_by=ETFHoldingsSnapshot.etf_profile_id,
+                order_by=(
+                    ETFHoldingsSnapshot.composition_date.desc(),
+                    ETFHoldingsSnapshot.known_at.desc().nullslast(),
+                    ETFHoldingsSnapshot.id.desc(),
+                ),
+            )
+            .label("snapshot_rank"),
+        ).where(ETFHoldingsSnapshot.etf_profile_id.in_(profile_ids))
+    ).subquery()
+    statement = (
+        select(ETFHoldingsSnapshot)
+        .join(ranked_snapshots, ranked_snapshots.c.snapshot_id == ETFHoldingsSnapshot.id)
+        .where(ranked_snapshots.c.snapshot_rank == 1)
+    )
+    rows = (await db.execute(statement)).scalars().all()
+    return {snapshot.etf_profile_id: snapshot for snapshot in rows}
+
+
+async def _latest_adapter_states_for_profiles(
+    db: AsyncSession,
+    profile_ids: list[int],
+) -> dict[int, ETFHoldingsAdapterState]:
+    ranked_states = (
+        select(
+            ETFHoldingsAdapterState.id.label("adapter_state_id"),
+            func.row_number()
+            .over(
+                partition_by=ETFHoldingsAdapterState.etf_profile_id,
+                order_by=(
+                    ETFHoldingsAdapterState.last_checked_at.desc().nullslast(),
+                    ETFHoldingsAdapterState.id.desc(),
+                ),
+            )
+            .label("state_rank"),
+        )
+        .where(ETFHoldingsAdapterState.etf_profile_id.in_(profile_ids))
+        .subquery()
+    )
+    statement = (
+        select(ETFHoldingsAdapterState)
+        .join(ranked_states, ranked_states.c.adapter_state_id == ETFHoldingsAdapterState.id)
+        .where(ranked_states.c.state_rank == 1)
+    )
+    rows = (await db.execute(statement)).scalars().all()
+    return {state.etf_profile_id: state for state in rows}
 
 
 async def holdings_capability_for_profile(

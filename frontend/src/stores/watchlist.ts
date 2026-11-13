@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { Watchlist, WatchlistItem, WatchlistSource, WatchlistSourceResolved } from '@/types'
-import { api } from '@/lib/api'
+import { api, setQueuedApiRequestPriority, type ApiRequestPriority } from '@/lib/api'
+import { AuthSessionChangedError } from '@/lib/authSession'
 import { ensureKnownInstrumentSymbol } from '@/lib/instruments'
 
 export interface WatchlistQuote {
@@ -22,6 +23,8 @@ export interface WatchlistQuote {
 // one in-flight request.
 const pendingWatchlistCreates = new Map<string, Promise<Watchlist | null>>()
 const pendingWatchlistItems = new Map<string, Promise<WatchlistItem | null>>()
+const pendingWatchlistPrices = new Map<string, Promise<void>>()
+let watchlistPriceGeneration = 0
 
 // Keep dense watchlists from opening one browser connection per symbol. The
 // workstation can contain thousands of rows, while the quote endpoint remains
@@ -49,6 +52,8 @@ export const useWatchlistStore = defineStore('watchlist', () => {
   // that older list response replace the locally updated membership and cause
   // virtualized rows to disappear while the user is interacting with them.
   let mutationGeneration = 0
+  let watchlistsLoadPromise: Promise<void> | null = null
+  let watchlistSourcesLoadPromise: Promise<void> | null = null
   // A reload can briefly lag a just-committed create. Preserve those local
   // rows until the canonical response includes them.
   const locallyCreatedWatchlistIds = new Set<number>()
@@ -64,6 +69,10 @@ export const useWatchlistStore = defineStore('watchlist', () => {
     ? new BroadcastChannel('charting-platform-watchlists')
     : null
   const WATCHLIST_STORAGE_KEY = 'charting-platform-watchlists-event'
+  const handleStorageInvalidation = (event: StorageEvent) => {
+    if (event.key !== WATCHLIST_STORAGE_KEY || !event.newValue) return
+    try { handleInvalidation({ data: JSON.parse(event.newValue) }) } catch { /* ignore malformed fallback events */ }
+  }
 
   function announceChanged(watchlistId?: number) {
     const message = { type: 'watchlists-changed', watchlistId: watchlistId ?? null }
@@ -80,23 +89,28 @@ export const useWatchlistStore = defineStore('watchlist', () => {
   if (watchlistChannel) {
     watchlistChannel.onmessage = handleInvalidation
   } else if (typeof window !== 'undefined') {
-    window.addEventListener('storage', event => {
-      if (event.key !== WATCHLIST_STORAGE_KEY || !event.newValue) return
-      try { handleInvalidation({ data: JSON.parse(event.newValue) }) } catch { /* ignore malformed fallback events */ }
-    })
+    window.addEventListener('storage', handleStorageInvalidation)
   }
 
   function isTransientLoadError(error: unknown): boolean {
+    if (error instanceof AuthSessionChangedError) return true
     const message = error instanceof Error ? error.message : String(error ?? '')
     return /Failed to fetch|ERR_ABORTED|Authentication required/i.test(message)
   }
 
-  async function loadWatchlists() {
+  async function loadWatchlists(priority: ApiRequestPriority = 'auto') {
+    if (watchlistsLoadPromise) {
+      if (priority === 'high') setQueuedApiRequestPriority('watchlists:list', 'high')
+      return watchlistsLoadPromise
+    }
     loading.value = true
     loadError.value = ''
     const generation = mutationGeneration
-    try {
-      const loaded = (await api.get<Watchlist[]>('/watchlists')) ?? []
+    let request!: Promise<void>
+    request = (async () => { try {
+      const loaded = (await api.get<Watchlist[]>('/watchlists', undefined, {
+        priority, queueKey: 'watchlists:list',
+      })) ?? []
       if (generation === mutationGeneration) {
         const loadedIds = new Set(loaded.map(watchlist => watchlist.id))
         const locallyMissing = watchlists.value.filter(watchlist => locallyCreatedWatchlistIds.has(watchlist.id) && !loadedIds.has(watchlist.id))
@@ -133,18 +147,35 @@ export const useWatchlistStore = defineStore('watchlist', () => {
     } finally {
       loading.value = false
     }
+    })().finally(() => {
+      if (watchlistsLoadPromise === request) watchlistsLoadPromise = null
+    })
+    watchlistsLoadPromise = request
+    return request
   }
 
-  async function loadWatchlistSources() {
+  async function loadWatchlistSources(priority: ApiRequestPriority = 'auto') {
+    if (watchlistSourcesLoadPromise) {
+      if (priority === 'high') setQueuedApiRequestPriority('watchlists:sources', 'high')
+      return watchlistSourcesLoadPromise
+    }
     watchlistSourcesLoading.value = true
     watchlistSourcesError.value = ''
-    try {
-      watchlistSources.value = (await api.get<WatchlistSource[]>('/watchlists/sources')) ?? []
+    let request!: Promise<void>
+    request = (async () => { try {
+      watchlistSources.value = (await api.get<WatchlistSource[]>('/watchlists/sources', undefined, {
+        priority, queueKey: 'watchlists:sources',
+      })) ?? []
     } catch (error) {
       watchlistSourcesError.value = error instanceof Error ? error.message : 'Unable to load watchlist sources'
     } finally {
       watchlistSourcesLoading.value = false
     }
+    })().finally(() => {
+      if (watchlistSourcesLoadPromise === request) watchlistSourcesLoadPromise = null
+    })
+    watchlistSourcesLoadPromise = request
+    return request
   }
 
   async function resolveWatchlistSource(sourceId: string, asOf?: string | null): Promise<WatchlistSourceResolved | null> {
@@ -495,19 +526,32 @@ export const useWatchlistStore = defineStore('watchlist', () => {
     }
   }
 
-  async function fetchPrices(symbols: string[], force = false, localOnly = false) {
+  async function fetchPrices(symbols: string[], force = false, localOnly = false, priority?: 'high' | 'low' | 'auto') {
     const unique = [...new Set(symbols.map(s => s?.toUpperCase()).filter(Boolean))]
     const toFetch = unique.filter(s => force || !priceMap.value[s])
     if (!toFetch.length) return
     let nextIndex = 0
-    async function fetchNext() {
-      while (nextIndex < toFetch.length) {
-        const symbol = toFetch[nextIndex++]
+    async function fetchPrice(symbol: string) {
+      const key = `${localOnly ? 'local' : 'provider'}:${symbol}`
+      const queueKey = `watchlist-price:${key}`
+      const existing = pendingWatchlistPrices.get(key)
+      if (existing) {
+        // A visible consumer can promote the shared request, but a later
+        // hidden/secondary panel must never demote foreground work.
+        if (priority === 'high') setQueuedApiRequestPriority(queueKey, 'high')
+        return existing
+      }
+      if (!force && priceMap.value[symbol]) return
+
+      const generation = watchlistPriceGeneration
+      const pending = (async () => {
         try {
-          const bars: Array<{ open: number; high: number; low: number; close: number; volume?: number }> = await api.get(
-            localOnly ? `/ohlcv/local/${symbol}/D1` : `/ohlcv/${symbol}/D1`,
-            { limit: 31 },
-          )
+          const path = localOnly ? `/ohlcv/local/${symbol}/D1` : `/ohlcv/${symbol}/D1`
+          const requestOptions = priority ? { priority, queueKey } : undefined
+          const bars: Array<{ open: number; high: number; low: number; close: number; volume?: number }> = priority
+            ? await api.get(path, { limit: 31 }, requestOptions)
+            : await api.get(path, { limit: 31 })
+          if (generation !== watchlistPriceGeneration) return
           if (bars.length >= 2) {
             const last = bars[bars.length - 1]
             const prev = bars[bars.length - 2]
@@ -547,6 +591,18 @@ export const useWatchlistStore = defineStore('watchlist', () => {
             }
           }
         } catch { /* no bars */ }
+      })()
+      pendingWatchlistPrices.set(key, pending)
+      try {
+        await pending
+      } finally {
+        if (pendingWatchlistPrices.get(key) === pending) pendingWatchlistPrices.delete(key)
+      }
+    }
+    async function fetchNext() {
+      while (nextIndex < toFetch.length) {
+        const symbol = toFetch[nextIndex++]
+        await fetchPrice(symbol)
         }
     }
     await Promise.all(Array.from({ length: Math.min(EAGER_QUOTE_CONCURRENCY, toFetch.length) }, fetchNext))
@@ -558,6 +614,23 @@ export const useWatchlistStore = defineStore('watchlist', () => {
 
   function clearFocusRequest() {
     focusRequest.value = null
+  }
+
+  function resetForAuthSessionBoundary() {
+    mutationGeneration += 1
+    watchlistPriceGeneration += 1
+    watchlists.value = []
+    priceMap.value = {}
+    flashMap.value = {}
+    focusRequest.value = null
+    pendingWatchlistCreates.clear()
+    pendingWatchlistItems.clear()
+    pendingWatchlistPrices.clear()
+    locallyCreatedWatchlistIds.clear()
+    locallyAddedItems.clear()
+    locallyRemovedItemIds.clear()
+    watchlistChannel?.close()
+    if (!watchlistChannel && typeof window !== 'undefined') window.removeEventListener('storage', handleStorageInvalidation)
   }
 
   return {
@@ -572,6 +645,7 @@ export const useWatchlistStore = defineStore('watchlist', () => {
     focusRequest,
     requestFocusWatchlist,
     clearFocusRequest,
+    resetForAuthSessionBoundary,
     loadWatchlists,
     loadWatchlistSources,
     resolveWatchlistSource,

@@ -2,6 +2,7 @@ import type { ETFHolding, ETFHoldingsSnapshot } from '@/types'
 import type { InstrumentAcquireResponse } from '@/lib/onDemandAcquisition'
 
 export interface ETFHoldingDrilldownContext {
+  etfSymbol?: string
   instrumentId: number
   canonicalSymbol: string
   snapshotId: number
@@ -66,6 +67,7 @@ export function createETFHoldingDrilldownContext(
   canonicalSymbol: string,
 ): ETFHoldingDrilldownContext {
   return {
+    etfSymbol: snapshot.etf_symbol.trim().toUpperCase(),
     instrumentId,
     canonicalSymbol,
     snapshotId: snapshot.id,
@@ -102,6 +104,7 @@ export function isCurrentETFHoldingSelection(
 
 export function holdingDrilldownRouteQuery(context: ETFHoldingDrilldownContext): Record<string, string> {
   return {
+    ...(context.etfSymbol ? { holding_etf_symbol: context.etfSymbol.trim().toUpperCase() } : {}),
     holding_snapshot_id: String(context.snapshotId),
     holding_composition_date: context.compositionDate,
     holding_known_at: context.knownAt,
@@ -134,7 +137,8 @@ export function isSameETFHoldingDrilldownContext(
   right: ETFHoldingDrilldownContext | null | undefined,
 ): boolean {
   if (!left || !right) return false
-  return left.instrumentId === right.instrumentId
+  return (left.etfSymbol?.trim().toUpperCase() ?? '') === (right.etfSymbol?.trim().toUpperCase() ?? '')
+    && left.instrumentId === right.instrumentId
     && left.canonicalSymbol.trim().toUpperCase() === right.canonicalSymbol.trim().toUpperCase()
     && left.snapshotId === right.snapshotId
     && left.compositionDate === right.compositionDate
@@ -164,6 +168,7 @@ export function parseETFHoldingDrilldownRouteQuery(
     || !value('holding_provenance') || !value('holding_source_provider')) return null
 
   return {
+    ...(value('holding_etf_symbol') ? { etfSymbol: value('holding_etf_symbol').toUpperCase() } : {}),
     instrumentId,
     canonicalSymbol,
     snapshotId,
