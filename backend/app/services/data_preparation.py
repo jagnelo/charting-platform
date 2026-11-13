@@ -37,7 +37,11 @@ from app.schemas.data_preparation import (
     ScreenerPreparationTarget,
 )
 from app.services.derived_timeframes import refresh_derived_timeframe_if_needed
-from app.services.market_refresh_queue import _acquire_enqueue_lock, enqueue_refresh_job
+from app.services.market_refresh_queue import (
+    DEPENDENCY_PENDING_ERROR,
+    _acquire_enqueue_lock,
+    enqueue_refresh_job,
+)
 from app.services.ohlcv_coverage import (
     CoverageStatus,
     OhlcvCoverageAssessment,
@@ -2220,7 +2224,17 @@ def _history_wait_projection(
 
     if any(job.status == "failed" for job in jobs):
         return ("partial" if useful_coverage else "failed", "history_backfill_failed", None)
-    if any(job.status in {"queued", "leased"} for job in jobs):
+    # A job deferred only because an internal prerequisite (for example the
+    # identity job) is not complete is runnable work, not a provider wait. Its
+    # short recheck interval is woken the moment the prerequisite completes, so
+    # exposing it as a timed provider deferral would make the shared client stop
+    # polling and report a source failure for work that is progressing normally.
+    awaiting_prerequisite = [
+        job
+        for job in jobs
+        if job.status == "deferred" and job.last_error == DEPENDENCY_PENDING_ERROR
+    ]
+    if any(job.status in {"queued", "leased"} for job in jobs) or awaiting_prerequisite:
         if any(job.status == "leased" for job in jobs):
             status = "partial" if useful_coverage else "running"
         else:
