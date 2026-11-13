@@ -4285,3 +4285,40 @@ class TestEdgarTickerMap:
             configured.EDGAR_USER_AGENT = "test test@example.invalid"
             with pytest.raises(ProviderResponseError, match="malformed observation"):
                 EdgarProvider().fetch_fundamental_facts("320193")
+
+
+# ── Alpaca invalid-symbol answer ──────────────────────────────────────────────
+
+
+def _alpaca_response(status_code: int, payload: dict) -> httpx.Response:
+    request = httpx.Request("GET", "https://data.alpaca.markets/v2/stocks/bars")
+    return httpx.Response(status_code, json=payload, request=request)
+
+
+class TestAlpacaInvalidSymbol:
+    def _fetch(self, response: httpx.Response):
+        provider = AlpacaProvider()
+        with (
+            patch("app.providers.alpaca.settings") as mock_settings,
+            patch("app.providers.alpaca.httpx.get", return_value=response),
+        ):
+            mock_settings.ALPACA_API_KEY = "key"
+            mock_settings.ALPACA_SECRET_KEY = "secret"
+            mock_settings.ALPACA_DATA_FEED = "iex"
+            return provider.fetch_ohlcv(
+                "HOLDING-E1F6F0DFF8",
+                Timeframe.D1,
+                datetime(2026, 11, 1, tzinfo=UTC),
+                end=datetime(2026, 11, 13, tzinfo=UTC),
+            )
+
+    def test_invalid_symbol_400_is_a_no_data_answer_not_a_transport_failure(self):
+        # Alpaca's deterministic answer for a symbol it does not list. Retrying
+        # cannot change it, so it must not surface as a retryable HTTP error.
+        response = _alpaca_response(400, {"message": "invalid symbol: HOLDING-E1F6F0DFF8"})
+        assert self._fetch(response) == []
+
+    def test_other_400_still_raises(self):
+        response = _alpaca_response(400, {"message": "invalid timeframe"})
+        with pytest.raises(httpx.HTTPStatusError):
+            self._fetch(response)
