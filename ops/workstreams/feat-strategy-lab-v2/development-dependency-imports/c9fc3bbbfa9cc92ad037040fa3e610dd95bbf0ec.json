@@ -1,0 +1,83 @@
+{
+  "schema": 1,
+  "dependency": "tc-common-runtime-development-consumption",
+  "source_commit": "c9fc3bbbfa9cc92ad037040fa3e610dd95bbf0ec",
+  "previous_source": "a2e222251d4ea796d0d4bfb6b0e8705f503c1e4d",
+  "root_manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-c9fc3bbb-common-runtime-development-consumption-contract.json",
+  "root_manifest_sha256": "762e04066871d894e6da4bcc863f3cb8558d6473793eada942195f95a91275f6",
+  "root_entry": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-c9fc3bbb-common-entry-feat-strategy-lab-v2.yaml",
+  "consumer": "Strategy",
+  "imported_paths": [
+    "frontend/src/components/chart/ChartPanel.vue",
+    "frontend/src/components/common/CompactStatusNotice.vue",
+    "frontend/src/components/workstation/RatioUPlot.vue",
+    "frontend/src/components/workstation/RelativeRotationTool.vue",
+    "frontend/src/lib/dataPreparation.ts",
+    "frontend/src/views/WorkstationView.vue",
+    "frontend/tests/unit/components/test_chart_panel_lifecycle.test.ts",
+    "frontend/tests/unit/components/test_compact_status_notice.test.ts",
+    "frontend/tests/unit/components/test_relative_rotation_tool.test.ts",
+    "frontend/tests/unit/lib/test_data_preparation.test.ts"
+  ],
+  "old_guards": {
+    "frontend/src/components/chart/ChartPanel.vue": {
+      "sha256": "7c4f860290ed711369561ed4312eb014b73785be2b60774cc5de60f5d1e52ddb",
+      "known_source": "a2e222251d4ea796d0d4bfb6b0e8705f503c1e4d",
+      "known_absent": false
+    },
+    "frontend/src/components/common/CompactStatusNotice.vue": {
+      "sha256": null,
+      "known_source": "a2e222251d4ea796d0d4bfb6b0e8705f503c1e4d",
+      "known_absent": true
+    },
+    "frontend/src/components/workstation/RatioUPlot.vue": {
+      "sha256": "4a87458e9fb2b4366ced51ed627243c6ab58915a5c4d245be9732c072266f2b3",
+      "known_source": "a2e222251d4ea796d0d4bfb6b0e8705f503c1e4d",
+      "known_absent": false
+    },
+    "frontend/src/components/workstation/RelativeRotationTool.vue": {
+      "sha256": "19efc96047e87dc10e0421ffbd5fa9726718fc92fd5dc8889b9bec814b01e837",
+      "known_source": "a2e222251d4ea796d0d4bfb6b0e8705f503c1e4d",
+      "known_absent": false
+    },
+    "frontend/src/lib/dataPreparation.ts": {
+      "sha256": "6b51640037977bcbba4141fca24fb204039e39aa2f3606b658b4238fd74ea9f0",
+      "known_source": "a2e222251d4ea796d0d4bfb6b0e8705f503c1e4d",
+      "known_absent": false
+    },
+    "frontend/src/views/WorkstationView.vue": {
+      "sha256": "be78b7c125f48c3209a4987424fa80f74361f02f68a35c5eda6054fd4afc78bd",
+      "known_source": "a2e222251d4ea796d0d4bfb6b0e8705f503c1e4d",
+      "known_absent": false
+    },
+    "frontend/tests/unit/components/test_chart_panel_lifecycle.test.ts": {
+      "sha256": "6dbe5244fc964cc498269f4ef933357a703199cacd4a5cf290b24a1735970d54",
+      "known_source": "a2e222251d4ea796d0d4bfb6b0e8705f503c1e4d",
+      "known_absent": false
+    },
+    "frontend/tests/unit/components/test_compact_status_notice.test.ts": {
+      "sha256": null,
+      "known_source": "a2e222251d4ea796d0d4bfb6b0e8705f503c1e4d",
+      "known_absent": true
+    },
+    "frontend/tests/unit/components/test_relative_rotation_tool.test.ts": {
+      "sha256": "f8db494ade43e6a586274ecff54d7eeab7a829ae871c3c7c149c5c6fbf9ab8bd",
+      "known_source": "a2e222251d4ea796d0d4bfb6b0e8705f503c1e4d",
+      "known_absent": false
+    },
+    "frontend/tests/unit/lib/test_data_preparation.test.ts": {
+      "sha256": "394310af797b9e6a96287edaed21818b0c2733e1275415dcee7896172e9e94bd",
+      "known_source": "a2e222251d4ea796d0d4bfb6b0e8705f503c1e4d",
+      "known_absent": false
+    }
+  },
+  "verified_source_manifest_rows": 85,
+  "verification": {
+    "sha256": true,
+    "git_blob": true,
+    "status_from139": true,
+    "git_executable_mode": true,
+    "consumer_import_exact": true
+  },
+  "qualification": "Exact development consumption only. Root retains browser, full-profile, exact-source CI and release acceptance; no producer suites were rerun."
+}

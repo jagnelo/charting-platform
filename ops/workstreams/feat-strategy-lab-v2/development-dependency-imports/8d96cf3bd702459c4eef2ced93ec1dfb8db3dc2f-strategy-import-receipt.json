@@ -1,0 +1,112 @@
+{
+  "schema": 1,
+  "dependency": "tc-common-runtime-development-consumption",
+  "source_commit": "8d96cf3bd702459c4eef2ced93ec1dfb8db3dc2f",
+  "root_manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-8d96cf3b-common-runtime-development-consumption-contract.json",
+  "root_manifest_sha256": "2959432285dd2d58271261d539b4e30700bb38f2bf4b7b84727887a91078d4a1",
+  "consumer": "Strategy",
+  "imported_paths": [
+    "frontend/src/components/workstation/ToolWindow.vue",
+    "frontend/src/components/workstation/WorkstationToolContent.vue",
+    "frontend/src/lib/api.ts",
+    "frontend/src/lib/dataPreparation.ts",
+    "frontend/src/lib/onDemandAcquisition.ts",
+    "frontend/src/stores/favorites.ts",
+    "frontend/src/views/WorkstationView.vue",
+    "frontend/tests/e2e/auth_session_boundary.spec.ts",
+    "frontend/tests/e2e/on_demand_acquisition.spec.ts",
+    "frontend/tests/unit/components/test_tool_window.test.ts",
+    "frontend/tests/unit/lib/test_api_client.test.ts",
+    "frontend/tests/unit/lib/test_data_preparation.test.ts",
+    "frontend/tests/unit/lib/test_on_demand_acquisition.test.ts",
+    "frontend/tests/unit/stores/test_favorites_store.test.ts",
+    "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts"
+  ],
+  "old_guards": {
+    "frontend/src/components/workstation/ToolWindow.vue": {
+      "sha256": "41a8cc7e50f920806d2952b713b38ce85d7b9c38906f41e94f259652352964c9",
+      "known_source": "2a8dc9e4c28a9632ffdf8f484ad12a985df70cd3",
+      "known_absent": false
+    },
+    "frontend/src/components/workstation/WorkstationToolContent.vue": {
+      "sha256": "2ece65c4e2a573e652b169a4f7a62b81e3a430d16edfc17729829adf06437abd",
+      "known_source": "2a8dc9e4c28a9632ffdf8f484ad12a985df70cd3",
+      "known_absent": false
+    },
+    "frontend/src/lib/api.ts": {
+      "sha256": "c703b6e15262de9aa8c62b2bcf621cf1b53626fc9fd7e61cbc2c4590c3f121c8",
+      "known_source": "2a8dc9e4c28a9632ffdf8f484ad12a985df70cd3",
+      "known_absent": false
+    },
+    "frontend/src/lib/dataPreparation.ts": {
+      "sha256": "204322e9aa4136beadb9e7a87863ed96e742c24699f538cd4c911f7d7cc54e8f",
+      "known_source": "7ac76f17913ad54181e6efbfb3f8c0e51b4c86b8",
+      "known_absent": false
+    },
+    "frontend/src/lib/onDemandAcquisition.ts": {
+      "sha256": "76807b5a82c511a7439ece6afc800d4790b81bb37c9e5d8db735e4d562716b7d",
+      "known_source": "139b350238b5e1c8a170dce5af09a805301d857e",
+      "known_absent": false
+    },
+    "frontend/src/stores/favorites.ts": {
+      "sha256": "d25f64f0b12c53c228d1a7b680bc1592613a047d373a92de3415641f7d011d18",
+      "known_source": "139b350238b5e1c8a170dce5af09a805301d857e",
+      "known_absent": false
+    },
+    "frontend/src/views/WorkstationView.vue": {
+      "sha256": "0604030700ef714d6f19f11a8854a13926ec5682df96db3b245bcd52ec70c50a",
+      "known_source": "2a8dc9e4c28a9632ffdf8f484ad12a985df70cd3",
+      "known_absent": false
+    },
+    "frontend/tests/e2e/auth_session_boundary.spec.ts": {
+      "sha256": "78e4e83fa97d866c32ae010460e80767e4ee5f1b61bb02f279ce073d4943c4df",
+      "known_source": "2a8dc9e4c28a9632ffdf8f484ad12a985df70cd3",
+      "known_absent": false
+    },
+    "frontend/tests/e2e/on_demand_acquisition.spec.ts": {
+      "sha256": "50d0ffa2661ccf2f11eaafe4f5a9a9ff0d1c074be82f81ad8d7dc63faf01a5c9",
+      "known_source": "2a8dc9e4c28a9632ffdf8f484ad12a985df70cd3",
+      "known_absent": false
+    },
+    "frontend/tests/unit/components/test_tool_window.test.ts": {
+      "sha256": "4149dad36dfa67c4f5af5fe710cc08479b151aa7b086fb8a882f027c969d5cb0",
+      "known_source": "2a8dc9e4c28a9632ffdf8f484ad12a985df70cd3",
+      "known_absent": false
+    },
+    "frontend/tests/unit/lib/test_api_client.test.ts": {
+      "sha256": "c27f2e6b485ed661c11bf06f8a271123a4b4275d01476332efda890dec71e7dc",
+      "known_source": "2a8dc9e4c28a9632ffdf8f484ad12a985df70cd3",
+      "known_absent": false
+    },
+    "frontend/tests/unit/lib/test_data_preparation.test.ts": {
+      "sha256": "5e384c416df27099c13f76365cfed643923f08d341f7d18e0ad8a3ec4679b294",
+      "known_source": "7ac76f17913ad54181e6efbfb3f8c0e51b4c86b8",
+      "known_absent": false
+    },
+    "frontend/tests/unit/lib/test_on_demand_acquisition.test.ts": {
+      "sha256": "57378d310464d72549b0b454c33392ce596841db312d28c93e62a2e0b2afccb8",
+      "known_source": "139b350238b5e1c8a170dce5af09a805301d857e",
+      "known_absent": false
+    },
+    "frontend/tests/unit/stores/test_favorites_store.test.ts": {
+      "sha256": "e4fccb5b9241c5d2b107666c349c1e0ccfb5b5081af04234343ad5472595b1dc",
+      "known_source": "139b350238b5e1c8a170dce5af09a805301d857e",
+      "known_absent": false
+    },
+    "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts": {
+      "sha256": "a9fe2ded3439d74f6095dee8ba3fba859fd8f260ac3a1857cc4e3168dfbb64a3",
+      "known_source": "2a8dc9e4c28a9632ffdf8f484ad12a985df70cd3",
+      "known_absent": false
+    }
+  },
+  "verified_source_manifest_rows": 95,
+  "verification": {
+    "sha256": true,
+    "git_blob": true,
+    "status_from139": true,
+    "git_executable_mode": true,
+    "consumer_old_guards": true,
+    "consumer_import_exact": true
+  },
+  "qualification": "Exact shared runtime development consumption only. The TC contract reports three proof issues still under repair; no full browser, runtime, or exact-source acceptance is claimed. Root owns combined qualification."
+}

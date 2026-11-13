@@ -1,0 +1,53 @@
+{
+  "schema": 1,
+  "dependency": "provider-runtime-development-consumption",
+  "source_commit": "dd05c5e8318ff59a90f879867cae9664dcc0de4f",
+  "previous_source": "182173f346d4a27694a46beba057102a5b7449e6",
+  "root_manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providerdd05c5e8-runtime-development-consumption-contract.json",
+  "root_manifest_sha256": "0be00f63f7c9c77b2f4c41696657e122bd54265ff68b614f6e9d958b074493e9",
+  "root_entry": null,
+  "consumer": "Strategy",
+  "imported_paths": [
+    "backend/app/services/e2e_seed.py",
+    "backend/app/services/exchange_sessions.py",
+    "backend/app/services/ohlcv_coverage.py",
+    "backend/tests/unit/services/test_e2e_seed.py",
+    "backend/tests/unit/services/test_exchange_catalog.py",
+    "backend/tests/unit/services/test_market_data.py"
+  ],
+  "old_guards": {
+    "backend/app/services/e2e_seed.py": {
+      "sha256": "4802be9c8879ec9a6109dfe155f0156cfefc7416050dc6ef8b97c0653a24b6fd",
+      "known_source": "182173f346d4a27694a46beba057102a5b7449e6"
+    },
+    "backend/app/services/exchange_sessions.py": {
+      "sha256": "4aca6d1e768cf0713e2c8bc389db4675379e4a528414f0978a8bc0d589e88928",
+      "known_source": "182173f346d4a27694a46beba057102a5b7449e6"
+    },
+    "backend/app/services/ohlcv_coverage.py": {
+      "sha256": "1decd6ba026caccfc48678f5d9d03816984208ad1edde6352e184ec24a5e64fd",
+      "known_source": "182173f346d4a27694a46beba057102a5b7449e6"
+    },
+    "backend/tests/unit/services/test_e2e_seed.py": {
+      "sha256": "6fa1c8ee19e1e23adf7a2ea65d4520f568df7465f6fe5fa3804ff74d109ce65e",
+      "known_source": "182173f346d4a27694a46beba057102a5b7449e6"
+    },
+    "backend/tests/unit/services/test_exchange_catalog.py": {
+      "sha256": "686361a490f02ddeaf855434a64085588614a1f5b0437ff7b82a0023fd824042",
+      "known_source": "182173f346d4a27694a46beba057102a5b7449e6"
+    },
+    "backend/tests/unit/services/test_market_data.py": {
+      "sha256": "088c258a4d05ab26ce18200d68a403fc4fbef0d85e526dd8e8ba013e50fcd390",
+      "known_source": "182173f346d4a27694a46beba057102a5b7449e6"
+    }
+  },
+  "verified_source_manifest_rows": 64,
+  "verification": {
+    "sha256": true,
+    "git_blob": true,
+    "status_from139": true,
+    "git_executable_mode": true,
+    "consumer_import_exact": true
+  },
+  "qualification": "Exact development consumption only. Root retains browser, full-profile, exact-source CI and release acceptance; no producer suites were rerun."
+}
