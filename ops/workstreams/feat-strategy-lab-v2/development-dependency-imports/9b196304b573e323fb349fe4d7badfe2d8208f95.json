@@ -1,0 +1,206 @@
+{
+  "schema": 1,
+  "dependency": "provider-runtime-development-consumption",
+  "source_commit": "9b196304b573e323fb349fe4d7badfe2d8208f95",
+  "previous_source": "13630db12d4f0f5810b9baa73725f75fb7e653cc",
+  "previous_consumer_pin": "22c31cd3e7f35e361e286ef40576d379aaf44449",
+  "root_manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider9b196304-runtime-development-consumption-contract.json",
+  "root_manifest_sha256": "fc1cbb7bd2fa5f5d0dcaf30177270ebab81f0572c2b50b1d381086441e32b353",
+  "root_entry": null,
+  "root_entry_sha256": null,
+  "consumer": "Strategy",
+  "imported_paths": [
+    "backend/app/routers/analysis.py",
+    "backend/app/routers/data_preparation.py",
+    "backend/app/routers/instruments.py",
+    "backend/app/routers/ohlcv.py",
+    "backend/app/routers/providers.py",
+    "backend/app/services/data_preparation.py",
+    "backend/app/services/derived_timeframes.py",
+    "backend/app/services/etf_holdings_refresh.py",
+    "backend/app/services/instrument_mastering.py",
+    "backend/app/services/market_data.py",
+    "backend/app/services/market_refresh_queue.py",
+    "backend/app/services/market_series.py",
+    "backend/app/services/provider_runtime.py",
+    "backend/app/tasks/data_tasks.py",
+    "backend/tests/unit/routers/test_analysis_router.py",
+    "backend/tests/unit/routers/test_data_preparation_router.py",
+    "backend/tests/unit/routers/test_instruments_router.py",
+    "backend/tests/unit/routers/test_ohlcv_router.py",
+    "backend/tests/unit/routers/test_providers_router.py",
+    "backend/tests/unit/services/test_data_preparation_contracts.py",
+    "backend/tests/unit/services/test_data_preparation_history_planning.py",
+    "backend/tests/unit/services/test_data_preparation_service.py",
+    "backend/tests/unit/services/test_data_preparation_worker_deeper_default.py",
+    "backend/tests/unit/services/test_derived_timeframes.py",
+    "backend/tests/unit/services/test_etf_holdings_bootstrap.py",
+    "backend/tests/unit/services/test_etf_holdings_preparation_hook.py",
+    "backend/tests/unit/services/test_etf_holdings_provider_bridge.py",
+    "backend/tests/unit/services/test_market_data.py",
+    "backend/tests/unit/services/test_market_refresh_queue.py",
+    "backend/tests/unit/services/test_market_series_defaults.py",
+    "backend/tests/unit/services/test_provider_persistence.py",
+    "backend/tests/unit/services/test_provider_quota_contract.py",
+    "backend/tests/unit/services/test_provider_runtime.py",
+    "backend/tests/unit/tasks/test_data_tasks.py",
+    "backend/tests/unit/tasks/test_native_usage_prerequisite.py",
+    "backend/tests/unit/workers/test_arq_worker.py"
+  ],
+  "old_guards": {
+    "backend/app/routers/analysis.py": {
+      "sha256": "5396c1c3178678947ab4c6fd70f51a65054b0d4d2e502aa06fc54875b2274212",
+      "known_source": "22c31cd3e7f35e361e286ef40576d379aaf44449"
+    },
+    "backend/app/routers/data_preparation.py": {
+      "sha256": "3f263b31955de71deac04cccbbeb63add7b5ac9d59d8afcf9e0a25ba344d634b",
+      "known_source": "22c31cd3e7f35e361e286ef40576d379aaf44449"
+    },
+    "backend/app/routers/instruments.py": {
+      "sha256": "0e299d88b5e89e7e216d68bfa9cdcfcdd91d8bd1e00ad3da280fdbd2d0af41ae",
+      "known_source": "139b350238b5e1c8a170dce5af09a805301d857e"
+    },
+    "backend/app/routers/ohlcv.py": {
+      "sha256": "420387926e48794e48cd452c04fbd9478b68980f0162762acdd434a019407b30",
+      "known_source": "22c31cd3e7f35e361e286ef40576d379aaf44449"
+    },
+    "backend/app/routers/providers.py": {
+      "sha256": "bede368437e1156045912ee1c13573336f4c7c48e8b889b9712b55de1a967a7f",
+      "known_source": "139b350238b5e1c8a170dce5af09a805301d857e"
+    },
+    "backend/app/services/data_preparation.py": {
+      "sha256": "665433063a696ae1287cd427cbe334cfb18c163e9e908e67612f8fe5fd6a36f9",
+      "known_source": "22c31cd3e7f35e361e286ef40576d379aaf44449"
+    },
+    "backend/app/services/derived_timeframes.py": {
+      "sha256": "d88137707ebb337e7bb30ad7b2e55ba9c92b7c3e55c007b7d58c86a2caa492e5",
+      "known_source": "22c31cd3e7f35e361e286ef40576d379aaf44449"
+    },
+    "backend/app/services/etf_holdings_refresh.py": {
+      "sha256": "e258f61bcc7aa288897999cb421d320512439e101157ff0f91fe5be4b216fce3",
+      "known_source": "22c31cd3e7f35e361e286ef40576d379aaf44449"
+    },
+    "backend/app/services/instrument_mastering.py": {
+      "sha256": "3bac765ed5e48d8027ec7382e80320b264edc396c12c74afdf17b40d31f74861",
+      "known_source": "13630db12d4f0f5810b9baa73725f75fb7e653cc"
+    },
+    "backend/app/services/market_data.py": {
+      "sha256": "6ddacd402572398b3e70d88c303d05ab2a8b21a59764692ac30522d628ea56c0",
+      "known_source": "22c31cd3e7f35e361e286ef40576d379aaf44449"
+    },
+    "backend/app/services/market_refresh_queue.py": {
+      "sha256": "3ea7b26e93ae932bd17791c5032f2d21ec789fed34b74be7c45a905665525b5f",
+      "known_source": "ad114d20eff04992f384b5a57bb3999e3da6d6f7"
+    },
+    "backend/app/services/market_series.py": {
+      "sha256": "eecfac599f3d6a097f282ba467271a13194f99148ea3ffff339d7c1795b73597",
+      "known_source": "ad114d20eff04992f384b5a57bb3999e3da6d6f7"
+    },
+    "backend/app/services/provider_runtime.py": {
+      "sha256": "60a9438595d2d4a772e971697b3496b295dd97091f2dcf2d6703e35cf0a73b28",
+      "known_source": "22c31cd3e7f35e361e286ef40576d379aaf44449"
+    },
+    "backend/app/tasks/data_tasks.py": {
+      "sha256": "4552cd54c6a2cae965f074b39d60cf4c8db56011f6bc3d297c22c5e6c5f6e4fe",
+      "known_source": "22c31cd3e7f35e361e286ef40576d379aaf44449"
+    },
+    "backend/tests/unit/routers/test_analysis_router.py": {
+      "sha256": "627a1cb968f97d73e4f16462d42fd68b6e00280292db94eed7c78b0539eef832",
+      "known_source": "22c31cd3e7f35e361e286ef40576d379aaf44449"
+    },
+    "backend/tests/unit/routers/test_data_preparation_router.py": {
+      "sha256": "aafe967b75126e5aa1634ceb4c8267f84604c33dd9396ac9290c16e3e7dd227b",
+      "known_source": "22c31cd3e7f35e361e286ef40576d379aaf44449"
+    },
+    "backend/tests/unit/routers/test_instruments_router.py": {
+      "sha256": "b8d72013eb95d3d26399af04ebb27fc69aefdf352b646756ec2bd1b7bc54729b",
+      "known_source": "139b350238b5e1c8a170dce5af09a805301d857e"
+    },
+    "backend/tests/unit/routers/test_ohlcv_router.py": {
+      "sha256": "7f676110a98ab05c8739acf0c094bc797c5486fe4298dcce5982b62027be3ede",
+      "known_source": "22c31cd3e7f35e361e286ef40576d379aaf44449"
+    },
+    "backend/tests/unit/routers/test_providers_router.py": {
+      "sha256": "a9e5de25ed2ec3d407dec661866e3f1ddbfeb18aa3d5b5f944fd5b643f98c626",
+      "known_source": "139b350238b5e1c8a170dce5af09a805301d857e"
+    },
+    "backend/tests/unit/services/test_data_preparation_contracts.py": {
+      "sha256": "d863fa6099ad77750a24391d652f92467c2e47d660711dc5e12862697ba9efca",
+      "known_source": "13630db12d4f0f5810b9baa73725f75fb7e653cc"
+    },
+    "backend/tests/unit/services/test_data_preparation_history_planning.py": {
+      "sha256": "3f4cce785014db1397acc92b675e8142012203de4a8979b2b759db56eb623ae2",
+      "known_source": "22c31cd3e7f35e361e286ef40576d379aaf44449"
+    },
+    "backend/tests/unit/services/test_data_preparation_service.py": {
+      "sha256": "7be509956059fd19aa98b3de944829d1d9cb08ce729a4aaab85b0a07ce9833af",
+      "known_source": "22c31cd3e7f35e361e286ef40576d379aaf44449"
+    },
+    "backend/tests/unit/services/test_data_preparation_worker_deeper_default.py": {
+      "sha256": null,
+      "known_source": "13630db12d4f0f5810b9baa73725f75fb7e653cc",
+      "known_absent": true
+    },
+    "backend/tests/unit/services/test_derived_timeframes.py": {
+      "sha256": "a20cd49f05714cff8b14d564ca4a36ad0e0e3fe4888b4177f381d787c60bd66a",
+      "known_source": "22c31cd3e7f35e361e286ef40576d379aaf44449"
+    },
+    "backend/tests/unit/services/test_etf_holdings_bootstrap.py": {
+      "sha256": "1db5f8c505db3e1105a42f3c677d7ca6b1b640869b73b715612b18c84920eff2",
+      "known_source": "139b350238b5e1c8a170dce5af09a805301d857e"
+    },
+    "backend/tests/unit/services/test_etf_holdings_preparation_hook.py": {
+      "sha256": "2d4ff55d6dbf495c42ad3f6cc1728aa98d6269fdb577afbbe9700c1a08f213f0",
+      "known_source": "ad114d20eff04992f384b5a57bb3999e3da6d6f7"
+    },
+    "backend/tests/unit/services/test_etf_holdings_provider_bridge.py": {
+      "sha256": "c4e35ceb6e4e51ee93f4b90c590c426fff356bf2bbc4b72ede742b6b6564a067",
+      "known_source": "ad114d20eff04992f384b5a57bb3999e3da6d6f7"
+    },
+    "backend/tests/unit/services/test_market_data.py": {
+      "sha256": "1af74e5e49557198f3dc6de7fa94a31516367159c2d909dab630501fca727b76",
+      "known_source": "22c31cd3e7f35e361e286ef40576d379aaf44449"
+    },
+    "backend/tests/unit/services/test_market_refresh_queue.py": {
+      "sha256": "5f0b94451148f877fdbfbc3c8c32664d06e355c15eebc676cd384e49cd881dae",
+      "known_source": "ad114d20eff04992f384b5a57bb3999e3da6d6f7"
+    },
+    "backend/tests/unit/services/test_market_series_defaults.py": {
+      "sha256": "45020f23deb48434a2065f8828a9e0d45577e2da982ea0ee8834443866f84c7f",
+      "known_source": "ad114d20eff04992f384b5a57bb3999e3da6d6f7"
+    },
+    "backend/tests/unit/services/test_provider_persistence.py": {
+      "sha256": "87937b83c614ba610db04577efea063c0bc87f5ea21b68fbfaf66e3bf00996f6",
+      "known_source": "139b350238b5e1c8a170dce5af09a805301d857e"
+    },
+    "backend/tests/unit/services/test_provider_quota_contract.py": {
+      "sha256": "93b61d359c7a318a91391e8982f8703bcab6fca603001cd9fee47f66689a96ea",
+      "known_source": "139b350238b5e1c8a170dce5af09a805301d857e"
+    },
+    "backend/tests/unit/services/test_provider_runtime.py": {
+      "sha256": "f607b2c6e67954e996ba47916ad9875d3eb8698ce4a0d53c430aa3e85436fc3c",
+      "known_source": "22c31cd3e7f35e361e286ef40576d379aaf44449"
+    },
+    "backend/tests/unit/tasks/test_data_tasks.py": {
+      "sha256": "3d2271a807e7bc30d7c2510c01d9faeb730422f7c3aff3d9b5e5eaca97425a28",
+      "known_source": "13630db12d4f0f5810b9baa73725f75fb7e653cc"
+    },
+    "backend/tests/unit/tasks/test_native_usage_prerequisite.py": {
+      "sha256": "b53638df1eae692b448e287b1a21fc7e83e62463b7a2f197b70a227b8e1fa987",
+      "known_source": "22c31cd3e7f35e361e286ef40576d379aaf44449"
+    },
+    "backend/tests/unit/workers/test_arq_worker.py": {
+      "sha256": "29ed8466dd10417310afadcc00cbd7d6b736806576a6e31974270c6bba25d886",
+      "known_source": "22c31cd3e7f35e361e286ef40576d379aaf44449"
+    }
+  },
+  "verified_source_manifest_rows": 76,
+  "verification": {
+    "sha256": true,
+    "git_blob": true,
+    "status_from139": true,
+    "git_executable_mode": true,
+    "consumer_import_exact": true
+  },
+  "qualification": "Exact Provider development consumption only. No owner test, runtime, browser, live-source, exact-source CI, combined, staging, or release qualification is claimed; Root owns the controlled runtime and complete release gates."
+}
