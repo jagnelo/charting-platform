@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { api } from '@/lib/api'
+import { AuthSessionChangedError } from '@/lib/authSession'
 import { useUserSettingsStore } from '@/stores/userSettings'
 
 const setQueuedApiRequestPriority = vi.hoisted(() => vi.fn())
@@ -77,5 +78,27 @@ describe('user settings market-map source preferences', () => {
     await vi.advanceTimersByTimeAsync(350)
 
     expect(api.patch).not.toHaveBeenCalled()
+  })
+
+  it('resolves silently when logout aborts the in-flight settings read', async () => {
+    ;(api.get as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new AuthSessionChangedError())
+    const store = useUserSettingsStore()
+
+    await expect(store.loadSettings()).resolves.toBeUndefined()
+    await store.loadSettings()
+    expect(api.get).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not log a console error when logout aborts an in-flight debounced save', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const store = useUserSettingsStore()
+    await store.loadSettings()
+    ;(api.patch as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new AuthSessionChangedError())
+    store.toggleFollowedSource('market-group:russell-2000')
+    await vi.advanceTimersByTimeAsync(350)
+
+    expect(api.patch).toHaveBeenCalled()
+    expect(consoleError).not.toHaveBeenCalled()
+    consoleError.mockRestore()
   })
 })
