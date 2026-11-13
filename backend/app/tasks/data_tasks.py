@@ -36,6 +36,7 @@ from app.services.derived_timeframes import (
     materialize_derived_timeframes,
     refresh_derived_timeframe_if_needed,
 )
+from app.services.etf_consumer_types import is_placeholder_symbol
 from app.services.market_data import fetch_ohlcv
 from app.services.market_data_monitoring import build_shadow_report
 from app.services.market_refresh_queue import (
@@ -2824,6 +2825,25 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                         raise RefreshDependencyPending(
                             retry_at=datetime.now(UTC) + timedelta(seconds=20)
                         )
+
+                if not preparation.get("derived_only") and is_placeholder_symbol(instrument.symbol):
+                    # Identity resolution (a prerequisite above) did not turn
+                    # this ETF-holding placeholder into a real ticker. No
+                    # provider can serve an invented symbol; asking burns quota
+                    # on a 400 and retries forever. End the child truthfully.
+                    await complete_refresh_job(
+                        db,
+                        job,
+                        result_summary={
+                            "preparation_status": "unavailable",
+                            "reason_code": "provider_symbol_unresolved",
+                            "instrument_id": instrument.id,
+                            "timeframe": timeframe.value,
+                        },
+                    )
+                    completed += 1
+                    await db.commit()
+                    continue
 
                 planned_start = job.start_at
                 planned_end = job.end_at
