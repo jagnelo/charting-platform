@@ -2544,3 +2544,51 @@ async def test_retained_coverage_runs_once_per_key_within_one_planning_pass(monk
         requested_end=end,
     )
     assert calls == [0, 0]
+
+
+def test_history_wait_projection_keeps_prerequisite_waits_pollable():
+    """A job deferred only for an internal prerequisite is runnable work.
+
+    It must not surface as a timed provider deferral, which makes the shared
+    client stop polling and show a source failure while identity work that
+    will wake the job is still progressing.
+    """
+
+    from app.services.data_preparation import _history_wait_projection
+    from app.services.market_refresh_queue import DEPENDENCY_PENDING_ERROR
+
+    retry_at = datetime.now(UTC) + timedelta(seconds=20)
+    awaiting_identity = MarketRefreshJob(
+        id=901,
+        request_key="history-awaiting-identity",
+        capability="price_history",
+        status="deferred",
+        last_error=DEPENDENCY_PENDING_ERROR,
+        next_attempt_at=retry_at,
+        metadata_payload={"defer_reason": "provider_reset"},
+    )
+    assert _history_wait_projection([awaiting_identity], useful_coverage=False) == (
+        "queued",
+        "history_backfill_pending",
+        None,
+    )
+    assert _history_wait_projection([awaiting_identity], useful_coverage=True) == (
+        "partial",
+        "history_backfill_pending",
+        None,
+    )
+
+    quota_wait = MarketRefreshJob(
+        id=902,
+        request_key="history-quota-wait",
+        capability="price_history",
+        status="deferred",
+        last_error="provider quota exhausted",
+        next_attempt_at=retry_at,
+        metadata_payload={"defer_reason": "provider_reset"},
+    )
+    assert _history_wait_projection([quota_wait], useful_coverage=False) == (
+        "waiting",
+        "provider_reset",
+        retry_at,
+    )
