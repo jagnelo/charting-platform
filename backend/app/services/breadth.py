@@ -185,11 +185,42 @@ class _PrefixView(Sequence):
         return islice(self.bars, self.end)
 
 
-def _close_values(bars: list[Any]) -> list[float] | None:
+class _CloseView(Sequence):
+    """Zero-copy read view of the first ``end`` shared closes.
+
+    Copying the whole close prefix for every member and timestamp made history
+    evaluation O(T*M*N); evaluators read only the tail (``[-1]``,
+    ``[-period:]``), so the view keeps each read proportional to its window.
+    """
+
+    __slots__ = ("closes", "end")
+
+    def __init__(self, closes: list[float], end: int) -> None:
+        self.closes = closes
+        self.end = end
+
+    def __len__(self) -> int:
+        return self.end
+
+    def __getitem__(self, index):
+        if isinstance(index, slice):
+            start, stop, step = index.indices(self.end)
+            return self.closes[start:stop:step]
+        if index < 0:
+            index += self.end
+        if not 0 <= index < self.end:
+            raise IndexError("close index out of range")
+        return self.closes[index]
+
+    def __iter__(self):
+        return islice(self.closes, self.end)
+
+
+def _close_values(bars: list[Any]) -> Sequence[float] | None:
     if isinstance(bars, _PrefixView):
         if bars.nonfinite:
             return None
-        return bars.closes[: bars.end]
+        return _CloseView(bars.closes, bars.end)
     values = [float(getattr(bar, "close", math.nan)) for bar in bars]
     return values if all(math.isfinite(value) for value in values) else None
 
@@ -562,7 +593,7 @@ def _field_series(
     if closes is None or not closes:
         return None, "invalid_close"
     if normalized in {"close", "price", "last"}:
-        return closes, None
+        return list(closes), None
     if normalized in {"return", "return_1"}:
         if len(closes) < 2 or any(closes[index - 1] == 0 for index in range(1, len(closes))):
             return None, "invalid_reference"
@@ -1466,9 +1497,17 @@ def evaluate_condition_with_diagnostics(
     )
     diagnostics: list[BreadthConditionDiagnostic] = []
 
-    def visit(node: Mapping[str, Any], path: str) -> None:
-        node_value, node_metric, node_exclusion = evaluate_condition(
-            bars, node, benchmark_bars=benchmark_bars, events=events
+    def visit(
+        node: Mapping[str, Any],
+        path: str,
+        known: tuple[bool | None, float | None, str | None] | None = None,
+    ) -> None:
+        # The root clause was just evaluated with identical inputs; reuse that
+        # deterministic result instead of evaluating the whole tree twice.
+        node_value, node_metric, node_exclusion = (
+            known
+            if known is not None
+            else evaluate_condition(bars, node, benchmark_bars=benchmark_bars, events=events)
         )
         diagnostics.append(
             BreadthConditionDiagnostic(
@@ -1497,7 +1536,7 @@ def evaluate_condition_with_diagnostics(
             visit(child, f"{path}.conditions[{index}]")
 
     if isinstance(condition, Mapping):
-        visit(condition, "$")
+        visit(condition, "$", (value, metric, exclusion))
     return value, metric, exclusion, tuple(diagnostics)
 
 
