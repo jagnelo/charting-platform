@@ -3443,8 +3443,15 @@ function handleKeydown(event: KeyboardEvent) {
     // appended to the previous symbol (for example "SPY" + "p").
     if (symbolInput.value) symbolInput.value.value = seed
     symbolInput.value?.focus()
-    symbolSearchEnabled.value = true
-    symbolDraft.value = seed
+    if (symbolInput.value) {
+      // The seed is a user edit: take the same path as a DOM input event so
+      // an in-flight route/linked hydration cannot write the old symbol back
+      // between this keystroke and the next one.
+      handleSymbolInput()
+    } else {
+      symbolSearchEnabled.value = true
+      symbolDraft.value = seed
+    }
     return
   }
   if (event.key !== ' ' || event.metaKey || event.altKey) return

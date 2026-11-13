@@ -2548,6 +2548,37 @@ describe('WorkstationView pop-out bindings', () => {
     wrapper.unmount()
   })
 
+  it('keeps a typed-to-search seed when a late linked symbol update arrives', async () => {
+    routeState.path = '/chart'
+    routeState.params = {}
+    harness.workspace = reactive(harness.workspace)
+    harness.workspace.publishSymbol.mockImplementation((event: any) => {
+      harness.workspace.linkedSymbol = event.symbol
+    })
+    apiGet.mockImplementation(async (path: string) => {
+      if (path.startsWith('/coverage/instruments/')) return { status: 'ready', bar_count: 124, missing_slices: [] }
+      return []
+    })
+    const wrapper = mount(WorkstationView, {
+      attachTo: document.body,
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    try {
+      await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY' })))
+      const input = wrapper.get('input[aria-label="Active symbol"]').element as HTMLInputElement
+      wrapper.get('.workstation').element.dispatchEvent(new KeyboardEvent('keydown', { key: 's', bubbles: true, cancelable: true }))
+      expect(input.value).toBe('S')
+      // A late programmatic hydration/link update must not replace the user's
+      // seed before the next keystroke arrives.
+      harness.workspace.linkedSymbol = 'QQQ'
+      await nextTick()
+      await flushPromises()
+      expect(input.value).toBe('S')
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
   it('keeps a typed exact symbol when a prior map publication arrives while Go has focus', async () => {
     routeState.path = '/chart'
     routeState.params = {}
