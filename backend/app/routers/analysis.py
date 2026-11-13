@@ -4419,7 +4419,11 @@ async def benchmark_family_ratios(
     """Return aligned family-leg ratios without substituting unavailable mappings."""
 
     group = (
-        await db.execute(select(MarketGroup).where(MarketGroup.stable_key == family_key))
+        await db.execute(
+            select(MarketGroup)
+            .options(selectinload(MarketGroup.members))
+            .where(MarketGroup.stable_key == family_key)
+        )
     ).scalar_one_or_none()
     if group is None or group.group_type != "benchmark_family":
         raise HTTPException(
@@ -5734,7 +5738,11 @@ async def benchmark_family_technicals(
     """
 
     group = (
-        await db.execute(select(MarketGroup).where(MarketGroup.stable_key == family_key))
+        await db.execute(
+            select(MarketGroup)
+            .options(selectinload(MarketGroup.members))
+            .where(MarketGroup.stable_key == family_key)
+        )
     ).scalar_one_or_none()
     if group is None or group.group_type != "benchmark_family":
         raise HTTPException(
@@ -5894,7 +5902,11 @@ async def benchmark_family_breadth(
     """
 
     family = (
-        await db.execute(select(MarketGroup).where(MarketGroup.stable_key == family_key))
+        await db.execute(
+            select(MarketGroup)
+            .options(selectinload(MarketGroup.members))
+            .where(MarketGroup.stable_key == family_key)
+        )
     ).scalar_one_or_none()
     if family is None or family.group_type != "benchmark_family":
         raise HTTPException(
