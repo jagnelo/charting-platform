@@ -1642,6 +1642,24 @@ describe('WorkstationView pop-out bindings', () => {
     wrapper.unmount()
   })
 
+  it('seeds the symbol input synchronously when typing outside an editor', () => {
+    routeState.path = '/'
+    routeState.params = {}
+    const wrapper = mount(WorkstationView, {
+      attachTo: document.body,
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    const input = wrapper.find('input[aria-label="Active symbol"]').element as HTMLInputElement
+    input.value = 'SPY'
+    const event = new KeyboardEvent('keydown', { key: 's', bubbles: true, cancelable: true })
+    wrapper.find('.workstation').element.dispatchEvent(event)
+    // No render tick: a following keystroke must extend "S", not the old symbol.
+    expect(event.defaultPrevented).toBe(true)
+    expect(input.value).toBe('S')
+    expect(document.activeElement).toBe(input)
+    wrapper.unmount()
+  })
+
   it('cycles supported Ctrl+B chart styles only on the active chart', async () => {
     routeState.path = '/'
     routeState.params = {}

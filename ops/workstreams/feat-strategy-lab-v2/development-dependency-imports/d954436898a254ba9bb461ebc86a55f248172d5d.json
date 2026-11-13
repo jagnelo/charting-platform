@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "dependency": "tc-common-runtime-development-consumption",
+  "source_commit": "d954436898a254ba9bb461ebc86a55f248172d5d",
+  "previous_source": "e902e83597661de1e5a636a2d94902b0fe01b747",
+  "root_manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-d9544368-common-runtime-development-consumption-contract.json",
+  "root_manifest_sha256": "40d280acde2d67ee082998c63f5ee8c3941219080de67dfb9a6a3a190f6e2ddc",
+  "root_entry": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-d9544368-common-entry-feat-strategy-lab-v2.yaml",
+  "root_entry_sha256": "8a781f46415340fe94e8a29628b8bb11d55fa9b6c5b7b53eceb5fbbff5432c48",
+  "consumer": "Strategy",
+  "imported_paths": [
+    "frontend/src/views/WorkstationView.vue"
+  ],
+  "old_guards": {
+    "frontend/src/views/WorkstationView.vue": {
+      "sha256": "bc559d79131254ec1037636ceb2be815c93600490d21aee0746ec7e767ae9359",
+      "known_source": "e902e83597661de1e5a636a2d94902b0fe01b747",
+      "known_absent": false
+    }
+  },
+  "files": [
+    {
+      "path": "frontend/src/views/WorkstationView.vue",
+      "status_from139": "M",
+      "git_blob": "e4f00e19d45d6b70d96dbc5b9068f204ebb0afd6",
+      "sha256": "32ee9b17c536722df4cebaa79cb4fe6be76c7dccfccd3563642787ceb368a43c"
+    }
+  ],
+  "verified_source_manifest_rows": 86,
+  "verification": {
+    "old_guard_before_import": true,
+    "sha256": true,
+    "git_blob": true,
+    "status_from139": true,
+    "git_executable_mode": true,
+    "consumer_import_exact": true,
+    "full_manifest_rows": 86
+  },
+  "qualification": "Exact development context consumption only. Strategy imported only WorkstationView.vue; the complete TC86, frozen Strategy27, and Provider22c67 source manifests match. No browser, full-suite, release, target, or native acceptance is claimed."
+}

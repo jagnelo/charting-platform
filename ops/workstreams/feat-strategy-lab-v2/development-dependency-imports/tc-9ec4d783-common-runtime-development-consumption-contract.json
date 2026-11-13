@@ -1,0 +1,870 @@
+{
+  "at": "2026-11-08T04:56:16.754403+00:00",
+  "authority": "Root coordinates the human-approved common-interface implementation; no staging or deployment acceptance",
+  "state": "released_for_exact_development_consumption_not_product_acceptance",
+  "source": "9ec4d7833c45cd2fc51916a2378445f7761b425e",
+  "base": "139b350238b5e1c8a170dce5af09a805301d857e",
+  "previous_source": "3055946ceabbfd51e51281f06c3f98f766f0d019",
+  "files": [
+    {
+      "path": "frontend/package-lock.json",
+      "status_from139": "M",
+      "git_blob": "6117a1d937c5464413492a31aa6e8a6be1d73a97",
+      "sha256": "3af2d0a4120b7631c3138bd07d338cfd847fcdf9ee4b54f5c2e79e0069392c10"
+    },
+    {
+      "path": "frontend/package.json",
+      "status_from139": "M",
+      "git_blob": "8152bfb19bbca8adc0f99ee1bc4c9d8f58446ddf",
+      "sha256": "fdda93cc11c5077ca053c9481f50ad31284d3477dc0274f8941c8530a82f4b87"
+    },
+    {
+      "path": "frontend/src/App.vue",
+      "status_from139": "M",
+      "git_blob": "ea7a63f48402dd77dde0719c5ffd2f53fa2b4580",
+      "sha256": "37410e9a3900158c929588f3b1ded685d7a18cec135a146c034d6834b2103b8e"
+    },
+    {
+      "path": "frontend/src/components/chart/ChartPanel.vue",
+      "status_from139": "M",
+      "git_blob": "bd6a70bd4e16200be8fce74e0408445ff88f9fda",
+      "sha256": "152124682d75b070546649bdbf5ae8bb7fc922a0f1cd4dc3e4e9193303b76f17"
+    },
+    {
+      "path": "frontend/src/components/chart/HistoryAcquisitionControl.vue",
+      "status_from139": "M",
+      "git_blob": "1fd0fcaaf865b954f074ad0994d1d82c1e376bf3",
+      "sha256": "b707a705103bbfb90d42e422b2f91f580fb5917cceaee861b43c5571f32c8ef0"
+    },
+    {
+      "path": "frontend/src/components/chart/UPlotChart.vue",
+      "status_from139": "M",
+      "git_blob": "6d4f5d418c602db2df6da41e0ddbbd9feb5b0e4a",
+      "sha256": "ea03b720a320cc5f7e4b1f8f25cd9c1894152b9c39ef245cf601c29b455b96df"
+    },
+    {
+      "path": "frontend/src/components/common/CompactStatusNotice.vue",
+      "status_from139": "A",
+      "git_blob": "303283e46fdd74b35d4649182ff6712074bbc224",
+      "sha256": "15a106b3052036ee79098b748df6e76180181719c9aee37a1b0f9f7a3f1ca7e5"
+    },
+    {
+      "path": "frontend/src/components/common/Notification.vue",
+      "status_from139": "M",
+      "git_blob": "6bc097a442066de2b9bc3e0b318275da4bcee388",
+      "sha256": "16535b3ec4d8983dd47aab9975f1777e1f4536c33e1891c263fb41539698709a"
+    },
+    {
+      "path": "frontend/src/components/common/SearchBar.vue",
+      "status_from139": "M",
+      "git_blob": "38b7fd3bbdf998553ca0c407a6c7a6050c3f04b6",
+      "sha256": "3bfcd2461db4855d4363e5e089daa74dd57d75ed2a9e5b6dc3ee9aa426542af2"
+    },
+    {
+      "path": "frontend/src/components/radar/RadarDetailPreviewChart.vue",
+      "status_from139": "M",
+      "git_blob": "aac1f6ce656c44beac3ecd2da4dc10d6da4bf373",
+      "sha256": "dac1abe2d8314669529cc23c5746cf2cb3bf22386db6598053969c64c0c9059b"
+    },
+    {
+      "path": "frontend/src/components/workstation/ChartPlotLibrary.vue",
+      "status_from139": "M",
+      "git_blob": "35e3968fe47d1601d93d9cd6b2a15a03d6996982",
+      "sha256": "a9cf70245251469f1a070ee26dfd7c392a2e2051c7d8a9a0166527f26523946a"
+    },
+    {
+      "path": "frontend/src/components/workstation/EasyScanTool.vue",
+      "status_from139": "M",
+      "git_blob": "301380d9081834b87fe40eb602f901ad79c15fc5",
+      "sha256": "39f92b6191f59bfc9ab20cc629cb13ab879ea3e8dda649efa51e4c013a911af7"
+    },
+    {
+      "path": "frontend/src/components/workstation/MarketGaugeTool.vue",
+      "status_from139": "M",
+      "git_blob": "0905f5856d056eafdbb3fa06a5e201e421cbbf5d",
+      "sha256": "b8c066507c43c135cad91b0eafe38d985efe0ea360d245f71c0864a093c76d6b"
+    },
+    {
+      "path": "frontend/src/components/workstation/MarketMapTool.vue",
+      "status_from139": "M",
+      "git_blob": "c521e549098a1a7daebe9a8b2f1bd258426c51e3",
+      "sha256": "b3fd28a14ffeb0d6345a75d202d9e5db53e69fe1933968a93739c71f302341d6"
+    },
+    {
+      "path": "frontend/src/components/workstation/RatioUPlot.vue",
+      "status_from139": "M",
+      "git_blob": "ed9b0f55089f132fdd2bdc70ae5678a59eed20ed",
+      "sha256": "c0df9d55f45f0556482e7907e467b432bab3ec26c38807e537e548e157e2511c"
+    },
+    {
+      "path": "frontend/src/components/workstation/RelativeRotationTool.vue",
+      "status_from139": "M",
+      "git_blob": "43c101d0a60c26ca01772aa4f5b417de8f0d23c2",
+      "sha256": "6a8812c2d29ae450ebdd62f1aa4e0a70037557ca716cc50e55382ed2b01293aa"
+    },
+    {
+      "path": "frontend/src/components/workstation/ToolWindow.vue",
+      "status_from139": "M",
+      "git_blob": "2ca4198bc80f3bc6ac5e687b384814a193e04c34",
+      "sha256": "28f19f824241a8710b19e769376b31159188c9318257ffadf492c6b0b9ce5e9c"
+    },
+    {
+      "path": "frontend/src/components/workstation/VirtualWatchlistTool.vue",
+      "status_from139": "M",
+      "git_blob": "c531644b09a0849859cbb1020d31f5ede9214c8b",
+      "sha256": "6653712c9bfe34186c890e0982bcf821157bdaab203e8a3255451ec70ca6feec"
+    },
+    {
+      "path": "frontend/src/components/workstation/WorkspaceLayoutHost.vue",
+      "status_from139": "M",
+      "git_blob": "73c6a55547ff1266934d98dcc1f23d99f97e52e5",
+      "sha256": "1579e6e027fbb2d25b0acc50fdb2c848a9792d632f0f6710226543b7d7ed8601"
+    },
+    {
+      "path": "frontend/src/components/workstation/WorkstationToolContent.vue",
+      "status_from139": "M",
+      "git_blob": "c8283c58c9832a1602ca4a22bb9d63adc91dd056",
+      "sha256": "b10861e25720421bbe14e743b563339e42b25ef6b364e28bac3524f5109fdfa3"
+    },
+    {
+      "path": "frontend/src/lib/api.ts",
+      "status_from139": "M",
+      "git_blob": "aa749a81b53b384fafc34f90dfa05368fdaf3fd3",
+      "sha256": "ebfd5376104af10e856463810c96b55abb53f39a96c0a645ddaa5121cf85a46f"
+    },
+    {
+      "path": "frontend/src/lib/authSession.ts",
+      "status_from139": "A",
+      "git_blob": "08a2ca831c277009bcf139699d22e569f5d1dac0",
+      "sha256": "8ed6b9dca7d36ca0da329b3f5885f470a25e3a0362599a326336bdcad42aaba8"
+    },
+    {
+      "path": "frontend/src/lib/dataPreparation.ts",
+      "status_from139": "A",
+      "git_blob": "5ed2c2cb2e2555bccdb5ab8f6da1d8c8b119f885",
+      "sha256": "32394c869a8f7c7e694646b4eb724240f65058faf246169910c7fd9625694dca"
+    },
+    {
+      "path": "frontend/src/lib/etfHoldingDrilldown.ts",
+      "status_from139": "M",
+      "git_blob": "714d26cc0e0e81fed24fadc1b25b9097d8318fbf",
+      "sha256": "05986174edd2c229a7c07640192a333eabc5daa8c46730fabda44d45c01bfa76"
+    },
+    {
+      "path": "frontend/src/lib/instruments.ts",
+      "status_from139": "M",
+      "git_blob": "f51344af666db8eee2279475d306cc293230fec0",
+      "sha256": "63a9e12321f2ac2d838acff357a23e2f447963ff6bc3ba3f1de9b64befa090cd"
+    },
+    {
+      "path": "frontend/src/lib/onDemandAcquisition.ts",
+      "status_from139": "M",
+      "git_blob": "6b27a99d57411a694955f466ba035564c26f9063",
+      "sha256": "2bca93846fbd57095e25d9951d7da52a4a9207494a685e2c2b34d09f33356f5b"
+    },
+    {
+      "path": "frontend/src/lib/workstation/benchmarkFamilySources.ts",
+      "status_from139": "M",
+      "git_blob": "5302faabfedc754292cbc7ea8850430d62e81718",
+      "sha256": "31bbc721ad9e1af21b14222a84660cb40aee5d9bed766c26ced141cb69d14e91"
+    },
+    {
+      "path": "frontend/src/lib/workstation/instrumentCalendar.ts",
+      "status_from139": "A",
+      "git_blob": "03c481c5da0c45259c440eab0af583474858c3ed",
+      "sha256": "6f9e9b36f1f1d662814b0d8be98bb7bb22906538463bf8f4f65d4d25a6d55fe5"
+    },
+    {
+      "path": "frontend/src/lib/workstation/marketMap.ts",
+      "status_from139": "M",
+      "git_blob": "8f6ac45af963bd3e37ad9334af6d0b0409015c06",
+      "sha256": "b5af21d07cd45bb26938e50c1a1673939052360cad981bc93ae682c39843b519"
+    },
+    {
+      "path": "frontend/src/lib/workstation/ohlcvRequests.ts",
+      "status_from139": "M",
+      "git_blob": "e7ea6f716fc6f5a71a155e79b5ac51582a3552f3",
+      "sha256": "574359b7d69f359b56c9fbf292457cff87e2594d49b21f2cd04eb8fc10352602"
+    },
+    {
+      "path": "frontend/src/lib/workstation/sourceCapability.ts",
+      "status_from139": "M",
+      "git_blob": "dbf6084c7e2f7c5bd18bfab2f1ba3b884565c44c",
+      "sha256": "be7e95073d0032a911a9a6f6277078d0743b3a0c42a6db8becc94543f6f57a98"
+    },
+    {
+      "path": "frontend/src/lib/workstation/toolActivation.ts",
+      "status_from139": "A",
+      "git_blob": "2660bd391cef75cc3f75ba81c876171e9e88899a",
+      "sha256": "3ddb42abfe8cf113dea556a09ece1ba08796600fd605c6351a8d9028b4321124"
+    },
+    {
+      "path": "frontend/src/main.ts",
+      "status_from139": "M",
+      "git_blob": "feb9216bb519177c7782962de17b7fc2d2f1dd8a",
+      "sha256": "4c9253d30eab71e58826d9a46295e1785a2bfe795a43276469fef9a52bdaf304"
+    },
+    {
+      "path": "frontend/src/router/index.ts",
+      "status_from139": "M",
+      "git_blob": "6c255db1f99e35c72566e368b6f4145864f9fe25",
+      "sha256": "71481e273ea025e229ba2b269652d51aa3772d80b5660a46502c6b35b4300417"
+    },
+    {
+      "path": "frontend/src/stores/alerts.ts",
+      "status_from139": "M",
+      "git_blob": "96d9acaf2ba2e7a34c592846e03854631044aa64",
+      "sha256": "142413573c26294162fbc8c5cebee2673df486c2763b663a729bedd1c85430c9"
+    },
+    {
+      "path": "frontend/src/stores/auth.ts",
+      "status_from139": "M",
+      "git_blob": "a41924732bc9b179d3214502a0c5c70c63b67d44",
+      "sha256": "38b1b7f73cfc251cde7c2ef3971629b01d56e157d8f75ecc083f705e2db4feef"
+    },
+    {
+      "path": "frontend/src/stores/chart.ts",
+      "status_from139": "M",
+      "git_blob": "b5f5252cfdecfc63d80ffd32f9d78de59f6ea4fd",
+      "sha256": "fad83ac0ecffbf08802c7e1d581d6f67fe5a49895e12599334dab12545e51bb7"
+    },
+    {
+      "path": "frontend/src/stores/favorites.ts",
+      "status_from139": "M",
+      "git_blob": "3537abf660e7fcac1f4f37c49967576e1878184e",
+      "sha256": "c53e32b3f4275c86608452b44fd4e3ecf15e528e834b4194fece03499df95975"
+    },
+    {
+      "path": "frontend/src/stores/layout.ts",
+      "status_from139": "M",
+      "git_blob": "77025d52b26feaacf58eef0ec4e8bc750cff0417",
+      "sha256": "791997814cd88e48fe5c0b2f7d9508835875e57b32af3b31cdf0acb096e72f8f"
+    },
+    {
+      "path": "frontend/src/stores/panelLinks.ts",
+      "status_from139": "M",
+      "git_blob": "f958ee2443bb7fe13497e50b5d01f84d64493b98",
+      "sha256": "6e1fe199023441217209f8825e0b49f82fb3215b30d0b024cf9300034d7a103b"
+    },
+    {
+      "path": "frontend/src/stores/radar.ts",
+      "status_from139": "M",
+      "git_blob": "22bffcd457304eab655246c6f09ccdde66cf59cc",
+      "sha256": "a68988f29570e3921dfc4e9fb02ac0bbe0cc8dad8dab0d3c4f5cfbec4bc11b55"
+    },
+    {
+      "path": "frontend/src/stores/recentInstruments.ts",
+      "status_from139": "M",
+      "git_blob": "6acd5eabc747e562e2fc3fb63fe0fd2d85c43263",
+      "sha256": "ae0183555ae9363f4f5dec1d3f72ef857ddd3478512c51afebdc10166a4dd626"
+    },
+    {
+      "path": "frontend/src/stores/userSettings.ts",
+      "status_from139": "M",
+      "git_blob": "67a59b6b2eafa285d07077ad6b90725a870fca0b",
+      "sha256": "3b4c13685562c01ec9d86070dd0bab5304b5139ab1153b2815eb5e5e3af25fc2"
+    },
+    {
+      "path": "frontend/src/stores/watchlist.ts",
+      "status_from139": "M",
+      "git_blob": "4e5ffc927c41464a7f882571de1e572ae3fdbf50",
+      "sha256": "c066f82755a9e2ae4284349a4d8314fb42c694fbb12fb840cfdadd070d0b9f6e"
+    },
+    {
+      "path": "frontend/src/stores/workspace.ts",
+      "status_from139": "M",
+      "git_blob": "137a828c399be2e6f604b63169b1bb9231998b09",
+      "sha256": "4b3ce1ddc1a54302c2cc6be1e8a8d4e2e5466ce65de4305eee17fb124147b128"
+    },
+    {
+      "path": "frontend/src/types/index.ts",
+      "status_from139": "M",
+      "git_blob": "81bcdeb79d913823f447783809267faf8fa1f32d",
+      "sha256": "23f9e013dfb7eb57ac398db678bcf200b1befde87e47e5ee7fd63615d73d0ca3"
+    },
+    {
+      "path": "frontend/src/views/AlertsView.vue",
+      "status_from139": "M",
+      "git_blob": "89679cd0e36dc7061e7bb4a915b007af68692dd7",
+      "sha256": "f4d0ca9518d97d0deabc6e4b18bd66f8cf7be5992d5437e7d45989c5d4918260"
+    },
+    {
+      "path": "frontend/src/views/ChartView.vue",
+      "status_from139": "M",
+      "git_blob": "9d344e6c255965df27854f819f62003da752a99a",
+      "sha256": "590fd6be69315228c6935db2c48b9cfa25b235d12500ca371640c14f6b100282"
+    },
+    {
+      "path": "frontend/src/views/ScreenerView.vue",
+      "status_from139": "M",
+      "git_blob": "b604d4eb77f5b2574c0736348455b285322e5f09",
+      "sha256": "253d2e8393a10d67376eef7f2ba74a03815844cd22cf437c742fa91dce3272f5"
+    },
+    {
+      "path": "frontend/src/views/SettingsView.vue",
+      "status_from139": "M",
+      "git_blob": "4b6ae268b275c8acab7d8b9acd446dd71b5f4fd6",
+      "sha256": "5f79d8398edf9c71f468bde74aca2bd92169910a370e549e4278dd40b000efae"
+    },
+    {
+      "path": "frontend/src/views/WatchlistView.vue",
+      "status_from139": "M",
+      "git_blob": "b42d4275ab182337a125dcb5fac99a54b37de2bc",
+      "sha256": "6681ec790101924178fa890966c1f5019e27e64be15bf02ef176a1f508ce20d2"
+    },
+    {
+      "path": "frontend/src/views/WorkstationView.vue",
+      "status_from139": "M",
+      "git_blob": "8580a71aeaf370a70ca8767717447508df13fa00",
+      "sha256": "a4c06bcf33f1ab1e7913ba2c5bc54998062738f0b3efa4fe3442918c2c68782d"
+    },
+    {
+      "path": "frontend/tests/e2e/auth_session_boundary.spec.ts",
+      "status_from139": "A",
+      "git_blob": "c3c4c097a4b7d5ed8db4f5700ea24f653f474595",
+      "sha256": "e757bf0968e619df81c624f489b45538de1da88fa35d5fbbb059bc667989c3b0"
+    },
+    {
+      "path": "frontend/tests/e2e/flows.spec.ts",
+      "status_from139": "M",
+      "git_blob": "1517650e2efc617935e731cbcaa1fee600367e95",
+      "sha256": "80eac939a50e4ef07e08842a01a074ae1c3bc537d23256ff292a0bd3e8937c90"
+    },
+    {
+      "path": "frontend/tests/e2e/helpers.ts",
+      "status_from139": "M",
+      "git_blob": "c25fb210513d4c8c7d773df57d665e8c79e05d2b",
+      "sha256": "2ce1c40fb020bcaf68a3c2b94098195fe49e580c438b144f114d84de55086af2"
+    },
+    {
+      "path": "frontend/tests/e2e/on_demand_acquisition.spec.ts",
+      "status_from139": "M",
+      "git_blob": "a393b05f721a80e77906427bee6054614156f2e3",
+      "sha256": "84c04ec3d2ef53523eb229a3aab5eae3893ff32218581896cc112ace7b62d8f1"
+    },
+    {
+      "path": "frontend/tests/e2e/tc2000_visual.spec.ts",
+      "status_from139": "M",
+      "git_blob": "6fe606bc7740d930afb5c93731e0a0a82eab2072",
+      "sha256": "670744fccb3b4d3adf19c7f48cc92676508d2e4e81801e005c5f741196e01ecf"
+    },
+    {
+      "path": "frontend/tests/e2e/tc_secondary_routes_journey.spec.ts",
+      "status_from139": "A",
+      "git_blob": "2e31968084b46a722688f52fe7baeee66e98ad1d",
+      "sha256": "2a6ecb3863c589764507fb54d724b616fd55122f9f623a02c2d34a0224e62921"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_chart_panel_lifecycle.test.ts",
+      "status_from139": "M",
+      "git_blob": "e7a523ff2ede7b31e239f71e06db57bc4e5e9cd4",
+      "sha256": "ca1cace5af978f638f25a4a5c89a74ff9d157ab4e723a71f783a2c1107078036"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_chart_plot_library.test.ts",
+      "status_from139": "M",
+      "git_blob": "38eaef4e07d5bf9cdfc9d7d9d519b358a3a9416f",
+      "sha256": "ef9ab695b0e5d6088f2e06081b2a5962e5e991a8e2c68e4fc27ab92be8720ff7"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_compact_status_notice.test.ts",
+      "status_from139": "A",
+      "git_blob": "d191639f5d5a25cbf6624275682342328074810b",
+      "sha256": "7bf39d9cafd051b0f07ae2a074f1de995016da26e63ff11bd2a9ed65b7d29001"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_easy_scan_tool.test.ts",
+      "status_from139": "M",
+      "git_blob": "0d4e7f4d048a4e97dde554646ca649a1f9238fb1",
+      "sha256": "51ba89d756fa17d4600f33eafbf1d6eea2f9bc31a3ea204f54a6bb985aa437e5"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_history_acquisition_control.test.ts",
+      "status_from139": "M",
+      "git_blob": "b281ca9d76d07ed08382605cc18e6f2a938f204a",
+      "sha256": "658529f244f58751c865388736e3c36aadfe0060242c55c50c00bbdcad431cd9"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_market_gauge_tool.test.ts",
+      "status_from139": "M",
+      "git_blob": "5e179f714fb13ba9eb979c2983ae6a68c691ecc2",
+      "sha256": "aeee055aeab349e06093a5b4b8cad7d31058cff91be93f7522fe6836d713eb54"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_market_map_tool.test.ts",
+      "status_from139": "M",
+      "git_blob": "d47462d5cb947107badbfae7ca31739a5674dadd",
+      "sha256": "a9efa0242b3eeab9aace1ff69546e9299089fa1d658ebb748ba776e07bd7e4d8"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_radar_detail_preview_chart.test.ts",
+      "status_from139": "A",
+      "git_blob": "a7bcbddda6113c621d05357a78aef6cc9ce42773",
+      "sha256": "54f074573244ca33beb9f8f945b01ffde24920c2c3fcb4905393dc5f46be5a2e"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_ratio_uplot.test.ts",
+      "status_from139": "M",
+      "git_blob": "68276e3b294b37b11c4d9f21176a4807c051be35",
+      "sha256": "b3d50b8567a60256e15871aea90b58301ce43b709263e533bb009e9bda96f5d6"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_relative_rotation_tool.test.ts",
+      "status_from139": "M",
+      "git_blob": "f1c540dd1d859dd92698733a57b367dc292c293c",
+      "sha256": "5c2d45d3d221f1a83cfbb30c640745c62cc522c615edba857fdfd4dae5ece284"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_search_bar.test.ts",
+      "status_from139": "M",
+      "git_blob": "5f3b2f70fc0837a4e71737589a3a7a85929546d5",
+      "sha256": "b422836247802690bbc7bd2d47ddfc7e5e3627bf4185534bb59590742b5f95a2"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_tool_window.test.ts",
+      "status_from139": "M",
+      "git_blob": "2cd2b8494c77a6274d8d7828fbbc2dbaaa6464e4",
+      "sha256": "1b9c499932c15b40441b8a9e3280dcfa33b9b0ce91a8d92c65ba5da32ca874e0"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_uplot_chart_context.test.ts",
+      "status_from139": "M",
+      "git_blob": "a7dc970b202fce1891316a59f385c0199845ad48",
+      "sha256": "d09d922f5a3722257803f9ddccd2d7b526639ead0f7d0dfe1695d198270d1b60"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_workspace_layout_host.test.ts",
+      "status_from139": "M",
+      "git_blob": "a578e2df9715c5cf9afd5c4a8cedf397aa80eb63",
+      "sha256": "6bf030967405d055f35864f691530c6f2f02652249bb28cbb7dcd4190196bb8d"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts",
+      "status_from139": "M",
+      "git_blob": "2a587eb0113c1b71e0ffe806965180fade3d14d4",
+      "sha256": "0eb2411d97fda6dbef09f6b8880461a3665c45a699d141bcad312f6df66c0965"
+    },
+    {
+      "path": "frontend/tests/unit/components/test_workstation_tool_content_tag_columns_runtime.test.ts",
+      "status_from139": "M",
+      "git_blob": "aeaba2bdfb097b0ce65c0ed1ef7b784748480127",
+      "sha256": "9478d77f345baa621716e2e4c963114fc24a0a07c5bd420ce0c54b33478eadb7"
+    },
+    {
+      "path": "frontend/tests/unit/e2e/test_browser_diagnostics.test.ts",
+      "status_from139": "M",
+      "git_blob": "d981d5a034f2e4489e203152266f069a821402e2",
+      "sha256": "fb3c9cc896c042f7a67fda0672e49c41c53fc06b1c8ae60bde5f2bc8b53fa31b"
+    },
+    {
+      "path": "frontend/tests/unit/lib/test_api_client.test.ts",
+      "status_from139": "M",
+      "git_blob": "1c981a13ab0f20f8c2a0d6eb88a9952eccb590b4",
+      "sha256": "ea1d77d63bbedb68d247d5f62a4a4bdf0324f240a0acaa6db0637ea927dd34d1"
+    },
+    {
+      "path": "frontend/tests/unit/lib/test_auth_session.test.ts",
+      "status_from139": "A",
+      "git_blob": "27b13cb7dff285e148ec2ad90b52bef15facad4b",
+      "sha256": "c336f5b8e15cf8185199c5319de7dd87b008f01e1a06a095d1846a9de9818487"
+    },
+    {
+      "path": "frontend/tests/unit/lib/test_benchmark_family_sources.test.ts",
+      "status_from139": "M",
+      "git_blob": "6068f2b0a1cc1c785eaee4767e44e8028f81c348",
+      "sha256": "039bb1604bca0156e7289e98c9275741603602d461d34fe43317b00d9c08983c"
+    },
+    {
+      "path": "frontend/tests/unit/lib/test_data_preparation.test.ts",
+      "status_from139": "A",
+      "git_blob": "838e393a727c38b8cf17a4b670713a8c06355b37",
+      "sha256": "daf792c6aca6d02f6e2cb880435719d366ad55ef098dd243041f281da534f21d"
+    },
+    {
+      "path": "frontend/tests/unit/lib/test_instrument_calendar.test.ts",
+      "status_from139": "A",
+      "git_blob": "d467c136d8b05d4fec3246c3c7d92de83ec3747f",
+      "sha256": "1979b6c63a5b01d527a0579f389e597ef4e56277a39d2f1ce4318adf24f07fa0"
+    },
+    {
+      "path": "frontend/tests/unit/lib/test_instruments.test.ts",
+      "status_from139": "M",
+      "git_blob": "4197fade99b8a1698dd7dcb0c2c4d159fbeb5f0c",
+      "sha256": "cfc595948614690788a8d2090330babf6b08d90f772b0cf947093e4797b48c58"
+    },
+    {
+      "path": "frontend/tests/unit/lib/test_market_map.test.ts",
+      "status_from139": "M",
+      "git_blob": "a6681ee44f5e0743582b8b4e03c2c37952ad9e6e",
+      "sha256": "25dc09ae97a197c917d4e5e824681da73c995e82f57017a77dd178025cd0d3df"
+    },
+    {
+      "path": "frontend/tests/unit/lib/test_on_demand_acquisition.test.ts",
+      "status_from139": "M",
+      "git_blob": "a00a4ade67ce42888cdc9ad6c10454dfd0c1d1da",
+      "sha256": "5de54822ed3a6dfca4d96276781a9575207b38b8cb4de590ed358a5e8d117b71"
+    },
+    {
+      "path": "frontend/tests/unit/lib/test_tool_activation.test.ts",
+      "status_from139": "A",
+      "git_blob": "056afcdce58a480c16adc7787516c74199f6badc",
+      "sha256": "0abaf66e32f16e5e2760a8a578ec03c901babdff51bf523de7c3dc6b68689377"
+    },
+    {
+      "path": "frontend/tests/unit/lib/workstation_ohlcv_requests.test.ts",
+      "status_from139": "M",
+      "git_blob": "f365a2d6bbba9ec91e1eed5abaf537f0caf6d1e5",
+      "sha256": "d2282805ea6bebfe4dcc658f3507ead6fc0f0a4a641871fef8a399a5acaefa83"
+    },
+    {
+      "path": "frontend/tests/unit/lib/workstation_source_capability.test.ts",
+      "status_from139": "M",
+      "git_blob": "5caae636645b9bc0ed15c58f058487d8454145b2",
+      "sha256": "47860a970cd858653cd8ba04b7b9ab3db4da41668b43361dc0df9e7f8670df6a"
+    },
+    {
+      "path": "frontend/tests/unit/router/test_app_shell.test.ts",
+      "status_from139": "M",
+      "git_blob": "a337653297688f16098440e443cdb34cdd782489",
+      "sha256": "ba90b8eec8c99f2a8c858c676b0478d79561a73e3fcb609773f24b3cb6a7c9da"
+    },
+    {
+      "path": "frontend/tests/unit/router/test_application_routes.test.ts",
+      "status_from139": "M",
+      "git_blob": "dd5ef164a45dab0719fc74167b48fa73b3c50e18",
+      "sha256": "b5435edd7f37502ff54b18d147a2857d29df01b9743eb6fb7140abd1b519a739"
+    },
+    {
+      "path": "frontend/tests/unit/setup.ts",
+      "status_from139": "M",
+      "git_blob": "8d1aad7c0125bef31cb56b1fd950bb42bc0f70c1",
+      "sha256": "e011f0d9534079df270f39a9d763bc6d2ceb934f5b7324849824fe7bb8b9afb3"
+    },
+    {
+      "path": "frontend/tests/unit/stores/test_drawings_store.test.ts",
+      "status_from139": "M",
+      "git_blob": "b099f5c9f2fb112f084fb600e11a3aed514a8f98",
+      "sha256": "e8043e84737d0b0b5a8574a4ddd1d69b4f1b44be2435ef882334db553c19e990"
+    },
+    {
+      "path": "frontend/tests/unit/stores/test_favorites_store.test.ts",
+      "status_from139": "M",
+      "git_blob": "c8904f7f514be6acd4c3b835195669080dba9d3e",
+      "sha256": "9ae2ab88a46a24a7248b3b073bbbc92bc26ae7e9a776ea0f1d4e6cbd8c9bb2cf"
+    },
+    {
+      "path": "frontend/tests/unit/stores/test_stores.test.ts",
+      "status_from139": "M",
+      "git_blob": "3d99c30253a98a80cc354a3d6693420e996fb7a4",
+      "sha256": "4557eec1c80343c54004e6169fab468e59939a44ba1f11bca69743e1d2ccdfeb"
+    },
+    {
+      "path": "frontend/tests/unit/stores/test_watchlist_store.test.ts",
+      "status_from139": "M",
+      "git_blob": "a705942a492c6b439d91cabb2a3dfcd5a49dadcb",
+      "sha256": "a77ad6f8db60b06dca76c3c10ef1737d48457000dd3bc195e5fdb29f564fc013"
+    },
+    {
+      "path": "frontend/tests/unit/stores/test_workspace_store.test.ts",
+      "status_from139": "M",
+      "git_blob": "d6d003bde6b797d39e578d101003b140fa7874bf",
+      "sha256": "1403764b26c83aee96dbd9314f04ac4d11af06995c87f4362c657258cb01470d"
+    },
+    {
+      "path": "frontend/tests/unit/views/test_alerts_view_creation_path.test.ts",
+      "status_from139": "A",
+      "git_blob": "da98f70673e8b146ea77389a6f94c4bc3d19820f",
+      "sha256": "5dc96a2edf4e96800f3016ec13d358ab2c49691fa9a03e4d03e4240a54550168"
+    },
+    {
+      "path": "frontend/tests/unit/views/test_chart_view_radar_handoff.test.ts",
+      "status_from139": "M",
+      "git_blob": "5a5bc711269fd186d70cb6c8d3e325cc06ebc18e",
+      "sha256": "a7d0b973565a51afd136a75ae598f4768bac84a32536a40b4a53bbf1293e454f"
+    },
+    {
+      "path": "frontend/tests/unit/views/test_screener_view_accessibility.test.ts",
+      "status_from139": "A",
+      "git_blob": "13e0e61a253e4841d88adde9625fdaa0e081de8d",
+      "sha256": "b3100c4c191febdba7d2d34056de6c7c55837826fdb3bd83d4f0e70ebaa824db"
+    },
+    {
+      "path": "frontend/tests/unit/views/test_settings_view.test.ts",
+      "status_from139": "M",
+      "git_blob": "964fc96b1209a3fbff08db078b533da3820799c9",
+      "sha256": "14af364e608a43eee5f244089388cf4204e893ef86ce136d4de8d0b4ae0cb616"
+    },
+    {
+      "path": "frontend/tests/unit/views/test_workstation_capabilities.test.ts",
+      "status_from139": "M",
+      "git_blob": "f64f52085dadb1ba9d2f8e0faaf7e1fbb4721df4",
+      "sha256": "2b16d13242ff99f21c5f9a2b38aa479a5171fb3b890cb95896d66ae47f561f9f"
+    },
+    {
+      "path": "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts",
+      "status_from139": "M",
+      "git_blob": "8a93baccb4461b122ad6a92cfedc57bab9d5a95f",
+      "sha256": "cdd2abef8f1cfaea526b1c92e9bbbc117edd47a6c43fc1e785a1df98886b4dc8"
+    }
+  ],
+  "changed_paths_since_previous": [
+    "frontend/src/components/workstation/WorkstationToolContent.vue",
+    "frontend/src/lib/api.ts",
+    "frontend/src/lib/dataPreparation.ts",
+    "frontend/src/lib/onDemandAcquisition.ts",
+    "frontend/src/stores/chart.ts",
+    "frontend/src/stores/watchlist.ts",
+    "frontend/src/stores/workspace.ts",
+    "frontend/src/views/WorkstationView.vue",
+    "frontend/tests/unit/components/test_workstation_tool_content_tag_columns_runtime.test.ts",
+    "frontend/tests/unit/lib/test_api_client.test.ts",
+    "frontend/tests/unit/stores/test_watchlist_store.test.ts",
+    "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts"
+  ],
+  "consumers": [
+    {
+      "consumer": "Provider",
+      "import_paths": [
+        "frontend/src/components/workstation/WorkstationToolContent.vue",
+        "frontend/src/lib/api.ts",
+        "frontend/src/lib/dataPreparation.ts",
+        "frontend/src/lib/onDemandAcquisition.ts",
+        "frontend/src/stores/chart.ts",
+        "frontend/src/stores/watchlist.ts",
+        "frontend/src/stores/workspace.ts",
+        "frontend/src/views/WorkstationView.vue",
+        "frontend/tests/unit/components/test_workstation_tool_content_tag_columns_runtime.test.ts",
+        "frontend/tests/unit/lib/test_api_client.test.ts",
+        "frontend/tests/unit/stores/test_watchlist_store.test.ts",
+        "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts"
+      ],
+      "old_guards": {
+        "frontend/src/components/workstation/WorkstationToolContent.vue": {
+          "sha256": "fc192f544c275c207159e95d98acb640dc645e4260e202a622ebfc8fd00c8a96",
+          "known_source": "3055946ceabbfd51e51281f06c3f98f766f0d019",
+          "known_absent": false
+        },
+        "frontend/src/lib/api.ts": {
+          "sha256": "a997773afacd5b37d73aeb9f5c36002064f077c5d28698cf956a726f8b48bec5",
+          "known_source": "3055946ceabbfd51e51281f06c3f98f766f0d019",
+          "known_absent": false
+        },
+        "frontend/src/lib/dataPreparation.ts": {
+          "sha256": "91c3d341d6e352661d66fd205a6593417721ae418c5474ed7e7667a39b11b7f3",
+          "known_source": "3055946ceabbfd51e51281f06c3f98f766f0d019",
+          "known_absent": false
+        },
+        "frontend/src/lib/onDemandAcquisition.ts": {
+          "sha256": "4df7657b2ce9183085e31781f9a5883930a9087cd03dcc7d86cdd421c78accdc",
+          "known_source": "3055946ceabbfd51e51281f06c3f98f766f0d019",
+          "known_absent": false
+        },
+        "frontend/src/stores/chart.ts": {
+          "sha256": "75c8651532902bc72899ae2e6b4549d94423be4860029196e6d43351addd3c1a",
+          "known_source": "3055946ceabbfd51e51281f06c3f98f766f0d019",
+          "known_absent": false
+        },
+        "frontend/src/stores/watchlist.ts": {
+          "sha256": "6042fe5cb4a97f897711def44ca32a23736cd8fa54cb3f9f760c49c712754d8e",
+          "known_source": "3055946ceabbfd51e51281f06c3f98f766f0d019",
+          "known_absent": false
+        },
+        "frontend/src/stores/workspace.ts": {
+          "sha256": "1e002e102bd8488b0f30648d8f89373b65431200dfa9b8ebdcb7c2f16f6329c5",
+          "known_source": "3055946ceabbfd51e51281f06c3f98f766f0d019",
+          "known_absent": false
+        },
+        "frontend/src/views/WorkstationView.vue": {
+          "sha256": "dda5a3d0e04ca221e9acfdf56d37fe39a3d1a34feb7601cabb84583c38bef9a3",
+          "known_source": "3055946ceabbfd51e51281f06c3f98f766f0d019",
+          "known_absent": false
+        },
+        "frontend/tests/unit/components/test_workstation_tool_content_tag_columns_runtime.test.ts": {
+          "sha256": "7aebc4c1a8784d4a36d71d740f53dead9e823677c559770c05f5fb7fd5fee26f",
+          "known_source": "139b350238b5e1c8a170dce5af09a805301d857e",
+          "known_absent": false
+        },
+        "frontend/tests/unit/lib/test_api_client.test.ts": {
+          "sha256": "e327fc8c03af594d2e49c426e7128016b19d9adb6006cb98250f4b8180482835",
+          "known_source": "3055946ceabbfd51e51281f06c3f98f766f0d019",
+          "known_absent": false
+        },
+        "frontend/tests/unit/stores/test_watchlist_store.test.ts": {
+          "sha256": "52c64592314feb59e9c1e232180df8a9736051792212e84ad6f19953cab793cc",
+          "known_source": "3055946ceabbfd51e51281f06c3f98f766f0d019",
+          "known_absent": false
+        },
+        "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts": {
+          "sha256": "4ce1e46b5ae2d8cf120b429af53f0fb31596b59424c85ec1445f70a559a41f0d",
+          "known_source": "3055946ceabbfd51e51281f06c3f98f766f0d019",
+          "known_absent": false
+        }
+      },
+      "owned_overlap": []
+    },
+    {
+      "consumer": "ETF",
+      "import_paths": [
+        "frontend/src/components/workstation/WorkstationToolContent.vue",
+        "frontend/src/lib/api.ts",
+        "frontend/src/lib/dataPreparation.ts",
+        "frontend/src/lib/onDemandAcquisition.ts",
+        "frontend/src/stores/chart.ts",
+        "frontend/src/stores/watchlist.ts",
+        "frontend/src/stores/workspace.ts",
+        "frontend/src/views/WorkstationView.vue",
+        "frontend/tests/unit/components/test_workstation_tool_content_tag_columns_runtime.test.ts",
+        "frontend/tests/unit/lib/test_api_client.test.ts",
+        "frontend/tests/unit/stores/test_watchlist_store.test.ts",
+        "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts"
+      ],
+      "old_guards": {
+        "frontend/src/components/workstation/WorkstationToolContent.vue": {
+          "sha256": "fc192f544c275c207159e95d98acb640dc645e4260e202a622ebfc8fd00c8a96",
+          "known_source": "3055946ceabbfd51e51281f06c3f98f766f0d019",
+          "known_absent": false
+        },
+        "frontend/src/lib/api.ts": {
+          "sha256": "a997773afacd5b37d73aeb9f5c36002064f077c5d28698cf956a726f8b48bec5",
+          "known_source": "3055946ceabbfd51e51281f06c3f98f766f0d019",
+          "known_absent": false
+        },
+        "frontend/src/lib/dataPreparation.ts": {
+          "sha256": "91c3d341d6e352661d66fd205a6593417721ae418c5474ed7e7667a39b11b7f3",
+          "known_source": "3055946ceabbfd51e51281f06c3f98f766f0d019",
+          "known_absent": false
+        },
+        "frontend/src/lib/onDemandAcquisition.ts": {
+          "sha256": "4df7657b2ce9183085e31781f9a5883930a9087cd03dcc7d86cdd421c78accdc",
+          "known_source": "3055946ceabbfd51e51281f06c3f98f766f0d019",
+          "known_absent": false
+        },
+        "frontend/src/stores/chart.ts": {
+          "sha256": "75c8651532902bc72899ae2e6b4549d94423be4860029196e6d43351addd3c1a",
+          "known_source": "3055946ceabbfd51e51281f06c3f98f766f0d019",
+          "known_absent": false
+        },
+        "frontend/src/stores/watchlist.ts": {
+          "sha256": "6042fe5cb4a97f897711def44ca32a23736cd8fa54cb3f9f760c49c712754d8e",
+          "known_source": "3055946ceabbfd51e51281f06c3f98f766f0d019",
+          "known_absent": false
+        },
+        "frontend/src/stores/workspace.ts": {
+          "sha256": "1e002e102bd8488b0f30648d8f89373b65431200dfa9b8ebdcb7c2f16f6329c5",
+          "known_source": "3055946ceabbfd51e51281f06c3f98f766f0d019",
+          "known_absent": false
+        },
+        "frontend/src/views/WorkstationView.vue": {
+          "sha256": "dda5a3d0e04ca221e9acfdf56d37fe39a3d1a34feb7601cabb84583c38bef9a3",
+          "known_source": "3055946ceabbfd51e51281f06c3f98f766f0d019",
+          "known_absent": false
+        },
+        "frontend/tests/unit/components/test_workstation_tool_content_tag_columns_runtime.test.ts": {
+          "sha256": "7aebc4c1a8784d4a36d71d740f53dead9e823677c559770c05f5fb7fd5fee26f",
+          "known_source": "139b350238b5e1c8a170dce5af09a805301d857e",
+          "known_absent": false
+        },
+        "frontend/tests/unit/lib/test_api_client.test.ts": {
+          "sha256": "e327fc8c03af594d2e49c426e7128016b19d9adb6006cb98250f4b8180482835",
+          "known_source": "3055946ceabbfd51e51281f06c3f98f766f0d019",
+          "known_absent": false
+        },
+        "frontend/tests/unit/stores/test_watchlist_store.test.ts": {
+          "sha256": "52c64592314feb59e9c1e232180df8a9736051792212e84ad6f19953cab793cc",
+          "known_source": "3055946ceabbfd51e51281f06c3f98f766f0d019",
+          "known_absent": false
+        },
+        "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts": {
+          "sha256": "4ce1e46b5ae2d8cf120b429af53f0fb31596b59424c85ec1445f70a559a41f0d",
+          "known_source": "3055946ceabbfd51e51281f06c3f98f766f0d019",
+          "known_absent": false
+        }
+      },
+      "owned_overlap": []
+    },
+    {
+      "consumer": "Strategy",
+      "import_paths": [
+        "frontend/src/components/workstation/WorkstationToolContent.vue",
+        "frontend/src/lib/api.ts",
+        "frontend/src/lib/dataPreparation.ts",
+        "frontend/src/lib/onDemandAcquisition.ts",
+        "frontend/src/stores/chart.ts",
+        "frontend/src/stores/watchlist.ts",
+        "frontend/src/stores/workspace.ts",
+        "frontend/src/views/WorkstationView.vue",
+        "frontend/tests/unit/components/test_workstation_tool_content_tag_columns_runtime.test.ts",
+        "frontend/tests/unit/lib/test_api_client.test.ts",
+        "frontend/tests/unit/stores/test_watchlist_store.test.ts",
+        "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts"
+      ],
+      "old_guards": {
+        "frontend/src/components/workstation/WorkstationToolContent.vue": {
+          "sha256": "fc192f544c275c207159e95d98acb640dc645e4260e202a622ebfc8fd00c8a96",
+          "known_source": "3055946ceabbfd51e51281f06c3f98f766f0d019",
+          "known_absent": false
+        },
+        "frontend/src/lib/api.ts": {
+          "sha256": "a997773afacd5b37d73aeb9f5c36002064f077c5d28698cf956a726f8b48bec5",
+          "known_source": "3055946ceabbfd51e51281f06c3f98f766f0d019",
+          "known_absent": false
+        },
+        "frontend/src/lib/dataPreparation.ts": {
+          "sha256": "91c3d341d6e352661d66fd205a6593417721ae418c5474ed7e7667a39b11b7f3",
+          "known_source": "3055946ceabbfd51e51281f06c3f98f766f0d019",
+          "known_absent": false
+        },
+        "frontend/src/lib/onDemandAcquisition.ts": {
+          "sha256": "4df7657b2ce9183085e31781f9a5883930a9087cd03dcc7d86cdd421c78accdc",
+          "known_source": "3055946ceabbfd51e51281f06c3f98f766f0d019",
+          "known_absent": false
+        },
+        "frontend/src/stores/chart.ts": {
+          "sha256": "75c8651532902bc72899ae2e6b4549d94423be4860029196e6d43351addd3c1a",
+          "known_source": "3055946ceabbfd51e51281f06c3f98f766f0d019",
+          "known_absent": false
+        },
+        "frontend/src/stores/watchlist.ts": {
+          "sha256": "6042fe5cb4a97f897711def44ca32a23736cd8fa54cb3f9f760c49c712754d8e",
+          "known_source": "3055946ceabbfd51e51281f06c3f98f766f0d019",
+          "known_absent": false
+        },
+        "frontend/src/stores/workspace.ts": {
+          "sha256": "1e002e102bd8488b0f30648d8f89373b65431200dfa9b8ebdcb7c2f16f6329c5",
+          "known_source": "3055946ceabbfd51e51281f06c3f98f766f0d019",
+          "known_absent": false
+        },
+        "frontend/src/views/WorkstationView.vue": {
+          "sha256": "dda5a3d0e04ca221e9acfdf56d37fe39a3d1a34feb7601cabb84583c38bef9a3",
+          "known_source": "3055946ceabbfd51e51281f06c3f98f766f0d019",
+          "known_absent": false
+        },
+        "frontend/tests/unit/components/test_workstation_tool_content_tag_columns_runtime.test.ts": {
+          "sha256": "7aebc4c1a8784d4a36d71d740f53dead9e823677c559770c05f5fb7fd5fee26f",
+          "known_source": "139b350238b5e1c8a170dce5af09a805301d857e",
+          "known_absent": false
+        },
+        "frontend/tests/unit/lib/test_api_client.test.ts": {
+          "sha256": "e327fc8c03af594d2e49c426e7128016b19d9adb6006cb98250f4b8180482835",
+          "known_source": "3055946ceabbfd51e51281f06c3f98f766f0d019",
+          "known_absent": false
+        },
+        "frontend/tests/unit/stores/test_watchlist_store.test.ts": {
+          "sha256": "52c64592314feb59e9c1e232180df8a9736051792212e84ad6f19953cab793cc",
+          "known_source": "3055946ceabbfd51e51281f06c3f98f766f0d019",
+          "known_absent": false
+        },
+        "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts": {
+          "sha256": "4ce1e46b5ae2d8cf120b429af53f0fb31596b59424c85ec1445f70a559a41f0d",
+          "known_source": "3055946ceabbfd51e51281f06c3f98f766f0d019",
+          "known_absent": false
+        }
+      },
+      "owned_overlap": []
+    }
+  ],
+  "ownership_transfer": "root-on-demand-journey-single-writer-transfer.json",
+  "scope": "Shared transport admission reserves visible read headroom and releases after body/abort; typed dataset-specific holdings explanation; EasyScan durable runs survive virtual unmount. Common frontend successor: retain virtual panels on close, responsive primary navigation, usable price/indicator panes, acknowledged Results restoration and complete automatic-ensure fixtures. Clear typed future-source feedback and useful partial history independent of metadata waits; retain active-layout auth persistence, explicit map/member sources, ordinary navigation/chart controls and shared ensure journeys. TC owns the transferred on-demand spec; other10 ETF and26 Strategy private paths stay single-writer; sharedbrowserdiagnostics2 remainTC-owned.",
+  "evidence": "Owner focused unit/type/matrix receipts remain in its workstream. Root exact e099 critical10 gave4pass6fail; followup proved8sec navigation socket queue, duplicate component requests and bounded Studyensure ready in0.160sec. All preceding red records retained. New source requires actual combined browser qualification; final acceptance pending",
+  "preserve": "Keep wider roadmaps and history, current private domain imports, original threads/models/effort, actual data/ledger/holds; no full acceptance or deployment."
+}
