@@ -1823,6 +1823,8 @@ previously_accepted_provider_first_human_coverage_checkpoint:
     make_compose_runtime_contracts:
       - Makefile
       - docker-compose.e2e.yml
+      - docker-compose.yml
+      - docker-compose.dev.yml
       - backend/tests/unit/test_research_runner_deployment.py
       - backend/app/strategy_lab_v2/tests/test_migration_compatibility.py
       - tests/workflow/test_staging_workflow.py

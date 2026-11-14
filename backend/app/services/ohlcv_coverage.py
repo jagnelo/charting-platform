@@ -692,7 +692,35 @@ def missing_range_slices(
         slices.append((ordered[-1] + step, end))
     elif ordered[-1] < end:
         slices.append((ordered[-1], end))
+    if calendar == "XNYS" and step < timedelta(days=1):
+        return _xnys_regular_session_slices(slices)
     return slices
+
+
+def _xnys_regular_session_slices(
+    slices: list[tuple[datetime, datetime]],
+) -> list[tuple[datetime, datetime]]:
+    """Keep only the regular-session part of intraday gaps.
+
+    Overnight, weekend, holiday and extended-hours gaps are expected for an
+    XNYS listing; no provider can fill them, so asking only burns quota.
+    """
+    kept: list[tuple[datetime, datetime]] = []
+    for gap_start, gap_end in slices:
+        local_start = gap_start.astimezone(_XNYS_TZ).date()
+        local_end = gap_end.astimezone(_XNYS_TZ).date()
+        pieces: list[tuple[datetime, datetime]] = []
+        for session in sorted(_xnys_session_days(local_start, local_end)):
+            session_open = datetime.combine(session, time(9, 30), tzinfo=_XNYS_TZ).astimezone(UTC)
+            clipped_start = max(gap_start, session_open)
+            clipped_end = min(gap_end, _xnys_session_close_at(session))
+            if clipped_start < clipped_end:
+                pieces.append((clipped_start, clipped_end))
+        if pieces:
+            # Sessions inside one gap are all missing, so one request spans
+            # them; only the closed time at either edge is trimmed.
+            kept.append((pieces[0][0], pieces[-1][1]))
+    return kept
 
 
 def assess_ohlcv_coverage(

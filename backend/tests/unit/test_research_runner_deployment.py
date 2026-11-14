@@ -28,9 +28,11 @@ def test_e2e_host_port_relay_is_loopback_only_and_app_services_have_no_host_port
 def test_compose_host_ports_are_overrideable_for_isolated_acceptance_stacks():
     compose = (Path(__file__).resolve().parents[3] / "docker-compose.yml").read_text()
 
-    assert '"${POSTGRES_HOST_PORT:-5432}:5432"' in compose
-    assert '"${BACKEND_HOST_PORT:-8000}:8000"' in compose
-    assert '"${FRONTEND_HOST_PORT:-80}:80"' in compose
+    # Overrideable, and bound to loopback so dev stacks are never LAN-exposed
+    # (the default Postgres credentials are well known).
+    assert '"127.0.0.1:${POSTGRES_HOST_PORT:-5432}:5432"' in compose
+    assert '"127.0.0.1:${BACKEND_HOST_PORT:-8000}:8000"' in compose
+    assert '"127.0.0.1:${FRONTEND_HOST_PORT:-80}:80"' in compose
 
 
 def test_research_runner_compose_contract_preserves_isolated_execution_boundary():

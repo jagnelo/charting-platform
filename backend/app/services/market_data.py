@@ -354,6 +354,60 @@ def _is_recoverable_provider_gap(exc: Exception) -> bool:
     )
 
 
+# A provider's "no usable data" answer for a slice that ended well in the past
+# is stable: asking again on every read only burns quota and database work
+# (production re-requested the same pre-listing slice every ~12 seconds).
+# Remember it per process for a bounded time; recent slices are never memoized
+# so fresh bars keep arriving, and a restart costs at most one re-ask.
+_NO_DATA_SLICE_TTL = timedelta(hours=12)
+_NO_DATA_SLICE_MIN_AGE = timedelta(days=2)
+_NO_DATA_SLICE_MAX_ENTRIES = 50_000
+_no_data_slices: dict[tuple, datetime] = {}
+
+
+def _no_data_slice_key(
+    instrument_id: int,
+    timeframe: Timeframe,
+    adjusted: bool,
+    provider_name: str | None,
+    start: datetime,
+    end: datetime,
+) -> tuple:
+    return (
+        instrument_id,
+        timeframe.value,
+        bool(adjusted),
+        (provider_name or "*").strip().lower(),
+        _as_utc(start),
+        _as_utc(end),
+    )
+
+
+def _is_definitive_no_data(exc: Exception) -> bool:
+    return type(exc) is ProviderNoDataError and "returned no usable data" in str(exc)
+
+
+def _no_data_slice_is_known(key: tuple, *, now: datetime) -> bool:
+    expires = _no_data_slices.get(key)
+    if expires is None:
+        return False
+    if expires <= now:
+        _no_data_slices.pop(key, None)
+        return False
+    return True
+
+
+def _remember_no_data_slice(key: tuple, *, end: datetime, now: datetime) -> None:
+    if _as_utc(end) > now - _NO_DATA_SLICE_MIN_AGE:
+        return
+    if len(_no_data_slices) >= _NO_DATA_SLICE_MAX_ENTRIES:
+        for stale in [k for k, expires in _no_data_slices.items() if expires <= now]:
+            del _no_data_slices[stale]
+        if len(_no_data_slices) >= _NO_DATA_SLICE_MAX_ENTRIES:
+            _no_data_slices.clear()
+    _no_data_slices[key] = now + _NO_DATA_SLICE_TTL
+
+
 async def _fresh_latest_price_from_cache(
     db: AsyncSession,
     instrument: Instrument,
@@ -1107,6 +1161,11 @@ async def _fetch_ohlcv_impl(
         for repair_start, repair_end in repair_slices:
             if not _is_positive_repair_slice(repair_start, repair_end):
                 continue
+            slice_key = _no_data_slice_key(
+                instrument.id, timeframe, adjusted, source_provider, repair_start, repair_end
+            )
+            if cached and _no_data_slice_is_known(slice_key, now=datetime.now(UTC)):
+                continue
             try:
                 new_bars.extend(
                     await _fetch_provider(
@@ -1122,8 +1181,12 @@ async def _fetch_ohlcv_impl(
             except Exception as exc:
                 if not _is_recoverable_provider_gap(exc) or not cached:
                     raise
+                if _is_definitive_no_data(exc):
+                    _remember_no_data_slice(slice_key, end=repair_end, now=datetime.now(UTC))
                 logger.warning(
-                    "Skipping unavailable provider repair slice %s to %s: %s",
+                    "Skipping unavailable provider repair slice %s %s %s to %s: %s",
+                    instrument.symbol,
+                    timeframe.value,
                     repair_start,
                     repair_end,
                     bounded_redact_provider_message(exc),
