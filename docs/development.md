@@ -346,9 +346,11 @@ The backend and frontend stop when you Ctrl+C the `make dev` terminal.
 ## VS Code branch sessions
 
 After an explicitly authorized `make worktree-create`, open that path in its own
-VS Code window and run `make agent-session-start BRANCH=<branch>`. The session
-goal is intentionally unbounded: no `token_budget` is supplied unless the human
-has recorded an exact budget. Use `agent-session-checkpoint` during long work and
+agent session (VS Code window or terminal, any supported runtime) and run
+`make agent-session-start BRANCH=<branch>`. The session goal is intentionally
+unbounded: no budget (Codex `token_budget`, or a turn/time bound in a Claude Code
+`/goal` condition) is supplied unless the human has recorded an exact budget; see
+`docs/agent-orchestration.md` § Runtime adapters. Use `agent-session-checkpoint` during long work and
 `agent-session-finish` only after the branch handoff and Docker disposition are
 recorded. `make integration-queue` is read-only; only the staging coordinator may
 run `make integrate-ready`, which selects the deterministic closure-ready batch.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Guard one Codex implementation session and its worktree-owned resources."""
+"""Guard one agent implementation session and its worktree-owned resources."""
 
 from __future__ import annotations
 
@@ -87,7 +87,11 @@ def authorized_goal_budget(plan: dict[str, str]) -> int | None:
 def make_goal_request(
     objective: str, plan: dict[str, Any], *, ready: bool = True
 ) -> dict[str, Any]:
-    """Build the actual Codex request; metadata stays in durable session state."""
+    """Build the session goal request; metadata stays in durable session state.
+
+    ``token_budget`` is the runtime-neutral budget key; each runtime adapter maps
+    it (see docs/agent-orchestration.md, Runtime adapters).
+    """
     request: dict[str, Any] = {"objective": objective}
     if ready:
         budget = authorized_goal_budget(plan)
@@ -1187,7 +1191,7 @@ def plan_ready_command(session_id: str) -> None:
             "implementation_sha": head,
             "remote_sha": remote,
             "docker_ready": docker,
-            "next_action": "create the session-local Codex goal from goal_request, then record it as active",
+            "next_action": "create the session-local goal from goal_request (runtime adapter), then record it as active",
         }
     )
     atomic_json(stream / "session.json", state)
