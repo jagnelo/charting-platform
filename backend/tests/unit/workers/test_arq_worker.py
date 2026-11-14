@@ -1181,7 +1181,9 @@ def test_configure_worker_logging_routes_app_logs_to_a_handler(monkeypatch):
         arq_worker.configure_worker_logging()
         assert root.handlers, "worker logs must reach a handler"
         assert root.level == logging.INFO
-        assert logging.getLogger("app.services.provider_runtime").getEffectiveLevel() == logging.INFO
+        assert (
+            logging.getLogger("app.services.provider_runtime").getEffectiveLevel() == logging.INFO
+        )
     finally:
         root.handlers = saved_handlers
         root.setLevel(saved_level)
