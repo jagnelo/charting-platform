@@ -79,6 +79,7 @@ logs/
 .ai/config/
 .ai/integration/
 .ai/staging-attempts/
+.ai/contexts/
 .ai/session-claims/
 .ai/builders/
 .ai/testcontainers/

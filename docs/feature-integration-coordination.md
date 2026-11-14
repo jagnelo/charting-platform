@@ -166,7 +166,7 @@ claim. A stale/foreign claim requires the repository's explicit takeover process
 this directive does not replace it. Update your own plan/handoff/session evidence
 to distinguish the current integration checkpoint from the full roadmap. Follow
 the canonical UV-managed preflight. Do not treat a stale completed-criteria list
-or a replaced Codex goal as product acceptance.
+or a replaced session goal as product acceptance.
 
 ### Provider — `feat/market-data-provider-platform`
 
@@ -250,7 +250,14 @@ checkpoint rather than require the human to reconstruct all branch internals.
 Keep old source receipts and full goals as history. The staged build becomes a
 development baseline; production qualification is a separate decision.
 
-## Saved Codex goals and extension resume
+## Saved session goals and extension resume (Codex era)
+
+This section records the October 2026 Codex App Server mechanics as history.
+Under any runtime, update or recreate an owning session's goal through that
+runtime's mechanism in
+[Runtime adapters](agent-orchestration.md#runtime-adapters); the rules below
+(no state changes or turns merely to install guidance, durable workstream
+authority) still apply.
 
 The following save/usage observations are the historical October15 audit, not
 new evidence that an extension view refreshed. The human subsequently pasted

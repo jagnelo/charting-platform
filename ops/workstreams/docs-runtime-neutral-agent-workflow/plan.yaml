@@ -1,0 +1,62 @@
+schema: 4
+branch: docs/runtime-neutral-agent-workflow
+base_sha: 139b350238b5e1c8a170dce5af09a805301d857e
+parent_branch: staging
+parent_sha: 139b350238b5e1c8a170dce5af09a805301d857e
+dependency_authorization: "not applicable: independent staging-based topic"
+human_intent_authorization: "Human request 2026-11-09: 'Any repo documentation MUST be updated to now also encompass Claude Code's semantics and environment too, as beforehand this was all done through Codex alone ... I do not want to care too much about whether Codex or Claude Code or something else is being used'; activated 2026-11-10: 'ok handle this ... do whatever you must, i authorize you'. Extended 2026-11-12 (Claude Code Desktop): one orchestration chat at a time with a higher-reasoning model that 'naturally uses subagents (these being lower reasoning, cheaper, models) to tackle the finer-details and achieve parallelization and a divide and conquer approach', progressing several branches/worktrees 'and include their merging, reconciliation and combined testing & verification in that same chat'; a new chat per later context; 'these rules should become part of the repo's own AI-driven development workflow rules & policies'."
+planning_state: ready
+human_closure_authorization: '2026-11-13: the human delegated closure to the Desktop orchestrator: "you''re allowed to make decisions that the rules expect the human dev to make. Proceed". The orchestrator reviewed RN1-RN5 and closed this workstream.'
+closure_summary: 'Runtime-neutral orchestrator workflow docs (RN1-RN5) merged with origin/master 7100a276b, plus a fix for scripts/staging.py promote. Promote now refuses any checkout other than the root master. From the persistent staging checkout it used to fast-forward staging, push the stale root master, and record a false master-degraded marker. Regression test tests/workflow/test_staging_workflow.py::test_promote_refuses_the_persistent_staging_checkout; workflow suite 216 passed. integration_capture: exact branch HEAD'
+validation_tier: full_integration
+human_validation_authorization: agent_default_full_integration
+local_validation_profile: unit
+local_validation_reason: Workflow documentation plus comment/docstring/message-only wording in scripts/agent-session.py; no behaviour, JSON key, product, Compose, migration or deployment change. The classifier minimum for these owned paths is unit; run the focused workflow unit tests, workstream validator, branch-test manifest check, py_compile and diff checks. No Docker, browser or product suites.
+goal_budget_policy: unbounded_unless_human_authorized
+human_goal_budget_authorization: none
+goal: Make the repository's agent workflow documentation runtime-neutral so Codex, Claude Code, or another agent runtime can run the same lifecycle; add a Claude Code entry point and a runtime adapter mapping without changing any workflow rule, tool behaviour or historical evidence.
+scope:
+  - Add a tracked root CLAUDE.md that imports AGENTS.md plus a few Claude Code pointers.
+  - Reword AGENTS.md and docs/agent-orchestration.md to runtime-neutral terms, preserving every rule, and add a Runtime adapters section (concept mapping, switching runtimes, model tiers by role).
+  - Neutralize living Codex-specific guidance in docs/development.md and docs/feature-integration-coordination.md; keep quoted human statements and dated historical records intact.
+  - Runtime-neutral docstrings/messages in scripts/agent-session.py without behaviour or JSON key changes.
+  - Make one orchestrator session per work context with in-session cheaper subagents the default operating mode (claims, delegation rules, merging/reconciliation/combined validation, continuity, context index), retire the separate per-worktree chat transport (remove scripts/agent-turn.py), and update the adapter and model-tier tables, AGENTS.md and CLAUDE.md accordingly.
+owned_paths:
+  - CLAUDE.md
+  - AGENTS.md
+  - docs/agent-orchestration.md
+  - docs/development.md
+  - docs/feature-integration-coordination.md
+  - scripts/agent-session.py
+  - scripts/agent-turn.py
+  - scripts/staging.py
+  - tests/workflow/test_staging_workflow.py
+  - .gitignore
+  - ops/workstreams/docs-runtime-neutral-agent-workflow/
+dependencies: []
+acceptance_criteria:
+  - id: RN1
+    text: Root CLAUDE.md imports AGENTS.md (first line @AGENTS.md) and adds only short Claude Code pointers; AGENTS.md remains the single canonical entry for every runtime and keeps every existing rule in runtime-neutral wording.
+  - id: RN2
+    text: docs/agent-orchestration.md uses runtime-neutral wording for goals, entry discovery, sessions, sandbox/Git recovery and worker messaging, with every rule preserved, and contains a Runtime adapters section mapping each workflow concept to Codex and Claude Code, a Switching runtimes procedure, and a model-tier-by-role table; new runtimes are added as a column, not a lifecycle change.
+  - id: RN3
+    text: Living guidance elsewhere (development.md, feature-integration-coordination.md) no longer prescribes Codex-only mechanics; quoted human statements and dated historical records stay intact; historical evidence files and other branches' workstreams are untouched.
+  - id: RN4
+    text: scripts/agent-session.py wording is runtime-neutral with no behaviour or JSON key change; focused workflow tests, workstream validation and branch-test manifest checks pass; every remaining tracked Codex mention is justified in the handoff.
+  - id: RN5
+    text: docs/agent-orchestration.md makes one orchestrator session per work context with in-session cheaper subagents the default mode (work contexts and a git-ignored .ai/contexts index, orchestrator holds all claims, one writing subagent per worktree, subagent prohibitions and commit/verification rules, background long commands with timeouts, orchestrator-run staging integration under the existing lock and single merge path, continuity from durable records), marks the separate per-worktree chat transport retired with scripts/agent-turn.py removed, and AGENTS.md/CLAUDE.md point to it; every existing lifecycle, intent, closure, integration and deployment rule is unchanged.
+branch_tests:
+  - uv run --project backend python -m pytest tests/workflow/test_agent_session.py tests/workflow/test_ci_change_scope.py --no-cov
+branch_tests_reason: Focused workflow/session contract tests cover the wording-only helper change and the entry-point/orchestration document assertions; no product suite is affected.
+live_test_impact: none
+migration_impact: none
+deployment_impact: none
+status: ready_for_integration
+remaining_gaps: []
+bootstrap_exception: "Root-authorized 2026-11-05: skip the plan-only commit/push and old plan-ready remote prerequisite (repository mechanism from fix/development-flow-efficiency, applied here under the 2026-11-10 activation and the human's standing no-metadata-only-push preference). Keep this reviewed ready plan local under the exclusive claim; clean synchronized source remains required at normal integration gates."
+progress:
+  completed: [RN1, RN2, RN3, RN4, RN5]
+  total: 5
+  current_phase: ready_for_integration
+  current_blocker: none
+  next_action: Orchestrator integrates through staging and promotes.

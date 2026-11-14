@@ -1166,3 +1166,23 @@ def test_rpi_preflight_checks_configured_remote_architecture(
         "ensure_provider_quota_coordinator(require_persistent_coordinator=True)"
         in text("scripts/rpi.py")
     )
+
+
+def test_promote_refuses_the_persistent_staging_checkout(monkeypatch):
+    staging = load_script("staging")
+    monkeypatch.setattr(staging, "ROOT", staging.STAGING_PATH)
+    monkeypatch.setattr(staging, "full_sha", lambda value, label: "a" * 40)
+    monkeypatch.setattr(staging, "root_master_ready", lambda: None)
+    calls = []
+
+    def git(*args, **kwargs):
+        calls.append(args)
+        return "staging" if args == ("branch", "--show-current") else ""
+
+    monkeypatch.setattr(staging, "git", git)
+    monkeypatch.setattr(
+        staging, "integration_lock", lambda: pytest.fail("must refuse before locking")
+    )
+    with pytest.raises(SystemExit, match="root master checkout"):
+        staging.promote("a" * 40, "a" * 40)
+    assert ("merge", "--ff-only", "a" * 40) not in calls
