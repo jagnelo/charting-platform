@@ -704,7 +704,24 @@ class WorkerSettings:
     keep_result = 3600  # keep results for 1 hour
 
 
+def configure_worker_logging() -> None:
+    """Route application and ARQ logs to the container's stderr.
+
+    ``arq.run_worker`` installs no handlers, so without this the worker's
+    provider, queue and database diagnostics were silently dropped and
+    production failures (deadlocks, duplicate inserts, restarts) left no
+    trace. Mirror the API process configuration.
+    """
+
+    logging.basicConfig(
+        level=getattr(logging, str(settings.LOG_LEVEL).upper(), logging.INFO),
+        format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+        force=True,
+    )
+
+
 if __name__ == "__main__":
     from arq import run_worker
 
+    configure_worker_logging()
     run_worker(WorkerSettings)

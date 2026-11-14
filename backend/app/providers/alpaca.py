@@ -265,6 +265,10 @@ class AlpacaProvider:
             try:
                 r = httpx.get(url, params=params, headers=self._headers(), timeout=30)
                 observe_response(r)
+                if _is_invalid_symbol_answer(r):
+                    # Alpaca does not list this symbol. That is a definitive
+                    # no-data answer, not a transport failure to retry.
+                    return []
                 r.raise_for_status()
                 data = r.json()
                 if not isinstance(data, dict):
@@ -718,6 +722,18 @@ def estimate_latest_ohlcv_request_count(timeframe: Timeframe, limit: int) -> int
     lookback_seconds = seconds * limit * 1.4 + 86400
     candles = max(1, ceil(lookback_seconds / seconds) + 1)
     return max(1, (candles + _BARS_PAGE_SIZE - 1) // _BARS_PAGE_SIZE)
+
+
+def _is_invalid_symbol_answer(response: httpx.Response) -> bool:
+    """Recognize Alpaca's deterministic 400 for a symbol it does not list."""
+    if response.status_code != 400:
+        return False
+    try:
+        payload = response.json()
+    except ValueError:
+        return False
+    message = payload.get("message") if isinstance(payload, dict) else None
+    return isinstance(message, str) and message.lower().startswith("invalid symbol")
 
 
 def _is_crypto(symbol: str) -> bool:
