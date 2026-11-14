@@ -34243,3 +34243,8 @@ Observed in the CI-identical E2E stack: a `instrument_metadata` job for an alrea
 Leave as is for this release. Next-cycle options: (1) a dedicated visible-wake slot or ARQ queue, or (2) a preemption point between background jobs when a priority-10 job is queued. Confirm first with worker logs showing ARQ enqueue and start times for the wake and cron jobs, plus the metadata job's claim time.
 
 Related change this cycle: dependency-deferred jobs are woken when their prerequisite completes (commit 9a343a86f), replacing the fixed 20-second recheck as the only path.
+
+
+## 2026-11-14 — staging 3e8798273 F9j failure classified as a flake
+
+The exhaustive gate on staging `3e8798273` (CI run 43612983716) failed one E2E test, `flows.spec.ts:1621` (F9j): the SPY D1 Study preparation stayed at "0/1 dependencies complete" past the 30-second window; 240 tests passed. In an isolated CI-identical stack at the same SHA, F9j passed 5/5 with `--repeat-each 5`, and 67 `flows.spec.ts` chart tests passed with no failure. The diff since green `5ca68f755` cannot reach a D1 preparation: the XNYS session clipping applies only to intraday steps, the no-data memo only skips slices a provider already answered as empty, and the loopback port binding does not affect in-network traffic. The symptom matches the open visible-wake latency item above (a visible job waiting behind background ARQ jobs on a loaded runner). This remediation re-gates the unchanged code; the visible-wake fix stays a next-cycle item.
