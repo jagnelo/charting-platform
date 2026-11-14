@@ -696,11 +696,67 @@ def test_xnys_ad_hoc_nyse_closure_is_not_a_reselection_gap():
 
 
 def test_xnys_unsupported_intraday_grid_uses_conservative_interval_fallback():
+    # The window spans Monday's regular session, so the interval fallback must
+    # still report the gap rather than assume intraday coverage is complete.
     start = datetime(2026, 1, 5, tzinfo=UTC)
-    end = start + timedelta(hours=12)
+    end = start + timedelta(hours=24)
     cached = [_bar(start, Timeframe.H1)]
 
-    assert missing_range_slices(cached, Timeframe.H1, start, end, calendar="XNYS")
+    assert missing_range_slices(cached, Timeframe.H1, start, end, calendar="XNYS") == [
+        (
+            datetime(2026, 1, 5, 9, 30, tzinfo=_NEW_YORK).astimezone(UTC),
+            datetime(2026, 1, 5, 16, tzinfo=_NEW_YORK).astimezone(UTC),
+        )
+    ]
+
+
+def test_xnys_intraday_overnight_and_weekend_gaps_are_not_missing():
+    # Production M15 loop: every close-to-next-morning and Friday-to-Monday gap
+    # was re-requested from Alpaca, which can never fill closed-market time.
+    def m15(local: datetime):
+        return _bar(local.replace(tzinfo=_NEW_YORK).astimezone(UTC), Timeframe.M15)
+
+    friday_close = datetime(2026, 10, 30, 15, 45)
+    monday_premarket = datetime(2026, 11, 2, 9, 15)
+    monday_open = datetime(2026, 11, 2, 9, 30)
+    cached = [m15(friday_close), m15(monday_premarket), m15(monday_open)]
+    start = cached[0].ts
+    end = cached[-1].ts
+
+    assert missing_range_slices(cached, Timeframe.M15, start, end, calendar="XNYS") == []
+    assert _needs_fetch_for_range(cached, Timeframe.M15, start, end, calendar="XNYS") is False
+
+
+def test_xnys_intraday_gap_inside_regular_hours_is_trimmed_to_the_session():
+    def m15(local: datetime):
+        return _bar(local.replace(tzinfo=_NEW_YORK).astimezone(UTC), Timeframe.M15)
+
+    # Thursday 10:00 bar, then nothing until Monday 11:00: Thursday's rest,
+    # Friday, and Monday morning are missing; the weekend and nights are not.
+    cached = [m15(datetime(2026, 10, 29, 10)), m15(datetime(2026, 11, 2, 11))]
+    slices = missing_range_slices(
+        cached, Timeframe.M15, cached[0].ts, cached[-1].ts, calendar="XNYS"
+    )
+
+    assert slices == [
+        (
+            datetime(2026, 10, 29, 10, 15, tzinfo=_NEW_YORK).astimezone(UTC),
+            datetime(2026, 11, 2, 10, 45, tzinfo=_NEW_YORK).astimezone(UTC),
+        )
+    ]
+
+
+def test_xnys_intraday_gap_on_a_holiday_is_not_missing():
+    def m15(local: datetime):
+        return _bar(local.replace(tzinfo=_NEW_YORK).astimezone(UTC), Timeframe.M15)
+
+    # 2026-11-26 is Thanksgiving: Wednesday close to Friday open is closed time.
+    cached = [m15(datetime(2026, 11, 25, 15, 45)), m15(datetime(2026, 11, 27, 9, 30))]
+
+    assert (
+        missing_range_slices(cached, Timeframe.M15, cached[0].ts, cached[-1].ts, calendar="XNYS")
+        == []
+    )
 
 
 def test_xnys_incomplete_current_session_does_not_create_false_tail():
