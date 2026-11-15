@@ -341,7 +341,7 @@ def observed_daily_session_bounds(
 
 
 def coverage_calendar_for_instrument(instrument: object) -> CalendarName | None:
-    """Return the supported US cash-equity calendar from one primary listing.
+    """Return the supported US cash-equity calendar from the primary listings.
 
     Currency or a security-detail MIC alone is not enough to infer the selected
     session calendar. Ambiguous, inactive, non-primary, and unknown listings
@@ -360,11 +360,17 @@ def coverage_calendar_for_instrument(instrument: object) -> CalendarName | None:
         for listing in (getattr(instrument, "listings", None) or [])
         if listing.is_primary and listing.is_active
     ]
-    if len(primary) != 1:
+    if not primary:
         return None
-    exchange = getattr(primary[0], "exchange", None)
-    mic = normalize_exchange_mic(getattr(exchange, "mic", None))
-    return "XNYS" if mic in _SUPPORTED_US_CASH_EQUITY_MICS else None
+    # Several primary listings (for example SPY on both ARCX and XNYS) are not
+    # ambiguous for the session calendar when every one of them is a US cash
+    # equity venue: they all trade the XNYS session. Any other venue among them
+    # keeps the conservative behavior.
+    mics = {
+        normalize_exchange_mic(getattr(getattr(listing, "exchange", None), "mic", None))
+        for listing in primary
+    }
+    return "XNYS" if mics <= _SUPPORTED_US_CASH_EQUITY_MICS else None
 
 
 def bar_visible_through_clause(cutoff: datetime):

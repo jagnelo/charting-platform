@@ -2823,7 +2823,11 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                     ):
                         await refresh_cached_coarse_from_daily()
                         raise RefreshDependencyPending(
-                            retry_at=datetime.now(UTC) + timedelta(seconds=20)
+                            retry_at=dependency_recheck_at(
+                                prerequisites,
+                                expected=len(set(wait_for_ids)),
+                                now=datetime.now(UTC),
+                            )
                         )
 
                 if not preparation.get("derived_only") and is_placeholder_symbol(instrument.symbol):
@@ -3374,6 +3378,37 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
             "lease_lost": lease_lost,
             "wakeup_scheduled": wakeup_scheduled,
         }
+
+
+DEPENDENCY_RECHECK_MIN = timedelta(seconds=20)
+DEPENDENCY_RECHECK_MAX = timedelta(minutes=10)
+
+
+def dependency_recheck_at(
+    prerequisites: list[MarketRefreshJob], *, expected: int, now: datetime
+) -> datetime:
+    """When a dependency-deferred child should look at its prerequisites again.
+
+    A prerequisite that is itself waiting (quota or provider reset, often until
+    the next month) cannot complete before its own next attempt, and its
+    completion wakes this child through ``wake_waiting_dependents``. Rechecking
+    every 20 seconds until then only spins the worker. Wait for the earliest
+    unfinished prerequisite's next attempt instead, capped so a missed wake
+    (the wake scan is bounded) still degrades to a bounded delay.
+    """
+
+    soonest = now + DEPENDENCY_RECHECK_MIN
+    unfinished = [job for job in prerequisites if job.status != "completed"]
+    if len(prerequisites) != expected or any(
+        job.status not in ("deferred", "retry") or job.next_attempt_at is None for job in unfinished
+    ):
+        return soonest
+    earliest = min(_as_aware_utc(job.next_attempt_at) for job in unfinished)
+    return min(max(earliest, soonest), now + DEPENDENCY_RECHECK_MAX)
+
+
+def _as_aware_utc(value: datetime) -> datetime:
+    return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
 
 
 class RefreshDependencyPending(RuntimeError):
