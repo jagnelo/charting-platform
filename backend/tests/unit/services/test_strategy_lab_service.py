@@ -98,6 +98,22 @@ def test_usd_currency_without_primary_cash_equity_listing_does_not_infer_xnys():
     assert coverage_calendar_for_instrument(instrument) is None
 
 
+def _primary(mic):
+    return SimpleNamespace(is_primary=True, is_active=True, exchange=SimpleNamespace(mic=mic))
+
+
+def test_several_primary_us_cash_equity_listings_share_the_xnys_calendar():
+    instrument = SimpleNamespace(currency="USD", listings=[_primary("ARCX"), _primary("XNYS")])
+    assert coverage_calendar_for_instrument(instrument) == "XNYS"
+
+
+def test_primary_listings_mixing_a_non_us_cash_equity_venue_stay_conservative():
+    instrument = SimpleNamespace(currency="USD", listings=[_primary("ARCX"), _primary("XCME")])
+    assert coverage_calendar_for_instrument(instrument) is None
+    unknown = SimpleNamespace(currency="USD", listings=[_primary("XNYS"), _primary(None)])
+    assert coverage_calendar_for_instrument(unknown) is None
+
+
 @pytest.mark.asyncio
 async def test_python_signal_strategy_queues_immutable_isolated_research(monkeypatch):
     code_version = CodeVersion(
