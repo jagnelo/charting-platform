@@ -556,6 +556,9 @@ async def scheduled_edgar_ipo_directory_scan(ctx: dict):
     return await refresh_edgar_ipo_pipeline_for_sec_directory(ctx)
 
 
+UNIVERSE_RECONCILIATION_TIMEOUT_SECONDS = 3600
+
+
 async def scheduled_market_universe_reconciliation(ctx: dict):
     """Reconcile the market universe only when explicitly enabled."""
 
@@ -691,7 +694,17 @@ class WorkerSettings:
         else []
     )
     if settings.MARKET_UNIVERSE_RECONCILIATION_ENABLED:
-        cron_jobs += (cron(scheduled_market_universe_reconciliation, hour=21, minute=0),)
+        # A cold reconciliation pages through every admitted discovery source
+        # (Nasdaq Trader, CTA, FINRA OTC, SEC, Alpaca, crypto venues, ...);
+        # the default 10-minute job budget would cut it off part-way.
+        cron_jobs += (
+            cron(
+                scheduled_market_universe_reconciliation,
+                hour=21,
+                minute=0,
+                timeout=UNIVERSE_RECONCILIATION_TIMEOUT_SECONDS,
+            ),
+        )
     if settings.PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED:
         # 15:00 UTC is after MarketData.app's documented 09:30 America/New_York
         # reset in both DST and standard-time periods. Other providers expose
