@@ -34302,3 +34302,9 @@ Feature CI on 8c87795f4 (run 44608556188): "E2E Tests (Playwright)" failed one c
 - On a second fresh local stack at 8c87795f4, the exact CI order passed 210 of 212 with retries 0; 2 cases are skipped by design. That order was auth_session_boundary, baskets_journey, dashboard_usability_journey, etf_holdings_preparation, flows, then on_demand_acquisition. CI=1 timeouts were in effect.
 
 Re-running CI on the unchanged tree; no test changed.
+
+Correction to the 8c87795f4 note: feature CI on 84008c01f (same product tree) failed the same `on_demand_acquisition.spec.ts:334` case again on both attempts. That makes 2 of 2 feature runs with the seed memo, so this is not a one-off. It still does not reproduce outside GitHub's runner:
+- `npx playwright test` with CI=1 against a CI-identical local stack passed 238 of 348, with 110 skipped and no failures. The stack used a pristine `git archive` export, no `.env`, and only the CI job's env vars.
+- A throwaway diagnostic branch with the same product tree, `test/e2e-diag-seed-memo` at 7f2b10f4e, passed the E2E job on GitHub. That branch added only a failure-only annotation step and a stub plan.
+- The failing assertion means the chart store reached `error` for the mocked TCNEW selection, because `UPlotChart` is gated on `!chartStore.error`.
+- Current classification is an intermittent runner-only failure, about 2 of 3 GitHub runs with the memo. The root cause is still open. More diagnostic runs carry annotations that print the page's error context and the backend and worker error lines on failure. No test changed.
