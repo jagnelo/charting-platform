@@ -34294,3 +34294,11 @@ Evidence on a fresh local stack at the merged tree, under the same first-ensure-
 - The 28 identity (`instrument_metadata`) children averaged 0.72 s, down from about 7 s, with a 6.3 s maximum on the first full seed pass.
 - The whole burst drained between 20:24:00 and 20:24:31.
 - No test was changed or weakened.
+
+Feature CI on 8c87795f4 (run 44608556188): "E2E Tests (Playwright)" failed one case, `on_demand_acquisition.spec.ts:334` ("Workstation search resolves an unknown ticker..."). The first attempt failed at line 474 because the selected chart region was not found within 15 s. The retry hit the 60 s test timeout while waiting on the same region. The run was 20:31 to 20:55 UTC, so it did not cross an hour boundary. Classified as a CI-runner timing flake, not a regression. Evidence:
+- The case mocks every TCNEW backend call (search, discover, acquire, canonical lookup, ensure, OHLCV).
+- No frontend file changed since 4df21d2d8, whose identical E2E job passed. The same case also passed in the e2e-functional stages of staging 1400b3b1d and 19fa0d7e0.
+- On a fresh local stack at 8c87795f4, the case's spec file passed 14 of 14 (repeat-each 2, retries 0).
+- On a second fresh local stack at 8c87795f4, the exact CI order passed 210 of 212 with retries 0; 2 cases are skipped by design. That order was auth_session_boundary, baskets_journey, dashboard_usability_journey, etf_holdings_preparation, flows, then on_demand_acquisition. CI=1 timeouts were in effect.
+
+Re-running CI on the unchanged tree; no test changed.
