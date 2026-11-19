@@ -1662,6 +1662,43 @@ def test_shared_ip_account_pool_is_not_split_by_provider_adapter(tmp_path, monke
     )
 
 
+def test_bitstamp_seed_contract_uses_shared_ip_scope_and_local_application_usage(
+    tmp_path, monkeypatch
+):
+    from app.config import provider_rate_limit_seed
+
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "quota.sqlite3"))
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_ACCOUNT_SCOPES", {})
+    seed = provider_rate_limit_seed("bitstamp")
+    policy = SimpleNamespace(
+        quota_scope=seed["quota_scope"],
+        quota_source=seed["quota_source"],
+        quota_contract=seed["quota_contract"],
+    )
+    now = datetime(2026, 11, 19, 12, 0, tzinfo=UTC)
+
+    assert account_scope_for_provider("bitstamp", "ip") == "bitstamp:shared-ip"
+
+    def reserve(units: int, at: datetime):
+        return reserve_provider_quota(
+            provider_name="bitstamp",
+            capability="price_history",
+            operation="fetch_ohlcv",
+            policy=policy,
+            dimension_units={
+                "public_requests_per_second": units,
+                "public_requests_per_ten_minutes": units,
+            },
+            now=at,
+        )
+
+    # Both reviewed dimensions start from an application-only local zero
+    # baseline; no provider-native usage evidence is required.
+    assert reserve(10, now)
+    assert reserve(1, now) is None
+    assert reserve(1, now + timedelta(seconds=2))
+
+
 def test_finra_public_credential_bandwidth_pool_is_shared_between_adapters(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "quota.sqlite3"))
     policy = _policy(

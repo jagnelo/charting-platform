@@ -1060,6 +1060,49 @@ class Settings(BaseSettings):
                 "60 requests/minute is application policy"
             ),
         },
+        "bitstamp": {
+            "quota_contract": {
+                "dimensions": [
+                    {
+                        "name": "public_requests_per_second",
+                        "limit": 10,
+                        "window_seconds": 1,
+                        "unit": "requests",
+                        "scope": "ip",
+                        "quota_group": "ip",
+                        "source": "https://www.bitstamp.net/api/",
+                        # Bitstamp publishes 400 requests/second per client.
+                        # Enforce 2.5% of that ceiling: the adapter pages
+                        # sequentially, and unrelated traffic sharing the
+                        # egress IP is invisible to this application.
+                        "limit_basis": "conservative_fraction_of_published_ceiling",
+                        "baseline_mode": "local_zero",
+                        "application_usage_only": True,
+                    },
+                    {
+                        "name": "public_requests_per_ten_minutes",
+                        "limit": 5000,
+                        "window_seconds": 600,
+                        "unit": "requests",
+                        "scope": "ip",
+                        "quota_group": "ip",
+                        "source": "https://www.bitstamp.net/api/",
+                        # Bitstamp publishes a default threshold of 10,000
+                        # requests per 10 minutes. Enforce half of it as a
+                        # rolling envelope so the unpublished reset boundary
+                        # and unobservable shared-IP traffic stay inside the
+                        # provider ceiling. Only this platform's coordinator-
+                        # tracked calls are counted.
+                        "limit_basis": "conservative_fraction_of_published_ceiling",
+                        "baseline_mode": "local_zero",
+                        "application_usage_only": True,
+                    },
+                ],
+                "reset": "rolling",
+            },
+            "quota_scope": "ip",
+            "quota_source": "Bitstamp public REST API request-limit documentation",
+        },
         "xstocks": {
             "quota_contract": {
                 "dimensions": [
@@ -1941,6 +1984,17 @@ class Settings(BaseSettings):
                 "discover_universe_page": 1,
             },
         },
+        "bitstamp": {
+            "mode": "call_count",
+            "unit_label": "requests",
+            "operation_costs": {
+                "get_current_price": 1,
+                # One /markets/ read plus one /currencies/ read, which is the
+                # provider's authoritative crypto-vs-fiat classification
+                # (Bitstamp lists fiat pairs such as EUR/USD as SPOT markets).
+                "discover_universe_page": 2,
+            },
+        },
         "finra": {
             "mode": "multi_dimensional",
             "unit_label": "requests",
@@ -2448,6 +2502,19 @@ class Settings(BaseSettings):
                 "Daily reference rates updated as sources publish; Monday-Friday bars"
             ),
         },
+        "bitstamp": {
+            "configured_plan": "public-exchange-api",
+            "is_free": True,
+            "authentication_required": False,
+            "usage_terms": (
+                "Bitstamp public REST API request limits apply; commercial use requires a "
+                "Bitstamp Data License Agreement, so routing is scoped to single-user, "
+                "non-commercial, non-redistributed use."
+            ),
+            "history_depth": "Exchange OHLC history from each market's listing; maximum 1000 candles per request",
+            "venue_coverage": "Bitstamp USD-quoted crypto spot markets",
+            "freshness_semantics": "Public exchange endpoint response",
+        },
         "coingecko": {
             "configured_plan": "free-demo",
             "is_free": True,
@@ -2719,6 +2786,11 @@ class Settings(BaseSettings):
         # 2026-11-19 from a bounded shell smoke, not the live runner; the
         # runner case is test_frankfurter_keyless_fx_reference_rates.
         "frankfurter": "passed",
+        # Bounded adapter-level smoke on 2026-11-19 (markets/currencies
+        # discovery, one D1 history page, latest D1 window, BTC/USD ticker)
+        # returned valid provider-native shapes. The bounded live-harness case
+        # test_bitstamp_keyless_crypto_history is the repeatable evidence path.
+        "bitstamp": "passed",
         "nasdaq": "passed",
         "cta_plan": "not_run",
         "fred": "passed",
@@ -3044,6 +3116,14 @@ class Settings(BaseSettings):
     KRAKEN_MARKET_DATA_USE_AUTHORITY_SCOPE: str = ""
     KRAKEN_MARKET_DATA_USE_REVIEWED_AT: datetime | None = None
     KRAKEN_MARKET_DATA_USE_EXPIRES_AT: datetime | None = None
+    # Bitstamp's public API page directs commercial users of its exchange data
+    # to a Data License Agreement. Routing requires the owner's scoped record
+    # that this deployment is single-user, non-commercial and non-redistributed.
+    BITSTAMP_MARKET_DATA_USE_AUTHORIZED: bool = False
+    BITSTAMP_MARKET_DATA_USE_AUTHORITY_REFERENCE: str = ""
+    BITSTAMP_MARKET_DATA_USE_AUTHORITY_SCOPE: str = ""
+    BITSTAMP_MARKET_DATA_USE_REVIEWED_AT: datetime | None = None
+    BITSTAMP_MARKET_DATA_USE_EXPIRES_AT: datetime | None = None
     # Compatibility-only owner-storage fields; owner consent is already final.
     KRAKEN_PERSISTENT_STORAGE_AUTHORIZED: bool = False
     KRAKEN_PERSISTENT_STORAGE_AUTHORITY_REFERENCE: str = ""
@@ -3386,6 +3466,8 @@ class Settings(BaseSettings):
         "COINBASE_MARKET_DATA_USE_EXPIRES_AT",
         "KRAKEN_MARKET_DATA_USE_REVIEWED_AT",
         "KRAKEN_MARKET_DATA_USE_EXPIRES_AT",
+        "BITSTAMP_MARKET_DATA_USE_REVIEWED_AT",
+        "BITSTAMP_MARKET_DATA_USE_EXPIRES_AT",
         "XSTOCKS_MARKET_DATA_USE_REVIEWED_AT",
         "XSTOCKS_MARKET_DATA_USE_EXPIRES_AT",
         "BYBIT_XSTOCKS_MARKET_DATA_USE_REVIEWED_AT",
@@ -3854,6 +3936,49 @@ def kraken_market_data_use_authority_missing(
             missing.append("KRAKEN_MARKET_DATA_USE_EXPIRES_AT")
         elif expires_at <= now:
             missing.append("KRAKEN_MARKET_DATA_USE_EXPIRES_AT")
+    return missing
+
+
+BITSTAMP_MARKET_DATA_USE_REQUIRED_SCOPE = (
+    "single_user_personal_noncommercial_automated_internal_persistent_archive_nonredistributed"
+)
+
+
+def bitstamp_market_data_use_authority_missing(
+    now: datetime | None = None, *, source: object | None = None
+) -> list[str]:
+    """Require the owner's scoped non-commercial record before Bitstamp transport.
+
+    Bitstamp's public API documentation requires a commercial-use Data License
+    Agreement for companies using its exchange data commercially. This gate
+    records that the deployment's use stays outside that commercial scope.
+    """
+
+    now = now or datetime.now(UTC)
+    source = source or settings
+    if provider_reviewed_flag(getattr(source, "PROVIDER_OWNER_ACCEPTS_PROVIDER_TERMS_RISK", False)):
+        return []
+    missing: list[str] = []
+    if not provider_reviewed_flag(getattr(source, "BITSTAMP_MARKET_DATA_USE_AUTHORIZED", False)):
+        missing.append("BITSTAMP_MARKET_DATA_USE_AUTHORIZED")
+    if not str(getattr(source, "BITSTAMP_MARKET_DATA_USE_AUTHORITY_REFERENCE", "") or "").strip():
+        missing.append("BITSTAMP_MARKET_DATA_USE_AUTHORITY_REFERENCE")
+    if (
+        str(getattr(source, "BITSTAMP_MARKET_DATA_USE_AUTHORITY_SCOPE", "") or "").strip()
+        != BITSTAMP_MARKET_DATA_USE_REQUIRED_SCOPE
+    ):
+        missing.append("BITSTAMP_MARKET_DATA_USE_AUTHORITY_SCOPE")
+    reviewed_at = getattr(source, "BITSTAMP_MARKET_DATA_USE_REVIEWED_AT", None)
+    if not isinstance(reviewed_at, datetime) or reviewed_at.tzinfo is None:
+        missing.append("BITSTAMP_MARKET_DATA_USE_REVIEWED_AT")
+    elif reviewed_at > now:
+        missing.append("BITSTAMP_MARKET_DATA_USE_REVIEWED_AT")
+    expires_at = getattr(source, "BITSTAMP_MARKET_DATA_USE_EXPIRES_AT", None)
+    if expires_at is not None:
+        if not isinstance(expires_at, datetime) or expires_at.tzinfo is None:
+            missing.append("BITSTAMP_MARKET_DATA_USE_EXPIRES_AT")
+        elif expires_at <= now:
+            missing.append("BITSTAMP_MARKET_DATA_USE_EXPIRES_AT")
     return missing
 
 

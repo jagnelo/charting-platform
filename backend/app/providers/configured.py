@@ -75,6 +75,11 @@ OPTIONAL_PROVIDER_DESCRIPTORS = {
         "https://api.kraken.com/0/public",
         "Optional crypto/futures market-data provider.",
     ),
+    "bitstamp": ConfiguredProvider(
+        "bitstamp",
+        "https://www.bitstamp.net/api/v2",
+        "Optional crypto spot market-data provider; commercial use needs a data license.",
+    ),
     "xstocks": ConfiguredProvider(
         "xstocks",
         "https://api.xstocks.fi/api/v2",

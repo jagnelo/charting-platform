@@ -399,7 +399,28 @@ async def test_latest_provider_refresh_assigns_scoped_market_series(monkeypatch)
     assert captured["kwargs"]["canonical"] is True
     assert captured["execute_kwargs"]["history_start"]("alpaca") == expected_history_start
     assert captured["execute_kwargs"]["operation_cost_overrides"]["fmp"] == 1
+    # Ten latest daily candles fit one Bitstamp 1000-candle OHLC page.
+    assert captured["execute_kwargs"]["operation_cost_overrides"]["bitstamp"] == 1
     assert result[0].market_series_id == 456
+
+
+def test_history_cost_overrides_include_bitstamp_aligned_1000_candle_pages():
+    start = datetime(2024, 1, 1, 0, 30, tzinfo=UTC)
+    overrides = market_data.ohlcv_operation_cost_overrides(
+        Timeframe.D1, start, start + timedelta(days=1000)
+    )
+    # The aligned bucket boundary adds a second page for an unaligned start.
+    assert overrides["bitstamp"] == 2
+    assert overrides["coinbase"] == 4
+    assert (
+        market_data.ohlcv_operation_cost_overrides(
+            Timeframe.M1, start, start + timedelta(minutes=500)
+        )["bitstamp"]
+        == 1
+    )
+    assert "bitstamp" not in market_data.ohlcv_operation_cost_overrides(
+        Timeframe.W1, start, start + timedelta(days=70)
+    )
 
 
 @pytest.mark.asyncio

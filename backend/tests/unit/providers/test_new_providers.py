@@ -36,8 +36,11 @@ from app.providers.binance import (
 )
 from app.providers.coingecko import CoinGeckoProvider
 from app.providers.crypto_market_data import (
+    BitstampProvider,
     CoinbaseProvider,
     KrakenProvider,
+    estimate_bitstamp_latest_ohlcv_request_count,
+    estimate_bitstamp_ohlcv_request_count,
     estimate_coinbase_latest_ohlcv_request_count,
     estimate_coinbase_ohlcv_request_count,
     estimate_kraken_latest_ohlcv_request_count,
@@ -1645,6 +1648,433 @@ class TestCryptoOHLCVPagination:
         with patch("app.providers.crypto_market_data.httpx.get", return_value=kraken_response):
             with pytest.raises(ProviderResponseError, match="incomplete asset-pair identity"):
                 KrakenProvider().discover_universe_page("CRYPTOCURRENCY", 0)
+
+
+# ── Bitstamp public market data ─────────────────────────────────────────────
+
+
+def _bitstamp_response(payload, status: int = 200, url: str = "https://www.bitstamp.net/api/v2"):
+    return httpx.Response(status, json=payload, request=httpx.Request("GET", url))
+
+
+def _bitstamp_candle(ts: datetime, close: str = "1.75") -> dict[str, str]:
+    return {
+        "timestamp": str(int(ts.timestamp())),
+        "open": "1.5",
+        "high": "2",
+        "low": "1",
+        "close": close,
+        "volume": "10",
+    }
+
+
+def _bitstamp_market(
+    base: str,
+    counter: str = "USD",
+    *,
+    market_type: str = "SPOT",
+    trading: str = "Enabled",
+    symbol: str | None = None,
+) -> dict[str, str]:
+    market_symbol = symbol or f"{base}{counter}".lower()
+    return {
+        "name": f"{base}/{counter}",
+        "market_symbol": market_symbol,
+        "base_currency": base,
+        "counter_currency": counter,
+        "trading": trading,
+        "market_type": market_type,
+    }
+
+
+class TestBitstampProvider:
+    @pytest.fixture(autouse=True)
+    def allow_bitstamp_fixture_transport(self, monkeypatch):
+        monkeypatch.setattr(
+            "app.providers.crypto_market_data.bitstamp_market_data_use_authority_missing",
+            lambda: [],
+        )
+
+    def test_requires_written_authority_before_transport(self, monkeypatch):
+        monkeypatch.setattr(
+            "app.providers.crypto_market_data.bitstamp_market_data_use_authority_missing",
+            lambda: ["BITSTAMP_MARKET_DATA_USE_AUTHORIZED"],
+        )
+        start = datetime(2024, 1, 1, tzinfo=UTC)
+        with patch("app.providers.crypto_market_data.httpx.get") as get:
+            with pytest.raises(ProviderNotConfiguredError, match="written authority"):
+                BitstampProvider().get_current_price("BTC-USD")
+            with pytest.raises(ProviderNotConfiguredError, match="written authority"):
+                BitstampProvider().fetch_ohlcv(
+                    "BTC-USD", Timeframe.D1, start, start + timedelta(days=1), adjusted=False
+                )
+            with pytest.raises(ProviderNotConfiguredError, match="written authority"):
+                BitstampProvider().discover_universe_page("CRYPTOCURRENCY", 0)
+        get.assert_not_called()
+
+    def test_adjusted_history_is_rejected_before_transport(self):
+        with patch("app.providers.crypto_market_data.httpx.get") as get:
+            with pytest.raises(ProviderResponseError, match="exchange candles are raw"):
+                BitstampProvider().fetch_ohlcv(
+                    "BTC-USD",
+                    Timeframe.D1,
+                    datetime(2024, 1, 1, tzinfo=UTC),
+                    datetime(2024, 1, 2, tzinfo=UTC),
+                    adjusted=True,
+                )
+        get.assert_not_called()
+
+    @pytest.mark.parametrize("timeframe", [Timeframe.W1, Timeframe.MN])
+    def test_timeframes_without_a_bitstamp_step_are_typed(self, timeframe):
+        start = datetime(2024, 1, 1, tzinfo=UTC)
+        with patch("app.providers.crypto_market_data.httpx.get") as get:
+            with pytest.raises(ProviderResponseError, match="unsupported crypto timeframe"):
+                BitstampProvider().fetch_ohlcv(
+                    "BTC-USD", timeframe, start, start + timedelta(days=30), adjusted=False
+                )
+            with pytest.raises(ProviderResponseError, match="unsupported crypto timeframe"):
+                BitstampProvider().fetch_latest_ohlcv("BTC-USD", timeframe, 5, adjusted=False)
+        get.assert_not_called()
+        assert estimate_bitstamp_ohlcv_request_count(timeframe, start, start + timedelta(1)) is None
+        assert estimate_bitstamp_latest_ohlcv_request_count(timeframe, 5) is None
+
+    @pytest.mark.parametrize(
+        ("symbol", "market"),
+        [
+            ("BTC-USD", "btcusd"),
+            ("btc/usd", "btcusd"),
+            ("PAXG", "paxgusd"),
+            ("eth-usdt", "ethusdt"),
+        ],
+    )
+    def test_canonical_symbols_map_to_market_symbols(self, symbol, market):
+        response = _bitstamp_response({"last": "101.5"})
+        with patch("app.providers.crypto_market_data.httpx.get", return_value=response) as get:
+            assert BitstampProvider().get_current_price(symbol) == 101.5
+        assert get.call_args.args[0] == f"https://www.bitstamp.net/api/v2/ticker/{market}/"
+
+    @pytest.mark.parametrize("symbol", ["", "-USD", "BTC-US D", "../BTC-USD"])
+    def test_unsafe_symbols_are_rejected_before_transport(self, symbol):
+        with patch("app.providers.crypto_market_data.httpx.get") as get:
+            with pytest.raises(ProviderResponseError, match="unsupported Bitstamp market symbol"):
+                BitstampProvider().get_current_price(symbol)
+        get.assert_not_called()
+
+    def test_history_pages_bucket_aligned_1000_candle_windows(self):
+        provider = BitstampProvider()
+        start = datetime(2024, 1, 1, tzinfo=UTC)
+        end = start + timedelta(minutes=1001)
+        second_ts = start + timedelta(minutes=1000)
+        responses = [
+            _bitstamp_response(
+                {"data": {"pair": "BTC/USD", "ohlc": [_bitstamp_candle(start, "1.75")]}}
+            ),
+            _bitstamp_response(
+                {"data": {"pair": "BTC/USD", "ohlc": [_bitstamp_candle(second_ts, "2.75")]}}
+            ),
+        ]
+        with patch("app.providers.crypto_market_data.httpx.get", side_effect=responses) as get:
+            bars = provider.fetch_ohlcv("BTC-USD", Timeframe.M1, start, end, adjusted=False)
+
+        assert get.call_count == 2
+        first_call, second_call = get.call_args_list
+        assert first_call.args[0] == "https://www.bitstamp.net/api/v2/ohlc/btcusd/"
+        assert first_call.kwargs["params"] == {
+            "step": 60,
+            "limit": 1000,
+            "start": int(start.timestamp()),
+        }
+        assert second_call.kwargs["params"] == {
+            "step": 60,
+            "limit": 1,
+            "start": int(second_ts.timestamp()),
+        }
+        assert all("end" not in call.kwargs["params"] for call in get.call_args_list)
+        assert [bar.ts for bar in bars] == [start, second_ts]
+        assert [bar.close for bar in bars] == [1.75, 2.75]
+        assert all(bar.is_adjusted is False for bar in bars)
+        assert all(bar.adjustment_basis == "raw" for bar in bars)
+        assert all(bar.adjustment_version == "provider-native" for bar in bars)
+        assert bars[0].provenance == {
+            "provider": "bitstamp",
+            "endpoint": "/api/v2/ohlc/btcusd/",
+            "provider_symbol": "btcusd",
+            "provider_payload": _bitstamp_candle(start, "1.75"),
+        }
+        assert estimate_bitstamp_ohlcv_request_count(Timeframe.M1, start, end) == get.call_count
+        assert estimate_bitstamp_latest_ohlcv_request_count(Timeframe.M1, 1001) == 2
+        assert estimate_bitstamp_latest_ohlcv_request_count(Timeframe.M1, 1000) == 1
+        assert estimate_bitstamp_latest_ohlcv_request_count(Timeframe.M1, 0) == 0
+
+    def test_unaligned_start_pages_from_its_bucket_and_filters_earlier_candles(self):
+        provider = BitstampProvider()
+        bucket = datetime(2024, 1, 1, tzinfo=UTC)
+        start = bucket + timedelta(minutes=30)
+        # 1000 days from an unaligned start spill 30 minutes past the aligned
+        # 1000-candle window, so a second single-candle request is needed.
+        end = start + timedelta(days=1000)
+        rows = [_bitstamp_candle(bucket + timedelta(days=index)) for index in range(1000)]
+        responses = [
+            _bitstamp_response({"data": {"pair": "BTC/USD", "ohlc": rows}}),
+            _bitstamp_response({"data": {"pair": "BTC/USD", "ohlc": []}}),
+        ]
+        with patch("app.providers.crypto_market_data.httpx.get", side_effect=responses) as get:
+            bars = provider.fetch_ohlcv("BTC-USD", Timeframe.D1, start, end, adjusted=False)
+
+        # The bucket containing ``start`` precedes it and is excluded; the
+        # aligned 1000-day window plus the trailing partial day need two calls.
+        assert get.call_count == 2
+        assert get.call_args_list[0].kwargs["params"]["start"] == int(bucket.timestamp())
+        assert get.call_args_list[1].kwargs["params"] == {
+            "step": 86400,
+            "limit": 1,
+            "start": int((bucket + timedelta(days=1000)).timestamp()),
+        }
+        assert len(bars) == 999
+        assert bars[0].ts == bucket + timedelta(days=1)
+        assert estimate_bitstamp_ohlcv_request_count(Timeframe.D1, start, end) == 2
+        assert estimate_bitstamp_ohlcv_request_count(Timeframe.D1, end, start) == 0
+
+    def test_listing_gap_windows_return_no_bars(self):
+        start = datetime(2010, 1, 1, tzinfo=UTC)
+        response = _bitstamp_response({"data": {"pair": "BTC/USD", "ohlc": []}})
+        with patch("app.providers.crypto_market_data.httpx.get", return_value=response) as get:
+            bars = BitstampProvider().fetch_ohlcv(
+                "BTC-USD", Timeframe.D1, start, start + timedelta(days=30), adjusted=False
+            )
+        assert bars == []
+        get.assert_called_once()
+
+    def test_latest_window_requests_limit_buckets_ending_with_current_candle(self, monkeypatch):
+        provider = BitstampProvider()
+        rows = [
+            _bitstamp_candle(datetime(2024, 1, 1, tzinfo=UTC) + timedelta(days=index))
+            for index in range(3)
+        ]
+        response = _bitstamp_response({"data": {"pair": "BTC/USD", "ohlc": rows}})
+        window_start = datetime(2024, 1, 1, tzinfo=UTC)
+        monkeypatch.setattr(
+            provider, "latest_window_start", lambda _timeframe, _limit: window_start
+        )
+        with patch("app.providers.crypto_market_data.httpx.get", return_value=response) as get:
+            bars = provider.fetch_latest_ohlcv("BTC-USD", Timeframe.D1, 2, adjusted=False)
+
+        get.assert_called_once()
+        assert get.call_args.kwargs["params"] == {
+            "step": 86400,
+            "limit": 2,
+            "start": int(window_start.timestamp()),
+        }
+        assert [bar.ts for bar in bars] == [
+            datetime(2024, 1, 1, tzinfo=UTC),
+            datetime(2024, 1, 2, tzinfo=UTC),
+        ]
+        assert provider.fetch_latest_ohlcv("BTC-USD", Timeframe.D1, 0) == []
+
+    def test_latest_window_start_is_bucket_aligned(self):
+        start = BitstampProvider().latest_window_start(Timeframe.H1, 3)
+        now = datetime.now(UTC)
+        assert start.minute == 0 and start.second == 0 and start.microsecond == 0
+        assert timedelta(hours=2) <= now - start < timedelta(hours=3)
+
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            [],
+            {"data": {}},
+            {"data": {"ohlc": {}}},
+            {"data": {"ohlc": [{"timestamp": "1704067200", "open": "1"}]}},
+            {"data": {"ohlc": ["invalid"]}},
+            {
+                "data": {
+                    "ohlc": [{**_bitstamp_candle(datetime(2024, 1, 1, tzinfo=UTC)), "high": "nan"}]
+                }
+            },
+            {
+                "data": {
+                    "ohlc": [
+                        {**_bitstamp_candle(datetime(2024, 1, 1, tzinfo=UTC)), "timestamp": "1e300"}
+                    ]
+                }
+            },
+        ],
+    )
+    def test_malformed_candle_payloads_are_typed(self, payload):
+        start = datetime(2024, 1, 1, tzinfo=UTC)
+        with patch(
+            "app.providers.crypto_market_data.httpx.get",
+            return_value=_bitstamp_response(payload),
+        ):
+            with pytest.raises(ProviderResponseError) as exc_info:
+                BitstampProvider().fetch_ohlcv(
+                    "BTC-USD", Timeframe.D1, start, start + timedelta(days=1), adjusted=False
+                )
+        assert exc_info.value.provider_name == "bitstamp"
+
+    def test_validation_error_and_unknown_market_are_typed(self):
+        validation = _bitstamp_response(
+            {
+                "code": "validation-error",
+                "errors": [{"code": "validation-error", "message": "Not a valid choice."}],
+            },
+            status=400,
+        )
+        with patch("app.providers.crypto_market_data.httpx.get", return_value=validation):
+            with pytest.raises(ProviderResponseError) as exc_info:
+                BitstampProvider().get_current_price("BTC-USD")
+        assert exc_info.value.status_code == 400
+
+        missing = httpx.Response(
+            404, request=httpx.Request("GET", "https://www.bitstamp.net/api/v2/ticker/nousd/")
+        )
+        with patch("app.providers.crypto_market_data.httpx.get", return_value=missing):
+            with pytest.raises(ProviderResponseError) as exc_info:
+                BitstampProvider().get_current_price("NO-USD")
+        assert exc_info.value.status_code == 404
+        assert exc_info.value.provider_name == "bitstamp"
+
+    def test_status_error_envelope_with_http_200_is_typed(self):
+        response = _bitstamp_response({"status": "error", "reason": "Invalid market"})
+        with patch("app.providers.crypto_market_data.httpx.get", return_value=response):
+            with pytest.raises(ProviderResponseError):
+                BitstampProvider().get_current_price("BTC-USD")
+
+    def test_http_capacity_failure_is_typed(self):
+        response = httpx.Response(
+            429,
+            json={"status": "error"},
+            headers={"Retry-After": "2"},
+            request=httpx.Request("GET", "https://www.bitstamp.net/api/v2/ticker/btcusd/"),
+        )
+        with patch("app.providers.crypto_market_data.httpx.get", return_value=response):
+            with pytest.raises(ProviderRateLimitError) as exc_info:
+                BitstampProvider().get_current_price("BTC-USD")
+        assert exc_info.value.provider_name == "bitstamp"
+        assert exc_info.value.status_code == 429
+        assert exc_info.value.retry_at is not None
+
+    def test_transport_failure_is_typed(self):
+        failure = httpx.ConnectError(
+            "connection failed",
+            request=httpx.Request("GET", "https://www.bitstamp.net/api/v2/ticker/btcusd/"),
+        )
+        with patch("app.providers.crypto_market_data.httpx.get", side_effect=failure):
+            with pytest.raises(ProviderResponseError) as exc_info:
+                BitstampProvider().get_current_price("BTC-USD")
+        assert exc_info.value.provider_name == "bitstamp"
+
+    @pytest.mark.parametrize("payload", [{"last": "not-a-number"}, {"last": ""}, {}, ["1"]])
+    def test_invalid_ticker_shapes_are_typed(self, payload):
+        with patch(
+            "app.providers.crypto_market_data.httpx.get",
+            return_value=_bitstamp_response(payload),
+        ):
+            with pytest.raises(ProviderResponseError):
+                BitstampProvider().get_current_price("BTC-USD")
+
+    def test_discovery_keeps_enabled_usd_crypto_spot_markets_only(self):
+        markets = [
+            _bitstamp_market("EUR"),
+            _bitstamp_market("BTC"),
+            _bitstamp_market("BTC", "EUR"),
+            _bitstamp_market("ETH"),
+            _bitstamp_market("USDC"),
+            _bitstamp_market("BTC", market_type="PERPETUAL", symbol="btcusd-perp"),
+            _bitstamp_market("OLD", trading="Disabled"),
+            _bitstamp_market("GBP"),
+        ]
+        currencies = [
+            {"currency": "BTC", "type": "crypto"},
+            {"currency": "ETH", "type": "crypto"},
+            {"currency": "USDC", "type": "crypto"},
+            {"currency": "EUR", "type": "fiat"},
+            {"currency": "GBP", "type": "fiat"},
+            {"currency": "USD", "type": "fiat"},
+        ]
+        responses = [_bitstamp_response(markets), _bitstamp_response(currencies)]
+        with patch("app.providers.crypto_market_data.httpx.get", side_effect=responses) as get:
+            page = BitstampProvider().discover_universe_page("CRYPTOCURRENCY", 0)
+
+        assert [call.args[0] for call in get.call_args_list] == [
+            "https://www.bitstamp.net/api/v2/markets/",
+            "https://www.bitstamp.net/api/v2/currencies/",
+        ]
+        assert page["total"] == 3
+        assert page["next_offset"] is None
+        assert page["complete"] is True
+        assert [quote["symbol"] for quote in page["quotes"]] == ["BTC-USD", "ETH-USD", "USDC-USD"]
+        assert page["quotes"][0] == {
+            "symbol": "BTC-USD",
+            "longName": "BTC/USD",
+            "exchange": "Bitstamp",
+            "quoteType": "CRYPTOCURRENCY",
+            "status": "active",
+            "source_record": markets[1],
+        }
+
+    def test_discovery_pages_500_quotes(self):
+        markets = [_bitstamp_market(f"COIN{index}") for index in range(501)]
+        currencies = [{"currency": f"COIN{index}", "type": "crypto"} for index in range(501)]
+        with patch(
+            "app.providers.crypto_market_data.httpx.get",
+            side_effect=[
+                _bitstamp_response(markets),
+                _bitstamp_response(currencies),
+                _bitstamp_response(markets),
+                _bitstamp_response(currencies),
+            ],
+        ):
+            provider = BitstampProvider()
+            first = provider.discover_universe_page("CRYPTOCURRENCY", 0)
+            last = provider.discover_universe_page("CRYPTOCURRENCY", 500)
+
+        assert first["total"] == 501
+        assert first["next_offset"] == 500
+        assert first["complete"] is False
+        assert len(first["quotes"]) == 500
+        assert [quote["symbol"] for quote in last["quotes"]] == ["COIN500-USD"]
+        assert last["next_offset"] is None
+        assert last["complete"] is True
+
+    def test_discovery_skips_other_quote_types_without_transport(self):
+        with patch("app.providers.crypto_market_data.httpx.get") as get:
+            assert BitstampProvider().discover_universe_page("EQUITY", 0) == {
+                "total": 0,
+                "quotes": [],
+            }
+        get.assert_not_called()
+        assert BitstampProvider().supported_discovery_types() == ["CRYPTOCURRENCY"]
+
+    @pytest.mark.parametrize(
+        ("markets", "currencies", "match"),
+        [
+            ({"markets": []}, [], "invalid markets array"),
+            ([_bitstamp_market("BTC"), "invalid"], [], "non-object market row"),
+            ([_bitstamp_market("BTC")], {"currency": "BTC"}, "invalid currencies array"),
+            (
+                [{**_bitstamp_market("BTC"), "base_currency": ""}],
+                [{"currency": "BTC", "type": "crypto"}],
+                "incomplete market identity",
+            ),
+            (
+                [_bitstamp_market("BTC", symbol="btc/usd")],
+                [{"currency": "BTC", "type": "crypto"}],
+                "incomplete market identity",
+            ),
+            (
+                [_bitstamp_market("NEW")],
+                [{"currency": "BTC", "type": "crypto"}],
+                "unclassified market base currency",
+            ),
+        ],
+    )
+    def test_discovery_malformed_directories_are_typed(self, markets, currencies, match):
+        with patch(
+            "app.providers.crypto_market_data.httpx.get",
+            side_effect=[_bitstamp_response(markets), _bitstamp_response(currencies)],
+        ):
+            with pytest.raises(ProviderResponseError, match=match):
+                BitstampProvider().discover_universe_page("CRYPTOCURRENCY", 0)
 
 
 def test_twelve_data_history_pages_5000_point_ranges():

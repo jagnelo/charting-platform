@@ -2065,6 +2065,7 @@ def test_account_and_ip_scoped_provider_contracts_declare_cross_capability_group
         "coingecko",
         "binance",
         "coinbase",
+        "bitstamp",
         "robinhood_tokens",
         "bybit_xstocks",
         "gate_tradfi",
@@ -3039,6 +3040,11 @@ def test_single_request_provider_profiles_are_explicit(monkeypatch):
             "discover_universe_page": 1,
             "reconcile_universe_page": 1,
         },
+        "bitstamp": {
+            "get_current_price": 1,
+            "discover_universe_page": 2,
+            "reconcile_universe_page": 2,
+        },
         "marketstack": {"get_current_price": 1},
         "tradier": {
             "fetch_ohlcv": 1,
@@ -3792,6 +3798,31 @@ def test_kraken_public_ip_quota_tracks_application_usage_only():
     assert dimension["limit_basis"] == "provider_recommended_safe_frequency"
     assert dimension["baseline_mode"] == "local_zero"
     assert dimension["application_usage_only"] is True
+
+
+def test_bitstamp_public_ip_quota_is_a_conservative_fraction_of_published_limits():
+    seed = settings.PROVIDER_RATE_LIMIT_SEEDS["bitstamp"]
+    contract = seed["quota_contract"]
+    dimensions = {dimension["name"]: dimension for dimension in contract["dimensions"]}
+
+    assert seed["quota_scope"] == "ip"
+    assert contract["reset"] == "rolling"
+    assert set(dimensions) == {"public_requests_per_second", "public_requests_per_ten_minutes"}
+    per_second = dimensions["public_requests_per_second"]
+    per_ten_minutes = dimensions["public_requests_per_ten_minutes"]
+    # Published: 400 requests/second and 10,000 requests per 10 minutes.
+    assert (per_second["limit"], per_second["window_seconds"]) == (10, 1)
+    assert (per_ten_minutes["limit"], per_ten_minutes["window_seconds"]) == (5000, 600)
+    assert per_second["limit"] < 400
+    assert per_ten_minutes["limit"] < 10_000
+    for dimension in dimensions.values():
+        assert dimension["source"] == "https://www.bitstamp.net/api/"
+        assert dimension["scope"] == "ip"
+        assert dimension["quota_group"] == "ip"
+        assert dimension["unit"] == "requests"
+        assert dimension["baseline_mode"] == "local_zero"
+        assert dimension["application_usage_only"] is True
+    assert "tokens_per_minute" not in seed
 
 
 def test_robinhood_public_ip_quota_tracks_application_usage_only():

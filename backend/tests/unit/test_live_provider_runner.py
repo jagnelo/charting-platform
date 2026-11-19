@@ -1474,6 +1474,7 @@ def test_bounded_manifest_cost_overrides_cover_response_paged_cases():
             "fetch_instrument_events": 1,
         },
         "binance": {"fetch_latest_ohlcv": 2, "fetch_ohlcv": 2},
+        "bitstamp": {"fetch_ohlcv": 1, "fetch_latest_ohlcv": 1},
         "coinbase": {"fetch_latest_ohlcv": 1, "fetch_ohlcv": 1},
         "coingecko": {
             "discover_universe_page": 1,
@@ -1577,6 +1578,7 @@ def test_unexercised_registered_surfaces_have_explicit_live_dispositions():
         "binance": set(),
         "coinbase": set(),
         "kraken": set(),
+        "bitstamp": set(),
         "ondo_global_markets": {"get_tokenized_asset"},
     }
 

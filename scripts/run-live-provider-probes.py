@@ -173,6 +173,9 @@ LIVE_PROVIDER_CASES = {
     "frankfurter": (
         ("test_market_data_providers_live.py", "test_frankfurter_keyless_fx_reference_rates"),
     ),
+    "bitstamp": (
+        ("test_market_data_providers_live.py", "test_bitstamp_keyless_crypto_history"),
+    ),
     "alpaca": (
         ("test_market_data_providers_live.py", "test_alpaca_credentialed_history"),
         (
@@ -557,6 +560,14 @@ LIVE_CASE_OPERATIONS = {
             "discover_universe_page",
         },
     },
+    "bitstamp": {
+        "test_bitstamp_keyless_crypto_history": {
+            "fetch_ohlcv",
+            "fetch_latest_ohlcv",
+            "get_current_price",
+            "discover_universe_page",
+        },
+    },
     "alpaca": {
         "test_alpaca_credentialed_history": {"fetch_ohlcv"},
         "test_alpaca_credentialed_intraday_history": {"fetch_ohlcv"},
@@ -800,6 +811,12 @@ LIVE_REQUIRED_OPERATIONS = {
         "get_current_price",
         "discover_universe_page",
     },
+    "bitstamp": {
+        "fetch_ohlcv",
+        "fetch_latest_ohlcv",
+        "get_current_price",
+        "discover_universe_page",
+    },
     "alpaca": {
         "fetch_ohlcv",
         "get_current_price",
@@ -1018,6 +1035,12 @@ LIVE_OPERATION_COST_OVERRIDES = {
     "frankfurter": {
         # The bounded case reads a two-week window and the latest-bar wrapper;
         # both fit one ten-year single-pair /v2/rates request.
+        "fetch_ohlcv": 1,
+        "fetch_latest_ohlcv": 1,
+    },
+    "bitstamp": {
+        # The bounded manifest requests one latest daily candle and one
+        # aligned seven-day daily range; each fits one 1000-candle page.
         "fetch_ohlcv": 1,
         "fetch_latest_ohlcv": 1,
     },
@@ -1843,6 +1866,7 @@ LIVE_PREFLIGHT_ROUTING_CONTROLS = {
     "coinbase": ("coinbase market-data use",),
     "kraken": ("kraken market-data use",),
     "kraken_xstocks": ("kraken market-data use",),
+    "bitstamp": ("bitstamp market-data use",),
     "coingecko": ("coingecko market-data use",),
     "massive": ("massive market-data use",),
     "edgar": ("edgar quota",),
@@ -2363,6 +2387,7 @@ def routing_safety_preflight() -> dict[str, str]:
     from app.config import (
         FMP_PUBLIC_QUOTA_EVIDENCE,
         FRED_MAPPED_SERIES_IDS,
+        bitstamp_market_data_use_authority_missing,
         bybit_xstocks_market_data_use_authority_missing,
         coinbase_market_data_use_authority_missing,
         coingecko_market_data_use_authority_missing,
@@ -2492,6 +2517,21 @@ def routing_safety_preflight() -> dict[str, str]:
         ),
         KRAKEN_MARKET_DATA_USE_EXPIRES_AT=_env_datetime(
             "KRAKEN_MARKET_DATA_USE_EXPIRES_AT"
+        ),
+        BITSTAMP_MARKET_DATA_USE_AUTHORIZED=_env_bool(
+            "BITSTAMP_MARKET_DATA_USE_AUTHORIZED"
+        ),
+        BITSTAMP_MARKET_DATA_USE_AUTHORITY_REFERENCE=os.getenv(
+            "BITSTAMP_MARKET_DATA_USE_AUTHORITY_REFERENCE", ""
+        ),
+        BITSTAMP_MARKET_DATA_USE_AUTHORITY_SCOPE=os.getenv(
+            "BITSTAMP_MARKET_DATA_USE_AUTHORITY_SCOPE", ""
+        ),
+        BITSTAMP_MARKET_DATA_USE_REVIEWED_AT=_env_datetime(
+            "BITSTAMP_MARKET_DATA_USE_REVIEWED_AT"
+        ),
+        BITSTAMP_MARKET_DATA_USE_EXPIRES_AT=_env_datetime(
+            "BITSTAMP_MARKET_DATA_USE_EXPIRES_AT"
         ),
         COINGECKO_MARKET_DATA_USE_AUTHORIZED=os.getenv(
             "COINGECKO_MARKET_DATA_USE_AUTHORIZED", ""
@@ -2896,6 +2936,13 @@ def routing_safety_preflight() -> dict[str, str]:
         if not kraken_missing
         else "non-routable: Kraken's current API terms require prior written permission for third-party applications; the required single-user automated/private-archive scope is missing or invalid: "
         + ", ".join(kraken_missing)
+    )
+    bitstamp_missing = bitstamp_market_data_use_authority_missing(source=live_settings)
+    result["bitstamp market-data use"] = (
+        "routable"
+        if not bitstamp_missing
+        else "non-routable: Bitstamp requires a data license for commercial use; the owner's single-user non-commercial scope record is missing or invalid: "
+        + ", ".join(bitstamp_missing)
     )
     coingecko_missing = coingecko_market_data_use_authority_missing(
         source=live_settings
