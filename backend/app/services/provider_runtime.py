@@ -8,6 +8,7 @@ import logging
 import math
 import random
 import time
+import weakref
 from collections.abc import Callable
 from contextlib import contextmanager
 from copy import deepcopy
@@ -19,10 +20,11 @@ from hashlib import sha256
 from typing import Any, TypeVar
 
 import httpx
-from sqlalchemy import and_, or_, select
+from sqlalchemy import and_, event, or_, select
 from sqlalchemy.dialects.postgresql import insert as postgresql_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
+from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import set_committed_value
 
 from app.config import (
@@ -3394,11 +3396,84 @@ def _capacity_response_headers(headers: dict[str, str] | None) -> dict[str, str]
     }
 
 
+# Process-local memo of completed full seed passes. The per-pair upsert loop
+# is idempotent for unchanged inputs but costs ~1,400 SQL statements, so it is
+# skipped for ``_SEED_MEMO_TTL_SECONDS`` after a pass whose transaction
+# committed. Entries are keyed per engine and invalidated by any change of the
+# code/settings-derived seed inputs (fingerprint). State-dependent sweeps
+# (stale-capability disable, ETF health rows) are cheap and run on every call.
+_SEED_MEMO_TTL_SECONDS = 300.0
+_SEED_MEMO_PENDING_KEY = "provider_runtime_seed_pending"
+_seed_memo_clock: Callable[[], float] = time.monotonic
+_seed_memo: weakref.WeakKeyDictionary[Any, tuple[str, float]] = weakref.WeakKeyDictionary()
+
+
+def reset_provider_runtime_seed_memo() -> None:
+    """Forget every completed seed so the next call runs the full pass."""
+    _seed_memo.clear()
+
+
+def _seed_memo_engine(db: AsyncSession) -> Any | None:
+    if not isinstance(getattr(db, "sync_session", None), Session):
+        return None
+    try:
+        bind = db.sync_session.get_bind()
+    except Exception:  # noqa: BLE001 - unbound sessions simply never memoize
+        return None
+    return getattr(bind, "engine", bind)
+
+
+def _seed_fingerprint(
+    ordered: dict[ProviderCapability, list[str]],
+    capability_providers: dict[ProviderCapability, list[str]],
+) -> str:
+    pairs: dict[str, Any] = {}
+    for capability, providers in capability_providers.items():
+        for provider_name in providers:
+            pairs[f"{provider_name}/{capability.value}"] = [
+                _entitlement_seed(provider_name, capability),
+                provider_rate_limit_seed(provider_name),
+                settings.PROVIDER_FRESHNESS_SEEDS.get(capability.value),
+            ]
+    payload = {
+        "providers": list(supported_provider_names()),
+        "order": {cap.value: names for cap, names in ordered.items()},
+        "capabilities": {cap.value: names for cap, names in capability_providers.items()},
+        "pairs": pairs,
+    }
+    return sha256(json.dumps(payload, sort_keys=True, default=repr).encode()).hexdigest()
+
+
+def _arm_seed_memo(db: AsyncSession, engine: Any, fingerprint: str) -> None:
+    """Mark the memo valid only once the seeding transaction commits."""
+    sync_session = db.sync_session
+    started = _seed_memo_clock()
+    sync_session.info[_SEED_MEMO_PENDING_KEY] = (engine, fingerprint, started)
+    if sync_session.info.get("provider_runtime_seed_hooked"):
+        return
+    sync_session.info["provider_runtime_seed_hooked"] = True
+
+    def _after_commit(session: Any) -> None:
+        # SQLAlchemy also fires after_commit when a SAVEPOINT is released; the
+        # enclosing transaction can still roll the seed back, so only the
+        # root commit may arm the memo.
+        if session.in_nested_transaction():
+            return
+        pending = session.info.pop(_SEED_MEMO_PENDING_KEY, None)
+        if pending is not None:
+            pending_engine, pending_fingerprint, pending_started = pending
+            _seed_memo[pending_engine] = (pending_fingerprint, pending_started)
+
+    def _discard(session: Any, *_args: Any) -> None:
+        # Fires for full and savepoint rollbacks: the seed may be undone.
+        session.info.pop(_SEED_MEMO_PENDING_KEY, None)
+
+    event.listen(sync_session, "after_commit", _after_commit)
+    event.listen(sync_session, "after_soft_rollback", _discard)
+
+
 async def seed_provider_runtime(db: AsyncSession) -> None:
     ordered = _capability_seed_order()
-    for provider_name in supported_provider_names():
-        await ensure_data_source(db, provider_name)
-
     capability_providers: dict[ProviderCapability, list[str]] = {
         capability: [] for capability in ProviderCapability
     }
@@ -3407,6 +3482,18 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
         for capability in ProviderCapability:
             if capability.value in provider_capabilities:
                 capability_providers[capability].append(provider_name)
+
+    engine = _seed_memo_engine(db)
+    fingerprint = _seed_fingerprint(ordered, capability_providers)
+    memo = _seed_memo.get(engine) if engine is not None else None
+    full_pass = not (
+        memo is not None
+        and memo[0] == fingerprint
+        and 0 <= _seed_memo_clock() - memo[1] < _SEED_MEMO_TTL_SECONDS
+    )
+    if full_pass:
+        for provider_name in supported_provider_names():
+            await ensure_data_source(db, provider_name)
 
     # Provider adapters can lose a capability between deployments while the
     # policy row remains in the database. Disable those stale rows during the
@@ -3429,7 +3516,7 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
         ):
             policy.is_enabled = False
 
-    for capability, supported_providers in capability_providers.items():
+    for capability, supported_providers in capability_providers.items() if full_pass else ():
         preferred_order = ordered.get(capability, [])
         providers = preferred_order + [
             provider_name
@@ -3737,6 +3824,8 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
         )
 
     await db.flush()
+    if full_pass and engine is not None:
+        _arm_seed_memo(db, engine, fingerprint)
 
 
 async def resolve_provider_chain(

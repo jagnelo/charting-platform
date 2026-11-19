@@ -164,6 +164,10 @@ class AsyncSessionAdapter:
     def __init__(self, session: Session):
         self._session = session
 
+    @property
+    def sync_session(self) -> Session:
+        return self._session
+
     async def execute(self, *args, **kwargs):
         return self._session.execute(*args, **kwargs)
 
