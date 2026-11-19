@@ -253,3 +253,58 @@ def test_openfigi_malformed_mapping_shapes_are_typed(monkeypatch, payload):
     with pytest.raises(ProviderResponseError) as exc_info:
         OpenFigiProvider().fetch_stable_identifiers("AAPL")
     assert exc_info.value.provider_name == "openfigi"
+
+
+def test_map_us_tickers_batches_jobs_and_keeps_per_job_outcomes(monkeypatch):
+    monkeypatch.setattr("app.providers.openfigi.httpx.Client", FakeClient)
+    FakeClient.next_payload = [
+        {
+            "data": [
+                {
+                    "ticker": "CSX",
+                    "name": "CSX CORP",
+                    "figi": "BBG000BGJRC8",
+                    "compositeFIGI": "BBG000BGJRC8",
+                    "shareClassFIGI": "BBG001S5Q7Q3",
+                    "exchCode": "US",
+                    "securityType": "Common Stock",
+                    "marketSector": "Equity",
+                }
+            ]
+        },
+        {"warning": "No identifier found."},
+        {
+            "data": [
+                {"ticker": "DUP", "exchCode": "US", "compositeFIGI": "BBG000000001"},
+                {"ticker": "DUP", "exchCode": "US", "compositeFIGI": "BBG000000002"},
+            ]
+        },
+        {"error": "Invalid idValue format"},
+        # A row for another ticker or venue is never accepted as the mapping.
+        {"data": [{"ticker": "OTHER", "exchCode": "US", "compositeFIGI": "BBG000000003"}]},
+    ]
+
+    mappings = OpenFigiProvider().map_us_tickers(["csx", "NONE", "DUP", "BAD", "WRONG"])
+
+    assert FakeClient.captured_json == [
+        {"idType": "TICKER", "idValue": ticker, "exchCode": "US", "marketSecDes": "Equity"}
+        for ticker in ("CSX", "NONE", "DUP", "BAD", "WRONG")
+    ]
+    assert [item.status for item in mappings] == [
+        "matched",
+        "no_match",
+        "ambiguous",
+        "error",
+        "no_match",
+    ]
+    assert mappings[0].composite_figi == "BBG000BGJRC8"
+    assert mappings[0].name == "CSX CORP"
+    assert mappings[0].share_class_figi == "BBG001S5Q7Q3"
+
+
+def test_map_us_tickers_rejects_a_response_with_a_different_job_count(monkeypatch):
+    monkeypatch.setattr("app.providers.openfigi.httpx.Client", FakeClient)
+    FakeClient.next_payload = [{"warning": "No identifier found."}]
+
+    with pytest.raises(ProviderResponseError):
+        OpenFigiProvider().map_us_tickers(["AAA", "BBB"])

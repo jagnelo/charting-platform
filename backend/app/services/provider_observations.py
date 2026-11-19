@@ -34,13 +34,18 @@ async def store_identifier_snapshot(
     identifiers: list[IdentifierRecord],
     observed_at: datetime | None = None,
     fetched_at: datetime | None = None,
+    outcome: dict[str, Any] | None = None,
 ) -> InstrumentIdentifierSnapshot:
     observed_at = observed_at or _now_utc()
     fetched_at = fetched_at or observed_at
-    payload = {
+    payload: dict[str, Any] = {
         "provider_symbol": provider_symbol,
         "identifiers": [],
     }
+    if outcome is not None:
+        # Batched resolvers also retain negative/conflict outcomes so the
+        # same unmappable listing is not re-queried on every pass.
+        payload["outcome"] = dict(outcome)
     for item in identifiers:
         serialized = {
             "identifier_type": item.identifier_type,

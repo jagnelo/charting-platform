@@ -7,6 +7,7 @@ symbol changes and delistings auditable.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Any
@@ -14,6 +15,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.asset_class import AssetClass, InstrumentType
 from app.models.instrument import Instrument
 from app.models.instrument_identity import InstrumentIdentifier, InstrumentIdentifierType
 from app.models.market_data_foundation import (
@@ -21,6 +23,192 @@ from app.models.market_data_foundation import (
     InstrumentIdentityQuarantine,
     InstrumentIdentityQuarantineObservation,
 )
+
+# A spot crypto pair or an FX pair is self-identifying: its asset class plus
+# the canonical BASE-QUOTE pair *is* the instrument. There is no issuer,
+# share class, or corporate action that a FIGI/ISIN would disambiguate, so
+# requiring an equity-style security identifier only blocks these instruments
+# forever. Only these asset classes may use the pair key below.
+_SELF_IDENTIFYING_PAIR_PREFIXES = {
+    "cryptocurrency": "crypto-pair",
+    "currency": "fx-pair",
+}
+_CRYPTO_PAIR_RE = re.compile(r"^([A-Z0-9]{1,20})[-/]([A-Z0-9]{2,10})$")
+_FX_PAIR_RE = re.compile(r"^([A-Z]{3})[-/]?([A-Z]{3})(?:=X)?$")
+_NON_EXTERNAL_PRIMARY_TYPES = {
+    InstrumentIdentifierType.INTERNAL.value,
+    InstrumentIdentifierType.CIK.value,
+}
+
+
+def _asset_class_token(value: str | None) -> str:
+    return str(value or "").strip().lower().replace("-", "_").replace(" ", "_")
+
+
+def self_identifying_pair_key(asset_class: str | None, symbol: str | None) -> str | None:
+    """Return the canonical pair domain key for a self-identifying instrument.
+
+    Returns ``None`` for every asset class other than cryptocurrency/currency
+    and for any symbol that is not an unambiguous BASE-QUOTE pair, so equity
+    identity rules are never relaxed through this path.
+    """
+
+    prefix = _SELF_IDENTIFYING_PAIR_PREFIXES.get(_asset_class_token(asset_class))
+    if prefix is None:
+        return None
+    text = str(symbol or "").strip().upper()
+    pattern = _FX_PAIR_RE if prefix == "fx-pair" else _CRYPTO_PAIR_RE
+    match = pattern.fullmatch(text)
+    if match is None:
+        return None
+    base, quote = match.group(1), match.group(2)
+    if base == quote or not any(character.isalpha() for character in base):
+        return None
+    return f"{prefix}:{base}-{quote}"
+
+
+def has_stable_external_identity(instrument: Instrument) -> bool:
+    """Resolved identity backed by a security-level external identifier."""
+
+    return bool(
+        instrument.identity_status == IdentityStatus.RESOLVED.value
+        and instrument.domain_key
+        and instrument.primary_identifier_type
+        and instrument.primary_identifier_type not in _NON_EXTERNAL_PRIMARY_TYPES
+        and instrument.primary_identifier_value
+    )
+
+
+def has_self_identifying_identity(instrument: Instrument, asset_class: str | None) -> bool:
+    """Resolved pair identity whose key still matches the current class/symbol."""
+
+    key = self_identifying_pair_key(asset_class, instrument.symbol)
+    return bool(
+        key
+        and not instrument.is_synthetic
+        and instrument.identity_status == IdentityStatus.RESOLVED.value
+        and instrument.domain_key == key
+    )
+
+
+async def instrument_asset_class_name(db: AsyncSession, instrument: Instrument) -> str | None:
+    if instrument.instrument_type_id is None:
+        return None
+    return (
+        await db.execute(
+            select(AssetClass.name)
+            .join(InstrumentType, InstrumentType.asset_class_id == AssetClass.id)
+            .where(InstrumentType.id == instrument.instrument_type_id)
+        )
+    ).scalar_one_or_none()
+
+
+async def instrument_identity_is_qualified(db: AsyncSession, instrument: Instrument) -> bool:
+    """Whether dependent data (history, profile) may proceed without an identity job.
+
+    Equities require a resolved, security-level external identifier (FIGI,
+    ISIN, CUSIP, SEDOL, LEI); a CIK or internal key never qualifies. A crypto or
+    FX spot pair qualifies through its resolved canonical pair key only.
+    """
+
+    if has_stable_external_identity(instrument):
+        return True
+    if instrument.identity_status != IdentityStatus.RESOLVED.value or not instrument.domain_key:
+        return False
+    return has_self_identifying_identity(
+        instrument, await instrument_asset_class_name(db, instrument)
+    )
+
+
+async def _apply_self_identifying_identity(
+    db: AsyncSession,
+    instrument: Instrument,
+    *,
+    provider_name: str,
+    provider_symbol: str | None,
+    exchange_mic: str | None,
+    candidate_payload: dict[str, Any] | None,
+    record_conflict: bool,
+) -> tuple[bool, str | None]:
+    """Return (applicable, domain_key) for a pair instrument."""
+
+    if instrument.is_synthetic:
+        return False, None
+    key = self_identifying_pair_key(
+        await instrument_asset_class_name(db, instrument), instrument.symbol
+    )
+    if key is None:
+        return False, None
+    if instrument.domain_key:
+        if instrument.domain_key != key:
+            # Never overwrite an existing stable key with a derived pair key.
+            return True, None
+        if instrument.identity_status in {
+            IdentityStatus.PROVISIONAL.value,
+            IdentityStatus.QUARANTINED.value,
+        }:
+            instrument.identity_status = IdentityStatus.RESOLVED.value
+        return True, key if instrument.identity_status == IdentityStatus.RESOLVED.value else None
+    if instrument.identity_status not in {
+        IdentityStatus.PROVISIONAL.value,
+        IdentityStatus.QUARANTINED.value,
+    }:
+        return True, None
+    owner = (
+        await db.execute(
+            select(Instrument.id).where(
+                Instrument.domain_key == key,
+                Instrument.id != instrument.id,
+            )
+        )
+    ).scalar_one_or_none()
+    if owner is not None:
+        # Two canonical rows claim the same pair: a real conflict for review.
+        if record_conflict:
+            instrument.identity_status = IdentityStatus.QUARANTINED.value
+            await _record_quarantine(
+                db,
+                instrument=instrument,
+                proposed_domain_key=key,
+                provider_name=provider_name,
+                provider_symbol=provider_symbol,
+                exchange_mic=exchange_mic,
+                reason=f"self-identifying pair key is already owned by instrument {owner}",
+                candidate_payload=candidate_payload,
+            )
+        return True, None
+    instrument.domain_key = key
+    instrument.identity_status = IdentityStatus.RESOLVED.value
+    return True, key
+
+
+async def apply_self_identifying_identity(
+    db: AsyncSession,
+    instrument: Instrument,
+    *,
+    provider_name: str = "self_identifying_pair",
+    provider_symbol: str | None = None,
+    exchange_mic: str | None = None,
+    candidate_payload: dict[str, Any] | None = None,
+    record_conflict: bool = True,
+) -> str | None:
+    """Resolve a crypto/FX spot pair from its canonical BASE-QUOTE symbol.
+
+    No-op (returns ``None``) for any other asset class. The pair key is never
+    reassigned from another instrument; that collision is quarantined.
+    """
+
+    _applicable, key = await _apply_self_identifying_identity(
+        db,
+        instrument,
+        provider_name=provider_name,
+        provider_symbol=provider_symbol,
+        exchange_mic=exchange_mic,
+        candidate_payload=candidate_payload,
+        record_conflict=record_conflict,
+    )
+    return key
+
 
 _DOMAIN_PREFIXES = {
     InstrumentIdentifierType.FIGI: "figi",
@@ -116,6 +304,17 @@ async def apply_domain_identity(
         values = {row.identifier_type: row.identifier_value for row in rows}
     domain_key = choose_domain_key(values)
     if domain_key is None:
+        applicable, pair_key = await _apply_self_identifying_identity(
+            db,
+            instrument,
+            provider_name=provider_name,
+            provider_symbol=provider_symbol,
+            exchange_mic=exchange_mic,
+            candidate_payload=candidate_payload,
+            record_conflict=True,
+        )
+        if applicable:
+            return pair_key
         instrument.identity_status = IdentityStatus.QUARANTINED.value
         await _record_quarantine(
             db,
@@ -154,6 +353,33 @@ async def apply_domain_identity(
     instrument.domain_key = domain_key
     instrument.identity_status = IdentityStatus.RESOLVED.value
     return domain_key
+
+
+async def quarantine_identity_candidate(
+    db: AsyncSession,
+    instrument: Instrument,
+    *,
+    proposed_domain_key: str | None,
+    provider_name: str,
+    provider_symbol: str | None,
+    exchange_mic: str | None,
+    reason: str,
+    candidate_payload: dict[str, Any] | None,
+) -> InstrumentIdentityQuarantine:
+    """Keep an unresolved instrument quarantined with an auditable reason."""
+
+    if instrument.identity_status != IdentityStatus.RESOLVED.value:
+        instrument.identity_status = IdentityStatus.QUARANTINED.value
+    return await _record_quarantine(
+        db,
+        instrument=instrument,
+        proposed_domain_key=proposed_domain_key,
+        provider_name=provider_name,
+        provider_symbol=provider_symbol,
+        exchange_mic=exchange_mic,
+        reason=reason,
+        candidate_payload=candidate_payload,
+    )
 
 
 async def _record_quarantine(

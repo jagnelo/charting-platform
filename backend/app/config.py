@@ -3175,6 +3175,16 @@ class Settings(BaseSettings):
     INSTRUMENT_IDENTIFIER_DELAY_SECONDS: float = 1.0
     INSTRUMENT_DAILY_METADATA_CAP: int = 750
     INSTRUMENT_DAILY_IDENTIFIER_CAP: int = 250
+    # Batched OpenFIGI US-composite identity for discovered listings. Each
+    # pass is bounded by wall time and request count; every mapping request
+    # is still reserved against the reviewed OpenFIGI quota contract.
+    INSTRUMENT_IDENTITY_BATCH_ENABLED: bool = True
+    INSTRUMENT_IDENTITY_BATCH_MAX_SECONDS: int = 240
+    INSTRUMENT_IDENTITY_BATCH_MAX_REQUESTS: int = 250
+    INSTRUMENT_IDENTITY_BATCH_RETRY_DAYS: int = 7
+    # A held identity child waits for its provider reset only when that reset
+    # is near; longer holds complete as a recoverable terminal outcome.
+    INSTRUMENT_IDENTITY_HELD_DEFER_MAX_SECONDS: int = 3600
     # Process-local instrument-sync guard only. This is not an external
     # provider entitlement and is never copied into ProviderPolicy defaults.
     PROVIDER_MAX_CONCURRENCY: int = 2

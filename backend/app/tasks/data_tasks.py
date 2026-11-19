@@ -2482,6 +2482,9 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                         record_identity_preparation_outcome,
                     )
                     from app.services.market_data import get_provider_profile_async
+                    from app.services.market_data_identity import (
+                        instrument_identity_is_qualified,
+                    )
 
                     parent_refs = list(preparation.get("parent_refs") or [])
                     selected_parent = None
@@ -2542,10 +2545,7 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                         can_refresh_profile = bool(
                             preparation.get("refresh_profile")
                             and selected is not None
-                            and selected.identity_status == "resolved"
-                            and selected.domain_key
-                            and selected.primary_identifier_type not in {None, "internal", "cik"}
-                            and selected.primary_identifier_value
+                            and await instrument_identity_is_qualified(db, selected)
                         )
                         profile_preflight_held = False
                         if can_refresh_profile:
@@ -2743,8 +2743,18 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                                 await db.commit()
                                 continue
                             else:
+                                # Pass the exact canonical row this child was
+                                # created for: discovery feeds can leave more
+                                # than one row with the same ticker, and a
+                                # symbol-only lookup must not pick (or fail
+                                # on) a sibling.
+                                child_instrument_id = int(instrument_id) if instrument_id else None
                                 response = await acquire_instrument(
-                                    InstrumentAcquireRequest(symbol=symbol, request_id=request_id),
+                                    InstrumentAcquireRequest(
+                                        symbol=symbol,
+                                        request_id=request_id,
+                                        instrument_id=child_instrument_id,
+                                    ),
                                     db=db,
                                     current_user=owner,
                                 )
@@ -2758,13 +2768,19 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                                         identity_job=job,
                                         instrument_id=response.instrument.instrument_id,
                                     )
-                                retry_at = next(
+                                # Resume at the earliest admitted provider
+                                # reset, not whichever held source happened to
+                                # be listed first (a 30-day pool must not hide
+                                # a per-minute one).
+                                retry_at = min(
                                     (
                                         item.retry_at
+                                        if item.retry_at.tzinfo is not None
+                                        else item.retry_at.replace(tzinfo=UTC)
                                         for item in response.source_outcomes
                                         if item.retry_at
                                     ),
-                                    None,
+                                    default=None,
                                 )
                                 more_jobs = True
                                 if response.status != "resolved":
@@ -2775,7 +2791,24 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                                         reason_code=response.reason_code,
                                         retry_at=retry_at,
                                     )
-                                if response.status == "held" and retry_at is not None:
+                                # Park the child (and the history children
+                                # waiting on it) only for a near reset. A
+                                # daily or 30-day pool must not block dependent
+                                # data for days: complete as a terminal
+                                # "held" outcome instead, which the next
+                                # ordinary ensure/maintenance pass retries
+                                # once per freshness scope.
+                                held_defer_limit = timedelta(
+                                    seconds=max(
+                                        0,
+                                        int(settings.INSTRUMENT_IDENTITY_HELD_DEFER_MAX_SECONDS),
+                                    )
+                                )
+                                if (
+                                    response.status == "held"
+                                    and retry_at is not None
+                                    and retry_at - datetime.now(UTC) <= held_defer_limit
+                                ):
                                     await db.refresh(job)
                                     await retry_refresh_job(
                                         db,

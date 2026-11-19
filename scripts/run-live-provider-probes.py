@@ -951,6 +951,10 @@ LIVE_OPERATION_METHOD_ALIASES = {
     # the same provider operation; its tuple carries the opaque continuation
     # cursor but does not create a second upstream capability.
     "fetch_tokenized_corporate_actions_page": "fetch_tokenized_corporate_actions",
+    # OpenFIGI's batched US-composite ticker mapping sends the same single
+    # /v3/mapping request as the stable-identifier lookup (several jobs in one
+    # request) and is metered as that one fetch_stable_identifiers unit.
+    "map_us_tickers": "fetch_stable_identifiers",
 }
 LIVE_LOCAL_PROVIDER_METHODS = frozenset(
     {

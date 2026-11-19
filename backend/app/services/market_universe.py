@@ -67,6 +67,7 @@ from app.services.instrument_mastering import (
 from app.services.instrument_reconciliation import append_issue_observation
 from app.services.market_data_identity import (
     apply_domain_identity,
+    apply_self_identifying_identity,
     choose_domain_key,
     normalize_identifier_value,
 )
@@ -78,6 +79,8 @@ from app.services.provider_runtime import execute_provider_call, resolve_provide
 logger = logging.getLogger(__name__)
 
 _MISSING_CONFIRMATIONS = 3
+# Discovery quote types whose BASE-QUOTE symbol is the instrument identity.
+_SELF_IDENTIFYING_QUOTE_TYPES = frozenset({"CRYPTOCURRENCY", "CURRENCY"})
 _NASDAQ_TRADER_SOURCE_FILES = frozenset({"nasdaqlisted", "otherlisted"})
 _NASDAQ_TAPE_C_PROVIDER = "nasdaq_tape_c"
 _REQUIRED_NMS_SCOPES = (
@@ -518,7 +521,11 @@ async def _find_instrument(
                 # A CIK-only feed cannot distinguish a ticker change from a
                 # newly listed share class. Never merge a new symbol into an
                 # issuer's existing instrument without a security key.
-                return None
+                if issuer_matches:
+                    return None
+                return await _unlinked_exact_listing_instrument(
+                    db, symbol=symbol, exchange_id=exchange_id
+                )
 
             # Older rows may have CIK in the instrument identifier table. It
             # remains a compatibility fallback, but new reconciliation rows
@@ -561,12 +568,21 @@ async def _find_instrument(
                 legacy_matches = (await db.execute(legacy_symbol_query)).scalars().unique().all()
                 if len(legacy_matches) == 1:
                     return legacy_matches[0]
-                return None
+                if legacy_matches:
+                    return None
+                return await _unlinked_exact_listing_instrument(
+                    db, symbol=symbol, exchange_id=exchange_id
+                )
 
             # A provider-supplied issuer key with no canonical issuer row is
             # stronger than a bare ticker; do not merge it into an unrelated
-            # symbol match.
-            return None
+            # symbol match. The exact same ticker on the exact same venue,
+            # held by a row that has no issuer at all, is not unrelated: it is
+            # the listing another source already mastered (often with a FIGI).
+            # Creating a second row there produced duplicate tickers.
+            return await _unlinked_exact_listing_instrument(
+                db, symbol=symbol, exchange_id=exchange_id
+            )
     query = (
         select(Instrument)
         .join(InstrumentListing, InstrumentListing.instrument_id == Instrument.id)
@@ -591,6 +607,45 @@ async def _find_instrument(
         (await db.execute(select(Instrument).where(Instrument.symbol == symbol))).scalars().all()
     )
     return by_symbol[0] if len(by_symbol) == 1 else None
+
+
+async def _unlinked_exact_listing_instrument(
+    db: AsyncSession,
+    *,
+    symbol: str,
+    exchange_id: int | None,
+) -> Instrument | None:
+    """Return the single issuer-less row actively listed at this ticker/venue.
+
+    Used only for an issuer-keyed (CIK) discovery row that has no matching
+    issuer-linked instrument. The match must be exchange-qualified, active,
+    unique, and the owner must not already belong to any issuer, so a CIK is
+    never used to merge across issuers, venues, or tickers.
+    """
+
+    if exchange_id is None:
+        return None
+    candidates = (
+        (
+            await db.execute(
+                select(Instrument)
+                .join(InstrumentListing, InstrumentListing.instrument_id == Instrument.id)
+                .where(
+                    InstrumentListing.ticker == symbol,
+                    InstrumentListing.exchange_id == exchange_id,
+                    InstrumentListing.is_active.is_(True),
+                    Instrument.is_active.is_(True),
+                    Instrument.is_synthetic.is_(False),
+                )
+            )
+        )
+        .scalars()
+        .unique()
+        .all()
+    )
+    if len(candidates) != 1 or candidates[0].issuer_id is not None:
+        return None
+    return candidates[0]
 
 
 async def _provider_symbol_instruments(
@@ -1171,6 +1226,17 @@ async def _reconcile_rows(
                 db,
                 instrument,
                 identifiers=security_identifiers,
+                provider_name=provider_name,
+                provider_symbol=symbol,
+                exchange_mic=exchange_mic,
+                candidate_payload=quote,
+            )
+        if not instrument.domain_key and normalized_type in _SELF_IDENTIFYING_QUOTE_TYPES:
+            # Backfill crypto/FX spot pairs mastered before pair identities
+            # existed; a no-op for every other asset class.
+            await apply_self_identifying_identity(
+                db,
+                instrument,
                 provider_name=provider_name,
                 provider_symbol=symbol,
                 exchange_mic=exchange_mic,

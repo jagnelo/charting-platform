@@ -227,6 +227,9 @@ def bind_explicit_provider_acquisition(
         # multi-provider history planner for one exact canonical instrument.
         (ProviderCapability.PRICE_HISTORY, "bulk_fetch"),
         (ProviderCapability.ETF_HOLDINGS, "fetch_etf_holdings_latest"),
+        # Server-owned identity resolution maps discovered listings to stable
+        # identifiers in bounded, quota-reserved batches (one request each).
+        (ProviderCapability.INSTRUMENT_IDENTIFIERS, "fetch_stable_identifiers"),
     }
     if not operations.issubset(allowed_operations):
         raise ValueError("explicit acquisition scope contains an unsupported operation")
