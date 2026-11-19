@@ -92,6 +92,21 @@ def pytest_collection_modifyitems(config, items):
 
 
 @pytest.fixture(autouse=True)
+def isolate_provider_runtime_seed_memo():
+    """Forget completed provider seeds so each test seeds its own database.
+
+    Tests roll their data back at teardown while engines are shared, so a memo
+    left by one test would wrongly skip seeding in the next.
+    """
+
+    from app.services.provider_runtime import reset_provider_runtime_seed_memo
+
+    reset_provider_runtime_seed_memo()
+    yield
+    reset_provider_runtime_seed_memo()
+
+
+@pytest.fixture(autouse=True)
 def isolate_external_provider_credentials(request, monkeypatch):
     """Prevent ordinary tests from inheriting developer live credentials."""
 
@@ -229,6 +244,10 @@ class AsyncSessionAdapter:
 
     def __init__(self, session: Session):
         self._session = session
+
+    @property
+    def sync_session(self) -> Session:
+        return self._session
 
     async def execute(self, *args, **kwargs):
         return self._session.execute(*args, **kwargs)
