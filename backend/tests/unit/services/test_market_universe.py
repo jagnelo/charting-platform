@@ -2256,3 +2256,135 @@ async def test_universe_reconciliation_rejects_malformed_quote_pages(
     assert result["status"] == "failed"
     run = db.query(MarketUniverseReconciliationRun).one()
     assert match in (run.error or "")
+
+
+@pytest.mark.asyncio
+async def test_offset_paged_provider_without_cursor_is_read_to_its_declared_total(db, monkeypatch):
+    """Alpaca/Binance/Twelve Data declare a total and expect the next offset."""
+
+    from app.services import market_universe
+
+    source = DataSource(name="alpaca", base_url="https://example.test")
+    db.add(source)
+    db.flush()
+    provider = SimpleNamespace(supported_discovery_types=lambda: ["EQUITY"])
+    resolved = SimpleNamespace(provider_name="alpaca", data_source=source)
+    requested_offsets: list[str] = []
+    pages = iter(
+        [
+            {
+                "total": 3,
+                "quotes": [
+                    {"symbol": "AAA", "exchange": "XNAS"},
+                    {"symbol": "BBB", "exchange": "XNYS"},
+                ],
+            },
+            {"total": 3, "quotes": [{"symbol": "CCC", "exchange": "XNAS"}]},
+        ]
+    )
+
+    async def resolve_fixture(*_args, **_kwargs):
+        return [resolved]
+
+    async def offset_pages(_db, _capability, operation, **_kwargs):
+        requested_offsets.append(operation.rsplit(":", 1)[-1])
+        return SimpleNamespace(result=next(pages), data_source=source)
+
+    monkeypatch.setattr(market_universe, "resolve_provider_chain", resolve_fixture)
+    monkeypatch.setattr(market_universe, "get_discovery_provider", lambda _name: provider)
+    monkeypatch.setattr(market_universe, "execute_provider_call", offset_pages)
+
+    result = await reconcile_us_universe(
+        AsyncSessionAdapter(db), provider_name="alpaca", quote_types=["EQUITY"]
+    )
+
+    run = db.query(MarketUniverseReconciliationRun).one()
+    assert run.status == "complete", run.error
+    assert run.observed_count == 3
+    assert requested_offsets == ["0", "2"]
+    assert result["status"] == "complete"
+
+
+@pytest.mark.asyncio
+async def test_offset_paged_provider_with_an_empty_page_before_its_total_fails(db, monkeypatch):
+    from app.services import market_universe
+
+    source = DataSource(name="alpaca", base_url="https://example.test")
+    db.add(source)
+    db.flush()
+    provider = SimpleNamespace(supported_discovery_types=lambda: ["EQUITY"])
+    resolved = SimpleNamespace(provider_name="alpaca", data_source=source)
+    pages = iter(
+        [
+            {"total": 3, "quotes": [{"symbol": "AAA", "exchange": "XNAS"}]},
+            {"total": 3, "quotes": []},
+        ]
+    )
+
+    async def resolve_fixture(*_args, **_kwargs):
+        return [resolved]
+
+    async def truncated_pages(*_args, **_kwargs):
+        return SimpleNamespace(result=next(pages), data_source=source)
+
+    monkeypatch.setattr(market_universe, "resolve_provider_chain", resolve_fixture)
+    monkeypatch.setattr(market_universe, "get_discovery_provider", lambda _name: provider)
+    monkeypatch.setattr(market_universe, "execute_provider_call", truncated_pages)
+
+    await reconcile_us_universe(
+        AsyncSessionAdapter(db), provider_name="alpaca", quote_types=["EQUITY"]
+    )
+
+    run = db.query(MarketUniverseReconciliationRun).one()
+    assert run.status == "failed"
+    assert "empty page before declared total" in (run.error or "")
+
+
+@pytest.mark.asyncio
+async def test_discovery_page_waits_out_a_short_rolling_quota_window():
+    """EDGAR's per-second window clears in a moment; the scan must not be dropped."""
+
+    from app.services import market_universe
+    from app.services.provider_quota_coordinator import ProviderQuotaAdmissionError
+
+    now = datetime(2026, 11, 19, 12, tzinfo=UTC)
+    attempts: list[int] = []
+    slept: list[float] = []
+
+    async def call():
+        attempts.append(1)
+        if len(attempts) < 3:
+            raise ProviderQuotaAdmissionError("busy", retry_at=now + timedelta(seconds=1))
+        return "page"
+
+    async def fake_sleep(seconds):
+        slept.append(seconds)
+
+    result = await market_universe._call_waiting_out_short_quota_windows(
+        call, now=lambda: now, sleep=fake_sleep
+    )
+
+    assert result == "page"
+    assert len(attempts) == 3
+    assert slept == [pytest.approx(1.05), pytest.approx(1.05)]
+
+
+@pytest.mark.asyncio
+async def test_discovery_page_still_defers_on_a_long_or_unknown_quota_window():
+    from app.services import market_universe
+    from app.services.provider_quota_coordinator import ProviderQuotaAdmissionError
+
+    now = datetime(2026, 11, 19, 12, tzinfo=UTC)
+
+    async def fake_sleep(_seconds):
+        raise AssertionError("a daily allowance must not be slept on")
+
+    for retry_at in (now + timedelta(hours=6), None):
+
+        async def call(retry_at=retry_at):
+            raise ProviderQuotaAdmissionError("exhausted", retry_at=retry_at)
+
+        with pytest.raises(ProviderQuotaAdmissionError):
+            await market_universe._call_waiting_out_short_quota_windows(
+                call, now=lambda: now, sleep=fake_sleep
+            )

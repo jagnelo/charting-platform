@@ -35,10 +35,12 @@ from app.providers import provider_symbol_for_instrument
 from app.providers.alpaca import estimate_ohlcv_request_count
 from app.providers.binance import estimate_ohlcv_request_weight
 from app.providers.crypto_market_data import (
+    estimate_bitstamp_ohlcv_request_count,
     estimate_coinbase_ohlcv_request_count,
     estimate_kraken_ohlcv_request_count,
 )
 from app.providers.errors import bounded_redact_provider_message
+from app.providers.frankfurter import estimate_frankfurter_ohlcv_request_count
 from app.providers.ibkr import estimate_ibkr_ohlcv_request_count
 from app.providers.massive import (
     estimate_ohlcv_request_count as estimate_massive_ohlcv_request_count,
@@ -59,6 +61,10 @@ from app.services.market_data import (
     _attach_provider_series,
     _record_bar_observations,
     _touch_ohlcv_dataset_state,
+)
+from app.services.market_series import (
+    instrument_has_identity_adjustment,
+    label_identity_adjusted,
 )
 from app.services.provider_runtime import (
     execute_provider_call,
@@ -334,6 +340,7 @@ async def _do_fetch_and_store(
     binance_start = history_start("binance")
     coinbase_start = history_start("coinbase")
     kraken_start = history_start("kraken")
+    bitstamp_start = history_start("bitstamp")
     massive_start = history_start("massive")
     marketstack_start = history_start("marketstack")
     marketdata_app_start = history_start("marketdata_app")
@@ -344,6 +351,10 @@ async def _do_fetch_and_store(
     binance_cost = estimate_ohlcv_request_weight(timeframe, binance_start, end)
     coinbase_cost = estimate_coinbase_ohlcv_request_count(timeframe, coinbase_start, end)
     kraken_cost = estimate_kraken_ohlcv_request_count(timeframe, kraken_start, end)
+    frankfurter_cost = estimate_frankfurter_ohlcv_request_count(
+        timeframe, history_start("frankfurter"), end
+    )
+    bitstamp_cost = estimate_bitstamp_ohlcv_request_count(timeframe, bitstamp_start, end)
     massive_cost = estimate_massive_ohlcv_request_count(timeframe, massive_start, end)
     marketstack_cost = estimate_marketstack_ohlcv_request_count(timeframe, marketstack_start, end)
     marketdata_app_cost = estimate_marketdata_app_ohlcv_credit_count(
@@ -358,6 +369,8 @@ async def _do_fetch_and_store(
         **({"binance": binance_cost} if binance_cost is not None else {}),
         **({"coinbase": coinbase_cost} if coinbase_cost is not None else {}),
         **({"kraken": kraken_cost} if kraken_cost is not None else {}),
+        **({"frankfurter": frankfurter_cost} if frankfurter_cost is not None else {}),
+        **({"bitstamp": bitstamp_cost} if bitstamp_cost is not None else {}),
         **({"massive": massive_cost} if massive_cost is not None else {}),
         **({"marketstack": marketstack_cost} if marketstack_cost is not None else {}),
         **({"marketdata_app": marketdata_app_cost} if marketdata_app_cost is not None else {}),
@@ -366,6 +379,7 @@ async def _do_fetch_and_store(
         **({"fmp": fmp_cost} if fmp_cost is not None else {}),
         **({"tiingo": tiingo_cost} if tiingo_cost is not None else {}),
     }
+    identity_adjusted = adjusted and await instrument_has_identity_adjustment(db, instrument.id)
     execution = await execute_provider_call(
         db,
         ProviderCapability.PRICE_HISTORY,
@@ -382,13 +396,15 @@ async def _do_fetch_and_store(
             timeframe,
             history_start(provider.name),
             end,
-            adjusted=adjusted,
+            adjusted=adjusted and not identity_adjusted,
             instrument_id=instrument.id,
             data_source_id=0,
         ),
         response_items=lambda result: len(result),
         treat_empty_as_failure=False,
     )
+    if identity_adjusted:
+        label_identity_adjusted(execution.result)
     bars = _bars_through_end(execution.result, end)
     if not bars:
         await _touch_ohlcv_dataset_state(

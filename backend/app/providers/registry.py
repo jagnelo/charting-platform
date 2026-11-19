@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import (
     DINARI_SANDBOX_OPERATION_MINIMUM_REQUEST_COSTS,
     FMP_PUBLIC_QUOTA_EVIDENCE,
+    bitstamp_market_data_use_authority_missing,
     bybit_xstocks_market_data_use_authority_missing,
     coinbase_market_data_use_authority_missing,
     coingecko_market_data_use_authority_missing,
@@ -59,12 +60,13 @@ from app.providers.base import (
 from app.providers.binance import BinanceProvider
 from app.providers.coingecko import CoinGeckoProvider
 from app.providers.configured import OPTIONAL_PROVIDER_DESCRIPTORS
-from app.providers.crypto_market_data import CoinbaseProvider, KrakenProvider
+from app.providers.crypto_market_data import BitstampProvider, CoinbaseProvider, KrakenProvider
 from app.providers.cta_plan import CTAPlanProvider
 from app.providers.edgar import EdgarProvider, is_valid_edgar_user_agent
 from app.providers.etf_holdings_internal import ETFHoldingsInternalProvider
 from app.providers.finra import FINRAProvider
 from app.providers.finra_otc_directory import FINRAOTCDirectoryProvider
+from app.providers.frankfurter import FrankfurterProvider
 from app.providers.fred import FREDProvider
 from app.providers.ibkr import IBKRProvider
 from app.providers.massive import MassiveProvider
@@ -101,6 +103,8 @@ _PROVIDERS: dict[str, ProviderDescriptor] = {
     "coingecko": CoinGeckoProvider(),  # Crypto metadata and discovery
     "coinbase": CoinbaseProvider(),  # Keyless public crypto exchange data
     "kraken": KrakenProvider(),  # Keyless public crypto exchange data
+    "frankfurter": FrankfurterProvider(),  # Keyless daily FX reference rates and pairs
+    "bitstamp": BitstampProvider(),  # Keyless public crypto exchange data
     "edgar": EdgarProvider(),  # US company profile and earnings history
     "etf_holdings_internal": ETFHoldingsInternalProvider(),
     # Explicit legacy / supplementary compatibility only.  This provider is
@@ -137,16 +141,19 @@ _PROVIDERS: dict[str, ProviderDescriptor] = {
 
 # Provider capability is not enough to route an instrument safely.  Several
 # public adapters expose a method with the same shape as equity OHLCV while
-# accepting only crypto (Coinbase/Kraken/Binance are the important examples).
+# accepting only crypto (Coinbase/Kraken/Bitstamp/Binance are the important
+# examples).
 # Keep this allow-list explicit and fail closed when an instrument class is
 # known.  The values intentionally use both top-level asset classes and
 # instrument-type aliases because the database models distinguish, for
 # example, Equity/ETF from Derivative/Option.
 _PROVIDER_INSTRUMENT_KINDS: dict[str, frozenset[str]] = {
+    # Kinds must reflect what the adapter actually implements. The keyed REST
+    # adapters (Alpha Vantage, Tiingo, Twelve Data, Finnhub, EODHD, FMP) call
+    # equity endpoints only; advertising forex/crypto/futures would route those
+    # instruments to them and spend tight daily quotas on unanswerable calls.
     "alpaca": frozenset({"equity", "stock", "etf", "crypto", "cryptocurrency", "crypto_spot"}),
-    "alpha_vantage": frozenset(
-        {"equity", "stock", "etf", "forex", "currency", "crypto", "cryptocurrency"}
-    ),
+    "alpha_vantage": frozenset({"equity", "stock", "etf"}),
     "massive": frozenset({"equity", "stock", "etf"}),
     "edgar": frozenset({"equity", "stock", "etf", "reit", "mutual_fund", "closed_end_fund"}),
     "nasdaq": frozenset({"equity", "stock", "etf", "reit", "mutual_fund", "closed_end_fund"}),
@@ -155,22 +162,12 @@ _PROVIDER_INSTRUMENT_KINDS: dict[str, frozenset[str]] = {
     "finra_otc_directory": frozenset(
         {"equity", "stock", "etf", "reit", "mutual_fund", "closed_end_fund"}
     ),
-    "tiingo": frozenset(
-        {"equity", "stock", "etf", "forex", "currency", "crypto", "cryptocurrency"}
-    ),
-    "twelve_data": frozenset(
-        {"equity", "stock", "etf", "forex", "currency", "crypto", "cryptocurrency", "future"}
-    ),
-    "finnhub": frozenset(
-        {"equity", "stock", "etf", "forex", "currency", "crypto", "cryptocurrency"}
-    ),
+    "tiingo": frozenset({"equity", "stock", "etf"}),
+    "twelve_data": frozenset({"equity", "stock", "etf"}),
+    "finnhub": frozenset({"equity", "stock", "etf"}),
     "marketstack": frozenset({"equity", "stock", "etf"}),
-    "eodhd": frozenset(
-        {"equity", "stock", "etf", "forex", "currency", "crypto", "cryptocurrency", "future"}
-    ),
-    "fmp": frozenset(
-        {"equity", "stock", "etf", "forex", "currency", "crypto", "cryptocurrency", "future"}
-    ),
+    "eodhd": frozenset({"equity", "stock", "etf"}),
+    "fmp": frozenset({"equity", "stock", "etf"}),
     "tradier": frozenset({"equity", "stock", "etf", "option", "options"}),
     "marketdata_app": frozenset({"equity", "stock", "etf", "option", "options"}),
     # Tokenized assets are first-class instruments created by
@@ -216,8 +213,12 @@ _PROVIDER_INSTRUMENT_KINDS: dict[str, frozenset[str]] = {
     "binance": frozenset({"crypto", "cryptocurrency", "crypto_spot"}),
     "coinbase": frozenset({"crypto", "cryptocurrency", "crypto_spot"}),
     "kraken": frozenset({"crypto", "cryptocurrency", "crypto_spot", "future"}),
+    # Discovery admits Bitstamp SPOT markets only; perpetuals are excluded.
+    "bitstamp": frozenset({"crypto", "cryptocurrency", "crypto_spot"}),
     "coingecko": frozenset({"crypto", "cryptocurrency", "crypto_spot"}),
     "fred": frozenset({"macro", "currency", "forex", "fixed_income"}),
+    # Daily reference rates for currency pairs only ("Currency"/"Forex Pair").
+    "frankfurter": frozenset({"forex", "currency", "forex_pair"}),
     "openfigi": frozenset(
         {
             "equity",
@@ -260,20 +261,29 @@ _RAW_HISTORY_ONLY_PROVIDERS = frozenset(
         "binance",
         "coinbase",
         "kraken",
+        # Central-bank FX reference fixings have no split/dividend surface.
+        "frankfurter",
+        "bitstamp",
     }
 )
 
 
-def provider_supports_adjustment(provider_name: str, adjusted: bool | None) -> bool:
+def provider_supports_adjustment(
+    provider_name: str,
+    adjusted: bool | None,
+    *,
+    identity_adjustment: bool = False,
+) -> bool:
     """Return whether a provider may serve the requested history adjustment.
 
     ``None`` means the caller has not expressed an adjustment requirement and
     therefore preserves legacy capability discovery.  Raw history is always
     admitted; adjusted history is denied for providers whose currently
-    supported endpoint/plan is explicitly raw-only.
+    supported endpoint/plan is explicitly raw-only, unless the instrument has
+    no corporate actions (``identity_adjustment``), where raw is adjusted.
     """
 
-    if adjusted is None or not adjusted:
+    if adjusted is None or not adjusted or identity_adjustment:
         return True
     return provider_name not in _RAW_HISTORY_ONLY_PROVIDERS
 
@@ -398,6 +408,7 @@ def _capability_names(provider: ProviderDescriptor) -> list[str]:
         "coingecko",
         "coinbase",
         "kraken",
+        "bitstamp",
     }:
         capabilities.append("crypto_history")
     if "price_history" in capabilities and provider_supports_adjustment(provider_name, True):
@@ -690,6 +701,15 @@ _ROUTING_CONTROL_SETTINGS: dict[str, tuple[str, ...]] = {
         "COINBASE_MARKET_DATA_USE_AUTHORITY_REFERENCE",
         "COINBASE_MARKET_DATA_USE_AUTHORITY_SCOPE",
         "COINBASE_MARKET_DATA_USE_REVIEWED_AT",
+    ),
+    # Bitstamp requires a Data License Agreement for commercial use; this
+    # gate records the owner's single-user, non-commercial scope.
+    "bitstamp": (
+        "BITSTAMP_MARKET_DATA_USE_AUTHORIZED",
+        "BITSTAMP_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+        "BITSTAMP_MARKET_DATA_USE_AUTHORITY_SCOPE",
+        "BITSTAMP_MARKET_DATA_USE_REVIEWED_AT",
+        "BITSTAMP_MARKET_DATA_USE_EXPIRES_AT",
     ),
     "coingecko": (
         "COINGECKO_MARKET_DATA_USE_AUTHORIZED",
@@ -1372,6 +1392,8 @@ def provider_missing_routing_controls(name: str, operation: str | None = None) -
         return coinbase_market_data_use_authority_missing()
     if name in {"kraken", "kraken_xstocks"}:
         return kraken_market_data_use_authority_missing()
+    if name == "bitstamp":
+        return bitstamp_market_data_use_authority_missing()
     if name == "coingecko":
         return coingecko_market_data_use_authority_missing()
     if name == "xstocks":

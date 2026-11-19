@@ -37,6 +37,10 @@ from app.schemas.data_preparation import (
     ScreenerPreparationTarget,
 )
 from app.services.derived_timeframes import refresh_derived_timeframe_if_needed
+from app.services.market_data_identity import (
+    apply_self_identifying_identity,
+    instrument_identity_is_qualified,
+)
 from app.services.market_refresh_queue import (
     DEPENDENCY_PENDING_ERROR,
     _acquire_enqueue_lock,
@@ -1259,12 +1263,21 @@ async def _enqueue_instrument_dependencies(
         instrument = await db.get(Instrument, instrument_id)
         identity_job = None
         identity_is_qualified = bool(
-            instrument is not None
-            and instrument.identity_status == "resolved"
-            and instrument.domain_key
-            and instrument.primary_identifier_type not in {None, "internal", "cik"}
-            and instrument.primary_identifier_value
+            instrument is not None and await instrument_identity_is_qualified(db, instrument)
         )
+        if instrument is not None and not identity_is_qualified and not instrument.domain_key:
+            # A crypto/FX spot pair discovered before pair identities existed
+            # (or through a path that skipped mastering) is repaired locally
+            # from its canonical BASE-QUOTE symbol: no provider can add
+            # evidence an equity identifier would carry. Every other asset
+            # class is left untouched by this call.
+            if await apply_self_identifying_identity(
+                db,
+                instrument,
+                provider_name="data_preparation",
+                record_conflict=False,
+            ):
+                identity_is_qualified = await instrument_identity_is_qualified(db, instrument)
         profile_is_fresh = (
             await _profile_is_fresh(
                 db,

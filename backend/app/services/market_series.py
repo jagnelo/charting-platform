@@ -18,6 +18,47 @@ from app.models.market_data_foundation import (
 )
 from app.models.ohlcv import OHLCVBar, Timeframe
 
+# Asset classes with no split/dividend adjustment surface. For these a raw
+# exchange/reference observation *is* the split-adjusted series, so an adjusted
+# history request may be served by raw-only providers and is stored as an
+# identity split adjustment rather than being unanswerable.
+IDENTITY_ADJUSTMENT_ASSET_CLASSES = frozenset({"cryptocurrency", "currency"})
+IDENTITY_ADJUSTMENT_VERSION = "identity-no-corporate-actions"
+
+
+def _routing_token(value: Any) -> str:
+    return str(value or "").strip().lower().replace("-", "_").replace(" ", "_")
+
+
+def asset_class_has_identity_adjustment(asset_class: str | None) -> bool:
+    """Whether adjusted and raw history are identical for this asset class."""
+
+    return _routing_token(asset_class) in IDENTITY_ADJUSTMENT_ASSET_CLASSES
+
+
+async def instrument_has_identity_adjustment(db: AsyncSession, instrument_id: int) -> bool:
+    from app.models.asset_class import AssetClass, InstrumentType
+
+    asset_class = (
+        await db.execute(
+            select(AssetClass.name)
+            .join(InstrumentType, InstrumentType.asset_class_id == AssetClass.id)
+            .join(Instrument, Instrument.instrument_type_id == InstrumentType.id)
+            .where(Instrument.id == instrument_id)
+        )
+    ).scalar_one_or_none()
+    return asset_class_has_identity_adjustment(asset_class)
+
+
+def label_identity_adjusted(bars: list[OHLCVBar]) -> list[OHLCVBar]:
+    """Relabel raw bars of an identity-adjusted instrument as split-adjusted."""
+
+    for bar in bars:
+        bar.is_adjusted = True
+        bar.adjustment_basis = AdjustmentBasis.SPLIT_ADJUSTED.value
+        bar.adjustment_version = IDENTITY_ADJUSTMENT_VERSION
+    return bars
+
 
 @dataclass(frozen=True, slots=True)
 class SeriesScope:

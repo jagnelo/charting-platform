@@ -85,7 +85,11 @@ from app.services.market_data import (
 )
 from app.services.market_data_identity import (
     apply_domain_identity,
+    apply_self_identifying_identity,
     choose_domain_key,
+    has_self_identifying_identity,
+    has_stable_external_identity,
+    instrument_asset_class_name,
     make_domain_key,
 )
 from app.services.ohlcv_coverage import assess_ohlcv_coverage, missing_range_slices
@@ -148,14 +152,7 @@ def _52w_stats_lock(instrument_id: int) -> asyncio.Lock:
 
 
 def _instrument_has_stable_identity(instrument: Instrument) -> bool:
-    return bool(
-        instrument.identity_status == "resolved"
-        and instrument.domain_key
-        and instrument.primary_identifier_type
-        and instrument.primary_identifier_type != InstrumentIdentifierType.INTERNAL.value
-        and instrument.primary_identifier_type != InstrumentIdentifierType.CIK.value
-        and instrument.primary_identifier_value
-    )
+    return has_stable_external_identity(instrument)
 
 
 async def _held_provider_outcomes(
@@ -195,7 +192,13 @@ async def _qualified_identity(
     provider_symbol: str | None = None,
     provider_exchange_code: str | None = None,
 ) -> QualifiedInstrumentIdentity | None:
-    if not _instrument_has_stable_identity(instrument):
+    # A crypto/FX spot pair is identified by its asset class and canonical
+    # pair; it trades on many venues and its discovery listings carry no MIC.
+    stable = _instrument_has_stable_identity(instrument)
+    self_identifying = not stable and has_self_identifying_identity(
+        instrument, await instrument_asset_class_name(db, instrument)
+    )
+    if not stable and not self_identifying:
         return None
     if provider_name is not None and not provider_symbol:
         return None
@@ -207,10 +210,12 @@ async def _qualified_identity(
             InstrumentListing.is_active.is_(True),
             InstrumentListing.is_primary.is_(True),
         )
-        .order_by(InstrumentListing.id)
+        # A venue-less discovery listing must not hide the same instrument's
+        # exchange-qualified primary listing.
+        .order_by(Exchange.mic.is_(None), InstrumentListing.id)
     )
     listing, mic = listing_result.first() or (None, None)
-    if listing is None or not mic:
+    if listing is None or (not mic and not self_identifying):
         return None
     if provider_name is not None:
         binding = await db.execute(
@@ -247,13 +252,53 @@ async def _qualified_identity(
     )
 
 
+def _preferred_symbol_owner(rows: list[Instrument]) -> Instrument | None:
+    """Pick one row for a ticker that is not unique across canonical rows.
+
+    ``Instrument.symbol`` is not unique: universe discovery can retain a
+    quarantined row beside a resolved one for the same ticker. Prefer the only
+    row with a stable external identity; otherwise fall back deterministically
+    (active first, then oldest) instead of raising MultipleResultsFound.
+    """
+
+    if len(rows) <= 1:
+        return rows[0] if rows else None
+    stable = [row for row in rows if _instrument_has_stable_identity(row)]
+    if len(stable) == 1:
+        return stable[0]
+    candidates = stable or rows
+    return sorted(candidates, key=lambda row: (not row.is_active, row.id))[0]
+
+
 async def _local_instrument_by_symbol(db: AsyncSession, symbol: str) -> Instrument | None:
     result = await db.execute(
         select(Instrument)
         .options(selectinload(Instrument.listings).selectinload(InstrumentListing.exchange))
         .where(Instrument.symbol == symbol.strip().upper(), Instrument.is_synthetic.is_(False))
+        .order_by(Instrument.id)
     )
-    return result.scalar_one_or_none()
+    return _preferred_symbol_owner(list(result.scalars().unique().all()))
+
+
+async def _local_instrument_for_acquire(
+    db: AsyncSession, symbol: str, instrument_id: int | None
+) -> Instrument | None:
+    """Return the exact requested canonical row, or a symbol-preferred one."""
+
+    if instrument_id is None:
+        return await _local_instrument_by_symbol(db, symbol)
+    instrument = (
+        await db.execute(
+            select(Instrument)
+            .options(selectinload(Instrument.listings).selectinload(InstrumentListing.exchange))
+            .where(Instrument.id == instrument_id, Instrument.is_synthetic.is_(False))
+        )
+    ).scalar_one_or_none()
+    if instrument is None or instrument.symbol.strip().upper() != symbol.strip().upper():
+        # The row was renamed or removed since the child was queued; the
+        # symbol is the durable request, so resolve it the ordinary way.
+        return await _local_instrument_by_symbol(db, symbol)
+    return instrument
 
 
 def _search_result_priority(
@@ -907,7 +952,7 @@ async def acquire_instrument(
 
     del current_user
     symbol = body.symbol.strip().upper()
-    existing = await _local_instrument_by_symbol(db, symbol)
+    existing = await _local_instrument_for_acquire(db, symbol, body.instrument_id)
     if existing is not None and body.provider_candidate is None:
         # A previously resolved row may predate support for a provider's
         # explicit security-type code. Reconcile from retained profile
@@ -916,6 +961,12 @@ async def acquire_instrument(
         retained_profile = await reconcile_instrument_profile(db, existing)
         if retained_profile is not None and retained_profile.quote_type:
             await reconcile_instrument_type_from_profile(db, existing, retained_profile)
+            await db.commit()
+        if not existing.domain_key and await apply_self_identifying_identity(
+            db, existing, provider_name="instrument_acquire", record_conflict=False
+        ):
+            # A crypto/FX spot pair is resolved from its canonical symbol with
+            # no provider request; every other asset class is unaffected.
             await db.commit()
         identity = await _qualified_identity(db, existing)
         if identity is not None:
@@ -3547,9 +3598,23 @@ async def _find_existing_instrument_for_profile(
     ):
         if not candidate:
             continue
-        instrument = (
-            await db.execute(select(Instrument).where(Instrument.symbol == candidate))
-        ).scalar_one_or_none()
+        rows = list(
+            (
+                await db.execute(
+                    select(Instrument).where(Instrument.symbol == candidate).order_by(Instrument.id)
+                )
+            )
+            .scalars()
+            .all()
+        )
+        if len(rows) > 1:
+            # Duplicate tickers: only a single row with a stable external
+            # identity is a safe owner; otherwise ignore the weak ticker hint
+            # and fall through to exact provider-scoped bindings.
+            non_synthetic = [row for row in rows if not row.is_synthetic]
+            stable = [row for row in non_synthetic if _instrument_has_stable_identity(row)]
+            rows = stable if len(stable) == 1 else non_synthetic if len(non_synthetic) == 1 else []
+        instrument = rows[0] if len(rows) == 1 else None
         if instrument is not None:
             return instrument
 

@@ -361,6 +361,13 @@ async def scheduled_daily_metadata_sync(ctx: dict):
     return await sync_instruments_task(ctx)
 
 
+async def scheduled_identity_batch(ctx: dict):
+    """Bounded batched OpenFIGI identity pass for discovered US listings."""
+    from app.tasks.identity_batch_tasks import resolve_identity_batch_task
+
+    return await resolve_identity_batch_task(ctx)
+
+
 async def scheduled_daily_id_bootstrap(ctx: dict):
     if not settings.INSTRUMENT_SYNC_SCHEDULE_ENABLED:
         logger.info("Instrument sync schedule disabled; skipping stable ID bootstrap")
@@ -703,6 +710,16 @@ class WorkerSettings:
                 hour=21,
                 minute=0,
                 timeout=UNIVERSE_RECONCILIATION_TIMEOUT_SECONDS,
+            ),
+        )
+    if settings.INSTRUMENT_IDENTITY_BATCH_ENABLED:
+        # Each pass stops at its own wall-time budget, well inside the cron
+        # interval and the job timeout; quota admission paces the requests.
+        cron_jobs += (
+            cron(
+                scheduled_identity_batch,
+                minute=set(range(0, 60, 5)),
+                timeout=max(60, int(settings.INSTRUMENT_IDENTITY_BATCH_MAX_SECONDS) + 120),
             ),
         )
     if settings.PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED:

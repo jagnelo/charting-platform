@@ -76,6 +76,9 @@ class InstrumentAcquireRequest(BaseModel):
     symbol: str = Field(min_length=1, max_length=80)
     provider_candidate: ProviderCandidateBinding | None = None
     request_id: str = Field(min_length=1, max_length=120)
+    # Optional exact canonical row to resolve. Durable identity children set
+    # it because a ticker alone is not unique across discovered instruments.
+    instrument_id: int | None = Field(default=None, ge=1)
 
     @field_validator("symbol", "request_id")
     @classmethod

@@ -70,6 +70,7 @@ from app.providers.errors import (
 )
 from app.providers.telemetry import activate as activate_provider_telemetry
 from app.providers.telemetry import deactivate as deactivate_provider_telemetry
+from app.services.market_series import asset_class_has_identity_adjustment
 from app.services.provider_support import (
     SUPPORT_STATUS_SUPPORTED,
     SUPPORT_STATUS_UNKNOWN,
@@ -226,6 +227,9 @@ def bind_explicit_provider_acquisition(
         # multi-provider history planner for one exact canonical instrument.
         (ProviderCapability.PRICE_HISTORY, "bulk_fetch"),
         (ProviderCapability.ETF_HOLDINGS, "fetch_etf_holdings_latest"),
+        # Server-owned identity resolution maps discovered listings to stable
+        # identifiers in bounded, quota-reserved batches (one request each).
+        (ProviderCapability.INSTRUMENT_IDENTIFIERS, "fetch_stable_identifiers"),
     }
     if not operations.issubset(allowed_operations):
         raise ValueError("explicit acquisition scope contains an unsupported operation")
@@ -3999,7 +4003,12 @@ async def resolve_provider_chain(
             # admit synthetic provider responses to normal persistence paths.
             continue
         if capability == ProviderCapability.PRICE_HISTORY and not provider_supports_adjustment(
-            data_source.name, adjusted
+            data_source.name,
+            adjusted,
+            identity_adjustment=(
+                instrument_routing is not None
+                and asset_class_has_identity_adjustment(instrument_routing[0])
+            ),
         ):
             continue
         if capability == ProviderCapability.PRICE_HISTORY and history_start is not None:

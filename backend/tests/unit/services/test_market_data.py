@@ -284,6 +284,10 @@ async def test_bar_observation_insert_is_append_only_for_same_observation_timest
     assert _is_recoverable_provider_gap(RuntimeError("unexpected programming failure")) is False
 
 
+async def _equity_adjustment(*_args, **_kwargs):
+    return False
+
+
 @pytest.mark.asyncio
 async def test_provider_refresh_assigns_scoped_market_series(monkeypatch):
     bar = _semantic_bar()
@@ -310,6 +314,7 @@ async def test_provider_refresh_assigns_scoped_market_series(monkeypatch):
         return None
 
     monkeypatch.setattr(market_data, "execute_provider_call", fake_execute)
+    monkeypatch.setattr(market_data, "instrument_has_identity_adjustment", _equity_adjustment)
     monkeypatch.setattr(market_data, "get_or_create_series", fake_get_or_create)
     monkeypatch.setattr(market_data, "provider_symbol_for_instrument", lambda *_args: "AAPL")
     monkeypatch.setattr(market_data, "_record_bar_observations", fake_record)
@@ -365,6 +370,7 @@ async def test_latest_provider_refresh_assigns_scoped_market_series(monkeypatch)
         return None
 
     monkeypatch.setattr(market_data, "execute_provider_call", fake_execute)
+    monkeypatch.setattr(market_data, "instrument_has_identity_adjustment", _equity_adjustment)
     expected_history_start = datetime(2025, 12, 1, tzinfo=UTC)
     monkeypatch.setattr(
         market_data,
@@ -393,7 +399,88 @@ async def test_latest_provider_refresh_assigns_scoped_market_series(monkeypatch)
     assert captured["kwargs"]["canonical"] is True
     assert captured["execute_kwargs"]["history_start"]("alpaca") == expected_history_start
     assert captured["execute_kwargs"]["operation_cost_overrides"]["fmp"] == 1
+    # Ten latest daily candles fit one Bitstamp 1000-candle OHLC page.
+    assert captured["execute_kwargs"]["operation_cost_overrides"]["bitstamp"] == 1
     assert result[0].market_series_id == 456
+
+
+def test_history_cost_overrides_include_bitstamp_aligned_1000_candle_pages():
+    start = datetime(2024, 1, 1, 0, 30, tzinfo=UTC)
+    overrides = market_data.ohlcv_operation_cost_overrides(
+        Timeframe.D1, start, start + timedelta(days=1000)
+    )
+    # The aligned bucket boundary adds a second page for an unaligned start.
+    assert overrides["bitstamp"] == 2
+    assert overrides["coinbase"] == 4
+    assert (
+        market_data.ohlcv_operation_cost_overrides(
+            Timeframe.M1, start, start + timedelta(minutes=500)
+        )["bitstamp"]
+        == 1
+    )
+    assert "bitstamp" not in market_data.ohlcv_operation_cost_overrides(
+        Timeframe.W1, start, start + timedelta(days=70)
+    )
+
+
+@pytest.mark.asyncio
+async def test_crypto_adjusted_history_uses_raw_exchange_bars_as_identity_adjusted(monkeypatch):
+    """Crypto has no splits: an adjusted request is served raw and stored adjusted."""
+
+    bar = _semantic_bar()
+    bar.adjustment_basis = "raw"
+    bar.adjustment_version = "provider-native"
+    bar.is_adjusted = False
+    execution = SimpleNamespace(
+        provider_name="coinbase",
+        data_source=SimpleNamespace(id=21),
+        result=[bar],
+    )
+    captured: dict[str, object] = {}
+
+    async def fake_execute(*_args, **kwargs):
+        captured["execute_kwargs"] = kwargs
+        provider = SimpleNamespace(
+            name="coinbase",
+            fetch_ohlcv=lambda *_a, **kw: captured.setdefault("adapter_adjusted", kw["adjusted"]),
+        )
+        kwargs["invoke"](provider, "BTC-USD")
+        return execution
+
+    async def fake_get_or_create(_db, scope, **_kwargs):
+        captured["scope"] = scope
+        return SimpleNamespace(id=321)
+
+    async def crypto_adjustment(_db, instrument_id):
+        assert instrument_id == 77
+        return True
+
+    async def noop(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(market_data, "execute_provider_call", fake_execute)
+    monkeypatch.setattr(market_data, "instrument_has_identity_adjustment", crypto_adjustment)
+    monkeypatch.setattr(market_data, "get_or_create_series", fake_get_or_create)
+    monkeypatch.setattr(market_data, "provider_symbol_for_instrument", lambda *_args: "BTC-USD")
+    monkeypatch.setattr(market_data, "_record_bar_observations", noop)
+    monkeypatch.setattr(market_data, "_touch_ohlcv_dataset_state", noop)
+
+    result = await market_data._fetch_provider(
+        object(),
+        SimpleNamespace(id=77, symbol="BTC-USD"),
+        Timeframe.D1,
+        datetime(2020, 1, 1, tzinfo=UTC),
+        datetime(2023, 1, 1, tzinfo=UTC),
+        True,
+    )
+
+    assert captured["execute_kwargs"]["adjusted"] is True
+    assert captured["adapter_adjusted"] is False
+    scope = captured["scope"]
+    assert scope.adjustment_basis.value == "split_adjusted"
+    assert scope.adjustment_version == "identity-no-corporate-actions"
+    assert result[0].is_adjusted is True
+    assert result[0].market_series_id == 321
 
 
 @pytest.mark.asyncio
