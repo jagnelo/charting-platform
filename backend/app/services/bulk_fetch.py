@@ -39,6 +39,7 @@ from app.providers.crypto_market_data import (
     estimate_kraken_ohlcv_request_count,
 )
 from app.providers.errors import bounded_redact_provider_message
+from app.providers.frankfurter import estimate_frankfurter_ohlcv_request_count
 from app.providers.ibkr import estimate_ibkr_ohlcv_request_count
 from app.providers.massive import (
     estimate_ohlcv_request_count as estimate_massive_ohlcv_request_count,
@@ -344,6 +345,9 @@ async def _do_fetch_and_store(
     binance_cost = estimate_ohlcv_request_weight(timeframe, binance_start, end)
     coinbase_cost = estimate_coinbase_ohlcv_request_count(timeframe, coinbase_start, end)
     kraken_cost = estimate_kraken_ohlcv_request_count(timeframe, kraken_start, end)
+    frankfurter_cost = estimate_frankfurter_ohlcv_request_count(
+        timeframe, history_start("frankfurter"), end
+    )
     massive_cost = estimate_massive_ohlcv_request_count(timeframe, massive_start, end)
     marketstack_cost = estimate_marketstack_ohlcv_request_count(timeframe, marketstack_start, end)
     marketdata_app_cost = estimate_marketdata_app_ohlcv_credit_count(
@@ -358,6 +362,7 @@ async def _do_fetch_and_store(
         **({"binance": binance_cost} if binance_cost is not None else {}),
         **({"coinbase": coinbase_cost} if coinbase_cost is not None else {}),
         **({"kraken": kraken_cost} if kraken_cost is not None else {}),
+        **({"frankfurter": frankfurter_cost} if frankfurter_cost is not None else {}),
         **({"massive": massive_cost} if massive_cost is not None else {}),
         **({"marketstack": marketstack_cost} if marketstack_cost is not None else {}),
         **({"marketdata_app": marketdata_app_cost} if marketdata_app_cost is not None else {}),

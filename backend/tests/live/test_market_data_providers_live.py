@@ -42,6 +42,11 @@ from app.providers.edgar import EdgarProvider
 from app.providers.errors import ProviderNotConfiguredError, ProviderResponseError
 from app.providers.finra import FINRAProvider
 from app.providers.finra_otc_directory import FINRAOTCDirectoryProvider
+from app.providers.frankfurter import (
+    FrankfurterProvider,
+    estimate_frankfurter_latest_ohlcv_request_count,
+    estimate_frankfurter_ohlcv_request_count,
+)
 from app.providers.fred import FREDProvider
 from app.providers.ibkr import IBKRProvider
 from app.providers.massive import (
@@ -837,6 +842,50 @@ def test_kraken_keyless_crypto_history():
         "discover_universe_page",
     )
     assert universe["quotes"] and universe["total"] >= len(universe["quotes"])
+
+
+def test_frankfurter_keyless_fx_reference_rates():
+    """Keyless Frankfurter v2 reads: latest bar, range, rate, and FX pairs."""
+
+    latest, _ = _observed_read(
+        lambda: FrankfurterProvider().fetch_latest_ohlcv("EURUSD", Timeframe.D1, 1, adjusted=False),
+        "frankfurter",
+        "fetch_latest_ohlcv",
+        operation_cost_override=estimate_frankfurter_latest_ohlcv_request_count(Timeframe.D1, 1),
+    )
+    assert latest and latest[-1].close > 0 and latest[-1].ts.weekday() < 5
+    history_end = datetime.now(UTC)
+    history_start = history_end - timedelta(days=14)
+    history, history_measurement = _observed_read(
+        lambda: FrankfurterProvider().fetch_ohlcv(
+            "USDJPY", Timeframe.D1, history_start, history_end, adjusted=False
+        ),
+        "frankfurter",
+        "fetch_ohlcv",
+        operation_cost_override=estimate_frankfurter_ohlcv_request_count(
+            Timeframe.D1, history_start, history_end
+        ),
+    )
+    assert history_measurement.http_requests == 1
+    assert history
+    assert all(bar.open == bar.high == bar.low == bar.close > 0 for bar in history)
+    assert all(bar.ts.weekday() < 5 for bar in history)
+    price, _ = _observed_read(
+        lambda: FrankfurterProvider().get_current_price("GBPUSD"),
+        "frankfurter",
+        "get_current_price",
+    )
+    assert price is not None and price > 0
+    universe, universe_measurement = _observed_read(
+        lambda: FrankfurterProvider().discover_universe_page("CURRENCY", 0),
+        "frankfurter",
+        "discover_universe_page",
+    )
+    assert universe_measurement.http_requests == 1
+    symbols = {quote["symbol"] for quote in universe["quotes"]}
+    assert {"EURUSD", "GBPUSD", "USDJPY", "EURGBP", "CHFJPY"} <= symbols
+    assert all(quote["quoteType"] == "CURRENCY" for quote in universe["quotes"])
+    assert universe["total"] >= len(universe["quotes"])
 
 
 def test_alpaca_credentialed_history():

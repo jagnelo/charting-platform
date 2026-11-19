@@ -65,6 +65,7 @@ from app.providers.edgar import EdgarProvider, is_valid_edgar_user_agent
 from app.providers.etf_holdings_internal import ETFHoldingsInternalProvider
 from app.providers.finra import FINRAProvider
 from app.providers.finra_otc_directory import FINRAOTCDirectoryProvider
+from app.providers.frankfurter import FrankfurterProvider
 from app.providers.fred import FREDProvider
 from app.providers.ibkr import IBKRProvider
 from app.providers.massive import MassiveProvider
@@ -101,6 +102,7 @@ _PROVIDERS: dict[str, ProviderDescriptor] = {
     "coingecko": CoinGeckoProvider(),  # Crypto metadata and discovery
     "coinbase": CoinbaseProvider(),  # Keyless public crypto exchange data
     "kraken": KrakenProvider(),  # Keyless public crypto exchange data
+    "frankfurter": FrankfurterProvider(),  # Keyless daily FX reference rates and pairs
     "edgar": EdgarProvider(),  # US company profile and earnings history
     "etf_holdings_internal": ETFHoldingsInternalProvider(),
     # Explicit legacy / supplementary compatibility only.  This provider is
@@ -218,6 +220,8 @@ _PROVIDER_INSTRUMENT_KINDS: dict[str, frozenset[str]] = {
     "kraken": frozenset({"crypto", "cryptocurrency", "crypto_spot", "future"}),
     "coingecko": frozenset({"crypto", "cryptocurrency", "crypto_spot"}),
     "fred": frozenset({"macro", "currency", "forex", "fixed_income"}),
+    # Daily reference rates for currency pairs only ("Currency"/"Forex Pair").
+    "frankfurter": frozenset({"forex", "currency", "forex_pair"}),
     "openfigi": frozenset(
         {
             "equity",
@@ -260,6 +264,8 @@ _RAW_HISTORY_ONLY_PROVIDERS = frozenset(
         "binance",
         "coinbase",
         "kraken",
+        # Central-bank FX reference fixings have no split/dividend surface.
+        "frankfurter",
     }
 )
 
