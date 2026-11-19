@@ -413,6 +413,7 @@ dependency for the baseline. Sources: [FINRA Symbol Directory](https://otce.finr
 | Binance | public crypto OHLCV, ticker, USDT universe, native request-weight usage snapshot | none | Current Spot REST documentation exposes a 6,000 request-weight/min IP ceiling. Adapter operations use documented weights: single-symbol price 2 and exchange-info discovery 20. Historical OHLCV costs weight 2 per 1,000-candle page; the requested range is conservatively paged and reserved before execution. The bounded `/api/v3/time` account-usage probe reads `X-MBX-USED-WEIGHT-1M` and proves the current fixed-minute counter; response `Retry-After`/weight headers are retained on capacity failures | IP / fixed minute; 429/418 protection | exact-weight price/discovery and bounded historical operations remain baseline-gated until the native usage probe establishes the active fixed-minute window; no empty-ledger assumption. No per-provider owner storage approval is required; provider API terms and usage limits remain applicable. |
 | Coinbase Exchange | public crypto candles, ticker, USD products | none | 10 public requests/sec, burst up to 15; candle responses cap at 300 bars | IP / lazy-fill token bucket | Owner's explicit provider-terms risk decision applies to private use. History, quote, and USD-products cases are in the live manifest. Coinbase publishes no current bucket-usage endpoint, so the durable coordinator tracks this app's usage across sessions; it does not represent unrelated traffic sharing the IP. |
 | Kraken | public crypto OHLC, ticker, USD pairs | none | Kraken says public REST calls at 1 request/second or slower should stay within limits; OHLC/Trades are limited by IP and pair, other public endpoints by IP; REST OHLC returns at most the most recent 720 data points and does not provide older history through pagination | IP / pair / rolling | REST history follows the returned cursor for forward continuation; if a response hits the 720-row cap before the requested start, the adapter now errors instead of returning incomplete history as complete. Live probes are paced at 1.1 seconds and the durable coordinator accounts for this application's calls only; it cannot observe unrelated traffic sharing the egress IP. The required bounded live case covers a recent D1 window. Kraken publishes full-history OHLCVT ZIP archives from each pair's first trade plus quarterly incremental archives; a durable archive downloader/importer is still required for deep Kraken history. Sources: [Kraken public rate-limit guidance](https://support.kraken.com/articles/206548367-what-are-the-api-rate-limits-), [Kraken 720-point history limit and Trades alternative](https://support.kraken.com/in/articles/advanced-api-faq), [downloadable OHLCVT full-history archives](https://support.kraken.com/au/articles/360047124832-downloadable-historical-ohlcvt-open-high-low-close-volume-trades-data) |
+| Frankfurter | daily FX reference rates (D1 history, latest pair rate) and CURRENCY pair discovery from the currency list | none | The [Frankfurter docs](https://frankfurter.dev/docs) state there are no quotas and no monthly or daily caps; requests are rate-limited only to prevent abuse (no number published). The seed therefore uses a self-imposed application ceiling of 60 requests/minute. History is one `/v2/rates` request per ten-year single-pair range (exact estimate supplied per call); latest rate and currency list are one request each | IP / rolling, application usage only (`local_zero`) | Keyless; no routing gate because the docs say blended rates are free to use including commercially and that storing daily observations locally is encouraged (reviewed 2026-11-19). Uses the current v2 API; v1 is deprecated upstream. Adapter reads were verified live on 2026-11-19 from a shell smoke; the runner case is `test_frankfurter_keyless_fx_reference_rates`. |
 | CoinGecko Demo | crypto search, metadata, market-cap universe | `COINGECKO_API_KEY`; configure `COINGECKO_REVIEWED_PLAN` per account | Current Demo pricing lists 100 calls/min and 10,000 calls/month; each successful request consumes one monthly credit, every request including failures consumes minute capacity, and monthly credits reset on the first UTC calendar day ([pricing](https://www.coingecko.com/en/api/pricing), [credit accounting](https://support.coingecko.com/hc/en-us/articles/13962109374489-How-does-CoinGecko-API-count-the-API-usage-credit), [reset](https://support.coingecko.com/hc/en-us/articles/16760509234713-When-does-my-request-volume-monthly-API-credit-reset)). CoinGecko's `/key` usage endpoint is Pro-only; the configured Demo key returned HTTP 401, error code 10005. The app does not retry it and does not advertise account usage for Demo. An older 2023 public-API article says 30/min for Demo; current plan pricing says 100/min ([older public-API article](https://support.coingecko.com/hc/en-us/articles/4538771776153-What-is-the-rate-limit-for-CoinGecko-API-public-plan)) | Demo API key / provider minute boundary unspecified; rolling 60-second application safety window and UTC calendar-month credit pool | Durable coordinator tracks this application's attempted minute requests and successful monthly credits; these are app-observed counters, not provider-reported totals. Runtimes sharing the key must share the coordinator or reconcile external usage. `/key` account usage becomes available only when the configured plan is changed to an entitled Pro tier. Provider terms remain informational under the owner's explicit private-use risk decision; technical quota/capability checks remain enforced |
 | FINRA | consolidated short interest (OAuth Query API), OTC Daily List lifecycle/corporate-action deltas, and generic asynchronous Query API jobs | `FINRA_CLIENT_ID`, `FINRA_CLIENT_SECRET` | 1,200 synchronous requests/minute/IP; 20 asynchronous submissions/minute/dataset/account; max 5,000 records and a published 3 MB per-response synchronous ceiling. Short interest reserves two HTTP requests (cold OAuth + data) and 3,000,000 data bytes. Daily List reserves three HTTP requests (cold OAuth + partition index + data page) and 6,000,000 data bytes. Measured request/byte totals replace those upper-bound reservations after each operation. The public credential publishes a 10 GB monthly allowance and disables the credential until the first day of the following month. The native reset timezone and byte convention remain unconfirmed, so the provider-defined label is retained for audit while a conservative provider-scoped rolling 31-day safety envelope protects admission | OAuth client / IP + dataset/account + provider-defined monthly public-credential byte window with rolling 31-day application safety envelope; native reset boundary remains unresolved | synchronous datasets live-proven; async submit/poll/presigned-download remains an optional fail-closed transport helper rather than an admitted independent data capability |
 | FINRA OTC data | Complete OTC Symbol Directory roster through Query API `otcSecurityMaster`; Daily List additions/deletions/symbol-name changes/corporate actions; optional ORF active/inactive masters | Query API: `FINRA_CLIENT_ID`, `FINRA_CLIENT_SECRET`; optional ORF: assigned TRAQS username, refresh token, and durable token-state file | 1,200 synchronous requests/minute/IP; 5,000 records/request; 3 MB maximum synchronous response; public credentials allow 10 GB downloaded/month. FINRA caps `offset` at 500,000, so larger datasets require filtered tranches rather than truncation. | Query API request pool is IP-scoped; the public-credential byte pool is account-scoped and shared with other FINRA Query API operations. The app uses a conservative durable rolling 31-day byte window because FINRA does not publish the native monthly reset boundary. | Live-proven on 2026-10-10: 18,017/18,017 unique symbols, four pages, stable partition date. The public Symbol Directory uses this same Query API; its four stable-key sorted pages matched the archived provider snapshot exactly, so this is pagination cross-check evidence, not independent-source corroboration. Every obtained raw page is committed before fetching its successor; duplicates, changing totals/dates, premature endings, and partial snapshots fail closed. Combined daily NMS/OTC reconciliation is scheduled for 21:00 UTC and enabled by default in Compose (`MARKET_UNIVERSE_RECONCILIATION_ENABLED=true`); verify target overrides and runtime health separately. This is distinct from the broad OHLCV refresh, disabled by default. ORF is optional and has a separate, unresolved product quota/access profile. Sources: [Symbol Directory](https://otce.finra.org/otce/symbol-directory), [Query API limits](https://developer.finra.org/docs), [Getting Started](https://developer.finra.org/node/1146). |
@@ -1646,6 +1647,58 @@ one-weight `/api/v3/time` call and accepts only the provider's native
 `X-MBX-USED-WEIGHT-1M` counter plus the reviewed 6,000-weight ceiling and next
 UTC-minute reset. Missing or malformed headers remain non-reconcilable; the
 client never treats an empty local ledger as zero Binance usage.
+
+---
+
+### Frankfurter (`frankfurter`)
+
+**Website**: [frankfurter.dev](https://frankfurter.dev)
+**Auth**: None — public keyless API (`https://api.frankfurter.dev/v2`)
+**Free tier**: ✓ — free to use, including commercially, with no quotas
+
+**Capabilities**
+
+| Capability           | Detail                                                        |
+|----------------------|---------------------------------------------------------------|
+| `price_history`      | D1 only; one bar per daily reference fixing, Monday-Friday    |
+| `latest_price`       | Latest blended rate for one pair (`/v2/rate/{base}/{quote}`)  |
+| `universe_discovery` | `CURRENCY` pairs built from `/v2/currencies`                  |
+
+**Data**: blended daily mid-market reference rates that Frankfurter computes
+from central banks and other official sources. Per-source endpoints
+(`/v2/providers/{key}/...`) remain under each source's own terms and are not
+used. These are reference rates, not live market quotes. Bars are
+`open = high = low = close = rate` with no volume, stored raw
+(`is_adjusted=False`, `adjustment_basis="raw"`); the provider is in the
+raw-history-only set because FX fixings have no adjustment surface. Blended
+rates also exist on weekends (a few sources publish then); the adapter drops
+Saturday and Sunday observations so daily bars follow the Monday-Friday FX
+week. W1/MN are derived from D1 elsewhere and are rejected by the adapter.
+
+**Symbol convention**: canonical and provider symbol are the six-letter ISO
+pair `<BASE><QUOTE>` with no separator (`EURUSD`, `USDJPY`), the value being
+quote units per one base unit. `EUR/USD`, `EUR-USD`, and `EURUSD=X` normalise
+to the same pair, matching `instrument_mastering._parse_forex_pair`.
+
+**Discovery**: every non-legacy fiat currency in `/v2/currencies` against
+USD, plus the 21 crosses among EUR, GBP, JPY, CHF, AUD, CAD, and NZD (181
+pairs on 2026-11-19). Metals and crypto assets in the listing are excluded.
+Pairs follow the interbank quoting priority
+`EUR > GBP > AUD > NZD > USD > CAD > CHF > JPY > others`, so the feed yields `EURUSD`, `GBPUSD`, `AUDUSD`, and
+`NZDUSD` but `USDJPY`, `USDCHF`, `USDCAD`, and `USD<XXX>` for every other
+currency. Rows use `quoteType="CURRENCY"` (instrument type Currency / Forex
+Pair), `currency` = quote currency, and the non-MIC venue label `Frankfurter`
+(the same way Coinbase/Kraken rows carry their exchange name), so listings
+have no exchange. The daily `reconcile_us_universe` run invokes it through
+`supported_discovery_types()` with no quote-type filter.
+
+**Limits and history**: no published numeric limit. The quota seed is an
+application ceiling of 60 requests/minute (IP scope, `local_zero`,
+application usage only). The entitlement history bound is `1948-06-21`, the
+earliest `start_date` in the currency list (USD); most pairs start later
+(the ECB set starts 1999-01-04) and Frankfurter returns only available days.
+Ranges are split into ten-year single-pair requests and reserved exactly by
+`estimate_frankfurter_ohlcv_request_count`.
 
 ---
 

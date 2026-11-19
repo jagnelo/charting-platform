@@ -1480,6 +1480,7 @@ def test_bounded_manifest_cost_overrides_cover_response_paged_cases():
         },
         "fred": {"get_current_price": 1},
         "kraken": {"fetch_ohlcv": 1, "fetch_latest_ohlcv": 1},
+        "frankfurter": {"fetch_ohlcv": 1, "fetch_latest_ohlcv": 1},
         "massive": {
             "fetch_instrument_events": 2,
             "fetch_market_events": 2,

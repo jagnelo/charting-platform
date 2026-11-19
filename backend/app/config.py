@@ -338,8 +338,11 @@ class Settings(BaseSettings):
         # authenticated asset object is provider-native listing metadata and
         # does not itself establish a cross-provider identity.
         "instrument_metadata": ["edgar", "massive", "alpaca"],
-        "price_history": ["alpaca", "alpha_vantage"],
-        "latest_price": ["alpaca", "alpha_vantage"],
+        # Frankfurter is admitted only for Currency/Forex Pair instruments
+        # (``_PROVIDER_INSTRUMENT_KINDS``); listing it last leaves the
+        # equity providers' base priorities unchanged.
+        "price_history": ["alpaca", "alpha_vantage", "frankfurter"],
+        "latest_price": ["alpaca", "alpha_vantage", "frankfurter"],
         # Alpha Vantage's EARNINGS endpoint is a final corroborating fallback;
         # its free key is deliberately last because the allowance is only
         # 25 requests/day and the earlier providers cover richer US event
@@ -359,6 +362,8 @@ class Settings(BaseSettings):
             "cta_plan",
             "finra_otc_directory",
             "alpha_vantage",
+            # CURRENCY-only discovery of FX pairs from the Frankfurter list.
+            "frankfurter",
         ],
         "tokenized_assets": [
             "robinhood_tokens",
@@ -1020,6 +1025,40 @@ class Settings(BaseSettings):
             },
             "quota_scope": "ip",
             "quota_source": "Kraken REST rate-limit documentation",
+        },
+        "frankfurter": {
+            "quota_contract": {
+                "dimensions": [
+                    {
+                        "name": "public_requests_per_minute",
+                        "limit": 60,
+                        "window_seconds": 60,
+                        "unit": "requests",
+                        "scope": "ip",
+                        "quota_group": "ip",
+                        "source": "https://frankfurter.dev/docs",
+                        # Frankfurter documents "no quotas" and no monthly or
+                        # daily caps; requests are rate-limited only to
+                        # prevent abuse, without a published number. This
+                        # one-request-per-second average is a conservative
+                        # application ceiling, not a vendor allowance, and the
+                        # durable coordinator counts only this application's
+                        # calls from the shared egress IP.
+                        "limit_basis": (
+                            "application_policy: self-imposed ceiling; provider publishes "
+                            "no numeric limit and rate-limits only against abuse"
+                        ),
+                        "baseline_mode": "local_zero",
+                        "application_usage_only": True,
+                    }
+                ],
+                "reset": "rolling",
+            },
+            "quota_scope": "ip",
+            "quota_source": (
+                "Frankfurter API documentation (no quotas; abuse rate limiting only); "
+                "60 requests/minute is application policy"
+            ),
         },
         "xstocks": {
             "quota_contract": {
@@ -1890,6 +1929,18 @@ class Settings(BaseSettings):
                 "discover_universe_page": 1,
             },
         },
+        # ``/v2/rate/{base}/{quote}`` and ``/v2/currencies`` are one request
+        # each. History is one request per ten-year single-pair range, so its
+        # range-dependent count is supplied by
+        # ``estimate_frankfurter_ohlcv_request_count`` rather than fixed here.
+        "frankfurter": {
+            "mode": "call_count",
+            "unit_label": "requests",
+            "operation_costs": {
+                "get_current_price": 1,
+                "discover_universe_page": 1,
+            },
+        },
         "finra": {
             "mode": "multi_dimensional",
             "unit_label": "requests",
@@ -2363,6 +2414,40 @@ class Settings(BaseSettings):
             "venue_coverage": "Kraken crypto pairs",
             "freshness_semantics": "Public exchange endpoint response",
         },
+        "frankfurter": {
+            "configured_plan": "public-keyless-api",
+            "is_free": True,
+            "authentication_required": False,
+            # Reviewed 2026-11-19 at https://frankfurter.dev/docs: "There are
+            # no quotas"; storing daily observations locally "is encouraged";
+            # blended rates are Frankfurter's own calculation and free to use,
+            # including commercially. Direct per-source endpoints stay subject
+            # to each source's terms and are not used by the adapter.
+            "usage_terms": (
+                "Frankfurter blended reference rates are free to use, including commercially, "
+                "with no quotas; local storage of daily observations is encouraged; abuse "
+                "rate limiting applies. Per-source endpoints (not used) keep each source's "
+                "terms. Reference rates, not live market quotes. Reviewed 2026-11-19: "
+                "https://frankfurter.dev/docs"
+            ),
+            "history_depth": (
+                "Daily blended rates from each currency's first listed observation; the "
+                "earliest listed start is 1948-06-21 (USD) and the ECB set starts 1999-01-04"
+            ),
+            "quota_policy": {
+                "history_constraints": {
+                    "earliest_date": "1948-06-21",
+                    "source": "https://api.frankfurter.dev/v2/currencies",
+                },
+            },
+            "venue_coverage": (
+                "Fiat currency pairs against USD plus major crosses; central-bank and official "
+                "reference fixings, not a trading venue"
+            ),
+            "freshness_semantics": (
+                "Daily reference rates updated as sources publish; Monday-Friday bars"
+            ),
+        },
         "coingecko": {
             "configured_plan": "free-demo",
             "is_free": True,
@@ -2629,6 +2714,11 @@ class Settings(BaseSettings):
         "binance": "passed",
         "coinbase": "passed",
         "kraken": "passed",
+        # Keyless adapter reads (latest bars, D1 range, single-pair rate,
+        # CURRENCY discovery: 181 pairs) succeeded live in four requests on
+        # 2026-11-19 from a bounded shell smoke, not the live runner; the
+        # runner case is test_frankfurter_keyless_fx_reference_rates.
+        "frankfurter": "passed",
         "nasdaq": "passed",
         "cta_plan": "not_run",
         "fred": "passed",
