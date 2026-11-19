@@ -37,7 +37,7 @@ from app.services.derived_timeframes import (
     refresh_derived_timeframe_if_needed,
 )
 from app.services.etf_consumer_types import is_placeholder_symbol
-from app.services.market_data import fetch_ohlcv
+from app.services.market_data import _is_definitive_no_data, fetch_ohlcv
 from app.services.market_data_monitoring import build_shadow_report
 from app.services.market_refresh_queue import (
     DEPENDENCY_PENDING_ERROR,
@@ -1909,7 +1909,8 @@ async def _plan_and_fetch_history_chunk(
     priority: int,
     redis,
 ):
-    """Plan and fetch one chunk, skipping candidates only on proven pre-send denial.
+    """Plan and fetch one chunk, moving to another candidate on proven pre-send
+    denial or a definitive empty answer.
 
     Only an unpinned deepest-history request may try another candidate. Bounded
     requests and continuations stay on their chosen source. ProviderRateLimitError,
@@ -1926,6 +1927,7 @@ async def _plan_and_fetch_history_chunk(
     )
     excluded_provider_names: set[str] = set()
     last_denial: ProviderQuotaAdmissionError | None = None
+    last_no_data: tuple | None = None
     while True:
         (
             chunk_plan,
@@ -1949,6 +1951,9 @@ async def _plan_and_fetch_history_chunk(
                 # denied. A different candidate's unresolved baseline does not
                 # authorize an unsafe switch or erase that temporary retry.
                 raise last_denial
+            if last_no_data is not None and chunk_plan[5]:
+                # Every admitted candidate already answered with no bars.
+                return last_no_data
             return (
                 chunk_plan,
                 candidate_preparation,
@@ -1960,6 +1965,8 @@ async def _plan_and_fetch_history_chunk(
         if not source_provider or source_provider in excluded_provider_names:
             if last_denial is not None:
                 raise last_denial
+            if last_no_data is not None:
+                return last_no_data
             return (
                 chunk_plan,
                 candidate_preparation,
@@ -2025,6 +2032,26 @@ async def _plan_and_fetch_history_chunk(
                         )
         except ProviderNoDataError as exc:
             candidate_preparation["provider_no_data_reason"] = _provider_no_data_reason(exc)
+            if (
+                may_select_alternative
+                and _is_definitive_no_data(exc)
+                and source_provider not in excluded_provider_names
+            ):
+                # Nothing is pinned yet, so no series lineage exists to keep.
+                # A provider that definitively has no bars for this instrument
+                # must not end the request while another admitted source may
+                # have them: try the next candidate, and remember this empty
+                # answer in case none of them has data either.
+                excluded_provider_names.add(source_provider)
+                last_no_data = (
+                    chunk_plan,
+                    candidate_preparation,
+                    usage_job,
+                    usage_hold,
+                    native_hold,
+                    [],
+                )
+                continue
             bars = []
         except ProviderQuotaAdmissionError as exc:
             if not may_select_alternative or not _is_pretransport_history_quota_denial(

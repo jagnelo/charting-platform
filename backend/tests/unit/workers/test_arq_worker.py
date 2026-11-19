@@ -562,6 +562,11 @@ def test_market_universe_reconciliation_cron_is_daily_and_flag_guarded(monkeypat
         assert len(matching_jobs) == 1
         assert matching_jobs[0].hour == 21
         assert matching_jobs[0].minute == 0
+        assert matching_jobs[0].timeout_s == arq_worker.UNIVERSE_RECONCILIATION_TIMEOUT_SECONDS
+        assert (
+            arq_worker.UNIVERSE_RECONCILIATION_TIMEOUT_SECONDS
+            > arq_worker.WorkerSettings.job_timeout
+        )
     finally:
         for name, value in original_values.items():
             monkeypatch.setattr(settings, name, value)
