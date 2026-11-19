@@ -264,16 +264,22 @@ _RAW_HISTORY_ONLY_PROVIDERS = frozenset(
 )
 
 
-def provider_supports_adjustment(provider_name: str, adjusted: bool | None) -> bool:
+def provider_supports_adjustment(
+    provider_name: str,
+    adjusted: bool | None,
+    *,
+    identity_adjustment: bool = False,
+) -> bool:
     """Return whether a provider may serve the requested history adjustment.
 
     ``None`` means the caller has not expressed an adjustment requirement and
     therefore preserves legacy capability discovery.  Raw history is always
     admitted; adjusted history is denied for providers whose currently
-    supported endpoint/plan is explicitly raw-only.
+    supported endpoint/plan is explicitly raw-only, unless the instrument has
+    no corporate actions (``identity_adjustment``), where raw is adjusted.
     """
 
-    if adjusted is None or not adjusted:
+    if adjusted is None or not adjusted or identity_adjustment:
         return True
     return provider_name not in _RAW_HISTORY_ONLY_PROVIDERS
 

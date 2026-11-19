@@ -60,6 +60,10 @@ from app.services.market_data import (
     _record_bar_observations,
     _touch_ohlcv_dataset_state,
 )
+from app.services.market_series import (
+    instrument_has_identity_adjustment,
+    label_identity_adjusted,
+)
 from app.services.provider_runtime import (
     execute_provider_call,
     provider_history_bound_start,
@@ -366,6 +370,7 @@ async def _do_fetch_and_store(
         **({"fmp": fmp_cost} if fmp_cost is not None else {}),
         **({"tiingo": tiingo_cost} if tiingo_cost is not None else {}),
     }
+    identity_adjusted = adjusted and await instrument_has_identity_adjustment(db, instrument.id)
     execution = await execute_provider_call(
         db,
         ProviderCapability.PRICE_HISTORY,
@@ -382,13 +387,15 @@ async def _do_fetch_and_store(
             timeframe,
             history_start(provider.name),
             end,
-            adjusted=adjusted,
+            adjusted=adjusted and not identity_adjusted,
             instrument_id=instrument.id,
             data_source_id=0,
         ),
         response_items=lambda result: len(result),
         treat_empty_as_failure=False,
     )
+    if identity_adjusted:
+        label_identity_adjusted(execution.result)
     bars = _bars_through_end(execution.result, end)
     if not bars:
         await _touch_ohlcv_dataset_state(

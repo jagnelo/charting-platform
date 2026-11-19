@@ -9,6 +9,7 @@ transient provider outage therefore cannot delist the universe.
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import logging
 import re
@@ -267,6 +268,32 @@ def _authoritative_absence_scope(provider_name: str, quote_type: str) -> str | N
     ):
         return "US_OTC"
     return None
+
+
+# A discovery page refused by a short rolling window (for example EDGAR's
+# 10 requests/second shared with history and metadata work) clears within
+# seconds. Waiting it out keeps a multi-page universe scan intact instead of
+# deferring the whole provider until the next daily reconciliation. Longer
+# windows (daily/monthly allowances) still defer immediately.
+SHORT_QUOTA_WAIT_SECONDS = 120.0
+MAX_SHORT_QUOTA_WAITS_PER_PAGE = 20
+
+
+async def _call_waiting_out_short_quota_windows(call, *, now=None, sleep=None):
+    sleep = sleep or asyncio.sleep
+    waits = 0
+    while True:
+        try:
+            return await call()
+        except ProviderQuotaAdmissionError as exc:
+            retry_at = exc.retry_at
+            if retry_at is None or waits >= MAX_SHORT_QUOTA_WAITS_PER_PAGE:
+                raise
+            delay = (retry_at - (now() if now else _utc())).total_seconds()
+            if delay > SHORT_QUOTA_WAIT_SECONDS:
+                raise
+            waits += 1
+            await sleep(max(0.05, delay) + 0.05)
 
 
 async def _latest_deferred_massive_scan(
@@ -1789,17 +1816,19 @@ async def reconcile_us_universe(
                         def invoke_discovery(candidate, _symbol):
                             return candidate.discover_universe_page(quote_type, offset)
 
-                    execution = await execute_provider_call(
-                        db,
-                        ProviderCapability.UNIVERSE_DISCOVERY,
-                        f"reconcile_universe_page:{quote_type}:{offset}",
-                        provider_name=resolved.provider_name,
-                        invoke=invoke_discovery,
-                        response_items=lambda page: len(page.get("quotes") or []),
-                        # An empty terminal page is valid for cursor-based
-                        # feeds after at least one page, but an empty first
-                        # page is never accepted as a complete universe.
-                        treat_empty_as_failure=not bool(rows),
+                    execution = await _call_waiting_out_short_quota_windows(
+                        lambda: execute_provider_call(
+                            db,
+                            ProviderCapability.UNIVERSE_DISCOVERY,
+                            f"reconcile_universe_page:{quote_type}:{offset}",
+                            provider_name=resolved.provider_name,
+                            invoke=invoke_discovery,
+                            response_items=lambda page: len(page.get("quotes") or []),
+                            # An empty terminal page is valid for cursor-based
+                            # feeds after at least one page, but an empty first
+                            # page is never accepted as a complete universe.
+                            treat_empty_as_failure=not bool(rows),
+                        )
                     )
                     page = execution.result or {}
                     raw_source_files = page.get("source_files")
@@ -2068,8 +2097,16 @@ async def reconcile_us_universe(
                     if total is not None:
                         if offset >= total:
                             break
+                        if page_rows:
+                            # Offset paging is the discovery protocol's own
+                            # contract (``discover_universe_page(type, offset)``):
+                            # a provider that declares a total without a cursor
+                            # is asked for the next offset. Repeated rows still
+                            # fail the duplicate-listing check above.
+                            cursor = next_cursor
+                            continue
                         raise ValueError(
-                            "discovery provider omitted pagination before declared total"
+                            "discovery provider returned an empty page before declared total"
                         )
                     if page.get("complete") is True:
                         break

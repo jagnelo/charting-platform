@@ -183,6 +183,11 @@ class TestRegistryCapabilities:
         assert provider_supports_adjustment("alpha_vantage", False) is True
         assert provider_supports_adjustment("alpha_vantage", None) is True
 
+    def test_raw_only_providers_serve_adjusted_history_without_corporate_actions(self):
+        for provider in ("binance", "coinbase", "kraken", "twelve_data"):
+            assert provider_supports_adjustment(provider, True, identity_adjustment=True) is True
+            assert provider_supports_adjustment(provider, True, identity_adjustment=False) is False
+
     def test_alpaca_capabilities(self):
         caps = set(list_provider_capabilities("alpaca"))
         assert "account_usage" in caps

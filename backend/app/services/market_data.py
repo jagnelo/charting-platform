@@ -91,6 +91,8 @@ from app.services.market_series import (
     SeriesScope,
     adjustment_scope_predicate,
     get_or_create_series,
+    instrument_has_identity_adjustment,
+    label_identity_adjusted,
 )
 from app.services.ohlcv_coverage import (
     assess_ohlcv_coverage,
@@ -1306,6 +1308,7 @@ async def _fetch_provider(
     provider_name: str | None = None,
 ) -> list[OHLCVBar]:
     operation_cost_overrides = ohlcv_operation_cost_overrides(timeframe, start, end)
+    identity_adjusted = adjusted and await instrument_has_identity_adjustment(db, instrument.id)
     execution = await execute_provider_call(
         db,
         ProviderCapability.PRICE_HISTORY,
@@ -1324,13 +1327,15 @@ async def _fetch_provider(
             timeframe,
             start,
             end,
-            adjusted=adjusted,
+            adjusted=adjusted and not identity_adjusted,
             instrument_id=instrument.id,
             data_source_id=0,
         ),
         response_items=lambda result: len(result),
         treat_empty_as_failure=True,
     )
+    if identity_adjusted:
+        label_identity_adjusted(execution.result)
     provider_symbol = provider_symbol_for_instrument(instrument, execution.provider_name)
     bars = await _attach_provider_series(
         db,
@@ -1868,6 +1873,7 @@ async def _fetch_provider_latest(
 
         return get_provider(provider_name).latest_window_start(timeframe, limit)
 
+    identity_adjusted = adjusted and await instrument_has_identity_adjustment(db, instrument.id)
     execution = await execute_provider_call(
         db,
         ProviderCapability.PRICE_HISTORY,
@@ -1884,13 +1890,15 @@ async def _fetch_provider_latest(
             provider_symbol_for_instrument(instrument, provider.name),
             timeframe,
             limit,
-            adjusted=adjusted,
+            adjusted=adjusted and not identity_adjusted,
             instrument_id=instrument.id,
             data_source_id=0,
         ),
         response_items=lambda result: len(result),
         treat_empty_as_failure=True,
     )
+    if identity_adjusted:
+        label_identity_adjusted(execution.result)
     bars = execution.result[-limit:] if len(execution.result) > limit else execution.result
     bars = await _attach_provider_series(
         db,

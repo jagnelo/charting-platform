@@ -70,6 +70,7 @@ from app.providers.errors import (
 )
 from app.providers.telemetry import activate as activate_provider_telemetry
 from app.providers.telemetry import deactivate as deactivate_provider_telemetry
+from app.services.market_series import asset_class_has_identity_adjustment
 from app.services.provider_support import (
     SUPPORT_STATUS_SUPPORTED,
     SUPPORT_STATUS_UNKNOWN,
@@ -3999,7 +4000,12 @@ async def resolve_provider_chain(
             # admit synthetic provider responses to normal persistence paths.
             continue
         if capability == ProviderCapability.PRICE_HISTORY and not provider_supports_adjustment(
-            data_source.name, adjusted
+            data_source.name,
+            adjusted,
+            identity_adjustment=(
+                instrument_routing is not None
+                and asset_class_has_identity_adjustment(instrument_routing[0])
+            ),
         ):
             continue
         if capability == ProviderCapability.PRICE_HISTORY and history_start is not None:

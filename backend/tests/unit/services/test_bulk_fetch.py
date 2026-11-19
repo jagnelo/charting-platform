@@ -209,7 +209,11 @@ async def test_bulk_fetch_attaches_provider_series_before_persisting(monkeypatch
         async def commit(self):
             calls["committed"] = True
 
+    async def _equity_adjustment(*_args, **_kwargs):
+        return False
+
     monkeypatch.setattr(bulk_fetch, "execute_provider_call", _fake_execute)
+    monkeypatch.setattr(bulk_fetch, "instrument_has_identity_adjustment", _equity_adjustment)
     monkeypatch.setattr(bulk_fetch, "_attach_provider_series", _fake_attach)
     monkeypatch.setattr(bulk_fetch, "_existing_timestamps", _fake_existing)
     monkeypatch.setattr(bulk_fetch, "_record_bar_observations", _fake_record)
