@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -32,6 +33,21 @@ _OPENFIGI_ID_TYPES = {
     "sedol": "ID_SEDOL",
     "ticker": "TICKER",
 }
+
+
+@dataclass(frozen=True, slots=True)
+class OpenFigiTickerMapping:
+    """One job's outcome from a batched US-ticker mapping request."""
+
+    ticker: str
+    status: str  # matched | no_match | ambiguous | error
+    composite_figi: str | None = None
+    share_class_figi: str | None = None
+    name: str | None = None
+    security_type: str | None = None
+    security_type2: str | None = None
+    detail: str | None = None
+    raw_row: dict[str, Any] = field(default_factory=dict)
 
 
 class OpenFigiProvider:
@@ -175,9 +191,109 @@ class OpenFigiProvider:
         results, _, _ = self._mapping_request(payload)
         return results
 
+    def map_us_tickers(self, tickers: list[str]) -> list[OpenFigiTickerMapping]:
+        """Map US tickers to their US composite FIGI in one mapping request.
+
+        One HTTP request carries every job (callers size the batch from the
+        reviewed ``max_jobs_per_request`` contract), so it costs exactly one
+        unit of the mapping request-rate pool. Each job asks for the
+        Bloomberg US composite (``exchCode=US``) equity listing; a job is
+        ``matched`` only when exactly one composite FIGI is returned for that
+        exact ticker. Per-job warnings (no FIGI) and errors stay per-job.
+        """
+
+        normalized = [str(ticker or "").strip().upper() for ticker in tickers]
+        if not normalized or any(not ticker for ticker in normalized):
+            raise ValueError("OpenFIGI US ticker mapping requires non-blank tickers")
+        payload = [
+            {
+                "idType": _OPENFIGI_ID_TYPES["ticker"],
+                "idValue": ticker,
+                "exchCode": "US",
+                "marketSecDes": "Equity",
+            }
+            for ticker in normalized
+        ]
+        raw_payload, _headers = self._post_mapping(payload)
+        if not isinstance(raw_payload, list) or len(raw_payload) != len(payload):
+            raise ProviderResponseError(self.name, "OpenFIGI returned an invalid mapping response")
+        mappings: list[OpenFigiTickerMapping] = []
+        for ticker, item in zip(normalized, raw_payload, strict=True):
+            if not isinstance(item, dict):
+                raise ProviderResponseError(self.name, "OpenFIGI returned an invalid mapping job")
+            if "data" not in item:
+                detail = str(item.get("warning") or item.get("error") or "").strip()
+                mappings.append(
+                    OpenFigiTickerMapping(
+                        ticker=ticker,
+                        status="no_match" if "warning" in item else "error",
+                        detail=redact_provider_message(detail)[:200] or None,
+                    )
+                )
+                continue
+            rows = item["data"]
+            if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
+                raise ProviderResponseError(self.name, "OpenFIGI returned invalid mapping rows")
+            exact = [
+                row
+                for row in rows
+                if str(row.get("ticker") or "").strip().upper() == ticker
+                and str(row.get("exchCode") or "").strip().upper() == "US"
+                and str(row.get("compositeFIGI") or "").strip()
+            ]
+            composites = {str(row["compositeFIGI"]).strip().upper() for row in exact}
+            if not composites:
+                mappings.append(OpenFigiTickerMapping(ticker=ticker, status="no_match"))
+                continue
+            if len(composites) != 1:
+                mappings.append(
+                    OpenFigiTickerMapping(
+                        ticker=ticker,
+                        status="ambiguous",
+                        detail=f"{len(composites)} US composite FIGIs",
+                    )
+                )
+                continue
+            composite = next(iter(composites))
+            row = next(
+                (
+                    candidate
+                    for candidate in exact
+                    if str(candidate.get("figi") or "").strip().upper() == composite
+                ),
+                exact[0],
+            )
+            mappings.append(
+                OpenFigiTickerMapping(
+                    ticker=ticker,
+                    status="matched",
+                    composite_figi=composite,
+                    share_class_figi=str(row.get("shareClassFIGI") or "").strip().upper() or None,
+                    name=str(row.get("name") or "").strip() or None,
+                    security_type=str(row.get("securityType") or "").strip() or None,
+                    security_type2=str(row.get("securityType2") or "").strip() or None,
+                    raw_row=dict(row),
+                )
+            )
+        return mappings
+
     def _mapping_request(
         self, payload: list[dict[str, str]]
     ) -> tuple[list[list[dict[str, Any]]], dict[str, str], list[dict[str, Any]]]:
+        raw_payload, response_capacity_headers = self._post_mapping(payload)
+        if not isinstance(raw_payload, list) or len(raw_payload) != len(payload):
+            raise ProviderResponseError(self.name, "OpenFIGI returned an invalid mapping response")
+        results: list[list[dict[str, Any]]] = []
+        for item in raw_payload:
+            if not isinstance(item, dict) or "data" not in item:
+                raise ProviderResponseError(self.name, "OpenFIGI omitted mapping data")
+            rows = item["data"]
+            if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
+                raise ProviderResponseError(self.name, "OpenFIGI returned invalid mapping rows")
+            results.append(rows)
+        return results, response_capacity_headers, raw_payload
+
+    def _post_mapping(self, payload: list[dict[str, str]]) -> tuple[Any, dict[str, str]]:
         headers = {"Content-Type": "application/json"}
         if settings.OPENFIGI_API_KEY:
             headers["X-OPENFIGI-APIKEY"] = settings.OPENFIGI_API_KEY
@@ -233,17 +349,7 @@ class OpenFigiProvider:
         raise_for_provider_error_envelope(
             self.name, raw_payload, response.status_code, headers=response_capacity_headers
         )
-        if not isinstance(raw_payload, list) or len(raw_payload) != len(payload):
-            raise ProviderResponseError(self.name, "OpenFIGI returned an invalid mapping response")
-        results: list[list[dict[str, Any]]] = []
-        for item in raw_payload:
-            if not isinstance(item, dict) or "data" not in item:
-                raise ProviderResponseError(self.name, "OpenFIGI omitted mapping data")
-            rows = item["data"]
-            if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
-                raise ProviderResponseError(self.name, "OpenFIGI returned invalid mapping rows")
-            results.append(rows)
-        return results, response_capacity_headers, raw_payload
+        return raw_payload, response_capacity_headers
 
     def _identifier_records_from_mapping(
         self,
