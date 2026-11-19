@@ -3454,6 +3454,11 @@ def _arm_seed_memo(db: AsyncSession, engine: Any, fingerprint: str) -> None:
     sync_session.info["provider_runtime_seed_hooked"] = True
 
     def _after_commit(session: Any) -> None:
+        # SQLAlchemy also fires after_commit when a SAVEPOINT is released; the
+        # enclosing transaction can still roll the seed back, so only the
+        # root commit may arm the memo.
+        if session.in_nested_transaction():
+            return
         pending = session.info.pop(_SEED_MEMO_PENDING_KEY, None)
         if pending is not None:
             pending_engine, pending_fingerprint, pending_started = pending

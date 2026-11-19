@@ -82,6 +82,27 @@ def test_savepoint_rollback_does_not_arm_memo(engine) -> None:
         assert _statements_for(session, counter) > 500
 
 
+def test_savepoint_release_before_outer_rollback_does_not_arm_memo(engine) -> None:
+    counter = _Counter(engine)
+    with sessionmaker(bind=engine)() as session:
+        _seed(session, commit=False)
+        nested = session.begin_nested()
+        nested.commit()
+        session.rollback()
+        assert session.scalar(select(func.count()).select_from(DataSource)) == 0
+        assert _statements_for(session, counter) > 500
+
+
+def test_seed_inside_released_savepoint_arms_memo_on_root_commit(engine) -> None:
+    counter = _Counter(engine)
+    with sessionmaker(bind=engine)() as session:
+        nested = session.begin_nested()
+        _seed(session, commit=False)
+        nested.commit()
+        session.commit()
+        assert _statements_for(session, counter) < 20
+
+
 def test_uncommitted_seed_does_not_arm_memo(engine) -> None:
     counter = _Counter(engine)
     with sessionmaker(bind=engine)() as session:
