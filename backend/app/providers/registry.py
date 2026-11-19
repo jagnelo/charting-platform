@@ -143,10 +143,12 @@ _PROVIDERS: dict[str, ProviderDescriptor] = {
 # instrument-type aliases because the database models distinguish, for
 # example, Equity/ETF from Derivative/Option.
 _PROVIDER_INSTRUMENT_KINDS: dict[str, frozenset[str]] = {
+    # Kinds must reflect what the adapter actually implements. The keyed REST
+    # adapters (Alpha Vantage, Tiingo, Twelve Data, Finnhub, EODHD, FMP) call
+    # equity endpoints only; advertising forex/crypto/futures would route those
+    # instruments to them and spend tight daily quotas on unanswerable calls.
     "alpaca": frozenset({"equity", "stock", "etf", "crypto", "cryptocurrency", "crypto_spot"}),
-    "alpha_vantage": frozenset(
-        {"equity", "stock", "etf", "forex", "currency", "crypto", "cryptocurrency"}
-    ),
+    "alpha_vantage": frozenset({"equity", "stock", "etf"}),
     "massive": frozenset({"equity", "stock", "etf"}),
     "edgar": frozenset({"equity", "stock", "etf", "reit", "mutual_fund", "closed_end_fund"}),
     "nasdaq": frozenset({"equity", "stock", "etf", "reit", "mutual_fund", "closed_end_fund"}),
@@ -155,22 +157,12 @@ _PROVIDER_INSTRUMENT_KINDS: dict[str, frozenset[str]] = {
     "finra_otc_directory": frozenset(
         {"equity", "stock", "etf", "reit", "mutual_fund", "closed_end_fund"}
     ),
-    "tiingo": frozenset(
-        {"equity", "stock", "etf", "forex", "currency", "crypto", "cryptocurrency"}
-    ),
-    "twelve_data": frozenset(
-        {"equity", "stock", "etf", "forex", "currency", "crypto", "cryptocurrency", "future"}
-    ),
-    "finnhub": frozenset(
-        {"equity", "stock", "etf", "forex", "currency", "crypto", "cryptocurrency"}
-    ),
+    "tiingo": frozenset({"equity", "stock", "etf"}),
+    "twelve_data": frozenset({"equity", "stock", "etf"}),
+    "finnhub": frozenset({"equity", "stock", "etf"}),
     "marketstack": frozenset({"equity", "stock", "etf"}),
-    "eodhd": frozenset(
-        {"equity", "stock", "etf", "forex", "currency", "crypto", "cryptocurrency", "future"}
-    ),
-    "fmp": frozenset(
-        {"equity", "stock", "etf", "forex", "currency", "crypto", "cryptocurrency", "future"}
-    ),
+    "eodhd": frozenset({"equity", "stock", "etf"}),
+    "fmp": frozenset({"equity", "stock", "etf"}),
     "tradier": frozenset({"equity", "stock", "etf", "option", "options"}),
     "marketdata_app": frozenset({"equity", "stock", "etf", "option", "options"}),
     # Tokenized assets are first-class instruments created by
