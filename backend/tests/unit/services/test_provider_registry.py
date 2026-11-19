@@ -6,6 +6,7 @@ from app.config import (
     alpaca_persistent_storage_authority_missing,
     alpha_vantage_persistent_storage_authority_missing,
     binance_persistent_storage_authority_missing,
+    bitstamp_market_data_use_authority_missing,
     bybit_xstocks_market_data_use_authority_missing,
     coinbase_market_data_use_authority_missing,
     coingecko_market_data_use_authority_missing,
@@ -179,6 +180,106 @@ def test_kraken_xstocks_entitlement_discloses_eea_api_and_live_coverage_limit():
         "2026-10-09 live AssetPairs read from Portugal returned no xStocks pairs"
         in (entitlement["venue_coverage"])
     )
+
+
+_BITSTAMP_SCOPE = (
+    "single_user_personal_noncommercial_automated_internal_persistent_archive_nonredistributed"
+)
+
+
+def test_bitstamp_routes_require_scoped_noncommercial_record_unless_owner_accepts_terms(
+    monkeypatch,
+):
+    monkeypatch.setattr(settings, "PROVIDER_OWNER_ACCEPTS_PROVIDER_TERMS_RISK", False)
+    for name, value in (
+        ("BITSTAMP_MARKET_DATA_USE_AUTHORIZED", False),
+        ("BITSTAMP_MARKET_DATA_USE_AUTHORITY_REFERENCE", ""),
+        ("BITSTAMP_MARKET_DATA_USE_AUTHORITY_SCOPE", ""),
+        ("BITSTAMP_MARKET_DATA_USE_REVIEWED_AT", None),
+        ("BITSTAMP_MARKET_DATA_USE_EXPIRES_AT", None),
+    ):
+        monkeypatch.setattr(settings, name, value)
+    controls = (
+        "BITSTAMP_MARKET_DATA_USE_AUTHORIZED",
+        "BITSTAMP_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+        "BITSTAMP_MARKET_DATA_USE_AUTHORITY_SCOPE",
+        "BITSTAMP_MARKET_DATA_USE_REVIEWED_AT",
+        "BITSTAMP_MARKET_DATA_USE_EXPIRES_AT",
+    )
+    assert provider_routing_control_settings("bitstamp") == controls
+    assert provider_missing_routing_controls("bitstamp") == list(controls[:4])
+    assert provider_missing_routing_controls("bitstamp", "fetch_ohlcv:D1") == list(controls[:4])
+
+    monkeypatch.setattr(settings, "BITSTAMP_MARKET_DATA_USE_AUTHORIZED", True)
+    monkeypatch.setattr(settings, "BITSTAMP_MARKET_DATA_USE_AUTHORITY_REFERENCE", "owner record")
+    monkeypatch.setattr(
+        settings, "BITSTAMP_MARKET_DATA_USE_AUTHORITY_SCOPE", "internal_persistent_archive"
+    )
+    monkeypatch.setattr(
+        settings, "BITSTAMP_MARKET_DATA_USE_REVIEWED_AT", datetime.now(UTC) - timedelta(minutes=1)
+    )
+    assert provider_missing_routing_controls("bitstamp") == [
+        "BITSTAMP_MARKET_DATA_USE_AUTHORITY_SCOPE"
+    ]
+    monkeypatch.setattr(settings, "BITSTAMP_MARKET_DATA_USE_AUTHORITY_SCOPE", _BITSTAMP_SCOPE)
+    assert provider_missing_routing_controls("bitstamp") == []
+
+    monkeypatch.setattr(settings, "BITSTAMP_MARKET_DATA_USE_AUTHORIZED", False)
+    monkeypatch.setattr(settings, "PROVIDER_OWNER_ACCEPTS_PROVIDER_TERMS_RISK", True)
+    assert provider_missing_routing_controls("bitstamp") == []
+
+
+def test_bitstamp_written_authority_review_and_expiry_are_enforced():
+    now = datetime.now(UTC)
+    authority = SimpleNamespace(
+        PROVIDER_OWNER_ACCEPTS_PROVIDER_TERMS_RISK=False,
+        BITSTAMP_MARKET_DATA_USE_AUTHORIZED=True,
+        BITSTAMP_MARKET_DATA_USE_AUTHORITY_REFERENCE="owner record",
+        BITSTAMP_MARKET_DATA_USE_AUTHORITY_SCOPE=_BITSTAMP_SCOPE,
+        BITSTAMP_MARKET_DATA_USE_REVIEWED_AT=now - timedelta(minutes=1),
+        BITSTAMP_MARKET_DATA_USE_EXPIRES_AT=now - timedelta(seconds=1),
+    )
+    assert bitstamp_market_data_use_authority_missing(now, source=authority) == [
+        "BITSTAMP_MARKET_DATA_USE_EXPIRES_AT"
+    ]
+    authority.BITSTAMP_MARKET_DATA_USE_EXPIRES_AT = None
+    assert bitstamp_market_data_use_authority_missing(now, source=authority) == []
+    authority.BITSTAMP_MARKET_DATA_USE_REVIEWED_AT = now + timedelta(minutes=1)
+    assert bitstamp_market_data_use_authority_missing(now, source=authority) == [
+        "BITSTAMP_MARKET_DATA_USE_REVIEWED_AT"
+    ]
+    authority.BITSTAMP_MARKET_DATA_USE_REVIEWED_AT = datetime(2026, 11, 19)
+    assert bitstamp_market_data_use_authority_missing(now, source=authority) == [
+        "BITSTAMP_MARKET_DATA_USE_REVIEWED_AT"
+    ]
+
+
+def test_bitstamp_is_a_raw_crypto_spot_history_provider():
+    capabilities = set(list_provider_capabilities("bitstamp"))
+    assert {"price_history", "latest_price", "universe_discovery", "crypto_history"} <= (
+        capabilities
+    )
+    assert "adjusted_price_history" not in capabilities
+    assert "account_usage" not in capabilities
+    assert get_provider("bitstamp").name == "bitstamp"
+    assert OPTIONAL_PROVIDER_DESCRIPTORS["bitstamp"].base_url == "https://www.bitstamp.net/api/v2"
+    assert provider_supports_instrument(
+        "bitstamp", asset_class="Cryptocurrency", instrument_type="Crypto Spot"
+    )
+    assert not provider_supports_instrument(
+        "bitstamp", asset_class="Equity", instrument_type="Stock"
+    )
+    assert get_provider_usage_profile("bitstamp")["operation_costs"] == {
+        "get_current_price": 1,
+        "discover_universe_page": 2,
+        "reconcile_universe_page": 2,
+    }
+    entitlement = settings.PROVIDER_ENTITLEMENT_SEEDS["bitstamp"]
+    assert entitlement["is_free"] is True
+    assert entitlement["authentication_required"] is False
+    assert "Data License Agreement" in entitlement["usage_terms"]
+    assert "non-commercial" in entitlement["usage_terms"]
+    assert settings.PROVIDER_LIVE_PROBE_STATUS_SEEDS["bitstamp"] == "passed"
 
 
 def test_kraken_written_authority_expiry_is_enforced():

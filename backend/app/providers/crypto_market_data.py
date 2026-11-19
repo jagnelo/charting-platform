@@ -1,14 +1,16 @@
-"""Keyless public crypto adapters for Coinbase Exchange and Kraken."""
+"""Keyless public crypto adapters for Coinbase Exchange, Kraken, and Bitstamp."""
 
 from __future__ import annotations
 
+import re
 from datetime import UTC, datetime, timedelta
-from math import ceil, isfinite
+from math import ceil, floor, isfinite
 from typing import Any
 
 import httpx
 
 from app.config import (
+    bitstamp_market_data_use_authority_missing,
     coinbase_market_data_use_authority_missing,
     kraken_market_data_use_authority_missing,
 )
@@ -49,6 +51,23 @@ def _require_raw_history(provider_name: str, adjusted: bool) -> None:
 
 _COINBASE_CANDLES_PER_REQUEST = 300
 _KRAKEN_CANDLES_PER_REQUEST = 720
+# Bitstamp documents ``limit`` as 1..1000 candles per OHLC request.
+_BITSTAMP_CANDLES_PER_REQUEST = 1000
+# Bitstamp's documented ``step`` choices are 60, 180, 300, 900, 1800, 3600,
+# 7200, 14400, 21600, 43200, 86400 and 259200 seconds; only the steps that
+# match a canonical timeframe are exposed. There is no weekly step.
+_BITSTAMP_STEP_SECONDS = {
+    Timeframe.M1: 60,
+    Timeframe.M5: 300,
+    Timeframe.M15: 900,
+    Timeframe.M30: 1800,
+    Timeframe.H1: 3600,
+    Timeframe.H2: 7200,
+    Timeframe.H4: 14400,
+    Timeframe.H12: 43200,
+    Timeframe.D1: 86400,
+}
+_BITSTAMP_MARKET_SYMBOL = re.compile(r"[a-z0-9]{2,40}")
 
 
 def _require_coinbase_market_data_authority() -> None:
@@ -65,6 +84,15 @@ def _require_kraken_market_data_authority() -> None:
     if missing:
         raise ProviderNotConfiguredError(
             "kraken market-data use lacks current, scoped written authority: " + ", ".join(missing)
+        )
+
+
+def _require_bitstamp_market_data_authority() -> None:
+    missing = bitstamp_market_data_use_authority_missing()
+    if missing:
+        raise ProviderNotConfiguredError(
+            "bitstamp market-data use lacks current, scoped written authority: "
+            + ", ".join(missing)
         )
 
 
@@ -124,6 +152,44 @@ def estimate_kraken_latest_ohlcv_request_count(timeframe: Timeframe, limit: int)
     return max(1, ceil(limit / _KRAKEN_CANDLES_PER_REQUEST))
 
 
+def _bitstamp_bucket_start(value: datetime, seconds: int) -> datetime:
+    """Return the start of the Bitstamp candle bucket containing ``value``.
+
+    Bitstamp answers ``start`` with the candle whose bucket contains it, so
+    every request window is anchored on an epoch-aligned bucket boundary.
+    """
+
+    epoch = floor(value.timestamp())
+    return datetime.fromtimestamp(epoch - (epoch % seconds), tz=UTC)
+
+
+def estimate_bitstamp_ohlcv_request_count(
+    timeframe: Timeframe, start: datetime, end: datetime
+) -> int | None:
+    """Estimate Bitstamp OHLC calls for its documented 1000-candle page cap.
+
+    The adapter pages from the bucket containing ``start``, so the estimate
+    uses that aligned boundary and matches the adapter's request count exactly.
+    """
+
+    seconds = _BITSTAMP_STEP_SECONDS.get(timeframe)
+    if end <= start:
+        return 0
+    if seconds is None:
+        return None
+    aligned_start = _bitstamp_bucket_start(start, seconds)
+    span_seconds = (end - aligned_start).total_seconds()
+    return max(1, ceil(span_seconds / (seconds * _BITSTAMP_CANDLES_PER_REQUEST)))
+
+
+def estimate_bitstamp_latest_ohlcv_request_count(timeframe: Timeframe, limit: int) -> int | None:
+    if limit <= 0:
+        return 0
+    if timeframe not in _BITSTAMP_STEP_SECONDS:
+        return None
+    return max(1, ceil(limit / _BITSTAMP_CANDLES_PER_REQUEST))
+
+
 def _json_payload(response: httpx.Response, provider_name: str) -> Any:
     try:
         payload = response.json()
@@ -144,6 +210,8 @@ def _get_json(
 ) -> Any:
     if provider_name == "kraken":
         _require_kraken_market_data_authority()
+    if provider_name == "bitstamp":
+        _require_bitstamp_market_data_authority()
     try:
         response = httpx.get(url, params=params, timeout=timeout)
         observe_response(response)
@@ -570,6 +638,213 @@ class KrakenProvider:
 
     def supported_discovery_types(self) -> list[str]:
         return ["CRYPTOCURRENCY"]
+
+
+class BitstampProvider:
+    name = "bitstamp"
+    base_url = "https://www.bitstamp.net/api/v2"
+    description = "Bitstamp public crypto OHLC, ticker, and market metadata"
+
+    def fetch_ohlcv(
+        self,
+        symbol: str,
+        timeframe: Timeframe,
+        start: datetime,
+        end: datetime,
+        *,
+        adjusted: bool = True,
+        instrument_id: int | None = None,
+        data_source_id: int | None = None,
+    ) -> list[OHLCVBar]:
+        _require_raw_history(self.name, adjusted)
+        seconds = _BITSTAMP_STEP_SECONDS.get(timeframe)
+        if seconds is None:
+            raise ProviderResponseError(self.name, f"unsupported crypto timeframe: {timeframe}")
+        if end <= start:
+            return []
+        market = _bitstamp_market(symbol)
+        endpoint = f"/api/v2/ohlc/{market}/"
+        # Bitstamp caps each response at 1000 candles and returns ``limit``
+        # candles from the bucket containing ``start`` (``end`` is never sent:
+        # the provider prefers it over ``start`` when both are present). Page
+        # fixed bucket-aligned windows so the request count equals
+        # ``estimate_bitstamp_ohlcv_request_count``; windows before a market's
+        # listing return an empty candle list.
+        bars_by_timestamp: dict[datetime, OHLCVBar] = {}
+        cursor = _bitstamp_bucket_start(start, seconds)
+        while cursor < end:
+            window_end = min(
+                end, cursor + timedelta(seconds=seconds * _BITSTAMP_CANDLES_PER_REQUEST)
+            )
+            limit = min(
+                _BITSTAMP_CANDLES_PER_REQUEST,
+                max(1, ceil((window_end - cursor).total_seconds() / seconds)),
+            )
+            payload = _get_json(
+                self.name,
+                f"{self.base_url}/ohlc/{market}/",
+                params={"step": seconds, "limit": limit, "start": int(cursor.timestamp())},
+                timeout=30,
+            )
+            for row in _bitstamp_candle_rows(payload, self.name):
+                ts = _candle_timestamp(row["timestamp"], self.name, "timestamp")
+                if not start <= ts < end:
+                    continue
+                bars_by_timestamp[ts] = OHLCVBar(
+                    instrument_id=instrument_id,
+                    data_source_id=data_source_id,
+                    timeframe=timeframe,
+                    ts=ts,
+                    open=_candle_float(row["open"], self.name, "open"),
+                    high=_candle_float(row["high"], self.name, "high"),
+                    low=_candle_float(row["low"], self.name, "low"),
+                    close=_candle_float(row["close"], self.name, "close"),
+                    volume=_candle_float(row["volume"], self.name, "volume"),
+                    is_adjusted=False,
+                    adjustment_basis="raw",
+                    adjustment_version="provider-native",
+                    provenance={
+                        "provider": self.name,
+                        "endpoint": endpoint,
+                        "provider_symbol": market,
+                        "provider_payload": row,
+                    },
+                )
+            cursor = window_end
+        return [bars_by_timestamp[ts] for ts in sorted(bars_by_timestamp)]
+
+    def fetch_latest_ohlcv(
+        self,
+        symbol: str,
+        timeframe: Timeframe,
+        limit: int,
+        *,
+        adjusted: bool = True,
+        instrument_id: int | None = None,
+        data_source_id: int | None = None,
+    ) -> list[OHLCVBar]:
+        if limit <= 0:
+            return []
+        seconds = _BITSTAMP_STEP_SECONDS.get(timeframe)
+        if seconds is None:
+            raise ProviderResponseError(self.name, f"unsupported crypto timeframe: {timeframe}")
+        start = self.latest_window_start(timeframe, limit)
+        # The window covers exactly ``limit`` buckets ending with the current
+        # (open) candle, which keeps the request count at ceil(limit / 1000).
+        end = start + timedelta(seconds=seconds * limit)
+        return self.fetch_ohlcv(
+            symbol,
+            timeframe,
+            start,
+            end,
+            adjusted=adjusted,
+            instrument_id=instrument_id,
+            data_source_id=data_source_id,
+        )[-limit:]
+
+    def latest_window_start(self, timeframe: Timeframe, limit: int) -> datetime:
+        seconds = _BITSTAMP_STEP_SECONDS.get(timeframe)
+        if seconds is None:
+            raise ProviderResponseError(self.name, f"unsupported crypto timeframe: {timeframe}")
+        current_bucket = _bitstamp_bucket_start(datetime.now(UTC), seconds)
+        return current_bucket - timedelta(seconds=seconds * (max(limit, 1) - 1))
+
+    def get_current_price(self, symbol: str) -> float | None:
+        payload = _get_json(
+            self.name,
+            f"{self.base_url}/ticker/{_bitstamp_market(symbol)}/",
+            timeout=15,
+        )
+        if not isinstance(payload, dict) or payload.get("last") in (None, ""):
+            raise ProviderResponseError(self.name, "Bitstamp returned an invalid ticker object")
+        return _candle_float(payload["last"], self.name, "ticker price")
+
+    def discover_universe_page(self, quote_type: str, offset: int) -> dict[str, Any]:
+        if quote_type.upper() != "CRYPTOCURRENCY":
+            return {"total": 0, "quotes": []}
+        markets_payload = _get_json(self.name, f"{self.base_url}/markets/", timeout=30)
+        if not isinstance(markets_payload, list):
+            raise ProviderResponseError(self.name, "Bitstamp returned an invalid markets array")
+        if any(not isinstance(item, dict) for item in markets_payload):
+            raise ProviderResponseError(self.name, "Bitstamp returned a non-object market row")
+        # Bitstamp lists fiat pairs (for example EUR/USD) as SPOT markets. Its
+        # currencies directory is the provider's own crypto/fiat
+        # classification, so use it instead of a local fiat list.
+        currencies_payload = _get_json(self.name, f"{self.base_url}/currencies/", timeout=30)
+        if not isinstance(currencies_payload, list) or any(
+            not isinstance(item, dict) for item in currencies_payload
+        ):
+            raise ProviderResponseError(self.name, "Bitstamp returned an invalid currencies array")
+        currency_types = {
+            str(item.get("currency") or "").strip().upper(): str(item.get("type") or "")
+            .strip()
+            .lower()
+            for item in currencies_payload
+        }
+        usd_spot = [
+            item
+            for item in markets_payload
+            if str(item.get("market_type") or "").strip().upper() == "SPOT"
+            and str(item.get("counter_currency") or "").strip().upper() == "USD"
+            and str(item.get("trading") or "").strip().lower() == "enabled"
+        ]
+        products: list[dict[str, Any]] = []
+        for item in usd_spot:
+            base_currency = str(item.get("base_currency") or "").strip().upper()
+            market_symbol = str(item.get("market_symbol") or "").strip().lower()
+            if not base_currency or not _BITSTAMP_MARKET_SYMBOL.fullmatch(market_symbol):
+                raise ProviderResponseError(
+                    self.name, "Bitstamp returned an incomplete market identity"
+                )
+            currency_type = currency_types.get(base_currency)
+            if currency_type not in {"crypto", "fiat"}:
+                raise ProviderResponseError(
+                    self.name, "Bitstamp returned an unclassified market base currency"
+                )
+            if currency_type == "crypto":
+                products.append(item)
+        page = products[offset : offset + 500]
+        next_offset = offset + len(page) if offset + len(page) < len(products) else None
+        return {
+            "total": len(products),
+            "next_offset": next_offset,
+            "complete": next_offset is None,
+            "quotes": [
+                {
+                    "symbol": f"{str(item['base_currency']).strip().upper()}-USD",
+                    "longName": str(item.get("name") or item["market_symbol"]),
+                    "exchange": "Bitstamp",
+                    "quoteType": "CRYPTOCURRENCY",
+                    "status": "active",
+                    "source_record": item,
+                }
+                for item in page
+            ],
+        }
+
+    def supported_discovery_types(self) -> list[str]:
+        return ["CRYPTOCURRENCY"]
+
+
+def _bitstamp_candle_rows(payload: Any, provider_name: str) -> list[dict[str, Any]]:
+    data = payload.get("data") if isinstance(payload, dict) else None
+    rows = data.get("ohlc") if isinstance(data, dict) else None
+    if not isinstance(rows, list):
+        raise ProviderResponseError(provider_name, "provider returned an invalid candle array")
+    fields = ("timestamp", "open", "high", "low", "close", "volume")
+    if any(not isinstance(row, dict) or any(field not in row for field in fields) for row in rows):
+        raise ProviderResponseError(provider_name, "provider returned an invalid candle row")
+    return rows
+
+
+def _bitstamp_market(symbol: str) -> str:
+    """Map canonical ``BASE-USD`` (or ``BASE/USD``/``BASE``) to ``baseusd``."""
+
+    base, _, quote = symbol.strip().upper().replace("/", "-").partition("-")
+    market = f"{base}{quote or 'USD'}".lower()
+    if not base or not _BITSTAMP_MARKET_SYMBOL.fullmatch(market):
+        raise ProviderResponseError("bitstamp", f"unsupported Bitstamp market symbol: {symbol!r}")
+    return market
 
 
 def _coinbase_product(symbol: str) -> str:

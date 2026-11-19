@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import (
     DINARI_SANDBOX_OPERATION_MINIMUM_REQUEST_COSTS,
     FMP_PUBLIC_QUOTA_EVIDENCE,
+    bitstamp_market_data_use_authority_missing,
     bybit_xstocks_market_data_use_authority_missing,
     coinbase_market_data_use_authority_missing,
     coingecko_market_data_use_authority_missing,
@@ -59,7 +60,7 @@ from app.providers.base import (
 from app.providers.binance import BinanceProvider
 from app.providers.coingecko import CoinGeckoProvider
 from app.providers.configured import OPTIONAL_PROVIDER_DESCRIPTORS
-from app.providers.crypto_market_data import CoinbaseProvider, KrakenProvider
+from app.providers.crypto_market_data import BitstampProvider, CoinbaseProvider, KrakenProvider
 from app.providers.cta_plan import CTAPlanProvider
 from app.providers.edgar import EdgarProvider, is_valid_edgar_user_agent
 from app.providers.etf_holdings_internal import ETFHoldingsInternalProvider
@@ -101,6 +102,7 @@ _PROVIDERS: dict[str, ProviderDescriptor] = {
     "coingecko": CoinGeckoProvider(),  # Crypto metadata and discovery
     "coinbase": CoinbaseProvider(),  # Keyless public crypto exchange data
     "kraken": KrakenProvider(),  # Keyless public crypto exchange data
+    "bitstamp": BitstampProvider(),  # Keyless public crypto exchange data
     "edgar": EdgarProvider(),  # US company profile and earnings history
     "etf_holdings_internal": ETFHoldingsInternalProvider(),
     # Explicit legacy / supplementary compatibility only.  This provider is
@@ -137,7 +139,8 @@ _PROVIDERS: dict[str, ProviderDescriptor] = {
 
 # Provider capability is not enough to route an instrument safely.  Several
 # public adapters expose a method with the same shape as equity OHLCV while
-# accepting only crypto (Coinbase/Kraken/Binance are the important examples).
+# accepting only crypto (Coinbase/Kraken/Bitstamp/Binance are the important
+# examples).
 # Keep this allow-list explicit and fail closed when an instrument class is
 # known.  The values intentionally use both top-level asset classes and
 # instrument-type aliases because the database models distinguish, for
@@ -216,6 +219,8 @@ _PROVIDER_INSTRUMENT_KINDS: dict[str, frozenset[str]] = {
     "binance": frozenset({"crypto", "cryptocurrency", "crypto_spot"}),
     "coinbase": frozenset({"crypto", "cryptocurrency", "crypto_spot"}),
     "kraken": frozenset({"crypto", "cryptocurrency", "crypto_spot", "future"}),
+    # Discovery admits Bitstamp SPOT markets only; perpetuals are excluded.
+    "bitstamp": frozenset({"crypto", "cryptocurrency", "crypto_spot"}),
     "coingecko": frozenset({"crypto", "cryptocurrency", "crypto_spot"}),
     "fred": frozenset({"macro", "currency", "forex", "fixed_income"}),
     "openfigi": frozenset(
@@ -260,6 +265,7 @@ _RAW_HISTORY_ONLY_PROVIDERS = frozenset(
         "binance",
         "coinbase",
         "kraken",
+        "bitstamp",
     }
 )
 
@@ -398,6 +404,7 @@ def _capability_names(provider: ProviderDescriptor) -> list[str]:
         "coingecko",
         "coinbase",
         "kraken",
+        "bitstamp",
     }:
         capabilities.append("crypto_history")
     if "price_history" in capabilities and provider_supports_adjustment(provider_name, True):
@@ -690,6 +697,15 @@ _ROUTING_CONTROL_SETTINGS: dict[str, tuple[str, ...]] = {
         "COINBASE_MARKET_DATA_USE_AUTHORITY_REFERENCE",
         "COINBASE_MARKET_DATA_USE_AUTHORITY_SCOPE",
         "COINBASE_MARKET_DATA_USE_REVIEWED_AT",
+    ),
+    # Bitstamp requires a Data License Agreement for commercial use; this
+    # gate records the owner's single-user, non-commercial scope.
+    "bitstamp": (
+        "BITSTAMP_MARKET_DATA_USE_AUTHORIZED",
+        "BITSTAMP_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+        "BITSTAMP_MARKET_DATA_USE_AUTHORITY_SCOPE",
+        "BITSTAMP_MARKET_DATA_USE_REVIEWED_AT",
+        "BITSTAMP_MARKET_DATA_USE_EXPIRES_AT",
     ),
     "coingecko": (
         "COINGECKO_MARKET_DATA_USE_AUTHORIZED",
@@ -1372,6 +1388,8 @@ def provider_missing_routing_controls(name: str, operation: str | None = None) -
         return coinbase_market_data_use_authority_missing()
     if name in {"kraken", "kraken_xstocks"}:
         return kraken_market_data_use_authority_missing()
+    if name == "bitstamp":
+        return bitstamp_market_data_use_authority_missing()
     if name == "coingecko":
         return coingecko_market_data_use_authority_missing()
     if name == "xstocks":

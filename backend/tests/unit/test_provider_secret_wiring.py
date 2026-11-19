@@ -139,6 +139,11 @@ PROVIDER_SAFETY_SETTINGS = {
     "KRAKEN_MARKET_DATA_USE_AUTHORITY_SCOPE",
     "KRAKEN_MARKET_DATA_USE_REVIEWED_AT",
     "KRAKEN_MARKET_DATA_USE_EXPIRES_AT",
+    "BITSTAMP_MARKET_DATA_USE_AUTHORIZED",
+    "BITSTAMP_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+    "BITSTAMP_MARKET_DATA_USE_AUTHORITY_SCOPE",
+    "BITSTAMP_MARKET_DATA_USE_REVIEWED_AT",
+    "BITSTAMP_MARKET_DATA_USE_EXPIRES_AT",
     "XSTOCKS_MARKET_DATA_USE_AUTHORIZED",
     "XSTOCKS_MARKET_DATA_USE_AUTHORITY_REFERENCE",
     "XSTOCKS_MARKET_DATA_USE_AUTHORITY_SCOPE",
@@ -658,6 +663,18 @@ def test_live_workflow_is_branch_scoped_environment_isolated_and_maps_each_secre
     ):
         assert f"{name}:" in workflow
     for name in (
+        "BITSTAMP_MARKET_DATA_USE_AUTHORIZED",
+        "BITSTAMP_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+        "BITSTAMP_MARKET_DATA_USE_AUTHORITY_SCOPE",
+        "BITSTAMP_MARKET_DATA_USE_REVIEWED_AT",
+        "BITSTAMP_MARKET_DATA_USE_EXPIRES_AT",
+    ):
+        assert f"{name}:" in workflow
+    assert (
+        "BITSTAMP_MARKET_DATA_USE_AUTHORIZED: ${{ vars.BITSTAMP_MARKET_DATA_USE_AUTHORIZED || 'false' }}"
+        in workflow
+    )
+    for name in (
         "BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORIZED",
         "BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORITY_REFERENCE",
         "BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORITY_SCOPE",
@@ -821,6 +838,12 @@ def test_backend_env_example_preserves_fail_closed_provider_safety_contract():
     assert "MASSIVE_MARKET_DATA_USE_EXPIRES_AT=" in example
     assert "KRAKEN_MARKET_DATA_USE_AUTHORIZED=false" in example
     assert "KRAKEN_MARKET_DATA_USE_AUTHORITY_SCOPE=" in example
+    assert "BITSTAMP_MARKET_DATA_USE_AUTHORIZED=false" in example
+    assert "BITSTAMP_MARKET_DATA_USE_AUTHORITY_SCOPE=" in example
+    assert (
+        "single_user_personal_noncommercial_automated_internal_persistent_archive_nonredistributed"
+        in example
+    )
     assert "FRED_REVIEWED_LIMIT_SCOPE=" in example
     assert "ALPHA_VANTAGE_REVIEWED_RESET=" in example
     assert "ALPHA_VANTAGE_QUOTA_EVIDENCE=" in example
@@ -1027,6 +1050,11 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     monkeypatch.setenv("KRAKEN_MARKET_DATA_USE_AUTHORITY_SCOPE", "")
     monkeypatch.setenv("KRAKEN_MARKET_DATA_USE_REVIEWED_AT", "")
     monkeypatch.setenv("KRAKEN_MARKET_DATA_USE_EXPIRES_AT", "")
+    monkeypatch.setenv("BITSTAMP_MARKET_DATA_USE_AUTHORIZED", "false")
+    monkeypatch.setenv("BITSTAMP_MARKET_DATA_USE_AUTHORITY_REFERENCE", "")
+    monkeypatch.setenv("BITSTAMP_MARKET_DATA_USE_AUTHORITY_SCOPE", "")
+    monkeypatch.setenv("BITSTAMP_MARKET_DATA_USE_REVIEWED_AT", "")
+    monkeypatch.setenv("BITSTAMP_MARKET_DATA_USE_EXPIRES_AT", "")
     monkeypatch.setenv("XSTOCKS_MARKET_DATA_USE_AUTHORIZED", "false")
     monkeypatch.setenv("XSTOCKS_MARKET_DATA_USE_AUTHORITY_REFERENCE", "")
     monkeypatch.setenv("XSTOCKS_MARKET_DATA_USE_AUTHORITY_SCOPE", "")
@@ -1158,6 +1186,21 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     monkeypatch.setenv("KRAKEN_MARKET_DATA_USE_REVIEWED_AT", "2026-09-16T00:00:00+00:00")
     statuses = routing_safety_preflight()
     assert statuses["kraken market-data use"] == "routable"
+
+    assert _LIVE_SCRIPT.LIVE_PREFLIGHT_ROUTING_CONTROLS["bitstamp"] == ("bitstamp market-data use",)
+    assert statuses["bitstamp market-data use"].startswith("non-routable:")
+    assert "BITSTAMP_MARKET_DATA_USE_AUTHORIZED" in statuses["bitstamp market-data use"]
+    monkeypatch.setenv("BITSTAMP_MARKET_DATA_USE_AUTHORIZED", "true")
+    monkeypatch.setenv(
+        "BITSTAMP_MARKET_DATA_USE_AUTHORITY_REFERENCE", "owner non-commercial record"
+    )
+    monkeypatch.setenv(
+        "BITSTAMP_MARKET_DATA_USE_AUTHORITY_SCOPE",
+        "single_user_personal_noncommercial_automated_internal_persistent_archive_nonredistributed",
+    )
+    monkeypatch.setenv("BITSTAMP_MARKET_DATA_USE_REVIEWED_AT", "2026-11-19T00:00:00+00:00")
+    statuses = routing_safety_preflight()
+    assert statuses["bitstamp market-data use"] == "routable"
 
     monkeypatch.setenv("XSTOCKS_MARKET_DATA_USE_AUTHORIZED", "true")
     monkeypatch.setenv("XSTOCKS_MARKET_DATA_USE_AUTHORITY_REFERENCE", "terms amendment")

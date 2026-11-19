@@ -30,8 +30,11 @@ from app.providers.binance import (
 )
 from app.providers.coingecko import CoinGeckoProvider
 from app.providers.crypto_market_data import (
+    BitstampProvider,
     CoinbaseProvider,
     KrakenProvider,
+    estimate_bitstamp_latest_ohlcv_request_count,
+    estimate_bitstamp_ohlcv_request_count,
     estimate_coinbase_latest_ohlcv_request_count,
     estimate_coinbase_ohlcv_request_count,
     estimate_kraken_latest_ohlcv_request_count,
@@ -837,6 +840,58 @@ def test_kraken_keyless_crypto_history():
         "discover_universe_page",
     )
     assert universe["quotes"] and universe["total"] >= len(universe["quotes"])
+
+
+def test_bitstamp_keyless_crypto_history():
+    from app.providers.registry import provider_missing_routing_controls
+
+    missing = provider_missing_routing_controls("bitstamp", "fetch_latest_ohlcv")
+    if missing:
+        assert {
+            "BITSTAMP_MARKET_DATA_USE_AUTHORIZED",
+            "BITSTAMP_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+            "BITSTAMP_MARKET_DATA_USE_AUTHORITY_SCOPE",
+            "BITSTAMP_MARKET_DATA_USE_REVIEWED_AT",
+        } >= set(missing)
+        return
+    rows, latest_measurement = _observed_read(
+        lambda: BitstampProvider().fetch_latest_ohlcv("BTC-USD", Timeframe.D1, 1, adjusted=False),
+        "bitstamp",
+        "fetch_latest_ohlcv",
+        operation_cost_override=estimate_bitstamp_latest_ohlcv_request_count(Timeframe.D1, 1),
+    )
+    assert latest_measurement.http_requests == 1
+    assert rows and rows[-1].close > 0
+    history_end = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
+    history_start = history_end - timedelta(days=7)
+    history, history_measurement = _observed_read(
+        lambda: BitstampProvider().fetch_ohlcv(
+            "BTC-USD", Timeframe.D1, history_start, history_end, adjusted=False
+        ),
+        "bitstamp",
+        "fetch_ohlcv",
+        operation_cost_override=estimate_bitstamp_ohlcv_request_count(
+            Timeframe.D1, history_start, history_end
+        ),
+    )
+    assert history_measurement.http_requests == 1
+    assert history and all(bar.close > 0 for bar in history)
+    price, price_measurement = _observed_read(
+        lambda: BitstampProvider().get_current_price("BTC-USD"),
+        "bitstamp",
+        "get_current_price",
+    )
+    assert price_measurement.http_requests == 1
+    assert price is not None and price > 0
+    universe, universe_measurement = _observed_read(
+        lambda: BitstampProvider().discover_universe_page("CRYPTOCURRENCY", 0),
+        "bitstamp",
+        "discover_universe_page",
+    )
+    assert universe_measurement.http_requests == 2
+    assert universe["quotes"] and universe["total"] >= len(universe["quotes"])
+    assert all(quote["quoteType"] == "CRYPTOCURRENCY" for quote in universe["quotes"])
+    assert "BTC-USD" in {quote["symbol"] for quote in universe["quotes"]}
 
 
 def test_alpaca_credentialed_history():

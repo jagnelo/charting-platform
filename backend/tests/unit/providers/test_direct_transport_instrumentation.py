@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 from app.providers.alpaca import AlpacaProvider
 from app.providers.alpha_vantage import AlphaVantageProvider
 from app.providers.coingecko import CoinGeckoProvider
-from app.providers.crypto_market_data import CoinbaseProvider, KrakenProvider
+from app.providers.crypto_market_data import BitstampProvider, CoinbaseProvider, KrakenProvider
 from app.providers.edgar import _ensure_ticker_map
 from app.providers.finra_otc_directory import _fetch_dapi_rows
 from app.providers.massive import MassiveProvider
@@ -86,6 +86,16 @@ def test_direct_provider_adapters_report_http_usage(monkeypatch):
         patch("app.providers.crypto_market_data.httpx.get", return_value=kraken_response),
     ):
         _assert_transport(lambda: KrakenProvider().get_current_price("BTC-USD"))
+
+    bitstamp_response = _response({"last": "1"})
+    with (
+        patch(
+            "app.providers.crypto_market_data.bitstamp_market_data_use_authority_missing",
+            return_value=[],
+        ),
+        patch("app.providers.crypto_market_data.httpx.get", return_value=bitstamp_response),
+    ):
+        _assert_transport(lambda: BitstampProvider().get_current_price("BTC-USD"))
 
     alpaca_response = _response({"bars": {"AAPL": {"c": "1"}}})
     with (
