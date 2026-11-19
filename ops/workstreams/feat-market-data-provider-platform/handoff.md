@@ -34281,3 +34281,16 @@ Staging 1400b3b1d (CI run 44550718007): the exhaustive gate passed every stage u
 - On a fresh local stack at this SHA, the first three runs after stack-up (the same first-ensure-of-hour burst) failed with the identical symptom. The following nine runs, across all four projects, passed.
 
 This remediation re-gates the unchanged code; the test is not weakened. Next-cycle item: stop re-seeding provider runtime rows on every provider-chain resolution. This is also a production throughput cost: about 1,400 DB statements per acquire. Doing so shrinks the hourly burst far below the settle window.
+
+Staging 19fa0d7e0 (CI run 44585829233) failed the same way. One of 104 visual tests failed: `tc2000_visual.spec.ts:1134` "blocked pop-out recovery gap" in visual-1080p-100, and the settle predicate stayed `settled: false`. The visual stage ran about 19:57 to 20:15 UTC, so it crossed the 20:00 identity-key rollover. A re-gate alone is a coin flip on whether the 18-minute visual stage crosses an hour. This remediation therefore fixes the cause instead.
+
+- It merges `fix/provider-runtime-seed-memo` (7257cf7ec). After a committed full pass, `seed_provider_runtime` skips the per-pair upsert loop for 5 minutes, keyed on the engine and on a fingerprint of providers, order, capabilities, entitlement, rate-limit and freshness seeds.
+- The stale-capability and ETF health sweeps still run on every call.
+- The memo arms only after a root commit. A released SAVEPOINT does not arm it, and a rollback or an uncommitted pass leaves it unarmed.
+- 10 dedicated unit tests cover the memo. 161 focused tests pass on the merged tree.
+
+Evidence on a fresh local stack at the merged tree, under the same first-ensure-of-hour burst that failed the first three runs before:
+- `workspace tabbed state` and `blocked pop-out recovery gap` (visual-1080p-100, repeat-each 3, retries 0): 6 of 6 passed.
+- The 28 identity (`instrument_metadata`) children averaged 0.72 s, down from about 7 s, with a 6.3 s maximum on the first full seed pass.
+- The whole burst drained between 20:24:00 and 20:24:31.
+- No test was changed or weakened.
