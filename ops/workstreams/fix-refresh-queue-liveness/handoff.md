@@ -51,3 +51,15 @@ Release c3a02ddd (deployed 2026-11-19 ~12:36Z) turned on whole-market discovery.
 - `test_maintenance_planner_survives_universe_beyond_bind_parameter_limit` (real PostgreSQL, 32,800
   instruments) fails on the old query with the production InterfaceError and passes on the fix.
 - Unit: tasks, workers and data-preparation suites 232/232; instrument-sync suites 40/40; Ruff clean.
+- Production-copy timing (scratch restore of the verified 2026-11-20 backup, 34,111 active instruments; the
+  scratch database was deleted afterwards). Three planner passes with the 360s deadline, no provider I/O:
+  pass 1 360.0s truncated (16,882 background specs reached), pass 2 360.0s truncated (26,933), pass 3 276.9s
+  complete (34,063). Re-checking ~17k already-planned instruments took under a minute; new plans are created at
+  ~29 instruments/s. The largest bind list in any statement was 48 parameters. A new day's universe is fully
+  planned within about four quarter-hour ticks.
+
+## Next
+
+Orchestrator: verify exact CI on the final head, `staging.py integrate`, wait for the exhaustive gate, promote,
+build and back up the release, then ask the human to approve the production deploy. After deploy, watch the
+worker for planner `background_truncated` results, drain `budget_exhausted`/`chain_capped` and completions/hour.

@@ -11,7 +11,15 @@ human_closure_authorization: >-
   decisions that the rules expect the human dev to make. Proceed"); the orchestrator closes this bounded
   production-liveness repair under that delegation. Production deployment still needs the human's explicit
   per-deploy approval.
-closure_summary: pending
+closure_summary: >-
+  Production refresh-queue liveness at whole-market scale. Planner primary-listing read no longer binds one
+  parameter per active instrument (real-PostgreSQL regression reproduces the production InterfaceError on the
+  old query and passes on the fix). The quarter-hour tick drains even when planning fails; drains and the
+  discovered-universe planning pass stop at a shared 360s budget and hand over; live continuation chains are
+  capped at 2; the daily metadata sync checkpoints every 25 instruments and stops at 480s. Timed on a scratch
+  restore of the verified production backup (34,111 instruments): each bounded tick plans ~10k instruments,
+  re-checking planned ones is cheap (~17k in under a minute), and the third tick completed the universe in 277s;
+  the largest bind list is 48 parameters. Unit 232 + 40 and PostgreSQL planner tests pass; Ruff clean.
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
 local_validation_profile: docker_integration
@@ -65,13 +73,15 @@ branch_tests_reason: Every changed planner, drain and cron contract is covered o
 live_test_impact: none
 migration_impact: none
 deployment_impact: >-
-  Backend/worker image only. Two new settings with safe defaults (MARKET_DATA_REFRESH_DRAIN_BUDGET_SECONDS=360,
+  Backend/worker image only. Three new settings with safe defaults (MARKET_DATA_REFRESH_DRAIN_BUDGET_SECONDS=360,
   MARKET_DATA_REFRESH_MAX_DRAIN_CHAINS=2, INSTRUMENT_DAILY_METADATA_MAX_SECONDS=480); no env or Compose change is required.
-status: in_progress
-remaining_gaps: []
+status: ready_for_integration
+remaining_gaps:
+  - Exact-source feature CI and the staging exhaustive gate on the final head are pending.
+  - Production deployment needs the human's explicit approval.
 progress:
-  completed: []
+  completed: [AC1, AC2, AC3, AC4, AC5, AC6]
   total: 7
-  current_phase: implementation
+  current_phase: final_publication_pending_exact_ci
   current_blocker: none
-  next_action: Finish production-copy timing, record evidence, then publish for exact CI.
+  next_action: Orchestrator verifies exact CI, integrates into staging, waits for the exhaustive gate, promotes, then asks the human to approve the production deploy.
