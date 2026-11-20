@@ -14,7 +14,7 @@ from datetime import UTC, datetime
 from arq import cron
 from arq.connections import RedisSettings
 
-from app.config import settings
+from app.config import clamped_worker_max_jobs, settings
 
 logger = logging.getLogger(__name__)
 
@@ -405,11 +405,18 @@ async def scheduled_refresh_queue_process(ctx: dict):
         enqueue_core_refresh_jobs,
         process_refresh_jobs,
         refresh_drain_deadline,
+        top_up_refresh_drains,
     )
 
     # One budget covers planning and draining so the tick finishes inside the
     # worker job timeout and the drain can still schedule its continuation.
     deadline = refresh_drain_deadline()
+    # Start parallel drains first so they work the backlog while this tick
+    # plans. Advisory: this tick is the liveness backstop and must go on.
+    try:
+        await top_up_refresh_drains(ctx)
+    except Exception:  # noqa: BLE001
+        logger.exception("Refresh drain top-up failed; continuing the tick")
     # Re-running the existing planner here lets saved/default inputs discover
     # later publications without an open browser. Its parent key shares the
     # same observation bucket as history child dedupe, and normal coverage
@@ -629,6 +636,12 @@ async def worker_startup(ctx: dict):
 # ── Worker settings ───────────────────────────────────────────────────────────
 
 
+def worker_max_jobs() -> int:
+    """Return the configured arq job-slot count, clamped to a sane range."""
+
+    return clamped_worker_max_jobs(settings.ARQ_WORKER_MAX_JOBS)
+
+
 class WorkerSettings:
     # The installed ARQ/redis defaults use a one-second connect timeout. The
     # retained native validation worker has observed transient Redis connect
@@ -743,7 +756,7 @@ class WorkerSettings:
         # cadence, never a quota assumption.
         cron_jobs += (cron(scheduled_provider_account_usage_refresh, hour=15, minute=0),)
     on_startup = worker_startup
-    max_jobs = 4
+    max_jobs = worker_max_jobs()
     job_timeout = 600  # 10 minutes max per job
     keep_result = 3600  # keep results for 1 hour
 

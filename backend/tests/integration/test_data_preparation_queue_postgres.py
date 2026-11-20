@@ -1578,33 +1578,34 @@ async def test_system_maintenance_reenters_shared_preparation_for_later_observat
                 for weekday in range(5)
             ]
         )
-        instrument = _canonical_instrument(
-            "MAINTX", stock_type_id, domain_prefix="maintenance-refresh"
-        )
-        instrument.listings.append(
-            InstrumentListing(
-                exchange_id=exchange.id,
-                ticker="MAINTX",
-                currency="USD",
-                is_primary=True,
-                is_active=True,
+        instrument_ids = []
+        for symbol in ("MAINTX", "MAINTY"):
+            instrument = _canonical_instrument(
+                symbol, stock_type_id, domain_prefix=f"maintenance-refresh-{symbol.lower()}"
             )
-        )
-        session.add(instrument)
-        await session.flush()
-        instrument_id = instrument.id
+            instrument.listings.append(
+                InstrumentListing(
+                    exchange_id=exchange.id,
+                    ticker=symbol,
+                    currency="USD",
+                    is_primary=True,
+                    is_active=True,
+                )
+            )
+            session.add(instrument)
+            await session.flush()
+            instrument_ids.append(instrument.id)
         exchange_id = exchange.id
         await session.commit()
 
-    request = DataEnsureRequest.model_validate(
-        {
-            "target": {"kind": "instrument", "instrument_id": instrument_id},
-            "timeframe": "D1",
-            "datasets": ["history"],
-        }
-    )
-
-    async def create_at(observed_at):
+    async def create_at(instrument_id, observed_at):
+        request = DataEnsureRequest.model_validate(
+            {
+                "target": {"kind": "instrument", "instrument_id": instrument_id},
+                "timeframe": "D1",
+                "datasets": ["history"],
+            }
+        )
         async with preparation_sessions() as session:
             published_end = await _maintenance_history_end_at(
                 session,
@@ -1618,47 +1619,74 @@ async def test_system_maintenance_reenters_shared_preparation_for_later_observat
             parent = await create_maintenance_data_preparation_request(
                 session,
                 request=bounded_request,
-                idempotency_key=f"workstation:{published_end.isoformat()}:maintenancex-history",
+                idempotency_key=(
+                    f"workstation:{published_end.isoformat()}:maintenancex-history-{instrument_id}"
+                ),
                 now=observed_at,
             )
             parent_id = parent.id
             child_id = parent.metadata_payload["data_preparation"]["dependencies"][0]["job_ids"][0]
             await session.commit()
-        return parent_id, child_id
+        return parent_id, child_id, published_end
 
-    first_parent, first_child = await create_at(first_observation)
-    same_parent, same_child = await create_at(same_observation)
-    later_parent, later_child = await create_at(later_observation)
-    closed_parent, closed_child = await create_at(closed_session_observation)
+    async def load(job_ids):
+        async with preparation_sessions() as session:
+            return {
+                job.id: job
+                for job in (
+                    await session.execute(
+                        select(MarketRefreshJob).where(MarketRefreshJob.id.in_(job_ids))
+                    )
+                ).scalars()
+            }
 
+    waiting_instrument, ran_instrument = instrument_ids
+
+    # The first child is still waiting when the next session is published:
+    # the later maintenance parent joins it and widens it to the new session,
+    # rather than forking a second deepest-range fetch for the same series.
+    first_parent, first_child, first_end = await create_at(waiting_instrument, first_observation)
+    same_parent, same_child, _ = await create_at(waiting_instrument, same_observation)
+    later_parent, later_child, later_end = await create_at(waiting_instrument, later_observation)
+    closed_parent, closed_child, _ = await create_at(waiting_instrument, closed_session_observation)
+
+    assert later_end > first_end
     assert (same_parent, same_child) == (first_parent, first_child)
     assert later_parent != first_parent
-    assert later_child != first_child
+    assert later_child == first_child
     assert (closed_parent, closed_child) == (later_parent, later_child)
+    jobs = await load([first_parent, later_parent, first_child])
+    assert {jobs[first_parent].status, jobs[later_parent].status} == {"tracking"}
+    shared = jobs[first_child]
+    assert shared.capability == "price_history"
+    assert shared.status == "queued"
+    assert shared.end_at == later_end
+    shared_child = shared.metadata_payload["data_preparation_child"]
+    assert shared_child["range_end"] == later_end.isoformat()
+    assert {int(ref["parent_job_id"]) for ref in shared_child["parent_refs"]} >= {
+        first_parent,
+        later_parent,
+    }
 
+    # Once the first child has run, a later published session still binds
+    # fresh child work for the new observation.
+    ran_parent, ran_child, ran_end = await create_at(ran_instrument, first_observation)
     async with preparation_sessions() as session:
-        parents = list(
-            (
-                await session.execute(
-                    select(MarketRefreshJob).where(
-                        MarketRefreshJob.id.in_([first_parent, later_parent])
-                    )
-                )
-            ).scalars()
-        )
-        children = list(
-            (
-                await session.execute(
-                    select(MarketRefreshJob).where(
-                        MarketRefreshJob.id.in_([first_child, later_child])
-                    )
-                )
-            ).scalars()
-        )
-        assert len(parents) == 2
-        assert len(children) == 2
-        assert all(job.capability == "price_history" for job in children)
-        assert len({job.request_key for job in children}) == 2
+        finished = await session.get(MarketRefreshJob, ran_child)
+        finished.status = "completed"
+        finished.finished_at = first_observation
+        finished.result_summary = {"outcome": "completed"}
+        await session.commit()
+    fresh_parent, fresh_child, fresh_end = await create_at(ran_instrument, later_observation)
+
+    assert fresh_end > ran_end
+    assert fresh_parent != ran_parent
+    assert fresh_child != ran_child
+    children = await load([ran_child, fresh_child])
+    assert all(job.capability == "price_history" for job in children.values())
+    assert len({job.request_key for job in children.values()}) == 2
+    assert children[ran_child].end_at == ran_end
+    assert children[fresh_child].end_at == fresh_end
 
 
 async def test_saved_screener_universe_expands_in_restartable_batches_without_early_ready(

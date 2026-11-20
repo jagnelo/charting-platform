@@ -14,7 +14,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import settings
+from app.config import clamped_worker_max_jobs, settings
 from app.database import AsyncSessionLocal
 from app.models.data_source import DataSource
 from app.models.exchange import Exchange
@@ -45,6 +45,7 @@ from app.services.market_refresh_queue import (
     RefreshLeaseLostError,
     _acquire_enqueue_lock,
     claim_refresh_jobs,
+    claimable_jobs_condition,
     complete_refresh_job,
     enqueue_refresh_job,
     retry_refresh_job,
@@ -2320,12 +2321,19 @@ async def _process_instrument_events_refresh_job(
 _REFRESH_DRAIN_JOB_PREFIX = "data-preparation-"
 
 
+# Worker slots always kept free for scheduled jobs; drains never take these.
+_REFRESH_DRAIN_RESERVED_SLOTS = 4
+
+
 def _refresh_drain_chain_cap() -> int:
+    """Most concurrent drains: configured cap, leaving 4 worker slots free."""
+
     try:
         configured = int(settings.MARKET_DATA_REFRESH_MAX_DRAIN_CHAINS)
     except (TypeError, ValueError):
-        configured = 2
-    return max(1, configured)
+        configured = 6
+    slots = clamped_worker_max_jobs(settings.ARQ_WORKER_MAX_JOBS)
+    return max(1, min(configured, slots - _REFRESH_DRAIN_RESERVED_SLOTS))
 
 
 async def _live_refresh_drains(redis, *, own_job_id: str | None) -> int | None:
@@ -2351,6 +2359,43 @@ async def _live_refresh_drains(redis, *, own_job_id: str | None) -> int | None:
         if job_id.startswith(_REFRESH_DRAIN_JOB_PREFIX) and job_id != own_job_id:
             live += 1
     return live
+
+
+async def top_up_refresh_drains(ctx: dict) -> int:
+    """Enqueue extra drains up to the chain cap when due work exists.
+
+    Called by the quarter-hour tick so a deep backlog is worked by several
+    drains at once instead of one. Returns the number of drains enqueued.
+    """
+
+    redis = ctx.get("redis")
+    if redis is None:
+        return 0
+    current = datetime.now(UTC)
+    async with AsyncSessionLocal() as db:
+        due = (
+            await db.execute(
+                select(MarketRefreshJob.id).where(claimable_jobs_condition(current)).limit(1)
+            )
+        ).first()
+    if due is None:
+        return 0
+    live = await _live_refresh_drains(redis, own_job_id=ctx.get("job_id"))
+    if live is None:
+        return 0
+    enqueued = 0
+    for _ in range(max(0, _refresh_drain_chain_cap() - live)):
+        try:
+            await redis.enqueue_job(
+                "task_process_refresh_jobs",
+                _job_id=f"{_REFRESH_DRAIN_JOB_PREFIX}followup:{uuid4().hex}",
+                _expires=3600,
+            )
+        except Exception as exc:  # noqa: BLE001 - top-up is advisory
+            logger.warning("Could not top up refresh drains: %s", type(exc).__name__)
+            break
+        enqueued += 1
+    return enqueued
 
 
 def refresh_drain_deadline(started: float | None = None) -> float:

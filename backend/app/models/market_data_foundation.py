@@ -26,6 +26,7 @@ from sqlalchemy import (
     UniqueConstraint,
     event,
     func,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -437,6 +438,17 @@ class MarketRefreshJob(Base, TimestampMixin):
     """Coalesced queued refresh request; workers perform provider I/O outside evaluators."""
 
     __tablename__ = "market_refresh_job"
+    __table_args__ = (
+        # Partial index over the open queue only: completed/tracking rows
+        # dominate the table and would otherwise be walked by every claim.
+        Index(
+            "ix_market_refresh_job_claimable",
+            "priority",
+            "next_attempt_at",
+            "id",
+            postgresql_where=text("status IN ('queued', 'retry', 'deferred', 'leased')"),
+        ),
+    )
 
     id: Mapped[int] = mapped_column(BIGINT_ID, primary_key=True, autoincrement=True)
     request_key: Mapped[str] = mapped_column(String(180), nullable=False, unique=True, index=True)
