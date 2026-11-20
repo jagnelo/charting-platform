@@ -90,3 +90,22 @@ child fetches only the newest bars, and a duplicate identity child that resolved
   stayed on the priority index. The revision upgrades and downgrades on PostgreSQL.
 - `test_data_preparation_child_coalescing_postgres.py`: the symbol-only identity join filters the JSON
   payload (`#>>`), and a history join skips a child locked by a concurrent claim.
+
+## Feature CI attempt 1 (69c8d0bb4)
+
+**Backend Tests failed on `test_strategy_chain_has_unique_ids_and_preserves_shared_base`.** That suite lives in
+`app/strategy_lab_v2/tests` and pins the exact Alembic head.
+- As commit 3457ce130 did for e6f7a8b9c012, the pin moves to the new head a7c3e5f9b2d4.
+- The test now also asserts that a7c3e5f9b2d4's parent is e6f7a8b9c012 and that e6f7a8b9c012 stays in the
+  ancestry.
+- Every previous assertion is kept.
+
+**A local run of the integration suites found
+`test_system_maintenance_reenters_shared_preparation_for_later_observation`.** It pinned the old forking
+behaviour: a later published session got a separate child while the first child was still queued and had
+never run. Joining a waiting child is the deliberate change in AC4, so the test now covers two scenarios.
+- **First child still waiting:** the later parent joins it. The test asserts the shared child's `end_at` and
+  `range_end` equal the later published end, the child is still queued, both tracking parents are in its
+  `parent_refs`, and the next-day pre-close observation reuses the later parent and child.
+- **First child already completed:** the later observation still binds fresh child work. This is the original
+  assertion: a different child with a different request key. The completed child keeps its own end.

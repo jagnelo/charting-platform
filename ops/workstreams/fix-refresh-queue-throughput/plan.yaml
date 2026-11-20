@@ -55,6 +55,8 @@ owned_paths:
   - backend/tests/unit/migrations/test_refresh_job_claim_index.py
   - backend/tests/integration/test_refresh_job_claim_index_postgres.py
   - backend/tests/integration/test_data_preparation_child_coalescing_postgres.py
+  - backend/tests/integration/test_data_preparation_queue_postgres.py
+  - backend/app/strategy_lab_v2/tests/test_migration_compatibility.py
   - ops/workstreams/fix-refresh-queue-throughput/
 dependencies: []
 acceptance_criteria:
