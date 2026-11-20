@@ -34281,3 +34281,36 @@ Staging 1400b3b1d (CI run 44550718007): the exhaustive gate passed every stage u
 - On a fresh local stack at this SHA, the first three runs after stack-up (the same first-ensure-of-hour burst) failed with the identical symptom. The following nine runs, across all four projects, passed.
 
 This remediation re-gates the unchanged code; the test is not weakened. Next-cycle item: stop re-seeding provider runtime rows on every provider-chain resolution. This is also a production throughput cost: about 1,400 DB statements per acquire. Doing so shrinks the hourly burst far below the settle window.
+
+Staging 19fa0d7e0 (CI run 44585829233) failed the same way. One of 104 visual tests failed: `tc2000_visual.spec.ts:1134` "blocked pop-out recovery gap" in visual-1080p-100, and the settle predicate stayed `settled: false`. The visual stage ran about 19:57 to 20:15 UTC, so it crossed the 20:00 identity-key rollover. A re-gate alone is a coin flip on whether the 18-minute visual stage crosses an hour. This remediation therefore fixes the cause instead.
+
+- It merges `fix/provider-runtime-seed-memo` (7257cf7ec). After a committed full pass, `seed_provider_runtime` skips the per-pair upsert loop for 5 minutes, keyed on the engine and on a fingerprint of providers, order, capabilities, entitlement, rate-limit and freshness seeds.
+- The stale-capability and ETF health sweeps still run on every call.
+- The memo arms only after a root commit. A released SAVEPOINT does not arm it, and a rollback or an uncommitted pass leaves it unarmed.
+- 10 dedicated unit tests cover the memo. 161 focused tests pass on the merged tree.
+
+Evidence on a fresh local stack at the merged tree, under the same first-ensure-of-hour burst that failed the first three runs before:
+- `workspace tabbed state` and `blocked pop-out recovery gap` (visual-1080p-100, repeat-each 3, retries 0): 6 of 6 passed.
+- The 28 identity (`instrument_metadata`) children averaged 0.72 s, down from about 7 s, with a 6.3 s maximum on the first full seed pass.
+- The whole burst drained between 20:24:00 and 20:24:31.
+- No test was changed or weakened.
+
+Feature CI on 8c87795f4 (run 44608556188): "E2E Tests (Playwright)" failed one case, `on_demand_acquisition.spec.ts:334` ("Workstation search resolves an unknown ticker..."). The first attempt failed at line 474 because the selected chart region was not found within 15 s. The retry hit the 60 s test timeout while waiting on the same region. The run was 20:31 to 20:55 UTC, so it did not cross an hour boundary. Classified as a CI-runner timing flake, not a regression. Evidence:
+- The case mocks every TCNEW backend call (search, discover, acquire, canonical lookup, ensure, OHLCV).
+- No frontend file changed since 4df21d2d8, whose identical E2E job passed. The same case also passed in the e2e-functional stages of staging 1400b3b1d and 19fa0d7e0.
+- On a fresh local stack at 8c87795f4, the case's spec file passed 14 of 14 (repeat-each 2, retries 0).
+- On a second fresh local stack at 8c87795f4, the exact CI order passed 210 of 212 with retries 0; 2 cases are skipped by design. That order was auth_session_boundary, baskets_journey, dashboard_usability_journey, etf_holdings_preparation, flows, then on_demand_acquisition. CI=1 timeouts were in effect.
+
+Re-running CI on the unchanged tree; no test changed.
+
+Correction to the 8c87795f4 note: feature CI on 84008c01f (same product tree) failed the same `on_demand_acquisition.spec.ts:334` case again on both attempts. That makes 2 of 2 feature runs with the seed memo, so this is not a one-off. It still does not reproduce outside GitHub's runner:
+- `npx playwright test` with CI=1 against a CI-identical local stack passed 238 of 348, with 110 skipped and no failures. The stack used a pristine `git archive` export, no `.env`, and only the CI job's env vars.
+- A throwaway diagnostic branch with the same product tree, `test/e2e-diag-seed-memo` at 7f2b10f4e, passed the E2E job on GitHub. That branch added only a failure-only annotation step and a stub plan.
+- The failing assertion means the chart store reached `error` for the mocked TCNEW selection, because `UPlotChart` is gated on `!chartStore.error`.
+- Current classification is an intermittent runner-only failure, about 2 of 3 GitHub runs with the memo. The root cause is still open. More diagnostic runs carry annotations that print the page's error context and the backend and worker error lines on failure. No test changed.
+
+Root cause of the `on_demand_acquisition.spec.ts:334` CI failures (supersedes the flake classifications above):
+- **Evidence.** Throwaway diagnostic branches (`test/e2e-diag-*`, same product tree plus a failure-only annotation step) captured a failing page snapshot. In it, the Chart tool renders `alert: Instrument "TCNEW" was not found.` in place of the chart region.
+- **Mechanism.** The test controls `POST /instruments/acquire` (TCNEW to fixture instrument 990010) but mocks only the `canonical_only=true` lookup. The chart store's own `fetchInstrument` reads plain `GET /instruments/TCNEW`. That read reaches the isolated backend, which never persisted TCNEW and answers 404. The chart store turns a 404 on its current load generation into a hard "not found" error and hides `UPlotChart`. A stale generation's 404 is dropped. The outcome therefore depends on whether the 404 lands before a newer load supersedes it.
+- **Why the seed memo exposed it.** The memo makes backend responses much faster, so the 404 now usually lands on the current generation. GitHub runs with the memo failed 6 of 9. A matched pair of runs, memo on and memo off (`_SEED_MEMO_TTL_SECONDS = 0`), both passed, so the memo is a timing amplifier, not a product defect. Requests on the real path always succeed, because a real acquire commits the instrument before the chart reads it.
+- **Fix (test fixture only, no assertion changed).** Once the controlled acquire has resolved, the plain lookup returns the same fixture instrument a real acquire would have stored. Before resolution it still reaches the backend unchanged. The canonical lookup hold, every assertion and the strict browser diagnostics are untouched.
