@@ -160,6 +160,67 @@ async def test_refresh_queue_process_still_drains_when_the_planner_fails(monkeyp
 
 
 @pytest.mark.asyncio
+async def test_refresh_queue_process_tops_up_drains_before_planning(monkeypatch):
+    monkeypatch.setattr(settings, "MARKET_DATA_REFRESH_SCHEDULE_ENABLED", True)
+    order = []
+
+    async def fake_top_up(ctx):
+        order.append("top_up")
+        return 3
+
+    async def fake_enqueue(ctx, *, deadline):
+        order.append("plan")
+        return {"queued": 1}
+
+    async def fake_process(ctx, *, deadline):
+        order.append("process")
+        return {"claimed": 1}
+
+    monkeypatch.setattr(data_tasks, "top_up_refresh_drains", fake_top_up)
+    monkeypatch.setattr(data_tasks, "enqueue_core_refresh_jobs", fake_enqueue)
+    monkeypatch.setattr(data_tasks, "process_refresh_jobs", fake_process)
+
+    result = await arq_worker.scheduled_refresh_queue_process({"redis": "test"})
+
+    assert result == {"claimed": 1}
+    assert order == ["top_up", "plan", "process"]
+
+
+@pytest.mark.asyncio
+async def test_refresh_queue_process_still_plans_and_drains_when_top_up_raises(monkeypatch, caplog):
+    monkeypatch.setattr(settings, "MARKET_DATA_REFRESH_SCHEDULE_ENABLED", True)
+    enqueue = AsyncMock(return_value={"queued": 1})
+    process = AsyncMock(return_value={"claimed": 2})
+    monkeypatch.setattr(
+        data_tasks, "top_up_refresh_drains", AsyncMock(side_effect=RuntimeError("boom"))
+    )
+    monkeypatch.setattr(data_tasks, "enqueue_core_refresh_jobs", enqueue)
+    monkeypatch.setattr(data_tasks, "process_refresh_jobs", process)
+
+    with caplog.at_level("ERROR"):
+        result = await arq_worker.scheduled_refresh_queue_process({"redis": "test"})
+
+    assert result == {"claimed": 2}
+    enqueue.assert_awaited_once()
+    process.assert_awaited_once()
+    assert "Refresh drain top-up failed" in caplog.text
+
+
+@pytest.mark.parametrize(
+    ("configured", "expected"),
+    [(10, 10), (4, 4), (1, 4), (0, 4), (-5, 4), (32, 32), (500, 32), ("12", 12), ("bad", 10)],
+)
+def test_worker_max_jobs_comes_from_the_setting_and_is_clamped(monkeypatch, configured, expected):
+    monkeypatch.setattr(settings, "ARQ_WORKER_MAX_JOBS", configured)
+
+    assert arq_worker.worker_max_jobs() == expected
+
+
+def test_worker_settings_max_jobs_uses_the_default_setting():
+    assert arq_worker.WorkerSettings.max_jobs == arq_worker.worker_max_jobs() == 10
+
+
+@pytest.mark.asyncio
 async def test_data_preparation_wakeup_is_registered_and_not_schedule_gated(monkeypatch):
     monkeypatch.setattr(settings, "MARKET_DATA_REFRESH_SCHEDULE_ENABLED", False)
     process = AsyncMock(return_value={"claimed": 1, "completed": 1})

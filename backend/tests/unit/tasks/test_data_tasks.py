@@ -709,3 +709,145 @@ async def test_expected_native_usage_wait_commits_prerequisite_and_history_link(
     assert persisted_history.metadata_payload["data_preparation_child"]["wait_for_job_ids"] == [
         prerequisite_job_id
     ]
+
+
+@pytest.mark.parametrize(
+    ("configured", "slots", "expected"),
+    [
+        (6, 10, 6),  # defaults: all of the configured chains fit beside 4 free slots
+        (6, 6, 2),  # small worker: drains never take the 4 slots kept for schedules
+        (6, 4, 1),  # floor of one drain even with no spare slots
+        (6, 5, 1),
+        (2, 10, 2),  # configured cap still wins when lower
+        (20, 32, 20),
+        (20, 12, 8),
+        (0, 10, 1),
+        (-3, 10, 1),
+        ("bad", 10, 6),  # bad configured value falls back to the default of 6
+        (None, 10, 6),
+        (6, "bad", 6),  # bad slot value falls back to 10 slots
+        (6, 1, 1),  # slots clamp up to 4 first
+    ],
+)
+def test_refresh_drain_chain_cap_formula(monkeypatch, configured, slots, expected):
+    monkeypatch.setattr(data_tasks.settings, "MARKET_DATA_REFRESH_MAX_DRAIN_CHAINS", configured)
+    monkeypatch.setattr(data_tasks.settings, "ARQ_WORKER_MAX_JOBS", slots)
+
+    assert data_tasks._refresh_drain_chain_cap() == expected
+
+
+def test_refresh_drain_chain_cap_defaults_to_six_with_default_worker_slots():
+    from app.config import Settings
+
+    fields = Settings.model_fields
+    assert fields["MARKET_DATA_REFRESH_MAX_DRAIN_CHAINS"].default == 6
+    assert fields["ARQ_WORKER_MAX_JOBS"].default == 10
+
+
+class _DueResult:
+    def __init__(self, due):
+        self.due = due
+
+    def first(self):
+        return (1,) if self.due else None
+
+
+class _DueSession(_Session):
+    def __init__(self, due):
+        super().__init__([])
+        self.due = due
+        self.statements = []
+
+    async def execute(self, statement, *_args, **_kwargs):
+        self.statements.append(statement)
+        return _DueResult(self.due)
+
+
+def _top_up_setup(monkeypatch, *, due, members=(), cap_chains=6, slots=10):
+    session = _DueSession(due)
+    redis = _QueueRedis(list(members))
+    monkeypatch.setattr(data_tasks, "AsyncSessionLocal", lambda: _SessionContext(session))
+    monkeypatch.setattr(data_tasks.settings, "MARKET_DATA_REFRESH_MAX_DRAIN_CHAINS", cap_chains)
+    monkeypatch.setattr(data_tasks.settings, "ARQ_WORKER_MAX_JOBS", slots)
+    return session, redis
+
+
+@pytest.mark.asyncio
+async def test_top_up_enqueues_cap_minus_live_drains_when_work_is_due(monkeypatch):
+    _session, redis = _top_up_setup(
+        monkeypatch,
+        due=True,
+        members=["data-preparation-followup:a", "data-preparation-wakeup:b", "cron:x:1"],
+    )
+
+    enqueued = await data_tasks.top_up_refresh_drains({"redis": redis, "job_id": "cron:tick"})
+
+    assert enqueued == 4  # cap 6 minus 2 live drains; the cron job is not a drain
+    assert len(redis.enqueued) == 4
+    ids = {kwargs["_job_id"] for _function, kwargs in redis.enqueued}
+    assert len(ids) == 4
+    for function, kwargs in redis.enqueued:
+        assert function == "task_process_refresh_jobs"
+        assert kwargs["_job_id"].startswith("data-preparation-followup:")
+        assert kwargs["_expires"] == 3600
+        assert "_defer_by" not in kwargs and "_defer_until" not in kwargs
+
+
+@pytest.mark.asyncio
+async def test_top_up_enqueues_nothing_without_due_work(monkeypatch):
+    _session, redis = _top_up_setup(monkeypatch, due=False)
+
+    assert await data_tasks.top_up_refresh_drains({"redis": redis}) == 0
+    assert redis.enqueued == []
+    assert redis.ranges == []  # no need to inspect the arq queue either
+
+
+@pytest.mark.asyncio
+async def test_top_up_enqueues_nothing_when_already_at_cap(monkeypatch):
+    _session, redis = _top_up_setup(
+        monkeypatch,
+        due=True,
+        cap_chains=2,
+        members=["data-preparation-followup:a", "data-preparation-followup:b"],
+    )
+
+    assert await data_tasks.top_up_refresh_drains({"redis": redis}) == 0
+    assert redis.enqueued == []
+
+
+@pytest.mark.asyncio
+async def test_top_up_without_redis_returns_zero_and_skips_the_database(monkeypatch):
+    session, _redis = _top_up_setup(monkeypatch, due=True)
+
+    assert await data_tasks.top_up_refresh_drains({}) == 0
+    assert session.statements == []
+
+
+@pytest.mark.asyncio
+async def test_top_up_keeps_previous_behaviour_when_the_queue_cannot_be_inspected(monkeypatch):
+    session, _redis = _top_up_setup(monkeypatch, due=True)
+    redis = _WakeRedis()  # no default_queue_name / zrangebyscore
+
+    assert await data_tasks.top_up_refresh_drains({"redis": redis}) == 0
+    assert redis.enqueued == []
+    assert len(session.statements) == 1
+
+
+@pytest.mark.asyncio
+async def test_top_up_stops_and_logs_when_enqueue_fails(monkeypatch, caplog):
+    _session, redis = _top_up_setup(monkeypatch, due=True)
+    calls = []
+
+    async def failing_enqueue(function, *args, **kwargs):
+        calls.append(function)
+        if len(calls) == 2:
+            raise ConnectionError("redis down")
+
+    redis.enqueue_job = failing_enqueue
+
+    with caplog.at_level("WARNING"):
+        enqueued = await data_tasks.top_up_refresh_drains({"redis": redis})
+
+    assert enqueued == 1
+    assert len(calls) == 2
+    assert "Could not top up refresh drains" in caplog.text

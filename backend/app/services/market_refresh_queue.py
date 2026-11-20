@@ -6,7 +6,7 @@ import hashlib
 from datetime import UTC, date, datetime, timedelta
 from uuid import uuid4
 
-from sqlalchemy import func, or_, select, update
+from sqlalchemy import and_, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.market_data_foundation import MarketRefreshJob
@@ -115,6 +115,38 @@ async def enqueue_refresh_job(
     return job
 
 
+# Must match the predicate of ix_market_refresh_job_claimable.
+OPEN_REFRESH_JOB_STATUSES = ("queued", "retry", "deferred", "leased")
+
+
+def claimable_jobs_condition(current: datetime):
+    """Return the WHERE predicate selecting jobs a drain may claim at ``current``."""
+
+    return and_(
+        # Redundant with the OR below, but PostgreSQL only proves the partial
+        # index predicate from a top-level conjunct, not from the OR/AND arms.
+        MarketRefreshJob.status.in_(OPEN_REFRESH_JOB_STATUSES),
+        MarketRefreshJob.next_attempt_at <= current,
+        or_(
+            MarketRefreshJob.status == "queued",
+            MarketRefreshJob.status.in_(["retry", "deferred"]),
+            (MarketRefreshJob.status == "leased") & (MarketRefreshJob.leased_until < current),
+        ),
+    )
+
+
+def claimable_jobs_query(current: datetime, limit: int):
+    """Return the row-locking claim SELECT (served by ix_market_refresh_job_claimable)."""
+
+    return (
+        select(MarketRefreshJob)
+        .where(claimable_jobs_condition(current))
+        .order_by(MarketRefreshJob.priority, MarketRefreshJob.next_attempt_at, MarketRefreshJob.id)
+        .limit(limit)
+        .with_for_update(skip_locked=True)
+    )
+
+
 async def claim_refresh_jobs(
     db: AsyncSession,
     *,
@@ -125,20 +157,7 @@ async def claim_refresh_jobs(
     """Claim due jobs with row locks so multiple workers do not duplicate work."""
 
     current = now or datetime.now(UTC)
-    query = (
-        select(MarketRefreshJob)
-        .where(
-            MarketRefreshJob.next_attempt_at <= current,
-            or_(
-                MarketRefreshJob.status == "queued",
-                MarketRefreshJob.status.in_(["retry", "deferred"]),
-                (MarketRefreshJob.status == "leased") & (MarketRefreshJob.leased_until < current),
-            ),
-        )
-        .order_by(MarketRefreshJob.priority, MarketRefreshJob.next_attempt_at, MarketRefreshJob.id)
-        .limit(limit)
-        .with_for_update(skip_locked=True)
-    )
+    query = claimable_jobs_query(current, limit)
     jobs = (await db.execute(query)).scalars().all()
     for job in jobs:
         job.status = "leased"

@@ -24,21 +24,26 @@
     "volume_count": 0,
     "worktree_id": "fix-refresh-queue-throughput-4f3bd54666"
   },
+  "docker_ready": {
+    "ready": true,
+    "started_desktop": false,
+    "wait_seconds": 0
+  },
   "goal_budget_policy": "unbounded_unless_human_authorized",
-  "goal_objective": "Advance fix/refresh-queue-throughput: Yes, start it (refresh-queue throughput gap: production backlog ~76k queued with ~2 concurrent sequential drains; proceed under 'please get it into a state that honors my requirements. Proceed, and yes, investigate'). Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_objective": "Advance fix/refresh-queue-throughput: Raise the production refresh queue's throughput so the self-sustaining whole-market universe (34k active instruments, ~76k queued jobs on 2026-11-20) can be prepared and kept fresh: cheap claims, more concurrent drains, and no duplicate children per maintenance pass.. Acceptance criteria: AC1: An additive Alembic revision and the model declare a partial index for claimable jobs (priority, next_attempt_at, id where status is queued, retry, deferred or leased). On real PostgreSQL the production claim query uses it with many completed rows present, and the revision reverses cleanly.; AC2: The drain chain cap defaults to 6 and the worker's job slots come from a setting (default 10). The effective chain cap always leaves slots for the scheduled jobs. The quarter-hour tick tops live drains up to the cap only when due work exists.; AC3: A later-hour ensure of the same identity tuple reuses the open queued, deferred or retry identity child and records both parents. A completed negative child keeps the hourly recovery behaviour, and a leased child is not reused.; AC4: A later maintenance pass for the same instrument, timeframe, adjustment and deepest range reuses the open history child, extends its end to the later end (open-ended counts as latest) and records both parents. Explicit-start ranges, derived-only children and leased children are not merged, and a sibling with a later end is reused unchanged.; AC5: Exact-source feature CI and the staging exhaustive gate are green before promotion; production deployment waits for the human's approval.. Required local profile: docker_integration. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
   "goal_request": {
-    "objective": "Advance fix/refresh-queue-throughput: Yes, start it (refresh-queue throughput gap: production backlog ~76k queued with ~2 concurrent sequential drains; proceed under 'please get it into a state that honors my requirements. Proceed, and yes, investigate'). Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+    "objective": "Advance fix/refresh-queue-throughput: Raise the production refresh queue's throughput so the self-sustaining whole-market universe (34k active instruments, ~76k queued jobs on 2026-11-20) can be prepared and kept fresh: cheap claims, more concurrent drains, and no duplicate children per maintenance pass.. Acceptance criteria: AC1: An additive Alembic revision and the model declare a partial index for claimable jobs (priority, next_attempt_at, id where status is queued, retry, deferred or leased). On real PostgreSQL the production claim query uses it with many completed rows present, and the revision reverses cleanly.; AC2: The drain chain cap defaults to 6 and the worker's job slots come from a setting (default 10). The effective chain cap always leaves slots for the scheduled jobs. The quarter-hour tick tops live drains up to the cap only when due work exists.; AC3: A later-hour ensure of the same identity tuple reuses the open queued, deferred or retry identity child and records both parents. A completed negative child keeps the hourly recovery behaviour, and a leased child is not reused.; AC4: A later maintenance pass for the same instrument, timeframe, adjustment and deepest range reuses the open history child, extends its end to the later end (open-ended counts as latest) and records both parents. Explicit-start ranges, derived-only children and leased children are not merged, and a sibling with a later end is reused unchanged.; AC5: Exact-source feature CI and the staging exhaustive gate are green before promotion; production deployment waits for the human's approval.. Required local profile: docker_integration. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
   },
   "goal_request_state": "planning_required",
-  "goal_state": "planning_required",
+  "goal_state": "requested",
   "head": "5ad66f0bf245040a9d3e2ce8320ae88def3dc1d0",
-  "implementation_sha": "d3e9496ccea45b3644e4e77afdcd15a8908c046c",
+  "implementation_sha": "1537cf12ee1fd99182c26cffa4973eb14c25e7d5",
   "local_validation_profile": "pending_agent_assessment",
-  "next_action": "run make agent-session-start",
+  "next_action": "create the session-local goal from goal_request (runtime adapter), then record it as active",
   "parent_branch": "staging",
-  "plan_hash": "ee2bc1af3ef061ee660ba006cc21d044bdbbbc12dbc347b4bca65969f291eae6",
+  "plan_hash": "f28d317e6f033a03f6d9e7a561d9fdc99d4a1316d2c999b236d44bac9b1ac7e4",
   "planning_required": true,
-  "planning_state": "draft",
+  "planning_state": "ready",
   "previous_session_ids": [],
   "progress": {
     "completed": [],
@@ -47,7 +52,7 @@
     "total": 0
   },
   "remote": "5ad66f0bf245040a9d3e2ce8320ae88def3dc1d0",
-  "remote_sha": "5ad66f0bf245040a9d3e2ce8320ae88def3dc1d0",
+  "remote_sha": "1537cf12ee1fd99182c26cffa4973eb14c25e7d5",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,

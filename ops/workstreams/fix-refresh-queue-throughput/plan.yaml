@@ -11,7 +11,18 @@ human_closure_authorization: >-
   decisions that the rules expect the human dev to make. Proceed"); the orchestrator closes this bounded
   production repair under that delegation. Production deployment still needs the human's explicit
   per-deploy approval.
-closure_summary: pending
+closure_summary: >-
+  Production refresh-queue throughput. After the liveness fix the queue drained again but could not keep up
+  with the 34k-instrument discovered universe (~76k queued, ~1-3k completions/h): drains were serial and
+  capped at two, every one-job claim walked all 232k rows (105 ms, mostly disk reads), and each maintenance
+  pass forked new hour/session-keyed identity and history children while earlier ones still waited (45,948
+  identity jobs for 32,472 instruments; ~100 waiting lookups for one instrument). Fix: partial claim index
+  (Alembic a7c3e5f9b2d4) plus a top-level status conjunct so PostgreSQL uses it; 6 drain chains on 10 worker
+  slots with 4 always reserved, topped up by the quarter-hour tick when due work exists; later passes join an
+  instrument's waiting identity child and its waiting deepest-range history child (widening the end) under
+  FOR UPDATE SKIP LOCKED. Unit 4561 pass (the joining cases fail on the old code); PostgreSQL plan, migration
+  and locking tests pass; Ruff clean. Requires integration_capture: exact branch HEAD.
+integration_capture: exact branch HEAD
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
 local_validation_profile: docker_integration
@@ -43,6 +54,7 @@ owned_paths:
   - backend/tests/unit/services/test_data_preparation_child_coalescing.py
   - backend/tests/unit/migrations/test_refresh_job_claim_index.py
   - backend/tests/integration/test_refresh_job_claim_index_postgres.py
+  - backend/tests/integration/test_data_preparation_child_coalescing_postgres.py
   - ops/workstreams/fix-refresh-queue-throughput/
 dependencies: []
 acceptance_criteria:
@@ -77,11 +89,13 @@ migration_impact: One additive Alembic revision creating a partial index on mark
 deployment_impact: >-
   Backend/worker image plus the Alembic index at startup. Worker concurrency defaults change (6 drain
   chains, 10 job slots); no environment or deployment-file change.
-status: authorized
-remaining_gaps: []
+status: ready_for_integration
+remaining_gaps:
+  - Production deployment needs the human's explicit approval.
+  - "Not changed here: duplicate children created before this release drain normally rather than being merged."
 progress:
-  completed: []
+  completed: [AC1, AC2, AC3, AC4]
   total: 5
-  current_phase: implement
+  current_phase: integration
   current_blocker: none
-  next_action: Implement AC1-AC4 with tests, validate locally, then hand to the orchestrator for CI and staging.
+  next_action: Orchestrator verifies exact CI, integrates into staging, waits for the exhaustive gate, promotes, then asks the human to approve the production deploy.

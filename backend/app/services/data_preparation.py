@@ -65,6 +65,10 @@ _DATASET_ENQUEUE_ORDER = {
     PreparationDataset.FUNDAMENTALS: 4,
 }
 _PENDING_PREPARATION_JOB_STATUSES = frozenset({"queued", "leased", "retry", "deferred"})
+# Children a later request may join. A leased child is excluded: its worker
+# holds a copy of the payload and may write it back after this request merges
+# new parent refs or a wider range into it.
+_COALESCIBLE_CHILD_STATUSES = ("queued", "deferred", "retry")
 _SCREENER_EXPANSION_CAPABILITY = "data_preparation_screener_expansion"
 _SCREENER_EXPANSION_BATCH_SIZE = 50
 
@@ -885,7 +889,26 @@ async def _enqueue_identity_profile_job(
     prior_job = (
         await db.execute(select(MarketRefreshJob).where(MarketRefreshJob.request_key == key))
     ).scalar_one_or_none()
-    if _identity_job_has_terminal_negative(prior_job):
+    terminal_negative = _identity_job_has_terminal_negative(prior_job)
+    open_sibling = (
+        await _open_identity_sibling(
+            db,
+            symbol=symbol,
+            instrument_id=instrument_id,
+            refresh_profile=refresh_profile,
+            required_profile_fields=required_profile_fields,
+        )
+        if prior_job is None or terminal_negative
+        else None
+    )
+    if open_sibling is not None:
+        # The hour in the key only bounds repeated terminal work. While an
+        # equivalent child from an earlier hour is still waiting to run, a
+        # later maintenance pass or user request joins it instead of forking
+        # another provider lookup for the same identity.
+        key = open_sibling.request_key
+        await _acquire_enqueue_lock(db, key)
+    elif terminal_negative:
         # A completed negative identity child is immutable history, not a
         # successful reusable result. Permit one fresh user/maintenance intent
         # to retry it in the same hour while equivalent requests coalesce on
@@ -926,6 +949,48 @@ async def _enqueue_identity_profile_job(
         ],
     )
     return job
+
+
+async def _open_identity_sibling(
+    db: AsyncSession,
+    *,
+    symbol: str,
+    instrument_id: int | None,
+    refresh_profile: bool,
+    required_profile_fields: list[str] | tuple[str, ...],
+) -> MarketRefreshJob | None:
+    """Return the oldest waiting identity child for the same identity tuple.
+
+    Rows a drain is claiming right now are skipped (and the returned row stays
+    locked until this transaction ends), so the join never races a claim.
+    """
+
+    query = select(MarketRefreshJob).where(
+        MarketRefreshJob.capability == ProviderCapability.INSTRUMENT_METADATA.value,
+        MarketRefreshJob.status.in_(_COALESCIBLE_CHILD_STATUSES),
+        MarketRefreshJob.request_key.like("prep-identity:%"),
+    )
+    if instrument_id is None:
+        query = query.where(
+            MarketRefreshJob.instrument_id.is_(None),
+            MarketRefreshJob.metadata_payload[("data_preparation_child", "symbol")].as_string()
+            == symbol.upper(),
+        )
+    else:
+        query = query.where(MarketRefreshJob.instrument_id == instrument_id)
+    query = query.order_by(MarketRefreshJob.id).with_for_update(skip_locked=True)
+    wanted_fields = sorted(set(required_profile_fields))
+    for job in (await db.execute(query)).scalars():
+        child = (job.metadata_payload or {}).get("data_preparation_child") or {}
+        if (
+            child.get("kind") == "identity_profile"
+            and str(child.get("symbol") or "").upper() == symbol.upper()
+            and child.get("instrument_id") == instrument_id
+            and bool(child.get("refresh_profile")) is bool(refresh_profile)
+            and sorted(set(child.get("required_profile_fields") or [])) == wanted_fields
+        ):
+            return job
+    return None
 
 
 def _identity_job_has_terminal_negative(job: MarketRefreshJob | None) -> bool:
@@ -1058,6 +1123,65 @@ def _history_request_key(
     )
 
 
+async def _open_latest_history_sibling(
+    db: AsyncSession, *, instrument_id: int, timeframe: Timeframe, adjusted: bool
+) -> MarketRefreshJob | None:
+    """Return the oldest waiting deepest-range history child for this series.
+
+    Only acquisition children qualify (not derived-only rollups), and rows a
+    drain is claiming right now are skipped; the returned row stays locked
+    until this transaction ends.
+    """
+
+    query = (
+        select(MarketRefreshJob)
+        .where(
+            MarketRefreshJob.capability == "price_history",
+            MarketRefreshJob.instrument_id == instrument_id,
+            MarketRefreshJob.timeframe == timeframe.value,
+            MarketRefreshJob.start_at.is_(None),
+            MarketRefreshJob.status.in_(_COALESCIBLE_CHILD_STATUSES),
+            MarketRefreshJob.request_key.like("prep-history:%"),
+        )
+        .order_by(MarketRefreshJob.id)
+        .with_for_update(skip_locked=True)
+    )
+    for job in (await db.execute(query)).scalars():
+        child = (job.metadata_payload or {}).get("data_preparation_child") or {}
+        if (
+            child.get("dataset") == PreparationDataset.HISTORY.value
+            and child.get("range_mode") == "deepest_admitted"
+            and bool(child.get("adjusted")) is bool(adjusted)
+            and not child.get("derived_only")
+            # Older-chunk continuations carry their own fixed window.
+            and not child.get("chunk")
+        ):
+            return job
+    return None
+
+
+def _later_history_end(current: datetime | None, requested: datetime | None) -> datetime | None:
+    """The wider of two deepest-range ends; an open end means "latest"."""
+
+    if current is None or requested is None:
+        return None
+    return max(_as_utc(current), _as_utc(requested))
+
+
+def _earlier_iso(current: str | None, requested: str | None) -> str | None:
+    """The earlier of two ISO scheduling floors (priority only, never coverage)."""
+
+    values = []
+    for value in (current, requested):
+        if not value:
+            continue
+        try:
+            values.append(_as_utc(datetime.fromisoformat(value)))
+        except (TypeError, ValueError):
+            continue
+    return min(values).isoformat() if values else None
+
+
 def _analysis_required_start(request: DataEnsureRequest, *, now: datetime) -> datetime | None:
     """Return a scheduling floor for the first useful analysis window.
 
@@ -1112,12 +1236,48 @@ async def _enqueue_history_dependency(
         refresh_bucket=refresh_bucket,
     )
     await _acquire_enqueue_lock(db, request_key)
-    prior_refs = await _existing_parent_refs(db, request_key)
     existing_job = (
         await db.execute(
             select(MarketRefreshJob).where(MarketRefreshJob.request_key == request_key)
         )
     ).scalar_one_or_none()
+    end_at = request.end_at
+    wait_ids = list(wait_for_job_ids or [])
+    analysis_required_start = (
+        request.start_at.isoformat()
+        if request.start_at is not None
+        else (
+            _analysis_required_start(request, now=request.end_at or now).isoformat()
+            if request.analysis is not None
+            else None
+        )
+    )
+    derive_coarse = timeframe is Timeframe.D1 and request.timeframe in {Timeframe.W1, Timeframe.MN}
+    if existing_job is None and range_mode == "deepest_admitted" and not derived_only:
+        sibling = await _open_latest_history_sibling(
+            db, instrument_id=instrument_id, timeframe=timeframe, adjusted=request.adjusted
+        )
+        if sibling is not None:
+            # Each published session (or hourly bucket) gets a new key, so a
+            # later maintenance pass would otherwise fork a second deepest-range
+            # child while the earlier one still waits in the queue. Join it and
+            # widen its end instead: the wider range satisfies both parents.
+            request_key = sibling.request_key
+            await _acquire_enqueue_lock(db, request_key)
+            existing_job = sibling
+            sibling_child = (sibling.metadata_payload or {}).get("data_preparation_child") or {}
+            wait_ids = list(
+                dict.fromkeys([*(sibling_child.get("wait_for_job_ids") or []), *wait_ids])
+            )
+            analysis_required_start = _earlier_iso(
+                sibling_child.get("analysis_required_start"), analysis_required_start
+            )
+            derive_coarse = derive_coarse or bool(sibling_child.get("derive_coarse_timeframes"))
+    if existing_job is not None and range_mode == "deepest_admitted" and not derived_only:
+        # Never narrow a child an earlier join widened: a repeat of its
+        # original key keeps the later end the other parent relies on.
+        end_at = _later_history_end(existing_job.end_at, request.end_at)
+    prior_refs = await _existing_parent_refs(db, request_key)
     existing_child = (
         (existing_job.metadata_payload or {}).get("data_preparation_child") or {}
         if existing_job is not None
@@ -1138,7 +1298,7 @@ async def _enqueue_history_dependency(
         instrument_id=instrument_id,
         timeframe=timeframe.value,
         start_at=request.start_at,
-        end_at=request.end_at,
+        end_at=end_at,
         priority=priority,
         requeue_completed=requeue_no_provider,
         metadata_payload={
@@ -1148,24 +1308,14 @@ async def _enqueue_history_dependency(
                 "adjusted": request.adjusted,
                 "range_mode": range_mode,
                 "range_start": request.start_at.isoformat() if request.start_at else None,
-                "range_end": request.end_at.isoformat() if request.end_at else None,
-                "analysis_required_start": (
-                    request.start_at.isoformat()
-                    if request.start_at is not None
-                    else (
-                        _analysis_required_start(request, now=request.end_at or now).isoformat()
-                        if request.analysis is not None
-                        else None
-                    )
-                ),
-                "derive_coarse_timeframes": (
-                    timeframe is Timeframe.D1 and request.timeframe in {Timeframe.W1, Timeframe.MN}
-                ),
+                "range_end": end_at.isoformat() if end_at else None,
+                "analysis_required_start": analysis_required_start,
+                "derive_coarse_timeframes": derive_coarse,
                 # If a visible exact-range request promotes a queued automatic
                 # chunk, retain that chunk's feed pin rather than silently
                 # changing source identity during deduplication.
                 "source_provider": existing_child.get("source_provider"),
-                "wait_for_job_ids": wait_for_job_ids or [],
+                "wait_for_job_ids": wait_ids,
                 "derived_only": derived_only,
                 "parent_refs": [
                     *prior_refs,
@@ -1176,6 +1326,10 @@ async def _enqueue_history_dependency(
         now=now,
         preserve_deferred_deadline=True,
     )
+    if job.end_at != end_at:
+        # enqueue_refresh_job sets the range only on insert; a joined sibling's
+        # end widens here so the job column and its payload agree.
+        job.end_at = end_at
     await _merge_parent_refs(
         db, job, [{"parent_job_id": parent_job_id, "dependency_id": dependency_id}]
     )

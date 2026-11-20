@@ -136,9 +136,11 @@ class Settings(BaseSettings):
     # drain is cancelled before it can schedule that continuation). The
     # remaining headroom is for the job already in flight.
     MARKET_DATA_REFRESH_DRAIN_BUDGET_SECONDS: int = 360
-    # Most drains allowed to hand over to a continuation at once. The worker
-    # runs four jobs at a time, so this leaves room for the other schedules.
-    MARKET_DATA_REFRESH_MAX_DRAIN_CHAINS: int = 2
+    # Most drains allowed to run at once (continuations plus top-ups). The
+    # effective cap always leaves four worker slots for the other schedules.
+    MARKET_DATA_REFRESH_MAX_DRAIN_CHAINS: int = 6
+    # arq worker job slots; refresh drains and scheduled jobs share them.
+    ARQ_WORKER_MAX_JOBS: int = 10
     MARKET_DATA_SHADOW_REPORT_ENABLED: bool = False
     MARKET_UNIVERSE_RECONCILIATION_ENABLED: bool = True
     # Provider-native account usage is opt-in because each poll consumes the
@@ -3578,6 +3580,27 @@ class Settings(BaseSettings):
         case_sensitive=True,
         extra="ignore",
     )
+
+
+WORKER_MAX_JOBS_MIN = 4
+WORKER_MAX_JOBS_MAX = 32
+WORKER_MAX_JOBS_DEFAULT = 10
+
+
+def clamped_worker_max_jobs(value: object = None) -> int:
+    """Return the arq worker job-slot count clamped to a sane range.
+
+    ``value`` defaults to ``settings.ARQ_WORKER_MAX_JOBS``; bad values fall back
+    to the default before clamping.
+    """
+
+    if value is None:
+        value = settings.ARQ_WORKER_MAX_JOBS
+    try:
+        slots = int(value)  # type: ignore[call-overload]
+    except (TypeError, ValueError):
+        slots = WORKER_MAX_JOBS_DEFAULT
+    return max(WORKER_MAX_JOBS_MIN, min(slots, WORKER_MAX_JOBS_MAX))
 
 
 settings = Settings()
