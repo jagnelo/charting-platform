@@ -65,12 +65,12 @@ migration_impact: none
 deployment_impact: Backend/worker image only; no setting, environment or deployment-file change.
 status: ready_for_integration
 remaining_gaps:
-  - Exact-source feature CI and the staging exhaustive gate on the final head are pending.
+  - "Staging attempt 1 (a46eb6797) failed only the research-runner resource probe (classified infrastructure, see handoff); a fresh staging gate is pending."
   - Production deployment needs the human's explicit approval.
   - "Not changed here: refresh_tokenized_assets still shares one session across a provider's catalogue rows; the JSON-safe upsert removes the observed failure class there too."
 progress:
   completed: [AC1, AC2, AC3]
   total: 4
-  current_phase: final_publication_pending_exact_ci
+  current_phase: remediation_re_gate_of_degraded_staging_a46eb6797
   current_blocker: none
   next_action: Orchestrator verifies exact CI, integrates into staging, waits for the exhaustive gate, promotes, then asks the human to approve the production deploy.

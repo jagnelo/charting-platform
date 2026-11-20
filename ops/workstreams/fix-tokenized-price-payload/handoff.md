@@ -46,3 +46,27 @@ the batch, so every tick restarted on the same asset: no tokenized quote can be 
 Orchestrator: verify exact CI on the final head, `staging.py integrate`, wait for the exhaustive gate, promote,
 build and back up the release, then ask the human to approve the production deploy. After deploy, confirm the
 next `scheduled_tokenized_asset_refresh` ticks succeed and the gate_tradfi snapshot for instrument 34315 updates.
+
+## Staging attempt 1: a46eb6797 (2026-11-20), red on an infrastructure probe
+
+Exact-source feature CI on 0ad1c6587 was green. Integration produced staging `a46eb6797`, whose Exhaustive
+Integration Gate (run 44704760479, attempt 1) failed only at `stage=research-runner-probes`, sub-stage
+`stage=resources exit=1`: the bounded memory-cgroup/tmpfs/concurrent-memory pressure probe
+(`ops/probe-research-runner-resources.sh`) against the isolated research-runner container. Every earlier gate
+stage passed. The job log needs a GitHub sign-in, so the exact sub-probe is not visible here; the CI retry
+coordinator (run 44711174571) did not classify it for an automatic rerun.
+
+Classification: hosted-runner resource-probe failure, unrelated to this change. This branch touches only
+tokenized provider/service code and tests; the research-runner container, its limits, the probe scripts and the
+Makefile are unchanged from staging `873eb2079`, whose gate passed the same probe at 07:43Z. In the previous 60
+staging CI runs (since 2026-10-24) this is the first failure of this stage; the other 12 failures were
+Playwright functional/visual or lint stages. The probe and test are unchanged and not weakened; a fresh staging
+gate on a new integration commit must pass before promotion.
+
+## Remediation re-gate
+
+`staging.py integrate` refused attempt 2 because staging is marked degraded at `a46eb6797`. Following the
+1400b3b1d precedent, this branch merges the exact degraded staging SHA (so its merge base with staging is
+`a46eb6797`) and is integrated with `REMEDIATE_DEGRADED=1` under the human's 2026-11-13 standing delegation of
+workflow decisions to the Desktop orchestrator. Exact-source branch CI on the merged head and a fresh staging
+Exhaustive Integration Gate are still mandatory; nothing is waived.
