@@ -388,6 +388,14 @@ test('Workstation search resolves an unknown ticker and reports shared history p
     canonicalInstrumentResolved = true
     await route.fulfill({ status: 200, json: resolvedIdentity(body, fixtureInstrumentId, 'Common Stock') })
   })
+  const fixtureInstrument = {
+    id: fixtureInstrumentId,
+    symbol: 'TCNEW',
+    name: 'Unknown ticker (controlled test fixture)',
+    currency: 'USD',
+    is_active: true,
+    stats: { week52_high: 12 },
+  }
   await page.route(url => url.pathname === '/api/v1/instruments/TCNEW'
     && url.searchParams.get('canonical_only') === 'true', async route => {
     if (route.request().method() !== 'GET') return route.continue()
@@ -396,14 +404,18 @@ test('Workstation search resolves an unknown ticker and reports shared history p
       notifyCanonicalLookupStarted()
       await canonicalLookupGate
     }
-    await route.fulfill({ status: 200, json: {
-      id: fixtureInstrumentId,
-      symbol: 'TCNEW',
-      name: 'Unknown ticker (controlled test fixture)',
-      currency: 'USD',
-      is_active: true,
-      stats: { week52_high: 12 },
-    } })
+    await route.fulfill({ status: 200, json: fixtureInstrument })
+  })
+  // The acquire response above is controlled, so the isolated backend never
+  // persists TCNEW. Once that identity has resolved, the chart store's ordinary
+  // instrument read must see the instrument a real acquire would have stored.
+  // Before resolution it still reaches the backend unchanged. Without this, a
+  // fast backend 404 can land on the current chart load and replace the chart
+  // with "not found", which no real acquire can produce.
+  await page.route(url => url.pathname === '/api/v1/instruments/TCNEW'
+    && url.searchParams.get('canonical_only') !== 'true', async route => {
+    if (route.request().method() !== 'GET' || !canonicalInstrumentResolved) return route.continue()
+    await route.fulfill({ status: 200, json: fixtureInstrument })
   })
   await page.route('**/api/v1/data/ensure', async route => {
     const request = route.request().postDataJSON() as DataEnsureRequest
