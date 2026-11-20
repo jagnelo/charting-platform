@@ -71,6 +71,6 @@ remaining_gaps:
 progress:
   completed: [AC1, AC2, AC3]
   total: 4
-  current_phase: staging_gate_retry_after_infrastructure_probe_failure
+  current_phase: remediation_re_gate_of_degraded_staging_a46eb6797
   current_blocker: none
   next_action: Orchestrator verifies exact CI, integrates into staging, waits for the exhaustive gate, promotes, then asks the human to approve the production deploy.

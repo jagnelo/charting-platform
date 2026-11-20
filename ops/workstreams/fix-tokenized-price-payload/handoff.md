@@ -62,3 +62,11 @@ Makefile are unchanged from staging `873eb2079`, whose gate passed the same prob
 staging CI runs (since 2026-10-24) this is the first failure of this stage; the other 12 failures were
 Playwright functional/visual or lint stages. The probe and test are unchanged and not weakened; a fresh staging
 gate on a new integration commit must pass before promotion.
+
+## Remediation re-gate
+
+`staging.py integrate` refused attempt 2 because staging is marked degraded at `a46eb6797`. Following the
+1400b3b1d precedent, this branch merges the exact degraded staging SHA (so its merge base with staging is
+`a46eb6797`) and is integrated with `REMEDIATE_DEGRADED=1` under the human's 2026-11-13 standing delegation of
+workflow decisions to the Desktop orchestrator. Exact-source branch CI on the merged head and a fresh staging
+Exhaustive Integration Gate are still mandatory; nothing is waived.
