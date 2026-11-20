@@ -74,7 +74,7 @@ live_test_impact: none
 migration_impact: none
 deployment_impact: >-
   Backend/worker image only. Three new settings with safe defaults (MARKET_DATA_REFRESH_DRAIN_BUDGET_SECONDS=360,
-  MARKET_DATA_REFRESH_MAX_DRAIN_CHAINS=2, INSTRUMENT_DAILY_METADATA_MAX_SECONDS=480); no env or Compose change is required.
+  MARKET_DATA_REFRESH_MAX_DRAIN_CHAINS=2, INSTRUMENT_DAILY_METADATA_MAX_SECONDS=480); no environment or deployment-file change is required.
 status: ready_for_integration
 remaining_gaps:
   - Exact-source feature CI and the staging exhaustive gate on the final head are pending.
