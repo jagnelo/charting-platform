@@ -1,0 +1,76 @@
+schema: 4
+branch: fix/tokenized-price-payload
+base_sha: 873eb20796ff40eb2f0c7418c34c6f6163feecd5
+parent_branch: staging
+parent_sha: 873eb20796ff40eb2f0c7418c34c6f6163feecd5
+dependency_authorization: "not applicable: independent staging-based topic"
+human_intent_authorization: "please get it into a state that honors my requirements. Proceed, and yes, investigate"
+planning_state: ready
+human_closure_authorization: >-
+  2026-11-13 the human delegated closure decisions to the Desktop orchestrator ("you're allowed to make
+  decisions that the rules expect the human dev to make. Proceed"); the orchestrator closes this bounded
+  production repair under that delegation. Production deployment still needs the human's explicit
+  per-deploy approval.
+closure_summary: >-
+  Production tokenized quote refresh. Since 2026-11-20 07:15Z every quarter-hour
+  scheduled_tokenized_asset_refresh failed with PendingRollbackError: the gate_tradfi order-book quote kept
+  Decimal values in its raw payload, the JSON observation/snapshot flush raised TypeError, the shared session
+  was left in a failed transaction, and the batch cursor never advanced past that asset, so no tokenized quote
+  could be refreshed again. Fix: the Gate quote keeps provider-style decimal strings; upsert_tokenized_asset
+  stores a JSON-safe copy of any payload (Decimal to string, datetime to ISO); each asset's persistence runs in
+  its own savepoint so one failure is recorded and the batch, commit and cursor proceed; batch values are read
+  before the loop because a rolled-back savepoint expires ORM rows that an async session cannot lazy-load.
+  Regressions: a real-PostgreSQL test reproduces the production PendingRollbackError on the old code and passes
+  on the fix; unit tests cover the Gate payload and both service paths. Unit 865 pass; Ruff clean.
+  Requires integration_capture: exact branch HEAD.
+integration_capture: exact branch HEAD
+validation_tier: full_integration
+human_validation_authorization: agent_default_full_integration
+local_validation_profile: docker_integration
+local_validation_reason: >-
+  Backend provider/service change only (no frontend, migration or deployment input). Every unit module
+  touching tokenized assets runs locally, plus a new real-PostgreSQL regression of the asyncpg savepoint
+  path. Exact-source CI and the staging exhaustive gate run every backend, frontend and Playwright suite.
+goal_budget_policy: unbounded_unless_human_authorized
+human_goal_budget_authorization: none
+goal: >-
+  Restore the quarter-hour tokenized quote refresh in production: one gate_tradfi quote with Decimal payload
+  values has aborted every tick since 2026-11-20 07:15Z and pinned the batch cursor.
+scope:
+  - The gate_tradfi order-book quote payload holds JSON-native values.
+  - Tokenized observation and latest-price snapshot payloads are stored as JSON-safe copies.
+  - One asset's persistence failure is isolated in a savepoint so the batch, commit and cursor proceed.
+owned_paths:
+  - backend/app/providers/tokenized.py
+  - backend/app/services/tokenized_assets.py
+  - backend/tests/unit/providers/test_tokenized.py
+  - backend/tests/unit/services/test_tokenized_assets.py
+  - backend/tests/integration/test_tokenized_price_refresh_postgres.py
+  - ops/workstreams/fix-tokenized-price-payload/
+dependencies: []
+acceptance_criteria:
+  - id: AC1
+    text: The gate_tradfi quote payload survives a JSON round trip and keeps the same Decimal bid, ask and mid on the record, with and without a catalogue hit.
+  - id: AC2
+    text: A quote whose raw payload holds Decimal and datetime values is refreshed and stored as JSON strings in both the snapshot and the observation.
+  - id: AC3
+    text: On real PostgreSQL, one asset whose writes fail is reported as a failure while the next asset is refreshed and committed; the old code fails with the production PendingRollbackError.
+  - id: AC4
+    text: Exact-source feature CI and the staging exhaustive gate are green before promotion; production deployment waits for the human's approval.
+branch_tests:
+  - uv run --project backend pytest backend/tests/unit/providers/test_tokenized.py backend/tests/unit/services/test_tokenized_assets.py -q --no-cov
+branch_tests_reason: Provider payload and both service paths are covered offline here; the PostgreSQL savepoint regression runs in the ordinary integration suite.
+live_test_impact: none
+migration_impact: none
+deployment_impact: Backend/worker image only; no setting, environment or deployment-file change.
+status: ready_for_integration
+remaining_gaps:
+  - Exact-source feature CI and the staging exhaustive gate on the final head are pending.
+  - Production deployment needs the human's explicit approval.
+  - "Not changed here: refresh_tokenized_assets still shares one session across a provider's catalogue rows; the JSON-safe upsert removes the observed failure class there too."
+progress:
+  completed: [AC1, AC2, AC3]
+  total: 4
+  current_phase: final_publication_pending_exact_ci
+  current_blocker: none
+  next_action: Orchestrator verifies exact CI, integrates into staging, waits for the exhaustive gate, promotes, then asks the human to approve the production deploy.

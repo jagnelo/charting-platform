@@ -870,10 +870,13 @@ class GateTradfiProvider:
         asks = _gate_orderbook_rows(data, "asks")
         bid = _gate_orderbook_price(bids, "bid")
         ask = _gate_orderbook_price(asks, "ask")
+        mid = (bid + ask) / 2 if bid is not None and ask is not None else bid or ask
+        # The quote is retained verbatim as the observation payload, which is a
+        # JSON column: keep provider-style decimal strings, not Decimal objects.
         row = {
-            "bid": bid,
-            "ask": ask,
-            "price": ((bid + ask) / 2 if bid is not None and ask is not None else bid or ask),
+            "bid": None if bid is None else str(bid),
+            "ask": None if ask is None else str(ask),
+            "price": None if mid is None else str(mid),
         }
         record = asset or self._record({"symbol": identifier}, row)
         if isinstance(row, dict):

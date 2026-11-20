@@ -1,3 +1,4 @@
+import json
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from unittest.mock import Mock, patch
@@ -403,6 +404,36 @@ def test_gate_orderbook_object_rows_produce_quote():
     assert result.bid == Decimal("106.07")
     assert result.ask == Decimal("106.72")
     assert result.price == Decimal("106.395")
+
+
+@pytest.mark.parametrize("catalogue_hit", [True, False])
+def test_gate_orderbook_quote_payload_is_json_column_safe(catalogue_hit):
+    # Production regression: the order-book quote was kept as Decimal objects
+    # in the raw payload, so persisting the observation failed its JSON flush.
+    response = Mock()
+    response.raise_for_status.return_value = None
+    response.status_code = 200
+    response.json.return_value = {
+        "data": {
+            "symbol": "AAOI",
+            "bids": [{"p": "38.07", "user_order": False}],
+            "asks": [{"p": "38.12", "user_order": False}],
+        },
+    }
+    asset = GateTradfiProvider._record({"symbol": "AAOI"}) if catalogue_hit else None
+    with (
+        patch.object(GateTradfiProvider, "get_tokenized_asset", return_value=asset),
+        patch("app.providers.tokenized.httpx.get", return_value=response),
+    ):
+        result = GateTradfiProvider().get_tokenized_price("AAOI")
+
+    assert json.loads(json.dumps(result.raw_payload)) == result.raw_payload
+    assert result.raw_payload["orderbook"] == {"bid": "38.07", "ask": "38.12", "price": "38.095"}
+    assert (result.bid, result.ask, result.price) == (
+        Decimal("38.07"),
+        Decimal("38.12"),
+        Decimal("38.095"),
+    )
 
 
 def test_gate_orderbook_scalar_rows_fail_closed():

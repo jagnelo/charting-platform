@@ -1,0 +1,65 @@
+{
+  "acceptance_criteria": [],
+  "active_session_id": "0d5cff68-8f07-446b-8bd8-11bb520b4e46",
+  "branch": "fix/tokenized-price-payload",
+  "dirty_paths": [],
+  "docker": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-fix-tokenized-price-payload-bd201f55",
+      "charting-stack-fix-tokenized-price-payload-bd201f55"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "fix-tokenized-price-payload-bd201f557a"
+  },
+  "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance fix/tokenized-price-payload: please get it into a state that honors my requirements. Proceed, and yes, investigate. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_request": {
+    "objective": "Advance fix/tokenized-price-payload: please get it into a state that honors my requirements. Proceed, and yes, investigate. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "planning_required",
+  "goal_state": "planning_required",
+  "head": "93bd5b0eed1dcbb4b5d2a94736cb75ee47aefef5",
+  "implementation_sha": "873eb20796ff40eb2f0c7418c34c6f6163feecd5",
+  "local_validation_profile": "pending_agent_assessment",
+  "next_action": "run make agent-session-start",
+  "parent_branch": "staging",
+  "plan_hash": "11b8dae9f974d550f2d2a9e6476f6fa4e9673cbbf47710da4161e8f3be6ffe1f",
+  "planning_required": true,
+  "planning_state": "draft",
+  "previous_session_ids": [],
+  "progress": {
+    "completed": [],
+    "current_blocker": "none",
+    "current_phase": "plan",
+    "total": 0
+  },
+  "remote": "93bd5b0eed1dcbb4b5d2a94736cb75ee47aefef5",
+  "remote_sha": "93bd5b0eed1dcbb4b5d2a94736cb75ee47aefef5",
+  "remote_synchronized": true,
+  "retained_docker_resources": [],
+  "schema": 2,
+  "session_id": "0d5cff68-8f07-446b-8bd8-11bb520b4e46",
+  "validation_tier": "full_integration",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/fix-tokenized-price-payload/ops/workstreams/fix-tokenized-price-payload",
+  "workstream_files": [
+    "/home/m920q/charting-platform/.ai/worktrees/fix-tokenized-price-payload/ops/workstreams/fix-tokenized-price-payload/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-tokenized-price-payload/ops/workstreams/fix-tokenized-price-payload/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-tokenized-price-payload/ops/workstreams/fix-tokenized-price-payload/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-tokenized-price-payload/ops/workstreams/fix-tokenized-price-payload/session.json"
+  ],
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-tokenized-price-payload",
+  "worktree_id": "fix-tokenized-price-payload-bd201f557a"
+}
