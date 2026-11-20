@@ -107,16 +107,18 @@ async def test_nightly_history_refresh_materializes_coarse_views_when_provider_r
 async def test_core_refresh_scheduler_uses_shared_workstation_maintenance_planner(monkeypatch):
     queued = []
 
-    async def fake_maintenance(ctx, *, include_discovered):
-        queued.append((ctx, include_discovered))
+    async def fake_maintenance(ctx, *, include_discovered, deadline=None):
+        queued.append((ctx, include_discovered, deadline))
         return {"mode": "shared_preparation_queue", "queued": 4}
 
     monkeypatch.setattr(data_tasks, "enqueue_workstation_maintenance", fake_maintenance)
 
     result = await data_tasks.enqueue_core_refresh_jobs({"redis": "unused"})
+    bounded = await data_tasks.enqueue_core_refresh_jobs({"redis": "unused"}, deadline=123.0)
 
     assert result == {"mode": "shared_preparation_queue", "queued": 4}
-    assert queued == [({"redis": "unused"}, True)]
+    assert bounded == result
+    assert queued == [({"redis": "unused"}, True, None), ({"redis": "unused"}, True, 123.0)]
 
 
 @pytest.mark.asyncio
@@ -180,6 +182,194 @@ async def test_refresh_worker_reselects_before_claiming_next_job(monkeypatch):
     assert processed == ["fmp", "alpaca"]
     assert background_jobs[1].status == "queued"
     assert claim_count == 2
+
+
+class _WakeRedis:
+    def __init__(self):
+        self.enqueued = []
+
+    async def enqueue_job(self, function, *args, **kwargs):
+        self.enqueued.append((function, kwargs))
+
+
+@pytest.mark.asyncio
+async def test_refresh_drain_hands_over_when_its_budget_is_spent_mid_batch(monkeypatch):
+    """A slow batch must schedule its continuation instead of hitting the job timeout.
+
+    Production drains claimed 100 jobs of up to a minute each, were cancelled
+    by the 600s worker job timeout, and so never scheduled the follow-up.
+    """
+    session = _Session([])
+    clock = [1000.0]
+    jobs = [
+        SimpleNamespace(
+            id=300 + index,
+            capability=data_tasks.ProviderCapability.ACCOUNT_USAGE.value,
+            priority=100,
+            status="queued",
+            attempts=0,
+            lease_token=None,
+            metadata_payload={"provider_account_usage_refresh": {"provider_name": "fmp"}},
+        )
+        for index in range(3)
+    ]
+
+    async def claim(_db, *, limit):
+        available = [job for job in jobs if job.status == "queued"]
+        if not available:
+            return []
+        available[0].status = "leased"
+        available[0].lease_token = f"lease-{available[0].id}"
+        return [available[0]]
+
+    async def slow_usage_refresh(_db, request):
+        clock[0] += 400.0
+        return {"status": "refreshed", "providers": [request["provider_name"]]}
+
+    async def complete(_db, job, *, result_summary):
+        job.status = "completed"
+
+    redis = _WakeRedis()
+    monkeypatch.setattr(data_tasks, "time", SimpleNamespace(monotonic=lambda: clock[0]))
+    monkeypatch.setattr(data_tasks.settings, "MARKET_DATA_REFRESH_DRAIN_BUDGET_SECONDS", 360)
+    monkeypatch.setattr(data_tasks, "AsyncSessionLocal", lambda: _SessionContext(session))
+    monkeypatch.setattr(data_tasks, "claim_refresh_jobs", claim)
+    monkeypatch.setattr(data_tasks, "_run_native_usage_refresh_job", slow_usage_refresh)
+    monkeypatch.setattr(data_tasks, "complete_refresh_job", complete)
+
+    result = await data_tasks.process_refresh_jobs({"redis": redis}, limit=100)
+
+    assert result["claimed"] == 1
+    assert result["completed"] == 1
+    assert result["budget_exhausted"] is True
+    assert result["wakeup_scheduled"] is True
+    assert [job.status for job in jobs] == ["completed", "queued", "queued"]
+    assert len(redis.enqueued) == 1
+    function, kwargs = redis.enqueued[0]
+    assert function == "task_process_refresh_jobs"
+    assert kwargs["_defer_by"] == 1
+
+
+@pytest.mark.asyncio
+async def test_refresh_drain_with_spent_deadline_claims_nothing_but_keeps_the_chain(monkeypatch):
+    session = _Session([])
+    claims = []
+
+    async def claim(_db, *, limit):
+        claims.append(limit)
+        return []
+
+    redis = _WakeRedis()
+    monkeypatch.setattr(data_tasks, "AsyncSessionLocal", lambda: _SessionContext(session))
+    monkeypatch.setattr(data_tasks, "claim_refresh_jobs", claim)
+
+    result = await data_tasks.process_refresh_jobs(
+        {"redis": redis}, deadline=data_tasks.time.monotonic() - 1
+    )
+
+    assert claims == []
+    assert result["claimed"] == 0
+    assert result["budget_exhausted"] is True
+    assert result["wakeup_scheduled"] is True
+    assert redis.enqueued[0][0] == "task_process_refresh_jobs"
+
+
+@pytest.mark.asyncio
+async def test_refresh_drain_within_budget_on_empty_queue_schedules_nothing(monkeypatch):
+    session = _Session([])
+
+    async def claim(_db, *, limit):
+        return []
+
+    redis = _WakeRedis()
+    monkeypatch.setattr(data_tasks, "AsyncSessionLocal", lambda: _SessionContext(session))
+    monkeypatch.setattr(data_tasks, "claim_refresh_jobs", claim)
+
+    result = await data_tasks.process_refresh_jobs({"redis": redis})
+
+    assert result["budget_exhausted"] is False
+    assert result["wakeup_scheduled"] is False
+    assert redis.enqueued == []
+
+
+class _QueueRedis(_WakeRedis):
+    default_queue_name = "arq:queue"
+
+    def __init__(self, members):
+        super().__init__()
+        self.members = members
+        self.ranges = []
+
+    async def zrangebyscore(self, name, low, high):
+        self.ranges.append((name, low, high))
+        return [member.encode() for member in self.members]
+
+
+async def _drain_with_spent_budget(monkeypatch, redis, *, job_id):
+    async def claim(_db, *, limit):
+        return []
+
+    monkeypatch.setattr(data_tasks, "AsyncSessionLocal", lambda: _SessionContext(_Session([])))
+    monkeypatch.setattr(data_tasks, "claim_refresh_jobs", claim)
+    monkeypatch.setattr(data_tasks.settings, "MARKET_DATA_REFRESH_MAX_DRAIN_CHAINS", 2)
+    return await data_tasks.process_refresh_jobs(
+        {"redis": redis, "job_id": job_id}, deadline=data_tasks.time.monotonic() - 1
+    )
+
+
+@pytest.mark.asyncio
+async def test_refresh_drain_stops_handing_over_when_the_chain_cap_is_reached(monkeypatch):
+    redis = _QueueRedis(
+        [
+            "data-preparation-followup:aaa",
+            "data-preparation-wakeup:bbb",
+            "data-preparation-followup:self",
+            "cron:scheduled_identity_batch:1",
+        ]
+    )
+
+    result = await _drain_with_spent_budget(
+        monkeypatch, redis, job_id="data-preparation-followup:self"
+    )
+
+    assert result["budget_exhausted"] is True
+    assert result["chain_capped"] is True
+    assert result["wakeup_scheduled"] is False
+    assert redis.enqueued == []
+    name, low, high = redis.ranges[0]
+    assert name == "arq:queue" and low == "-inf"
+    # Only drains running or due within a minute count as live.
+    now_ms = datetime.now(UTC).timestamp() * 1000
+    assert now_ms < high <= now_ms + 61_000
+
+
+@pytest.mark.asyncio
+async def test_refresh_drain_hands_over_below_the_chain_cap(monkeypatch):
+    redis = _QueueRedis(
+        ["data-preparation-followup:aaa", "data-preparation-followup:self", "cron:other:1"]
+    )
+
+    result = await _drain_with_spent_budget(
+        monkeypatch, redis, job_id="data-preparation-followup:self"
+    )
+
+    assert result["chain_capped"] is False
+    assert result["wakeup_scheduled"] is True
+    function, kwargs = redis.enqueued[0]
+    assert function == "task_process_refresh_jobs"
+    assert kwargs["_job_id"].startswith("data-preparation-followup:")
+    assert kwargs["_defer_by"] == 1
+
+
+@pytest.mark.parametrize(
+    ("configured", "expected"), [(360, 360.0), (100_000, 540.0), (0, 1.0), ("bad", 360.0)]
+)
+def test_refresh_drain_deadline_stays_inside_the_worker_job_timeout(
+    monkeypatch, configured, expected
+):
+    monkeypatch.setattr(data_tasks.settings, "MARKET_DATA_REFRESH_DRAIN_BUDGET_SECONDS", configured)
+
+    assert data_tasks.refresh_drain_deadline(started=50.0) == 50.0 + expected
 
 
 @pytest.mark.asyncio

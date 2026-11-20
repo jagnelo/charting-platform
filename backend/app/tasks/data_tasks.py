@@ -5,6 +5,7 @@ Background data tasks — bulk historical fetches.
 import hashlib
 import json
 import logging
+import time
 from copy import deepcopy
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
@@ -955,18 +956,24 @@ async def fetch_all_instruments_history(ctx: dict) -> dict:
         }
 
 
-async def enqueue_core_refresh_jobs(ctx: dict) -> dict:
+async def enqueue_core_refresh_jobs(ctx: dict, *, deadline: float | None = None) -> dict:
     """Queue catalogue, saved-input and discovered-universe work on the shared planner."""
 
-    return await enqueue_workstation_maintenance(ctx, include_discovered=True)
+    return await enqueue_workstation_maintenance(ctx, include_discovered=True, deadline=deadline)
 
 
-async def enqueue_workstation_maintenance(ctx: dict, *, include_discovered: bool = False) -> dict:
+async def enqueue_workstation_maintenance(
+    ctx: dict, *, include_discovered: bool = False, deadline: float | None = None
+) -> dict:
     """Persist default and user workstation preparation without source I/O.
 
     Visible API requests retain priority 10, default/core and saved-list work
     uses 50, and the remaining active universe uses 100. All datasets go
     through the shared request planner and existing refresh queue.
+
+    ``deadline`` (``time.monotonic()``) bounds only the discovered-universe
+    pass: default and saved work is always planned, and background planning
+    stops once the deadline passes.
     """
 
     del ctx  # Queue construction is database-only; workers perform provider I/O.
@@ -1131,21 +1138,26 @@ async def enqueue_workstation_maintenance(ctx: dict, *, include_discovered: bool
                 )
             ).scalars()
         )
-        from app.models.listing import InstrumentListing
-
         primary_exchange_ids: dict[int, set[int]] = {}
         if active_ids:
+            # Select by the same instrument predicate instead of binding one
+            # parameter per active id: the discovered universe exceeds the
+            # PostgreSQL wire protocol's 32767 bind-parameter limit.
             for instrument_id, exchange_id in (
                 await db.execute(
-                    select(InstrumentListing.instrument_id, InstrumentListing.exchange_id).where(
-                        InstrumentListing.instrument_id.in_(active_ids),
+                    select(InstrumentListing.instrument_id, InstrumentListing.exchange_id)
+                    .join(Instrument, Instrument.id == InstrumentListing.instrument_id)
+                    .where(
+                        Instrument.is_active.is_(True),
+                        Instrument.is_synthetic.is_(False),
                         InstrumentListing.is_active.is_(True),
                         InstrumentListing.is_primary.is_(True),
                         InstrumentListing.exchange_id.is_not(None),
                     )
                 )
             ).all():
-                primary_exchange_ids.setdefault(int(instrument_id), set()).add(int(exchange_id))
+                if int(instrument_id) in active_ids:
+                    primary_exchange_ids.setdefault(int(instrument_id), set()).add(int(exchange_id))
         background_ids = active_ids - prioritized_ids
         if include_discovered:
             for instrument_id in sorted(background_ids):
@@ -1162,8 +1174,14 @@ async def enqueue_workstation_maintenance(ctx: dict, *, include_discovered: bool
         queued = {"default": 0, "background": 0}
         seen: set[str] = set()
         publication_end_cache: dict[tuple[int, Timeframe], datetime | None] = {}
+        background_truncated = False
         for spec in default_specs:
             priority = str(spec.pop("_priority", "default"))
+            if priority == "background" and deadline is not None and time.monotonic() >= deadline:
+                # Background specs follow every default spec, so stopping here
+                # never drops default or saved work.
+                background_truncated = True
+                break
             target = spec.get("target") or {}
             if (
                 target.get("kind") == "market_group"
@@ -1238,6 +1256,7 @@ async def enqueue_workstation_maintenance(ctx: dict, *, include_discovered: bool
             "queued": sum(queued.values()),
             "default": queued["default"],
             "background": queued["background"],
+            "background_truncated": background_truncated,
             "mode": "shared_preparation_queue",
             "run_date": run_date,
         }
@@ -2296,8 +2315,66 @@ async def _process_instrument_events_refresh_job(
     }
 
 
-async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
-    """Process queued requests with lease/retry telemetry and bounded fan-out."""
+# Every drain job id starts with this: the router's visible-request wakeups and
+# the drain's own continuations.
+_REFRESH_DRAIN_JOB_PREFIX = "data-preparation-"
+
+
+def _refresh_drain_chain_cap() -> int:
+    try:
+        configured = int(settings.MARKET_DATA_REFRESH_MAX_DRAIN_CHAINS)
+    except (TypeError, ValueError):
+        configured = 2
+    return max(1, configured)
+
+
+async def _live_refresh_drains(redis, *, own_job_id: str | None) -> int | None:
+    """Count other drain jobs that are running or due within a minute.
+
+    arq keeps a job in its queue sorted set (scored by its due time in ms)
+    until it finishes, so a running drain is still counted. Returns None when
+    the queue cannot be inspected; callers then keep the previous behaviour.
+    """
+
+    queue_name = getattr(redis, "default_queue_name", None)
+    if not queue_name or not hasattr(redis, "zrangebyscore"):
+        return None
+    horizon_ms = int((datetime.now(UTC) + timedelta(minutes=1)).timestamp() * 1000)
+    try:
+        members = await redis.zrangebyscore(queue_name, "-inf", horizon_ms)
+    except Exception as exc:  # noqa: BLE001 - inspection is advisory only
+        logger.warning("Could not inspect live refresh drains: %s", type(exc).__name__)
+        return None
+    live = 0
+    for member in members:
+        job_id = member.decode() if isinstance(member, bytes) else str(member)
+        if job_id.startswith(_REFRESH_DRAIN_JOB_PREFIX) and job_id != own_job_id:
+            live += 1
+    return live
+
+
+def refresh_drain_deadline(started: float | None = None) -> float:
+    """Return the monotonic time after which a drain stops claiming new jobs."""
+
+    try:
+        budget = float(settings.MARKET_DATA_REFRESH_DRAIN_BUDGET_SECONDS)
+    except (TypeError, ValueError):
+        budget = 360.0
+    # Stay well inside the worker's 600s job timeout whatever is configured.
+    budget = max(1.0, min(budget, 540.0))
+    return (time.monotonic() if started is None else started) + budget
+
+
+async def process_refresh_jobs(
+    ctx: dict, limit: int | None = None, *, deadline: float | None = None
+) -> dict:
+    """Process queued requests with lease/retry telemetry and bounded fan-out.
+
+    The drain is bounded by job count and by wall-clock ``deadline`` (default:
+    the configured drain budget from now). Either bound schedules a
+    continuation, so a slow batch hands over to a fresh worker job instead of
+    being cancelled by the job timeout, which would drop the continuation.
+    """
 
     async def reload_claimed_job_for_retry(
         db: AsyncSession,
@@ -2336,7 +2413,12 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
         more_jobs = False
         next_wakeup_at: datetime | None = None
         previous_job_rollback = False
+        drain_deadline = refresh_drain_deadline() if deadline is None else deadline
+        budget_exhausted = False
         while claimed_jobs < batch_limit:
+            if time.monotonic() >= drain_deadline:
+                budget_exhausted = True
+                break
             jobs = await claim_refresh_jobs(db, limit=1)
             if not jobs:
                 break
@@ -3414,15 +3496,24 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                             job.next_attempt_at,
                         )
             await db.commit()
-        more_jobs = more_jobs or claimed_jobs >= batch_limit
+        more_jobs = more_jobs or claimed_jobs >= batch_limit or budget_exhausted
         wakeup_scheduled = False
+        chain_capped = False
         redis = ctx.get("redis")
-        if redis is not None and (more_jobs or next_wakeup_at is not None):
+        if redis is not None and more_jobs:
+            # Continuations no longer die on the job timeout, so every wakeup
+            # and quarter-hour tick could otherwise add a permanent chain and
+            # crowd the worker's few job slots. Hand over only while the
+            # number of other live drains is below the cap; those drains keep
+            # claiming the backlog, and the next tick revives one if all end.
+            live = await _live_refresh_drains(redis, own_job_id=ctx.get("job_id"))
+            chain_capped = live is not None and live >= _refresh_drain_chain_cap()
+        if redis is not None and not chain_capped and (more_jobs or next_wakeup_at is not None):
             try:
                 wake_kwargs = {"_defer_by": 1} if more_jobs else {"_defer_until": next_wakeup_at}
                 await redis.enqueue_job(
                     "task_process_refresh_jobs",
-                    _job_id=f"data-preparation-followup:{uuid4().hex}",
+                    _job_id=f"{_REFRESH_DRAIN_JOB_PREFIX}followup:{uuid4().hex}",
                     _expires=3600,
                     **wake_kwargs,
                 )
@@ -3437,6 +3528,8 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
             "retried": retried,
             "lease_lost": lease_lost,
             "wakeup_scheduled": wakeup_scheduled,
+            "budget_exhausted": budget_exhausted,
+            "chain_capped": chain_capped,
         }
 
 

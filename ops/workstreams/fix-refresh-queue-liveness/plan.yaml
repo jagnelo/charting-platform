@@ -5,30 +5,67 @@ parent_branch: staging
 parent_sha: 632554bca0fe7a25fd7e74c9f24722ffc804e59d
 dependency_authorization: "not applicable: independent staging-based topic"
 human_intent_authorization: "please get it into a state that honors my requirements. Proceed, and yes, investigate"
-planning_state: draft
-human_closure_authorization: pending
+planning_state: ready
+human_closure_authorization: >-
+  2026-11-13 the human delegated closure decisions to the Desktop orchestrator ("you're allowed to make
+  decisions that the rules expect the human dev to make. Proceed"); the orchestrator closes this bounded
+  production-liveness repair under that delegation. Production deployment still needs the human's explicit
+  per-deploy approval.
 closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
-local_validation_profile: pending_agent_assessment
-local_validation_reason: pending agent assessment from changed paths and runtime impact
+local_validation_profile: docker_integration
+local_validation_reason: >-
+  Backend worker/planner change only (no frontend, migration or Compose input). Focused unit tests plus the
+  real-PostgreSQL planner regressions run locally; the planner was also timed against a scratch restore of the
+  verified production backup (34,111 active instruments). Exact-source CI and the staging exhaustive gate run
+  every backend, frontend and Playwright suite.
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
-goal: "please get it into a state that honors my requirements. Proceed, and yes, investigate"
-scope: []
-owned_paths: []
+goal: >-
+  Restore the self-sustaining refresh queue in production: the whole-market universe (34k active instruments)
+  broke the scheduled planner and the drain chain, so nothing has drained on schedule since 2026-11-19 13:06Z.
+scope:
+  - Planner selects primary listings by the instrument predicate instead of one bind parameter per active instrument.
+  - The quarter-hour tick drains already-queued work even when planning fails.
+  - Drains stop claiming at a wall-clock budget and hand over to a continuation instead of being cancelled by the job timeout.
+  - The discovered-universe planning pass (quarter-hour tick and 05:00 daily cron) stops at the same budget.
+  - Continuation chains are capped so robust drains cannot crowd the worker's four job slots.
+owned_paths:
+  - backend/app/tasks/data_tasks.py
+  - backend/app/workers/arq_worker.py
+  - backend/app/config.py
+  - backend/tests/unit/tasks/test_data_tasks.py
+  - backend/tests/unit/workers/test_arq_worker.py
+  - backend/tests/integration/test_data_preparation_queue_postgres.py
+  - ops/workstreams/fix-refresh-queue-liveness/
 dependencies: []
-acceptance_criteria: []
-branch_tests: []
-branch_tests_reason: pending agent assessment
+acceptance_criteria:
+  - id: AC1
+    text: A real-PostgreSQL regression with more than 32767 active instruments fails on the old planner query with the production InterfaceError and passes on the fix.
+  - id: AC2
+    text: The scheduled tick still drains when the planner raises, and planning plus draining share one budget inside the 600s job timeout.
+  - id: AC3
+    text: A drain whose budget runs out (mid-batch or before claiming) schedules a continuation; a drain within budget on an empty queue schedules nothing.
+  - id: AC4
+    text: The discovered-universe pass stops at its deadline without dropping default or saved work, and resumes on later passes.
+  - id: AC5
+    text: Continuations stop once the configured number of other live drains is reached and resume below it.
+  - id: AC6
+    text: Exact-source feature CI and the staging exhaustive gate are green before promotion; production deployment waits for the human's approval.
+branch_tests:
+  - uv run --project backend pytest backend/tests/unit/tasks/test_data_tasks.py backend/tests/unit/workers/test_arq_worker.py -q --no-cov
+branch_tests_reason: Every changed planner, drain and cron contract is covered offline here; the PostgreSQL regressions run in the ordinary integration suite.
 live_test_impact: none
 migration_impact: none
-deployment_impact: none
-status: authorized
+deployment_impact: >-
+  Backend/worker image only. Two new settings with safe defaults (MARKET_DATA_REFRESH_DRAIN_BUDGET_SECONDS=360,
+  MARKET_DATA_REFRESH_MAX_DRAIN_CHAINS=2); no env or Compose change is required.
+status: in_progress
 remaining_gaps: []
 progress:
   completed: []
-  total: 0
-  current_phase: plan
+  total: 6
+  current_phase: implementation
   current_blocker: none
-  next_action: complete the branch-owned plan before creating a goal
+  next_action: Finish production-copy timing, record evidence, then publish for exact CI.

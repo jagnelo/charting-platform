@@ -12,7 +12,7 @@ from uuid import uuid4
 
 import pytest
 import pytest_asyncio
-from sqlalchemy import create_engine, select, text
+from sqlalchemy import create_engine, func, select, text
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 pytestmark = pytest.mark.asyncio
@@ -1363,6 +1363,96 @@ async def test_startup_maintenance_uses_shared_planner_and_catalogue_defaults(
                 .get("normalized_request", {})
             ]
         )
+
+
+async def test_maintenance_planner_survives_universe_beyond_bind_parameter_limit(
+    preparation_sessions, monkeypatch
+):
+    """Production regression: 34k active instruments broke every planner run.
+
+    asyncpg refuses statements with more than 32767 bind parameters, and the
+    planner bound one parameter per active instrument, so the scheduled queue
+    tick failed before it could drain anything.
+    """
+    from sqlalchemy import insert
+
+    from app.models.instrument import Instrument
+    from app.tasks import data_tasks
+
+    monkeypatch.setattr(data_tasks, "AsyncSessionLocal", preparation_sessions)
+    monkeypatch.setattr(data_tasks.settings, "E2E_SEED_MARKET_DATA", False)
+    universe = 32_800
+    async with preparation_sessions() as session:
+        stock_type_id, _ = await _create_instrument_types(session)
+        await session.execute(
+            insert(Instrument),
+            [
+                {
+                    "symbol": f"U{index:05d}",
+                    "name": f"Universe instrument {index}",
+                    "currency": "USD",
+                    "instrument_type_id": stock_type_id,
+                    "is_active": True,
+                    "identity_status": "resolved",
+                    "domain_key": f"universe:u{index:05d}",
+                }
+                for index in range(universe)
+            ],
+        )
+        await session.commit()
+        active = await session.scalar(
+            select(func.count()).select_from(Instrument).where(Instrument.is_active.is_(True))
+        )
+    assert active > 32_767
+
+    result = await data_tasks.enqueue_workstation_maintenance({}, include_discovered=False)
+
+    assert result["mode"] == "shared_preparation_queue"
+    assert result["background"] == 0
+
+
+async def test_maintenance_planner_deadline_bounds_only_the_discovered_universe(
+    preparation_sessions, monkeypatch
+):
+    from time import monotonic
+
+    from app.models.user import User
+    from app.models.watchlist import Watchlist, WatchlistItem
+    from app.tasks import data_tasks
+
+    monkeypatch.setattr(data_tasks, "AsyncSessionLocal", preparation_sessions)
+    monkeypatch.setattr(data_tasks.settings, "E2E_SEED_MARKET_DATA", False)
+    async with preparation_sessions() as session:
+        stock_type_id, _ = await _create_instrument_types(session)
+        saved = _canonical_instrument("SAVEDY", stock_type_id, domain_prefix="saved-list")
+        discovered = _canonical_instrument("DISCOVY", stock_type_id, domain_prefix="discovered")
+        user = User(
+            username=f"deadline-{uuid4().hex[:8]}",
+            email=f"deadline-{uuid4().hex[:8]}@example.test",
+            hashed_password="test-only",
+        )
+        session.add_all([saved, discovered, user])
+        await session.flush()
+        watchlist = Watchlist(user_id=user.id, name="Saved", position=0)
+        session.add_all(
+            [watchlist, WatchlistItem(watchlist=watchlist, instrument=saved, position=0)]
+        )
+        await session.commit()
+
+    spent = await data_tasks.enqueue_workstation_maintenance(
+        {}, include_discovered=True, deadline=monotonic() - 1
+    )
+
+    assert spent["default"] > 0
+    assert spent["background"] == 0
+    assert spent["background_truncated"] is True
+
+    later = await data_tasks.enqueue_workstation_maintenance(
+        {}, include_discovered=True, deadline=monotonic() + 600
+    )
+
+    assert later["background"] > 0
+    assert later["background_truncated"] is False
 
 
 async def test_system_maintenance_identity_job_runs_without_an_owner_user(

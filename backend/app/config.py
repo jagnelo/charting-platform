@@ -130,6 +130,15 @@ class Settings(BaseSettings):
     # tick. The worker clamps this to the queue's safe 1..500 range so a
     # deployment can tune throughput without bypassing provider quotas.
     MARKET_DATA_REFRESH_QUEUE_BATCH_SIZE: int = 100
+    # Wall-clock budget for one queue drain. A drain stops claiming new jobs
+    # once it is spent and schedules its own continuation, so slow provider
+    # jobs cannot run a batch into the worker's 600s job timeout (a timed-out
+    # drain is cancelled before it can schedule that continuation). The
+    # remaining headroom is for the job already in flight.
+    MARKET_DATA_REFRESH_DRAIN_BUDGET_SECONDS: int = 360
+    # Most drains allowed to hand over to a continuation at once. The worker
+    # runs four jobs at a time, so this leaves room for the other schedules.
+    MARKET_DATA_REFRESH_MAX_DRAIN_CHAINS: int = 2
     MARKET_DATA_SHADOW_REPORT_ENABLED: bool = False
     MARKET_UNIVERSE_RECONCILIATION_ENABLED: bool = True
     # Provider-native account usage is opt-in because each poll consumes the
