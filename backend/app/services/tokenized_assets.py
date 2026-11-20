@@ -5,6 +5,8 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Any
@@ -555,6 +557,38 @@ async def _underlying_instrument(
     return (rows[0], "linked_by_symbol") if len(rows) == 1 else (None, "unresolved_or_ambiguous")
 
 
+def _json_payload(value: Any) -> Any:
+    """Copy a provider payload into values a JSON column can store.
+
+    Adapters normalize prices to ``Decimal`` and times to ``datetime``; a raw
+    payload that carries those objects would otherwise fail the flush and
+    poison the whole refresh transaction.
+    """
+
+    if value is None or isinstance(value, str | int | float | bool):
+        return value
+    if isinstance(value, dict):
+        return {str(key): _json_payload(item) for key, item in value.items()}
+    if isinstance(value, list | tuple | set):
+        return [_json_payload(item) for item in value]
+    if isinstance(value, datetime | date):
+        return value.isoformat()
+    return str(value)
+
+
+@asynccontextmanager
+async def _asset_savepoint(db: AsyncSession) -> AsyncIterator[None]:
+    """Isolate one asset's writes so its failure cannot abort the batch."""
+
+    nested = db.begin_nested()
+    if hasattr(nested, "__aenter__"):
+        async with nested:
+            yield
+        return
+    with nested:
+        yield
+
+
 async def upsert_tokenized_asset(
     db: AsyncSession,
     record: TokenizedAssetRecord,
@@ -655,6 +689,11 @@ async def upsert_tokenized_asset(
     # including an identical response, because the observation itself is
     # evidence of a quota-consuming fetch and must remain replayable.
     observed_at = record.observed_at or datetime.now(UTC)
+    payload = _json_payload(
+        source_payload
+        if source_payload is not None
+        else (record.raw_payload if record.raw_payload is not None else {})
+    )
     db.add(
         TokenizedAssetObservation(
             instrument_id=instrument.id,
@@ -663,11 +702,7 @@ async def upsert_tokenized_asset(
             token_symbol=record.symbol,
             observed_at=observed_at,
             fetched_at=datetime.now(UTC),
-            payload=(
-                source_payload
-                if source_payload is not None
-                else (record.raw_payload if record.raw_payload is not None else {})
-            ),
+            payload=payload,
         )
     )
 
@@ -701,11 +736,7 @@ async def upsert_tokenized_asset(
             observed_at=observed_at,
             fetched_at=datetime.now(UTC),
             price=record.price,
-            payload=(
-                source_payload
-                if source_payload is not None
-                else (record.raw_payload if record.raw_payload is not None else {})
-            ),
+            payload=payload,
         )
         db.add(snapshot)
     await db.flush()
@@ -1207,23 +1238,34 @@ async def refresh_tokenized_prices(
     )
     refreshed: list[dict[str, Any]] = []
     failures: list[dict[str, Any]] = []
-    for detail, instrument in rows:
-        if detail.provider_name.strip().lower() in _NON_PERSISTING_TOKENIZED_CANARIES:
+    # Read plain values up front: a rolled-back asset savepoint expires the ORM
+    # rows it touched, and an async session cannot lazy-load them afterwards.
+    batch = [
+        (
+            int(instrument.id),
+            detail.provider_name,
+            detail.provider_asset_id,
+            detail.provider_asset_id or detail.token_symbol,
+        )
+        for detail, instrument in rows
+    ]
+    last_detail_id = int(rows[-1][0].id) if rows else None
+    for instrument_id, provider, provider_asset_id, identifier in batch:
+        if provider.strip().lower() in _NON_PERSISTING_TOKENIZED_CANARIES:
             failures.append(
                 {
-                    "instrument_id": instrument.id,
-                    "provider": detail.provider_name,
-                    "provider_asset_id": detail.provider_asset_id,
+                    "instrument_id": instrument_id,
+                    "provider": provider,
+                    "provider_asset_id": provider_asset_id,
                     "error": "sandbox_canary_data_is_not_persistable",
                 }
             )
             continue
-        identifier = detail.provider_asset_id or detail.token_symbol
         if not identifier:
             failures.append(
                 {
-                    "instrument_id": instrument.id,
-                    "provider": detail.provider_name,
+                    "instrument_id": instrument_id,
+                    "provider": provider,
                     "error": "missing_provider_asset_id",
                 }
             )
@@ -1233,10 +1275,10 @@ async def refresh_tokenized_prices(
                 db,
                 ProviderCapability.TOKENIZED_ASSETS,
                 "get_tokenized_price",
-                instrument_id=instrument.id,
+                instrument_id=instrument_id,
                 provider_symbol=identifier,
                 usage_identity=identifier,
-                provider_name=detail.provider_name,
+                provider_name=provider,
                 invoke=lambda provider,
                 _symbol,
                 identifier=identifier: provider.get_tokenized_price(identifier),
@@ -1246,10 +1288,13 @@ async def refresh_tokenized_prices(
             record = execution.result
             if not isinstance(record, TokenizedAssetRecord):
                 raise TypeError("tokenized provider returned an invalid record")
-            await upsert_tokenized_asset(db, record, source_payload=record.raw_payload)
+            # The provider call above has already spent quota and logged its
+            # request; only this asset's persistence rolls back on failure.
+            async with _asset_savepoint(db):
+                await upsert_tokenized_asset(db, record, source_payload=record.raw_payload)
             refreshed.append(
                 {
-                    "instrument_id": instrument.id,
+                    "instrument_id": instrument_id,
                     "provider": execution.provider_name,
                     "provider_asset_id": identifier,
                     "observed_at": record.observed_at.isoformat() if record.observed_at else None,
@@ -1258,15 +1303,15 @@ async def refresh_tokenized_prices(
         except Exception as exc:  # noqa: BLE001 - retain per-asset coverage evidence.
             failures.append(
                 {
-                    "instrument_id": instrument.id,
-                    "provider": detail.provider_name,
+                    "instrument_id": instrument_id,
+                    "provider": provider,
                     "provider_asset_id": identifier,
                     "error": bounded_redact_provider_message(exc, max_length=500),
                 }
             )
 
-    if refresh_state is not None and rows:
-        refresh_state.cursor = str(rows[-1][0].id)
+    if refresh_state is not None and last_detail_id is not None:
+        refresh_state.cursor = str(last_detail_id)
         refresh_state.page_number = int(refresh_state.page_number or 0) + 1
         refresh_state.pages_fetched = int(refresh_state.pages_fetched or 0) + 1
         refresh_state.page_size = limit

@@ -502,6 +502,135 @@ async def test_refresh_tokenized_prices_rotates_past_repeated_asset_failure(
 
 
 @pytest.mark.asyncio
+async def test_refresh_tokenized_prices_stores_decimal_quote_payloads_as_json(
+    db, instrument, monkeypatch
+):
+    # Production regression (gate_tradfi): a quote payload holding Decimal and
+    # datetime objects failed the JSON flush and aborted every refresh tick.
+    await upsert_tokenized_asset(
+        AsyncSessionAdapter(db),
+        TokenizedAssetRecord(
+            provider="robinhood_tokens",
+            asset_id="rh-dec",
+            symbol="rh-dec",
+            name="rh-dec",
+            underlying_symbol=instrument.symbol,
+            raw_payload={"id": "rh-dec"},
+        ),
+    )
+    observed = datetime(2026, 11, 20, 7, 15, tzinfo=UTC)
+
+    async def fake_execute(_db, _capability, _operation, **kwargs):
+        return SimpleNamespace(
+            provider_name="robinhood_tokens",
+            result=TokenizedAssetRecord(
+                provider="robinhood_tokens",
+                asset_id="rh-dec",
+                symbol="rh-dec",
+                name="rh-dec",
+                price=Decimal("38.095"),
+                underlying_symbol=instrument.symbol,
+                observed_at=observed,
+                raw_payload={
+                    "orderbook": {"bid": Decimal("38.07"), "ask": Decimal("38.12")},
+                    "at": observed,
+                },
+            ),
+        )
+
+    monkeypatch.setattr(tokenized_assets, "execute_provider_call", fake_execute)
+    result = await refresh_tokenized_prices(AsyncSessionAdapter(db), max_assets=10)
+
+    assert (result["status"], result["refreshed"], result["failed"]) == ("refreshed", 1, 0)
+    detail = db.execute(
+        select(TokenizedAssetDetail).where(TokenizedAssetDetail.provider_asset_id == "rh-dec")
+    ).scalar_one()
+    expected = {
+        "orderbook": {"bid": "38.07", "ask": "38.12"},
+        "at": observed.isoformat(),
+    }
+    snapshot = db.execute(
+        select(LatestPriceSnapshot).where(LatestPriceSnapshot.instrument_id == detail.instrument_id)
+    ).scalar_one()
+    assert snapshot.payload == expected
+    assert snapshot.price == Decimal("38.095")
+    observations = (
+        db.execute(
+            select(TokenizedAssetObservation.payload).where(
+                TokenizedAssetObservation.instrument_id == detail.instrument_id
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert expected in observations
+
+
+@pytest.mark.asyncio
+async def test_refresh_tokenized_prices_isolates_one_assets_persistence_failure(
+    db, instrument, monkeypatch
+):
+    # One asset whose writes fail must not roll back the batch: before the fix
+    # the shared session was left in a failed transaction, every later asset
+    # and the final commit raised, and the cursor never advanced past it.
+    for asset_id in ("rh-bad", "rh-good"):
+        await upsert_tokenized_asset(
+            AsyncSessionAdapter(db),
+            TokenizedAssetRecord(
+                provider="robinhood_tokens",
+                asset_id=asset_id,
+                symbol=asset_id,
+                name=asset_id,
+                underlying_symbol=instrument.symbol,
+                raw_payload={"id": asset_id},
+            ),
+        )
+
+    async def fake_execute(_db, _capability, _operation, **kwargs):
+        identifier = kwargs["provider_symbol"]
+        return SimpleNamespace(
+            provider_name="robinhood_tokens",
+            result=TokenizedAssetRecord(
+                provider="robinhood_tokens",
+                asset_id=identifier,
+                symbol=identifier,
+                name=identifier,
+                price=Decimal("10.00"),
+                underlying_symbol=instrument.symbol,
+                observed_at=datetime.now(UTC),
+                raw_payload={"id": identifier},
+            ),
+        )
+
+    real_upsert = tokenized_assets.upsert_tokenized_asset
+
+    async def failing_upsert(session, record, **kwargs):
+        persisted = await real_upsert(session, record, **kwargs)
+        if record.asset_id == "rh-bad":
+            # A write the database rejects at flush time (NOT NULL type).
+            session.add(Instrument(symbol="BROKEN", name="broken", instrument_type_id=None))
+            await session.flush()
+        return persisted
+
+    monkeypatch.setattr(tokenized_assets, "execute_provider_call", fake_execute)
+    monkeypatch.setattr(tokenized_assets, "upsert_tokenized_asset", failing_upsert)
+
+    result = await refresh_tokenized_prices(AsyncSessionAdapter(db), max_assets=10)
+
+    assert (result["status"], result["requested"]) == ("refreshed", 2)
+    assert [quote["provider_asset_id"] for quote in result["quotes"]] == ["rh-good"]
+    assert [failure["provider_asset_id"] for failure in result["failures"]] == ["rh-bad"]
+    details = {
+        row.provider_asset_id: row.instrument_id
+        for row in db.execute(select(TokenizedAssetDetail)).scalars()
+    }
+    snapshots = set(db.execute(select(LatestPriceSnapshot.instrument_id)).scalars())
+    assert details["rh-good"] in snapshots
+    assert details["rh-bad"] not in snapshots
+    assert db.execute(select(Instrument).where(Instrument.symbol == "BROKEN")).first() is None
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("timespan", "expected_timeframe"),
     [
