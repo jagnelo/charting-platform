@@ -5,30 +5,83 @@ parent_branch: staging
 parent_sha: d3e9496ccea45b3644e4e77afdcd15a8908c046c
 dependency_authorization: "not applicable: independent staging-based topic"
 human_intent_authorization: "Yes, start it (refresh-queue throughput gap: production backlog ~76k queued with ~2 concurrent sequential drains; proceed under 'please get it into a state that honors my requirements. Proceed, and yes, investigate')"
-planning_state: draft
-human_closure_authorization: pending
+planning_state: ready
+human_closure_authorization: >-
+  2026-11-13 the human delegated closure decisions to the Desktop orchestrator ("you're allowed to make
+  decisions that the rules expect the human dev to make. Proceed"); the orchestrator closes this bounded
+  production repair under that delegation. Production deployment still needs the human's explicit
+  per-deploy approval.
 closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
-local_validation_profile: pending_agent_assessment
-local_validation_reason: pending agent assessment from changed paths and runtime impact
+local_validation_profile: docker_integration
+local_validation_reason: >-
+  Backend queue, planner, worker-settings and one additive Alembic index. Unit suites for the queue, drain,
+  worker settings and data-preparation planner run locally, plus real-PostgreSQL tests for the claim index
+  plan and migration. Exact-source CI and the staging exhaustive gate run every suite.
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
-goal: "Yes, start it (refresh-queue throughput gap: production backlog ~76k queued with ~2 concurrent sequential drains; proceed under 'please get it into a state that honors my requirements. Proceed, and yes, investigate')"
-scope: []
-owned_paths: []
+goal: >-
+  Raise the production refresh queue's throughput so the self-sustaining whole-market universe (34k active
+  instruments, ~76k queued jobs on 2026-11-20) can be prepared and kept fresh: cheap claims, more concurrent
+  drains, and no duplicate children per maintenance pass.
+scope:
+  - A partial index serves the claim query instead of scanning every completed and tracking row.
+  - More drains run concurrently, and the quarter-hour tick tops live drains back up to the cap.
+  - Later maintenance passes coalesce into an instrument's open identity and history children instead of forking new ones.
+owned_paths:
+  - backend/app/models/market_data_foundation.py
+  - backend/alembic/versions/a7c3e5f9b2d4_add_refresh_job_claim_index.py
+  - backend/app/services/market_refresh_queue.py
+  - backend/app/config.py
+  - backend/app/workers/arq_worker.py
+  - backend/app/tasks/data_tasks.py
+  - backend/app/services/data_preparation.py
+  - backend/tests/unit/services/test_market_refresh_queue.py
+  - backend/tests/unit/tasks/test_data_tasks.py
+  - backend/tests/unit/workers/test_arq_worker.py
+  - backend/tests/unit/services/test_data_preparation_child_coalescing.py
+  - backend/tests/unit/migrations/test_refresh_job_claim_index.py
+  - backend/tests/integration/test_refresh_job_claim_index_postgres.py
+  - ops/workstreams/fix-refresh-queue-throughput/
 dependencies: []
-acceptance_criteria: []
-branch_tests: []
-branch_tests_reason: pending agent assessment
+acceptance_criteria:
+  - id: AC1
+    text: >-
+      An additive Alembic revision and the model declare a partial index for claimable jobs (priority,
+      next_attempt_at, id where status is queued, retry, deferred or leased). On real PostgreSQL the production
+      claim query uses it with many completed rows present, and the revision reverses cleanly.
+  - id: AC2
+    text: >-
+      The drain chain cap defaults to 6 and the worker's job slots come from a setting (default 10). The
+      effective chain cap always leaves slots for the scheduled jobs. The quarter-hour tick tops live drains up
+      to the cap only when due work exists.
+  - id: AC3
+    text: >-
+      A later-hour ensure of the same identity tuple reuses the open queued, deferred or retry identity child
+      and records both parents. A completed negative child keeps the hourly recovery behaviour, and a leased
+      child is not reused.
+  - id: AC4
+    text: >-
+      A later maintenance pass for the same instrument, timeframe, adjustment and deepest range reuses the open
+      history child, extends its end to the later end (open-ended counts as latest) and records both parents.
+      Explicit-start ranges, derived-only children and leased children are not merged, and a sibling with a
+      later end is reused unchanged.
+  - id: AC5
+    text: Exact-source feature CI and the staging exhaustive gate are green before promotion; production deployment waits for the human's approval.
+branch_tests:
+  - uv run --project backend pytest backend/tests/unit/services/test_market_refresh_queue.py backend/tests/unit/tasks/test_data_tasks.py backend/tests/unit/workers/test_arq_worker.py backend/tests/unit/services/test_data_preparation_child_coalescing.py backend/tests/unit/migrations/test_refresh_job_claim_index.py -q --no-cov
+branch_tests_reason: Queue, drain, worker-settings, coalescing and migration behaviour are covered offline; the PostgreSQL plan and migration tests run in the integration suite.
 live_test_impact: none
-migration_impact: none
-deployment_impact: none
+migration_impact: One additive Alembic revision creating a partial index on market_refresh_job; no data change.
+deployment_impact: >-
+  Backend/worker image plus the Alembic index at startup. Worker concurrency defaults change (6 drain
+  chains, 10 job slots); no environment or deployment-file change.
 status: authorized
 remaining_gaps: []
 progress:
   completed: []
-  total: 0
-  current_phase: plan
+  total: 5
+  current_phase: implement
   current_blocker: none
-  next_action: complete the branch-owned plan before creating a goal
+  next_action: Implement AC1-AC4 with tests, validate locally, then hand to the orchestrator for CI and staging.
