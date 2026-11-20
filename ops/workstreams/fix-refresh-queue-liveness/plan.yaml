@@ -31,10 +31,14 @@ scope:
   - Drains stop claiming at a wall-clock budget and hand over to a continuation instead of being cancelled by the job timeout.
   - The discovered-universe planning pass (quarter-hour tick and 05:00 daily cron) stops at the same budget.
   - Continuation chains are capped so robust drains cannot crowd the worker's four job slots.
+  - The daily metadata sync commits as it goes and stops at a wall-clock budget instead of losing its whole pass to the job timeout.
 owned_paths:
   - backend/app/tasks/data_tasks.py
   - backend/app/workers/arq_worker.py
   - backend/app/config.py
+  - backend/app/services/instrument_sync.py
+  - backend/app/tasks/instrument_sync_tasks.py
+  - backend/tests/unit/services/test_instrument_sync_metadata.py
   - backend/tests/unit/tasks/test_data_tasks.py
   - backend/tests/unit/workers/test_arq_worker.py
   - backend/tests/integration/test_data_preparation_queue_postgres.py
@@ -52,20 +56,22 @@ acceptance_criteria:
   - id: AC5
     text: Continuations stop once the configured number of other live drains is reached and resume below it.
   - id: AC6
+    text: The daily metadata sync commits progress every 25 instruments and returns normally (truncated) at its deadline, inside the 600s job timeout.
+  - id: AC7
     text: Exact-source feature CI and the staging exhaustive gate are green before promotion; production deployment waits for the human's approval.
 branch_tests:
-  - uv run --project backend pytest backend/tests/unit/tasks/test_data_tasks.py backend/tests/unit/workers/test_arq_worker.py -q --no-cov
+  - uv run --project backend pytest backend/tests/unit/tasks/test_data_tasks.py backend/tests/unit/workers/test_arq_worker.py backend/tests/unit/services/test_instrument_sync_metadata.py -q --no-cov
 branch_tests_reason: Every changed planner, drain and cron contract is covered offline here; the PostgreSQL regressions run in the ordinary integration suite.
 live_test_impact: none
 migration_impact: none
 deployment_impact: >-
   Backend/worker image only. Two new settings with safe defaults (MARKET_DATA_REFRESH_DRAIN_BUDGET_SECONDS=360,
-  MARKET_DATA_REFRESH_MAX_DRAIN_CHAINS=2); no env or Compose change is required.
+  MARKET_DATA_REFRESH_MAX_DRAIN_CHAINS=2, INSTRUMENT_DAILY_METADATA_MAX_SECONDS=480); no env or Compose change is required.
 status: in_progress
 remaining_gaps: []
 progress:
   completed: []
-  total: 6
+  total: 7
   current_phase: implementation
   current_blocker: none
   next_action: Finish production-copy timing, record evidence, then publish for exact CI.

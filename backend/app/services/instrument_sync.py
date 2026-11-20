@@ -11,6 +11,7 @@ Three responsibilities:
 
 import asyncio
 import logging
+import time
 from datetime import UTC, datetime
 
 from sqlalchemy import func, select
@@ -1069,12 +1070,23 @@ async def bootstrap_isins(db: AsyncSession, limit: int | None = None) -> dict:
 # ── Sync ─────────────────────────────────────────────────────────────────────
 
 
-async def sync_instruments(db: AsyncSession, limit: int | None = None) -> dict:
+# Commit metadata sync progress this often, so an interrupted pass keeps the
+# profiles it already paid provider quota for.
+_METADATA_SYNC_COMMIT_EVERY = 25
+
+
+async def sync_instruments(
+    db: AsyncSession, limit: int | None = None, *, deadline: float | None = None
+) -> dict:
     """
     Refresh metadata for all active instruments via the configured metadata provider.
 
     If the metadata provider returns no data, we do not immediately deactivate
     the instrument. Transient provider failures happen, so the sync remains conservative.
+
+    Instruments are ordered stalest first. ``deadline`` (``time.monotonic()``)
+    ends the pass early; progress is committed as it goes, and the next pass
+    starts from the instruments this one did not reach.
     """
     stmt = (
         select(Instrument)
@@ -1093,8 +1105,16 @@ async def sync_instruments(db: AsyncSession, limit: int | None = None) -> dict:
 
     deactivated = 0
     updated = 0
+    processed = 0
+    truncated = False
 
     for inst in instruments:
+        if deadline is not None and time.monotonic() >= deadline:
+            truncated = True
+            break
+        if processed and processed % _METADATA_SYNC_COMMIT_EVERY == 0:
+            await db.commit()
+        processed += 1
         async with _METADATA_SEMAPHORE:
             try:
                 execution = await execute_provider_call(
@@ -1220,12 +1240,20 @@ async def sync_instruments(db: AsyncSession, limit: int | None = None) -> dict:
 
     await db.commit()
     logger.info(
-        "Sync complete: %d updated, %d deactivated / %d instruments",
+        "Sync complete: %d updated, %d deactivated, %d processed / %d instruments%s",
         updated,
         deactivated,
+        processed,
         len(instruments),
+        " (stopped at its time budget)" if truncated else "",
     )
-    return {"updated": updated, "deactivated": deactivated, "total": len(instruments)}
+    return {
+        "updated": updated,
+        "deactivated": deactivated,
+        "total": len(instruments),
+        "processed": processed,
+        "truncated": truncated,
+    }
 
 
 # ── Run tracking ─────────────────────────────────────────────────────────────
@@ -1236,6 +1264,7 @@ async def run_tracked_sync(
     operation: str,
     *,
     limit: int | None = None,
+    deadline: float | None = None,
 ) -> dict:
     """Run an instrument maintenance operation and persist an audit record."""
     run = InstrumentSyncRun(
@@ -1257,7 +1286,7 @@ async def run_tracked_sync(
         if operation == "seed-universe":
             result = await seed_universe(db)
         elif operation == "sync-instruments":
-            result = await sync_instruments(db, limit=limit)
+            result = await sync_instruments(db, limit=limit, deadline=deadline)
         elif operation == "bootstrap-ids":
             result = await bootstrap_isins(db, limit=limit)
         else:

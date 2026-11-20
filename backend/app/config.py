@@ -3353,6 +3353,9 @@ class Settings(BaseSettings):
     INSTRUMENT_METADATA_DELAY_SECONDS: float = 1.0
     INSTRUMENT_IDENTIFIER_DELAY_SECONDS: float = 1.0
     INSTRUMENT_DAILY_METADATA_CAP: int = 750
+    # Wall-time bound for the daily metadata pass (clamped to 30..540s) so it
+    # commits and records its run before the worker's 600s job timeout.
+    INSTRUMENT_DAILY_METADATA_MAX_SECONDS: int = 480
     INSTRUMENT_DAILY_IDENTIFIER_CAP: int = 250
     # Batched OpenFIGI US-composite identity for discovered listings. Each
     # pass is bounded by wall time and request count; every mapping request

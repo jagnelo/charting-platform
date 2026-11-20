@@ -25,7 +25,9 @@ Release c3a02ddd (deployed 2026-11-19 ~12:36Z) turned on whole-market discovery.
   continuation, so each chain died; only the broken cron could revive them. The last chain died 23:49Z.
 - Queue at inspection: 13,644 queued, 21,660 deferred, 480 retry, 3 stale leases; completions fell from
   ~150-280/h to ~0 after 15:00Z.
-- Separate, not fixed here: `scheduled_daily_metadata_sync` (cap 750) timed out at 600s at 03:10Z.
+- `scheduled_daily_metadata_sync` (cap 750, >=1s pacing per call) timed out at 600s at 03:10Z. It committed
+  only at the end, so each cancelled pass discarded every profile it had spent provider quota on, and its
+  sync run stayed `running`.
 
 ## Fix
 
@@ -40,9 +42,12 @@ Release c3a02ddd (deployed 2026-11-19 ~12:36Z) turned on whole-market discovery.
    while that many other `data-preparation-*` drains are running or due within a minute in the arq queue.
    Without the cap, drains that no longer die on timeouts would accumulate one chain per tick and crowd the
    worker's four job slots.
+6. `sync_instruments` commits every 25 instruments and stops at a deadline; the daily task bounds it by
+   `INSTRUMENT_DAILY_METADATA_MAX_SECONDS` (default 480, clamped 30..540), so the run completes and is
+   recorded with `processed`/`truncated` metrics. Stalest-first ordering resumes where it stopped.
 
 ## Evidence
 
 - `test_maintenance_planner_survives_universe_beyond_bind_parameter_limit` (real PostgreSQL, 32,800
   instruments) fails on the old query with the production InterfaceError and passes on the fix.
-- Unit: tasks, workers and data-preparation suites 232/232; Ruff check and format clean.
+- Unit: tasks, workers and data-preparation suites 232/232; instrument-sync suites 40/40; Ruff clean.

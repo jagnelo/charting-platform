@@ -1,6 +1,7 @@
 """Scheduled/operator tasks for provider-backed instrument universe maintenance."""
 
 import logging
+import time
 
 from app.config import settings
 from app.database import AsyncSessionLocal
@@ -16,10 +17,17 @@ async def seed_universe_task(ctx: dict) -> dict:
 
 
 async def sync_instruments_task(ctx: dict, limit: int | None = None) -> dict:
-    """Daily capped metadata refresh across the stalest known instruments."""
+    """Daily capped metadata refresh across the stalest known instruments.
+
+    The pass is also bounded by wall time so it finishes, commits and records
+    its run inside the worker's 600s job timeout instead of being cancelled.
+    """
+    budget = max(30.0, min(float(settings.INSTRUMENT_DAILY_METADATA_MAX_SECONDS), 540.0))
     async with AsyncSessionLocal() as db:
         cap = limit if limit is not None else settings.INSTRUMENT_DAILY_METADATA_CAP
-        return await run_tracked_sync(db, "sync-instruments", limit=cap)
+        return await run_tracked_sync(
+            db, "sync-instruments", limit=cap, deadline=time.monotonic() + budget
+        )
 
 
 async def bootstrap_ids_task(ctx: dict, limit: int | None = None) -> dict:
