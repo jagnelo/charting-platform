@@ -1,0 +1,65 @@
+{
+  "acceptance_criteria": [],
+  "active_session_id": "f0ab884d-6f58-471f-828e-7f33e4fcb7e3",
+  "branch": "fix/refresh-queue-liveness",
+  "dirty_paths": [],
+  "docker": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-fix-refresh-queue-liveness-4b74d079",
+      "charting-stack-fix-refresh-queue-liveness-4b74d079"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "fix-refresh-queue-liveness-4b74d079b3"
+  },
+  "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance fix/refresh-queue-liveness: please get it into a state that honors my requirements. Proceed, and yes, investigate. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_request": {
+    "objective": "Advance fix/refresh-queue-liveness: please get it into a state that honors my requirements. Proceed, and yes, investigate. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "planning_required",
+  "goal_state": "planning_required",
+  "head": "5760fcd46d770838c66dfe96d5c8ae23051531d5",
+  "implementation_sha": "632554bca0fe7a25fd7e74c9f24722ffc804e59d",
+  "local_validation_profile": "pending_agent_assessment",
+  "next_action": "run make agent-session-start",
+  "parent_branch": "staging",
+  "plan_hash": "248aef3de27fab883107f56e00d1525ee0ef2a465f0236b35448bbea1d83fa47",
+  "planning_required": true,
+  "planning_state": "draft",
+  "previous_session_ids": [],
+  "progress": {
+    "completed": [],
+    "current_blocker": "none",
+    "current_phase": "plan",
+    "total": 0
+  },
+  "remote": "5760fcd46d770838c66dfe96d5c8ae23051531d5",
+  "remote_sha": "5760fcd46d770838c66dfe96d5c8ae23051531d5",
+  "remote_synchronized": true,
+  "retained_docker_resources": [],
+  "schema": 2,
+  "session_id": "f0ab884d-6f58-471f-828e-7f33e4fcb7e3",
+  "validation_tier": "full_integration",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/fix-refresh-queue-liveness/ops/workstreams/fix-refresh-queue-liveness",
+  "workstream_files": [
+    "/home/m920q/charting-platform/.ai/worktrees/fix-refresh-queue-liveness/ops/workstreams/fix-refresh-queue-liveness/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-refresh-queue-liveness/ops/workstreams/fix-refresh-queue-liveness/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-refresh-queue-liveness/ops/workstreams/fix-refresh-queue-liveness/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-refresh-queue-liveness/ops/workstreams/fix-refresh-queue-liveness/session.json"
+  ],
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-refresh-queue-liveness",
+  "worktree_id": "fix-refresh-queue-liveness-4b74d079b3"
+}

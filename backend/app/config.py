@@ -130,6 +130,15 @@ class Settings(BaseSettings):
     # tick. The worker clamps this to the queue's safe 1..500 range so a
     # deployment can tune throughput without bypassing provider quotas.
     MARKET_DATA_REFRESH_QUEUE_BATCH_SIZE: int = 100
+    # Wall-clock budget for one queue drain. A drain stops claiming new jobs
+    # once it is spent and schedules its own continuation, so slow provider
+    # jobs cannot run a batch into the worker's 600s job timeout (a timed-out
+    # drain is cancelled before it can schedule that continuation). The
+    # remaining headroom is for the job already in flight.
+    MARKET_DATA_REFRESH_DRAIN_BUDGET_SECONDS: int = 360
+    # Most drains allowed to hand over to a continuation at once. The worker
+    # runs four jobs at a time, so this leaves room for the other schedules.
+    MARKET_DATA_REFRESH_MAX_DRAIN_CHAINS: int = 2
     MARKET_DATA_SHADOW_REPORT_ENABLED: bool = False
     MARKET_UNIVERSE_RECONCILIATION_ENABLED: bool = True
     # Provider-native account usage is opt-in because each poll consumes the
@@ -3344,6 +3353,9 @@ class Settings(BaseSettings):
     INSTRUMENT_METADATA_DELAY_SECONDS: float = 1.0
     INSTRUMENT_IDENTIFIER_DELAY_SECONDS: float = 1.0
     INSTRUMENT_DAILY_METADATA_CAP: int = 750
+    # Wall-time bound for the daily metadata pass (clamped to 30..540s) so it
+    # commits and records its run before the worker's 600s job timeout.
+    INSTRUMENT_DAILY_METADATA_MAX_SECONDS: int = 480
     INSTRUMENT_DAILY_IDENTIFIER_CAP: int = 250
     # Batched OpenFIGI US-composite identity for discovered listings. Each
     # pass is bounded by wall time and request count; every mapping request

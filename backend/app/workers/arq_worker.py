@@ -388,9 +388,11 @@ async def scheduled_daily_history_refresh(ctx: dict):
     if not settings.MARKET_DATA_REFRESH_SCHEDULE_ENABLED:
         logger.info("Market-data refresh schedule disabled; skipping history refresh")
         return {"skipped": True, "reason": "schedule disabled"}
-    from app.tasks.data_tasks import enqueue_core_refresh_jobs
+    from app.tasks.data_tasks import enqueue_core_refresh_jobs, refresh_drain_deadline
 
-    return await enqueue_core_refresh_jobs(ctx)
+    # A first pass over the whole discovered universe outlasts the worker job
+    # timeout; stop on the shared budget and let the quarter-hour ticks resume.
+    return await enqueue_core_refresh_jobs(ctx, deadline=refresh_drain_deadline())
 
 
 async def scheduled_refresh_queue_process(ctx: dict):
@@ -399,14 +401,26 @@ async def scheduled_refresh_queue_process(ctx: dict):
     if not settings.MARKET_DATA_REFRESH_SCHEDULE_ENABLED:
         logger.info("Market-data refresh schedule disabled; skipping queue process")
         return {"skipped": True, "reason": "schedule disabled"}
-    from app.tasks.data_tasks import enqueue_core_refresh_jobs, process_refresh_jobs
+    from app.tasks.data_tasks import (
+        enqueue_core_refresh_jobs,
+        process_refresh_jobs,
+        refresh_drain_deadline,
+    )
 
+    # One budget covers planning and draining so the tick finishes inside the
+    # worker job timeout and the drain can still schedule its continuation.
+    deadline = refresh_drain_deadline()
     # Re-running the existing planner here lets saved/default inputs discover
     # later publications without an open browser. Its parent key shares the
     # same observation bucket as history child dedupe, and normal coverage
     # assessment avoids provider calls for already complete closed sessions.
-    await enqueue_core_refresh_jobs(ctx)
-    return await process_refresh_jobs(ctx)
+    try:
+        await enqueue_core_refresh_jobs(ctx, deadline=deadline)
+    except Exception:  # noqa: BLE001 - this tick is also the drain's liveness backstop
+        # A planner defect must not stall the durable queue: work already
+        # queued still drains, and the next tick plans again.
+        logger.exception("Refresh planner failed; draining already-queued work")
+    return await process_refresh_jobs(ctx, deadline=deadline)
 
 
 async def task_process_refresh_jobs(ctx: dict):

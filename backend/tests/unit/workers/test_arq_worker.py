@@ -92,8 +92,11 @@ async def test_daily_history_refresh_delegates_to_canonical_batch_task(monkeypat
     monkeypatch.setattr(settings, "MARKET_DATA_REFRESH_SCHEDULE_ENABLED", True)
     calls = []
 
-    async def fake_enqueue(ctx):
+    deadlines = []
+
+    async def fake_enqueue(ctx, *, deadline):
         calls.append(ctx)
+        deadlines.append(deadline)
         return {"queued": 3, "mode": "enqueue_only"}
 
     monkeypatch.setattr(data_tasks, "enqueue_core_refresh_jobs", fake_enqueue)
@@ -102,6 +105,8 @@ async def test_daily_history_refresh_delegates_to_canonical_batch_task(monkeypat
 
     assert result == {"queued": 3, "mode": "enqueue_only"}
     assert calls == [{"redis": "test"}]
+    # The whole-universe pass is bounded so it cannot run into the job timeout.
+    assert len(deadlines) == 1 and deadlines[0] is not None
 
 
 @pytest.mark.asyncio
@@ -109,12 +114,16 @@ async def test_refresh_queue_process_delegates_to_bounded_worker_task(monkeypatc
     monkeypatch.setattr(settings, "MARKET_DATA_REFRESH_SCHEDULE_ENABLED", True)
     calls = []
 
-    async def fake_enqueue(ctx):
+    deadlines = []
+
+    async def fake_enqueue(ctx, *, deadline):
         calls.append(("enqueue", ctx))
+        deadlines.append(deadline)
         return {"queued": 2}
 
-    async def fake_process(ctx):
+    async def fake_process(ctx, *, deadline):
         calls.append(("process", ctx))
+        deadlines.append(deadline)
         return {"claimed": 4, "completed": 3, "retried": 1}
 
     monkeypatch.setattr(data_tasks, "enqueue_core_refresh_jobs", fake_enqueue)
@@ -124,6 +133,30 @@ async def test_refresh_queue_process_delegates_to_bounded_worker_task(monkeypatc
 
     assert result == {"claimed": 4, "completed": 3, "retried": 1}
     assert calls == [("enqueue", {"redis": "test"}), ("process", {"redis": "test"})]
+    # Planning and draining share one budget so the tick ends inside the job timeout.
+    assert deadlines[0] is not None and deadlines[0] == deadlines[1]
+
+
+@pytest.mark.asyncio
+async def test_refresh_queue_process_still_drains_when_the_planner_fails(monkeypatch, caplog):
+    """Production regression: a planner error stopped every scheduled drain for 15 hours."""
+
+    monkeypatch.setattr(settings, "MARKET_DATA_REFRESH_SCHEDULE_ENABLED", True)
+
+    async def failing_enqueue(ctx, *, deadline):
+        raise RuntimeError("planner defect")
+
+    process = AsyncMock(return_value={"claimed": 2, "completed": 2})
+    monkeypatch.setattr(data_tasks, "enqueue_core_refresh_jobs", failing_enqueue)
+    monkeypatch.setattr(data_tasks, "process_refresh_jobs", process)
+
+    with caplog.at_level("ERROR"):
+        result = await arq_worker.scheduled_refresh_queue_process({"redis": "test"})
+
+    assert result == {"claimed": 2, "completed": 2}
+    process.assert_awaited_once()
+    assert process.await_args.args == ({"redis": "test"},)
+    assert "Refresh planner failed" in caplog.text
 
 
 @pytest.mark.asyncio
@@ -175,6 +208,8 @@ async def test_refresh_queue_does_not_retry_after_lease_is_lost(monkeypatch):
         "retried": 0,
         "lease_lost": 1,
         "wakeup_scheduled": False,
+        "budget_exhausted": False,
+        "chain_capped": False,
     }
     complete.assert_awaited_once()
     summary = complete.await_args.kwargs["result_summary"]
