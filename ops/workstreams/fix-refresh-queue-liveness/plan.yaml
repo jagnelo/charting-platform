@@ -1,0 +1,34 @@
+schema: 4
+branch: fix/refresh-queue-liveness
+base_sha: 632554bca0fe7a25fd7e74c9f24722ffc804e59d
+parent_branch: staging
+parent_sha: 632554bca0fe7a25fd7e74c9f24722ffc804e59d
+dependency_authorization: "not applicable: independent staging-based topic"
+human_intent_authorization: "please get it into a state that honors my requirements. Proceed, and yes, investigate"
+planning_state: draft
+human_closure_authorization: pending
+closure_summary: pending
+validation_tier: full_integration
+human_validation_authorization: agent_default_full_integration
+local_validation_profile: pending_agent_assessment
+local_validation_reason: pending agent assessment from changed paths and runtime impact
+goal_budget_policy: unbounded_unless_human_authorized
+human_goal_budget_authorization: none
+goal: "please get it into a state that honors my requirements. Proceed, and yes, investigate"
+scope: []
+owned_paths: []
+dependencies: []
+acceptance_criteria: []
+branch_tests: []
+branch_tests_reason: pending agent assessment
+live_test_impact: none
+migration_impact: none
+deployment_impact: none
+status: authorized
+remaining_gaps: []
+progress:
+  completed: []
+  total: 0
+  current_phase: plan
+  current_blocker: none
+  next_action: complete the branch-owned plan before creating a goal
