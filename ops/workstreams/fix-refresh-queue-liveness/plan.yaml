@@ -20,6 +20,8 @@ closure_summary: >-
   restore of the verified production backup (34,111 instruments): each bounded tick plans ~10k instruments,
   re-checking planned ones is cheap (~17k in under a minute), and the third tick completed the universe in 277s;
   the largest bind list is 48 parameters. Unit 232 + 40 and PostgreSQL planner tests pass; Ruff clean.
+  Requires integration_capture: exact branch HEAD.
+integration_capture: exact branch HEAD
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
 local_validation_profile: docker_integration
