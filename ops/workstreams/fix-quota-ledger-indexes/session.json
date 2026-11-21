@@ -1,20 +1,65 @@
 {
-  "schema": 2,
+  "acceptance_criteria": [],
+  "active_session_id": "fd17d26f-c875-4ee3-837c-8612812f194b",
   "branch": "fix/quota-ledger-indexes",
-  "parent_branch": "staging",
-  "implementation_sha": "896ad20fc8652fb4882c5e851cc8f3bf77982b45",
-  "remote_sha": null,
-  "active_session_id": null,
-  "previous_session_ids": [],
-  "goal_state": "not_started",
+  "dirty_paths": [],
+  "docker": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-fix-quota-ledger-indexes-a2f41216",
+      "charting-stack-fix-quota-ledger-indexes-a2f41216"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "fix-quota-ledger-indexes-a2f4121651"
+  },
   "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance fix/quota-ledger-indexes: Continue the refresh-queue throughput gap ('Yes, start it'): after release 896ad20f, production throughput stayed flat because every provider call serialises on the SQLite quota ledger write lock, and its admission queries full-scan the append-only baseline/reservation tables (~240 ms lock hold per admission). Index the hot ledger queries for new and existing ledgers.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_request": {
+    "objective": "Advance fix/quota-ledger-indexes: Continue the refresh-queue throughput gap ('Yes, start it'): after release 896ad20f, production throughput stayed flat because every provider call serialises on the SQLite quota ledger write lock, and its admission queries full-scan the append-only baseline/reservation tables (~240 ms lock hold per admission). Index the hot ledger queries for new and existing ledgers.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "planning_required",
+  "goal_state": "planning_required",
+  "head": "a68adc9d5e9b2ae56f68ae16865445aaf88dd584",
+  "implementation_sha": "896ad20fc8652fb4882c5e851cc8f3bf77982b45",
+  "local_validation_profile": "pending_agent_assessment",
+  "next_action": "run make agent-session-start",
+  "parent_branch": "staging",
+  "plan_hash": "364cb1fda739cb10eb28f6d624119a79e48e78326c798a81529e5b7219a776cb",
+  "planning_required": true,
   "planning_state": "draft",
+  "previous_session_ids": [],
   "progress": {
     "completed": [],
-    "total": 0,
+    "current_blocker": "none",
     "current_phase": "plan",
-    "current_blocker": "none"
+    "total": 0
   },
-  "next_action": "run make agent-session-start",
-  "retained_docker_resources": []
+  "remote": "a68adc9d5e9b2ae56f68ae16865445aaf88dd584",
+  "remote_sha": "a68adc9d5e9b2ae56f68ae16865445aaf88dd584",
+  "remote_synchronized": true,
+  "retained_docker_resources": [],
+  "schema": 2,
+  "session_id": "fd17d26f-c875-4ee3-837c-8612812f194b",
+  "validation_tier": "full_integration",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/fix-quota-ledger-indexes/ops/workstreams/fix-quota-ledger-indexes",
+  "workstream_files": [
+    "/home/m920q/charting-platform/.ai/worktrees/fix-quota-ledger-indexes/ops/workstreams/fix-quota-ledger-indexes/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-quota-ledger-indexes/ops/workstreams/fix-quota-ledger-indexes/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-quota-ledger-indexes/ops/workstreams/fix-quota-ledger-indexes/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-quota-ledger-indexes/ops/workstreams/fix-quota-ledger-indexes/session.json"
+  ],
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-quota-ledger-indexes",
+  "worktree_id": "fix-quota-ledger-indexes-a2f4121651"
 }
