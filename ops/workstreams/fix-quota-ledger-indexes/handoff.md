@@ -88,3 +88,22 @@ duration.
 - A legacy ledger in an isolated schema gains the four indexes through `_engine_for`, with the expected
   column order.
 - Its row survives, and re-running the upgrade is a no-op.
+
+## Staging attempt 1: f7f6fa33c (2026-11-21), red on an infrastructure probe
+
+Exact-source feature CI on 479cec621 was green. Integration produced staging `f7f6fa33c`, whose Exhaustive
+Integration Gate (run 44856040730, attempt 1) failed only at `stage=research-runner-probes`, sub-stage
+`stage=resources exit=1`: the bounded memory-cgroup/tmpfs pressure probe
+(`ops/probe-research-runner-resources.sh`) against the isolated research-runner container. The job log needs a
+GitHub sign-in, so the exact sub-probe is not visible here.
+
+Classification: hosted-runner resource-probe failure, unrelated to this change. This branch touches only the
+quota-ledger coordinator and its tests; the research-runner container, its limits, the probe scripts and the
+Makefile are unchanged from staging `896ad20fc`, whose gate passed the same probe. The identical sub-stage
+failed once before on unrelated staging `a46eb6797` (2026-11-20, classified the same way, passed on re-gate).
+Two failures of this probe in about a day are worth a separate look at its margin on hosted runners; the probe
+and its test are unchanged and not weakened here.
+
+Remediation re-gate: this branch is fast-forwarded to the exact degraded staging SHA `f7f6fa33c` and integrated
+with `REMEDIATE_DEGRADED=1` under the 2026-11-13 delegation, following the `a46eb6797` precedent. Exact-source
+branch CI and a fresh staging Exhaustive Integration Gate are still mandatory; nothing is waived.
