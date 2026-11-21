@@ -107,3 +107,22 @@ and its test are unchanged and not weakened here.
 Remediation re-gate: this branch is fast-forwarded to the exact degraded staging SHA `f7f6fa33c` and integrated
 with `REMEDIATE_DEGRADED=1` under the 2026-11-13 delegation, following the `a46eb6797` precedent. Exact-source
 branch CI and a fresh staging Exhaustive Integration Gate are still mandatory; nothing is waived.
+
+## Staging attempt 2: acacd7189 (2026-11-21), red on backend coverage, not reproducible
+
+Remediation head 9897274a6 had green exact-source feature CI. Integration produced staging `acacd7189`, whose
+Exhaustive Integration Gate (run 44863723482, attempt 1) failed at `stage=backend-coverage exit=2` about four
+minutes into that stage; the research-runner probe stage never ran. The job log needs a GitHub sign-in and the
+CI retry coordinator (run 44864535536) did not schedule an automatic rerun, so the failing test is not
+visible here.
+
+Classification: not reproducible, treated as a hosted-runner flake. The code under test is byte-identical to
+staging `f7f6fa33c`, whose gate passed `backend-coverage` (only workstream docs differ). A local
+`make test-backend-coverage` on this exact code with CI-like empty settings (`BACKEND_ENV=ENV_FILE=/dev/null`)
+passed every unit shard and the integration suite, total coverage 85%. Nothing is waived; a second remediation
+re-gate from the exact degraded staging SHA follows.
+
+Feature CI on 8b6d3d5c8 (job 136764431827): E2E failed one test, `flows.spec.ts:3406` F8k-shift-n (the note tool
+did not appear after Shift+N on the WatchList). This is the focus-timing flake already recorded on 6a20bd912
+(feat-market-data-provider-platform handoff); this branch changes no frontend code, and the identical code
+passed E2E on 479cec621 and 9897274a6. Re-run with this note; the test is unchanged.

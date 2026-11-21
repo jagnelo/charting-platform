@@ -81,10 +81,10 @@ deployment_impact: >-
 status: ready_for_integration
 remaining_gaps:
   - Production deployment needs the human's explicit approval.
-  - "Staging attempt 1 (f7f6fa33c) failed only the research-runner resource probe (classified infrastructure, see handoff); remediation re-gate pending."
+  - "Staging attempt 1 (f7f6fa33c) failed only the research-runner resource probe and attempt 2 (acacd7189) failed backend coverage, not reproducible locally (see handoff); a second remediation re-gate is pending."
 progress:
   completed: [AC1, AC2, AC3, AC4]
   total: 5
-  current_phase: remediation_re_gate_of_degraded_staging_f7f6fa33c
+  current_phase: remediation_re_gate_of_degraded_staging_acacd7189
   current_blocker: none
   next_action: Exact-source feature CI on the remediation head, then REMEDIATE_DEGRADED staging integration and a fresh exhaustive gate (AC5).
