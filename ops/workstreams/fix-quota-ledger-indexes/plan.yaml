@@ -11,7 +11,16 @@ human_closure_authorization: >-
   decisions that the rules expect the human dev to make. Proceed"); the orchestrator closes this bounded
   production repair under that delegation. Production deployment still needs the human's explicit
   per-deploy approval.
-closure_summary: pending
+closure_summary: >-
+  Production provider-call ceiling. After release 896ad20f raised drains to 6, completions stayed ~1k/h and
+  provider requests across all providers stayed flat at 0.6-1.5/s: every call reserves and settles through one
+  exclusive SQLite quota-ledger transaction, and on the append-only ledger (128k baselines, 278k reservations)
+  each admission full-scanned both tables (~265 ms lock hold). Four secondary indexes cover the hot admission
+  queries for fresh and existing SQLite/PostgreSQL ledgers (CREATE INDEX IF NOT EXISTS on first use, no row
+  change); replayed on a production-ledger copy the reserve hold is 8-26 ms. Unit, strategy-lab and
+  PostgreSQL tests pass locally and feature CI is green on b5ab18d6. Closed by the orchestrator under the
+  2026-11-13 delegation; production deployment still needs the human's explicit approval.
+integration_capture: exact branch HEAD
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
 local_validation_profile: docker_integration
@@ -68,8 +77,9 @@ deployment_impact: >-
   Backend/worker image only. The first quota admission after start builds the ledger indexes once (~1.3 s on
   the 195 MB production ledger, under the existing schema-upgrade lock); no environment or deployment-file
   change.
-status: authorized
-remaining_gaps: []
+status: ready_for_integration
+remaining_gaps:
+  - Production deployment needs the human's explicit approval.
 progress:
   completed: [AC1, AC2, AC3, AC4]
   total: 5
