@@ -41,10 +41,12 @@ scope:
   - Secondary indexes serve the baseline lookups, the rolling and fixed-window reservation sums and counts, the identity-keyed reservation lookup and the expired-lease sweep.
   - Fresh ledgers get the indexes from the table definitions; existing SQLite and PostgreSQL ledgers get them in place on first use, under the existing schema-upgrade lock.
   - No ledger row is deleted or rewritten; the append-only evidence policy is unchanged.
+  - Unblock the staging gate: the research-runner resource probe reports which sub-probe failed as a CI annotation, and its concurrent-memory pressure holds all eight allocations to a shared deadline so they overlap on loaded hosts. No assertion is relaxed.
 owned_paths:
   - backend/app/services/provider_quota_coordinator.py
   - backend/tests/unit/services/test_provider_quota_ledger_indexes.py
   - backend/tests/integration/test_provider_quota_ledger_indexes_postgres.py
+  - ops/probe-research-runner-resources.sh
   - ops/workstreams/fix-quota-ledger-indexes/
 dependencies: []
 acceptance_criteria:
@@ -81,10 +83,10 @@ deployment_impact: >-
 status: ready_for_integration
 remaining_gaps:
   - Production deployment needs the human's explicit approval.
-  - "Staging attempt 1 (f7f6fa33c) failed only the research-runner resource probe and attempt 2 (acacd7189) failed backend coverage, not reproducible locally (see handoff); a second remediation re-gate is pending."
+  - "Staging attempts f7f6fa33c and 86e6ec145 failed the research-runner resource probe and acacd7189 failed backend coverage (not reproducible locally); see handoff. The probe now reports the failing sub-probe; a re-gate is pending."
 progress:
   completed: [AC1, AC2, AC3, AC4]
   total: 5
-  current_phase: remediation_re_gate_of_degraded_staging_acacd7189
+  current_phase: remediation_re_gate_of_degraded_staging_86e6ec145
   current_blocker: none
   next_action: Exact-source feature CI on the remediation head, then REMEDIATE_DEGRADED staging integration and a fresh exhaustive gate (AC5).
