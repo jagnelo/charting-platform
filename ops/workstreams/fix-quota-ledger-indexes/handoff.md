@@ -148,3 +148,8 @@ Probe change (owned path added, no assertion relaxed):
   one process killed and the service restart count unchanged. Per-process exit codes are reported.
 - Locally the new probe passed 5/5 (3-4 of 8 killed, no restart), and a deliberate configuration mismatch
   produced the annotation and exit 1.
+
+Feature CI on 860098f79 (run 44888766376): E2E failed one test, `supporting_features_journey.spec.ts:230`
+(alerts journey), on a 60 s timeout waiting for the alert PATCH response. Not caused by this branch: the
+commit changed only `ops/probe-research-runner-resources.sh` (not used by Playwright) and workstream docs, and
+the same application code passed E2E on d8673b999. Re-run with this note; the test is unchanged.
