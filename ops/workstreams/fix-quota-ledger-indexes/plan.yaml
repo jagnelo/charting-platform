@@ -19,7 +19,8 @@ closure_summary: >-
   queries for fresh and existing SQLite/PostgreSQL ledgers (CREATE INDEX IF NOT EXISTS on first use, no row
   change); replayed on a production-ledger copy the reserve hold is 8-26 ms. Unit, strategy-lab and
   PostgreSQL tests pass locally and feature CI is green on b5ab18d6. Closed by the orchestrator under the
-  2026-11-13 delegation; production deployment still needs the human's explicit approval.
+  2026-11-13 delegation; production deployment still needs the human's explicit approval. Requires
+  integration_capture: exact branch HEAD.
 integration_capture: exact branch HEAD
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
