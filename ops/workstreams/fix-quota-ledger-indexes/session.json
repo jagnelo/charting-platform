@@ -1,0 +1,70 @@
+{
+  "acceptance_criteria": [],
+  "active_session_id": "fd17d26f-c875-4ee3-837c-8612812f194b",
+  "branch": "fix/quota-ledger-indexes",
+  "dirty_paths": [],
+  "docker": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-fix-quota-ledger-indexes-a2f41216",
+      "charting-stack-fix-quota-ledger-indexes-a2f41216"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "fix-quota-ledger-indexes-a2f4121651"
+  },
+  "docker_ready": {
+    "ready": true,
+    "started_desktop": false,
+    "wait_seconds": 0
+  },
+  "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance fix/quota-ledger-indexes: Remove the global provider-call ceiling: every provider request on the platform reserves and settles through one exclusive quota-ledger transaction, and on the append-only production ledger (128k baselines, 278k reservations) each admission full-scans both tables, holding the lock ~240 ms. Index the hot admission queries so the lock hold is a few milliseconds and the cost no longer grows with ledger age.. Acceptance criteria: AC1: A fresh SQLite ledger has indexes on baselines (account_scope, quota_group, dimension, window_seconds, observed_at), reservations (account_scope, quota_group, dimension, created_at), reservations (account_scope, quota_group, dimension, window_started_at) and reservations (account_scope, state, lease_expires_at).; AC2: An existing SQLite ledger created without those indexes gains them on first use, keeps every row, and the coordinator still reserves and settles on it.; AC3: SQLite's query plan for each hot admission query (baseline lookup, rolling settled-usage sum, rolling and fixed pending counts, identity-keyed reservation lookup, expired-lease sweep) searches an index instead of scanning the table.; AC4: A PostgreSQL ledger without the indexes gains them on first use, and re-running the upgrade is a no-op.; AC5: Exact-source feature CI and the staging exhaustive gate are green before promotion; production deployment waits for the human's approval.. Required local profile: docker_integration. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_request": {
+    "objective": "Advance fix/quota-ledger-indexes: Remove the global provider-call ceiling: every provider request on the platform reserves and settles through one exclusive quota-ledger transaction, and on the append-only production ledger (128k baselines, 278k reservations) each admission full-scans both tables, holding the lock ~240 ms. Index the hot admission queries so the lock hold is a few milliseconds and the cost no longer grows with ledger age.. Acceptance criteria: AC1: A fresh SQLite ledger has indexes on baselines (account_scope, quota_group, dimension, window_seconds, observed_at), reservations (account_scope, quota_group, dimension, created_at), reservations (account_scope, quota_group, dimension, window_started_at) and reservations (account_scope, state, lease_expires_at).; AC2: An existing SQLite ledger created without those indexes gains them on first use, keeps every row, and the coordinator still reserves and settles on it.; AC3: SQLite's query plan for each hot admission query (baseline lookup, rolling settled-usage sum, rolling and fixed pending counts, identity-keyed reservation lookup, expired-lease sweep) searches an index instead of scanning the table.; AC4: A PostgreSQL ledger without the indexes gains them on first use, and re-running the upgrade is a no-op.; AC5: Exact-source feature CI and the staging exhaustive gate are green before promotion; production deployment waits for the human's approval.. Required local profile: docker_integration. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "planning_required",
+  "goal_state": "requested",
+  "head": "a68adc9d5e9b2ae56f68ae16865445aaf88dd584",
+  "implementation_sha": "43b54b5f85759008b8633f938de7b26a94a27d05",
+  "local_validation_profile": "pending_agent_assessment",
+  "next_action": "create the session-local goal from goal_request (runtime adapter), then record it as active",
+  "parent_branch": "staging",
+  "plan_hash": "4b3fffadaf9f626e93590849a1cf2967e139f7b5735bc3c19d23744d2b811fca",
+  "planning_required": true,
+  "planning_state": "ready",
+  "previous_session_ids": [],
+  "progress": {
+    "completed": [],
+    "current_blocker": "none",
+    "current_phase": "plan",
+    "total": 0
+  },
+  "remote": "a68adc9d5e9b2ae56f68ae16865445aaf88dd584",
+  "remote_sha": "43b54b5f85759008b8633f938de7b26a94a27d05",
+  "remote_synchronized": true,
+  "retained_docker_resources": [],
+  "schema": 2,
+  "session_id": "fd17d26f-c875-4ee3-837c-8612812f194b",
+  "validation_tier": "full_integration",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/fix-quota-ledger-indexes/ops/workstreams/fix-quota-ledger-indexes",
+  "workstream_files": [
+    "/home/m920q/charting-platform/.ai/worktrees/fix-quota-ledger-indexes/ops/workstreams/fix-quota-ledger-indexes/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-quota-ledger-indexes/ops/workstreams/fix-quota-ledger-indexes/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-quota-ledger-indexes/ops/workstreams/fix-quota-ledger-indexes/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-quota-ledger-indexes/ops/workstreams/fix-quota-ledger-indexes/session.json"
+  ],
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-quota-ledger-indexes",
+  "worktree_id": "fix-quota-ledger-indexes-a2f4121651"
+}
