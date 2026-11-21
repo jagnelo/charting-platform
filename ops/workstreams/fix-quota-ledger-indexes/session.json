@@ -24,21 +24,26 @@
     "volume_count": 0,
     "worktree_id": "fix-quota-ledger-indexes-a2f4121651"
   },
+  "docker_ready": {
+    "ready": true,
+    "started_desktop": false,
+    "wait_seconds": 0
+  },
   "goal_budget_policy": "unbounded_unless_human_authorized",
-  "goal_objective": "Advance fix/quota-ledger-indexes: Continue the refresh-queue throughput gap ('Yes, start it'): after release 896ad20f, production throughput stayed flat because every provider call serialises on the SQLite quota ledger write lock, and its admission queries full-scan the append-only baseline/reservation tables (~240 ms lock hold per admission). Index the hot ledger queries for new and existing ledgers.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_objective": "Advance fix/quota-ledger-indexes: Remove the global provider-call ceiling: every provider request on the platform reserves and settles through one exclusive quota-ledger transaction, and on the append-only production ledger (128k baselines, 278k reservations) each admission full-scans both tables, holding the lock ~240 ms. Index the hot admission queries so the lock hold is a few milliseconds and the cost no longer grows with ledger age.. Acceptance criteria: AC1: A fresh SQLite ledger has indexes on baselines (account_scope, quota_group, dimension, window_seconds, observed_at), reservations (account_scope, quota_group, dimension, created_at), reservations (account_scope, quota_group, dimension, window_started_at) and reservations (account_scope, state, lease_expires_at).; AC2: An existing SQLite ledger created without those indexes gains them on first use, keeps every row, and the coordinator still reserves and settles on it.; AC3: SQLite's query plan for each hot admission query (baseline lookup, rolling settled-usage sum, rolling and fixed pending counts, identity-keyed reservation lookup, expired-lease sweep) searches an index instead of scanning the table.; AC4: A PostgreSQL ledger without the indexes gains them on first use, and re-running the upgrade is a no-op.; AC5: Exact-source feature CI and the staging exhaustive gate are green before promotion; production deployment waits for the human's approval.. Required local profile: docker_integration. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
   "goal_request": {
-    "objective": "Advance fix/quota-ledger-indexes: Continue the refresh-queue throughput gap ('Yes, start it'): after release 896ad20f, production throughput stayed flat because every provider call serialises on the SQLite quota ledger write lock, and its admission queries full-scan the append-only baseline/reservation tables (~240 ms lock hold per admission). Index the hot ledger queries for new and existing ledgers.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+    "objective": "Advance fix/quota-ledger-indexes: Remove the global provider-call ceiling: every provider request on the platform reserves and settles through one exclusive quota-ledger transaction, and on the append-only production ledger (128k baselines, 278k reservations) each admission full-scans both tables, holding the lock ~240 ms. Index the hot admission queries so the lock hold is a few milliseconds and the cost no longer grows with ledger age.. Acceptance criteria: AC1: A fresh SQLite ledger has indexes on baselines (account_scope, quota_group, dimension, window_seconds, observed_at), reservations (account_scope, quota_group, dimension, created_at), reservations (account_scope, quota_group, dimension, window_started_at) and reservations (account_scope, state, lease_expires_at).; AC2: An existing SQLite ledger created without those indexes gains them on first use, keeps every row, and the coordinator still reserves and settles on it.; AC3: SQLite's query plan for each hot admission query (baseline lookup, rolling settled-usage sum, rolling and fixed pending counts, identity-keyed reservation lookup, expired-lease sweep) searches an index instead of scanning the table.; AC4: A PostgreSQL ledger without the indexes gains them on first use, and re-running the upgrade is a no-op.; AC5: Exact-source feature CI and the staging exhaustive gate are green before promotion; production deployment waits for the human's approval.. Required local profile: docker_integration. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
   },
   "goal_request_state": "planning_required",
-  "goal_state": "planning_required",
+  "goal_state": "requested",
   "head": "a68adc9d5e9b2ae56f68ae16865445aaf88dd584",
-  "implementation_sha": "896ad20fc8652fb4882c5e851cc8f3bf77982b45",
+  "implementation_sha": "43b54b5f85759008b8633f938de7b26a94a27d05",
   "local_validation_profile": "pending_agent_assessment",
-  "next_action": "run make agent-session-start",
+  "next_action": "create the session-local goal from goal_request (runtime adapter), then record it as active",
   "parent_branch": "staging",
-  "plan_hash": "364cb1fda739cb10eb28f6d624119a79e48e78326c798a81529e5b7219a776cb",
+  "plan_hash": "4b3fffadaf9f626e93590849a1cf2967e139f7b5735bc3c19d23744d2b811fca",
   "planning_required": true,
-  "planning_state": "draft",
+  "planning_state": "ready",
   "previous_session_ids": [],
   "progress": {
     "completed": [],
@@ -47,7 +52,7 @@
     "total": 0
   },
   "remote": "a68adc9d5e9b2ae56f68ae16865445aaf88dd584",
-  "remote_sha": "a68adc9d5e9b2ae56f68ae16865445aaf88dd584",
+  "remote_sha": "43b54b5f85759008b8633f938de7b26a94a27d05",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,

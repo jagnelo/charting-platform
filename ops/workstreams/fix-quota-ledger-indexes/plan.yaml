@@ -71,8 +71,8 @@ deployment_impact: >-
 status: authorized
 remaining_gaps: []
 progress:
-  completed: []
+  completed: [AC1, AC2, AC3, AC4]
   total: 5
-  current_phase: implement
+  current_phase: integration
   current_blocker: none
-  next_action: Implement AC1-AC4 with tests, validate locally, then run CI and the staging gate.
+  next_action: Exact-source feature CI, then staging integration and the exhaustive gate (AC5).

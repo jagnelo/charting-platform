@@ -36,6 +36,7 @@ from sqlalchemy import (
     Boolean,
     Column,
     DateTime,
+    Index,
     Integer,
     MetaData,
     String,
@@ -51,6 +52,7 @@ from sqlalchemy import (
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.pool import NullPool
+from sqlalchemy.schema import CreateIndex
 
 from app.config import settings
 
@@ -211,6 +213,47 @@ _reservations = Table(
     ),
 )
 
+# Every provider call reserves and settles inside one exclusive ledger write
+# transaction, so these lookups bound platform-wide provider throughput. The
+# ledger is append-only evidence (see ``_prune_old_ledger_rows``); without
+# these indexes each admission scans every baseline and reservation ever
+# written, and the lock hold grows with ledger age (~240 ms on 2026-11-21 with
+# 128k baselines and 278k reservations, versus ~12 ms indexed).
+_HOT_PATH_INDEXES = (
+    # Latest baseline per quota dimension (`_baseline_query`), newest first.
+    Index(
+        "ix_provider_quota_ledger_baseline_dimension_observed",
+        _baselines.c.account_scope,
+        _baselines.c.quota_group,
+        _baselines.c.dimension,
+        _baselines.c.window_seconds,
+        _baselines.c.observed_at,
+    ),
+    # Rolling-window settled usage and pending counts (created_at range).
+    Index(
+        "ix_provider_quota_ledger_reservation_dimension_created",
+        _reservations.c.account_scope,
+        _reservations.c.quota_group,
+        _reservations.c.dimension,
+        _reservations.c.created_at,
+    ),
+    # Fixed-window usage, pending counts and identity-keyed reservations.
+    Index(
+        "ix_provider_quota_ledger_reservation_dimension_window",
+        _reservations.c.account_scope,
+        _reservations.c.quota_group,
+        _reservations.c.dimension,
+        _reservations.c.window_started_at,
+    ),
+    # Expired concurrency-lease sweep run at the start of every reservation.
+    Index(
+        "ix_provider_quota_ledger_reservation_scope_state_lease",
+        _reservations.c.account_scope,
+        _reservations.c.state,
+        _reservations.c.lease_expires_at,
+    ),
+)
+
 _identities = Table(
     "provider_quota_ledger_identity",
     metadata,
@@ -331,6 +374,7 @@ def _engine_for(url: str, require_persistent: bool = False) -> Engine:
                 _upgrade_identity_schema(engine, connection=connection)
                 _upgrade_baseline_schema(engine, connection=connection)
                 _upgrade_unit_width_schema(engine, connection=connection)
+                _upgrade_hot_path_indexes(engine, connection=connection)
                 connection.commit()
             except BaseException:
                 connection.rollback()
@@ -340,6 +384,7 @@ def _engine_for(url: str, require_persistent: bool = False) -> Engine:
         _upgrade_identity_schema(engine)
         _upgrade_baseline_schema(engine)
         _upgrade_unit_width_schema(engine)
+        _upgrade_hot_path_indexes(engine)
     if engine.dialect.name == "sqlite" and engine.url.database != ":memory:":
         try:
             database = Path(engine.url.database or "").expanduser()
@@ -421,6 +466,25 @@ def _upgrade_baseline_schema(engine: Engine, *, connection=None) -> None:
                 "ALTER TABLE provider_quota_ledger_baseline "
                 "ADD COLUMN IF NOT EXISTS reset VARCHAR(64) NOT NULL DEFAULT 'unknown'"
             )
+
+
+def _upgrade_hot_path_indexes(engine: Engine, *, connection=None) -> None:
+    """Add the admission-path indexes to ledgers created before they existed.
+
+    ``create_all`` only indexes tables it creates, so an existing ledger needs
+    explicit ``CREATE INDEX IF NOT EXISTS``. The statements are additive and
+    idempotent, and no ledger row changes.
+    """
+
+    def upgrade(upgrade_connection) -> None:
+        for index in _HOT_PATH_INDEXES:
+            upgrade_connection.execute(CreateIndex(index, if_not_exists=True))
+
+    if connection is not None:
+        upgrade(connection)
+    else:
+        with engine.begin() as upgrade_connection:
+            upgrade(upgrade_connection)
 
 
 def _upgrade_unit_width_schema(engine: Engine, *, connection=None) -> None:
