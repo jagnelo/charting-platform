@@ -126,3 +126,30 @@ Feature CI on 8b6d3d5c8 (job 136764431827): E2E failed one test, `flows.spec.ts:
 did not appear after Shift+N on the WatchList). This is the focus-timing flake already recorded on 6a20bd912
 (feat-market-data-provider-platform handoff); this branch changes no frontend code, and the identical code
 passed E2E on 479cec621 and 9897274a6. Re-run with this note; the test is unchanged.
+
+## Staging attempt 3: 86e6ec145 (2026-11-21), research-runner resource probe again
+
+Feature CI on d8673b999 was green. Staging `86e6ec145` (run 44882320174) failed `stage=research-runner-probes`,
+sub-stage `resources exit=1`, for the second time on this branch and the third time in four staging gates
+(a46eb6797, f7f6fa33c, 86e6ec145). That is no longer a one-off, so this branch stops re-gating it blind.
+
+Local reproduction: built the research-runner image and ran `ops/probe-research-runner-resources.sh` ten times
+against a throwaway compose project (same 768 MiB / 1 CPU / 128 pids / read-only / tmpfs limits). All ten
+passed (2 GiB allocation killed with 137, tmpfs ENOSPC, 3 of 8 concurrent processes killed, no restart). The
+failure therefore depends on the hosted runner, and the job log that names the sub-probe needs a sign-in.
+
+Probe change (owned path added, no assertion relaxed):
+- A failing sub-probe now also prints a `::error` workflow annotation with its status, output and the
+  container's OOMKilled/restart state, so the cause is visible from the public annotations API.
+- concurrent-memory: each of the eight 256 MiB processes held its pages for 3 s after its own start, so when a
+  loaded host staggers the `docker exec` starts, early processes can exit before late ones allocate and none
+  is ever killed (failures=0). Every process now holds its pages until one shared deadline 10 s after launch
+  plus 2 s, so all eight overlap. The pressure is equal or higher, and the assertions are unchanged: at least
+  one process killed and the service restart count unchanged. Per-process exit codes are reported.
+- Locally the new probe passed 5/5 (3-4 of 8 killed, no restart), and a deliberate configuration mismatch
+  produced the annotation and exit 1.
+
+Feature CI on 860098f79 (run 44888766376): E2E failed one test, `supporting_features_journey.spec.ts:230`
+(alerts journey), on a 60 s timeout waiting for the alert PATCH response. Not caused by this branch: the
+commit changed only `ops/probe-research-runner-resources.sh` (not used by Playwright) and workstream docs, and
+the same application code passed E2E on d8673b999. Re-run with this note; the test is unchanged.

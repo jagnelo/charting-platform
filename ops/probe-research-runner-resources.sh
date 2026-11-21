@@ -8,10 +8,27 @@ set -euo pipefail
 
 container="${1:?usage: $0 <research-runner-container>}"
 
+# Report the failing sub-probe and its evidence where CI shows it without a
+# sign-in (a workflow annotation), as well as on stderr.
+fail() {
+  local message="$1"
+  printf '%s\n' "$message" >&2
+  if [[ -n "${GITHUB_ACTIONS:-}" ]]; then
+    local state
+    state="$(docker inspect -f 'oom_killed={{.State.OOMKilled}} restarts={{.RestartCount}} status={{.State.Status}}' "$container" 2>&1 || true)"
+    message="${message:0:1500} [container ${state}]"
+    message="${message//'%'/'%25'}"
+    message="${message//$'\r'/}"
+    message="${message//$'\n'/'%0A'}"
+    printf '::error title=Research-runner resource probe::%s\n' "$message" >&2
+  fi
+  exit 1
+}
+
 config="$(docker inspect -f 'memory={{.HostConfig.Memory}} nano_cpus={{.HostConfig.NanoCpus}} pids={{.HostConfig.PidsLimit}} network={{.HostConfig.NetworkMode}} readonly={{.HostConfig.ReadonlyRootfs}} uid={{.Config.User}}' "$container")"
 case "$config" in
   *"memory=805306368"*"nano_cpus=1000000000"*"pids=128"*"network=none"*"readonly=true"*"uid=10001:10001"*) ;;
-  *) echo "unexpected resource/isolation configuration: $config" >&2; exit 1 ;;
+  *) fail "unexpected resource/isolation configuration: $config" ;;
 esac
 printf 'configuration: %s\n' "$config"
 
@@ -23,8 +40,7 @@ run_expect() {
   rc=$?
   set -e
   if [[ "$rc" -ne "$expected_status" || "$output" != *"$expected_text"* ]]; then
-    printf '%s: unexpected status=%s output=%s\n' "$name" "$rc" "$output" >&2
-    exit 1
+    fail "$(printf '%s: unexpected status=%s output=%s' "$name" "$rc" "$output")"
   fi
   printf '%s: denied (status=%s)\n' "$name" "$rc"
 }
@@ -48,25 +64,31 @@ docker exec "$container" python -c 'import os; os.remove("/tmp/pressure.bin") if
 
 # Exercise aggregate cgroup pressure with eight short-lived processes. At
 # least one process must be contained/killed, while the service itself must not
-# restart. The probe intentionally uses bounded 128 MiB allocations and sleeps
-# only three seconds; it cannot create an unbounded workload.
+# restart. The probe intentionally uses bounded 256 MiB allocations held until a
+# shared deadline a few seconds away; it cannot create an unbounded workload.
+# Every process holds its resident pages until the same deadline, so all eight
+# overlap even when a loaded host staggers the docker exec starts (a fixed
+# per-process sleep let early processes exit before late ones allocated).
 restart_before="$(docker inspect -f '{{.RestartCount}}' "$container")"
+deadline=$(( $(date +%s) + 10 ))
 pids=()
 for index in 1 2 3 4 5 6 7 8; do
-  docker exec "$container" python -c 'import time; x=bytearray(256 * 1024 * 1024); [x.__setitem__(offset, 1) for offset in range(0, len(x), 4096)]; time.sleep(3)' \
+  docker exec "$container" python -c "import time; x=bytearray(256 * 1024 * 1024); [x.__setitem__(offset, 1) for offset in range(0, len(x), 4096)]; time.sleep(max(0.0, ${deadline} - time.time()) + 2)" \
     >"/tmp/tc2000-resource-pressure-${index}.log" 2>&1 &
   pids+=("$!")
 done
 failures=0
-for pid in "${pids[@]}"; do
-  if ! wait "$pid"; then failures=$((failures + 1)); fi
+statuses=()
+for index in "${!pids[@]}"; do
+  if wait "${pids[$index]}"; then status=0; else status=$?; failures=$((failures + 1)); fi
+  statuses+=("$((index + 1)):${status}")
 done
 restart_after="$(docker inspect -f '{{.RestartCount}}' "$container")"
+outputs="$(tail -c 300 /tmp/tc2000-resource-pressure-*.log 2>/dev/null || true)"
 rm -f /tmp/tc2000-resource-pressure-*.log
 if [[ "$failures" -lt 1 || "$restart_before" != "$restart_after" ]]; then
-  printf 'concurrent-memory: unexpected failures=%s restart_before=%s restart_after=%s\n' \
-    "$failures" "$restart_before" "$restart_after" >&2
-  exit 1
+  fail "$(printf 'concurrent-memory: unexpected failures=%s restart_before=%s restart_after=%s exits=%s output=%s' \
+    "$failures" "$restart_before" "$restart_after" "${statuses[*]}" "$outputs")"
 fi
-printf 'concurrent-memory: contained %s process failure(s), restart count unchanged (%s)\n' \
-  "$failures" "$restart_after"
+printf 'concurrent-memory: contained %s process failure(s) (exits %s), restart count unchanged (%s)\n' \
+  "$failures" "${statuses[*]}" "$restart_after"
