@@ -121,3 +121,8 @@ staging `f7f6fa33c`, whose gate passed `backend-coverage` (only workstream docs 
 `make test-backend-coverage` on this exact code with CI-like empty settings (`BACKEND_ENV=ENV_FILE=/dev/null`)
 passed every unit shard and the integration suite, total coverage 85%. Nothing is waived; a second remediation
 re-gate from the exact degraded staging SHA follows.
+
+Feature CI on 8b6d3d5c8 (job 136764431827): E2E failed one test, `flows.spec.ts:3406` F8k-shift-n (the note tool
+did not appear after Shift+N on the WatchList). This is the focus-timing flake already recorded on 6a20bd912
+(feat-market-data-provider-platform handoff); this branch changes no frontend code, and the identical code
+passed E2E on 479cec621 and 9897274a6. Re-run with this note; the test is unchanged.
