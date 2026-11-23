@@ -24,21 +24,26 @@
     "volume_count": 0,
     "worktree_id": "fix-provider-semaphore-leak-d56ff50886"
   },
+  "docker_ready": {
+    "ready": true,
+    "started_desktop": false,
+    "wait_seconds": 0
+  },
   "goal_budget_policy": "unbounded_unless_human_authorized",
-  "goal_objective": "Advance fix/provider-semaphore-leak: Fix the production refresh-queue stall ('Yes, fix it here'): since 2026-11-22 02:00Z every drain blocks forever on the in-process provider semaphore in execute_provider_call because early-exit paths await a settle call before semaphore.release(); a drain cancelled by the arq job timeout during that await leaks the permit, and Alpaca's default concurrency of 1 then blocks all its calls. Release the permit on every path, including cancellation.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_objective": "Advance fix/provider-semaphore-leak: Hold the provider's local concurrency permit only around the outbound request, so no permit holder waits on the database (deadlock) and no cancellation can leak a permit.. Acceptance criteria: AC1: With one permit, a call whose bookkeeping waits for a second call's request completes (no deadlock); the permit is held during the request and not during admission or bookkeeping; a cancellation during an early-exit settle leaves the permit free.; AC2: The regression test fails on the previous code and passes on this branch; the full backend unit suite passes.; AC3: Exact-source feature CI and the staging exhaustive gate are green before promotion; production deployment waits for the human's approval.. Required local profile: docker_integration. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
   "goal_request": {
-    "objective": "Advance fix/provider-semaphore-leak: Fix the production refresh-queue stall ('Yes, fix it here'): since 2026-11-22 02:00Z every drain blocks forever on the in-process provider semaphore in execute_provider_call because early-exit paths await a settle call before semaphore.release(); a drain cancelled by the arq job timeout during that await leaks the permit, and Alpaca's default concurrency of 1 then blocks all its calls. Release the permit on every path, including cancellation.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+    "objective": "Advance fix/provider-semaphore-leak: Hold the provider's local concurrency permit only around the outbound request, so no permit holder waits on the database (deadlock) and no cancellation can leak a permit.. Acceptance criteria: AC1: With one permit, a call whose bookkeeping waits for a second call's request completes (no deadlock); the permit is held during the request and not during admission or bookkeeping; a cancellation during an early-exit settle leaves the permit free.; AC2: The regression test fails on the previous code and passes on this branch; the full backend unit suite passes.; AC3: Exact-source feature CI and the staging exhaustive gate are green before promotion; production deployment waits for the human's approval.. Required local profile: docker_integration. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
   },
   "goal_request_state": "planning_required",
-  "goal_state": "planning_required",
+  "goal_state": "requested",
   "head": "9a9bdbd91a31554391079df26910cfeaba57583d",
-  "implementation_sha": "6d70107def8e2797a46db54b8ea3ad02e635d8a1",
+  "implementation_sha": "a027049e7ff99c1db20a332f2ecfd01a9899a872",
   "local_validation_profile": "pending_agent_assessment",
-  "next_action": "run make agent-session-start",
+  "next_action": "create the session-local goal from goal_request (runtime adapter), then record it as active",
   "parent_branch": "staging",
-  "plan_hash": "df78e77491fe1ba09db06da1a0947c63b221e63db85197c282fb4bfccfc93301",
+  "plan_hash": "909d0b3e7f962ebdf2b2b96d84ed02b87c236092cd81f2385ad9db2350272969",
   "planning_required": true,
-  "planning_state": "draft",
+  "planning_state": "ready",
   "previous_session_ids": [],
   "progress": {
     "completed": [],
@@ -47,7 +52,7 @@
     "total": 0
   },
   "remote": "9a9bdbd91a31554391079df26910cfeaba57583d",
-  "remote_sha": "9a9bdbd91a31554391079df26910cfeaba57583d",
+  "remote_sha": "a027049e7ff99c1db20a332f2ecfd01a9899a872",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
