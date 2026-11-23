@@ -38,3 +38,10 @@ instruments Alpaca never serves still cost one request per refresh cycle. Measur
 ## Validation
 
 Unit 4580 passed; integration 666 passed / 2 skipped; worker regression test fails on the previous code.
+
+## Staging gate 61888227 (attempt 1)
+
+Feature CI on 79c6106e was green. The staging Exhaustive Integration Gate failed only on
+`flows.spec.ts:7584` F14-context-keyboard: the drawing save POST did not arrive within the 60 s
+test timeout (240 passed, 107 skipped). That flow is frontend drawing persistence and does not touch
+refresh-job draining or data preparation. Re-gated with this note; the test is not changed.
