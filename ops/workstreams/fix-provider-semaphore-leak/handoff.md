@@ -76,3 +76,11 @@ requests per provider.
   On each path the permit is free afterwards, and the next caller acquires it within 1 s.
 
 All four tests fail on the previous `provider_runtime.py` and pass with the fix.
+
+## CI
+
+Feature CI on 24ab7ce01: E2E failed one test, `flows.spec.ts:7303` F8x-library (Python study library
+version/clone/archive lifecycle): the second version save still showed "Saving…" after the 15 s window, so
+the asset read "1 version". The study library save path does not go through `execute_provider_call`, and the
+backend unit (4568) and integration (664) suites pass locally on this code. Re-run with this note; the test is
+unchanged.
