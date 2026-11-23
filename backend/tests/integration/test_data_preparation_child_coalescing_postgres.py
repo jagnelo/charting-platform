@@ -183,3 +183,98 @@ async def test_history_join_skips_a_child_locked_by_a_concurrent_claim(coalescin
         assert joined.id == waiting_id
         assert joined.end_at == session_end_3
         assert _refs(joined) == {parents[0].id, parents[2].id}
+
+
+async def _deepest_child(session, instrument, key, parent, *, status):
+    from app.models.market_data_foundation import MarketRefreshJob
+
+    job = MarketRefreshJob(
+        request_key=f"prep-history:{key}",
+        instrument_id=instrument.id,
+        capability="price_history",
+        timeframe="D1",
+        priority=100,
+        status=status,
+        attempts=0,
+        next_attempt_at=NOW,
+        lease_token=f"lease-{key}" if status == "leased" else None,
+        metadata_payload={
+            "data_preparation_child": {
+                "dataset": "history",
+                "instrument_id": instrument.id,
+                "adjusted": True,
+                "range_mode": "deepest_admitted",
+                "wait_for_job_ids": [],
+                "derived_only": False,
+                "parent_refs": [{"parent_job_id": parent.id, "dependency_id": key}],
+            }
+        },
+    )
+    session.add(job)
+    await session.flush()
+    parent.metadata_payload = {
+        "data_preparation": {
+            "role": "system_maintenance_tracking",
+            "version": 1,
+            "dependencies": [{"dependency_id": key, "dataset": "history", "job_ids": [job.id]}],
+        }
+    }
+    await session.flush()
+    return job
+
+
+async def test_drain_folds_a_legacy_duplicate_and_repoints_its_parent(coalescing_sessions):
+    from app.models.market_data_foundation import MarketRefreshJob
+    from app.services.data_preparation import coalesce_history_duplicate
+
+    async with coalescing_sessions() as session:
+        instrument, parents = await _seed(session)
+        survivor = await _deepest_child(session, instrument, "s", parents[0], status="deferred")
+        duplicate = await _deepest_child(session, instrument, "d", parents[1], status="leased")
+        await session.commit()
+        survivor_id, duplicate_id = survivor.id, duplicate.id
+
+    async with coalescing_sessions() as session:
+        duplicate = await session.get(MarketRefreshJob, duplicate_id)
+        folded = await coalesce_history_duplicate(session, job=duplicate, now=NOW)
+        await session.commit()
+        assert folded is not None and folded.id == survivor_id
+
+    async with coalescing_sessions() as session:
+        survivor = await session.get(MarketRefreshJob, survivor_id)
+        duplicate = await session.get(MarketRefreshJob, duplicate_id)
+        parent = await session.get(MarketRefreshJob, parents[1].id)
+        assert _refs(survivor) == {parents[0].id, parents[1].id}
+        assert _refs(duplicate) == set()
+        child = duplicate.metadata_payload["data_preparation_child"]
+        assert child["coalesced_into"] == survivor_id
+        assert child["wait_for_job_ids"] == [survivor_id]
+        dependency = parent.metadata_payload["data_preparation"]["dependencies"][0]
+        assert dependency["job_ids"] == [survivor_id]
+
+
+async def test_drain_does_not_fold_into_a_sibling_another_drain_is_claiming(
+    coalescing_sessions,
+):
+    from app.models.market_data_foundation import MarketRefreshJob
+    from app.services.data_preparation import coalesce_history_duplicate
+
+    async with coalescing_sessions() as session:
+        instrument, parents = await _seed(session)
+        survivor = await _deepest_child(session, instrument, "s", parents[0], status="queued")
+        duplicate = await _deepest_child(session, instrument, "d", parents[1], status="leased")
+        await session.commit()
+        survivor_id, duplicate_id = survivor.id, duplicate.id
+
+    async with coalescing_sessions() as claimer, coalescing_sessions() as drain:
+        await claimer.execute(
+            select(MarketRefreshJob).where(MarketRefreshJob.id == survivor_id).with_for_update()
+        )
+        duplicate = await drain.get(MarketRefreshJob, duplicate_id)
+        folded = await coalesce_history_duplicate(drain, job=duplicate, now=NOW)
+        await drain.commit()
+        await claimer.rollback()
+
+        assert folded is None
+        assert "coalesced_into" not in duplicate.metadata_payload["data_preparation_child"]
+        assert _refs(duplicate) == {parents[1].id}

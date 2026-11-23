@@ -1,0 +1,70 @@
+{
+  "acceptance_criteria": [],
+  "active_session_id": "7673069b-0fba-480b-9c98-216b5ca6c8da",
+  "branch": "fix/coalesce-history-duplicates",
+  "dirty_paths": [],
+  "docker": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-fix-coalesce-history-duplicates-97add1da",
+      "charting-stack-fix-coalesce-history-duplicates-97add1da"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "fix-coalesce-history-duplicates-97add1dae3"
+  },
+  "docker_ready": {
+    "ready": true,
+    "started_desktop": false,
+    "wait_seconds": 0
+  },
+  "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance fix/coalesce-history-duplicates: Each series spends at most one provider request per deepest-range history refresh: duplicate children wait on and copy the oldest sibling's outcome instead of fetching.. Acceptance criteria: AC1: A leased duplicate makes no provider call, defers on the oldest matching waiting sibling with its parents moved to it, then completes with the sibling's outcome; the oldest sibling, mismatched siblings and siblings another drain holds are never used.; AC2: The worker regression test fails on the previous code and passes here; the full backend unit and integration suites pass.; AC3: Exact-source feature CI and the staging exhaustive gate are green before promotion; production deployment waits for the human's approval.. Required local profile: docker_integration. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_request": {
+    "objective": "Advance fix/coalesce-history-duplicates: Each series spends at most one provider request per deepest-range history refresh: duplicate children wait on and copy the oldest sibling's outcome instead of fetching.. Acceptance criteria: AC1: A leased duplicate makes no provider call, defers on the oldest matching waiting sibling with its parents moved to it, then completes with the sibling's outcome; the oldest sibling, mismatched siblings and siblings another drain holds are never used.; AC2: The worker regression test fails on the previous code and passes here; the full backend unit and integration suites pass.; AC3: Exact-source feature CI and the staging exhaustive gate are green before promotion; production deployment waits for the human's approval.. Required local profile: docker_integration. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "planning_required",
+  "goal_state": "requested",
+  "head": "95fb9fb57b0803abd780aa9696bf4a46da5dc2f2",
+  "implementation_sha": "798497a28328ae4bb000081f5e6aea1f8d80ebcd",
+  "local_validation_profile": "pending_agent_assessment",
+  "next_action": "create the session-local goal from goal_request (runtime adapter), then record it as active",
+  "parent_branch": "staging",
+  "plan_hash": "2a3884defda36bc01e1ffb56160389c64296fc5ea458efce81d4332ae5a75eb2",
+  "planning_required": true,
+  "planning_state": "ready",
+  "previous_session_ids": [],
+  "progress": {
+    "completed": [],
+    "current_blocker": "none",
+    "current_phase": "plan",
+    "total": 0
+  },
+  "remote": "95fb9fb57b0803abd780aa9696bf4a46da5dc2f2",
+  "remote_sha": "798497a28328ae4bb000081f5e6aea1f8d80ebcd",
+  "remote_synchronized": true,
+  "retained_docker_resources": [],
+  "schema": 2,
+  "session_id": "7673069b-0fba-480b-9c98-216b5ca6c8da",
+  "validation_tier": "full_integration",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/fix-coalesce-history-duplicates/ops/workstreams/fix-coalesce-history-duplicates",
+  "workstream_files": [
+    "/home/m920q/charting-platform/.ai/worktrees/fix-coalesce-history-duplicates/ops/workstreams/fix-coalesce-history-duplicates/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-coalesce-history-duplicates/ops/workstreams/fix-coalesce-history-duplicates/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-coalesce-history-duplicates/ops/workstreams/fix-coalesce-history-duplicates/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-coalesce-history-duplicates/ops/workstreams/fix-coalesce-history-duplicates/session.json"
+  ],
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-coalesce-history-duplicates",
+  "worktree_id": "fix-coalesce-history-duplicates-97add1dae3"
+}
