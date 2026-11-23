@@ -2994,7 +2994,9 @@ async def process_refresh_jobs(
                             adjusted=adjusted,
                         )
 
-                if not preparation.get("coalesced_into"):
+                if preparation.get("range_mode") == "deepest_admitted" and not preparation.get(
+                    "coalesced_into"
+                ):
                     from app.services.data_preparation import coalesce_history_duplicate
 
                     # A duplicate deepest-range child for a series an older

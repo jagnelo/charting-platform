@@ -63,11 +63,12 @@ branch_tests_reason: Folding logic is covered offline; row locking and JSON writ
 live_test_impact: none
 migration_impact: none
 deployment_impact: Backend/worker image only; no environment, schema or deployment-file change.
-status: in_progress
-remaining_gaps: []
+status: ready_for_integration
+remaining_gaps:
+  - Production deployment needs the human's explicit approval.
 progress:
-  completed: []
+  completed: [AC1, AC2]
   total: 3
-  current_phase: implementation
+  current_phase: validation
   current_blocker: none
-  next_action: Run the full unit and integration suites (AC2).
+  next_action: Exact-source feature CI, staging integration and the exhaustive gate (AC3).

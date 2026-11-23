@@ -1167,14 +1167,14 @@ async def _open_latest_history_sibling(
 
 def _is_coalescible_deepest_history_child(job: MarketRefreshJob, child: dict) -> bool:
     return (
-        job.capability == "price_history"
-        and job.start_at is None
-        and str(job.request_key or "").startswith("prep-history:")
-        and child.get("dataset") == PreparationDataset.HISTORY.value
+        child.get("dataset") == PreparationDataset.HISTORY.value
         and child.get("range_mode") == "deepest_admitted"
         and not child.get("derived_only")
         and not child.get("chunk")
         and not child.get("coalesced_into")
+        and job.capability == "price_history"
+        and job.start_at is None
+        and str(job.request_key or "").startswith("prep-history:")
     )
 
 
