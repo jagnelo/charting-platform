@@ -24,21 +24,26 @@
     "volume_count": 0,
     "worktree_id": "fix-coalesce-history-duplicates-97add1dae3"
   },
+  "docker_ready": {
+    "ready": true,
+    "started_desktop": false,
+    "wait_seconds": 0
+  },
   "goal_budget_policy": "unbounded_unless_human_authorized",
-  "goal_objective": "Advance fix/coalesce-history-duplicates: Stop legacy duplicate deepest-range history children from each spending a provider call: at drain time fold a duplicate into the oldest open sibling for the same series and repoint its parents. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_objective": "Advance fix/coalesce-history-duplicates: Each series spends at most one provider request per deepest-range history refresh: duplicate children wait on and copy the oldest sibling's outcome instead of fetching.. Acceptance criteria: AC1: A leased duplicate makes no provider call, defers on the oldest matching waiting sibling with its parents moved to it, then completes with the sibling's outcome; the oldest sibling, mismatched siblings and siblings another drain holds are never used.; AC2: The worker regression test fails on the previous code and passes here; the full backend unit and integration suites pass.; AC3: Exact-source feature CI and the staging exhaustive gate are green before promotion; production deployment waits for the human's approval.. Required local profile: docker_integration. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
   "goal_request": {
-    "objective": "Advance fix/coalesce-history-duplicates: Stop legacy duplicate deepest-range history children from each spending a provider call: at drain time fold a duplicate into the oldest open sibling for the same series and repoint its parents. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+    "objective": "Advance fix/coalesce-history-duplicates: Each series spends at most one provider request per deepest-range history refresh: duplicate children wait on and copy the oldest sibling's outcome instead of fetching.. Acceptance criteria: AC1: A leased duplicate makes no provider call, defers on the oldest matching waiting sibling with its parents moved to it, then completes with the sibling's outcome; the oldest sibling, mismatched siblings and siblings another drain holds are never used.; AC2: The worker regression test fails on the previous code and passes here; the full backend unit and integration suites pass.; AC3: Exact-source feature CI and the staging exhaustive gate are green before promotion; production deployment waits for the human's approval.. Required local profile: docker_integration. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
   },
   "goal_request_state": "planning_required",
-  "goal_state": "planning_required",
+  "goal_state": "requested",
   "head": "95fb9fb57b0803abd780aa9696bf4a46da5dc2f2",
-  "implementation_sha": "4d5bd9544f4abf973e4d3ab5c3ec3233b01cf072",
+  "implementation_sha": "798497a28328ae4bb000081f5e6aea1f8d80ebcd",
   "local_validation_profile": "pending_agent_assessment",
-  "next_action": "run make agent-session-start",
+  "next_action": "create the session-local goal from goal_request (runtime adapter), then record it as active",
   "parent_branch": "staging",
-  "plan_hash": "bec90c9e22bdbe324580e5c604d9e2488a91f011b6d95a929f8603bfe2d0c55f",
+  "plan_hash": "2a3884defda36bc01e1ffb56160389c64296fc5ea458efce81d4332ae5a75eb2",
   "planning_required": true,
-  "planning_state": "draft",
+  "planning_state": "ready",
   "previous_session_ids": [],
   "progress": {
     "completed": [],
@@ -47,7 +52,7 @@
     "total": 0
   },
   "remote": "95fb9fb57b0803abd780aa9696bf4a46da5dc2f2",
-  "remote_sha": "95fb9fb57b0803abd780aa9696bf4a46da5dc2f2",
+  "remote_sha": "798497a28328ae4bb000081f5e6aea1f8d80ebcd",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
