@@ -5,30 +5,69 @@ parent_branch: staging
 parent_sha: 4d5bd9544f4abf973e4d3ab5c3ec3233b01cf072
 dependency_authorization: "not applicable: independent staging-based topic"
 human_intent_authorization: "Stop legacy duplicate deepest-range history children from each spending a provider call: at drain time fold a duplicate into the oldest open sibling for the same series and repoint its parents"
-planning_state: draft
-human_closure_authorization: pending
-closure_summary: pending
+planning_state: ready
+human_closure_authorization: >-
+  2026-11-13 the human delegated closure decisions to the Desktop orchestrator ("you're allowed to make
+  decisions that the rules expect the human dev to make. Proceed"); the orchestrator closes this bounded
+  queue-efficiency repair under that delegation. Production deployment still needs the human's explicit
+  per-deploy approval.
+closure_summary: >-
+  Wasted provider requests from duplicate history children. After release 4d5bd954 removed the provider-permit
+  deadlock, about a quarter of Alpaca D1 calls returned no data, most of them repeats: ESZ6 alone had 40 open
+  deepest-range children, each draining and calling Alpaca separately. Production held about 35k open duplicate
+  deepest-range children (about 40% of the 92k open refresh jobs), all forked by hourly maintenance before
+  enqueue-time sibling joining shipped in 896ad20f (2026-11-20 23:10Z); none were created after it, but nothing
+  folded the existing ones. A drain now folds a leased duplicate into the oldest waiting sibling of the same
+  series (same adjustment and feed pin; rows another drain holds are skipped): its parent refs move to the
+  survivor, its parents' dependency job_ids are repointed, the survivor keeps the wider end, the more urgent
+  priority and any coarse derivation, and the duplicate waits on the survivor and then copies its outcome
+  without a provider call. Enqueue-time joins skip folded rows. The worker regression test fails on the
+  previous code (the provider fetch runs). Closed by the orchestrator under the 2026-11-13 delegation;
+  production deployment still needs the human's explicit approval. Requires integration_capture: exact branch HEAD.
+integration_capture: exact branch HEAD
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
-local_validation_profile: pending_agent_assessment
-local_validation_reason: pending agent assessment from changed paths and runtime impact
+local_validation_profile: docker_integration
+local_validation_reason: >-
+  Backend refresh-queue control flow with PostgreSQL row locks (FOR UPDATE SKIP LOCKED, advisory enqueue
+  locks) and JSON payload writes; the unit suite and the full Docker integration suite run locally; exact-source
+  CI and the staging exhaustive gate run every suite.
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
-goal: "Stop legacy duplicate deepest-range history children from each spending a provider call: at drain time fold a duplicate into the oldest open sibling for the same series and repoint its parents"
-scope: []
-owned_paths: []
+goal: >-
+  Each series spends at most one provider request per deepest-range history refresh: duplicate children
+  wait on and copy the oldest sibling's outcome instead of fetching.
+scope:
+  - Drain-time folding of duplicate deepest-range history children into the oldest waiting sibling, with parent refs and parent dependency job_ids moved to it.
+  - Coalesced duplicates complete with the survivor's outcome once it finishes and covers their range.
+  - Enqueue-time sibling joins skip folded duplicates.
+  - No schema, API, provider routing or quota change.
+owned_paths:
+  - backend/app/services/data_preparation.py
+  - backend/app/tasks/data_tasks.py
+  - backend/tests/unit/tasks/test_history_duplicate_coalescing.py
+  - backend/tests/integration/test_data_preparation_child_coalescing_postgres.py
+  - ops/workstreams/fix-coalesce-history-duplicates/
 dependencies: []
-acceptance_criteria: []
-branch_tests: []
-branch_tests_reason: pending agent assessment
+acceptance_criteria:
+  - id: AC1
+    text: A leased duplicate makes no provider call, defers on the oldest matching waiting sibling with its parents moved to it, then completes with the sibling's outcome; the oldest sibling, mismatched siblings and siblings another drain holds are never used.
+  - id: AC2
+    text: The worker regression test fails on the previous code and passes here; the full backend unit and integration suites pass.
+  - id: AC3
+    text: Exact-source feature CI and the staging exhaustive gate are green before promotion; production deployment waits for the human's approval.
+branch_tests:
+  - uv run --project backend pytest backend/tests/unit/tasks/test_history_duplicate_coalescing.py -q --no-cov
+  - make test-int
+branch_tests_reason: Folding logic is covered offline; row locking and JSON writes need PostgreSQL.
 live_test_impact: none
 migration_impact: none
-deployment_impact: none
-status: authorized
+deployment_impact: Backend/worker image only; no environment, schema or deployment-file change.
+status: in_progress
 remaining_gaps: []
 progress:
   completed: []
-  total: 0
-  current_phase: plan
+  total: 3
+  current_phase: implementation
   current_blocker: none
-  next_action: complete the branch-owned plan before creating a goal
+  next_action: Run the full unit and integration suites (AC2).

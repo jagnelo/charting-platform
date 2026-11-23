@@ -1,20 +1,65 @@
 {
-  "schema": 2,
+  "acceptance_criteria": [],
+  "active_session_id": "7673069b-0fba-480b-9c98-216b5ca6c8da",
   "branch": "fix/coalesce-history-duplicates",
-  "parent_branch": "staging",
-  "implementation_sha": "4d5bd9544f4abf973e4d3ab5c3ec3233b01cf072",
-  "remote_sha": null,
-  "active_session_id": null,
-  "previous_session_ids": [],
-  "goal_state": "not_started",
+  "dirty_paths": [],
+  "docker": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-fix-coalesce-history-duplicates-97add1da",
+      "charting-stack-fix-coalesce-history-duplicates-97add1da"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "fix-coalesce-history-duplicates-97add1dae3"
+  },
   "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance fix/coalesce-history-duplicates: Stop legacy duplicate deepest-range history children from each spending a provider call: at drain time fold a duplicate into the oldest open sibling for the same series and repoint its parents. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_request": {
+    "objective": "Advance fix/coalesce-history-duplicates: Stop legacy duplicate deepest-range history children from each spending a provider call: at drain time fold a duplicate into the oldest open sibling for the same series and repoint its parents. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "planning_required",
+  "goal_state": "planning_required",
+  "head": "95fb9fb57b0803abd780aa9696bf4a46da5dc2f2",
+  "implementation_sha": "4d5bd9544f4abf973e4d3ab5c3ec3233b01cf072",
+  "local_validation_profile": "pending_agent_assessment",
+  "next_action": "run make agent-session-start",
+  "parent_branch": "staging",
+  "plan_hash": "bec90c9e22bdbe324580e5c604d9e2488a91f011b6d95a929f8603bfe2d0c55f",
+  "planning_required": true,
   "planning_state": "draft",
+  "previous_session_ids": [],
   "progress": {
     "completed": [],
-    "total": 0,
+    "current_blocker": "none",
     "current_phase": "plan",
-    "current_blocker": "none"
+    "total": 0
   },
-  "next_action": "run make agent-session-start",
-  "retained_docker_resources": []
+  "remote": "95fb9fb57b0803abd780aa9696bf4a46da5dc2f2",
+  "remote_sha": "95fb9fb57b0803abd780aa9696bf4a46da5dc2f2",
+  "remote_synchronized": true,
+  "retained_docker_resources": [],
+  "schema": 2,
+  "session_id": "7673069b-0fba-480b-9c98-216b5ca6c8da",
+  "validation_tier": "full_integration",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/fix-coalesce-history-duplicates/ops/workstreams/fix-coalesce-history-duplicates",
+  "workstream_files": [
+    "/home/m920q/charting-platform/.ai/worktrees/fix-coalesce-history-duplicates/ops/workstreams/fix-coalesce-history-duplicates/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-coalesce-history-duplicates/ops/workstreams/fix-coalesce-history-duplicates/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-coalesce-history-duplicates/ops/workstreams/fix-coalesce-history-duplicates/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-coalesce-history-duplicates/ops/workstreams/fix-coalesce-history-duplicates/session.json"
+  ],
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-coalesce-history-duplicates",
+  "worktree_id": "fix-coalesce-history-duplicates-97add1dae3"
 }

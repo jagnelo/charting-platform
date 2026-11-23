@@ -69,6 +69,8 @@ _PENDING_PREPARATION_JOB_STATUSES = frozenset({"queued", "leased", "retry", "def
 # holds a copy of the payload and may write it back after this request merges
 # new parent refs or a wider range into it.
 _COALESCIBLE_CHILD_STATUSES = ("queued", "deferred", "retry")
+# Older open siblings inspected when folding a duplicate history child.
+_COALESCE_CANDIDATE_LIMIT = 20
 _SCREENER_EXPANSION_CAPABILITY = "data_preparation_screener_expansion"
 _SCREENER_EXPANSION_BATCH_SIZE = 50
 
@@ -1155,9 +1157,179 @@ async def _open_latest_history_sibling(
             and not child.get("derived_only")
             # Older-chunk continuations carry their own fixed window.
             and not child.get("chunk")
+            # A duplicate already folded into an older sibling only waits to
+            # copy that sibling's outcome; join the sibling itself instead.
+            and not child.get("coalesced_into")
         ):
             return job
     return None
+
+
+def _is_coalescible_deepest_history_child(job: MarketRefreshJob, child: dict) -> bool:
+    return (
+        job.capability == "price_history"
+        and job.start_at is None
+        and str(job.request_key or "").startswith("prep-history:")
+        and child.get("dataset") == PreparationDataset.HISTORY.value
+        and child.get("range_mode") == "deepest_admitted"
+        and not child.get("derived_only")
+        and not child.get("chunk")
+        and not child.get("coalesced_into")
+    )
+
+
+async def coalesce_history_duplicate(
+    db: AsyncSession, *, job: MarketRefreshJob, now: datetime
+) -> MarketRefreshJob | None:
+    """Fold a leased deepest-range history child into an older open sibling.
+
+    Enqueue-time joining (``_open_latest_history_sibling``) stops new forks,
+    but children forked before it existed, or by a race it skipped, still each
+    spend a provider request on the same series. A duplicate found here hands
+    its parents to the oldest waiting sibling, then waits on that sibling and
+    copies its outcome instead of calling a provider. The survivor is always
+    an older row, so waits cannot form a cycle.
+
+    Returns the survivor, or ``None`` when ``job`` stays independent.
+    """
+
+    payload = deepcopy(job.metadata_payload or {})
+    child = deepcopy(payload.get("data_preparation_child") or {})
+    if job.instrument_id is None or not _is_coalescible_deepest_history_child(job, child):
+        return None
+    candidates = (
+        (
+            await db.execute(
+                select(MarketRefreshJob)
+                .where(
+                    MarketRefreshJob.capability == "price_history",
+                    MarketRefreshJob.instrument_id == job.instrument_id,
+                    MarketRefreshJob.timeframe == job.timeframe,
+                    MarketRefreshJob.start_at.is_(None),
+                    MarketRefreshJob.status.in_(_COALESCIBLE_CHILD_STATUSES),
+                    MarketRefreshJob.request_key.like("prep-history:%"),
+                    MarketRefreshJob.id < job.id,
+                )
+                .order_by(MarketRefreshJob.id)
+                .limit(_COALESCE_CANDIDATE_LIMIT)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    adjusted = bool(child.get("adjusted"))
+    survivor_id: int | None = None
+    for candidate in candidates:
+        candidate_child = (candidate.metadata_payload or {}).get("data_preparation_child") or {}
+        if (
+            _is_coalescible_deepest_history_child(candidate, candidate_child)
+            and bool(candidate_child.get("adjusted")) is adjusted
+            and candidate_child.get("source_provider") == child.get("source_provider")
+        ):
+            survivor_id = candidate.id
+            break
+    if survivor_id is None:
+        return None
+
+    refs = _dedupe_parent_refs(list(child.get("parent_refs") or []))
+    parent_ids = sorted(
+        {int(ref["parent_job_id"]) for ref in refs if ref.get("parent_job_id") is not None}
+    )
+    # Same order as enqueue-time joins: parent graph first, then the child row.
+    parents = [
+        parent
+        for parent in [await _lock_parent_for_update(db, parent_id) for parent_id in parent_ids]
+        if parent is not None
+    ]
+    survivor = (
+        await db.execute(
+            select(MarketRefreshJob)
+            .where(
+                MarketRefreshJob.id == survivor_id,
+                MarketRefreshJob.status.in_(_COALESCIBLE_CHILD_STATUSES),
+            )
+            .with_for_update(skip_locked=True)
+            .execution_options(populate_existing=True)
+        )
+    ).scalar_one_or_none()
+    if survivor is None:
+        # Claimed or finished meanwhile; the next drain of this job re-checks.
+        return None
+    await _acquire_enqueue_lock(db, survivor.request_key)
+
+    survivor_payload = deepcopy(survivor.metadata_payload or {})
+    survivor_child = deepcopy(survivor_payload.get("data_preparation_child") or {})
+    end_at = _later_history_end(survivor.end_at, job.end_at)
+    survivor.end_at = end_at
+    survivor_child["range_end"] = end_at.isoformat() if end_at else None
+    survivor_child["analysis_required_start"] = _earlier_iso(
+        survivor_child.get("analysis_required_start"), child.get("analysis_required_start")
+    )
+    survivor_child["derive_coarse_timeframes"] = bool(
+        survivor_child.get("derive_coarse_timeframes")
+    ) or bool(child.get("derive_coarse_timeframes"))
+    survivor_payload["data_preparation_child"] = survivor_child
+    survivor.metadata_payload = survivor_payload
+    # Lower values drain first; keep the more urgent of the two requests.
+    survivor.priority = min(int(survivor.priority), int(job.priority))
+    await _merge_parent_refs(db, survivor, refs)
+
+    for parent in parents:
+        data = deepcopy((parent.metadata_payload or {}).get("data_preparation") or {})
+        dependencies = list(data.get("dependencies") or [])
+        changed = False
+        for dependency in dependencies:
+            job_ids = [int(value) for value in dependency.get("job_ids") or []]
+            if job.id not in job_ids:
+                continue
+            dependency["job_ids"] = list(
+                dict.fromkeys(survivor.id if value == job.id else value for value in job_ids)
+            )
+            dependency["updated_at"] = now.isoformat()
+            changed = True
+        if changed:
+            data["dependencies"] = dependencies
+            data["version"] = int(data.get("version") or 1) + 1
+            parent.metadata_payload = {
+                **deepcopy(parent.metadata_payload or {}),
+                "data_preparation": data,
+            }
+
+    child["coalesced_into"] = survivor.id
+    child["parent_refs"] = []
+    child["wait_for_job_ids"] = list(
+        dict.fromkeys([*(int(value) for value in child.get("wait_for_job_ids") or []), survivor.id])
+    )
+    payload["data_preparation_child"] = child
+    job.metadata_payload = payload
+    await db.flush()
+    return survivor
+
+
+def coalesced_history_summary(
+    job: MarketRefreshJob, survivor: MarketRefreshJob | None
+) -> dict | None:
+    """The outcome a coalesced duplicate reports once its survivor finished.
+
+    ``None`` means the survivor is missing, unfinished or narrower than this
+    job, and the job must fetch on its own.
+    """
+
+    child = (job.metadata_payload or {}).get("data_preparation_child") or {}
+    survivor_id = child.get("coalesced_into")
+    if survivor_id is None or survivor is None or survivor.id != int(survivor_id):
+        return None
+    if survivor.status != "completed":
+        return None
+    if survivor.end_at is not None and (
+        job.end_at is None or _as_utc(survivor.end_at) < _as_utc(job.end_at)
+    ):
+        return None
+    summary = {
+        key: value for key, value in (survivor.result_summary or {}).items() if key != "outcome"
+    }
+    summary["coalesced_into"] = survivor.id
+    return summary
 
 
 def _later_history_end(current: datetime | None, requested: datetime | None) -> datetime | None:

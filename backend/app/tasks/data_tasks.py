@@ -2994,6 +2994,17 @@ async def process_refresh_jobs(
                             adjusted=adjusted,
                         )
 
+                if not preparation.get("coalesced_into"):
+                    from app.services.data_preparation import coalesce_history_duplicate
+
+                    # A duplicate deepest-range child for a series an older
+                    # child already covers waits on that sibling (added to
+                    # wait_for_job_ids below) instead of spending a request.
+                    if await coalesce_history_duplicate(db, job=job, now=datetime.now(UTC)):
+                        preparation = (job.metadata_payload or {}).get(
+                            "data_preparation_child"
+                        ) or {}
+
                 wait_for_ids = [int(value) for value in preparation.get("wait_for_job_ids", [])]
                 if wait_for_ids:
                     prerequisites = list(
@@ -3016,6 +3027,25 @@ async def process_refresh_jobs(
                                 now=datetime.now(UTC),
                             )
                         )
+
+                if preparation.get("coalesced_into"):
+                    from app.services.data_preparation import coalesced_history_summary
+
+                    survivor = (
+                        await db.execute(
+                            select(MarketRefreshJob)
+                            .where(MarketRefreshJob.id == int(preparation["coalesced_into"]))
+                            .execution_options(populate_existing=True)
+                        )
+                    ).scalar_one_or_none()
+                    coalesced_summary = coalesced_history_summary(job, survivor)
+                    if coalesced_summary is not None:
+                        if preparation.get("derive_coarse_timeframes"):
+                            await refresh_cached_coarse_from_daily()
+                        await complete_refresh_job(db, job, result_summary=coalesced_summary)
+                        completed += 1
+                        await db.commit()
+                        continue
 
                 if not preparation.get("derived_only") and is_placeholder_symbol(instrument.symbol):
                     # Identity resolution (a prerequisite above) did not turn
