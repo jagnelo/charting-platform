@@ -5,30 +5,64 @@ parent_branch: staging
 parent_sha: 6d70107def8e2797a46db54b8ea3ad02e635d8a1
 dependency_authorization: "not applicable: independent staging-based topic"
 human_intent_authorization: "Fix the production refresh-queue stall ('Yes, fix it here'): since 2026-11-22 02:00Z every drain blocks forever on the in-process provider semaphore in execute_provider_call because early-exit paths await a settle call before semaphore.release(); a drain cancelled by the arq job timeout during that await leaks the permit, and Alpaca's default concurrency of 1 then blocks all its calls. Release the permit on every path, including cancellation."
-planning_state: draft
-human_closure_authorization: pending
-closure_summary: pending
+planning_state: ready
+human_closure_authorization: >-
+  2026-11-13 the human delegated closure decisions to the Desktop orchestrator ("you're allowed to make
+  decisions that the rules expect the human dev to make. Proceed"); the orchestrator closes this bounded
+  production repair under that delegation. Production deployment still needs the human's explicit
+  per-deploy approval.
+closure_summary: >-
+  Production refresh-queue stall. From 2026-11-22 02:00Z completions fell from ~2k/h to ~50/h for 34 hours:
+  drains timed out at 600 s blocked in execute_provider_call on `await semaphore.acquire()`. The provider
+  permit (one for unknown-concurrency providers such as Alpaca) was held from before quota admission to
+  after result bookkeeping, so a holder blocked on an instrument_provider_capability_status row lock owned
+  by another drain's open transaction while that drain waited for the permit (deadlock confirmed live via
+  pg_blocking_pids, re-formed 4 minutes after a worker restart); cancellation during early-exit settles also
+  leaked the permit. The permit now covers only the outbound provider request (`async with` around the
+  executor call). Regression tests reproduce the deadlock shape and the cancellation leak and fail on the
+  old code. Closed
+  by the orchestrator under the 2026-11-13 delegation; production deployment still needs the human's explicit
+  approval. Requires integration_capture: exact branch HEAD.
+integration_capture: exact branch HEAD
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
-local_validation_profile: pending_agent_assessment
-local_validation_reason: pending agent assessment from changed paths and runtime impact
+local_validation_profile: docker_integration
+local_validation_reason: >-
+  Backend provider runtime control flow only (permit release on early-exit paths); no schema, API, frontend
+  or deployment change. The full unit suite runs locally; exact-source CI and the staging exhaustive gate
+  run every suite.
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
-goal: "Fix the production refresh-queue stall ('Yes, fix it here'): since 2026-11-22 02:00Z every drain blocks forever on the in-process provider semaphore in execute_provider_call because early-exit paths await a settle call before semaphore.release(); a drain cancelled by the arq job timeout during that await leaks the permit, and Alpaca's default concurrency of 1 then blocks all its calls. Release the permit on every path, including cancellation."
-scope: []
-owned_paths: []
+goal: >-
+  Hold the provider's local concurrency permit only around the outbound request, so no permit holder waits
+  on the database (deadlock) and no cancellation can leak a permit.
+scope:
+  - The provider permit is acquired with `async with` around the provider invocation only; admission, settles and bookkeeping run without it.
+  - No change to admission, quota accounting or concurrency limits.
+owned_paths:
+  - backend/app/services/provider_runtime.py
+  - backend/tests/unit/services/test_provider_runtime_semaphore_release.py
+  - ops/workstreams/fix-provider-semaphore-leak/
 dependencies: []
-acceptance_criteria: []
-branch_tests: []
-branch_tests_reason: pending agent assessment
+acceptance_criteria:
+  - id: AC1
+    text: With one permit, a call whose bookkeeping waits for a second call's request completes (no deadlock); the permit is held during the request and not during admission or bookkeeping; a cancellation during an early-exit settle leaves the permit free.
+  - id: AC2
+    text: The regression test fails on the previous code and passes on this branch; the full backend unit suite passes.
+  - id: AC3
+    text: Exact-source feature CI and the staging exhaustive gate are green before promotion; production deployment waits for the human's approval.
+branch_tests:
+  - uv run --project backend pytest backend/tests/unit/services/test_provider_runtime_semaphore_release.py backend/tests/unit/services/test_provider_runtime.py -q --no-cov
+branch_tests_reason: The permit-release paths are covered offline with the runtime's own fixtures.
 live_test_impact: none
 migration_impact: none
-deployment_impact: none
-status: authorized
-remaining_gaps: []
+deployment_impact: Backend/worker image only; no environment, schema or deployment-file change.
+status: ready_for_integration
+remaining_gaps:
+  - Production deployment needs the human's explicit approval.
 progress:
-  completed: []
-  total: 0
-  current_phase: plan
+  completed: [AC1, AC2]
+  total: 3
+  current_phase: validation
   current_blocker: none
-  next_action: complete the branch-owned plan before creating a goal
+  next_action: Exact-source feature CI, staging integration and the exhaustive gate (AC3).

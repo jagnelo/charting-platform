@@ -4603,25 +4603,18 @@ async def execute_provider_call(
             raise ProviderQuotaUnknownError(
                 f"No valid integral operation cost for " f"{resolved.data_source.name}/{operation}"
             )
-        semaphore = _get_semaphore(resolved.policy, resolved.provider_name)
-        await semaphore.acquire()
-        try:
-            admission_details: dict[str, Any] = {}
-            reservations = await _reserve_provider_contract_for_call(
-                db,
-                resolved=resolved,
-                capability=capability.value,
-                units=operation_units,
-                dimension_units=dimension_units,
-                usage_identity=resolved_usage_identity,
-                now=datetime.now(UTC),
-                denial_details=admission_details,
-            )
-        except BaseException:
-            semaphore.release()
-            raise
+        admission_details: dict[str, Any] = {}
+        reservations = await _reserve_provider_contract_for_call(
+            db,
+            resolved=resolved,
+            capability=capability.value,
+            units=operation_units,
+            dimension_units=dimension_units,
+            usage_identity=resolved_usage_identity,
+            now=datetime.now(UTC),
+            denial_details=admission_details,
+        )
         if reservations is None:
-            semaphore.release()
             admission_denied[resolved.provider_name] = admission_details.get("retry_at")
             continue
         from app.services.provider_quota_coordinator import reserve_provider_quota_async
@@ -4648,7 +4641,6 @@ async def execute_provider_call(
                 consumed_dimension_units={name: 0 for name in dimension_units},
                 release_only_dimensions=release_only_dimensions,
             )
-            semaphore.release()
             raise
         if coordinator_reservation is None:
             await _settle_provider_contract_for_call(
@@ -4660,7 +4652,6 @@ async def execute_provider_call(
                 consumed_dimension_units={name: 0 for name in dimension_units},
                 release_only_dimensions=release_only_dimensions,
             )
-            semaphore.release()
             admission_denied[resolved.provider_name] = coordinator_denial.get("retry_at")
             continue
         if (
@@ -4685,7 +4676,6 @@ async def execute_provider_call(
                     reserved_units=dimension_units,
                     not_sent=True,
                 )
-                semaphore.release()
                 # This is the application's in-process burst envelope, not
                 # evidence about the provider's native reset. The bucket knows
                 # exactly when its next token becomes available; preserve that
@@ -4734,7 +4724,6 @@ async def execute_provider_call(
                 reserved_units=dimension_units,
                 not_sent=True,
             )
-            semaphore.release()
             raise
         started = time.perf_counter()
         try:
@@ -4758,7 +4747,6 @@ async def execute_provider_call(
                 reserved_units=dimension_units,
                 not_sent=True,
             )
-            semaphore.release()
             raise
         try:
             # ``run_in_executor`` does not propagate ContextVar state by
@@ -4767,11 +4755,19 @@ async def execute_provider_call(
             admission_token = _ACTIVE_PROVIDER_QUOTA_ADMISSION.set(True)
             try:
                 invocation_context = contextvars.copy_context()
-                result = await loop.run_in_executor(
-                    None,
-                    invocation_context.run,
-                    lambda: invoke(resolved.provider, provider_symbol),
-                )
+                # The provider's local concurrency permit covers only the
+                # outbound request. Holding it across admission or result
+                # bookkeeping let a permit holder wait on a database row
+                # lock owned by another drain that was itself waiting for
+                # the permit -- a deadlock Postgres cannot see -- and let a
+                # cancellation between acquire and release leak the permit.
+                semaphore = _get_semaphore(resolved.policy, resolved.provider_name)
+                async with semaphore:
+                    result = await loop.run_in_executor(
+                        None,
+                        invocation_context.run,
+                        lambda: invoke(resolved.provider, provider_symbol),
+                    )
             finally:
                 _ACTIVE_PROVIDER_QUOTA_ADMISSION.reset(admission_token)
             if inspect.isawaitable(result):
@@ -4989,7 +4985,6 @@ async def execute_provider_call(
             continue
         finally:
             deactivate_provider_telemetry(measurement_token)
-            semaphore.release()
 
     if not chain and instrument_id is not None:
         raise ProviderNoDataError(

@@ -1,20 +1,65 @@
 {
-  "schema": 2,
+  "acceptance_criteria": [],
+  "active_session_id": "ad5a51b5-4f53-4e20-b263-c5e8ccfec096",
   "branch": "fix/provider-semaphore-leak",
-  "parent_branch": "staging",
-  "implementation_sha": "6d70107def8e2797a46db54b8ea3ad02e635d8a1",
-  "remote_sha": null,
-  "active_session_id": null,
-  "previous_session_ids": [],
-  "goal_state": "not_started",
+  "dirty_paths": [],
+  "docker": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-fix-provider-semaphore-leak-d56ff508",
+      "charting-stack-fix-provider-semaphore-leak-d56ff508"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "fix-provider-semaphore-leak-d56ff50886"
+  },
   "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance fix/provider-semaphore-leak: Fix the production refresh-queue stall ('Yes, fix it here'): since 2026-11-22 02:00Z every drain blocks forever on the in-process provider semaphore in execute_provider_call because early-exit paths await a settle call before semaphore.release(); a drain cancelled by the arq job timeout during that await leaks the permit, and Alpaca's default concurrency of 1 then blocks all its calls. Release the permit on every path, including cancellation.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_request": {
+    "objective": "Advance fix/provider-semaphore-leak: Fix the production refresh-queue stall ('Yes, fix it here'): since 2026-11-22 02:00Z every drain blocks forever on the in-process provider semaphore in execute_provider_call because early-exit paths await a settle call before semaphore.release(); a drain cancelled by the arq job timeout during that await leaks the permit, and Alpaca's default concurrency of 1 then blocks all its calls. Release the permit on every path, including cancellation.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "planning_required",
+  "goal_state": "planning_required",
+  "head": "9a9bdbd91a31554391079df26910cfeaba57583d",
+  "implementation_sha": "6d70107def8e2797a46db54b8ea3ad02e635d8a1",
+  "local_validation_profile": "pending_agent_assessment",
+  "next_action": "run make agent-session-start",
+  "parent_branch": "staging",
+  "plan_hash": "df78e77491fe1ba09db06da1a0947c63b221e63db85197c282fb4bfccfc93301",
+  "planning_required": true,
   "planning_state": "draft",
+  "previous_session_ids": [],
   "progress": {
     "completed": [],
-    "total": 0,
+    "current_blocker": "none",
     "current_phase": "plan",
-    "current_blocker": "none"
+    "total": 0
   },
-  "next_action": "run make agent-session-start",
-  "retained_docker_resources": []
+  "remote": "9a9bdbd91a31554391079df26910cfeaba57583d",
+  "remote_sha": "9a9bdbd91a31554391079df26910cfeaba57583d",
+  "remote_synchronized": true,
+  "retained_docker_resources": [],
+  "schema": 2,
+  "session_id": "ad5a51b5-4f53-4e20-b263-c5e8ccfec096",
+  "validation_tier": "full_integration",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/fix-provider-semaphore-leak/ops/workstreams/fix-provider-semaphore-leak",
+  "workstream_files": [
+    "/home/m920q/charting-platform/.ai/worktrees/fix-provider-semaphore-leak/ops/workstreams/fix-provider-semaphore-leak/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-provider-semaphore-leak/ops/workstreams/fix-provider-semaphore-leak/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-provider-semaphore-leak/ops/workstreams/fix-provider-semaphore-leak/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-provider-semaphore-leak/ops/workstreams/fix-provider-semaphore-leak/session.json"
+  ],
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-provider-semaphore-leak",
+  "worktree_id": "fix-provider-semaphore-leak-d56ff50886"
 }
