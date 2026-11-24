@@ -45,3 +45,25 @@ Feature CI on 79c6106e was green. The staging Exhaustive Integration Gate failed
 `flows.spec.ts:7584` F14-context-keyboard: the drawing save POST did not arrive within the 60 s
 test timeout (240 passed, 107 skipped). That flow is frontend drawing persistence and does not touch
 refresh-job draining or data preparation. Re-gated with this note; the test is not changed.
+
+## Follow-up after the 53df2f17 deploy: fold lock order
+
+In production, one fold hit `DeadlockDetectedError` on two advisory locks within 3 minutes of the
+rollout. The cause: `coalesce_history_duplicate` took the parent locks first and then the survivor's
+request-key lock. Enqueue-time joins (and every other graph writer) do the reverse: they hold the child
+key while they lock the parent.
+
+The fold now takes child keys first, then the parents:
+1. the duplicate's key;
+2. then the survivor's key (a survivor always has a lower id, so concurrent folds cannot cycle);
+3. then `FOR UPDATE SKIP LOCKED` on the survivor;
+4. then the parents.
+
+It also re-reads the duplicate's payload under its key lock, so parents that an enqueue join attached
+after the claim are moved too, instead of being overwritten.
+
+Regression tests, all of which fail on 53df2f17:
+- unit: lock order;
+- unit: late-attached parent;
+- Postgres: an enqueue that holds the survivor key and then locks the shared parent hits
+  DeadlockDetectedError on the old code.

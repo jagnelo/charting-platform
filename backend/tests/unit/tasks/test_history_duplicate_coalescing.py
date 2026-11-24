@@ -13,6 +13,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 from sqlalchemy import select
+from sqlalchemy.orm.attributes import set_committed_value
 
 from app.models.market_data_foundation import MarketRefreshJob
 from app.models.ohlcv import Timeframe
@@ -333,3 +334,87 @@ async def test_later_requests_join_the_survivor_not_the_folded_duplicate(db, ins
     )
 
     assert joined.id == survivor.id
+
+
+@pytest.mark.asyncio
+async def test_folding_locks_child_keys_before_parents_newest_child_first(
+    db, instrument, monkeypatch
+):
+    """Enqueue joins hold a child key while locking a parent; folding must not invert that."""
+
+    from app.services import data_preparation
+
+    survivor = _history_child(db, instrument, "survivor", status="queued")
+    duplicate = _history_child(db, instrument, "duplicate", status="leased")
+    parent = _parent(db, "duplicate", [duplicate.id])
+    duplicate.metadata_payload = {
+        "data_preparation_child": {
+            **_child(duplicate),
+            "parent_refs": [{"parent_job_id": parent.id, "dependency_id": "b"}],
+        }
+    }
+    db.flush()
+    acquired: list[str] = []
+    original = data_preparation._acquire_enqueue_lock
+
+    async def record(session, key):
+        acquired.append(key)
+        await original(session, key)
+
+    monkeypatch.setattr(data_preparation, "_acquire_enqueue_lock", record)
+
+    folded = await data_preparation.coalesce_history_duplicate(
+        AsyncSessionAdapter(db), job=duplicate, now=NOW
+    )
+
+    assert folded is not None and folded.id == survivor.id
+    assert acquired == [
+        duplicate.request_key,
+        survivor.request_key,
+        f"data-preparation-parent:{parent.id}",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_folding_moves_parents_an_enqueue_attached_after_the_claim(db, instrument):
+    from app.services.data_preparation import coalesce_history_duplicate
+
+    survivor = _history_child(db, instrument, "survivor", status="queued")
+    duplicate = _history_child(db, instrument, "duplicate", status="leased")
+    early = _parent(db, "early", [duplicate.id])
+    late = _parent(db, "late", [duplicate.id])
+    db.execute(
+        MarketRefreshJob.__table__.update()
+        .where(MarketRefreshJob.id == duplicate.id)
+        .values(
+            metadata_payload={
+                "data_preparation_child": {
+                    **_child(duplicate),
+                    "parent_refs": [
+                        {"parent_job_id": early.id, "dependency_id": "a"},
+                        {"parent_job_id": late.id, "dependency_id": "b"},
+                    ],
+                }
+            }
+        )
+    )
+    # The drain's in-memory copy predates the late parent's join.
+    set_committed_value(
+        duplicate,
+        "metadata_payload",
+        {
+            "data_preparation_child": {
+                **_child(duplicate),
+                "parent_refs": [{"parent_job_id": early.id, "dependency_id": "a"}],
+            }
+        },
+    )
+
+    await coalesce_history_duplicate(AsyncSessionAdapter(db), job=duplicate, now=NOW)
+
+    survivor, late = _reload(db, survivor, late)
+    assert {int(ref["parent_job_id"]) for ref in _child(survivor)["parent_refs"]} == {
+        early.id,
+        late.id,
+    }
+    assert late.metadata_payload["data_preparation"]["dependencies"][0]["job_ids"] == [survivor.id]
