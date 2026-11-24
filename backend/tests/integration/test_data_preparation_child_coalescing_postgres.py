@@ -278,3 +278,42 @@ async def test_drain_does_not_fold_into_a_sibling_another_drain_is_claiming(
         assert folded is None
         assert "coalesced_into" not in duplicate.metadata_payload["data_preparation_child"]
         assert _refs(duplicate) == {parents[1].id}
+
+
+async def test_drain_fold_and_enqueue_join_share_a_parent_without_deadlock(
+    coalescing_sessions,
+):
+    """An enqueue join holds the survivor's key, then locks a parent the fold also needs."""
+
+    import asyncio
+
+    from app.models.market_data_foundation import MarketRefreshJob
+    from app.services.data_preparation import (
+        _acquire_enqueue_lock,
+        _lock_parent_for_update,
+        coalesce_history_duplicate,
+    )
+
+    async with coalescing_sessions() as session:
+        instrument, parents = await _seed(session)
+        survivor = await _deepest_child(session, instrument, "s", parents[0], status="queued")
+        duplicate = await _deepest_child(session, instrument, "d", parents[1], status="leased")
+        await session.commit()
+        survivor_id, survivor_key, duplicate_id = survivor.id, survivor.request_key, duplicate.id
+
+    async with coalescing_sessions() as enqueuer, coalescing_sessions() as drain:
+        await enqueuer.execute(text("SET LOCAL lock_timeout = '10s'"))
+        await drain.execute(text("SET LOCAL lock_timeout = '10s'"))
+        await _acquire_enqueue_lock(enqueuer, survivor_key)
+        duplicate = await drain.get(MarketRefreshJob, duplicate_id)
+        fold = asyncio.create_task(coalesce_history_duplicate(drain, job=duplicate, now=NOW))
+        await asyncio.sleep(0.5)  # let the fold reach its first blocked lock
+
+        # Postgres aborts one side with DeadlockDetectedError if the fold holds
+        # the parent while it waits for the survivor's key.
+        await _lock_parent_for_update(enqueuer, parents[1].id)
+        await enqueuer.commit()
+        folded = await asyncio.wait_for(fold, timeout=15)
+        await drain.commit()
+
+        assert folded is not None and folded.id == survivor_id

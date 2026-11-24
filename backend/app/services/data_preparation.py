@@ -1219,6 +1219,7 @@ async def coalesce_history_duplicate(
     )
     adjusted = bool(child.get("adjusted"))
     survivor_id: int | None = None
+    survivor_key: str | None = None
     for candidate in candidates:
         candidate_child = (candidate.metadata_payload or {}).get("data_preparation_child") or {}
         if (
@@ -1227,25 +1228,24 @@ async def coalesce_history_duplicate(
             and candidate_child.get("source_provider") == child.get("source_provider")
         ):
             survivor_id = candidate.id
+            survivor_key = candidate.request_key
             break
-    if survivor_id is None:
+    if survivor_id is None or survivor_key is None:
         return None
 
-    refs = _dedupe_parent_refs(list(child.get("parent_refs") or []))
-    parent_ids = sorted(
-        {int(ref["parent_job_id"]) for ref in refs if ref.get("parent_job_id") is not None}
-    )
-    # Same order as enqueue-time joins: parent graph first, then the child row.
-    parents = [
-        parent
-        for parent in [await _lock_parent_for_update(db, parent_id) for parent_id in parent_ids]
-        if parent is not None
-    ]
+    # Every graph writer takes child request-key locks before parent locks
+    # (enqueue-time joins hold the child key while they lock the parent).
+    # Child keys go newest id first: a survivor always has a lower id than
+    # its duplicate, so concurrent folds can never wait on each other in a
+    # cycle. Taking the parent locks first deadlocked against enqueue joins.
+    await _acquire_enqueue_lock(db, str(job.request_key))
+    await _acquire_enqueue_lock(db, survivor_key)
     survivor = (
         await db.execute(
             select(MarketRefreshJob)
             .where(
                 MarketRefreshJob.id == survivor_id,
+                MarketRefreshJob.request_key == survivor_key,
                 MarketRefreshJob.status.in_(_COALESCIBLE_CHILD_STATUSES),
             )
             .with_for_update(skip_locked=True)
@@ -1255,7 +1255,23 @@ async def coalesce_history_duplicate(
     if survivor is None:
         # Claimed or finished meanwhile; the next drain of this job re-checks.
         return None
-    await _acquire_enqueue_lock(db, survivor.request_key)
+    # An enqueue join may have attached parents to this job before its key
+    # lock was taken; fold the refs as they are now.
+    await db.refresh(job, attribute_names=["metadata_payload"])
+    payload = deepcopy(job.metadata_payload or {})
+    child = deepcopy(payload.get("data_preparation_child") or {})
+    if not _is_coalescible_deepest_history_child(job, child):
+        return None
+
+    refs = _dedupe_parent_refs(list(child.get("parent_refs") or []))
+    parent_ids = sorted(
+        {int(ref["parent_job_id"]) for ref in refs if ref.get("parent_job_id") is not None}
+    )
+    parents = [
+        parent
+        for parent in [await _lock_parent_for_update(db, parent_id) for parent_id in parent_ids]
+        if parent is not None
+    ]
 
     survivor_payload = deepcopy(survivor.metadata_payload or {})
     survivor_child = deepcopy(survivor_payload.get("data_preparation_child") or {})
