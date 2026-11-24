@@ -10,6 +10,7 @@ of the system (chart, alert, indicator, screener) reads them transparently.
 import asyncio
 import hashlib
 import logging
+from bisect import bisect_left
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
@@ -345,6 +346,30 @@ def _is_positive_repair_slice(start: datetime, end: datetime) -> bool:
     later session-specific repair.
     """
     return _as_utc(end) > _as_utc(start)
+
+
+# One provider request may cover several neighbouring gaps. Thin feeds (the
+# free Alpaca IEX feed above all) skip every untraded session of an illiquid
+# listing, and asking for each such gap separately cost one rate-limited request
+# apiece (one ETF cost 68 requests and three minutes of a worker slot). The span
+# stays below the smallest single-request page of any OHLCV adapter, so a gap
+# the provider leaves empty inside the span is a real answer, not a truncation.
+_REPAIR_GROUP_MAX_BARS = 300
+
+
+def _repair_request_groups(
+    gaps: list[tuple[datetime, datetime, tuple]], timeframe: Timeframe
+) -> list[list[tuple[datetime, datetime, tuple]]]:
+    """Group ordered repair gaps into provider requests of bounded span."""
+
+    max_span = timedelta(seconds=TIMEFRAME_SECONDS[timeframe] * _REPAIR_GROUP_MAX_BARS)
+    groups: list[list[tuple[datetime, datetime, tuple]]] = []
+    for gap in sorted(gaps, key=lambda item: _as_utc(item[0])):
+        if groups and _as_utc(gap[1]) - _as_utc(groups[-1][0][0]) <= max_span:
+            groups[-1].append(gap)
+        else:
+            groups.append([gap])
+    return groups
 
 
 def _is_recoverable_provider_gap(exc: Exception) -> bool:
@@ -1166,6 +1191,7 @@ async def _fetch_ohlcv_impl(
         if not repair_slices:
             repair_slices = [(start, end)]
         new_bars: list[OHLCVBar] = []
+        pending: list[tuple[datetime, datetime, tuple]] = []
         for repair_start, repair_end in repair_slices:
             if not _is_positive_repair_slice(repair_start, repair_end):
                 continue
@@ -1174,31 +1200,45 @@ async def _fetch_ohlcv_impl(
             )
             if cached and _no_data_slice_is_known(slice_key, now=datetime.now(UTC)):
                 continue
+            pending.append((repair_start, repair_end, slice_key))
+        for group in _repair_request_groups(pending, timeframe):
+            request_start, request_end = group[0][0], group[-1][1]
             try:
-                new_bars.extend(
-                    await _fetch_provider(
-                        db,
-                        instrument,
-                        timeframe,
-                        repair_start,
-                        repair_end,
-                        adjusted,
-                        provider_name=source_provider,
-                    )
+                fetched = await _fetch_provider(
+                    db,
+                    instrument,
+                    timeframe,
+                    request_start,
+                    request_end,
+                    adjusted,
+                    provider_name=source_provider,
                 )
             except Exception as exc:
                 if not _is_recoverable_provider_gap(exc) or not cached:
                     raise
                 if _is_definitive_no_data(exc):
-                    _remember_no_data_slice(slice_key, end=repair_end, now=datetime.now(UTC))
+                    for _gap_start, gap_end, slice_key in group:
+                        _remember_no_data_slice(slice_key, end=gap_end, now=datetime.now(UTC))
                 logger.warning(
-                    "Skipping unavailable provider repair slice %s %s %s to %s: %s",
+                    "Skipping unavailable provider repair slice %s %s %s to %s (%d gaps): %s",
                     instrument.symbol,
                     timeframe.value,
-                    repair_start,
-                    repair_end,
+                    request_start,
+                    request_end,
+                    len(group),
                     bounded_redact_provider_message(exc),
                 )
+                continue
+            new_bars.extend(fetched)
+            if len(group) > 1:
+                # The provider answered for the whole span, so a gap it left
+                # empty is as definitive as a per-gap no-data answer (thin
+                # feeds skip untraded sessions of illiquid listings).
+                returned = sorted(_as_utc(bar.ts) for bar in fetched)
+                for gap_start, gap_end, slice_key in group:
+                    index = bisect_left(returned, _as_utc(gap_start))
+                    if index == len(returned) or returned[index] > _as_utc(gap_end):
+                        _remember_no_data_slice(slice_key, end=gap_end, now=datetime.now(UTC))
         if new_bars:
             try:
                 await db.execute(

@@ -67,3 +67,21 @@ Regression tests, all of which fail on 53df2f17:
 - unit: late-attached parent;
 - Postgres: an enqueue that holds the survivor key and then locks the shared parent hits
   DeadlockDetectedError on the old code.
+
+## Follow-up: group gap-repair requests
+
+**Finding.** Production on 53df2f17 logged 8,007 Alpaca no-data answers in one hour across 633
+instruments. They came from gap repair, not from duplicate children. The free Alpaca IEX feed skips
+untraded sessions of illiquid listings. `_fetch_ohlcv_impl` asked for each resulting gap in its own
+rate-limited request: one ETF cost 68 requests and about 3 minutes of a worker slot. Completions fell to
+about 1.5k/h.
+
+**Fix.**
+- Neighbouring gaps now share one request, with the span capped at `_REPAIR_GROUP_MAX_BARS = 300`
+  timeframe periods. That is Coinbase's per-request page, the smallest page of any OHLCV adapter.
+- When the provider answers the span, every gap it left empty is remembered like a per-gap no-data
+  answer: same 12h in-process memory, historical slices only.
+- Gaps the answer filled are not remembered.
+
+**Not changed.** The no-data memory is still per process, so a restart re-asks once (now one request
+per group).

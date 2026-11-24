@@ -87,3 +87,96 @@ async def test_recent_no_data_slice_is_asked_again(db, instrument, ohlcv_bars, m
     await _read(db, instrument, HISTORICAL_START)
 
     assert len(calls) == 2
+
+
+def _punch_gaps(db, ohlcv_bars, *ranges: range) -> list[tuple[datetime, datetime]]:
+    """Delete daily bars by index; return each hole's first and last missing day."""
+
+    holes = []
+    for indexes in ranges:
+        for index in indexes:
+            db.delete(ohlcv_bars[index])
+        holes.append((ohlcv_bars[indexes.start].ts, ohlcv_bars[indexes.stop - 1].ts))
+    db.flush()
+    return holes
+
+
+def _bar(instrument, ts: datetime):
+    from decimal import Decimal
+
+    from app.models.ohlcv import OHLCVBar
+
+    return OHLCVBar(
+        instrument_id=instrument.id,
+        timeframe=Timeframe.D1,
+        ts=ts,
+        open=Decimal("10"),
+        high=Decimal("11"),
+        low=Decimal("9"),
+        close=Decimal("10"),
+        volume=Decimal("1000"),
+        is_adjusted=True,
+    )
+
+
+CACHED_START = datetime(2024, 1, 1, tzinfo=UTC)
+
+
+@pytest.mark.asyncio
+async def test_neighbouring_gaps_share_one_request_and_stay_remembered(
+    db, instrument, ohlcv_bars, monkeypatch
+):
+    """A thin feed's untraded sessions cost one request, not one per gap."""
+
+    holes = _punch_gaps(db, ohlcv_bars, range(20, 30), range(60, 70), range(100, 110))
+    calls = _fake_provider(
+        monkeypatch, ProviderNoDataError("alpaca returned no usable data for fetch_ohlcv:D1")
+    )
+
+    await _read(db, instrument, CACHED_START)
+    await _read(db, instrument, CACHED_START)
+
+    assert len(calls) == 1
+    assert calls[0][0] <= holes[0][0] and calls[0][1] >= holes[-1][1]
+
+
+@pytest.mark.asyncio
+async def test_gaps_the_answer_left_empty_are_remembered_and_filled_ones_are_not(
+    db, instrument, ohlcv_bars, monkeypatch
+):
+    holes = _punch_gaps(db, ohlcv_bars, range(20, 30), range(60, 70), range(100, 110))
+    filled_day = ohlcv_bars[65].ts
+    calls: list[tuple[datetime, datetime]] = []
+
+    async def fetch(_db, _instrument, _timeframe, start, end, _adjusted, **_kwargs):
+        calls.append((start, end))
+        if start <= filled_day <= end:
+            return [_bar(instrument, filled_day)]
+        raise ProviderNoDataError("alpaca returned no usable data for fetch_ohlcv:D1")
+
+    monkeypatch.setattr(market_data, "_fetch_provider", fetch)
+
+    await _read(db, instrument, CACHED_START)
+    calls.clear()
+    await _read(db, instrument, CACHED_START)
+
+    # Only what is left of the partly filled middle hole is asked again.
+    assert calls
+    for start, end in calls:
+        assert holes[1][0] <= start and end <= holes[1][1]
+
+
+@pytest.mark.asyncio
+async def test_gaps_further_apart_than_one_bounded_request_are_asked_separately(
+    db, instrument, ohlcv_bars, monkeypatch
+):
+    _punch_gaps(db, ohlcv_bars, range(20, 30), range(60, 70), range(100, 110))
+    monkeypatch.setattr(market_data, "_REPAIR_GROUP_MAX_BARS", 30)
+    calls = _fake_provider(
+        monkeypatch, ProviderNoDataError("alpaca returned no usable data for fetch_ohlcv:D1")
+    )
+
+    await _read(db, instrument, CACHED_START)
+
+    assert len(calls) == 3
+    assert all(end - start <= market_data.timedelta(days=30) for start, end in calls)
