@@ -85,3 +85,14 @@ about 1.5k/h.
 
 **Not changed.** The no-data memory is still per process, so a restart re-asks once (now one request
 per group).
+
+## Staging gate 398f1e1d (attempt 1)
+
+Feature CI on 3f0a1b4c was green. The staging Exhaustive Integration Gate failed only in
+`research-runner-probes`, at the `concurrent-memory` check of `ops/probe-research-runner-resources.sh`:
+- all 8 pressure processes exited 137;
+- the container itself was OOM-killed and restarted (restart 0 → 1).
+
+The same stage also failed on staging runs 44882320174, 44856040730 and 44704760479 (2026-11-20/21)
+for unrelated changes. This diff touches only `market_data.py` history repair, which the research runner
+does not run. Re-gated with this note; the probe is not changed.
