@@ -96,3 +96,9 @@ Feature CI on 3f0a1b4c was green. The staging Exhaustive Integration Gate failed
 The same stage also failed on staging runs 44882320174, 44856040730 and 44704760479 (2026-11-20/21)
 for unrelated changes. This diff touches only `market_data.py` history repair, which the research runner
 does not run. Re-gated with this note; the probe is not changed.
+
+## Staging gate 131ae8fe (attempt 2)
+
+Failed only `stage=backend-coverage exit=2`. The tree is identical to 398f1e1d apart from workstream docs,
+and 398f1e1d passed backend-coverage in the previous gate. The same stage also flaked on staging run
+44863723482 (2026-11-21). Re-gated with this note; nothing changed.
