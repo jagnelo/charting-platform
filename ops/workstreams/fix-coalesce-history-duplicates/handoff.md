@@ -102,3 +102,10 @@ does not run. Re-gated with this note; the probe is not changed.
 Failed only `stage=backend-coverage exit=2`. The tree is identical to 398f1e1d apart from workstream docs,
 and 398f1e1d passed backend-coverage in the previous gate. The same stage also flaked on staging run
 44863723482 (2026-11-21). Re-gated with this note; nothing changed.
+
+## Staging gate 8079858e (attempt 3)
+
+Failed only in `e2e-functional`: one test timed out after 60s, `supporting_features_journey.spec.ts:90`
+(watchlists). It was waiting for the watchlist item's `Rename` menu button. The other 240 tests passed.
+This branch changes only backend history-preparation code, so it cannot affect the watchlist UI. E2E
+timeouts are a recorded gate flake (see the F14 note above). Re-gated with this note; nothing changed.
