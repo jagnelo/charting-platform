@@ -5,30 +5,52 @@ parent_branch: staging
 parent_sha: 24b62e7e09b3e0e568818951b8e26a3fbee66952
 dependency_authorization: "not applicable: independent staging-based topic"
 human_intent_authorization: "do ALL of these"
-planning_state: draft
-human_closure_authorization: pending
-closure_summary: pending
+planning_state: ready
+human_closure_authorization: >-
+  2026-11-13 the human delegated closure decisions to the Desktop orchestrator ("you're allowed to make
+  decisions that the rules expect the human dev to make. Proceed"); on 2026-11-26 the human asked for this
+  topic ("do ALL of these"). The orchestrator closes it under that delegation. Production deployment still
+  needs the human's explicit per-deploy approval.
+closure_summary: >-
+  Completions are bounded by the Alpaca quota ledger, not by stuck work: the ledger reserved 190-200 of
+  the 200 requests/minute almost every minute while measured HTTP requests ran at about half that, because
+  fetch_ohlcv reserves a calendar-time page estimate and settled the full estimate even for one-request
+  answers (87% of Alpaca D1 calls return no data, mostly pre-listing repair slices re-asked every 12h). No
+  orphaned waits, missing prerequisites or failed rows exist; 6k satisfied waiters only add latency. The
+  fixes (measured-request settlement for Alpaca fetch_ohlcv; 7-day memo for slices that ended over 30 days
+  ago, mirrored to Redis) ship on fix/provider-negative-memo. Requires integration_capture: exact branch
+  HEAD.
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
-local_validation_profile: pending_agent_assessment
-local_validation_reason: pending agent assessment from changed paths and runtime impact
+local_validation_profile: docker_integration
+local_validation_reason: >-
+  Diagnosis record only; the profile follows the minimum implied by the provider/queue wording. The code and
+  its tests ship on fix/provider-negative-memo, and exact-source CI plus the staging gate run every suite.
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
 goal: "do ALL of these"
-scope: []
-owned_paths: []
+scope:
+  - Diagnosis record for the refresh-queue backlog (completions about 3.3k/h against a 12k/h Alpaca ceiling). The code fixes it motivated (Alpaca page settlement at measured requests, week-long memo for settled no-data slices) ship on fix/provider-negative-memo, which owns the same files.
+owned_paths:
+  - ops/workstreams/fix-refresh-queue-backlog/
 dependencies: []
-acceptance_criteria: []
+acceptance_criteria:
+  - id: AC1
+    text: handoff.md records the production queue diagnosis (what bounds completions, stuck-work checks, recommendations) with the queries' numbers.
 branch_tests: []
-branch_tests_reason: pending agent assessment
+branch_tests_reason: No code change on this branch; the fixes and their tests are on fix/provider-negative-memo.
 live_test_impact: none
 migration_impact: none
-deployment_impact: none
-status: authorized
-remaining_gaps: []
-progress:
-  completed: []
-  total: 0
-  current_phase: plan
+deployment_impact: Backend/worker image only; no environment, schema or deployment-file change. Raises effective Alpaca admission (about 2x); requires the human to accept that quota accounting change.
+status: ready_for_integration
+remaining_gaps: 
+  - "Terminal system-maintenance tracking parents (about 370k) are never pruned; needs a retention decision."
+  - "Coalesced waiters poll through the claim rotation instead of parking until their survivor completes."
+  - "Alpaca get_instrument_profile returns no data 96% of the time."
+  - "Drain hand-over dips at :00 and :06-:08."
+progress: 
+  completed: [AC1]
+  total: 1
+  current_phase: validation
   current_blocker: none
-  next_action: complete the branch-owned plan before creating a goal
+  next_action: "Integrate with the context set."

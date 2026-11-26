@@ -1,20 +1,65 @@
 {
-  "schema": 2,
+  "acceptance_criteria": [],
+  "active_session_id": "a5ea29fc-0ad4-4c67-8d45-89846ce0c09e",
   "branch": "fix/refresh-queue-backlog",
-  "parent_branch": "staging",
-  "implementation_sha": "24b62e7e09b3e0e568818951b8e26a3fbee66952",
-  "remote_sha": null,
-  "active_session_id": null,
-  "previous_session_ids": [],
-  "goal_state": "not_started",
+  "dirty_paths": [],
+  "docker": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-fix-refresh-queue-backlog-5fdd04e3",
+      "charting-stack-fix-refresh-queue-backlog-5fdd04e3"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "fix-refresh-queue-backlog-5fdd04e351"
+  },
   "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance fix/refresh-queue-backlog: do ALL of these. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_request": {
+    "objective": "Advance fix/refresh-queue-backlog: do ALL of these. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "planning_required",
+  "goal_state": "planning_required",
+  "head": "6919040210f0048a01e8b36bdc99b2f98c0277b9",
+  "implementation_sha": "24b62e7e09b3e0e568818951b8e26a3fbee66952",
+  "local_validation_profile": "pending_agent_assessment",
+  "next_action": "run make agent-session-start",
+  "parent_branch": "staging",
+  "plan_hash": "496a45fa53475afd4aa87c9a7be260665dd8c87ded1c69036bd707699d603785",
+  "planning_required": true,
   "planning_state": "draft",
+  "previous_session_ids": [],
   "progress": {
     "completed": [],
-    "total": 0,
+    "current_blocker": "none",
     "current_phase": "plan",
-    "current_blocker": "none"
+    "total": 0
   },
-  "next_action": "run make agent-session-start",
-  "retained_docker_resources": []
+  "remote": "6919040210f0048a01e8b36bdc99b2f98c0277b9",
+  "remote_sha": "6919040210f0048a01e8b36bdc99b2f98c0277b9",
+  "remote_synchronized": true,
+  "retained_docker_resources": [],
+  "schema": 2,
+  "session_id": "a5ea29fc-0ad4-4c67-8d45-89846ce0c09e",
+  "validation_tier": "full_integration",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/fix-refresh-queue-backlog/ops/workstreams/fix-refresh-queue-backlog",
+  "workstream_files": [
+    "/home/m920q/charting-platform/.ai/worktrees/fix-refresh-queue-backlog/ops/workstreams/fix-refresh-queue-backlog/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-refresh-queue-backlog/ops/workstreams/fix-refresh-queue-backlog/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-refresh-queue-backlog/ops/workstreams/fix-refresh-queue-backlog/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-refresh-queue-backlog/ops/workstreams/fix-refresh-queue-backlog/session.json"
+  ],
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-refresh-queue-backlog",
+  "worktree_id": "fix-refresh-queue-backlog-5fdd04e351"
 }
