@@ -1,0 +1,1 @@
+{"recorded_at": "2026-11-26T16:21:07.398968+00:00", "kind": "focused_tests", "command": "uv run --project backend pytest backend/tests/unit/migrations/test_instrument_sync_run_source_width.py backend/tests/unit/services/test_instrument_sync_metadata.py -q --no-cov", "result": "pass", "summary": "15 passed; alembic heads = d5e6f7a8b9c0 (single head)"}
