@@ -57,7 +57,7 @@ acceptance_criteria:
   - id: AC2
     text: A run never exceeds the per-day underlying and contract caps, counting work already done that UTC day, so a rerun is a no-op; a provider quota signal stops the run.
   - id: AC3
-    text: The job is disabled by default, runs through existing quota-admitted options_data calls only, and option contracts no longer enter the background D1 planner.
+    text: The job is on by default within the free daily credit budget, runs through existing quota-admitted options_data calls only, and option contracts no longer enter the background D1 planner.
   - id: AC4
     text: Unit suites for options, worker, tasks and env wiring pass; ruff clean.
 branch_tests:
@@ -71,7 +71,7 @@ remaining_gaps:
   - "No free provider serves intraday option quotes; index and futures options are not covered."
   - "Production deployment needs the human's explicit approval."
 progress: 
-  completed: [AC1, AC2, AC3]
+  completed: [AC1, AC2, AC3, AC4]
   total: 4
   current_phase: validation
   current_blocker: none
