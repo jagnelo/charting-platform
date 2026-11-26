@@ -38,6 +38,7 @@ from app.models.instrument_identity import (
     InstrumentProviderSymbol,
 )
 from app.models.instrument_indicator_config import InstrumentIndicatorConfig
+from app.models.instrument_merge_log import InstrumentMergeLog
 from app.models.instrument_reconciliation import (
     InstrumentReconciliationIssue,
     InstrumentReconciliationIssueObservation,
@@ -189,6 +190,7 @@ __all__ = [
     "SecIssuerDirectoryCandidate",
     "MarketRefreshJob",
     "MarketUniverseReconciliationRun",
+    "InstrumentMergeLog",
     "MarketUniverseLifecycleObservation",
     "MarketUniverseLifecycleObservationSnapshot",
     "FundamentalFact",

@@ -1,0 +1,78 @@
+schema: 4
+branch: fix/duplicate-instruments-merge
+base_sha: 24b62e7e09b3e0e568818951b8e26a3fbee66952
+parent_branch: staging
+parent_sha: 24b62e7e09b3e0e568818951b8e26a3fbee66952
+dependency_authorization: "not applicable: independent staging-based topic"
+human_intent_authorization: "do ALL of these"
+planning_state: ready
+human_closure_authorization: >-
+  2026-11-13 the human delegated closure decisions to the Desktop orchestrator ("you're allowed to make
+  decisions that the rules expect the human dev to make. Proceed"); on 2026-11-26 the human asked for this
+  topic ("do ALL of these"). The orchestrator closes it under that delegation. Production deployment still
+  needs the human's explicit per-deploy approval.
+closure_summary: >-
+  Production holds about 341 duplicate instrument pairs created when a FIGI-keyed universe row minted a
+  new instrument instead of adopting the existing exchange-qualified legacy listing. The root cause is
+  fixed in market_universe._adoptable_legacy_listing. A bounded, idempotent, lock-ordered worker task
+  (cron every 15 minutes, 25 pairs, 240 s) merges provable duplicates: it repoints every FK found through
+  the catalog, unions bars (canonical wins), merges market_series with scope_key rewrite, logs each
+  retired id in the new instrument_merge_log table (migration b1c2d3e4f5a7, chained after d5e6f7a8b9c0)
+  and deletes the duplicate. Only the evidence tiers listed in INSTRUMENT_DUPLICATE_MERGE_EVIDENCE run
+  (default same_listing and separator_spelling, about 336 pairs); bar_agreement (about 800 pairs) is
+  opt-in after a dry-run review. Share classes with different CUSIPs are never merged. Requires
+  integration_capture: exact branch HEAD. Requires integration_capture: exact branch HEAD.
+validation_tier: full_integration
+human_validation_authorization: agent_default_full_integration
+local_validation_profile: docker_integration
+local_validation_reason: >-
+  Merge SQL uses PostgreSQL catalog introspection, ctid set deletes, jsonb_set and row locks; verified
+  against real PostgreSQL via testcontainers (10 integration tests incl. migration index test) plus 181
+  focused unit tests after rechaining onto staging dc60840b.
+goal_budget_policy: unbounded_unless_human_authorized
+human_goal_budget_authorization: none
+goal: "do ALL of these"
+scope:
+  - Root-cause fix - a new stable-key (FIGI) universe row adopts the unique exchange-qualified, same-type, non-conflicting legacy listing instead of minting a duplicate instrument.
+  - Idempotent, transactional, lock-ordered merge of provable duplicate instruments (backend/app/services/instrument_dedup.py) that repoints every FK to instrument (catalog-driven), merges market_series and scope-keyed bars, resolves unique collisions in favour of the canonical row, logs retired ids and deletes the duplicate.
+  - Bounded arq maintenance task and cron (every 15 minutes, 25 pairs per pass) so existing duplicates drain gradually and any future one self-heals.
+  - instrument_merge_log audit table (schema-only migration).
+  - No API, provider routing or quota change; no unique constraint added (existing data and legitimate share-class listings make one unsafe).
+owned_paths:
+  - backend/app/services/instrument_dedup.py
+  - backend/app/services/market_universe.py
+  - backend/app/tasks/instrument_dedup_tasks.py
+  - backend/app/workers/arq_worker.py
+  - backend/app/config.py
+  - backend/app/models/instrument_merge_log.py
+  - backend/app/models/__init__.py
+  - backend/alembic/versions/b1c2d3e4f5a7_add_instrument_merge_log.py
+  - backend/tests/unit/services/test_instrument_dedup.py
+  - backend/tests/integration/test_instrument_dedup_postgres.py
+  - backend/app/strategy_lab_v2/tests/test_migration_compatibility.py
+  - ops/workstreams/fix-duplicate-instruments-merge/
+dependencies: []
+acceptance_criteria:
+  - id: AC1
+    text: A new FIGI-keyed universe row adopts the single exchange-qualified legacy listing of the same type and never creates a second instrument; conflicting identifiers, incompatible names and stronger existing owners still create or quarantine as before.
+  - id: AC2
+    text: Merging a pair repoints every FK referencing instrument, unions OHLCV bars without duplicates (canonical wins), merges market_series with scope_key rewrite, deletes the duplicate and logs it; share classes with different CUSIPs are never merged; a second run is a no-op; an empty database is a no-op.
+  - id: AC3
+    text: Exact-source feature CI and the staging exhaustive gate are green; production rollout waits for the human's approval and a dry-run review.
+branch_tests:
+  - uv run --project backend pytest backend/tests/unit/services/test_instrument_dedup.py backend/tests/unit/services/test_market_universe.py -q --no-cov
+  - cd backend && uv run pytest tests/integration/test_instrument_dedup_postgres.py --override-ini addopts= -q
+branch_tests_reason: Identity rules and the reconciliation fix are covered offline; catalog-driven repointing needs PostgreSQL.
+live_test_impact: none
+migration_impact: Adds table instrument_merge_log (revision b1c2d3e4f5a7, down d5e6f7a8b9c0 from fix/weekly-seed-key-overflow); reversible; no data migration.
+deployment_impact: Backend/worker image plus alembic upgrade. Worker merges up to 25 pairs per 15 minutes, only evidence tiers in INSTRUMENT_DUPLICATE_MERGE_EVIDENCE (default same_listing,separator_spelling; bar_agreement opt-in); disable with INSTRUMENT_DUPLICATE_MERGE_ENABLED=false.
+status: ready_for_integration
+remaining_gaps: 
+  - "Merges are irreversible apart from the merge log; the bar_agreement tier stays off until a production dry-run is reviewed."
+  - "Production deployment needs the human's explicit approval."
+progress: 
+  completed: [AC1, AC2]
+  total: 3
+  current_phase: validation
+  current_blocker: none
+  next_action: "Exact-source feature CI, staging integration and the exhaustive gate (AC3)."

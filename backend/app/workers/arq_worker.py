@@ -368,6 +368,13 @@ async def scheduled_identity_batch(ctx: dict):
     return await resolve_identity_batch_task(ctx)
 
 
+async def scheduled_instrument_duplicate_merge(ctx: dict):
+    """Bounded, idempotent merge of provable duplicate instruments."""
+    from app.tasks.instrument_dedup_tasks import merge_duplicate_instruments_task
+
+    return await merge_duplicate_instruments_task(ctx)
+
+
 async def scheduled_daily_id_bootstrap(ctx: dict):
     if not settings.INSTRUMENT_SYNC_SCHEDULE_ENABLED:
         logger.info("Instrument sync schedule disabled; skipping stable ID bootstrap")
@@ -670,6 +677,7 @@ class WorkerSettings:
         scheduled_weekly_seed,
         scheduled_daily_metadata_sync,
         scheduled_daily_id_bootstrap,
+        scheduled_instrument_duplicate_merge,
         scheduled_daily_history_refresh,
         scheduled_refresh_queue_process,
         scheduled_etf_holdings_refresh,
@@ -758,6 +766,14 @@ class WorkerSettings:
                 scheduled_identity_batch,
                 minute=set(range(0, 60, 5)),
                 timeout=max(60, int(settings.INSTRUMENT_IDENTITY_BATCH_MAX_SECONDS) + 120),
+            ),
+        )
+    if settings.INSTRUMENT_DUPLICATE_MERGE_ENABLED:
+        cron_jobs += (
+            cron(
+                scheduled_instrument_duplicate_merge,
+                minute={7, 22, 37, 52},
+                timeout=max(60, int(settings.INSTRUMENT_DUPLICATE_MERGE_MAX_SECONDS) + 120),
             ),
         )
     if settings.OPTIONS_REFRESH_ENABLED:

@@ -1,0 +1,65 @@
+{
+  "acceptance_criteria": [],
+  "active_session_id": "11c3a374-f4e0-40f4-a8bd-2e48eb2fce0e",
+  "branch": "fix/duplicate-instruments-merge",
+  "dirty_paths": [],
+  "docker": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-fix-duplicate-instruments-merge-6e73ceb6",
+      "charting-stack-fix-duplicate-instruments-merge-6e73ceb6"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "fix-duplicate-instruments-merge-6e73ceb6f9"
+  },
+  "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance fix/duplicate-instruments-merge: do ALL of these. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_request": {
+    "objective": "Advance fix/duplicate-instruments-merge: do ALL of these. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "planning_required",
+  "goal_state": "planning_required",
+  "head": "f69540fb68fc48538700ef1e0ed0a96b54931b4e",
+  "implementation_sha": "24b62e7e09b3e0e568818951b8e26a3fbee66952",
+  "local_validation_profile": "pending_agent_assessment",
+  "next_action": "run make agent-session-start",
+  "parent_branch": "staging",
+  "plan_hash": "a5cffc55a02aa2647d29b50da10c6529c55f30225de9b016408c6ef6c5f1c923",
+  "planning_required": true,
+  "planning_state": "draft",
+  "previous_session_ids": [],
+  "progress": {
+    "completed": [],
+    "current_blocker": "none",
+    "current_phase": "plan",
+    "total": 0
+  },
+  "remote": "f69540fb68fc48538700ef1e0ed0a96b54931b4e",
+  "remote_sha": "f69540fb68fc48538700ef1e0ed0a96b54931b4e",
+  "remote_synchronized": true,
+  "retained_docker_resources": [],
+  "schema": 2,
+  "session_id": "11c3a374-f4e0-40f4-a8bd-2e48eb2fce0e",
+  "validation_tier": "full_integration",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/fix-duplicate-instruments-merge/ops/workstreams/fix-duplicate-instruments-merge",
+  "workstream_files": [
+    "/home/m920q/charting-platform/.ai/worktrees/fix-duplicate-instruments-merge/ops/workstreams/fix-duplicate-instruments-merge/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-duplicate-instruments-merge/ops/workstreams/fix-duplicate-instruments-merge/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-duplicate-instruments-merge/ops/workstreams/fix-duplicate-instruments-merge/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-duplicate-instruments-merge/ops/workstreams/fix-duplicate-instruments-merge/session.json"
+  ],
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-duplicate-instruments-merge",
+  "worktree_id": "fix-duplicate-instruments-merge-6e73ceb6f9"
+}
