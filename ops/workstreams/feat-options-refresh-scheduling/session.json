@@ -1,20 +1,65 @@
 {
-  "schema": 2,
+  "acceptance_criteria": [],
+  "active_session_id": "67d7ec30-acde-4ebf-9e4d-a94d02f401cb",
   "branch": "feat/options-refresh-scheduling",
-  "parent_branch": "staging",
-  "implementation_sha": "24b62e7e09b3e0e568818951b8e26a3fbee66952",
-  "remote_sha": null,
-  "active_session_id": null,
-  "previous_session_ids": [],
-  "goal_state": "not_started",
+  "dirty_paths": [],
+  "docker": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-feat-options-refresh-scheduling-e259d810",
+      "charting-stack-feat-options-refresh-scheduling-e259d810"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "feat-options-refresh-scheduling-e259d81091"
+  },
   "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance feat/options-refresh-scheduling: do ALL of these. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_request": {
+    "objective": "Advance feat/options-refresh-scheduling: do ALL of these. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "planning_required",
+  "goal_state": "planning_required",
+  "head": "5af5eeb02a6a29f63479ae65cb5857dc1114112a",
+  "implementation_sha": "24b62e7e09b3e0e568818951b8e26a3fbee66952",
+  "local_validation_profile": "pending_agent_assessment",
+  "next_action": "run make agent-session-start",
+  "parent_branch": "staging",
+  "plan_hash": "b3ae349e0a826c9cca2c0d20993ea8df21c6758d24aecd38615495d67f4a9a88",
+  "planning_required": true,
   "planning_state": "draft",
+  "previous_session_ids": [],
   "progress": {
     "completed": [],
-    "total": 0,
+    "current_blocker": "none",
     "current_phase": "plan",
-    "current_blocker": "none"
+    "total": 0
   },
-  "next_action": "run make agent-session-start",
-  "retained_docker_resources": []
+  "remote": "5af5eeb02a6a29f63479ae65cb5857dc1114112a",
+  "remote_sha": "5af5eeb02a6a29f63479ae65cb5857dc1114112a",
+  "remote_synchronized": true,
+  "retained_docker_resources": [],
+  "schema": 2,
+  "session_id": "67d7ec30-acde-4ebf-9e4d-a94d02f401cb",
+  "validation_tier": "full_integration",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/feat-options-refresh-scheduling/ops/workstreams/feat-options-refresh-scheduling",
+  "workstream_files": [
+    "/home/m920q/charting-platform/.ai/worktrees/feat-options-refresh-scheduling/ops/workstreams/feat-options-refresh-scheduling/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/feat-options-refresh-scheduling/ops/workstreams/feat-options-refresh-scheduling/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/feat-options-refresh-scheduling/ops/workstreams/feat-options-refresh-scheduling/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/feat-options-refresh-scheduling/ops/workstreams/feat-options-refresh-scheduling/session.json"
+  ],
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-options-refresh-scheduling",
+  "worktree_id": "feat-options-refresh-scheduling-e259d81091"
 }

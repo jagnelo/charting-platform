@@ -193,6 +193,15 @@ class Settings(BaseSettings):
     TOKENIZED_HISTORICAL_REFRESH_ENABLED: bool = False
     TOKENIZED_HISTORICAL_REFRESH_MAX_ASSETS: int = 100
     TOKENIZED_HISTORICAL_REFRESH_TIMESPAN: str = "DAY"
+    # Bounded daily options refresh (chains for the stalest underlyings plus
+    # quote/greeks/OI history for active contracts), on by default; the
+    # caps are per UTC day and enforced from the dataset-state ledger.
+    OPTIONS_REFRESH_ENABLED: bool = True
+    OPTIONS_REFRESH_MAX_UNDERLYINGS: int = 2
+    OPTIONS_REFRESH_EXPIRATIONS_PER_UNDERLYING: int = 1
+    OPTIONS_REFRESH_MAX_CONTRACTS: int = 10
+    OPTIONS_REFRESH_QUOTE_LOOKBACK_DAYS: int = 7
+    OPTIONS_REFRESH_TIME_BUDGET_SECONDS: int = 420
     TOKENIZED_ASSET_REFRESH_ENABLED: bool = False
     TOKENIZED_ASSET_REFRESH_MAX_ASSETS: int = 100
     TOKENIZED_EVENT_REFRESH_ENABLED: bool = False
