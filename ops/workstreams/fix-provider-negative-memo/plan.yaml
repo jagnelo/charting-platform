@@ -1,0 +1,83 @@
+schema: 4
+branch: fix/provider-negative-memo
+base_sha: 24b62e7e09b3e0e568818951b8e26a3fbee66952
+parent_branch: staging
+parent_sha: 24b62e7e09b3e0e568818951b8e26a3fbee66952
+dependency_authorization: "not applicable: independent staging-based topic"
+human_intent_authorization: "do ALL of these"
+planning_state: ready
+human_closure_authorization: >-
+  2026-11-13 the human delegated closure decisions to the Desktop orchestrator ("you're allowed to make
+  decisions that the rules expect the human dev to make. Proceed"); on 2026-11-26 the human asked for this
+  topic ("do ALL of these"). The orchestrator closes it under that delegation. Production deployment still
+  needs the human's explicit per-deploy approval.
+closure_summary: >-
+  Also fixes the throughput bound diagnosed on fix/refresh-queue-backlog: the Alpaca quota ledger settled every fetch_ohlcv call at its calendar-time page estimate (about twice the measured HTTP requests, holding the ledger at 190-200 of 200/min), and settled no-data slices were re-asked every 12h; Alpaca D1 calls now settle at measured requests (bounded by the reservation) and slices older than 30 days are remembered for 7 days.
+  Wasted provider requests for answers that are stable for days. (1) xstocks: about 1.5k HTTP 404
+  get_tokenized_price errors per 6h for unlisted tokens; a 404 is now remembered for 7 days per provider
+  and symbol and refresh_tokenized_prices skips remembered tokens before any call. (2) The no-data slice
+  memo was in-process only, so each worker restart re-asked Alpaca; it is now mirrored to Redis
+  (charting:negmemo, same 12h TTL and 2-day minimum slice age) with the in-process dict as a fast cache,
+  one MGET per repair, and a 30s cool-down when Redis is unreachable so it never fails a read. (3) Finnhub
+  profile 403s (1087 of 1182 on mutual-fund-shaped tickers, 0 successes) and FMP profile 402s (dot-class
+  symbols) are free-plan symbol-coverage limits; get_instrument_profile now remembers 404 for 7 days,
+  402/403 for 3 days and definitive no-data for 2 days per provider and symbol, and routing drops
+  remembered providers before quota reservation so the fallback chain still serves the symbol. 429, 5xx,
+  timeouts and quota denials are never remembered. Requires integration_capture: exact branch HEAD.
+validation_tier: full_integration
+human_validation_authorization: agent_default_full_integration
+local_validation_profile: docker_integration
+local_validation_reason: >-
+  Redis-backed shared memo and provider routing; unit suites run locally, the memo was round-tripped
+  against a throwaway redis:7-alpine container (set, restart, TTL, Redis-down fallback), and exact-source
+  CI plus the staging exhaustive gate run the integration suites.
+goal_budget_policy: unbounded_unless_human_authorized
+human_goal_budget_authorization: none
+goal: "do ALL of these"
+scope:
+  - Settle Alpaca fetch_ohlcv request units at the HTTP requests actually measured, never above the page-count reservation (moved from fix/refresh-queue-backlog, which diagnosed it).
+  - Remember no-data slices that ended over 30 days ago for 7 days instead of 12 hours, in process and in Redis.
+  - Persist the no-data history slice memo in Redis (same 12h TTL and 2-day minimum slice age) with the in-process dict kept as the fast layer; Redis failure degrades silently.
+  - A shared best-effort Redis negative memo (app/services/negative_memo.py) and a per-provider identity memo for get_tokenized_price and get_instrument_profile (HTTP 404 7d, HTTP 402/403 3d, definitive no-data 2d).
+  - Tokenized price refresh stops requesting tokens a provider reported 404 for, and stops logging an exhausted-provider error for them.
+  - Provider routing skips providers remembered as unable to serve a symbol (Finnhub mutual-fund 403, FMP preferred/class-share 402 and no-data), without changing capability policy or quotas.
+  - No schema, API or deployment change.
+owned_paths:
+  - backend/tests/unit/services/test_alpaca_page_settlement.py
+  - backend/app/services/negative_memo.py
+  - backend/app/services/market_data.py
+  - backend/app/services/provider_runtime.py
+  - backend/app/services/tokenized_assets.py
+  - backend/tests/unit/conftest.py
+  - backend/tests/unit/services/test_negative_memo_shared.py
+  - ops/workstreams/fix-provider-negative-memo/
+dependencies: []
+acceptance_criteria:
+  - id: AC1
+    text: A token the provider answered 404 for is not requested again for days, across worker restarts, and is skipped by the tokenized price refresh batch.
+  - id: AC2
+    text: A historical no-data slice is remembered in Redis with the existing TTL semantics and survives a restart; an unreachable Redis never fails a read.
+  - id: AC3
+    text: Provider routing skips a provider remembered (404/402/403/definitive no-data) for a symbol on get_instrument_profile, falling back to the remaining providers; transient errors, 429 and quota denials are never remembered.
+  - id: AC4
+    text: Existing no-data memo, provider runtime, market data and tokenized asset unit tests pass unchanged.
+  - id: AC5
+    text: A one-request Alpaca fetch_ohlcv answer is debited the measured requests, never above the reservation; an unmeasured call keeps the full reservation; other providers and operations are unchanged.
+  - id: AC6
+    text: A no-data slice that ended over 30 days ago is remembered for 7 days (Redis mirror carries the same TTL class); a recent one for 12 hours.
+branch_tests:
+  - uv run --project backend pytest backend/tests/unit/services/test_negative_memo_shared.py backend/tests/unit/services/test_no_data_slice_memo.py backend/tests/unit/services/test_tokenized_assets.py backend/tests/unit/services/test_provider_runtime.py -q --no-cov
+branch_tests_reason: Memo and routing logic is fully offline; Redis is exercised through a small fake and an unreachable-Redis fake.
+live_test_impact: none
+migration_impact: none
+deployment_impact: Backend/worker image only; uses the existing REDIS_URL, no new environment or schema.
+status: ready_for_integration
+remaining_gaps: 
+  - "A Finnhub 403 from a revoked key would suppress profile lookups for 3 days per symbol; current evidence shows a coverage limit, not a key fault."
+  - "Production deployment needs the human's explicit approval."
+progress: 
+  completed: [AC1, AC2, AC3, AC4, AC5, AC6]
+  total: 6
+  current_phase: validation
+  current_blocker: none
+  next_action: "Exact-source feature CI, staging integration and the exhaustive gate."

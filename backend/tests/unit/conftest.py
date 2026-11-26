@@ -324,3 +324,17 @@ def auth_headers(user):
 
     token = create_access_token(user.id, user.username)
     return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture(autouse=True)
+def _isolate_negative_memo_from_redis(monkeypatch):
+    """Unit tests never reach a real Redis through the shared negative memo."""
+
+    from app.services import negative_memo, provider_runtime
+
+    negative_memo.reset_shared_client()
+    provider_runtime._provider_negative_memo.clear()
+    monkeypatch.setattr(negative_memo, "_get_client", lambda: None)
+    yield
+    negative_memo.reset_shared_client()
+    provider_runtime._provider_negative_memo.clear()
