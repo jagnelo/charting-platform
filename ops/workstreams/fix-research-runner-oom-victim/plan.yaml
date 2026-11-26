@@ -1,0 +1,34 @@
+schema: 4
+branch: fix/research-runner-oom-victim
+base_sha: 7304c1f6c970103feaf92db51ed7a82b3c0c96b0
+parent_branch: staging
+parent_sha: 7304c1f6c970103feaf92db51ed7a82b3c0c96b0
+dependency_authorization: "not applicable: independent staging-based topic"
+human_intent_authorization: "Find out why the concurrent-memory check in ops/probe-research-runner-resources.sh intermittently fails in the staging Exhaustive Integration Gate, then fix the root cause without weakening what the probe asserts. Done means the probe passes reliably, the cause is explained in the workstream handoff, tests and assertions are not weakened, follow the repo workflow (worktree, plan, validate, gate through staging), do not deploy to production."
+planning_state: draft
+human_closure_authorization: pending
+closure_summary: pending
+validation_tier: full_integration
+human_validation_authorization: agent_default_full_integration
+local_validation_profile: pending_agent_assessment
+local_validation_reason: pending agent assessment from changed paths and runtime impact
+goal_budget_policy: unbounded_unless_human_authorized
+human_goal_budget_authorization: none
+goal: "Find out why the concurrent-memory check in ops/probe-research-runner-resources.sh intermittently fails in the staging Exhaustive Integration Gate, then fix the root cause without weakening what the probe asserts. Done means the probe passes reliably, the cause is explained in the workstream handoff, tests and assertions are not weakened, follow the repo workflow (worktree, plan, validate, gate through staging), do not deploy to production."
+scope: []
+owned_paths: []
+dependencies: []
+acceptance_criteria: []
+branch_tests: []
+branch_tests_reason: pending agent assessment
+live_test_impact: none
+migration_impact: none
+deployment_impact: none
+status: authorized
+remaining_gaps: []
+progress:
+  completed: []
+  total: 0
+  current_phase: plan
+  current_blocker: none
+  next_action: complete the branch-owned plan before creating a goal
