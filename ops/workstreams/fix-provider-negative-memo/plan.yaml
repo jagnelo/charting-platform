@@ -12,6 +12,7 @@ human_closure_authorization: >-
   topic ("do ALL of these"). The orchestrator closes it under that delegation. Production deployment still
   needs the human's explicit per-deploy approval.
 closure_summary: >-
+  Also fixes the throughput bound diagnosed on fix/refresh-queue-backlog: the Alpaca quota ledger settled every fetch_ohlcv call at its calendar-time page estimate (about twice the measured HTTP requests, holding the ledger at 190-200 of 200/min), and settled no-data slices were re-asked every 12h; Alpaca D1 calls now settle at measured requests (bounded by the reservation) and slices older than 30 days are remembered for 7 days.
   Wasted provider requests for answers that are stable for days. (1) xstocks: about 1.5k HTTP 404
   get_tokenized_price errors per 6h for unlisted tokens; a 404 is now remembered for 7 days per provider
   and symbol and refresh_tokenized_prices skips remembered tokens before any call. (2) The no-data slice
@@ -34,12 +35,15 @@ goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
 goal: "do ALL of these"
 scope:
+  - Settle Alpaca fetch_ohlcv request units at the HTTP requests actually measured, never above the page-count reservation (moved from fix/refresh-queue-backlog, which diagnosed it).
+  - Remember no-data slices that ended over 30 days ago for 7 days instead of 12 hours, in process and in Redis.
   - Persist the no-data history slice memo in Redis (same 12h TTL and 2-day minimum slice age) with the in-process dict kept as the fast layer; Redis failure degrades silently.
   - A shared best-effort Redis negative memo (app/services/negative_memo.py) and a per-provider identity memo for get_tokenized_price and get_instrument_profile (HTTP 404 7d, HTTP 402/403 3d, definitive no-data 2d).
   - Tokenized price refresh stops requesting tokens a provider reported 404 for, and stops logging an exhausted-provider error for them.
   - Provider routing skips providers remembered as unable to serve a symbol (Finnhub mutual-fund 403, FMP preferred/class-share 402 and no-data), without changing capability policy or quotas.
   - No schema, API or deployment change.
 owned_paths:
+  - backend/tests/unit/services/test_alpaca_page_settlement.py
   - backend/app/services/negative_memo.py
   - backend/app/services/market_data.py
   - backend/app/services/provider_runtime.py
@@ -57,6 +61,10 @@ acceptance_criteria:
     text: Provider routing skips a provider remembered (404/402/403/definitive no-data) for a symbol on get_instrument_profile, falling back to the remaining providers; transient errors, 429 and quota denials are never remembered.
   - id: AC4
     text: Existing no-data memo, provider runtime, market data and tokenized asset unit tests pass unchanged.
+  - id: AC5
+    text: A one-request Alpaca fetch_ohlcv answer is debited the measured requests, never above the reservation; an unmeasured call keeps the full reservation; other providers and operations are unchanged.
+  - id: AC6
+    text: A no-data slice that ended over 30 days ago is remembered for 7 days (Redis mirror carries the same TTL class); a recent one for 12 hours.
 branch_tests:
   - uv run --project backend pytest backend/tests/unit/services/test_negative_memo_shared.py backend/tests/unit/services/test_no_data_slice_memo.py backend/tests/unit/services/test_tokenized_assets.py backend/tests/unit/services/test_provider_runtime.py -q --no-cov
 branch_tests_reason: Memo and routing logic is fully offline; Redis is exercised through a small fake and an unreachable-Redis fake.
@@ -68,8 +76,8 @@ remaining_gaps:
   - "A Finnhub 403 from a revoked key would suppress profile lookups for 3 days per symbol; current evidence shows a coverage limit, not a key fault."
   - "Production deployment needs the human's explicit approval."
 progress: 
-  completed: [AC1, AC2, AC3, AC4]
-  total: 4
+  completed: [AC1, AC2, AC3, AC4, AC5, AC6]
+  total: 6
   current_phase: validation
   current_blocker: none
   next_action: "Exact-source feature CI, staging integration and the exhaustive gate."

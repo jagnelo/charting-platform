@@ -1907,10 +1907,42 @@ def _account_usage_bootstrap_dimension_costs(
     return costs
 
 
+# Providers whose reviewed ``fetch_ohlcv`` cost is only a conservative page-count
+# estimate (calendar time overstates trading sessions) and whose adapter counts
+# every HTTP page it actually requests. For these the exact measured request
+# count, never more than the reservation, is the true debit: an empty or short
+# answer is one request, not the several pages reserved for a long range.
+_PAGE_ESTIMATED_REQUEST_PROVIDERS = frozenset({"alpaca"})
+
+
+def _measured_page_request_units(
+    provider_name: str | None,
+    operation: str | None,
+    unit: str,
+    measurement: Any,
+    reserved: int,
+) -> int:
+    """Return the settled request units, bounded by the page-count reservation."""
+
+    if (
+        provider_name not in _PAGE_ESTIMATED_REQUEST_PROVIDERS
+        or not str(operation or "").startswith("fetch_ohlcv:")
+        or _usage_unit_kind(unit) != "requests"
+    ):
+        return reserved
+    requests = _nonnegative_integer(getattr(measurement, "http_requests", 0) or 0)
+    if requests is None or requests <= 0:
+        return reserved
+    return min(reserved, requests)
+
+
 def _consumed_dimension_costs(
     policy: ProviderPolicy,
     measurement: Any,
     reserved_units: dict[str, int],
+    *,
+    provider_name: str | None = None,
+    operation: str | None = None,
 ) -> dict[str, int]:
     """Settle byte dimensions from observed transport, conservatively otherwise."""
     consumed: dict[str, int] = {}
@@ -1962,7 +1994,9 @@ def _consumed_dimension_costs(
                 observed = None
             consumed[name] = observed if observed is not None and observed >= 0 else reserved
         else:
-            consumed[name] = reserved
+            consumed[name] = _measured_page_request_units(
+                provider_name, operation, unit, measurement, reserved
+            )
     return consumed
 
 
@@ -2180,7 +2214,9 @@ def _coordinator_settlement(
         else:
             # Operation-specific request/credit/weight costs are the reviewed
             # provider contract. A received response proves the operation ran.
-            observed[name] = reserved
+            observed[name] = _measured_page_request_units(
+                provider_name, operation, unit, measurement, reserved
+            )
     # Marketstack's FAQ documents that API errors do not count toward its
     # monthly request allowance. The HTTP attempt still consumes the
     # independent requests-per-second budget, and response bytes remain measured.
@@ -4908,6 +4944,8 @@ async def execute_provider_call(
                 policy=resolved.policy,
                 measurement=measurement,
                 reserved_units=dimension_units,
+                provider_name=resolved.provider_name,
+                operation=operation,
             )
             count = response_items(result) if response_items is not None else None
             is_empty = result is None or count == 0
@@ -4917,7 +4955,11 @@ async def execute_provider_call(
                 )
             latency_ms = int((time.perf_counter() - started) * 1000)
             consumed_dimension_units = _consumed_dimension_costs(
-                resolved.policy, measurement, dimension_units
+                resolved.policy,
+                measurement,
+                dimension_units,
+                provider_name=resolved.provider_name,
+                operation=operation,
             )
             log_row.settled_usage_units = _settled_usage_units(
                 resolved.policy,
@@ -5016,7 +5058,11 @@ async def execute_provider_call(
                 resolved.provider_name, capability, operation, provider_symbol, exc
             )
             consumed_dimension_units = _consumed_dimension_costs(
-                resolved.policy, measurement, dimension_units
+                resolved.policy,
+                measurement,
+                dimension_units,
+                provider_name=resolved.provider_name,
+                operation=operation,
             )
             _apply_marketstack_api_error_usage(
                 resolved.provider_name, exc, consumed_dimension_units

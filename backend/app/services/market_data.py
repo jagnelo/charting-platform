@@ -395,6 +395,11 @@ def _is_recoverable_provider_gap(exc: Exception) -> bool:
 # so fresh bars keep arriving, and a restart costs at most one re-ask.
 _NO_DATA_SLICE_TTL = timedelta(hours=12)
 _NO_DATA_SLICE_MIN_AGE = timedelta(days=2)
+# A slice that ended more than a month ago is a pre-listing or long-dead range
+# whose emptiness does not change; every series re-asked it each TTL, a large
+# share of Alpaca's daily quota. Keep those answers for a week.
+_NO_DATA_SLICE_SETTLED_AGE = timedelta(days=30)
+_NO_DATA_SLICE_SETTLED_TTL = timedelta(days=7)
 _NO_DATA_SLICE_MAX_ENTRIES = 50_000
 _no_data_slices: dict[tuple, datetime] = {}
 # The same memo is mirrored best-effort in Redis (same TTL) so a worker restart
@@ -442,7 +447,8 @@ def _remember_no_data_slice(key: tuple, *, end: datetime, now: datetime) -> None
             del _no_data_slices[stale]
         if len(_no_data_slices) >= _NO_DATA_SLICE_MAX_ENTRIES:
             _no_data_slices.clear()
-    _no_data_slices[key] = now + _NO_DATA_SLICE_TTL
+    settled = _as_utc(end) <= now - _NO_DATA_SLICE_SETTLED_AGE
+    _no_data_slices[key] = now + (_NO_DATA_SLICE_SETTLED_TTL if settled else _NO_DATA_SLICE_TTL)
 
 
 async def _no_data_slices_known_shared(keys: list[tuple], *, now: datetime) -> set[tuple]:
@@ -460,10 +466,20 @@ async def _no_data_slices_known_shared(keys: list[tuple], *, now: datetime) -> s
 async def _persist_no_data_slices(keys: list[tuple]) -> None:
     """Mirror freshly remembered slices into Redis (only those still held locally)."""
 
-    held = [key for key in keys if key in _no_data_slices]
-    await shared_memo_remember(
-        _NO_DATA_SLICE_NAMESPACE, held, ttl_seconds=int(_NO_DATA_SLICE_TTL.total_seconds())
-    )
+    # Each key keeps the TTL _remember_no_data_slice chose for it (settled,
+    # long-past slices are held for a week), so group by remaining lifetime.
+    now = datetime.now(UTC)
+    by_ttl: dict[int, list[tuple]] = {}
+    for key in keys:
+        expires = _no_data_slices.get(key)
+        if expires is None:
+            continue
+        # Whole minutes keep one Redis round trip per TTL class.
+        ttl_seconds = int((expires - now).total_seconds()) // 60 * 60
+        if ttl_seconds > 0:
+            by_ttl.setdefault(ttl_seconds, []).append(key)
+    for ttl_seconds, held in by_ttl.items():
+        await shared_memo_remember(_NO_DATA_SLICE_NAMESPACE, held, ttl_seconds=ttl_seconds)
 
 
 async def _fresh_latest_price_from_cache(

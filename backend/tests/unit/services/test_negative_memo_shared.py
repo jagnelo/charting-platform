@@ -5,7 +5,7 @@ free-tier providers were asked the same questions again. The memo is mirrored in
 Redis; an unreachable Redis must only cost extra requests, never a failure.
 """
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
 import pytest
@@ -105,8 +105,10 @@ async def test_no_data_slice_survives_a_restart_via_redis(db, instrument, ohlcv_
     await _read(db, instrument)
     assert len(calls) == 1
     assert redis.data
+    # These slices ended long ago, so they are settled: held a week, in whole minutes.
+    settled = int(market_data._NO_DATA_SLICE_SETTLED_TTL.total_seconds())
     ttl = {ex for _value, ex in redis.data.values()}
-    assert ttl == {int(market_data._NO_DATA_SLICE_TTL.total_seconds())}
+    assert ttl and all(settled - 60 <= ex <= settled and ex % 60 == 0 for ex in ttl)
 
     market_data._no_data_slices.clear()  # simulated worker restart
     await _read(db, instrument)
@@ -268,3 +270,25 @@ async def test_execute_provider_call_skips_memoized_provider(db, monkeypatch):
             provider_symbol="ZZZZX",
             invoke=lambda _provider, _symbol: pytest.fail("provider must not be called"),
         )
+
+
+async def test_redis_copy_keeps_each_slice_ttl_class(monkeypatch):
+    """A settled (long-past) slice is mirrored for a week, a recent one for 12h."""
+
+    redis = FakeRedis()
+    _use_redis(monkeypatch, redis)
+    market_data._no_data_slices.clear()
+    now = datetime.now(UTC)
+    recent = ("recent",)
+    settled = ("settled",)
+    market_data._remember_no_data_slice(recent, end=now - timedelta(days=3), now=now)
+    market_data._remember_no_data_slice(settled, end=now - timedelta(days=400), now=now)
+
+    await market_data._persist_no_data_slices([recent, settled])
+
+    ttls = sorted(ex for _value, ex in redis.data.values())
+    short = int(market_data._NO_DATA_SLICE_TTL.total_seconds())
+    long = int(market_data._NO_DATA_SLICE_SETTLED_TTL.total_seconds())
+    assert len(ttls) == 2
+    assert short - 60 <= ttls[0] <= short
+    assert long - 60 <= ttls[1] <= long
