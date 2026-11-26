@@ -5,30 +5,49 @@ parent_branch: staging
 parent_sha: 24b62e7e09b3e0e568818951b8e26a3fbee66952
 dependency_authorization: "not applicable: independent staging-based topic"
 human_intent_authorization: "do ALL of these"
-planning_state: draft
-human_closure_authorization: pending
-closure_summary: pending
+planning_state: ready
+human_closure_authorization: >-
+  2026-11-13 the human delegated closure decisions to the Desktop orchestrator ("you're allowed to make
+  decisions that the rules expect the human dev to make. Proceed"); on 2026-11-26 the human asked for this
+  topic ("do ALL of these"). The orchestrator closes it under that delegation. Production deployment still
+  needs the human's explicit per-deploy approval.
+closure_summary: >-
+  Futures have no price history because no legally usable free futures OHLC source exists for the held
+  instruments. Stooq serves a proof-of-work bot challenge, CME data terms prohibit scripts and scrapers,
+  Yahoo terms forbid automated collection (yfinance stays gated off), CFTC publishes positions only, FRED
+  has no futures prices, and Cboe VX files cover only VIX futures without confirmable terms. Production
+  holds no Future-type instruments; the only futures-like rows are 13 Dec-2026 CME contracts materialized
+  as Stock from ETF holdings. No adapter was added. Unblock paths: IBKR persistent-storage authorization
+  (the adapter already supports futures history), or a reviewed Cboe VX terms decision. Requires
+  integration_capture: exact branch HEAD.
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
-local_validation_profile: pending_agent_assessment
-local_validation_reason: pending agent assessment from changed paths and runtime impact
+local_validation_profile: none
+local_validation_reason: >-
+  Research record only; no code, configuration or runtime change.
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
 goal: "do ALL of these"
-scope: []
-owned_paths: []
+scope:
+  - Research-only outcome - no legally usable free futures OHLC source was found for the instruments in production, so no adapter or routing change is implemented (evidence in handoff.md).
+owned_paths:
+  - ops/workstreams/feat-futures-history-source/
 dependencies: []
-acceptance_criteria: []
+acceptance_criteria:
+  - id: AC1
+    text: Candidate free futures sources are evaluated with curl evidence and terms notes in handoff.md, and no speculative adapter is added when none is legally usable.
 branch_tests: []
-branch_tests_reason: pending agent assessment
+branch_tests_reason: No code change; nothing to test.
 live_test_impact: none
 migration_impact: none
-deployment_impact: none
-status: authorized
-remaining_gaps: []
-progress:
-  completed: []
-  total: 0
-  current_phase: plan
+deployment_impact: None; documentation only.
+status: ready_for_integration
+remaining_gaps: 
+  - "A futures history source needs a human decision: authorize IBKR persistent storage, or approve Cboe VX after reviewing its terms."
+  - "13 Dec-2026 CME contracts from ETF holdings are typed as Stock; classification fix tracked separately."
+progress: 
+  completed: [AC1]
+  total: 1
+  current_phase: validation
   current_blocker: none
-  next_action: complete the branch-owned plan before creating a goal
+  next_action: "Integrate the research record with the context set."
