@@ -71,6 +71,15 @@ Unchanged: the probe and its assertions, compose limits, the seccomp profile and
   aborts the interpreter on this host on the unmodified tree too (pre-existing local issue, CI unaffected), so
   it was deselected locally.
 
+## Branch CI manifest repair (2026-11-26)
+
+Feature CI 45726057660 on d0100fb9b failed in `Branch-declared Tests` with exit 2: CI passes
+`BRANCH_TESTS_CI_COVERED_COMMANDS=full-backend-suite`, and `run-branch-tests.py` rejects a coverage id the
+manifest does not declare ("CI coverage references undeclared command id(s): full-backend-suite"). The backend
+command now uses the repository's `full-backend-suite` id and `ci_covered_commands` maps it to the `Backend
+Tests` job, which runs all of `backend/tests/unit` (including both declared files). The test set is unchanged;
+the CI step replayed locally with the same environment exits 0.
+
 ## Next
 
 The orchestrator integrates the exact HEAD into staging; the exhaustive gate's research-runner-probes stage is AC4. Production deployment needs the human's explicit approval.

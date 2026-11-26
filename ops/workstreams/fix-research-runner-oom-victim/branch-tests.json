@@ -7,15 +7,22 @@
   ],
   "commands": [
     {
-      "id": "research-runner-unit",
+      "id": "full-backend-suite",
       "command": "uv run --project backend pytest backend/tests/unit/services/test_research_runner.py backend/tests/unit/test_research_runner_deployment.py -q --no-cov",
-      "covers": [1]
+      "covers": [
+        1
+      ]
     }
   ],
+  "ci_covered_commands": {
+    "full-backend-suite": "Backend Tests"
+  },
   "external_gates": [
     {
       "id": "staging-exhaustive-research-runner-probes",
-      "covers": [2],
+      "covers": [
+        2
+      ],
       "reason": "The live research-runner sandbox/resource probes need the full compose stack; the staging Exhaustive Integration Gate runs them at stage=research-runner-probes on the exact integrated SHA."
     }
   ]
