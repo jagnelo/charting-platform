@@ -22,7 +22,7 @@ closure_summary: >-
   integration_capture: exact branch HEAD.
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
-local_validation_profile: none
+local_validation_profile: unit
 local_validation_reason: >-
   Research record only; no code, configuration or runtime change.
 goal_budget_policy: unbounded_unless_human_authorized
