@@ -1,0 +1,1 @@
+{"recorded_at": "2026-11-26T21:33:40.300015+00:00", "kind": "feature_ci", "command": "E2E Tests (Playwright) on 2d14d678", "result": "fail", "summary": "1 flaky (passed on retry): flows.spec.ts:7589 F14-context-keyboard page.waitForResponse for the Horizontal Line save timed out at 60s; this backend-only branch touches no frontend or drawing API; 237 passed; re-run"}
