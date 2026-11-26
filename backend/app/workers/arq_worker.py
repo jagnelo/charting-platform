@@ -503,6 +503,16 @@ async def scheduled_weekly_provider_availability(ctx: dict):
         )
 
 
+async def scheduled_options_refresh(ctx: dict):
+    """Run the bounded daily options chain/quote refresh when enabled."""
+
+    if not settings.OPTIONS_REFRESH_ENABLED:
+        return {"skipped": True, "reason": "options refresh disabled"}
+    from app.tasks.data_tasks import refresh_options_data_task
+
+    return await refresh_options_data_task(ctx)
+
+
 async def scheduled_tokenized_asset_refresh(ctx: dict):
     """Poll persisted tokenized products only when explicitly enabled."""
 
@@ -670,6 +680,7 @@ class WorkerSettings:
         scheduled_daily_provider_availability,
         scheduled_weekly_provider_availability,
         scheduled_tokenized_asset_refresh,
+        scheduled_options_refresh,
         scheduled_tokenized_catalog_refresh,
         scheduled_tokenized_historical_refresh,
         scheduled_tokenized_event_refresh,
@@ -747,6 +758,18 @@ class WorkerSettings:
                 scheduled_identity_batch,
                 minute=set(range(0, 60, 5)),
                 timeout=max(60, int(settings.INSTRUMENT_IDENTITY_BATCH_MAX_SECONDS) + 120),
+            ),
+        )
+    if settings.OPTIONS_REFRESH_ENABLED:
+        # 14:45 UTC is after MarketData.app's 09:30 America/New_York credit
+        # reset in both DST and standard time, and clear of the 22:00 core
+        # equity planner, so options never compete with core D1 work.
+        cron_jobs += (
+            cron(
+                scheduled_options_refresh,
+                hour=14,
+                minute=45,
+                timeout=int(settings.OPTIONS_REFRESH_TIME_BUDGET_SECONDS) + 120,
             ),
         )
     if settings.PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED:

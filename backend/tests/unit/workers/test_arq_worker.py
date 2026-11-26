@@ -1288,3 +1288,24 @@ def test_configure_worker_logging_routes_app_logs_to_a_handler(monkeypatch):
     finally:
         root.handlers = saved_handlers
         root.setLevel(saved_level)
+
+
+@pytest.mark.asyncio
+async def test_options_refresh_is_explicitly_disabled_by_default(monkeypatch):
+    monkeypatch.setattr(settings, "OPTIONS_REFRESH_ENABLED", False)
+
+    result = await arq_worker.scheduled_options_refresh({})
+
+    assert result == {"skipped": True, "reason": "options refresh disabled"}
+
+
+@pytest.mark.asyncio
+async def test_options_refresh_delegates_to_bounded_task(monkeypatch):
+    monkeypatch.setattr(settings, "OPTIONS_REFRESH_ENABLED", True)
+    fake = AsyncMock(return_value={"underlyings_refreshed": 1})
+    monkeypatch.setattr(data_tasks, "refresh_options_data_task", fake)
+
+    result = await arq_worker.scheduled_options_refresh({"redis": "test"})
+
+    assert result == {"underlyings_refreshed": 1}
+    fake.assert_awaited_once_with({"redis": "test"})

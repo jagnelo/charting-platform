@@ -1,0 +1,78 @@
+schema: 4
+branch: feat/options-refresh-scheduling
+base_sha: 24b62e7e09b3e0e568818951b8e26a3fbee66952
+parent_branch: staging
+parent_sha: 24b62e7e09b3e0e568818951b8e26a3fbee66952
+dependency_authorization: "not applicable: independent staging-based topic"
+human_intent_authorization: "do ALL of these"
+planning_state: ready
+human_closure_authorization: >-
+  2026-11-13 the human delegated closure decisions to the Desktop orchestrator ("you're allowed to make
+  decisions that the rules expect the human dev to make. Proceed"); on 2026-11-26 the human asked for this
+  topic ("do ALL of these"). The orchestrator closes it under that delegation. Production deployment still
+  needs the human's explicit per-deploy approval.
+closure_summary: >-
+  Options were discovered on demand only and never refreshed; production holds no option rows. A daily
+  cron scheduled_options_refresh (14:45 UTC, after the MarketData.app credit reset) now refreshes
+  expirations and the nearest chain (within the 45-day horizon) for up to 2 underlyings per day, stalest
+  first (core workstation, watchlisted, or already-held), then 7-day quote/greeks/OI history for up to 10
+  active contracts. Expired contracts are deactivated and never selected; per-day caps are counted from
+  dataset-state fetched_at so reruns do not multiply calls; quota or rate-limit errors stop the pass;
+  every call goes through execute_provider_call quota admission. With the production chain cap of 20
+  contracts the worst case is about 52 of the 100 free daily credits, leaving the rest for on-demand use.
+  It is on by default (orchestrator decision under the standing no-blanket-disables direction). Option
+  contracts are also excluded from the core D1 history planner, which would otherwise have queued them as
+  stock OHLCV work. Requires integration_capture: exact branch HEAD.
+validation_tier: full_integration
+human_validation_authorization: agent_default_full_integration
+local_validation_profile: full_stack_browser
+local_validation_reason: >-
+  Worker cron, settings and compose environment wiring; focused unit suites run locally, and exact-source
+  CI plus the staging exhaustive gate run the full stack.
+goal_budget_policy: unbounded_unless_human_authorized
+human_goal_budget_authorization: none
+goal: "do ALL of these"
+scope:
+  - New bounded daily options refresh (cron 14:45 UTC, disabled by default) - stalest underlyings get expirations plus the nearest active chain, stalest active contracts get quote/greeks/OI history.
+  - Per-UTC-day volume caps derived from the dataset-state ledger so reruns cannot multiply provider calls; quota/rate-limit signals stop the run.
+  - Expired contracts are deactivated and never selected; option contracts are excluded from the discovered-universe D1 planner.
+  - No schema, API, provider routing or quota change; MarketData.app (free tier) is the only enabled options provider.
+owned_paths:
+  - backend/app/services/options_refresh.py
+  - backend/app/tasks/data_tasks.py
+  - backend/app/workers/arq_worker.py
+  - backend/app/config.py
+  - backend/tests/unit/services/test_options_refresh.py
+  - backend/tests/unit/workers/test_arq_worker.py
+  - backend/tests/unit/test_provider_secret_wiring.py
+  - docker-compose.yml
+  - deploy/rpi/compose.yml
+  - .env.example
+  - backend/.env.example
+  - ops/workstreams/feat-options-refresh-scheduling/
+dependencies: []
+acceptance_criteria:
+  - id: AC1
+    text: Selection returns only active, non-expired contracts inside the horizon and stalest underlyings/contracts first; expired contracts are deactivated.
+  - id: AC2
+    text: A run never exceeds the per-day underlying and contract caps, counting work already done that UTC day, so a rerun is a no-op; a provider quota signal stops the run.
+  - id: AC3
+    text: The job is on by default within the free daily credit budget, runs through existing quota-admitted options_data calls only, and option contracts no longer enter the background D1 planner.
+  - id: AC4
+    text: Unit suites for options, worker, tasks and env wiring pass; ruff clean.
+branch_tests:
+  - uv run --project backend pytest backend/tests/unit/services/test_options_refresh.py backend/tests/unit/workers/test_arq_worker.py backend/tests/unit/test_provider_secret_wiring.py -q --no-cov
+branch_tests_reason: Selection, caps and idempotency are offline logic over the unit database; provider I/O is stubbed.
+live_test_impact: none
+migration_impact: none
+deployment_impact: Backend/worker image plus six optional env vars in compose (default disabled). Enabling needs OPTIONS_REFRESH_ENABLED=true and MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS>=2 for chains.
+status: ready_for_integration
+remaining_gaps: 
+  - "No free provider serves intraday option quotes; index and futures options are not covered."
+  - "Production deployment needs the human's explicit approval."
+progress: 
+  completed: [AC1, AC2, AC3, AC4]
+  total: 4
+  current_phase: validation
+  current_blocker: none
+  next_action: "Exact-source feature CI, staging integration and the exhaustive gate."
