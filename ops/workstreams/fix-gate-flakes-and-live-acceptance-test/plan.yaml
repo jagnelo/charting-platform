@@ -55,7 +55,6 @@ acceptance_criteria:
     text: Exact-source CI and the staging exhaustive gate are green.
 branch_tests:
   - uv run --project backend pytest tests/workflow/test_agent_session.py tests/workflow/test_backend_coverage.py -q --no-cov
-  - full-backend-suite
 branch_tests_reason: Workflow behavior is covered offline; browser flows are exercised by the staging e2e-functional stage.
 live_test_impact: none
 migration_impact: none
