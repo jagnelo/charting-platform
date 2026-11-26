@@ -305,3 +305,29 @@ def test_integration_failure_timeout_or_signal_aborts_later_batches_and_coverage
     assert len(integration_commands) == expected_batches
     assert all(len(_nodeids_from_pytest_command(c)) == 25 for c in integration_commands)
     assert not coverage_reports
+
+
+def test_failed_shard_emits_annotation_with_label_status_and_failing_tests(
+    monkeypatch, capsys, tmp_path
+):
+    def fake_run(command, **_kwargs):
+        if "--junitxml" in command:
+            junit = Path(command[command.index("--junitxml") + 1])
+            junit.write_text(
+                '<testsuites><testsuite><testcase classname="tests.unit.test_a" '
+                'name="test_b"><failure/></testcase><testcase classname="x" '
+                'name="ok"/></testsuite></testsuites>'
+            )
+            return subprocess.CompletedProcess(command, 1)
+        return subprocess.CompletedProcess(command, 0)
+
+    monkeypatch.setattr(RUNNER.subprocess, "run", fake_run)
+
+    status = RUNNER._run_pytest(
+        ["tests/unit/test_a.py::test_b"], label="unit shard 3/9", env={}, timeout=5
+    )
+
+    out = capsys.readouterr().out
+    assert status == 1
+    assert "::error title=Backend coverage failed::unit shard 3/9 exit=1" in out
+    assert "tests.unit.test_a::test_b" in out

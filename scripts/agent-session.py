@@ -736,6 +736,7 @@ def external_service_path(path: str) -> bool:
     provider_service_modules = {
         "backend/app/services/bulk_fetch.py",
         "backend/app/services/etf_holdings_provider_bridge.py",
+        "backend/app/services/identity_batch.py",
         "backend/app/services/instrument_mastering.py",
         "backend/app/services/instrument_sync.py",
         "backend/app/services/market_data_persistence.py",

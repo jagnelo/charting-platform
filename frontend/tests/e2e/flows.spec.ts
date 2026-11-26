@@ -7511,7 +7511,12 @@ test.describe('Drawing tools', () => {
     const toolbar = page.locator('.drawing-toolbar').first()
     await expect(toolbar).toBeVisible({ timeout: 15_000 })
     const linesButton = toolbar.getByRole('button', { name: 'Lines' })
+    // Settle the active-window handoff first, then prove the flyout opened
+    // (aria-expanded) so a swallowed click fails here rather than as a 60s
+    // menuitem timeout.
+    await expect(linesButton).toHaveAttribute('aria-expanded', 'false')
     await linesButton.click()
+    await expect(linesButton).toHaveAttribute('aria-expanded', 'true', { timeout: 5_000 })
     const horizBtn = toolbar.getByRole('menuitem', { name: 'Horizontal Line' })
     await horizBtn.click()
     // The flyout closes after selection; its owning group remains active and puts the
