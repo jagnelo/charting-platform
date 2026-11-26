@@ -164,7 +164,8 @@ def test_strategy_chain_has_unique_ids_and_preserves_shared_base() -> None:
     assert len(revisions) == len({revision.revision for revision in revisions})
     heads = scripts.get_heads()
     assert len(heads) == 1
-    assert heads[0] == "a7c3e5f9b2d4"
+    assert heads[0] == "d5e6f7a8b9c0"
+    assert scripts.get_revision("d5e6f7a8b9c0").down_revision == "a7c3e5f9b2d4"
     assert scripts.get_revision("a7c3e5f9b2d4").down_revision == "e6f7a8b9c012"
     assert scripts.get_revision("e6f7a8b9c012").down_revision == "d4a5b6c7e812"
     assert scripts.get_revision("d4a5b6c7e812").down_revision == "slv2_0011"

@@ -31,6 +31,7 @@ goal: "do ALL of these"
 scope:
   - Widen instrument_sync_run.source from varchar(50) to varchar(255) (alembic d5e6f7a8b9c0) and cap the provider-chain label at 255 so a long universe-discovery chain cannot fail the weekly seed before it starts.
 owned_paths:
+  - backend/app/strategy_lab_v2/tests/test_migration_compatibility.py
   - backend/alembic/versions/d5e6f7a8b9c0_widen_instrument_sync_run_source.py
   - backend/app/models/instrument_sync_run.py
   - backend/app/services/instrument_sync.py
