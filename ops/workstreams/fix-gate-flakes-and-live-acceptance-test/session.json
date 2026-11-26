@@ -1,0 +1,65 @@
+{
+  "acceptance_criteria": [],
+  "active_session_id": "cb5751ea-5de4-4fbf-8c47-c883cc34d9b0",
+  "branch": "fix/gate-flakes-and-live-acceptance-test",
+  "dirty_paths": [],
+  "docker": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-fix-gate-flakes-and-live-acceptance-test-f9ec1af0",
+      "charting-stack-fix-gate-flakes-and-live-acceptance-test-f9ec1af0"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "fix-gate-flakes-and-live-acceptance-test-f9ec1af079"
+  },
+  "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance fix/gate-flakes-and-live-acceptance-test: do ALL of these. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_request": {
+    "objective": "Advance fix/gate-flakes-and-live-acceptance-test: do ALL of these. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "planning_required",
+  "goal_state": "planning_required",
+  "head": "c4fed9f4665cfe8841df7a8b2cfee6c7ebc41299",
+  "implementation_sha": "24b62e7e09b3e0e568818951b8e26a3fbee66952",
+  "local_validation_profile": "pending_agent_assessment",
+  "next_action": "run make agent-session-start",
+  "parent_branch": "staging",
+  "plan_hash": "94f8e390034ca7d73805b01491429d5252f6adf2355ab6f072652bb3c90a8f0e",
+  "planning_required": true,
+  "planning_state": "draft",
+  "previous_session_ids": [],
+  "progress": {
+    "completed": [],
+    "current_blocker": "none",
+    "current_phase": "plan",
+    "total": 0
+  },
+  "remote": "c4fed9f4665cfe8841df7a8b2cfee6c7ebc41299",
+  "remote_sha": "c4fed9f4665cfe8841df7a8b2cfee6c7ebc41299",
+  "remote_synchronized": true,
+  "retained_docker_resources": [],
+  "schema": 2,
+  "session_id": "cb5751ea-5de4-4fbf-8c47-c883cc34d9b0",
+  "validation_tier": "full_integration",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/fix-gate-flakes-and-live-acceptance-test/ops/workstreams/fix-gate-flakes-and-live-acceptance-test",
+  "workstream_files": [
+    "/home/m920q/charting-platform/.ai/worktrees/fix-gate-flakes-and-live-acceptance-test/ops/workstreams/fix-gate-flakes-and-live-acceptance-test/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-gate-flakes-and-live-acceptance-test/ops/workstreams/fix-gate-flakes-and-live-acceptance-test/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-gate-flakes-and-live-acceptance-test/ops/workstreams/fix-gate-flakes-and-live-acceptance-test/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-gate-flakes-and-live-acceptance-test/ops/workstreams/fix-gate-flakes-and-live-acceptance-test/session.json"
+  ],
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-gate-flakes-and-live-acceptance-test",
+  "worktree_id": "fix-gate-flakes-and-live-acceptance-test-f9ec1af079"
+}
