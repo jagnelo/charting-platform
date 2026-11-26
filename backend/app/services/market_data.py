@@ -101,6 +101,7 @@ from app.services.market_series import (
     instrument_has_identity_adjustment,
     label_identity_adjusted,
 )
+from app.services.negative_memo import shared_memo_known, shared_memo_remember
 from app.services.ohlcv_coverage import (
     assess_ohlcv_coverage,
     coverage_calendar_for_instrument,
@@ -396,6 +397,9 @@ _NO_DATA_SLICE_TTL = timedelta(hours=12)
 _NO_DATA_SLICE_MIN_AGE = timedelta(days=2)
 _NO_DATA_SLICE_MAX_ENTRIES = 50_000
 _no_data_slices: dict[tuple, datetime] = {}
+# The same memo is mirrored best-effort in Redis (same TTL) so a worker restart
+# or a second worker does not re-ask the provider; the dict stays the fast path.
+_NO_DATA_SLICE_NAMESPACE = "ohlcv-no-data-slice"
 
 
 def _no_data_slice_key(
@@ -439,6 +443,27 @@ def _remember_no_data_slice(key: tuple, *, end: datetime, now: datetime) -> None
         if len(_no_data_slices) >= _NO_DATA_SLICE_MAX_ENTRIES:
             _no_data_slices.clear()
     _no_data_slices[key] = now + _NO_DATA_SLICE_TTL
+
+
+async def _no_data_slices_known_shared(keys: list[tuple], *, now: datetime) -> set[tuple]:
+    """Return the keys the shared (Redis) memo knows, warming the local layer."""
+
+    known = await shared_memo_known(_NO_DATA_SLICE_NAMESPACE, keys)
+    for key in known:
+        # Remaining Redis TTL is unknown cheaply; cap the local copy at the
+        # full TTL, which can only lag Redis expiry by the in-process fast path.
+        if len(_no_data_slices) < _NO_DATA_SLICE_MAX_ENTRIES:
+            _no_data_slices[key] = now + _NO_DATA_SLICE_TTL
+    return known
+
+
+async def _persist_no_data_slices(keys: list[tuple]) -> None:
+    """Mirror freshly remembered slices into Redis (only those still held locally)."""
+
+    held = [key for key in keys if key in _no_data_slices]
+    await shared_memo_remember(
+        _NO_DATA_SLICE_NAMESPACE, held, ttl_seconds=int(_NO_DATA_SLICE_TTL.total_seconds())
+    )
 
 
 async def _fresh_latest_price_from_cache(
@@ -1201,6 +1226,12 @@ async def _fetch_ohlcv_impl(
             if cached and _no_data_slice_is_known(slice_key, now=datetime.now(UTC)):
                 continue
             pending.append((repair_start, repair_end, slice_key))
+        if cached and pending:
+            shared_known = await _no_data_slices_known_shared(
+                [item[2] for item in pending], now=datetime.now(UTC)
+            )
+            if shared_known:
+                pending = [item for item in pending if item[2] not in shared_known]
         for group in _repair_request_groups(pending, timeframe):
             request_start, request_end = group[0][0], group[-1][1]
             try:
@@ -1219,6 +1250,7 @@ async def _fetch_ohlcv_impl(
                 if _is_definitive_no_data(exc):
                     for _gap_start, gap_end, slice_key in group:
                         _remember_no_data_slice(slice_key, end=gap_end, now=datetime.now(UTC))
+                    await _persist_no_data_slices([item[2] for item in group])
                 logger.warning(
                     "Skipping unavailable provider repair slice %s %s %s to %s (%d gaps): %s",
                     instrument.symbol,
@@ -1231,6 +1263,7 @@ async def _fetch_ohlcv_impl(
                 continue
             new_bars.extend(fetched)
             if len(group) > 1:
+                remembered_keys: list[tuple] = []
                 # The provider answered for the whole span, so a gap it left
                 # empty is as definitive as a per-gap no-data answer (thin
                 # feeds skip untraded sessions of illiquid listings).
@@ -1239,6 +1272,8 @@ async def _fetch_ohlcv_impl(
                     index = bisect_left(returned, _as_utc(gap_start))
                     if index == len(returned) or returned[index] > _as_utc(gap_end):
                         _remember_no_data_slice(slice_key, end=gap_end, now=datetime.now(UTC))
+                        remembered_keys.append(slice_key)
+                await _persist_no_data_slices(remembered_keys)
         if new_bars:
             try:
                 await db.execute(

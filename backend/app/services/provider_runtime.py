@@ -7,6 +7,7 @@ import json
 import logging
 import math
 import random
+import re
 import time
 import weakref
 from collections.abc import Callable
@@ -67,12 +68,14 @@ from app.providers import (
 from app.providers.errors import (
     ProviderNotConfiguredError,
     ProviderRateLimitError,
+    ProviderResponseError,
     bounded_redact_provider_message,
     provider_retry_at_from_headers,
 )
 from app.providers.telemetry import activate as activate_provider_telemetry
 from app.providers.telemetry import deactivate as deactivate_provider_telemetry
 from app.services.market_series import asset_class_has_identity_adjustment
+from app.services.negative_memo import shared_memo_known, shared_memo_remember
 from app.services.provider_support import (
     SUPPORT_STATUS_SUPPORTED,
     SUPPORT_STATUS_UNKNOWN,
@@ -83,6 +86,115 @@ from app.services.provider_support import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+# Provider answers that are stable per symbol/token on a free tier: the provider
+# does not list it (404), the plan does not cover it (402/403), or it returned no
+# usable data for an identity lookup. Re-asking every cycle only burns quota, so
+# these are remembered (in process and in Redis) for a bounded time and the
+# provider is skipped for that identity meanwhile.
+_NEGATIVE_MEMO_NAMESPACE = "provider-identity-negative"
+_NEGATIVE_MEMO_OPERATIONS = frozenset({"get_instrument_profile", "get_tokenized_price"})
+_NEGATIVE_MEMO_TTL_NOT_LISTED = timedelta(days=7)
+_NEGATIVE_MEMO_TTL_PLAN_DENIED = timedelta(days=3)
+_NEGATIVE_MEMO_TTL_NO_DATA = timedelta(days=2)
+_NEGATIVE_MEMO_MAX_ENTRIES = 50_000
+_provider_negative_memo: dict[tuple[str, str, str, str], datetime] = {}
+_HTTP_STATUS_IN_MESSAGE = re.compile(r"(?:Client error '|HTTP )(\d{3})\b")
+
+
+def _negative_memo_identity(
+    provider_name: str, capability: ProviderCapability, operation: str, symbol: str | None
+) -> tuple[str, str, str, str] | None:
+    if operation not in _NEGATIVE_MEMO_OPERATIONS or not symbol:
+        return None
+    return (provider_name.strip().lower(), capability.value, operation, str(symbol).strip().upper())
+
+
+def _negative_memo_ttl(exc: Exception) -> timedelta | None:
+    """TTL for a definitive per-identity miss, or ``None`` when not definitive."""
+
+    if type(exc) is ProviderNoDataError:
+        return _NEGATIVE_MEMO_TTL_NO_DATA if "returned no usable data" in str(exc) else None
+    if isinstance(exc, ProviderResponseError):
+        status = getattr(exc, "status_code", None)
+        if status is None:
+            match = _HTTP_STATUS_IN_MESSAGE.search(str(exc))
+            status = int(match.group(1)) if match else None
+        if status == 404:
+            return _NEGATIVE_MEMO_TTL_NOT_LISTED
+        if status in {402, 403}:
+            return _NEGATIVE_MEMO_TTL_PLAN_DENIED
+    return None
+
+
+def _negative_memo_local_known(identity: tuple, *, now: datetime) -> bool:
+    expires = _provider_negative_memo.get(identity)
+    if expires is None:
+        return False
+    if expires <= now:
+        _provider_negative_memo.pop(identity, None)
+        return False
+    return True
+
+
+async def provider_identity_known_missing(
+    capability: ProviderCapability,
+    operation: str,
+    provider_names: list[str],
+    symbol: str | None,
+) -> set[str]:
+    """Return the providers remembered as unable to serve this identity."""
+
+    now = datetime.now(UTC)
+    identities = {
+        name: _negative_memo_identity(name, capability, operation, symbol)
+        for name in provider_names
+    }
+    missing = {
+        name
+        for name, identity in identities.items()
+        if identity is not None and _negative_memo_local_known(identity, now=now)
+    }
+    unknown = {
+        name: identity
+        for name, identity in identities.items()
+        if identity is not None and name not in missing
+    }
+    if unknown:
+        shared = await shared_memo_known(_NEGATIVE_MEMO_NAMESPACE, unknown.values())
+        for name, identity in unknown.items():
+            if identity in shared:
+                missing.add(name)
+                if len(_provider_negative_memo) < _NEGATIVE_MEMO_MAX_ENTRIES:
+                    _provider_negative_memo[identity] = now + _NEGATIVE_MEMO_TTL_NOT_LISTED
+    return missing
+
+
+async def remember_provider_identity_missing(
+    provider_name: str,
+    capability: ProviderCapability,
+    operation: str,
+    symbol: str | None,
+    exc: Exception,
+) -> None:
+    """Remember a definitive per-identity miss; never raises."""
+
+    identity = _negative_memo_identity(provider_name, capability, operation, symbol)
+    ttl = _negative_memo_ttl(exc)
+    if identity is None or ttl is None:
+        return
+    now = datetime.now(UTC)
+    if len(_provider_negative_memo) >= _NEGATIVE_MEMO_MAX_ENTRIES:
+        for stale in [k for k, expires in _provider_negative_memo.items() if expires <= now]:
+            del _provider_negative_memo[stale]
+        if len(_provider_negative_memo) >= _NEGATIVE_MEMO_MAX_ENTRIES:
+            _provider_negative_memo.clear()
+    _provider_negative_memo[identity] = now + ttl
+    await shared_memo_remember(
+        _NEGATIVE_MEMO_NAMESPACE, [identity], ttl_seconds=int(ttl.total_seconds())
+    )
+
 
 T = TypeVar("T")
 HistoryStartSpec = datetime | Callable[[str], datetime | None]
@@ -4539,6 +4651,17 @@ async def execute_provider_call(
     chain = await resolve_provider_chain(db, capability, **resolve_kwargs)
     if provider_name is not None:
         chain = [resolved for resolved in chain if resolved.provider_name == provider_name]
+    if chain and operation in _NEGATIVE_MEMO_OPERATIONS:
+        skipped = await provider_identity_known_missing(
+            capability, operation, [resolved.provider_name for resolved in chain], provider_symbol
+        )
+        if skipped:
+            chain = [resolved for resolved in chain if resolved.provider_name not in skipped]
+            if not chain:
+                raise ProviderNoDataError(
+                    f"{capability.value}/{operation}: every provider is remembered as unable "
+                    "to serve this identity"
+                )
     loop = asyncio.get_event_loop()
     last_error: Exception | None = None
     admission_denied: dict[str, datetime | None] = {}
@@ -4889,6 +5012,9 @@ async def execute_provider_call(
                     error=rate_error,
                 )
             last_error = exc
+            await remember_provider_identity_missing(
+                resolved.provider_name, capability, operation, provider_symbol, exc
+            )
             consumed_dimension_units = _consumed_dimension_costs(
                 resolved.policy, measurement, dimension_units
             )
