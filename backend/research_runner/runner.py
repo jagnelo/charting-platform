@@ -54,6 +54,60 @@ MAX_OUTPUT_ROWS = int(os.environ.get("RESEARCH_MAX_OUTPUT_ROWS", "10000"))
 MAX_OUTPUT_ARTIFACTS = int(os.environ.get("RESEARCH_MAX_OUTPUT_ARTIFACTS", "128"))
 MAX_JOB_BYTES = int(os.environ.get("RESEARCH_MAX_JOB_BYTES", str(64 * 1024 * 1024)))
 
+# The kernel memory-cgroup OOM killer picks the process with the largest
+# RSS + swap + page tables, adjusted by oom_score_adj. This service keeps the
+# interpreter plus numpy/pandas/scipy/statsmodels resident (about 155 MiB), so
+# under container-wide pressure spread across several medium-sized processes it
+# is otherwise the preferred victim and the whole container restarts. The
+# service cannot lower its own score (CAP_SYS_RESOURCE is dropped) and every
+# `docker exec` process inherits the container's oom_score_adj, so the only
+# capability-free asymmetry is raising every *other* process's score to the
+# maximum. The seccomp profile denies clone/fork, so those other processes can
+# only be operator `docker exec` sessions; jobs execute in this process.
+OOM_PREFERRED_VICTIM_SCORE = 1000
+OOM_SWEEP_INTERVAL_SECONDS = 0.05
+PROC_ROOT = Path("/proc")
+_last_oom_sweep = 0.0
+
+
+def prefer_other_processes_for_oom(proc_root: Path | None = None) -> int:
+    """Make every other process in this PID namespace the preferred OOM victim.
+
+    Only raises scores (never lowers one), never touches this process, and
+    ignores processes that exit mid-sweep or belong to another user. Returns the
+    number of processes newly marked.
+    """
+    root = PROC_ROOT if proc_root is None else proc_root
+    own_pid = os.getpid()
+    target = str(OOM_PREFERRED_VICTIM_SCORE)
+    marked = 0
+    try:
+        entries = list(os.scandir(root))
+    except OSError:
+        return 0
+    for entry in entries:
+        if not entry.name.isdigit() or int(entry.name) == own_pid:
+            continue
+        score_path = Path(entry.path) / "oom_score_adj"
+        try:
+            if score_path.read_text().strip() == target:
+                continue
+            score_path.write_text(target)
+            marked += 1
+        except (OSError, ValueError):
+            continue
+    return marked
+
+
+def _prefer_other_processes_for_oom_periodically() -> None:
+    global _last_oom_sweep
+    now = time.monotonic()
+    if now - _last_oom_sweep < OOM_SWEEP_INTERVAL_SECONDS:
+        return
+    _last_oom_sweep = now
+    prefer_other_processes_for_oom()
+
+
 _SAFE_BUILTINS = {
     "abs": abs,
     "all": all,
@@ -4223,7 +4277,10 @@ def run_once(path: Path) -> None:
         result = execute_job(
             payload,
             progress_callback=write_progress,
-            cancellation_check=cancel_path.exists,
+            cancellation_check=lambda: (
+                _prefer_other_processes_for_oom_periodically(),
+                cancel_path.exists(),
+            )[1],
         )
     except Exception as exc:  # the worker must survive one malformed/crashing job
         result = {
@@ -4257,9 +4314,14 @@ def main() -> None:
     JOB_DIR.mkdir(parents=True, exist_ok=True)
     recover_orphaned_jobs()
     while True:
+        prefer_other_processes_for_oom()
         for path in JOB_DIR.glob("*.json"):
             run_once(path)
-        time.sleep(0.25)
+        # Poll for jobs every 0.25 s, but mark newly started processes every
+        # 50 ms so they outrank the service before they can grow large.
+        for _ in range(5):
+            time.sleep(OOM_SWEEP_INTERVAL_SECONDS)
+            prefer_other_processes_for_oom()
 
 
 if __name__ == "__main__":

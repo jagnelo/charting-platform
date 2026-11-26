@@ -24,23 +24,28 @@
     "volume_count": 0,
     "worktree_id": "fix-research-runner-oom-victim-e6385fae94"
   },
+  "docker_ready": {
+    "ready": true,
+    "started_desktop": false,
+    "wait_seconds": 0
+  },
   "goal_budget_policy": "unbounded_unless_human_authorized",
-  "goal_objective": "Advance fix/research-runner-oom-victim: Find out why the concurrent-memory check in ops/probe-research-runner-resources.sh intermittently fails in the staging Exhaustive Integration Gate, then fix the root cause without weakening what the probe asserts. Done means the probe passes reliably, the cause is explained in the workstream handoff, tests and assertions are not weakened, follow the repo workflow (worktree, plan, validate, gate through staging), do not deploy to production.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
-  "goal_recorded_at": "2026-11-26T00:03:28.518785+00:00",
+  "goal_objective": "Advance fix/research-runner-oom-victim: The research-runner service survives aggregate memory pressure from other processes in its container: the kernel OOM-kills those processes, never the service, so the concurrent-memory probe passes reliably.. Acceptance criteria: AC1: Root cause of the intermittent concurrent-memory failure is reproduced and explained in the handoff.; AC2: The unmodified probe passes repeatedly against the fixed image in the configuration that failed deterministically before (no swap headroom), and the sandbox probe still denies every escape.; AC3: Unit tests cover the sweep (siblings raised, service untouched, vanished/foreign processes tolerated) and the in-job sweep; the research-runner unit and deployment tests pass.; AC4: Exact-source feature CI and the staging exhaustive gate (which runs the live research-runner probe stage) are green; production deployment waits for the human's approval.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_recorded_at": "2026-11-26T00:04:03.188130+00:00",
   "goal_request": {
-    "objective": "Advance fix/research-runner-oom-victim: Find out why the concurrent-memory check in ops/probe-research-runner-resources.sh intermittently fails in the staging Exhaustive Integration Gate, then fix the root cause without weakening what the probe asserts. Done means the probe passes reliably, the cause is explained in the workstream handoff, tests and assertions are not weakened, follow the repo workflow (worktree, plan, validate, gate through staging), do not deploy to production.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+    "objective": "Advance fix/research-runner-oom-victim: The research-runner service survives aggregate memory pressure from other processes in its container: the kernel OOM-kills those processes, never the service, so the concurrent-memory probe passes reliably.. Acceptance criteria: AC1: Root cause of the intermittent concurrent-memory failure is reproduced and explained in the handoff.; AC2: The unmodified probe passes repeatedly against the fixed image in the configuration that failed deterministically before (no swap headroom), and the sandbox probe still denies every escape.; AC3: Unit tests cover the sweep (siblings raised, service untouched, vanished/foreign processes tolerated) and the in-job sweep; the research-runner unit and deployment tests pass.; AC4: Exact-source feature CI and the staging exhaustive gate (which runs the live research-runner probe stage) are green; production deployment waits for the human's approval.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
   },
   "goal_request_state": "planning_required",
   "goal_state": "unavailable",
-  "goal_unavailable_reason": "orchestrated side session; human present via orchestrator, workstream is durable truth",
+  "goal_unavailable_reason": "orchestrated side session; the orchestrator integrates; workstream records are durable truth",
   "head": "a69dcbf2539b48d0f0b3ce60f2ea94cd0b472e12",
-  "implementation_sha": "7304c1f6c970103feaf92db51ed7a82b3c0c96b0",
+  "implementation_sha": "dbe8a8dd0036f8fe34d515644f53cb91ac2c5512",
   "local_validation_profile": "pending_agent_assessment",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
-  "plan_hash": "2ca1c2e4eb149dc69ec0e39cc7e29a20cba05fa154e34c25b0abb5762c4c15be",
+  "plan_hash": "0d82f39a4fd0b5740fbd145d5f81b04f4c8753fbc0325ad241103164f65055d0",
   "planning_required": true,
-  "planning_state": "draft",
+  "planning_state": "ready",
   "previous_session_ids": [],
   "progress": {
     "completed": [],
@@ -49,7 +54,7 @@
     "total": 0
   },
   "remote": "a69dcbf2539b48d0f0b3ce60f2ea94cd0b472e12",
-  "remote_sha": "a69dcbf2539b48d0f0b3ce60f2ea94cd0b472e12",
+  "remote_sha": "dbe8a8dd0036f8fe34d515644f53cb91ac2c5512",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
