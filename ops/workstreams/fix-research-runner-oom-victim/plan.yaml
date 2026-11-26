@@ -5,30 +5,66 @@ parent_branch: staging
 parent_sha: 7304c1f6c970103feaf92db51ed7a82b3c0c96b0
 dependency_authorization: "not applicable: independent staging-based topic"
 human_intent_authorization: "Find out why the concurrent-memory check in ops/probe-research-runner-resources.sh intermittently fails in the staging Exhaustive Integration Gate, then fix the root cause without weakening what the probe asserts. Done means the probe passes reliably, the cause is explained in the workstream handoff, tests and assertions are not weakened, follow the repo workflow (worktree, plan, validate, gate through staging), do not deploy to production."
-planning_state: draft
-human_closure_authorization: pending
-closure_summary: pending
+planning_state: ready
+human_closure_authorization: >-
+  2026-11-26 the platform-usability orchestrator, acting under the human's 2026-11-13 delegation ("you're
+  allowed to make decisions that the rules expect the human dev to make. Proceed"), instructed this session
+  to mark the branch ready_for_integration and report its HEAD; the orchestrator integrates it. Production
+  deployment still needs the human's explicit per-deploy approval.
+closure_summary: >-
+  Intermittent staging failures of the research-runner concurrent-memory probe (all eight pressure processes
+  exit 137 and the container is OOM-killed and restarted). The memcg OOM killer picks the largest task; the idle
+  service keeps about 156 MiB resident (numpy/pandas/scipy/statsmodels), so when the probe's processes grow in
+  parallel without swap headroom the service is the victim. A container oom_score_adj is inherited by docker
+  exec processes and the service has no CAP_SYS_RESOURCE and cannot fork, so the runner now raises every other
+  process in its PID namespace to oom_score_adj 1000 (idle loop every 50 ms and during jobs). The unmodified
+  probe went from 0/6 to 10/10 in the no-swap reproduction; the probe, its assertions, compose limits,
+  seccomp and job rlimits are unchanged. Requires integration_capture: exact branch HEAD.
+integration_capture: exact branch HEAD
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
-local_validation_profile: pending_agent_assessment
-local_validation_reason: pending agent assessment from changed paths and runtime impact
+local_validation_profile: full_stack_browser
+local_validation_reason: >-
+  Kernel memory-cgroup OOM victim selection can only be observed against a real research-runner container
+  with the compose limits (768 MiB, one CPU, read-only, seccomp, uid 10001). The live probes were replayed
+  against a disposable container with the exact compose limits; the full stack probe stage runs in the staging
+  exhaustive gate.
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
-goal: "Find out why the concurrent-memory check in ops/probe-research-runner-resources.sh intermittently fails in the staging Exhaustive Integration Gate, then fix the root cause without weakening what the probe asserts. Done means the probe passes reliably, the cause is explained in the workstream handoff, tests and assertions are not weakened, follow the repo workflow (worktree, plan, validate, gate through staging), do not deploy to production."
-scope: []
-owned_paths: []
+goal: >-
+  The research-runner service survives aggregate memory pressure from other processes in its container:
+  the kernel OOM-kills those processes, never the service, so the concurrent-memory probe passes reliably.
+scope:
+  - The runner marks every other process in its PID namespace as the preferred OOM victim (oom_score_adj 1000) from its idle loop every 50 ms and from running jobs' cancellation checks.
+  - No change to the probe, its assertions, compose limits, the seccomp profile or job rlimits.
+owned_paths:
+  - backend/research_runner/runner.py
+  - backend/tests/unit/services/test_research_runner.py
+  - ops/workstreams/fix-research-runner-oom-victim/
 dependencies: []
-acceptance_criteria: []
-branch_tests: []
-branch_tests_reason: pending agent assessment
-live_test_impact: none
+acceptance_criteria:
+  - id: AC1
+    text: Root cause of the intermittent concurrent-memory failure is reproduced and explained in the handoff.
+  - id: AC2
+    text: The unmodified probe passes repeatedly against the fixed image in the configuration that failed deterministically before (no swap headroom), and the sandbox probe still denies every escape.
+  - id: AC3
+    text: Unit tests cover the sweep (siblings raised, service untouched, vanished/foreign processes tolerated) and the in-job sweep; the research-runner unit and deployment tests pass.
+  - id: AC4
+    text: Exact-source feature CI and the staging exhaustive gate (which runs the live research-runner probe stage) are green; production deployment waits for the human's approval.
+branch_tests:
+  - uv run --project backend pytest backend/tests/unit/services/test_research_runner.py backend/tests/unit/test_research_runner_deployment.py -q --no-cov
+  - make test-stack-up && make test-research-runner-probes
+branch_tests_reason: The sweep logic is unit-tested in branch CI; OOM victim selection needs the live container probe, which the staging exhaustive gate runs.
+live_test_impact: The research-runner resource probe becomes deterministic; job execution is unchanged.
 migration_impact: none
-deployment_impact: none
-status: authorized
-remaining_gaps: []
+deployment_impact: Research-runner image only; no environment, compose, seccomp or schema change.
+status: ready_for_integration
+remaining_gaps:
+  - Staging exhaustive gate (AC4) after orchestrator integration.
+  - Production deployment needs the human's explicit approval.
 progress:
-  completed: []
-  total: 0
-  current_phase: plan
+  completed: [AC1, AC2, AC3]
+  total: 4
+  current_phase: integration
   current_blocker: none
-  next_action: complete the branch-owned plan before creating a goal
+  next_action: Orchestrator integrates the exact HEAD into staging and runs the exhaustive gate (AC4).

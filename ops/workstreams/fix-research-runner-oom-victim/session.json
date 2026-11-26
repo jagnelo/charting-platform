@@ -1,20 +1,67 @@
 {
-  "schema": 2,
+  "acceptance_criteria": [],
+  "active_session_id": "c113ae1b-08a0-47aa-bcec-feb7a16e5a4c",
   "branch": "fix/research-runner-oom-victim",
-  "parent_branch": "staging",
-  "implementation_sha": "7304c1f6c970103feaf92db51ed7a82b3c0c96b0",
-  "remote_sha": null,
-  "active_session_id": null,
-  "previous_session_ids": [],
-  "goal_state": "not_started",
+  "dirty_paths": [],
+  "docker": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-fix-research-runner-oom-victim-e6385fae",
+      "charting-stack-fix-research-runner-oom-victim-e6385fae"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "fix-research-runner-oom-victim-e6385fae94"
+  },
   "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance fix/research-runner-oom-victim: Find out why the concurrent-memory check in ops/probe-research-runner-resources.sh intermittently fails in the staging Exhaustive Integration Gate, then fix the root cause without weakening what the probe asserts. Done means the probe passes reliably, the cause is explained in the workstream handoff, tests and assertions are not weakened, follow the repo workflow (worktree, plan, validate, gate through staging), do not deploy to production.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_recorded_at": "2026-11-26T00:03:28.518785+00:00",
+  "goal_request": {
+    "objective": "Advance fix/research-runner-oom-victim: Find out why the concurrent-memory check in ops/probe-research-runner-resources.sh intermittently fails in the staging Exhaustive Integration Gate, then fix the root cause without weakening what the probe asserts. Done means the probe passes reliably, the cause is explained in the workstream handoff, tests and assertions are not weakened, follow the repo workflow (worktree, plan, validate, gate through staging), do not deploy to production.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "planning_required",
+  "goal_state": "unavailable",
+  "goal_unavailable_reason": "orchestrated side session; human present via orchestrator, workstream is durable truth",
+  "head": "a69dcbf2539b48d0f0b3ce60f2ea94cd0b472e12",
+  "implementation_sha": "7304c1f6c970103feaf92db51ed7a82b3c0c96b0",
+  "local_validation_profile": "pending_agent_assessment",
+  "next_action": "continue implementation from the branch workstream",
+  "parent_branch": "staging",
+  "plan_hash": "2ca1c2e4eb149dc69ec0e39cc7e29a20cba05fa154e34c25b0abb5762c4c15be",
+  "planning_required": true,
   "planning_state": "draft",
+  "previous_session_ids": [],
   "progress": {
     "completed": [],
-    "total": 0,
+    "current_blocker": "none",
     "current_phase": "plan",
-    "current_blocker": "none"
+    "total": 0
   },
-  "next_action": "run make agent-session-start",
-  "retained_docker_resources": []
+  "remote": "a69dcbf2539b48d0f0b3ce60f2ea94cd0b472e12",
+  "remote_sha": "a69dcbf2539b48d0f0b3ce60f2ea94cd0b472e12",
+  "remote_synchronized": true,
+  "retained_docker_resources": [],
+  "schema": 2,
+  "session_id": "c113ae1b-08a0-47aa-bcec-feb7a16e5a4c",
+  "validation_tier": "full_integration",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/fix-research-runner-oom-victim/ops/workstreams/fix-research-runner-oom-victim",
+  "workstream_files": [
+    "/home/m920q/charting-platform/.ai/worktrees/fix-research-runner-oom-victim/ops/workstreams/fix-research-runner-oom-victim/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-research-runner-oom-victim/ops/workstreams/fix-research-runner-oom-victim/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-research-runner-oom-victim/ops/workstreams/fix-research-runner-oom-victim/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-research-runner-oom-victim/ops/workstreams/fix-research-runner-oom-victim/session.json"
+  ],
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-research-runner-oom-victim",
+  "worktree_id": "fix-research-runner-oom-victim-e6385fae94"
 }
