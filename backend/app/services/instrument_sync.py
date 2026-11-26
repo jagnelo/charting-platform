@@ -344,9 +344,14 @@ async def _upsert_stats(
     stats.computed_at = datetime.now(UTC)
 
 
+SYNC_RUN_SOURCE_MAX_LENGTH = 255
+
+
 async def _provider_chain_label(db: AsyncSession, capability: ProviderCapability) -> str:
     chain = await resolve_provider_chain(db, capability)
-    return ",".join(item.provider_name for item in chain) if chain else "none"
+    label = ",".join(item.provider_name for item in chain) if chain else "none"
+    # instrument_sync_run.source is varchar(255); never let a long chain fail the run.
+    return label[:SYNC_RUN_SOURCE_MAX_LENGTH]
 
 
 async def seed_universe(db: AsyncSession) -> dict:

@@ -1,0 +1,65 @@
+{
+  "acceptance_criteria": [],
+  "active_session_id": "cbcc1e79-9e23-4f73-8394-61d0ee392ecf",
+  "branch": "fix/provider-negative-memo",
+  "dirty_paths": [],
+  "docker": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-fix-provider-negative-memo-e4e9d233",
+      "charting-stack-fix-provider-negative-memo-e4e9d233"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "fix-provider-negative-memo-e4e9d2331f"
+  },
+  "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance fix/provider-negative-memo: do ALL of these. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_request": {
+    "objective": "Advance fix/provider-negative-memo: do ALL of these. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "planning_required",
+  "goal_state": "planning_required",
+  "head": "b7528a7634e90c72ea6df7add979faec45216914",
+  "implementation_sha": "24b62e7e09b3e0e568818951b8e26a3fbee66952",
+  "local_validation_profile": "pending_agent_assessment",
+  "next_action": "run make agent-session-start",
+  "parent_branch": "staging",
+  "plan_hash": "769799c3b7a7b036c483f3baea99c01a9e11cb544a909e5cec2c16144630fdad",
+  "planning_required": true,
+  "planning_state": "draft",
+  "previous_session_ids": [],
+  "progress": {
+    "completed": [],
+    "current_blocker": "none",
+    "current_phase": "plan",
+    "total": 0
+  },
+  "remote": "b7528a7634e90c72ea6df7add979faec45216914",
+  "remote_sha": "b7528a7634e90c72ea6df7add979faec45216914",
+  "remote_synchronized": true,
+  "retained_docker_resources": [],
+  "schema": 2,
+  "session_id": "cbcc1e79-9e23-4f73-8394-61d0ee392ecf",
+  "validation_tier": "full_integration",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/fix-provider-negative-memo/ops/workstreams/fix-provider-negative-memo",
+  "workstream_files": [
+    "/home/m920q/charting-platform/.ai/worktrees/fix-provider-negative-memo/ops/workstreams/fix-provider-negative-memo/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-provider-negative-memo/ops/workstreams/fix-provider-negative-memo/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-provider-negative-memo/ops/workstreams/fix-provider-negative-memo/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-provider-negative-memo/ops/workstreams/fix-provider-negative-memo/session.json"
+  ],
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-provider-negative-memo",
+  "worktree_id": "fix-provider-negative-memo-e4e9d2331f"
+}

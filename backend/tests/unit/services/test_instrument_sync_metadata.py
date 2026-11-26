@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
@@ -183,3 +184,14 @@ async def test_daily_metadata_task_bounds_the_pass_inside_the_job_timeout(monkey
     assert captured["operation"] == "sync-instruments"
     assert captured["limit"] == 5
     assert before + 540.0 <= captured["deadline"] <= instrument_sync_tasks.time.monotonic() + 540.0
+
+
+@pytest.mark.asyncio
+async def test_provider_chain_label_is_capped_to_column_width(monkeypatch):
+    chain = [SimpleNamespace(provider_name=f"provider_{i:02d}") for i in range(40)]
+    monkeypatch.setattr(instrument_sync, "resolve_provider_chain", AsyncMock(return_value=chain))
+    label = await instrument_sync._provider_chain_label(
+        object(), instrument_sync.ProviderCapability.UNIVERSE_DISCOVERY
+    )
+    assert len(label) == instrument_sync.SYNC_RUN_SOURCE_MAX_LENGTH == 255
+    assert label.startswith("provider_00,provider_01")

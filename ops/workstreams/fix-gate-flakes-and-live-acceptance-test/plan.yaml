@@ -1,0 +1,73 @@
+schema: 4
+branch: fix/gate-flakes-and-live-acceptance-test
+base_sha: 24b62e7e09b3e0e568818951b8e26a3fbee66952
+parent_branch: staging
+parent_sha: 24b62e7e09b3e0e568818951b8e26a3fbee66952
+dependency_authorization: "not applicable: independent staging-based topic"
+human_intent_authorization: "do ALL of these"
+planning_state: ready
+human_closure_authorization: >-
+  2026-11-13 the human delegated closure decisions to the Desktop orchestrator ("you're allowed to make
+  decisions that the rules expect the human dev to make. Proceed"); on 2026-11-26 the human asked for this
+  topic ("do ALL of these"). The orchestrator closes it under that delegation. Production deployment still
+  needs the human's explicit per-deploy approval.
+closure_summary: >-
+  Three gate reliability items. (1) identity_batch.py calls providers but was missing from the
+  full-live-acceptance provider module set in scripts/agent-session.py, so the workflow test failed; it is
+  now registered and the test passes unchanged. (2) backend-coverage exit=2 is make's generic recipe
+  status and hides the real cause; scripts/backend_coverage.py now writes per-shard junitxml and prints a
+  ::error annotation naming the shard, exit status, reason and failing tests, so the next failure is
+  diagnosable from public annotations. (3) The watchlist journey and F14 drawing e2e tests now wait for
+  the create form to close and assert the menu trigger aria-expanded flips to true before selecting an
+  item, so a click swallowed by a layout shift fails fast with that fact rather than a 60s menu-item
+  timeout. The e2e root cause is a hypothesis; the gate is the first real run. Requires
+  integration_capture: exact branch HEAD.
+validation_tier: full_integration
+human_validation_authorization: agent_default_full_integration
+local_validation_profile: full_stack_browser
+local_validation_reason: >-
+  Playwright e2e spec changes plus workflow-script changes; workflow tests run locally, and exact-source
+  CI plus the staging exhaustive gate run the full browser suites (no local Playwright run).
+goal_budget_policy: unbounded_unless_human_authorized
+human_goal_budget_authorization: none
+goal: "do ALL of these"
+scope:
+  - Register backend/app/services/identity_batch.py (a get_provider/execute_provider_call service) as a provider-calling path that requires full live acceptance.
+  - Make the watchlist and drawing-flyout Playwright flows prove the menu opened (aria-expanded) and settle layout before looking for menu items.
+  - Make the backend-coverage runner emit GitHub error annotations naming the failing shard, exit status and failing tests.
+  - No product behavior, CI lane, threshold or timeout change.
+owned_paths:
+  - scripts/agent-session.py
+  - scripts/backend_coverage.py
+  - tests/workflow/test_backend_coverage.py
+  - frontend/tests/e2e/supporting_features_journey.spec.ts
+  - frontend/tests/e2e/flows.spec.ts
+  - ops/workstreams/fix-gate-flakes-and-live-acceptance-test/
+dependencies: []
+acceptance_criteria:
+  - id: AC1
+    text: tests/workflow passes, including test_all_provider_calling_services_require_full_live_acceptance, without loosening it.
+  - id: AC2
+    text: The watchlist journey and F14 drawing tests assert the flyout/menu is open before selecting an item.
+  - id: AC3
+    text: A failing backend-coverage shard, timeout, signal or coverage threshold prints a ::error annotation with its label, status and failing test IDs.
+  - id: AC4
+    text: Exact-source CI and the staging exhaustive gate are green.
+branch_tests:
+  - uv run --project backend pytest tests/workflow/test_agent_session.py tests/workflow/test_backend_coverage.py -q --no-cov
+branch_tests_reason: Workflow behavior is covered offline; browser flows are exercised by the staging e2e-functional stage.
+live_test_impact: none
+migration_impact: none
+deployment_impact: none
+status: ready_for_integration
+remaining_gaps: 
+  - "The e2e root cause is unproven; the new assertions make the next failure precise."
+  - "The backend-coverage root cause awaits the next failure annotation."
+  - "tests/workflow runs only when changed-scope is workflow; widening CI lanes is left as a decision."
+  - "Production deployment needs the human's explicit approval."
+progress: 
+  completed: [AC1, AC2, AC3]
+  total: 4
+  current_phase: validation
+  current_blocker: none
+  next_action: "Exact-source feature CI, staging integration and the exhaustive gate."

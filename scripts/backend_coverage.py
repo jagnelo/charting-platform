@@ -6,6 +6,8 @@ import argparse
 import os
 import subprocess
 import sys
+import tempfile
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Sequence
 
@@ -91,7 +93,34 @@ def run(
     return _shell_status(completed.returncode)
 
 
-def pytest_args(nodeids: Sequence[str]) -> list[str]:
+def failed_testcases(junit_path: Path, limit: int = 10) -> list[str]:
+    """Return failing/erroring test IDs from a pytest JUnit report, if readable."""
+    try:
+        root = ET.parse(junit_path).getroot()
+    except (OSError, ET.ParseError):
+        return []
+    failed: list[str] = []
+    for case in root.iter("testcase"):
+        if case.find("failure") is not None or case.find("error") is not None:
+            failed.append(f"{case.get('classname', '')}::{case.get('name', '')}")
+    return failed[:limit]
+
+
+def _annotate_failure(label: str, status: int, failed: Sequence[str]) -> None:
+    """Emit a GitHub annotation: the gate's own exit code is make's generic 2."""
+    reason = {
+        124: "wall-time limit exceeded",
+        137: "killed by SIGKILL (likely out of memory)",
+    }.get(status, "pytest/coverage reported failure")
+    detail = f"; failing tests: {', '.join(failed)}" if failed else ""
+    print(
+        f"::error title=Backend coverage failed::{label} exit={status} "
+        f"({reason}){detail}",
+        flush=True,
+    )
+
+
+def pytest_args(nodeids: Sequence[str], junit_path: Path | None = None) -> list[str]:
     return [
         "-m",
         "pytest",
@@ -105,6 +134,7 @@ def pytest_args(nodeids: Sequence[str]) -> list[str]:
         "faulthandler_timeout=60",
         "--no-header",
         "-q",
+        *(("--junitxml", str(junit_path)) if junit_path else ()),
     ]
 
 
@@ -116,14 +146,18 @@ def _run_pytest(
     timeout: int,
 ) -> int:
     print(f"▶ {label}: {len(nodeids)} tests", flush=True)
-    status = run(
-        [sys.executable, *pytest_args(nodeids)],
-        cwd=BACKEND_DIR,
-        env=env,
-        timeout=timeout,
-    )
+    with tempfile.TemporaryDirectory(prefix="backend-coverage-") as tmp:
+        junit_path = Path(tmp) / "junit.xml"
+        status = run(
+            [sys.executable, *pytest_args(nodeids, junit_path)],
+            cwd=BACKEND_DIR,
+            env=env,
+            timeout=timeout,
+        )
+        failed = failed_testcases(junit_path) if status else []
     if status:
         print(f"✗ {label} exited with status {status}", flush=True)
+        _annotate_failure(label, status, failed)
         return status
     print(f"✓ {label} passed", flush=True)
     return 0
@@ -173,6 +207,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             file=sys.stderr,
             flush=True,
         )
+        print("::error title=Backend coverage failed::collection timed out", flush=True)
         return 124
     if collect.returncode:
         sys.stderr.write(collect.stdout)
@@ -183,6 +218,10 @@ def main(argv: Sequence[str] | None = None) -> int:
                 file=sys.stderr,
                 flush=True,
             )
+        print(
+            f"::error title=Backend coverage failed::collection exit={collect.returncode}",
+            flush=True,
+        )
         return _shell_status(collect.returncode)
 
     suites = parse_collected_nodeids(collect.stdout)
@@ -236,6 +275,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     ):
         status = run(command, cwd=BACKEND_DIR, env=env)
         if status:
+            print(
+                f"::error title=Backend coverage failed::{' '.join(command[2:])} "
+                f"exit={status} (coverage report exits 2 below --fail-under)",
+                flush=True,
+            )
             return status
     return 0
 

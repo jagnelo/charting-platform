@@ -193,6 +193,15 @@ class Settings(BaseSettings):
     TOKENIZED_HISTORICAL_REFRESH_ENABLED: bool = False
     TOKENIZED_HISTORICAL_REFRESH_MAX_ASSETS: int = 100
     TOKENIZED_HISTORICAL_REFRESH_TIMESPAN: str = "DAY"
+    # Bounded daily options refresh (chains for the stalest underlyings plus
+    # quote/greeks/OI history for active contracts), on by default; the
+    # caps are per UTC day and enforced from the dataset-state ledger.
+    OPTIONS_REFRESH_ENABLED: bool = True
+    OPTIONS_REFRESH_MAX_UNDERLYINGS: int = 2
+    OPTIONS_REFRESH_EXPIRATIONS_PER_UNDERLYING: int = 1
+    OPTIONS_REFRESH_MAX_CONTRACTS: int = 10
+    OPTIONS_REFRESH_QUOTE_LOOKBACK_DAYS: int = 7
+    OPTIONS_REFRESH_TIME_BUDGET_SECONDS: int = 420
     TOKENIZED_ASSET_REFRESH_ENABLED: bool = False
     TOKENIZED_ASSET_REFRESH_MAX_ASSETS: int = 100
     TOKENIZED_EVENT_REFRESH_ENABLED: bool = False
@@ -3366,6 +3375,17 @@ class Settings(BaseSettings):
     INSTRUMENT_IDENTITY_BATCH_MAX_SECONDS: int = 240
     INSTRUMENT_IDENTITY_BATCH_MAX_REQUESTS: int = 250
     INSTRUMENT_IDENTITY_BATCH_RETRY_DAYS: int = 7
+    # Bounded, idempotent merge of provable duplicate instruments (see
+    # app.services.instrument_dedup). Each pass merges at most MAX_PAIRS pairs,
+    # one short transaction per pair, and stops at its wall-time budget.
+    INSTRUMENT_DUPLICATE_MERGE_ENABLED: bool = True
+    INSTRUMENT_DUPLICATE_MERGE_MAX_PAIRS: int = 25
+    INSTRUMENT_DUPLICATE_MERGE_MAX_SECONDS: int = 240
+    # Evidence tiers allowed to merge (merging deletes the duplicate row).
+    # same_listing: identical active ticker/venue/type listing; separator_spelling:
+    # BRK.B vs BRK-B. bar_agreement (matching D1 closes only) is opt-in after its
+    # dry-run counts are reviewed.
+    INSTRUMENT_DUPLICATE_MERGE_EVIDENCE: str = "same_listing,separator_spelling"
     # A held identity child waits for its provider reset only when that reset
     # is near; longer holds complete as a recoverable terminal outcome.
     INSTRUMENT_IDENTITY_HELD_DEFER_MAX_SECONDS: int = 3600

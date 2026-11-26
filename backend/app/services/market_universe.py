@@ -648,6 +648,58 @@ async def _unlinked_exact_listing_instrument(
     return candidates[0]
 
 
+async def _adoptable_legacy_listing(
+    db: AsyncSession,
+    *,
+    symbol: str,
+    exchange_id: int | None,
+    instrument_type_id: int,
+    identifiers: dict[InstrumentIdentifierType, str],
+    name: str,
+) -> Instrument | None:
+    """Return the single legacy instrument a new stable-key row should adopt.
+
+    Requires an exchange-qualified, active, same-type, non-retired candidate
+    that is unique at the ticker/venue, whose domain key is absent or a weaker
+    legacy key (CUSIP/ISIN/SEDOL), whose stable identifiers do not contradict
+    the new ones, and whose name is compatible.
+    """
+
+    if exchange_id is None:
+        return None
+    from app.services.identity_batch import names_compatible
+
+    candidates = [
+        candidate
+        for candidate in await _listing_instruments(db, symbol=symbol, exchange_id=exchange_id)
+        if candidate.is_active
+        and not candidate.is_synthetic
+        and candidate.instrument_type_id == instrument_type_id
+        and candidate.identity_status
+        not in (IdentityStatus.RETIRED.value, "verified_provider_asset")
+    ]
+    if len(candidates) != 1:
+        return None
+    candidate = candidates[0]
+    prefix = (candidate.domain_key or "").split(":", 1)[0]
+    if prefix not in ("", "cusip", "isin", "sedol"):
+        return None
+    existing = (
+        await db.execute(
+            select(
+                InstrumentIdentifier.identifier_type, InstrumentIdentifier.identifier_value
+            ).where(InstrumentIdentifier.instrument_id == candidate.id)
+        )
+    ).all()
+    wanted = {kind: str(value).strip().upper() for kind, value in identifiers.items()}
+    for kind, value in existing:
+        if kind in wanted and str(value).strip().upper() != wanted[kind]:
+            return None
+    if not names_compatible(candidate.name, name, symbol):
+        return None
+    return candidate
+
+
 async def _provider_symbol_instruments(
     db: AsyncSession,
     *,
@@ -1050,9 +1102,19 @@ async def _reconcile_rows(
                 continue
             instrument = provider_bound
         elif security_identifiers:
-            # A new stable key is stronger than a legacy ticker/venue match;
-            # create a provisional candidate rather than silently merging it.
-            instrument = None
+            # A new stable key is stronger than a legacy ticker/venue match, so
+            # it never overrides an owner. But a legacy row that is the only
+            # active listing at this exact ticker/venue/type and carries no
+            # conflicting identifier is the same security: adopt it instead of
+            # minting a duplicate (root cause of the duplicate-instrument bug).
+            instrument = await _adoptable_legacy_listing(
+                db,
+                symbol=symbol,
+                exchange_id=exchange.id if exchange else None,
+                instrument_type_id=instrument_type_id,
+                identifiers=security_identifiers,
+                name=str(quote.get("longName") or quote.get("name") or symbol),
+            )
         else:
             instrument = await _find_instrument(
                 db,

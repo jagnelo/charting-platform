@@ -1,0 +1,1 @@
+{"recorded_at": "2026-11-26T16:22:44.460969+00:00", "kind": "focused_tests", "command": "uv run --project backend pytest tests/workflow/test_agent_session.py tests/workflow/test_backend_coverage.py -q --no-cov", "result": "pass", "summary": "76 passed; ruff clean; Playwright not run locally (gate runs it)"}

@@ -31,7 +31,11 @@ from app.services.instrument_mastering import ensure_instrument_type, register_p
 from app.services.market_data import _attach_provider_series, persist_price_history_bars
 from app.services.market_data_identity import normalize_identifier_value
 from app.services.market_data_persistence import persist_market_event
-from app.services.provider_runtime import execute_provider_call, resolve_provider_chain
+from app.services.provider_runtime import (
+    execute_provider_call,
+    provider_identity_known_missing,
+    resolve_provider_chain,
+)
 
 _NON_PERSISTING_TOKENIZED_CANARIES = frozenset({"dinari"})
 
@@ -1250,7 +1254,16 @@ async def refresh_tokenized_prices(
         for detail, instrument in rows
     ]
     last_detail_id = int(rows[-1][0].id) if rows else None
+    skipped_not_listed = 0
     for instrument_id, provider, provider_asset_id, identifier in batch:
+        if identifier and await provider_identity_known_missing(
+            ProviderCapability.TOKENIZED_ASSETS, "get_tokenized_price", [provider], identifier
+        ):
+            # The provider answered 404/no-data for this token recently; do not
+            # spend a request (or log another exhausted-provider error) until
+            # the negative memo expires.
+            skipped_not_listed += 1
+            continue
         if provider.strip().lower() in _NON_PERSISTING_TOKENIZED_CANARIES:
             failures.append(
                 {
@@ -1326,6 +1339,7 @@ async def refresh_tokenized_prices(
         "requested": len(rows),
         "refreshed": len(refreshed),
         "failed": len(failures),
+        "skipped_not_listed": skipped_not_listed,
         "quotes": refreshed,
         "failures": failures,
     }

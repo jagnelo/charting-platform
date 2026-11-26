@@ -1,5 +1,5 @@
 import { test, expect } from './helpers'
-import type { Page } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
 
 async function openApplicationMenuItem(page: Page, label: string) {
   const trigger = page.getByRole('button', { name: 'Open application navigation' })
@@ -10,6 +10,18 @@ async function openApplicationMenuItem(page: Page, label: string) {
   const item = menu.getByRole('menuitem', { name: label, exact: true })
   await item.focus()
   await item.press('Enter')
+}
+
+// Open a watchlist row's options menu and prove it opened before the caller
+// looks for an item in it.  The trigger's aria-expanded is the real condition:
+// a click that lands during a layout shift (for example the create form
+// closing after the POST resolves) leaves it "false", and this fails at once
+// with that fact instead of timing out later on a menu item that never rendered.
+async function openWatchlistRowMenu(row: Locator) {
+  const trigger = row.getByRole('button', { name: 'More options' })
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false')
+  await trigger.click()
+  await expect(trigger).toHaveAttribute('aria-expanded', 'true', { timeout: 5_000 })
 }
 
 async function authorizationHeaders(page: Page): Promise<Record<string, string>> {
@@ -125,6 +137,8 @@ test('supporting watchlists — keyboard create, membership, rename recovery, re
   expect(firstCreated.status()).toBe(200)
   const firstList = await firstCreated.json() as { id: number; name: string }
   expect(firstList.name).toBe(firstName)
+  // The form closes after the POST resolves and shifts the list; wait for that.
+  await expect(page.getByPlaceholder('Name…')).toHaveCount(0)
 
   await page.getByRole('button', { name: '+ New' }).click()
   const createSecond = page.getByPlaceholder('Name…')
@@ -138,9 +152,11 @@ test('supporting watchlists — keyboard create, membership, rename recovery, re
   expect(secondCreated.status()).toBe(200)
   const secondList = await secondCreated.json() as { id: number; name: string }
   expect(secondList.name).toBe(secondName)
+  // The form closes after the POST resolves and shifts the list; wait for that.
+  await expect(page.getByPlaceholder('Name…')).toHaveCount(0)
 
   const firstItem = page.locator('.wls-item').filter({ hasText: firstName })
-  await firstItem.getByRole('button', { name: 'More options' }).click()
+  await openWatchlistRowMenu(firstItem)
   await firstItem.getByRole('button', { name: 'Rename', exact: true }).click()
   const rename = page.getByRole('textbox', { name: `Rename ${firstName}`, exact: true })
   const editingFirstItem = page.locator('.wls-item').filter({ has: rename })
@@ -179,7 +195,7 @@ test('supporting watchlists — keyboard create, membership, rename recovery, re
   await expect(page.locator('.wlm-title')).toHaveText(secondName)
   await expect(page.locator('.wlm-item').filter({ hasText: 'SPY' })).toBeVisible()
 
-  await refreshedSecond.getByRole('button', { name: 'More options' }).click()
+  await openWatchlistRowMenu(refreshedSecond)
   await refreshedSecond.getByRole('button', { name: 'Rename', exact: true }).click()
   const validRename = page.getByRole('textbox', { name: `Rename ${secondName}`, exact: true })
   await validRename.fill(renamedName)
@@ -192,14 +208,14 @@ test('supporting watchlists — keyboard create, membership, rename recovery, re
   const renamedItem = page.locator('.wls-item').filter({ hasText: renamedName })
   await expect(renamedItem).toBeVisible()
 
-  await renamedItem.getByRole('button', { name: 'More options' }).click()
+  await openWatchlistRowMenu(renamedItem)
   await renamedItem.getByRole('button', { name: 'Delete', exact: true }).click()
   const confirmation = page.getByText(`Delete watchlist "${renamedName}"?`, { exact: true })
   await expect(confirmation).toBeVisible()
   await page.getByRole('button', { name: 'Cancel', exact: true }).click()
   await expect(renamedItem).toBeVisible()
 
-  await renamedItem.getByRole('button', { name: 'More options' }).click()
+  await openWatchlistRowMenu(renamedItem)
   await renamedItem.getByRole('button', { name: 'Delete', exact: true }).click()
   const deleteResponse = page.waitForResponse(response =>
     new URL(response.url()).pathname === `/api/v1/watchlists/${secondList.id}`
@@ -213,7 +229,7 @@ test('supporting watchlists — keyboard create, membership, rename recovery, re
   expect(remainingLists.map(list => list.id)).not.toContain(secondList.id)
 
   const firstAgain = page.locator('.wls-item').filter({ hasText: firstName })
-  await firstAgain.getByRole('button', { name: 'More options' }).click()
+  await openWatchlistRowMenu(firstAgain)
   await firstAgain.getByRole('button', { name: 'Delete', exact: true }).click()
   const deleteFirst = page.waitForResponse(response =>
     new URL(response.url()).pathname === `/api/v1/watchlists/${firstList.id}`

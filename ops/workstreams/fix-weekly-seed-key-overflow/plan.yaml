@@ -1,0 +1,61 @@
+schema: 4
+branch: fix/weekly-seed-key-overflow
+base_sha: 24b62e7e09b3e0e568818951b8e26a3fbee66952
+parent_branch: staging
+parent_sha: 24b62e7e09b3e0e568818951b8e26a3fbee66952
+dependency_authorization: "not applicable: independent staging-based topic"
+human_intent_authorization: "do ALL of these"
+planning_state: ready
+human_closure_authorization: >-
+  2026-11-13 the human delegated closure decisions to the Desktop orchestrator ("you're allowed to make
+  decisions that the rules expect the human dev to make. Proceed"); on 2026-11-26 the human asked for this
+  topic ("do ALL of these"). The orchestrator closes it under that delegation. Production deployment still
+  needs the human's explicit per-deploy approval.
+closure_summary: >-
+  The weekly universe seed (cron scheduled_weekly_seed) failed on 2026-11-22 with
+  StringDataRightTruncation: value too long for type character varying(50). seed_universe_task records an
+  instrument_sync_run audit row whose source is the comma-joined provider chain; a long chain exceeded
+  varchar(50) and the insert failed before the seed started. Migration d5e6f7a8b9c0 widens source to
+  varchar(255) (existing rows stay valid; downgrade refuses to truncate) and the chain label is capped at
+  255 characters. Requires integration_capture: exact branch HEAD.
+validation_tier: full_integration
+human_validation_authorization: agent_default_full_integration
+local_validation_profile: docker_integration
+local_validation_reason: >-
+  Additive alembic migration on PostgreSQL plus the seed audit-row write; focused unit tests run locally
+  and exact-source CI plus the staging exhaustive gate run the migration chain and integration suites on
+  PostgreSQL.
+goal_budget_policy: unbounded_unless_human_authorized
+human_goal_budget_authorization: none
+goal: "do ALL of these"
+scope:
+  - Widen instrument_sync_run.source from varchar(50) to varchar(255) (alembic d5e6f7a8b9c0) and cap the provider-chain label at 255 so a long universe-discovery chain cannot fail the weekly seed before it starts.
+owned_paths:
+  - backend/app/strategy_lab_v2/tests/test_migration_compatibility.py
+  - backend/alembic/versions/d5e6f7a8b9c0_widen_instrument_sync_run_source.py
+  - backend/app/models/instrument_sync_run.py
+  - backend/app/services/instrument_sync.py
+  - backend/tests/unit/migrations/test_instrument_sync_run_source_width.py
+  - backend/tests/unit/services/test_instrument_sync_metadata.py
+  - ops/workstreams/fix-weekly-seed-key-overflow/
+dependencies: []
+acceptance_criteria:
+  - id: AC1
+    text: instrument_sync_run.source holds provider chains longer than 50 characters; existing rows stay valid and the downgrade refuses to truncate.
+  - id: AC2
+    text: The chain label is capped at the column width so the audit-row insert never raises StringDataRightTruncation.
+branch_tests:
+  - uv run --project backend pytest backend/tests/unit/migrations/test_instrument_sync_run_source_width.py backend/tests/unit/services/test_instrument_sync_metadata.py -q --no-cov
+branch_tests_reason: Column width and label cap are covered offline (SQLite batch alter plus unit).
+live_test_impact: none
+migration_impact: One additive alembic migration d5e6f7a8b9c0 (head a7c3e5f9b2d4 -> d5e6f7a8b9c0) widening a varchar; safe, existing rows untouched; downgrade refuses if long values exist.
+deployment_impact: Backend/worker image plus alembic upgrade; no environment change.
+status: ready_for_integration
+remaining_gaps: 
+  - "Production deployment needs the human's explicit approval."
+progress: 
+  completed: [AC1, AC2]
+  total: 2
+  current_phase: validation
+  current_blocker: none
+  next_action: "Exact-source feature CI, staging integration and the exhaustive gate."

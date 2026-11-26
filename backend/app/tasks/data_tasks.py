@@ -11,14 +11,14 @@ from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from sqlalchemy import or_, select
+from sqlalchemy import exists, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import clamped_worker_max_jobs, settings
 from app.database import AsyncSessionLocal
 from app.models.data_source import DataSource
 from app.models.exchange import Exchange
-from app.models.instrument import Instrument
+from app.models.instrument import Instrument, OptionDetail
 from app.models.instrument_identity import InstrumentProviderSymbol
 from app.models.listing import InstrumentListing
 from app.models.market_data_foundation import MarketRefreshJob
@@ -1134,7 +1134,11 @@ async def enqueue_workstation_maintenance(
             (
                 await db.execute(
                     select(Instrument.id).where(
-                        Instrument.is_active.is_(True), Instrument.is_synthetic.is_(False)
+                        Instrument.is_active.is_(True),
+                        Instrument.is_synthetic.is_(False),
+                        # Option contracts are not OHLCV-provider symbols; the
+                        # dedicated options refresh owns them.
+                        ~exists().where(OptionDetail.instrument_id == Instrument.id),
                     )
                 )
             ).scalars()
@@ -3955,6 +3959,16 @@ async def refresh_tokenized_historical_asset_prices(ctx: dict) -> dict:
             max_assets=settings.TOKENIZED_HISTORICAL_REFRESH_MAX_ASSETS,
             timespan=settings.TOKENIZED_HISTORICAL_REFRESH_TIMESPAN,
         )
+
+
+async def refresh_options_data_task(ctx: dict) -> dict:
+    """Run one bounded options chain/quote-history pass."""
+
+    from app.services.options_refresh import refresh_options_data
+
+    del ctx
+    async with AsyncSessionLocal() as db:
+        return await refresh_options_data(db)
 
 
 async def refresh_tokenized_corporate_actions(ctx: dict) -> dict:
