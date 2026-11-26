@@ -2299,3 +2299,59 @@ def test_runner_rejects_event_for_undeclared_symbol():
     )
     assert result["status"] == "failed"
     assert "not declared" in result["diagnostics"][0]["message"]
+
+
+def _fake_proc(root: Path, entries: dict[str, str | None]) -> None:
+    root.mkdir()
+    for name, score in entries.items():
+        entry = root / name
+        entry.mkdir()
+        if score is not None:
+            (entry / "oom_score_adj").write_text(f"{score}\n")
+
+
+def test_runner_makes_every_other_process_the_preferred_oom_victim(tmp_path, monkeypatch):
+    proc = tmp_path / "proc"
+    monkeypatch.setattr(runner.os, "getpid", lambda: 1)
+    _fake_proc(
+        proc,
+        {"1": "0", "7": "0", "8": "-500", "9": "1000", "10": None, "self": "0", "sys": None},
+    )
+
+    marked = runner.prefer_other_processes_for_oom(proc)
+
+    # The service itself keeps its score; every sibling is raised to the
+    # maximum, including one that inherited a negative container score.
+    assert marked == 2
+    assert (proc / "1" / "oom_score_adj").read_text().strip() == "0"
+    assert (proc / "7" / "oom_score_adj").read_text().strip() == "1000"
+    assert (proc / "8" / "oom_score_adj").read_text().strip() == "1000"
+    assert (proc / "9" / "oom_score_adj").read_text().strip() == "1000"
+    assert (proc / "self" / "oom_score_adj").read_text().strip() == "0"
+    # A vanished or foreign process is skipped rather than failing the sweep.
+    assert not (proc / "10" / "oom_score_adj").exists()
+    assert runner.prefer_other_processes_for_oom(proc) == 0
+    assert runner.prefer_other_processes_for_oom(tmp_path / "missing") == 0
+
+
+def test_runner_marks_oom_victims_while_a_job_is_running(tmp_path, monkeypatch):
+    jobs = tmp_path / "jobs"
+    results = tmp_path / "results"
+    jobs.mkdir()
+    monkeypatch.setattr(runner, "JOB_DIR", jobs)
+    monkeypatch.setattr(runner, "RESULT_DIR", results)
+    sweeps = []
+    monkeypatch.setattr(runner, "prefer_other_processes_for_oom", lambda: sweeps.append(1))
+    monkeypatch.setattr(runner, "_last_oom_sweep", 0.0)
+
+    def fake_execute_job(payload, *, progress_callback, cancellation_check):
+        assert cancellation_check() is False
+        return {"status": "completed", "artifacts": {}, "diagnostics": []}
+
+    monkeypatch.setattr(runner, "execute_job", fake_execute_job)
+    (jobs / "5.json").write_text('{"source":"output.scalar(\'ok\', 1)"}')
+
+    run_once(jobs / "5.json")
+
+    assert sweeps == [1]
+    assert json.loads((results / "5.json").read_text())["status"] == "completed"
