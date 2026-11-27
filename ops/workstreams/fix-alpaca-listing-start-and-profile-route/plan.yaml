@@ -5,30 +5,71 @@ parent_branch: staging
 parent_sha: 713c0ad8abd57ef0649e1122c5fada88cccf069f
 dependency_authorization: "not applicable: independent staging-based topic"
 human_intent_authorization: "Yes, do 7\u201311"
-planning_state: draft
-human_closure_authorization: pending
-closure_summary: pending
+planning_state: ready
+human_closure_authorization: >-
+  2026-11-13 the human delegated closure decisions to the Desktop orchestrator ("you're allowed to make
+  decisions that the rules expect the human dev to make. Proceed"); on 2026-11-26 the human asked for this
+  topic ("do ALL of these"). The orchestrator closes it under that delegation. Production deployment still
+  needs the human's explicit per-deploy approval.
+closure_summary: >-
+  About 87% of Alpaca D1 history calls returned no data. After a head chunk returns bars that begin at the
+  listing, the planner queued an older chunk back to 2016 that is always empty, and it repeated daily
+  because its request key moves with the end date (11,189 such jobs in 24 h). The planner now skips the
+  older chunk when the bars of the chunk it just fetched (stored plus fetched, for D1 and coarser) begin
+  more than 30 days after the chunk start, or when the chunk ends before the earliest known listing or IPO
+  date; the reason is recorded in result_summary. About 98% of the last day's older-chunk no-data jobs
+  would have been skipped. Alpaca is no longer routed for instrument_metadata (no data on 96% of profile
+  calls): it is dropped from the chain seed and from its routable capabilities, so the seed sweep disables
+  its policy row and Edgar and Massive serve profiles. Requires integration_capture: exact branch HEAD.
+  Requires integration_capture: exact branch HEAD.
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
-local_validation_profile: pending_agent_assessment
-local_validation_reason: pending agent assessment from changed paths and runtime impact
+local_validation_profile: docker_integration
+local_validation_reason: >-
+  640 focused unit tests (tasks, providers, registry, runtime), tests/workflow (217) and ruff pass; the
+  existing PostgreSQL data-preparation queue and child-coalescing suites (23) pass on this branch, and a
+  trial merge with the retention and sync-run branches merges cleanly with 206 task and worker tests
+  passing.
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
 goal: "Yes, do 7\u201311"
-scope: []
-owned_paths: []
+scope:
+  - Stop the D1 history chunk planner from enqueuing older pre-listing slices (listing/IPO floor, or daily+ series starting inside the chunk).
+  - Remove Alpaca from the routable instrument_metadata (get_instrument_profile) providers.
+owned_paths:
+  - backend/app/tasks/data_tasks.py
+  - backend/app/config.py
+  - backend/app/providers/registry.py
+  - backend/tests/unit/tasks/test_history_pre_listing_clamp.py
+  - backend/tests/unit/providers/test_new_providers.py
+  - docs/data-providers.md
+  - ops/workstreams/fix-alpaca-listing-start-and-profile-route/plan.yaml
 dependencies: []
-acceptance_criteria: []
-branch_tests: []
-branch_tests_reason: pending agent assessment
+acceptance_criteria:
+  - id: AC1
+    text: "A history chunk that returned bars does not enqueue an older chunk ending before the known listing/IPO floor (7 day margin)."
+  - id: AC2
+    text: "A daily-or-coarser chunk whose earliest bar is over 30 days after the chunk start does not enqueue an older chunk."
+  - id: AC3
+    text: "Instruments with no known listing date and no start-gap evidence keep existing backfill; intraday is unaffected by the gap rule."
+  - id: AC4
+    text: "Alpaca no longer lists instrument_metadata as a capability, so the seed sweep disables its policy and the chain resolves edgar, massive only."
+branch_tests:
+  - uv run --project backend pytest backend/tests/unit/tasks backend/tests/unit/providers/test_new_providers.py backend/tests/unit/services/test_provider_registry.py backend/tests/unit/services/test_provider_runtime.py -q --no-cov
+  - uv run --project backend ruff check backend/app backend/tests
+branch_tests_reason: Unit tests cover the pure skip decision, listing floor lookup and capability change; no live provider or migration involved.
 live_test_impact: none
 migration_impact: none
-deployment_impact: none
-status: authorized
-remaining_gaps: []
-progress:
-  completed: []
-  total: 0
-  current_phase: plan
+deployment_impact: backend worker and API restart; seed pass disables the stale alpaca instrument_metadata policy row on startup; no migration
+status: ready_for_integration
+remaining_gaps: 
+  - "Listing and IPO floors rarely apply today (equity_detail.ipo_date is empty; 4,309 of 97,885 listings have effective_at); the 30-day series-start rule does the work."
+  - "A daily series with a gap longer than 30 days at a chunk start would stop older backfill for that instrument."
+  - "About 28k head-chunk no-data jobs a day (instruments Alpaca does not carry) are a separate case."
+  - "Production deployment needs the human's explicit approval."
+progress: 
+  completed: [AC1, AC2, AC3, AC4]
+  total: 4
+  current_phase: validation
   current_blocker: none
-  next_action: complete the branch-owned plan before creating a goal
+  next_action: "Exact-source feature CI, staging integration and the exhaustive gate."

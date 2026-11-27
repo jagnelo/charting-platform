@@ -354,10 +354,10 @@ class Settings(BaseSettings):
         "instrument_search": ["edgar", "massive", "alpha_vantage"],
         # SEC remains the default issuer/profile source; Massive's ticker
         # overview is the preferred supplementary metadata route with stable
-        # FIGI/CIK and listing lifecycle fields. Alpaca is last because its
-        # authenticated asset object is provider-native listing metadata and
-        # does not itself establish a cross-provider identity.
-        "instrument_metadata": ["edgar", "massive", "alpaca"],
+        # FIGI/CIK and listing lifecycle fields. Alpaca is deliberately not
+        # routed: its asset API carries no profile fields beyond basics, so
+        # get_instrument_profile returned no data ~96% of the time in production.
+        "instrument_metadata": ["edgar", "massive"],
         # Frankfurter is admitted only for Currency/Forex Pair instruments
         # (``_PROVIDER_INSTRUMENT_KINDS``); listing it last leaves the
         # equity providers' base priorities unchanged.
