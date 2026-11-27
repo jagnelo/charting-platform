@@ -3368,6 +3368,12 @@ class Settings(BaseSettings):
     # commits and records its run before the worker's 600s job timeout.
     INSTRUMENT_DAILY_METADATA_MAX_SECONDS: int = 480
     INSTRUMENT_DAILY_IDENTIFIER_CAP: int = 250
+    # Wall-time bound for the daily identifier bootstrap (clamped to 30..540s)
+    # so it records its run inside the worker's 600s job timeout.
+    INSTRUMENT_DAILY_IDENTIFIER_MAX_SECONDS: int = 480
+    # A 'running' instrument_sync_run older than this is treated as abandoned
+    # (killed worker / timeout) and closed as failed by the reaper.
+    INSTRUMENT_SYNC_RUN_STALE_AFTER_SECONDS: int = 21600
     # Batched OpenFIGI US-composite identity for discovered listings. Each
     # pass is bounded by wall time and request count; every mapping request
     # is still reserved against the reviewed OpenFIGI quota contract.
