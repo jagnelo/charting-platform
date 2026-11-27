@@ -1309,3 +1309,17 @@ async def test_options_refresh_delegates_to_bounded_task(monkeypatch):
 
     assert result == {"underlyings_refreshed": 1}
     fake.assert_awaited_once_with({"redis": "test"})
+
+
+def test_tracking_retention_cron_is_registered_by_default():
+    from app.workers import arq_worker
+
+    jobs = [
+        job
+        for job in arq_worker.WorkerSettings.cron_jobs
+        if job.coroutine is arq_worker.scheduled_refresh_tracking_retention
+    ]
+
+    assert len(jobs) == 1
+    assert jobs[0].minute == {11, 41}
+    assert arq_worker.scheduled_refresh_tracking_retention in arq_worker.WorkerSettings.functions

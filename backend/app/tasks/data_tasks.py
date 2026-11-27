@@ -3031,6 +3031,7 @@ async def process_refresh_jobs(
                                 prerequisites,
                                 expected=len(set(wait_for_ids)),
                                 now=datetime.now(UTC),
+                                parked=bool(preparation.get("coalesced_into")),
                             )
                         )
 
@@ -3616,10 +3617,17 @@ async def process_refresh_jobs(
 
 DEPENDENCY_RECHECK_MIN = timedelta(seconds=20)
 DEPENDENCY_RECHECK_MAX = timedelta(minutes=10)
+# A coalesced duplicate parks this long: the survivor's completion wakes it
+# (wake_waiting_dependents); the park only bounds a missed wake.
+DEPENDENCY_PARK_MAX = timedelta(minutes=30)
 
 
 def dependency_recheck_at(
-    prerequisites: list[MarketRefreshJob], *, expected: int, now: datetime
+    prerequisites: list[MarketRefreshJob],
+    *,
+    expected: int,
+    now: datetime,
+    parked: bool = False,
 ) -> datetime:
     """When a dependency-deferred child should look at its prerequisites again.
 
@@ -3632,6 +3640,10 @@ def dependency_recheck_at(
     """
 
     soonest = now + DEPENDENCY_RECHECK_MIN
+    if parked and len(prerequisites) == expected:
+        # Coalesced duplicate: nothing to do until the survivor completes, and
+        # that completion wakes it. Do not poll it through the claim rotation.
+        return now + DEPENDENCY_PARK_MAX
     unfinished = [job for job in prerequisites if job.status != "completed"]
     if len(prerequisites) != expected or any(
         job.status not in ("deferred", "retry") or job.next_attempt_at is None for job in unfinished
