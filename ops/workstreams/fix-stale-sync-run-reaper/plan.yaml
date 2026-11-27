@@ -1,0 +1,76 @@
+schema: 4
+branch: fix/stale-sync-run-reaper
+base_sha: 713c0ad8abd57ef0649e1122c5fada88cccf069f
+parent_branch: staging
+parent_sha: 713c0ad8abd57ef0649e1122c5fada88cccf069f
+dependency_authorization: "not applicable: independent staging-based topic"
+human_intent_authorization: "Yes, do 7\u201311"
+planning_state: ready
+human_closure_authorization: >-
+  2026-11-13 the human delegated closure decisions to the Desktop orchestrator ("you're allowed to make
+  decisions that the rules expect the human dev to make. Proceed"); on 2026-11-26 the human asked for this
+  topic ("do ALL of these"). The orchestrator closes it under that delegation. Production deployment still
+  needs the human's explicit per-deploy approval.
+closure_summary: >-
+  Production held 12 instrument_sync_run rows stuck in 'running' (9 sync-instruments, 3
+  bootstrap-ids/openfigi). run_tracked_sync closed rows only in `except Exception`, but arq job timeouts
+  cancel with CancelledError (a BaseException) and deploys kill the worker; the daily OpenFIGI bootstrap
+  also had no time budget and took 8-9 min against the 600 s job timeout. Rows are now always closed:
+  failed on exceptions (fresh-session fallback if the job session cannot commit) and cancelled on
+  cancellation (shielded fresh-session write). bootstrap-ids stops at a 480 s budget. A reaper marks
+  running rows older than 6 h as failed ('abandoned: ...') at worker startup and before every run, so the
+  next deploy closes all 12 production rows. Stale rows never blocked runs. Requires integration_capture:
+  exact branch HEAD. Requires integration_capture: exact branch HEAD.
+validation_tier: full_integration
+human_validation_authorization: agent_default_full_integration
+local_validation_profile: docker_integration
+local_validation_reason: >-
+  Reaper UPDATE and cancellation close verified on real PostgreSQL via testcontainers (2 tests, including
+  a real asyncio task cancel); 212 focused unit tests (reaper, sync metadata, arq worker, tasks) pass;
+  ruff clean.
+goal_budget_policy: unbounded_unless_human_authorized
+human_goal_budget_authorization: none
+goal: "Yes, do 7\u201311"
+scope:
+  - "Always close instrument_sync_run rows: failed on exception (fresh-session fallback), cancelled on CancelledError via shielded fresh session"
+  - "Bound the daily bootstrap-ids pass by wall time (INSTRUMENT_DAILY_IDENTIFIER_MAX_SECONDS, default 480s) so it finishes inside the 600s arq job timeout"
+  - "Add idempotent stale-run reaper (INSTRUMENT_SYNC_RUN_STALE_AFTER_SECONDS, default 21600) run at worker startup and at the start of every tracked sync"
+  - "Verified a stale running row does not block later runs (no in-progress guard exists)"
+owned_paths:
+  - backend/app/services/instrument_sync.py
+  - backend/app/tasks/instrument_sync_tasks.py
+  - backend/app/workers/arq_worker.py
+  - backend/app/config.py
+  - backend/tests/unit/services/test_instrument_sync_run_reaper.py
+  - backend/tests/integration/test_instrument_sync_run_reaper_postgres.py
+  - ops/workstreams/fix-stale-sync-run-reaper/plan.yaml
+dependencies: []
+acceptance_criteria:
+  - id: AC1
+    text: "A cancelled tracked sync leaves its row status=cancelled with finished_at and error set"
+  - id: AC2
+    text: "An exception whose session cannot commit still closes the row as failed"
+  - id: AC3
+    text: "bootstrap_isins stops at its deadline; bootstrap_ids_task passes a bounded deadline"
+  - id: AC4
+    text: "The reaper closes only running rows older than the threshold, is idempotent, and leaves younger rows alone"
+  - id: AC5
+    text: "Worker startup invokes the reaper; stale rows never block a new run"
+branch_tests:
+  - "uv run --project backend pytest backend/tests/unit/services/test_instrument_sync_run_reaper.py backend/tests/unit/services/test_instrument_sync_metadata.py backend/tests/unit/workers/test_arq_worker.py -q --no-cov"
+  - "uv run --project backend ruff check backend/app backend/tests"
+  - "cd backend && uv run pytest tests/integration/test_instrument_sync_run_reaper_postgres.py --override-ini addopts= -q"
+branch_tests_reason: Focused unit tests cover the close paths, reaper and startup hook; the PostgreSQL test proves the reaper UPDATE and a real asyncio cancellation closing the row through a fresh session.
+live_test_impact: none
+migration_impact: none
+deployment_impact: worker restart on deploy runs the reaper and closes the 12 stale production rows (ids 1,4,6,8,10,12,14,17,18,20,27,29); no migration, new settings have safe defaults
+status: ready_for_integration
+remaining_gaps: 
+  - "The exact kill cause of past runs is not provable from logs (they reset at each restart); cancellation or restart is the mechanism."
+  - "Production deployment needs the human's explicit approval."
+progress: 
+  completed: [AC1, AC2, AC3, AC4, AC5]
+  total: 5
+  current_phase: validation
+  current_blocker: none
+  next_action: "Exact-source feature CI, staging integration and the exhaustive gate."

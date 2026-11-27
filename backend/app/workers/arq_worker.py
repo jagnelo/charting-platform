@@ -634,6 +634,11 @@ async def worker_startup(ctx: dict):
     the normal worker lifecycle while accepting other work.
     """
 
+    from app.services.instrument_sync import reap_stale_sync_runs_safely
+
+    # Close instrument_sync_run rows left 'running' by a previous worker kill.
+    await reap_stale_sync_runs_safely()
+
     if not settings.CORE_WORKSTATION_BOOTSTRAP_ENABLED:
         return
     redis = ctx.get("redis")

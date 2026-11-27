@@ -34,7 +34,10 @@ async def bootstrap_ids_task(ctx: dict, limit: int | None = None) -> dict:
     """Daily capped stable identifier enrichment for instruments missing external IDs."""
     async with AsyncSessionLocal() as db:
         cap = limit if limit is not None else settings.INSTRUMENT_DAILY_IDENTIFIER_CAP
-        return await run_tracked_sync(db, "bootstrap-ids", limit=cap)
+        budget = max(30.0, min(float(settings.INSTRUMENT_DAILY_IDENTIFIER_MAX_SECONDS), 540.0))
+        return await run_tracked_sync(
+            db, "bootstrap-ids", limit=cap, deadline=time.monotonic() + budget
+        )
 
 
 async def scheduled_weekly_seed(ctx: dict) -> dict:

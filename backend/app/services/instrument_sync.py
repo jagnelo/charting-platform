@@ -12,9 +12,9 @@ Three responsibilities:
 import asyncio
 import logging
 import time
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -1017,7 +1017,9 @@ async def seed_universe(db: AsyncSession) -> dict:
 # ── Bootstrap ─────────────────────────────────────────────────────────────────
 
 
-async def bootstrap_isins(db: AsyncSession, limit: int | None = None) -> dict:
+async def bootstrap_isins(
+    db: AsyncSession, limit: int | None = None, *, deadline: float | None = None
+) -> dict:
     """
     Populate the primary stable identifier for every active instrument that doesn't have one.
 
@@ -1041,6 +1043,9 @@ async def bootstrap_isins(db: AsyncSession, limit: int | None = None) -> dict:
     skipped = 0
 
     for inst in instruments:
+        if deadline is not None and time.monotonic() >= deadline:
+            logger.info("Bootstrap stopped at its time budget")
+            break
         async with _IDENTIFIER_SEMAPHORE:
             before_identifier = inst.primary_identifier_value
             before_type = inst.primary_identifier_type
@@ -1263,6 +1268,73 @@ async def sync_instruments(
 
 # ── Run tracking ─────────────────────────────────────────────────────────────
 
+_STALE_RUN_ERROR = (
+    "abandoned: no finish recorded within {seconds}s of start (worker killed or job cancelled)"
+)
+
+
+def _run_close_session():
+    """Fresh session used to close a run row when the job's own session is unusable."""
+    from app.database import AsyncSessionLocal
+
+    return AsyncSessionLocal()
+
+
+async def _close_run_in_fresh_session(run_id: int, status: str, error: str) -> None:
+    """Mark a still-running row closed using a brand-new session.
+
+    The job's own session may be mid-statement (cancelled) or in a failed
+    transaction, so it must not be reused.
+    """
+    async with _run_close_session() as session:
+        await session.execute(
+            update(InstrumentSyncRun)
+            .where(InstrumentSyncRun.id == run_id, InstrumentSyncRun.status == "running")
+            .values(status=status, finished_at=datetime.now(UTC), error=error[:4000])
+        )
+        await session.commit()
+
+
+async def reap_stale_sync_runs(db: AsyncSession, *, now: datetime | None = None) -> int:
+    """Close ``running`` rows older than the stale threshold as ``failed``.
+
+    Idempotent and bounded: only rows still ``running`` with no ``finished_at``
+    and a ``started_at`` older than ``INSTRUMENT_SYNC_RUN_STALE_AFTER_SECONDS``
+    are touched, so a legitimately active run is never closed. Returns the count.
+    """
+    seconds = max(int(settings.INSTRUMENT_SYNC_RUN_STALE_AFTER_SECONDS), 0)
+    current = now or datetime.now(UTC)
+    cutoff = current - timedelta(seconds=seconds)
+    result = await db.execute(
+        update(InstrumentSyncRun)
+        .where(
+            InstrumentSyncRun.status == "running",
+            InstrumentSyncRun.finished_at.is_(None),
+            InstrumentSyncRun.started_at < cutoff,
+        )
+        .values(
+            status="failed",
+            finished_at=current,
+            error=_STALE_RUN_ERROR.format(seconds=seconds),
+        )
+        .execution_options(synchronize_session=False)
+    )
+    await db.commit()
+    count = int(result.rowcount or 0)
+    if count:
+        logger.warning("Reaped %d stale instrument sync run(s) older than %ds", count, seconds)
+    return count
+
+
+async def reap_stale_sync_runs_safely() -> int:
+    """Startup/maintenance wrapper: never raises, uses its own session."""
+    try:
+        async with _run_close_session() as session:
+            return await reap_stale_sync_runs(session)
+    except Exception:
+        logger.warning("Stale instrument sync run reaper failed", exc_info=True)
+        return 0
+
 
 async def run_tracked_sync(
     db: AsyncSession,
@@ -1271,7 +1343,19 @@ async def run_tracked_sync(
     limit: int | None = None,
     deadline: float | None = None,
 ) -> dict:
-    """Run an instrument maintenance operation and persist an audit record."""
+    """Run an instrument maintenance operation and persist an audit record.
+
+    The row is always closed: ``completed`` on success, ``failed`` on any
+    exception, and ``cancelled`` when the task is cancelled (arq job timeout or
+    worker shutdown), via a shielded write on a fresh session.
+    """
+    # Opportunistic, idempotent cleanup of runs abandoned by earlier kills.
+    try:
+        await reap_stale_sync_runs(db)
+    except Exception:
+        await db.rollback()
+        logger.warning("Stale instrument sync run reap failed", exc_info=True)
+
     run = InstrumentSyncRun(
         operation=operation,
         source=(
@@ -1286,6 +1370,7 @@ async def run_tracked_sync(
     )
     db.add(run)
     await db.commit()
+    run_id = run.id
 
     try:
         if operation == "seed-universe":
@@ -1293,7 +1378,7 @@ async def run_tracked_sync(
         elif operation == "sync-instruments":
             result = await sync_instruments(db, limit=limit, deadline=deadline)
         elif operation == "bootstrap-ids":
-            result = await bootstrap_isins(db, limit=limit)
+            result = await bootstrap_isins(db, limit=limit, deadline=deadline)
         else:
             raise ValueError(f"Unknown instrument sync operation: {operation}")
 
@@ -1305,10 +1390,23 @@ async def run_tracked_sync(
         run.total_count = int(result.get("total", 0) or 0)
         run.metrics = result
         await db.commit()
-        return {"run_id": run.id, **result}
+        return {"run_id": run_id, **result}
     except Exception as exc:
-        run.status = "failed"
-        run.finished_at = datetime.now(UTC)
-        run.error = redact_provider_message(exc)[:4000]
-        await db.commit()
+        error = redact_provider_message(exc)[:4000]
+        try:
+            # A session left in a failed transaction raises on commit; the
+            # fresh-session fallback below then closes the row.
+            run.status = "failed"
+            run.finished_at = datetime.now(UTC)
+            run.error = error
+            await db.commit()
+        except BaseException:
+            await asyncio.shield(_close_run_in_fresh_session(run_id, "failed", error))
+        raise
+    except BaseException as exc:  # CancelledError / KeyboardInterrupt are not Exception
+        message = f"cancelled: {type(exc).__name__} (job timeout or worker shutdown)"
+        try:
+            await asyncio.shield(_close_run_in_fresh_session(run_id, "cancelled", message))
+        except BaseException:
+            logger.error("Could not close instrument sync run %s on cancel", run_id, exc_info=True)
         raise

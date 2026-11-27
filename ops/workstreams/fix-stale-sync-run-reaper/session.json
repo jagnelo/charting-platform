@@ -1,0 +1,65 @@
+{
+  "acceptance_criteria": [],
+  "active_session_id": "6d41a322-6eda-4de2-b04a-c22ded6d956d",
+  "branch": "fix/stale-sync-run-reaper",
+  "dirty_paths": [],
+  "docker": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-fix-stale-sync-run-reaper-1edec189",
+      "charting-stack-fix-stale-sync-run-reaper-1edec189"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "fix-stale-sync-run-reaper-1edec18972"
+  },
+  "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance fix/stale-sync-run-reaper: Yes, do 7\u201311. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_request": {
+    "objective": "Advance fix/stale-sync-run-reaper: Yes, do 7\u201311. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "planning_required",
+  "goal_state": "planning_required",
+  "head": "ebc79e3f99009042fa7f993c7eae0332f3b5e755",
+  "implementation_sha": "713c0ad8abd57ef0649e1122c5fada88cccf069f",
+  "local_validation_profile": "pending_agent_assessment",
+  "next_action": "run make agent-session-start",
+  "parent_branch": "staging",
+  "plan_hash": "e44ce5736bd2c634363630f0f55df81ac45919b380e5cebe7f4fe85b6955a3fe",
+  "planning_required": true,
+  "planning_state": "draft",
+  "previous_session_ids": [],
+  "progress": {
+    "completed": [],
+    "current_blocker": "none",
+    "current_phase": "plan",
+    "total": 0
+  },
+  "remote": "ebc79e3f99009042fa7f993c7eae0332f3b5e755",
+  "remote_sha": "ebc79e3f99009042fa7f993c7eae0332f3b5e755",
+  "remote_synchronized": true,
+  "retained_docker_resources": [],
+  "schema": 2,
+  "session_id": "6d41a322-6eda-4de2-b04a-c22ded6d956d",
+  "validation_tier": "full_integration",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/fix-stale-sync-run-reaper/ops/workstreams/fix-stale-sync-run-reaper",
+  "workstream_files": [
+    "/home/m920q/charting-platform/.ai/worktrees/fix-stale-sync-run-reaper/ops/workstreams/fix-stale-sync-run-reaper/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-stale-sync-run-reaper/ops/workstreams/fix-stale-sync-run-reaper/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-stale-sync-run-reaper/ops/workstreams/fix-stale-sync-run-reaper/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-stale-sync-run-reaper/ops/workstreams/fix-stale-sync-run-reaper/session.json"
+  ],
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-stale-sync-run-reaper",
+  "worktree_id": "fix-stale-sync-run-reaper-1edec18972"
+}
