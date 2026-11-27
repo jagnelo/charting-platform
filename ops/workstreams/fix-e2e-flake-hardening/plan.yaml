@@ -1,0 +1,69 @@
+schema: 4
+branch: fix/e2e-flake-hardening
+base_sha: 713c0ad8abd57ef0649e1122c5fada88cccf069f
+parent_branch: staging
+parent_sha: 713c0ad8abd57ef0649e1122c5fada88cccf069f
+dependency_authorization: "not applicable: independent staging-based topic"
+human_intent_authorization: "Yes, do 7\u201311"
+planning_state: ready
+human_closure_authorization: >-
+  2026-11-13 the human delegated closure decisions to the Desktop orchestrator ("you're allowed to make
+  decisions that the rules expect the human dev to make. Proceed"); on 2026-11-26 the human asked for this
+  topic ("do ALL of these"). The orchestrator closes it under that delegation. Production deployment still
+  needs the human's explicit per-deploy approval.
+closure_summary: >-
+  Four e2e tests flaked about once per CI run, and CI fails any flaky test. F14-context-keyboard now waits
+  for the OHLC and drawings loads, the drawing canvas, the Lines flyout opening and drawing mode before
+  measuring the plot overlay and placing the line. F8x-library registers the version-save POST wait before
+  the click, and CodeLibraryTool bumps its refresh generation on save, so a list fetch started before the
+  save can no longer overwrite the new version (a real app race). The F8p Study Lab tests assert the
+  symbol and source before Validate. The watchlist journey waits for the row to stop moving, then clicks
+  the menu trigger exactly once. No assertion is removed or loosened and no retry setting is changed.
+  Requires integration_capture: exact branch HEAD. Requires integration_capture: exact branch HEAD.
+validation_tier: full_integration
+human_validation_authorization: agent_default_full_integration
+local_validation_profile: full_stack_browser
+local_validation_reason: >-
+  Spec and one component edit. Locally: vue-tsc passes and Playwright lists all 348 tests in 16 files. The
+  flakes are CI timing races, so proof is the exact-source e2e job and the staging gate, both running the
+  full browser stack.
+goal_budget_policy: unbounded_unless_human_authorized
+human_goal_budget_authorization: none
+goal: "Yes, do 7\u201311"
+scope:
+  - Make the F14-context-keyboard drawing e2e deterministic (await chart bars and drawings GET, flyout aria-expanded, drawing mode, re-measured plot overlay before placing).
+  - Make F8x-library wait for the version POST before asserting the version count, and stop a stale mount-time asset list fetch from overwriting a freshly saved version in CodeLibraryTool.
+  - Harden F8p-export and F8p Study Lab setup waits (source and symbol asserted before Validate).
+  - Make the watchlist row-menu opener in the supporting journey click once only after the row position is stable, so a click is no longer lost to a layout shift.
+owned_paths:
+  - frontend/tests/e2e/flows.spec.ts
+  - frontend/tests/e2e/supporting_features_journey.spec.ts
+  - frontend/src/components/workstation/CodeLibraryTool.vue
+  - ops/workstreams/fix-e2e-flake-hardening/plan.yaml
+dependencies: []
+acceptance_criteria:
+  - id: AC1
+    text: "No assertion is removed, skipped or loosened and no retry setting is raised."
+  - id: AC2
+    text: "Every waitForResponse in the touched tests is registered before its triggering action."
+  - id: AC3
+    text: "CodeLibraryTool never lets a pre-save list fetch overwrite a saved version."
+  - id: AC4
+    text: "vue-tsc passes and Playwright lists both touched spec files."
+branch_tests:
+  - npm --prefix frontend run type-check
+branch_tests_reason: Typecheck covers the spec and component edits locally; the flakes are timing races that only the full e2e stack exercises, so proof is the exact-source feature CI e2e job and the staging gate.
+live_test_impact: none
+migration_impact: none
+deployment_impact: frontend bundle only (small CodeLibraryTool.vue change); no migration or backend change
+status: ready_for_integration
+remaining_gaps: 
+  - "The F8p root cause is not pinned: StudyLabTool.validate() returns silently when the dataset intent changes mid-flight, so that flake may recur."
+  - "The fixes were not reproduced locally; CI repetition is the evidence."
+  - "Production deployment needs the human's explicit approval."
+progress: 
+  completed: [AC1, AC2, AC3, AC4]
+  total: 4
+  current_phase: validation
+  current_blocker: none
+  next_action: "Exact-source feature CI, staging integration and the exhaustive gate."

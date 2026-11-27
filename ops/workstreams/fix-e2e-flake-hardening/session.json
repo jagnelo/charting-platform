@@ -1,0 +1,65 @@
+{
+  "acceptance_criteria": [],
+  "active_session_id": "f7421d72-1163-483d-98e5-ad3a037bbb2f",
+  "branch": "fix/e2e-flake-hardening",
+  "dirty_paths": [],
+  "docker": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-fix-e2e-flake-hardening-1c8b7922",
+      "charting-stack-fix-e2e-flake-hardening-1c8b7922"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "fix-e2e-flake-hardening-1c8b792299"
+  },
+  "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance fix/e2e-flake-hardening: Yes, do 7\u201311. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_request": {
+    "objective": "Advance fix/e2e-flake-hardening: Yes, do 7\u201311. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "planning_required",
+  "goal_state": "planning_required",
+  "head": "932387c6fc22d83ff9cf4d3278f4dd698a172c81",
+  "implementation_sha": "713c0ad8abd57ef0649e1122c5fada88cccf069f",
+  "local_validation_profile": "pending_agent_assessment",
+  "next_action": "run make agent-session-start",
+  "parent_branch": "staging",
+  "plan_hash": "6341b630b893a91a667214d483fcdd8f846acfe103dd9943a9359e61a00327e9",
+  "planning_required": true,
+  "planning_state": "draft",
+  "previous_session_ids": [],
+  "progress": {
+    "completed": [],
+    "current_blocker": "none",
+    "current_phase": "plan",
+    "total": 0
+  },
+  "remote": "932387c6fc22d83ff9cf4d3278f4dd698a172c81",
+  "remote_sha": "932387c6fc22d83ff9cf4d3278f4dd698a172c81",
+  "remote_synchronized": true,
+  "retained_docker_resources": [],
+  "schema": 2,
+  "session_id": "f7421d72-1163-483d-98e5-ad3a037bbb2f",
+  "validation_tier": "full_integration",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/fix-e2e-flake-hardening/ops/workstreams/fix-e2e-flake-hardening",
+  "workstream_files": [
+    "/home/m920q/charting-platform/.ai/worktrees/fix-e2e-flake-hardening/ops/workstreams/fix-e2e-flake-hardening/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-e2e-flake-hardening/ops/workstreams/fix-e2e-flake-hardening/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-e2e-flake-hardening/ops/workstreams/fix-e2e-flake-hardening/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-e2e-flake-hardening/ops/workstreams/fix-e2e-flake-hardening/session.json"
+  ],
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-e2e-flake-hardening",
+  "worktree_id": "fix-e2e-flake-hardening-1c8b792299"
+}
