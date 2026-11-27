@@ -1,0 +1,65 @@
+{
+  "acceptance_criteria": [],
+  "active_session_id": "40c67468-31c3-4b27-8465-df8843961e45",
+  "branch": "fix/alpaca-listing-start-and-profile-route",
+  "dirty_paths": [],
+  "docker": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-fix-alpaca-listing-start-and-profile-route-22483763",
+      "charting-stack-fix-alpaca-listing-start-and-profile-route-22483763"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "fix-alpaca-listing-start-and-profile-route-22483763c0"
+  },
+  "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance fix/alpaca-listing-start-and-profile-route: Yes, do 7\u201311. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_request": {
+    "objective": "Advance fix/alpaca-listing-start-and-profile-route: Yes, do 7\u201311. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "planning_required",
+  "goal_state": "planning_required",
+  "head": "6076abbbe2871b8bd4d6adab4fb76ee4e13929d7",
+  "implementation_sha": "713c0ad8abd57ef0649e1122c5fada88cccf069f",
+  "local_validation_profile": "pending_agent_assessment",
+  "next_action": "run make agent-session-start",
+  "parent_branch": "staging",
+  "plan_hash": "cb9014cb43c62e8008c13c413420025c729085f20092e91e49e7736dc9080bc3",
+  "planning_required": true,
+  "planning_state": "draft",
+  "previous_session_ids": [],
+  "progress": {
+    "completed": [],
+    "current_blocker": "none",
+    "current_phase": "plan",
+    "total": 0
+  },
+  "remote": "6076abbbe2871b8bd4d6adab4fb76ee4e13929d7",
+  "remote_sha": "6076abbbe2871b8bd4d6adab4fb76ee4e13929d7",
+  "remote_synchronized": true,
+  "retained_docker_resources": [],
+  "schema": 2,
+  "session_id": "40c67468-31c3-4b27-8465-df8843961e45",
+  "validation_tier": "full_integration",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/fix-alpaca-listing-start-and-profile-route/ops/workstreams/fix-alpaca-listing-start-and-profile-route",
+  "workstream_files": [
+    "/home/m920q/charting-platform/.ai/worktrees/fix-alpaca-listing-start-and-profile-route/ops/workstreams/fix-alpaca-listing-start-and-profile-route/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-alpaca-listing-start-and-profile-route/ops/workstreams/fix-alpaca-listing-start-and-profile-route/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-alpaca-listing-start-and-profile-route/ops/workstreams/fix-alpaca-listing-start-and-profile-route/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-alpaca-listing-start-and-profile-route/ops/workstreams/fix-alpaca-listing-start-and-profile-route/session.json"
+  ],
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-alpaca-listing-start-and-profile-route",
+  "worktree_id": "fix-alpaca-listing-start-and-profile-route-22483763c0"
+}

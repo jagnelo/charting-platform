@@ -200,7 +200,8 @@ class TestRegistryCapabilities:
         assert "instrument_events" in caps
         assert "universe_discovery" in caps
         assert "option_chain" not in caps
-        assert "instrument_metadata" in caps
+        # Alpaca asset API has no profile fields beyond basics; not routable.
+        assert "instrument_metadata" not in caps
 
     def test_fred_capabilities(self):
         caps = set(list_provider_capabilities("fred"))

@@ -393,6 +393,13 @@ def _capability_names(provider: ProviderDescriptor) -> list[str]:
     ).strip().lower() in {"demo", "free-demo"}:
         # CoinGecko's account-usage endpoint is Pro-only, not part of Demo.
         capabilities = [name for name in capabilities if name != "account_usage"]
+    if provider_name == "alpaca":
+        # Alpaca's asset API carries no profile fields beyond basics, so
+        # get_instrument_profile returned no data ~96% of production calls.
+        # The adapter method stays callable directly, but the provider is not
+        # a routable instrument_metadata source (stale policy rows are
+        # disabled by the capability sweep in seed_provider_runtime).
+        capabilities = [name for name in capabilities if name != "instrument_metadata"]
     # EDGAR's filing-driven IPO detector is a market-event subtype with an
     # issuer/CIK input rather than the calendar-wide ``fetch_market_events``
     # shape. Keep it under the existing market-events policy/quota capability;

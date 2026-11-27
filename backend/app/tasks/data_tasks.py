@@ -2097,6 +2097,71 @@ async def _plan_and_fetch_history_chunk(
         )
 
 
+# A history chunk whose request window ends before the instrument's known
+# first-listing evidence is a pre-listing slice: no provider can have bars.
+_PRE_LISTING_MARGIN = timedelta(days=7)
+# For daily-and-coarser series, bars that begin this far after the chunk's own
+# start prove the provider's series begins inside the chunk (listing/first
+# trade); older chunks would only request the empty pre-listing past.
+_SERIES_START_GAP = timedelta(days=30)
+_DAILY_OR_COARSER = frozenset({Timeframe.D1, Timeframe.W1, Timeframe.MN, Timeframe.Y1})
+
+
+async def _known_listing_floor(db: AsyncSession, instrument: Instrument) -> datetime | None:
+    """Earliest known listing/IPO evidence for an instrument, or None if unknown.
+
+    Uses the earliest of the active listings' ``effective_at`` and the equity
+    ``ipo_date`` so conflicting sources never cut off real history.
+    """
+
+    from app.models.instrument import EquityDetail
+
+    candidates: list[datetime] = []
+    listing_dates = (
+        (
+            await db.execute(
+                select(InstrumentListing.effective_at).where(
+                    InstrumentListing.instrument_id == instrument.id,
+                    InstrumentListing.is_active.is_(True),
+                    InstrumentListing.effective_at.is_not(None),
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    candidates.extend(value for value in (_optional_datetime(v) for v in listing_dates) if value)
+    ipo_date = (
+        await db.execute(
+            select(EquityDetail.ipo_date).where(EquityDetail.instrument_id == instrument.id)
+        )
+    ).scalar_one_or_none()
+    if ipo_date is not None:
+        candidates.append(datetime(ipo_date.year, ipo_date.month, ipo_date.day, tzinfo=UTC))
+    return min(candidates) if candidates else None
+
+
+def _older_history_chunk_is_pre_listing(
+    *,
+    timeframe: Timeframe,
+    chunk_start: datetime,
+    previous_end: datetime,
+    listing_floor: datetime | None,
+    earliest_bar: datetime | None,
+) -> str | None:
+    """Return a reason when the next older chunk lies before the series start."""
+
+    if listing_floor is not None and previous_end < listing_floor - _PRE_LISTING_MARGIN:
+        return "pre_listing_history_slice"
+    if (
+        earliest_bar is not None
+        and timeframe in _DAILY_OR_COARSER
+        and earliest_bar - chunk_start > _SERIES_START_GAP
+    ):
+        return "series_starts_inside_chunk"
+    return None
+
+
 async def _enqueue_older_history_chunk(
     db: AsyncSession,
     *,
@@ -3078,6 +3143,7 @@ async def process_refresh_jobs(
                 full_range_start = None
                 full_range_end = None
                 range_coverage_status = None
+                older_skip_reason = None
                 default_series_selected = False
                 chunk_coverage_status = None
                 if preparation.get("derived_only"):
@@ -3230,6 +3296,24 @@ async def process_refresh_jobs(
                             bars
                             and full_range_start is not None
                             and planned_start > full_range_start
+                        ):
+                            bar_times = [
+                                _optional_datetime(bar.ts)
+                                for bar in bars
+                                if getattr(bar, "ts", None) is not None
+                            ]
+                            older_skip_reason = _older_history_chunk_is_pre_listing(
+                                timeframe=timeframe,
+                                chunk_start=planned_start,
+                                previous_end=planned_start - timedelta(microseconds=1),
+                                listing_floor=await _known_listing_floor(db, instrument),
+                                earliest_bar=min(bar_times) if bar_times else None,
+                            )
+                        if (
+                            bars
+                            and full_range_start is not None
+                            and planned_start > full_range_start
+                            and older_skip_reason is None
                         ):
                             next_job_id = await _enqueue_older_history_chunk(
                                 db,
@@ -3452,6 +3536,7 @@ async def process_refresh_jobs(
                         "history_depth_unknown_candidates": preparation.get(
                             "history_depth_unknown_candidates", []
                         ),
+                        "older_history_skipped_reason": older_skip_reason,
                         "history_depth_unknown_holds": preparation.get(
                             "history_depth_unknown_holds", {}
                         ),
