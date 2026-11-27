@@ -781,6 +781,9 @@ services:
       # worker migration URL; runtime AsyncSessionLocal uses DATABASE_URL.
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-chartingdb}
       DATABASE_URL_SYNC: postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-chartingdb}
+      # The entrypoint migrates only for the API server; this worker depends
+      # on postgres only, so it requests migrations explicitly.
+      RUN_MIGRATIONS: "true"
       STRATEGY_LAB_V2_DATABASE_URL_SYNC: postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-chartingdb}
       STRATEGY_LAB_V2_REDIS_URL: redis://redis:6379/0
       STRATEGY_LAB_V2_ARTIFACT_ROOT: /strategy-lab-artifacts
@@ -840,6 +843,9 @@ services:
       # worker migration URL; runtime AsyncSessionLocal uses DATABASE_URL.
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-chartingdb}
       DATABASE_URL_SYNC: postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-chartingdb}
+      # The entrypoint migrates only for the API server; this worker depends
+      # on postgres only, so it requests migrations explicitly.
+      RUN_MIGRATIONS: "true"
       STRATEGY_LAB_V2_FORWARD_DATABASE_URL_SYNC: postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-chartingdb}
       STRATEGY_LAB_V2_FORWARD_REDIS_URL: redis://redis:6379/0
       STRATEGY_LAB_V2_FORWARD_CALLBACK_FACTORY: ${STRATEGY_LAB_V2_FORWARD_CALLBACK_FACTORY:-}

@@ -1630,7 +1630,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   admissions remain bounded by separately reserved worker profiles and local
   host capacity.
 - The image's common `/app/docker-entrypoint.sh` runs `alembic upgrade head`
-  before executing either dedicated worker module. Alembic reads the generic
+  before executing either dedicated worker module only because these Compose
+  services set `RUN_MIGRATIONS=true` (it otherwise migrates only for the API
+  server; see `docs/deployment.md`). Alembic reads the generic
   `DATABASE_URL_SYNC`; the worker module then applies its namespaced synchronous
   migration URL and uses `app.database.AsyncSessionLocal` via `DATABASE_URL` for
   runtime persistence. Both opt-in Compose workers set the generic Alembic URL,
