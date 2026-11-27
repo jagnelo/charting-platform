@@ -1,0 +1,65 @@
+{
+  "acceptance_criteria": [],
+  "active_session_id": "d2a72c57-e103-4c9e-a431-1c587222f47e",
+  "branch": "chore/ci-workflow-lane-and-entrypoint-guard",
+  "dirty_paths": [],
+  "docker": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-chore-ci-workflow-lane-and-entrypoint-guard-b4b4ae27",
+      "charting-stack-chore-ci-workflow-lane-and-entrypoint-guard-b4b4ae27"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "chore-ci-workflow-lane-and-entrypoint-guard-b4b4ae27c8"
+  },
+  "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance chore/ci-workflow-lane-and-entrypoint-guard: Yes, do 7\u201311. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_request": {
+    "objective": "Advance chore/ci-workflow-lane-and-entrypoint-guard: Yes, do 7\u201311. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "planning_required",
+  "goal_state": "planning_required",
+  "head": "fa64127a590c52ef1cdb9aa31e87e9c1a856f80d",
+  "implementation_sha": "713c0ad8abd57ef0649e1122c5fada88cccf069f",
+  "local_validation_profile": "pending_agent_assessment",
+  "next_action": "run make agent-session-start",
+  "parent_branch": "staging",
+  "plan_hash": "d5b0580b323ae7c46fa53ab70e2e4cf4187c60efa9b728c0573350ff00a5b022",
+  "planning_required": true,
+  "planning_state": "draft",
+  "previous_session_ids": [],
+  "progress": {
+    "completed": [],
+    "current_blocker": "none",
+    "current_phase": "plan",
+    "total": 0
+  },
+  "remote": "fa64127a590c52ef1cdb9aa31e87e9c1a856f80d",
+  "remote_sha": "fa64127a590c52ef1cdb9aa31e87e9c1a856f80d",
+  "remote_synchronized": true,
+  "retained_docker_resources": [],
+  "schema": 2,
+  "session_id": "d2a72c57-e103-4c9e-a431-1c587222f47e",
+  "validation_tier": "full_integration",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/chore-ci-workflow-lane-and-entrypoint-guard/ops/workstreams/chore-ci-workflow-lane-and-entrypoint-guard",
+  "workstream_files": [
+    "/home/m920q/charting-platform/.ai/worktrees/chore-ci-workflow-lane-and-entrypoint-guard/ops/workstreams/chore-ci-workflow-lane-and-entrypoint-guard/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/chore-ci-workflow-lane-and-entrypoint-guard/ops/workstreams/chore-ci-workflow-lane-and-entrypoint-guard/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/chore-ci-workflow-lane-and-entrypoint-guard/ops/workstreams/chore-ci-workflow-lane-and-entrypoint-guard/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/chore-ci-workflow-lane-and-entrypoint-guard/ops/workstreams/chore-ci-workflow-lane-and-entrypoint-guard/session.json"
+  ],
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/chore-ci-workflow-lane-and-entrypoint-guard",
+  "worktree_id": "chore-ci-workflow-lane-and-entrypoint-guard-b4b4ae27c8"
+}

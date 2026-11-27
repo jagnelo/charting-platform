@@ -322,6 +322,21 @@ docker compose exec backend alembic upgrade head
 open http://your-nas-ip
 ```
 
+#### Migrations and the image entrypoint
+
+`backend/docker-entrypoint.sh` runs `alembic upgrade head` only for the API
+server process (`uvicorn`/`gunicorn`, including `python -m uvicorn`), which is
+the image's default `CMD` and therefore the Compose `backend` service with no
+extra configuration. Every other command (`python some_script.py`, the arq
+worker, a shell) skips migrations, so a one-off
+`docker run <backend image> python script.py` with a production `DATABASE_URL`
+never migrates production as a side effect. `RUN_MIGRATIONS=true` forces
+migrations for any command (the opt-in `strategy-lab-v2` workers set it because
+they depend only on postgres); `RUN_MIGRATIONS=false` always skips, even for
+the API server; any other value aborts with exit code 64. The Compose `worker`
+waits for the `backend` service to be healthy, i.e. for migrations to finish.
+
+
 ### Subsequent starts
 
 ```bash

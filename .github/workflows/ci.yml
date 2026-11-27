@@ -125,6 +125,11 @@ jobs:
             exit 1
           }
 
+      - name: Run workflow and tooling tests
+        # Same suite as `make test-workflow`; also guards workflow/entrypoint
+        # contracts that backend unit tests do not cover.
+        run: uv run --project backend python -m pytest tests/workflow -q
+
       - name: Run integration tests (with testcontainers)
         run: |
           cd backend

@@ -1,0 +1,75 @@
+schema: 4
+branch: chore/ci-workflow-lane-and-entrypoint-guard
+base_sha: 713c0ad8abd57ef0649e1122c5fada88cccf069f
+parent_branch: staging
+parent_sha: 713c0ad8abd57ef0649e1122c5fada88cccf069f
+dependency_authorization: "not applicable: independent staging-based topic"
+human_intent_authorization: "Yes, do 7\u201311"
+planning_state: ready
+human_closure_authorization: >-
+  2026-11-13 the human delegated closure decisions to the Desktop orchestrator ("you're allowed to make
+  decisions that the rules expect the human dev to make. Proceed"); on 2026-11-26 the human asked for this
+  topic ("do ALL of these"). The orchestrator closes it under that delegation. Production deployment still
+  needs the human's explicit per-deploy approval.
+closure_summary: >-
+  tests/workflow (234 tests, ~5 s) ran in CI only for workflow-scope changes, so the provider
+  live-acceptance contract test went unchecked on ordinary branches; it now runs in the backend job on
+  every broad-scope run. backend/docker-entrypoint.sh ran alembic upgrade before any command, so `docker
+  run <backend image> python script.py` with a production DATABASE_URL tried to migrate production (seen
+  2026-11-27 during the dedup dry-run). It now migrates only for the API server (uvicorn/gunicorn, the
+  image default CMD used by the compose backend service in production) or when RUN_MIGRATIONS=true;
+  RUN_MIGRATIONS=false always skips; invalid values exit 64. The arq worker already waits for a healthy
+  backend; the two strategy-lab-v2 workers set RUN_MIGRATIONS=true to keep their behaviour. Requires
+  integration_capture: exact branch HEAD. Requires integration_capture: exact branch HEAD.
+validation_tier: full_integration
+human_validation_authorization: agent_default_full_integration
+local_validation_profile: full_stack_browser
+local_validation_reason: >-
+  Compose and image entrypoint change. Locally: tests/workflow 234 passed (stubbed alembic plus compose
+  contract). The real 713c0ad8 backend image with the new entrypoint mounted skipped migrations for a
+  python script, refused RUN_MIGRATIONS=bogus, and attempted alembic for uvicorn. Exact-source CI and the
+  staging gate run the full stack.
+goal_budget_policy: unbounded_unless_human_authorized
+human_goal_budget_authorization: none
+goal: "Yes, do 7\u201311"
+scope:
+  - "CI: run the full tests/workflow suite in the Backend Tests job on every broad-scope run (previously only the workflow-only scope lane ran it)."
+  - "backend/docker-entrypoint.sh: run alembic upgrade head only for the API server (uvicorn/gunicorn) or when RUN_MIGRATIONS=true; RUN_MIGRATIONS=false always skips; invalid value exits 64."
+  - "docker-compose.yml: the opt-in strategy-lab-v2 workers (postgres-only dependency) set RUN_MIGRATIONS=true to preserve their migrating behavior."
+  - "tests/workflow/test_docker_entrypoint.py: stubbed-alembic tests of the guard plus a compose contract test."
+  - "Document the behavior in docs/deployment.md and docs/strategy-lab-v2.md."
+owned_paths:
+  - .github/workflows/ci.yml
+  - backend/docker-entrypoint.sh
+  - docker-compose.yml
+  - tests/workflow/test_docker_entrypoint.py
+  - docs/deployment.md
+  - docs/strategy-lab-v2.md
+  - ops/workstreams/chore-ci-workflow-lane-and-entrypoint-guard/plan.yaml
+dependencies: []
+acceptance_criteria:
+  - id: AC1
+    text: "CI Backend Tests job runs tests/workflow; the full suite passes locally (234 tests, about 5 s)."
+  - id: AC2
+    text: "The default API server command migrates with no env change; python script.py / arq worker commands do not migrate; RUN_MIGRATIONS=true/false override both ways."
+  - id: AC3
+    text: "Compose backend has no command/entrypoint override, worker still depends_on backend healthy, and strategy-lab-v2 workers opt in explicitly."
+  - id: AC4
+    text: "Behavior documented; workstream validator passes."
+branch_tests:
+  - uv run --project backend python -m pytest tests/workflow -q
+  - uv run --project backend python scripts/validate-workstream.py ops/workstreams
+branch_tests_reason: "Workflow and entrypoint changes are fully exercised by the tests/workflow suite (including the new stubbed-alembic entrypoint tests); no product code changed."
+live_test_impact: none
+migration_impact: none
+deployment_impact: "backend image entrypoint behavior changes: only the API server (default CMD) or RUN_MIGRATIONS=true migrates. Production compose backend service needs no env change; one-off containers with other commands no longer migrate. Requires a backend image rebuild to take effect."
+status: ready_for_integration
+remaining_gaps: 
+  - "The guard takes effect only once a rebuilt backend image is deployed."
+  - "Production deployment needs the human's explicit approval."
+progress: 
+  completed: [AC1, AC2, AC3, AC4]
+  total: 4
+  current_phase: validation
+  current_blocker: none
+  next_action: "Exact-source feature CI, staging integration and the exhaustive gate."
