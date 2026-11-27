@@ -4222,6 +4222,7 @@ test.describe('TC2000 workstation', () => {
     await study.getByRole('combobox', { name: 'Factory study' }).selectOption('positive_streak')
     await expect(study.getByRole('textbox', { name: 'Study Python source' })).toHaveValue(/positive_close_streaks/)
     await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
+    await expect(study.getByRole('textbox', { name: 'Study symbol' })).toHaveValue('SPY')
     await study.getByRole('button', { name: 'Validate' }).click()
     await expect(study).toContainText('Validated for isolated execution', { timeout: 30_000 })
     await study.getByRole('button', { name: 'Run study', exact: true }).click()
@@ -4241,7 +4242,9 @@ test.describe('TC2000 workstation', () => {
     const study = page.locator('.study-lab-tool')
     await expect(study).toBeVisible({ timeout: 10_000 })
     await study.getByRole('combobox', { name: 'Factory study' }).selectOption('positive_streak')
+    await expect(study.getByRole('textbox', { name: 'Study Python source' })).toHaveValue(/positive_close_streaks/)
     await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
+    await expect(study.getByRole('textbox', { name: 'Study symbol' })).toHaveValue('SPY')
     await study.getByRole('button', { name: 'Validate' }).click()
     await expect(study).toContainText('Validated for isolated execution', { timeout: 30_000 })
     await study.getByRole('button', { name: 'Run study', exact: true }).click()
@@ -7323,7 +7326,11 @@ test.describe('TC2000 workstation', () => {
     await asset.getByRole('textbox', { name: `Python source for ${studyName}` }).fill("output.scalar('value', 2)")
     await asset.getByRole('button', { name: 'Validate', exact: true }).click()
     await expect(asset).toContainText('Validated', { timeout: 10_000 })
+    // Register the version POST wait before the click, then assert the list
+    // only after the save round-trip has settled.
+    const versionSaved = page.waitForResponse(response => /\/api\/v1\/code\/assets\/\d+\/versions/.test(response.url()) && response.request().method() === 'POST')
     await asset.getByRole('button', { name: 'Save as new version', exact: true }).click()
+    expect((await versionSaved).ok()).toBe(true)
     await expect(asset).toContainText('2 versions', { timeout: 15_000 })
 
     await asset.getByRole('button', { name: 'Clone', exact: true }).click()
@@ -7629,20 +7636,35 @@ test.describe('Drawing tools', () => {
       }
       await route.continue()
     })
+    // Register the load waits before navigation. A late empty drawings GET (or
+    // a chart rebuild after the OHLC rows land) would otherwise discard the
+    // placed line or the pointer listeners the click below depends on.
+    const barsLoaded = page.waitForResponse(response => /\/api\/v1\/ohlcv\/local\/SPY\/D1/.test(response.url()))
+    const drawingsLoaded = page.waitForResponse(response => /\/api\/v1\/drawings/.test(response.url()) && response.request().method() === 'GET')
     await page.goto('/chart/SPY')
     const chart = page.locator('.chart-tool').filter({ has: page.getByTitle('Chart settings') }).first()
     await expect(chart).toBeVisible({ timeout: 15_000 })
+    await Promise.all([barsLoaded, drawingsLoaded])
     // The drawing toolbar belongs to the active chart window; the factory opens with Benchmarks active.
     await chart.locator('.chart-tool__surface').first().click({ position: { x: 24, y: 24 } })
     const plot = chart.locator('.uplot').first()
     await expect(plot).toBeVisible({ timeout: 15_000 })
-    const box = await plot.boundingBox()
+    // The drawing canvas only exists once the chart store has left its loading state.
+    await expect(chart.locator('.uplot-wrapper .drawing-canvas')).toBeVisible({ timeout: 15_000 })
+    const toolbar = chart.locator('.drawing-toolbar').first()
+    const linesButton = toolbar.getByRole('button', { name: 'Lines' })
+    await expect(linesButton).toHaveAttribute('aria-expanded', 'false')
+    await linesButton.click()
+    await expect(linesButton).toHaveAttribute('aria-expanded', 'true', { timeout: 5_000 })
+    await toolbar.getByRole('menuitem', { name: 'Horizontal Line' }).click()
+    // Placement is a pointerdown on the plot overlay: wait until the wrapper is in drawing mode.
+    await expect(chart.locator('.uplot-wrapper.cursor-crosshair-wrapper')).toBeVisible({ timeout: 5_000 })
+    const over = chart.locator('.u-over').first()
+    await expect(over).toBeVisible()
+    const box = await over.boundingBox()
     expect(box).not.toBeNull()
     const x = box!.x + box!.width * 0.55
     const y = box!.y + box!.height * 0.45
-    const toolbar = chart.locator('.drawing-toolbar').first()
-    await toolbar.getByRole('button', { name: 'Lines' }).click()
-    await toolbar.getByRole('menuitem', { name: 'Horizontal Line' }).click()
     const save = page.waitForResponse(response => response.url().includes('/api/v1/drawings') && response.request().method() === 'POST')
     await page.mouse.click(x, y)
     await save

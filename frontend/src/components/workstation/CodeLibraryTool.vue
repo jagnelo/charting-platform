@@ -403,6 +403,9 @@ async function saveVersion(asset: CodeAsset) {
     const version = await api.post<CodeVersion>(`/code/assets/${asset.id}/versions`, { source, output_contract: base.output_contract, parameter_schema: base.parameter_schema, default_parameters: base.default_parameters })
     await invalidateCodeAssets(queryClient)
     assets.value = assets.value.map(item => item.id === asset.id ? { ...item, versions: [...item.versions, version] } : item)
+    // A list fetch started before this save (e.g. the mount load) must not
+    // resolve afterwards and overwrite the new version with a stale snapshot.
+    refreshGeneration += 1
     const latestDraft = (drafts.value[asset.id] ?? latestVersion(asset)?.source ?? '').trim()
     const latestBase = asset.versions.find(item => item.version_number === selectedVersions.value[asset.id]) ?? latestVersion(asset)
     if (latestDraft === source && latestBase?.version_number === selectedBaseVersion) {

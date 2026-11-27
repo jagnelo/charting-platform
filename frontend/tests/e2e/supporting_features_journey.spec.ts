@@ -13,15 +13,25 @@ async function openApplicationMenuItem(page: Page, label: string) {
 }
 
 // Open a watchlist row's options menu and prove it opened before the caller
-// looks for an item in it.  The trigger's aria-expanded is the real condition:
-// a click that lands during a layout shift (for example the create form
-// closing after the POST resolves) leaves it "false", and this fails at once
-// with that fact instead of timing out later on a menu item that never rendered.
+// looks for an item in it.  The trigger's aria-expanded is the real condition.
+// A click that lands during a layout shift (the create form closing, the list
+// re-sorting after a refetch) misses the trigger, so wait until the row has
+// stopped moving and then click exactly once: a menu that does not open on a
+// single click of a settled row is a real failure, not something to retry.
 async function openWatchlistRowMenu(row: Locator) {
   const trigger = row.getByRole('button', { name: 'More options' })
   await expect(trigger).toHaveAttribute('aria-expanded', 'false')
+  let previous = ''
+  await expect(async () => {
+    const box = await row.boundingBox()
+    const current = JSON.stringify(box)
+    const settled = box !== null && current === previous
+    previous = current
+    expect(settled, 'watchlist row position is stable across two reads').toBe(true)
+  }).toPass({ intervals: [100, 100, 200, 250], timeout: 5_000 })
   await trigger.click()
   await expect(trigger).toHaveAttribute('aria-expanded', 'true', { timeout: 5_000 })
+  await expect(row.locator('.wlsi-dropdown')).toBeVisible({ timeout: 5_000 })
 }
 
 async function authorizationHeaders(page: Page): Promise<Record<string, string>> {
