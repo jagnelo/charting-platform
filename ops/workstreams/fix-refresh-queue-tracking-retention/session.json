@@ -1,0 +1,65 @@
+{
+  "acceptance_criteria": [],
+  "active_session_id": "307b50f8-23eb-4e67-b4b8-d2e0114aa50a",
+  "branch": "fix/refresh-queue-tracking-retention",
+  "dirty_paths": [],
+  "docker": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-fix-refresh-queue-tracking-retention-84474a36",
+      "charting-stack-fix-refresh-queue-tracking-retention-84474a36"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "fix-refresh-queue-tracking-retention-84474a36db"
+  },
+  "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance fix/refresh-queue-tracking-retention: Yes, do 7\u201311. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_request": {
+    "objective": "Advance fix/refresh-queue-tracking-retention: Yes, do 7\u201311. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "planning_required",
+  "goal_state": "planning_required",
+  "head": "430189599c59bb0b99162d35d44ff076d49d39e4",
+  "implementation_sha": "713c0ad8abd57ef0649e1122c5fada88cccf069f",
+  "local_validation_profile": "pending_agent_assessment",
+  "next_action": "run make agent-session-start",
+  "parent_branch": "staging",
+  "plan_hash": "3d50f9880189082430a47779ce09b1fc287f2ef2c353c78215461be93bb7b9d9",
+  "planning_required": true,
+  "planning_state": "draft",
+  "previous_session_ids": [],
+  "progress": {
+    "completed": [],
+    "current_blocker": "none",
+    "current_phase": "plan",
+    "total": 0
+  },
+  "remote": "430189599c59bb0b99162d35d44ff076d49d39e4",
+  "remote_sha": "430189599c59bb0b99162d35d44ff076d49d39e4",
+  "remote_synchronized": true,
+  "retained_docker_resources": [],
+  "schema": 2,
+  "session_id": "307b50f8-23eb-4e67-b4b8-d2e0114aa50a",
+  "validation_tier": "full_integration",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/fix-refresh-queue-tracking-retention/ops/workstreams/fix-refresh-queue-tracking-retention",
+  "workstream_files": [
+    "/home/m920q/charting-platform/.ai/worktrees/fix-refresh-queue-tracking-retention/ops/workstreams/fix-refresh-queue-tracking-retention/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-refresh-queue-tracking-retention/ops/workstreams/fix-refresh-queue-tracking-retention/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-refresh-queue-tracking-retention/ops/workstreams/fix-refresh-queue-tracking-retention/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-refresh-queue-tracking-retention/ops/workstreams/fix-refresh-queue-tracking-retention/session.json"
+  ],
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-refresh-queue-tracking-retention",
+  "worktree_id": "fix-refresh-queue-tracking-retention-84474a36db"
+}

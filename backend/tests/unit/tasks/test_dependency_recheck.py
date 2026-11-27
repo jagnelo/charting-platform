@@ -60,3 +60,19 @@ def test_naive_next_attempt_is_read_as_utc():
     assert dependency_recheck_at([_job("deferred", naive)], expected=1, now=NOW) == NOW + timedelta(
         minutes=5
     )
+
+
+def test_coalesced_waiter_parks_until_the_survivor_wakes_it():
+    from app.tasks.data_tasks import DEPENDENCY_PARK_MAX
+
+    for survivor in (_job("queued", NOW), _job("leased", NOW), _job("deferred", NOW)):
+        assert (
+            dependency_recheck_at([survivor], expected=1, now=NOW, parked=True)
+            == NOW + DEPENDENCY_PARK_MAX
+        )
+
+
+def test_parked_waiter_with_a_missing_survivor_rechecks_soon():
+    assert (
+        dependency_recheck_at([], expected=1, now=NOW, parked=True) == NOW + DEPENDENCY_RECHECK_MIN
+    )

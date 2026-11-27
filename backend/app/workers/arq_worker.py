@@ -375,6 +375,13 @@ async def scheduled_instrument_duplicate_merge(ctx: dict):
     return await merge_duplicate_instruments_task(ctx)
 
 
+async def scheduled_refresh_tracking_retention(ctx: dict):
+    """Bounded, idempotent pruning of finished data-preparation tracking parents."""
+    from app.tasks.instrument_dedup_tasks import prune_refresh_tracking_task
+
+    return await prune_refresh_tracking_task(ctx)
+
+
 async def scheduled_daily_id_bootstrap(ctx: dict):
     if not settings.INSTRUMENT_SYNC_SCHEDULE_ENABLED:
         logger.info("Instrument sync schedule disabled; skipping stable ID bootstrap")
@@ -683,6 +690,7 @@ class WorkerSettings:
         scheduled_daily_metadata_sync,
         scheduled_daily_id_bootstrap,
         scheduled_instrument_duplicate_merge,
+        scheduled_refresh_tracking_retention,
         scheduled_daily_history_refresh,
         scheduled_refresh_queue_process,
         scheduled_etf_holdings_refresh,
@@ -779,6 +787,16 @@ class WorkerSettings:
                 scheduled_instrument_duplicate_merge,
                 minute={7, 22, 37, 52},
                 timeout=max(60, int(settings.INSTRUMENT_DUPLICATE_MERGE_MAX_SECONDS) + 120),
+            ),
+        )
+    if settings.MARKET_REFRESH_TRACKING_RETENTION_ENABLED:
+        # :11/:41 avoids the quarter-hour drain/planner ticks, the :05-step
+        # identity batch and the :07-step duplicate merge.
+        cron_jobs += (
+            cron(
+                scheduled_refresh_tracking_retention,
+                minute={11, 41},
+                timeout=max(60, int(settings.MARKET_REFRESH_TRACKING_RETENTION_MAX_SECONDS) + 120),
             ),
         )
     if settings.OPTIONS_REFRESH_ENABLED:

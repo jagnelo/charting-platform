@@ -1,0 +1,80 @@
+schema: 4
+branch: fix/refresh-queue-tracking-retention
+base_sha: 713c0ad8abd57ef0649e1122c5fada88cccf069f
+parent_branch: staging
+parent_sha: 713c0ad8abd57ef0649e1122c5fada88cccf069f
+dependency_authorization: "not applicable: independent staging-based topic"
+human_intent_authorization: "Yes, do 7\u201311"
+planning_state: ready
+human_closure_authorization: >-
+  2026-11-13 the human delegated closure decisions to the Desktop orchestrator ("you're allowed to make
+  decisions that the rules expect the human dev to make. Proceed"); on 2026-11-26 the human asked for this
+  topic ("do ALL of these"). The orchestrator closes it under that delegation. Production deployment still
+  needs the human's explicit per-deploy approval.
+closure_summary: >-
+  market_refresh_job held 748,770 data_preparation_request tracking parents (2.2GB table). Tracking
+  parents never change status and nothing pruned them, and system maintenance mints about 100-120k a day.
+  A bounded cron (minute 11 and 41, 5k-row batches, 240 s budget, on by default) now deletes
+  system-maintenance tracking parents untouched for 3 days whose referenced child jobs are all terminal or
+  gone; children (which carry request-key dedup) and owner tracking parents are never touched. About 290k
+  rows qualify on the first runs, and the table settles near 300k tracking rows. Coalesced waiters whose
+  survivor is still pending are parked for up to 30 min instead of being rechecked every 20 s to 10 min
+  through the claim rotation (about 11.9k were cycling), and the survivor's completion wakes them through
+  a PostgreSQL JSONB filter instead of a 500-row scan. The hand-over dips are documented: drains started
+  by the quarter-hour tick share one 360 s deadline and end together near :06; no safe isolated fix was
+  found. Requires integration_capture: exact branch HEAD. Requires integration_capture: exact branch HEAD.
+validation_tier: full_integration
+human_validation_authorization: agent_default_full_integration
+local_validation_profile: docker_integration
+local_validation_reason: >-
+  Retention delete and the JSONB waiter wake verified on real PostgreSQL via testcontainers (retention
+  test plus the existing child-coalescing and queue suites: 25 passed); 267 focused unit tests pass; ruff
+  clean.
+goal_budget_policy: unbounded_unless_human_authorized
+human_goal_budget_authorization: none
+goal: "Yes, do 7\u201311"
+scope:
+  - "Retention: delete system-maintenance data_preparation_request tracking parents untouched for MARKET_REFRESH_TRACKING_RETENTION_DAYS (default 3) whose referenced children are all terminal; batched, time-budgeted, idempotent arq cron at :11/:41, on by default. Children are not pruned."
+  - "Park coalesced waiters: a coalesced duplicate defers 30 min instead of 20s-10min polling; survivor completion wakes it via a PostgreSQL-targeted wake query."
+  - "Hand-over dip investigation: documented only, no code change."
+owned_paths:
+  - backend/app/config.py
+  - backend/app/services/market_refresh_retention.py
+  - backend/app/services/market_refresh_queue.py
+  - backend/app/tasks/data_tasks.py
+  - backend/app/tasks/instrument_dedup_tasks.py
+  - backend/app/workers/arq_worker.py
+  - backend/tests/unit/services/test_market_refresh_retention.py
+  - backend/tests/unit/tasks/test_dependency_recheck.py
+  - backend/tests/unit/workers/test_arq_worker.py
+  - backend/tests/integration/test_refresh_tracking_retention_postgres.py
+dependencies: []
+acceptance_criteria:
+  - id: AC1
+    text: "AC1: Old system tracking parents with only terminal/missing children are deleted in bounded batches; parents with any non-terminal child, recent parents and owner parents are kept."
+  - id: AC2
+    text: "AC2: The retention pass is idempotent, keyset-paged and stops at its wall-time budget."
+  - id: AC3
+    text: "AC3: The retention cron is registered by default (minute 11/41) and gated by MARKET_REFRESH_TRACKING_RETENTION_ENABLED."
+  - id: AC4
+    text: "AC4: Coalesced waiters park for DEPENDENCY_PARK_MAX unless a prerequisite is missing, and completion wakes only waiters listing the prerequisite (PostgreSQL jsonb filter)."
+branch_tests:
+  - uv run --project backend pytest backend/tests/unit/services/test_market_refresh_retention.py backend/tests/unit/tasks/test_dependency_recheck.py backend/tests/unit/services/test_market_refresh_queue.py backend/tests/unit/workers/test_arq_worker.py backend/tests/unit/services/test_data_preparation_service.py -q --no-cov
+  - uv run --project backend ruff check backend/app backend/tests
+  - cd backend && uv run pytest tests/integration/test_refresh_tracking_retention_postgres.py --override-ini addopts= -q
+branch_tests_reason: "Unit tests cover retention rules, parking and cron registration; the Postgres integration test covers the delete SQL and the jsonb wake filter that SQLite cannot."
+live_test_impact: none
+migration_impact: "none (no migration; a partial index on tracking rows is an optional follow-up)"
+deployment_impact: "Worker restart picks up the new cron. First passes delete ~290k tracking rows (3-day window) in 5k batches within a 240s budget per run; no manual steps."
+status: ready_for_integration
+remaining_gaps: 
+  - "Hand-over dips documented, not fixed; staggering the drain deadlines is the likely lever."
+  - "Each retention batch is a parallel seq scan of the 2.2GB table (about 8 s cold); a partial index on tracking rows would remove it but needs a migration."
+  - "A waiter can wait up to 30 min if its survivor completes between the prerequisite check and the deferral (was up to 10 min)."
+  - "Production deployment needs the human's explicit approval."
+progress: 
+  completed: [AC1, AC2, AC3, AC4]
+  total: 4
+  current_phase: validation
+  current_blocker: none
+  next_action: "Exact-source feature CI, staging integration and the exhaustive gate."

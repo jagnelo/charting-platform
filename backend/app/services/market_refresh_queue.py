@@ -6,7 +6,8 @@ import hashlib
 from datetime import UTC, date, datetime, timedelta
 from uuid import uuid4
 
-from sqlalchemy import and_, func, or_, select, update
+from sqlalchemy import and_, cast, func, or_, select, update
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.market_data_foundation import MarketRefreshJob
@@ -14,6 +15,9 @@ from app.providers.errors import redact_provider_message
 
 DEPENDENCY_PENDING_ERROR = "data preparation dependency is not complete"
 _DEPENDENT_WAKE_SCAN_LIMIT = 500
+# PostgreSQL filters on the prerequisite id in SQL, so the scan only returns
+# true dependents and can afford a much larger bound.
+_DEPENDENT_WAKE_SQL_LIMIT = 20000
 
 
 class RefreshLeaseLostError(RuntimeError):
@@ -32,6 +36,13 @@ def core_refresh_request_key(instrument_id: int, *, run_date: date) -> str:
     return f"d1:{int(instrument_id)}:{run_date.isoformat()}"
 
 
+def _is_postgresql(db: AsyncSession) -> bool:
+    bind = getattr(db, "bind", None)
+    if bind is None:
+        bind = getattr(getattr(db, "sync_session", None), "bind", None)
+    return getattr(getattr(bind, "dialect", None), "name", None) == "postgresql"
+
+
 async def _acquire_enqueue_lock(db: AsyncSession, request_key: str) -> None:
     """Serialize same-key enqueue admission across PostgreSQL workers.
 
@@ -42,10 +53,7 @@ async def _acquire_enqueue_lock(db: AsyncSession, request_key: str) -> None:
     lock-free; their database constraint still preserves uniqueness.
     """
 
-    bind = getattr(db, "bind", None)
-    if bind is None:
-        bind = getattr(getattr(db, "sync_session", None), "bind", None)
-    if getattr(getattr(bind, "dialect", None), "name", None) != "postgresql":
+    if not _is_postgresql(db):
         return
     digest = hashlib.sha256(request_key.encode("utf-8")).digest()
     advisory_key = int.from_bytes(digest[:8], byteorder="big", signed=True)
@@ -236,17 +244,25 @@ async def wake_waiting_dependents(
     """
 
     current = now or datetime.now(UTC)
+    query = select(MarketRefreshJob).where(
+        MarketRefreshJob.status == "deferred",
+        MarketRefreshJob.last_error == DEPENDENCY_PENDING_ERROR,
+        MarketRefreshJob.next_attempt_at > current,
+    )
+    limit = _DEPENDENT_WAKE_SCAN_LIMIT
+    if _is_postgresql(db):
+        # Parked coalesced waiters sit far from the head of the
+        # next_attempt_at order, so an unfiltered bounded scan would miss them.
+        query = query.where(
+            cast(MarketRefreshJob.metadata_payload, JSONB)["data_preparation_child"][
+                "wait_for_job_ids"
+            ].contains([int(prerequisite_id)])
+        )
+        limit = _DEPENDENT_WAKE_SQL_LIMIT
     waiting = (
         (
             await db.execute(
-                select(MarketRefreshJob)
-                .where(
-                    MarketRefreshJob.status == "deferred",
-                    MarketRefreshJob.last_error == DEPENDENCY_PENDING_ERROR,
-                    MarketRefreshJob.next_attempt_at > current,
-                )
-                .order_by(MarketRefreshJob.next_attempt_at, MarketRefreshJob.id)
-                .limit(_DEPENDENT_WAKE_SCAN_LIMIT)
+                query.order_by(MarketRefreshJob.next_attempt_at, MarketRefreshJob.id).limit(limit)
             )
         )
         .scalars()

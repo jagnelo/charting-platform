@@ -3392,6 +3392,14 @@ class Settings(BaseSettings):
     # BRK.B vs BRK-B. bar_agreement (matching D1 closes only) is opt-in after its
     # dry-run counts are reviewed.
     INSTRUMENT_DUPLICATE_MERGE_EVIDENCE: str = "same_listing,separator_spelling"
+    # Retention of finished system-maintenance data-preparation tracking
+    # parents (market_refresh_job status='tracking'). A parent is deleted only
+    # when untouched for RETENTION_DAYS and all of its child jobs are terminal.
+    # Children are never pruned. Batched, idempotent, wall-time bounded.
+    MARKET_REFRESH_TRACKING_RETENTION_ENABLED: bool = True
+    MARKET_REFRESH_TRACKING_RETENTION_DAYS: int = 3
+    MARKET_REFRESH_TRACKING_RETENTION_BATCH_SIZE: int = 5000
+    MARKET_REFRESH_TRACKING_RETENTION_MAX_SECONDS: int = 240
     # A held identity child waits for its provider reset only when that reset
     # is near; longer holds complete as a recoverable terminal outcome.
     INSTRUMENT_IDENTITY_HELD_DEFER_MAX_SECONDS: int = 3600

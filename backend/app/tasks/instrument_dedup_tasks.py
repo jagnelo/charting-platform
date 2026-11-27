@@ -23,3 +23,21 @@ async def merge_duplicate_instruments_task(ctx: dict | None = None) -> dict:
     if summary["merged"] or summary["failed"] or summary["skipped"]:
         logger.info("duplicate instrument merge pass: %s", summary)
     return summary
+
+
+async def prune_refresh_tracking_task(ctx: dict | None = None) -> dict:
+    """Delete finished data-preparation tracking parents (bounded, idempotent)."""
+
+    from app.services.market_refresh_retention import prune_finished_tracking_parents
+
+    if not settings.MARKET_REFRESH_TRACKING_RETENTION_ENABLED:
+        return {"skipped": True, "reason": "tracking retention disabled"}
+    summary = await prune_finished_tracking_parents(
+        AsyncSessionLocal,
+        retention_days=float(settings.MARKET_REFRESH_TRACKING_RETENTION_DAYS),
+        batch_size=int(settings.MARKET_REFRESH_TRACKING_RETENTION_BATCH_SIZE),
+        max_seconds=float(settings.MARKET_REFRESH_TRACKING_RETENTION_MAX_SECONDS),
+    )
+    if summary["deleted"]:
+        logger.info("refresh tracking retention pass: %s", summary)
+    return summary
